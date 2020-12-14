@@ -1,0 +1,15 @@
+{% extends "admin/change_form.html" %}
+{% load i18n %}
+{% block object-tools-items %}
+    {% if object_id %}
+    <li><a href="/invoicing/download_invoice/{{ object_id }}/" class="historylink">{% trans "Download invoice" %}</a></li>
+    <li>
+    {% if not original.canceled %}
+        <a href="/invoicing/cancel_invoice/{{ object_id }}/" class="historylink" onclick="return confirm('Confirm cancellation of invoice');">Cancel</a></li>
+    {% else %}
+        <a href="/invoicing/print_cnote/{{ object_id }}" class="historylink">{% trans "Print credit note" %}</a>
+    {% endif %}
+    </li>
+    {% endif %}
+    {{block.super}}
+{% endblock %}

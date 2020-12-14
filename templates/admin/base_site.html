@@ -1,0 +1,22 @@
+{% extends "admin/base.html" %}
+{% load staticfiles %}
+
+{% block title %}{{ title }} | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block branding %}
+<h1 id="site-name">
+    <img src="{% static 'img/ladiaria_logo_blanco.png' %}" alt="la diaria"/>
+</h1>
+{% endblock %}
+
+{% block extrastyle %}
+{{ block.super }}
+{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<link rel="shortcut icon" type="image/png" href="{% static 'img/favicon_ssng.ico' %}"/>
+<link rel="stylesheet" type="text/css" href="{% static 'css/admin-extra.css' %}"/>
+{% endblock %}
+
+{% block nav-global %}{% endblock %}

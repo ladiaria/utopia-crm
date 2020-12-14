@@ -1,0 +1,76 @@
+{% extends 'adminlte/base.html' %}
+{% load sip i18n %}
+{% block no_heading %}
+<h1>{% trans 'Support' %}</h1>
+<p>{% trans 'Manage promotions and sales' %}</p>
+{% endblock %}
+{% block breadcrumbs %}
+<ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="/support/">{% trans 'Support' %}</a></li>
+    <li class="breadcrumb-item active">{% trans 'Promotions and sales' %}</li>
+</ol>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h3 class="card-title">{% trans 'Not contacted' %}</h3>
+  </div>
+  <div class="card-body">
+    <table class="table table-bordered">
+      <thead>
+          <tr>
+            <th>{% trans 'Campaign name' %}</th>
+            <th>{% trans 'Campaign count' %}</th>
+            <th>{% trans 'Campaign end date' %}</th>
+            <th>{% trans 'Successful' %}</th>
+            <th></th>
+          </tr>
+      </thead>
+      <tbody>
+        {% for campaign in not_contacted %}
+        <tr>
+          <td>{{campaign.name}}</td>
+          <td>{{campaign.count}}</td>
+          <td>{{campaign.end_date|date:"SHORT_DATE_FORMAT"}}</td>
+          <td>0</td>
+          <td><a class="btn btn-primary btn-sm" href="/support/seller_console/new/{{campaign.id}}/"><i class="fas fa-eye"></i> {% trans 'View' %}</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+<div class="card">
+  <div class="card-header">
+    <h3 class="card-title">{% trans 'Activities to do' %}</h3>
+  </div>
+  <div class="card-body">
+    <table class="table table-bordered">
+      <thead>
+          <tr>
+            <th>{% trans 'Campaign name' %}</th>
+            <th>{% trans 'Pending' %}</th>
+            <th>{% trans 'Delayed' %}</th>
+            <th>{% trans 'Campaign end date' %}</th>
+            <th>{% trans 'Successful' %}</th>
+            <th></th>
+          </tr>
+      </thead>
+      <tbody>
+          {% for campaign in all_campaigns %}
+          <tr>
+            <td>{{campaign.name}}</td>
+            <td>{{campaign.pending}}</td>
+            <td>{{campaign.delayed}}</td>
+            <td>{{campaign.end_date|date:"SHORT_DATE_FORMAT"}}</td>
+            <td>0</td>
+            <td><a class="btn btn-primary btn-sm" href="/support/seller_console/act/{{campaign.id}}/"><i class="fas fa-eye"></i> {% trans 'View' %}</a></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+</div>
+
+{% endblock %}

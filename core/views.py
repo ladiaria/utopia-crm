@@ -1,0 +1,93 @@
+# coding: utf-8
+import requests
+
+from django.conf import settings
+from core.models import Product, PriceRule
+
+
+def process_products(input_product_dict):
+    """
+    Takes products from a product list (for example from a subscription products list) and turns them into new products
+    that are already bundled. These will be executed in order of priority, from smallest to greatest.
+
+    Each of the products must be a tuple with product and copies.
+    """
+    input_product_ids = list(input_product_dict.keys())
+    input_products = Product.objects.filter(id__in=input_product_ids)
+    input_products_count = input_products.count()
+    output_dict = {}
+    for pricerule in PriceRule.objects.filter(active=True).order_by('priority'):
+        exit_rule = False
+        products_in_list_and_pool = []
+        pool = pricerule.products_pool.all()
+        not_pool = pricerule.products_not_pool.all()
+        for product in not_pool:
+            if product in input_products or product.id in output_dict.keys():
+                # If any of the products is in the list of input products and on the not_pool, we skip the rule
+                exit_rule = True
+        if exit_rule:
+            continue
+        for input_product in input_products:
+            if input_product in pricerule.products_pool.all():
+                products_in_list_and_pool.append(input_product)
+        if pricerule.add_wildcard:
+            # If the product rule has a wildcard it means it has to be in the pool, and MUST NOT be the only product
+            # in the mix.
+            if input_products_count > 1 and len(products_in_list_and_pool) > 0:
+                output_dict[pricerule.resulting_product.id] = input_product_dict[input_product_ids[0]]
+        elif len(products_in_list_and_pool) == pricerule.amount_to_pick:
+            if pricerule.mode == 1:
+                # We use the copies for any of the products, the first one for instance, they should all be the same
+                # since they're on the 'choose all products' mode.
+                output_dict[pricerule.resulting_product.id] = input_product_dict[str(products_in_list_and_pool[0].id)]
+                # We're going to exclude the products that were not used here so they can be used by other rules.
+                for product in input_products:
+                    if product in pool:
+                        input_products = input_products.exclude(pk=product.id)
+            elif pricerule.mode == 2:
+                # This is if we only need to change one product into another. WIP.
+                output_dict[pricerule.choose_one_product.id] = products_in_list_and_pool[0][1]
+                for product in input_products:
+                    if product == pricerule.choose_one_product:
+                        # We're only going to replace the chosen product from the mix.
+                        input_products = input_products.exclude(pk=product.id)
+            elif pricerule.mode == 3:
+                # We just add an extra product to the list. We're not going to remove them from input products.
+                # Again we take the copies from the first product on the list. This might be dangerous, and might need
+                # a different value. We might change it to 1.
+                output_dict[pricerule.resulting_product.id] = input_product_dict[input_product_ids[0]]
+
+    # In the end we will also add the remainder of the products that were not used to the output dictionary
+    for product in input_products:
+        output_dict[product.id] = input_product_dict[str(product.id)]
+    return output_dict
+
+
+def calc_price_from_products(products_with_copies, frequency):
+    """
+    Returns the prices, we need the products already processed.
+    """
+    total_price, discount_pct, frequency_discount_amount, frequency = 0, 0, 0, int(frequency)
+
+    for product_id, copies in products_with_copies.items():
+        product = Product.objects.get(pk=int(product_id))
+        copies = int(copies)
+        if product.type == 'S':
+            total_price += product.price * copies
+        elif product.type == 'D':
+            # Discounts are only applied once (TODO: Decide if we need to change this)
+            total_price -= product.price
+
+    # Then we multiply all this by the frequenccy
+    total_price = total_price * frequency
+    # Next step is determining if there's a discount for frequency
+    if frequency == 3:
+        discount_pct = getattr(settings, 'DISCOUNT_3_MONTHS', 0)
+    elif frequency == 6:
+        discount_pct = getattr(settings, 'DISCOUNT_6_MONTHS', 0)
+    if frequency == 12:
+        discount_pct = getattr(settings, 'DISCOUNT_12_MONTHS', 0)
+    if discount_pct:
+        frequency_discount_amount = round((total_price * discount_pct) / 100)
+        total_price -= frequency_discount_amount
+    return total_price

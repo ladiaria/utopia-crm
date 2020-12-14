@@ -1,0 +1,10 @@
+stages:
+  - test
+
+test:
+  stage: test
+  variables:
+    GIT_STRATEGY: clone
+  script:
+  - source /opt/venv/utopia/bin/activate
+  - bash ./runtests-ci.sh

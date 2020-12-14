@@ -1,0 +1,101 @@
+{% extends "adminlte/base.html" %}
+
+{% load static %}
+{% load i18n %}
+{% block stylesheets %}
+    {{block.super}}
+    <link rel="stylesheet" href="{% static 'css/jquery-ui.css' %}" />
+{% endblock %}
+
+{% block extra_head %}
+<script type="text/javascript" src="{% static 'js/jquery-3.3.1.min.js' %}"></script>
+<script src="{% static 'js/1.12.1/jquery-ui.js' %}"></script>
+<script type="text/javascript">
+  $(function(){
+    $("#product_select").change(function() {
+      var optionValue = $(this).val();
+      var url = window.location.href.split("?")[0];
+      window.location = url + "?product_id=" + optionValue;
+    });
+  });
+</script>
+{% endblock %}
+{% block no_heading %}
+<h1>{% trans 'Logistics' %}</h1>
+<p>{% trans "View all logistics routes" %}</p>
+{% endblock %}
+{% block breadcrumbs %}
+<ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="/logistics/">{% trans 'Logistics' %}</a></li>
+    <li class="breadcrumb-item active">{% trans "All routes" %}</li>
+</ol>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h1 class="card-title">{% trans "All routes" %}</h1>
+  </div>
+  <div class="card-body">
+    <form action="" method="post">
+      <div class="card card-outline card-primary">
+        <div class="card-header">
+          <h2 class="card-title">{% trans 'Filter' %}</h2>
+        </div>
+        <div class="card-body">
+          <div class="form-group">
+            <select id="product_select" class="form-control">
+             <option value="all">{% trans 'All' %}</option>
+            {% for product in product_list %}
+             <option value="{{product.id}}" {% if product_id == product.id|slugify %}selected{% endif %}>{{product.name}}</option>
+            {% endfor %}
+            </select>
+          </div>
+          <div class="form-group text-right">
+            <input type="submit" value="{% trans 'Send' %}" class="btn btn-primary btn-gradient"/>
+          </div>
+        </div>
+      </div>
+
+
+
+    <h3>{% trans 'Weekday' %}: {{day}} | {% trans 'Product' %}: {{tomorrow_product}}</h3>
+      {% csrf_token %}
+      <table class="table table-hover table-head-fixed">
+        <thead>
+          <tr>
+              <th>#</th>
+              <th>C</th>
+              <th>I</th>
+              <th>P</th>
+              <th>N</th>
+              <th>{% trans "Total" %}</th>
+              <th>{% trans "Actions" %}</th>
+              <th>{% trans "Name" %}</th>
+              <th>{% trans "Description" %}</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for route in route_list %}
+          <tr class="{% cycle 'row1' 'row2' %}">
+              <td>{{ route.number }}</td>
+              <td>{{ route.copies|default_if_none:0 }}</td>
+              <td>{{ route.invoices|default_if_none:0 }}</td>
+              <td>{{ route.promotions|default_if_none:0 }}</td>
+              <td>{{ route.new|default_if_none:0 }}</td>
+              <td>{{ route.contacts|default_if_none:0 }}</td>
+              <td>
+                <a href="{% url 'route_details' route.number %}">{% trans "Details" %}</a>
+                <a href="{% url 'order_route' route.number %}">{% trans "Order" %}</a>
+                <a href="{% url 'change_route' route.number %}">{% trans "Re-route" %}</a>
+              </td>
+              <td>{{route.name}}</td>
+              <td>{{route.description}}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </form>
+    </div>
+</div>
+{% endblock %}

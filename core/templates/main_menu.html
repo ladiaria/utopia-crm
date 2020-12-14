@@ -1,0 +1,80 @@
+{% extends 'adminlte/base.html' %}
+{% load static %}
+{% load i18n %}
+
+{% block stylesheets %}
+    {{block.super}}
+    <link href="{% static 'css/stylish-tables.css' %}" type="text/css" rel="stylesheet" />
+{% endblock %}
+{% block no_heading %}
+<h1>{% trans 'Home' %}</h1>
+<p>{% trans 'Your starting point' %}</p>
+{% endblock %}
+
+
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h2 class="card-title">{% trans 'Hi' %} [username], {% trans ' choose where you want to go' %}</h2>
+  </div>
+  <div class="card-body">
+    <div class="row">
+        <div class="col-lg-3 col-6">
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">{% trans 'Contacts' %}</h3>
+            </div>
+            <div class="card-body">
+              <p>{% trans 'Manage all contacts in the database.' %}</p>
+              <div class="text-right">
+                <a href="{{contact_list}}" class="btn btn-default">Go to Contacts</a>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-3 col-6">
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">{% trans 'Support' %}</h3>
+            </div>
+            <div class="card-body">
+              <p>{% trans 'Manage issues' %}</p>
+              <div class="text-right">
+                <a href="{{list_issues}}" class="btn btn-default">Go to Support</a>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-3 col-6">
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">{% trans 'Billing' %}</h3>
+            </div>
+            <div class="card-body">
+              <p>{% trans 'Manage billings' %}</p>
+              <div class="text-right">
+                <a href="{{billings_control_panel}}" class="btn btn-default">Go to Billing</a>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-3 col-6">
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">{% trans 'Logistics' %}</h3>
+            </div>
+            <div class="card-body">
+              <p>{% trans 'Manage routes' %}</p>
+              <div class="text-right">
+                <a href="{{list_routes}}" class="btn btn-default">Go to Logistics</a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+     </div>
+  </div>
+</div>
+
+
+{% endblock %}

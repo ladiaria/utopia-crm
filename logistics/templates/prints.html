@@ -1,0 +1,92 @@
+{% extends "adminlte/base.html" %}
+
+{% load static %}
+{% load i18n %}
+{% block stylesheets %}
+    {{block.super}}
+    <link rel="stylesheet" href="{% static 'css/jquery-ui.css' %}" />
+{% endblock %}
+{% block no_heading %}
+<h1>{% trans 'Logistics' %}</h1>
+{% endblock %}
+{% block breadcrumbs %}
+<ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="/logistics/">{% trans 'Logistics' %}</a></li>
+    <li class="breadcrumb-item active">{% trans 'Prints for the day' %}</li>
+</ol>
+{% endblock %}
+{% block content %}
+
+<div class="card">
+  <div class="card-header">
+    <h2 class="card-title">{% trans "Prints for the day: " %}{{day}}</h2>
+  </div>
+  <div class="card-body">
+    <h3>{{product.name}}</h3>
+      {% if message and message.text %}
+        <div style="border: 1px solid #c00; background: #fee; font-size: 1.5em; padding: 1em; margin-bottom: 2em;">
+        {{ message.text|linebreaks }}
+        </div>
+      {% endif %}
+
+      <table class="table table-hover table-head-fixed">
+        <thead>
+          <tr>
+              <th>{% trans "Item" %}</th>
+              <th>{% trans "Quantity" %}</th>
+          </tr>
+
+        </thead>
+       <tbody>
+        {% for variable in variables_list %}
+            <tr>
+                <td>{{ variable.name }}</td>
+                <td>{{ variable.value }}</td>
+            </tr>
+        {% endfor %}
+            <tr>
+                <td>Montevideo</td>
+                <td>{{ montevideo }}</td>
+            </tr>
+            <tr>
+                <td>Interior</td>
+                <td>{{ interior }}</td>
+            </tr>
+            <tr><td colspan="2">&nbsp;</td></tr>
+          </tbody>
+          <tfoot>
+            <tr>
+                {% blocktrans %}
+                <td>Subtotal Montevideo ({{ montevideo }}) + Administration ({{ subtotal_administration }})</td>
+                {% endblocktrans %}
+                <td>{{ subtotal_montevideo }}</td>
+            </tr>
+            <tr>
+                <td>{% trans "Subtotal interior" %}</td>
+                <td>{{ subtotal_interior }}</td>
+            </tr>
+            <tr><td colspan="2">&nbsp;</td></tr>
+            <tr>
+                <th>{% trans 'Subtotal' %}</th>
+                <th>{{ subtotal }}</th>
+            </tr>
+            <tr>
+                <th>{% trans 'Rounding' %}</th>
+                <th>{{ rounding }}</th>
+            </tr>
+            <tr><td colspan="2">&nbsp;</td></tr>
+
+            <tr>
+                <td><b>{% trans "Total" %}: {{ hands }} {% trans "hands" %}{% if pico %} + {{ pico }} {% trans "pico" %}{% endif %}</b></td>
+                <td><b>{{ total }} [{{ verbose_date }}]</b></td>
+            </tr>
+        </tfoot>
+      </table>
+
+      <div class="callout callout-info" >
+        <p>Interior: {{ hands_interior }} {% trans "hands" %}{% if pico_interior %} + {{ pico_interior }} {% trans "pico" %}{% endif %}{% if remaining_interior %} ({{ remaining_interior }} {% trans "remaining" %}){% endif %}</p>
+        <p>{% trans "Montevideo + Administration" %}: {{ hands_montevideo }} {% trans "hands" %}{% if pico_montevideo %} + {{ pico_montevideo }} {% trans "pico" %}{% endif %}</p>
+      </div>
+    </div>
+</div>
+{% endblock %}

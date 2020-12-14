@@ -1,0 +1,17 @@
+*.idea
+*.pyc
+*.swp
+.coverage*
+.env
+.flake8
+__pycache__
+htmlcov
+local_*_settings.py
+local_settings.py
+locale/
+media
+other
+staticfiles
+uwsgi.ini
+wsgi.py
+

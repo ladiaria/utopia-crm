@@ -1,0 +1,13 @@
+{% extends 'adminlte/base.html' %}
+{% load static %}
+{% load i18n %}
+{% block title %}Anulación de factura{% endblock %}
+{% block pagetitle %}Anulación de factura{% endblock %}
+{% block content %}
+    {% if credit_note.uuid %}
+        <p>Invoice <a href="/admin/invoicing/invoice/{{ invoice_id }}/">{{ invoice_id }}</a> has been canceled and the credit note number <a href="/admin/invoicing/creditnote/{{ credit_note.id }}/">{{ credit_note.id }} has been created.</a></p>
+    {% else %}
+        <p style="color:red"><strong>ERROR: Invoice couldn't be canceled.</strong></p>
+        <p style="color:red"><strong>{{ error }}</strong></p>
+    {% endif %}
+{% endblock %}

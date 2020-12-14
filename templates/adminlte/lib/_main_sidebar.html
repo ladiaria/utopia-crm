@@ -1,0 +1,111 @@
+{% extends 'adminlte/original/_main_sidebar.html' %}
+{% load static %}
+{% load i18n %}
+{% block logo %}
+        <a href="/" class="brand-link">
+            <img src="{% static 'img/logo-utopia.png' %}" alt="utopia" class="brand-image">
+            {% block logo_text %}<span style="color:transparent;">.</span>{% endblock %}
+        </a>
+{% endblock %}
+
+{% block nav_links %}
+
+{% url 'contact_list' as contact_list %}
+{% url 'list_issues' as list_issues %}
+{% url 'select_contact_for_issue' 'L' as select_contact_for_issue_l %}
+{% url 'select_contact_for_issue' 'S05' as select_contact_for_issue_s05 %}
+{% url 'select_contact_for_issue' 'S04' as select_contact_for_issue_s04 %}
+{% url 'import_contacts' as import_contacts %}
+{% url 'assign_campaigns' as assign_campaigns %}
+{% url 'assign_to_seller' as assign_to_seller %}
+{% url 'admin:core_campaign_add' as core_campaign_add %}
+{% url 'list_issues' as list_issues %}
+{% url 'seller_console_list_campaigns' as seller_console_list_campaigns %}
+{% url 'billings_control_panel' as billings_control_panel %}
+{% url 'print_invoices' as print_invoices %}
+{% url "assign_routes" as assign_routes %}
+{% url "order_route_default" as order_route_default %}
+{% url "change_route_default" as change_route_default %}
+{% url "list_routes" as list_routes %}
+{% url "print_labels" page="Roll" as print_labels_page_roll %}
+{% url "print_labels_from_csv" as print_labels_from_csv %}
+{% url "issues_labels" as issues_labels %}
+{% url "prints" as prints %}
+{% url "edition_time" direction="departure" as edition_time_departure %}
+{% url "edition_time" direction="arrival" as edition_time_arrival %}
+
+<li class="nav-item">
+  <a href="{% url 'admin:index' %}" class="nav-link">Admin</a>
+</li>
+<li class="nav-item">
+  <a href="{{contact_list}}" class="nav-link {% ifequal request.path contact_list  %}active{% endifequal %}">{% trans "Contacts" %}</a>
+</li>
+<li class="nav-item has-treeview" id="hagda">
+  <a href="#" class="nav-link">
+    <p>
+      {% trans 'Support' %}
+      <i class="fas fa-angle-down right"></i>
+    </p>
+  </a>
+  <ul class="nav nav-treeview">
+    <li class="nav-item {% ifequal request.path select_contact_for_issue_l %}active{% endifequal %}">
+      <a id="holus"  href="{{select_contact_for_issue_l}}" class="nav-link {% ifequal request.path select_contact_for_issue_l %}active{% endifequal %}">{% trans 'New incident' %}</a>
+    </li>
+    <li class="nav-item">
+      <a href="{{select_contact_for_issue_s05}}" class="nav-link {% ifequal request.path select_contact_for_issue_s05 %}active{% endifequal %}">{% trans 'Change address' %}</a>
+    </li>
+    <li class="nav-item">
+      <a href="{{select_contact_for_issue_s04}}" class="nav-link {% ifequal request.path select_contact_for_issue_s04 %}active{% endifequal %}">{% trans 'Pause subscription' %}</a>
+    </li>
+    <li class="nav-item"><a href="{{import_contacts}}" class="nav-link {% ifequal request.path import_contacts %}active{% endifequal %}">{% trans 'Import new contacts' %}</a></li>
+    <li class="nav-item"><a href="{{assign_campaigns}}" class="nav-link {% ifequal request.path assign_campaigns %}active{% endifequal %}">{% trans 'Assign campaigns' %}</a></li>
+    <li class="nav-item"><a href="{{assign_to_seller}}" class="nav-link {% ifequal request.path assign_to_seller %}active{% endifequal %}">{% trans 'Assign contacts to sellers' %}</a></li>
+    <li class="nav-item"><a href="{{core_campaign_add}}" target="_blank" class="nav-link">{% trans "New campaign" %}</a></li>
+    <li class="nav-item"><a href="{{list_issues}}" class="nav-link {% ifequal request.path list_issues %}active{% endifequal %}">{% trans 'List issues' %}</a></li>
+    <li class="nav-item"><a href="{{seller_console_list_campaigns}}" class="nav-link {% ifequal request.path seller_console_list_campaigns %}active{% endifequal %}">{% trans 'Seller console' %}</a></li>
+  </ul>
+</li>
+<li class="nav-item has-treeview">
+  <a href="#" class="nav-link">
+    <p>
+      {% trans 'Billing' %}
+      <i class="fas fa-angle-down right"></i>
+    </p>
+  </a>
+  <ul class="nav nav-treeview">
+    <li class="nav-item"><a href="{{billings_control_panel}}" class="nav-link {% ifequal request.path billings_control_panel %}active{% endifequal %}">{% trans 'Billings' %}</a></li>
+    <li class="nav-item"><a href="{{print_invoices}}" class="nav-link {% ifequal request.path print_invoices %}active{% endifequal %}">{% trans 'Print invoices' %}</a></li>
+  </ul>
+</li>
+<li class="nav-item has-treeview">
+  <a href="#" class="nav-link">
+    <p>
+      {% trans 'Logistics' %}
+      <i class="fas fa-angle-down right"></i>
+    </p>
+  </a>
+  <ul class="nav nav-treeview">
+    <li class="nav-item"><a href='{{assign_routes}}' class="nav-link {% ifequal request.path assign_routes %}active{% endifequal %}">{% trans 'Assign subscriptions to routes' %}</a></li>
+    <li class="nav-item"><a href='{{order_route_default}}' class="nav-link {% ifequal request.path order_route_default %}active{% endifequal %}">{% trans 'Order subscriptions in route' %}</a></li>
+    <li class="nav-item"><a href='{{change_route_default}}' class="nav-link {% ifequal request.path change_route_default %}active{% endifequal %}">{% blocktrans %}Change route of subscriptions<br/> on routes{% endblocktrans %}</a></li>
+    <li class="nav-item"><a href='{{list_routes}}' class="nav-link {% ifequal request.path list_routes %}active{% endifequal %}">{% trans 'List all routes' %}</a></li>
+    <li class="nav-item"><a href='{{print_labels_page_roll}}' class="nav-link {% ifequal request.path print_labels_page_roll %}active{% endifequal %}">{% trans 'Print all labels for tomorrow' %}</a></li>
+    <li class="nav-item"><a href='{{print_labels_from_csv}}' class="nav-link {% ifequal request.path print_labels_from_csv %}active{% endifequal %}">{% trans 'Print labels from CSV file' %}</a></li>
+    <li class="nav-item"><a href='{{issues_labels}}' class="nav-link {% ifequal request.path issues_labels %}active{% endifequal %}">{% trans 'Issues labels' %}</a></li>
+    <li class="nav-item"><a href='{{prints}}' class="nav-link {% ifequal request.path prints %}active{% endifequal %}">{% trans 'Prints' %}</a></li>
+    <li class="nav-item"><a href='{{edition_time_departure}}' class="nav-link {% ifequal request.path edition_time_departure %}active{% endifequal %}">{% trans 'Edition departure time' %}</a></li>
+    <li class="nav-item"><a href='{{edition_time_arrival}}' class="nav-link {% ifequal request.path edition_time_arrival %}active{% endifequal %}">{% trans 'Edition arrival time' %}</a></li>
+  </ul>
+</li>
+<li class="nav-item">
+  <a href="{% url 'logout' %}" class="nav-link">{% trans "Logout" %}</a>
+</li>
+
+<script type="text/javascript">
+      $(function(){
+        $('a.active').parent('li').parent('ul').parent('li').addClass('active');
+        $('a.active').parent('li').parent('ul').parent('li').addClass('menu-open');
+      });
+</script>
+
+{% endblock nav_links %}

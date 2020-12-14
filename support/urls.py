@@ -1,0 +1,35 @@
+# coding=utf-8
+from django.views.generic import TemplateView
+
+from support.views import *
+
+from django.conf.urls import url
+
+
+urlpatterns = [
+    url(r'^assign_campaigns/$', assign_campaigns, name="assign_campaigns"),
+    url(r'^assign_sellers/$', list_campaigns_with_no_seller, name="assign_to_seller"),
+    url(r'^assign_sellers/(\d+)/$', assign_seller, name="assign_sellers"),
+    url(r'^seller_console/$', seller_console_list_campaigns, name="seller_console_list_campaigns"),
+    url(r'^seller_console/(\w+)/(\d+)/$', seller_console, name="seller_console"),
+    url(r'^edit_address/(\d+)/$', edit_address),
+    url(r'^edit_address/(\d+)/(\d+)/$', edit_address),
+    url(r'^import/$', import_contacts, name="import_contacts"),
+    url(r'^send_promo/(\d+)/$', send_promo, name="send_promo"),
+    url(r'^start_paid_subscription/(\d+)/$', start_paid_subscription, name="start_paid_subscription"),
+    url(r'^upgrade_subscription/(\d+)/$', upgrade_subscription, name="upgrade_subscription"),
+    url(r'^new_subscription/(\d+)/$', new_subscription, name="new_subscription"),
+    url(r'^edit_products/(\d+)/$', edit_products, name="edit_products"),
+    url(r'^contact_list/$', contact_list, name="contact_list"),
+    url(r'^contact_detail/(\d+)/$', contact_detail, name="contact_detail"),
+    url(r'^api_new_address/(\d+)/$', api_new_address),
+    url(r'^api_dynamic_prices/$', api_dynamic_prices),
+    # Issues
+    url(r'^list_issues/$', list_issues, name='list_issues'),
+    url(r'^new_issue/(\d+)/(\w+)/$', new_issue, name="new_issue"),
+    url(r'^new_issue/(\d+)/(\w+)/(\w+)/$', new_issue, name="new_issue"),
+    url(r'^view_logistics_issue/(\d+)/$', view_logistics_issue, name="view_logistics_issue"),
+    url(r'^select_contact_for_issue/(\w+)/$', select_contact_for_issue, name="select_contact_for_issue"),
+    url(r'^seller_console_action/$', seller_console_action, name="seller_console_action"),
+
+]

@@ -1,0 +1,10 @@
+{% extends "admin/change_form.html" %}
+{% block object-tools %}
+    {{block.super}}
+    {% if object_id %}
+    <ul class="object-tools" style="margin-top:initial;">
+        <li><a href="/invoicing/validate_cnote/{{ object_id }}/" class="historylink">Validate on Memory</a></li>
+        <li><a href="/invoicing/send_cnote/{{ object_id }}/" class="historylink">Send to Memory</a></li>
+    </ul>
+    {% endif %}
+{% endblock %}

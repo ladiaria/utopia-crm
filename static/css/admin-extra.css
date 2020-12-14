@@ -1,0 +1,180 @@
+#branding h1{margin: -5px 20px 0px 0px;}
+table .form-row { display: table-row; }
+
+.submit-row input {
+    color: #fff;
+    background-color: #007bff;
+    box-shadow: none;
+    display: inline-block;
+    font-weight: 400;
+    text-align: center;
+    vertical-align: middle;
+    border: 1px solid #007bff;
+    padding: .375rem .75rem;
+    font-size: 1rem;
+    line-height: 1.5;
+    border-radius: .25rem;
+    transition: color .15s
+}
+
+select,
+input:not([type=checkbox]):not([type=radio]):not([type=submit]) {
+display: inline-block;
+height: calc(2.25rem + 2px);
+padding: .375rem .75rem;
+font-size: 1rem;
+font-weight: 400;
+line-height: 1.5;
+color: #495057;
+background-color: #fff;
+background-clip: padding-box;
+border: 1px solid #ced4da;
+border-radius: .25rem;
+box-shadow: inset 0 0 0 transparent;
+transition: border-color .15s ease-in-out,box-shadow .15s ease-in-out;
+}
+
+.module table thead th {
+    border-bottom: 1px solid #eee;
+}
+
+.module table td {
+    padding:20px 10px;
+}
+
+.module h2,
+.module caption,
+.inline-group h2 {
+    background-color: #6c757d;
+    color: #fff;
+    border-bottom: 1px solid rgba(0,0,0,.125);
+    padding: .75rem 1.25rem;
+    position: relative;
+    border-top-left-radius: .25rem;
+    border-top-right-radius: .25rem;
+    margin-bottom: 0;
+    font-size: 1.1rem;
+    font-weight: 400;
+    text-transform: none;
+}
+
+.inline-group .tabular tr.has_original td {
+    padding-top: 0;
+    vertical-align: middle;
+}
+
+.related-widget-wrapper-link {
+    display: inline-block;
+    margin:0 5px;
+}
+
+label,
+.form-row {
+    font-size: 16px;
+}
+
+.inline-group ul.tools a.add,
+.inline-group div.add-row a,
+.inline-group .tabular tr.add-row td a {
+    font-size: 16px;
+}
+
+.nav-sidebar>.nav-item {
+    max-width: 100%;
+}
+#changelist .actions .button {
+    display: inline-block;
+    height: calc(2.25rem + 2px);
+    padding: .375rem .75rem;
+    font-size: 1rem;
+    font-weight: 400;
+    line-height: 1.5;
+    color: #495057;
+    background-color: #fff;
+    background-clip: padding-box;
+    border: 1px solid #ced4da;
+    border-radius: .25rem;
+    box-shadow: inset 0 0 0 transparent;
+    transition: border-color .15s ease-in-out,box-shadow .15s ease-in-out;
+}
+.ui-widget-header {
+    background-color: #6c757d;
+}
+.ui-state-default,
+.ui-widget-content .ui-state-default,
+.ui-widget-header .ui-state-default {
+    background: #6c757d;
+    color: #fff;
+    border: 1px solid #6c757d;
+}
+.ui-state-hover,
+.ui-widget-content .ui-state-hover,
+.ui-widget-header .ui-state-hover,
+.ui-state-focus,
+.ui-widget-content .ui-state-focus,
+.ui-widget-header .ui-state-focus {
+    border: 1px solid #fff;
+    background: transparent;
+}
+.ui-tabs .ui-tabs-nav li.ui-tabs-active {
+    color: #1f2d3d;
+    background: #fff;
+    border-bottom: none;
+    margin-bottom: 0;
+}
+.inline-related h3 {
+    font-size: 18px !important;
+    background: none !important;
+    border:none;
+    line-height: 24px;
+    margin:10px 0;
+}
+.inline-related h3 span.delete label {
+    font-size: 15px;
+}
+.card-info:not(.card-outline)>.card-header h3 {
+    color: #fff;
+}
+.calendar caption {
+    caption-side: top;
+}
+.calendarbox, .clockbox {
+    width: auto;
+}
+.change-list .filtered table tbody th {
+    padding: 20px 10px;
+}
+.selector-available h2, .selector-chosen h2 {
+    font-size:16px;
+    font-weight:bold;
+    line-height:24px;
+    padding: 10px 0;
+    margin:0;
+}
+.nav-sidebar>.nav-item {
+    max-width: 100%;
+}
+#changelist .actions .button {
+    display: inline-block;
+    height: calc(2.25rem + 2px);
+    padding: .375rem .75rem;
+    font-size: 1rem;
+    font-weight: 400;
+    line-height: 1.5;
+    color: #495057;
+    background-color: #fff;
+    background-clip: padding-box;
+    border: 1px solid #ced4da;
+    border-radius: .25rem;
+    box-shadow: inset 0 0 0 transparent;
+    transition: border-color .15s ease-in-out,box-shadow .15s ease-in-out;
+}
+.selector .selector-available h2,
+.selector-chosen h2 {
+    font-size: 16px;
+    line-height: 36px;
+    margin:0;
+}
+.object-tools {
+    margin-top:0;
+}

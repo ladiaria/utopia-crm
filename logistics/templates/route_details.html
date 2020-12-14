@@ -1,0 +1,105 @@
+{% extends "adminlte/base.html" %}
+
+{% load static %}
+{% load i18n %}
+{% block stylesheets %}
+    {{block.super}}
+    <link href="{% static 'css/stylish-tables.css' %}" type="text/css" rel="stylesheet" />
+    <link rel="stylesheet" href="{% static 'css/jquery-ui.css' %}" />
+{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2em; font-size: 1.2em; font-weight: bold;">
+{% trans "Date" %}: {{ day }}<br>
+{% trans "Route" %}: {{ route.number }}<br>
+{% trans "Total" %}: {{ subscription_products|length }}<br>
+{% trans "Copies" %}: {{ copies }}<br>
+{% trans "Product" %}: {{ product }}
+</div>
+
+    {% if subscription_products %}
+      <table cellpadding="2" cellspacing="2">
+            <tr>
+                <th width="1%">L</th>
+                <th width="1%">M</th>
+                <th width="1%">M</th>
+                <th width="1%">J</th>
+                <th width="1%">V</th>
+                <th width="1%">S</th>
+                <th width="1%">#</th>
+                <th width="1%">{% trans "New" %}</th>
+                <th>{% trans "Name" %}</th>
+                <th>{% trans "Phone" %}</th>
+                <th>{% trans "Mobile" %}</th>
+                <th>{% trans "Address/Instructions" %}</th>
+                <th>{% trans "City" %}</th>
+                <th>{% trans "Order" %}</th>
+            </tr>
+        {% for sp in subscription_products %}
+            <tr class="{% cycle 'row1' 'row2' %}">
+                {% autoescape off %}
+                <td>{% if sp.subscription.has_monday %}*{% endif %}</td>
+                <td>{% if sp.subscription.has_tuesday %}*{% endif %}</td>
+                <td>{% if sp.subscription.has_wednesday %}*{% endif %}</td>
+                <td>{% if sp.subscription.has_thursday %}*{% endif %}</td>
+                <td>{% if sp.subscription.has_friday %}*{% endif %}</td>
+                <td>{% if sp.subscription.has_weekend %}{% trans "Yes" %}{% else %}{% trans "No" %}{% endif %}</td>
+                {% endautoescape %}
+                {% ifnotequal sp.copies 1 %}
+                    <td><strong>{{ sp.copies }}</strong></td>
+                {% else %}
+                    <td></td>
+                {% endifnotequal %}
+                {% if sp.subscription.start_date > one_month_ago %}
+                    <td>*</td>
+                {% else %}
+                    <td></td>
+                {% endif %}
+                <td><a href="/admin/core/contact/{{sp.subscription.contact.id}}/">{{ sp.subscription.contact.name }}</a></td>
+                <td>{{sp.subscription.contact.phone|default_if_none:""}}</td>
+                <td>{{sp.subscription.contact.mobile|default_if_none:""}}</td>
+                <td>
+                  {{ sp.address.address_1 }} {{ sp.address.address_2|default_if_none:"" }} 
+                {% if sp.subscription.directions %}
+                  <br/>
+                  {% if sp.subscription.highlight_in_listing %}
+                    <strong>{% trans "Directions" %}: {{ sp.subscription.directions }}</strong>
+                  {% else %}
+                    <strong>--&gt;</strong>{% trans "Directions" %}: {{ sp.subscription.directions }} <strong>&lt;--</strong>
+                  {% endif %}
+                {% endif %}
+                {% if sp.subscription.message %}
+                  <br/>
+                  {% if sp.subscription.highlight_in_listing %}
+                    <strong>{% trans "Message" %}: {{ sp.subscription.message }}</strong>
+                  {% else %}
+                    <strong>--&gt;</strong>{% trans "Message" %}: {{ sp.subscription.message }} <strong>&lt;--</strong>
+                  {% endif %}
+                {% endif %}
+                </td>
+                <td>{{ sp.address.city|default_if_none:"" }}</td>
+                <td>{{ sp.order|default_if_none:"&nbsp;&nbsp;" }}</td>
+            </tr>
+        {% endfor %}
+        {% if change_list %}
+        <tr>
+            <td colspan="6">
+                <strong>{% trans "Changes in route" %}</strong>
+                <ul>
+                    {% for rc in change_list %}
+                        <li>{{ rc.contact.name }} - {{ rc.old_address }}</li>
+                    {% endfor %}
+                </ul>
+            </td>
+        </tr>
+        {% endif %}
+        {% if route.distributor_directions %}
+        <tr>
+            <td colspan="6">
+                <pre style="font-size:1.4em;font-weight:bold;padding:1em;">{{ route.distributor_directions }}</pre>
+            </td>
+        </tr>
+        {% endif %}
+      </table>
+    {% endif %}
+{% endblock %}

@@ -1,0 +1,130 @@
+{% extends 'adminlte/base.html' %}
+
+{% load static %}
+{% block page_name %}
+<a href="/admin/invoicing/billing/{{ billing.id }}">Facturación #{{ billing.id }}</a>
+{% endblock %}
+{% block stylesheets %}
+{{block.super}}
+<style type="text/css" media="all">
+body, td {
+  font-size: 12px;
+}
+
+th {
+  font-size: 12px;
+  font-weight: bold;
+  text-align: left;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+td {
+  vertical-align: top;
+  border: 1px solid #ccc;
+}
+
+.row1 {
+  background: #eee;
+}
+
+.paid {
+  background: green;
+  color: black;
+}
+
+.null {
+  background: #333;
+  color: #eee;
+}
+
+.expired {
+  background: red;
+  color: black;
+}
+
+.uncollectible {
+  background: #800080;
+  color: white;
+  text-transform: uppercase;
+}
+</style>
+{% endblock %}
+{% block content %}
+  <div style="font-size: 1.2em; margin-bottom: 20px;">
+  <table>
+    <tr>
+      <td style="font-size: 1em; margin-bottom: 20px;">
+        Fecha inicio:<br/>
+        Fecha fin:<br/>
+        Cantidad de facturas:<br/>
+        Dinero facturado:<br/>
+      </td>
+
+      <td style="font-size: 1em; margin-bottom: 20px;">
+        {{ billing.start|default_if_none:"N/A" }}<br/>
+        {{ billing.end|default_if_none:"N/A"  }}<br/>
+        {{ billing.count }}<br/>
+        ${{ billing.amount_billed|default_if_none:"N/A"  }}<br/>
+      </td>
+
+      <td style="font-size: 1em; margin-bottom: 20px;">
+        Producto: {{ billing.product|default_if_none:"Todos" }}<br/>
+        Forma de pago: {{ billing.payment_type|default_if_none:"Todos" }}<br/>
+        {% if billing.card_type %}Tarjeta: {{ billing.card_type }}<br/>{% endif %}
+      </td>
+
+      <td style="font-size: 1em; margin-bottom: 20px;">
+        Usuario: {{ billing.created_by }}<br/><br/>
+        <a href="javascript:history.back()">VOLVER</a>
+      </td>
+    </tr>
+    </table>
+    </div>
+  <br>
+  <table>
+        <tr>
+            <th>Factura</th>
+            <th>Cliente</th>
+            <th>Desde</th>
+            <th>Hasta</th>
+            <th>Emision</th>
+            <th>Vencimiento</th>
+            <th>Importe</th>
+            <th>Metodo Pago</th>
+            <th>Estado</th>
+            <th>Referencia</th>
+            <th>Serie</th>
+            <th>Número</th>
+        </tr>
+    {% for invoice in invoice_list %}
+       <tr class="{% cycle 'row1' 'row2' %}">
+            <td>
+                <a href="/admin/invoicing/invoice/{{ invoice.id }}/">{{ invoice.id }}</a>
+                <a href="/invoicing/print_duplicate/{{ invoice.id }}/" title="Bajar un duplicado">
+                    <img src="{% static 'img/pdficon_small.png' %}" alt="PDF"/>
+                </a>
+            </td>
+            <td>{{ invoice.service_from }}</td>
+            <td><a href="/admin/core/contact/{{invoice.contact.id}}/">{{ invoice.contact }}</a></td>
+            <td>{{ invoice.service_to }}</td>
+            <td>{{ invoice.creation_date }}</td>
+            <td>{{ invoice.expiration_date }}</td>
+            <td>{{ invoice.amount }}</td>
+            <td>{{ invoice.payment_type }}</td>
+            {% ifequal invoice.status "paid" %}
+              <td class="paid">paid {{ invoice.payment_date }}</td>
+            {% else %}
+              <td class="{{ invoice.status }}">{{ invoice.status }}</td>
+            {% endifequal %}
+            <td>{{ invoice.payment_reference }}</td>
+            <td>{{ invoice.serie }}</td>
+            <td>{{ invoice.numero }}</td>
+        </tr>
+    {% endfor %}
+  </table>
+
+{% endblock %}

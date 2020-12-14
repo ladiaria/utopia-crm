@@ -1,0 +1,62 @@
+{% extends 'adminlte/base.html' %}
+{% load i18n %}
+{% load static %}
+
+{% block stylesheets %}
+    {{block.super}}
+    <link rel="stylesheet" href="{% static 'css/jquery-ui.css' %}" />
+{% endblock %}
+
+{% block extra_head %}
+    <script type="text/javascript" src="{% static 'js/jquery-3.3.1.min.js' %}"></script>
+    <script src="{% static 'js/1.12.1/jquery-ui.js' %}"></script>
+    <script type="text/javascript">
+    $(function() {
+        $(".a_datepicker").datepicker({ dateFormat: 'yy-mm-dd' }).datepicker("setDate", new Date());
+    });
+</script>
+{% endblock %}
+{% block no_heading %}
+<h1>{% trans 'Billings' %}</h1>
+<p>{% trans 'Print Invoices' %}</p>
+{% endblock %}
+{% block breadcrumbs %}
+<ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="/invoicing/">{% trans 'Invoicing' %}</a></li>
+    <li class="breadcrumb-item active">{% trans 'Print Invoices' %}</li>
+</ol>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h2 class="card-title">{% trans 'Print Invoices' %}:</h2>
+  </div>
+  <div class="card-body">
+    <form method="post">
+        {% csrf_token %}
+        <h4>{% trans 'Emission' %}:</h4>
+        <div class="form-group row">
+          <div class="col-sm-6">
+            <label for="creation_date">{% trans 'From' %}</label>
+            <input type="text" class="a_datepicker form-control" name="creation_date" size="10" value="{% now 'Y-m-d' %}" id="creation_date" >
+          </div>
+          <div class="col-sm-6">
+            <label for="creation_date_end">{% trans 'Up to' %} <small>{% trans '(inclusively)' %}</small></label>
+            <input type="text" class="a_datepicker form-control" name="creation_date_end" size="10" value="{% now 'Y-m-d' %}" id="creation_date_end">
+
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="req_type">{% trans 'Type' %}:</label>
+          <select name="req_type" id="req_type" class="form-control">
+              <option value="O">{% trans "Print all invoices" %}</option>
+          </select>
+        </div>
+        <div class="form-group text-right">
+          <input type="submit" name="Print" value="{% trans 'Print' %}" class="btn bg-gradient-primary">
+        </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

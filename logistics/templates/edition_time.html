@@ -1,0 +1,73 @@
+{% extends "adminlte/base.html" %}
+
+{% load static %}
+{% load i18n %}
+{% block stylesheets %}
+    {{block.super}}
+    <link rel="stylesheet" href="{% static 'css/jquery-ui.css' %}" />
+{% endblock %}
+{% block no_heading %}
+<h1>{% trans 'Logistics' %}</h1>
+{% endblock %}
+{% block breadcrumbs %}
+<ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="/logistics/">{% trans 'Logistics' %}</a></li>
+    <li class="breadcrumb-item active">{% trans 'Edition time' %}</li>
+</ol>
+{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-header">
+      <h1 class="card-title">{{edition}}</h1>
+  </div>
+  <div class="card-body">
+      <form action="" method="post">
+      {% csrf_token %}
+      <div class="form-group row">
+      <label for="time" class="col-sm-2 col-form-label">{{ what }}:</label>
+      <div class="col-sm-6">
+        <input type="text" name="time" id="time" size="4" value="{% now "H:i" %}" class="form-control">
+      </div>
+      <input type="submit" value="{% trans "Send" %}" class="btn btn-primary btn-gradient col-sm-1">
+    </div>
+      </form>
+
+      <table class="table table-hover">
+        <thead>
+          <tr>
+            <th>&nbsp;</th>
+            {% for e in last_editions %}
+              <th>{{ e.date|date:"SHORT_DATE_FORMAT" }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th>{% trans "Arrival" %}</th>
+            {% for e in last_editions %}
+                <td>
+              {% if e.start_time %}
+                {{ e.start_time }}
+              {% else %}
+                &nbsp;
+              {% endif %}
+              </td>
+           {% endfor %}
+           </tr>
+          <tr>
+            <th>{% trans "Departure" %}</th>
+            {% for e in last_editions %}
+                <td>
+              {% if e.end_time %}
+                {{ e.end_time }}
+              {% else %}
+                &nbsp;
+              {% endif %}
+              </td>
+           {% endfor %}
+           </tr>
+          </tbody>
+       </table>
+    </div>
+</div>
+{% endblock content %}

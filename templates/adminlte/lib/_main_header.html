@@ -1,0 +1,42 @@
+{% extends 'adminlte/original/_main_header.html' %}
+{% load adminlte_helpers i18n %}
+{% load static %}
+{% block nav_bar %}
+  {% if request.user.is_authenticated %}
+  <ul class="navbar-nav ml-auto">
+    <li class="nav-item dropdown user-menu">
+          <a class="nav-link" data-toggle="dropdown" href="#">
+            <img src="{% avatar_url size=64 %}" alt="User Avatar" class="user-image elevation-2 img-circle">
+            <span class="d-none d-md-inline">{% firstof request.user.get_short_name request.user.get_username %}</span>
+          </a>
+
+          <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right">
+              <a href="#" class="dropdown-item">
+                  <!-- Message Start -->
+                  <div class="media">
+                      <img src="{% avatar_url size=128 %}" alt="User Avatar" class="img-size-50 mr-3 img-circle">
+                      <div class="media-body">
+                        <h3 class="dropdown-item-title">
+                            {% firstof request.user.get_short_name request.user.get_username %}
+                             <span class="float-right text-sm text-danger"><i class="fas fa-online"></i></span>
+                         </h3>
+                         <p class="text-sm"><small>{% trans 'Member since' %} :</small></p>
+                        <p class="text-sm text-muted"><i class="far fa-clock mr-1"></i>  <small>{{ request.user.date_joined }}</small></p>
+                      </div>
+                </div>
+                <!-- Message End -->
+              </a>
+            <div class="dropdown-divider"></div>
+            <div class="dropdown-footer">
+                    <a href="{% block change_password_url %}{% url 'admin:password_change' %}{% endblock %}" class="btn btn-primary btn-sm">{% trans 'Change password' %}</a>
+                    <a href="/admin/logout/" class="btn btn-danger btn-sm">{%trans 'Sign out'%}</a>
+                  </div>
+          </div>
+        </li>
+  </ul>
+  {% endif %}
+
+{% endblock %}
+{% block nav_bar_center %}
+
+{% endblock %}

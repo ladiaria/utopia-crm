@@ -1,0 +1,45 @@
+{% extends 'adminlte/base.html' %}
+{% block title %}{% trans "Assign contacts in campaigns to sellers" %}{% endblock %}
+{% block no_heading %}
+<h1>{% trans 'Support' %}</h1>
+{% endblock %}
+{% block breadcrumbs %}
+<ol class="breadcrumb">
+  <li class="breadcrumb-item"><a href="/support/"><a href="/support/">{% trans "Support" %}</a></li>
+  <li class="breadcrumb-item active">{% trans "Assign contacts in campaigns to sellers" %}</li>
+</ol>
+{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h2 class="card-title">{% trans "Assign contacts in campaigns to sellers" %}</h2>
+  </div>
+  <div class="card-body">
+    <div class="mb-4">
+    <h3>{{ campaign.name }}</h3>
+    <p>{% trans "Contacts available" %}: <b>{{ campaign.count }}</b></p>
+    {% autoescape off %}
+    {% if message %}<br/>{{ message }}{% endif %}
+    {% endautoescape %}
+    </div>
+      <form action="" method="post">
+      {% csrf_token %}
+      <table class="table table-bordered table-striped">
+            <tr>
+                <th width="auto">{% trans "Seller" %}</th>
+                <th width="20%">{% trans "Contacts" %}</th>
+                <th width="20%">{% trans "Assign" %}</th>
+            </tr>
+        {% for seller in seller_list %}
+            <tr class="{% cycle 'row1' 'row2' %}">
+                <td>{{ seller.name }}</td>
+                <td class="text-center">{{ seller.contacts }}</td>
+                <td class="text-center"><input type="text" name="seller-{{ seller.id}}" value="0" size="2" tabindex="{{ forloop.counter }}" class="form-control col-3"/></td>
+            </tr>
+        {% endfor %}
+      </table>
+      <div class="form-group text-right"><input type="submit" value="Enviar" class="btn bg-gradient-primary" /></div>
+      </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,36 @@
+{% extends "adminlte/base.html" %}
+{% load i18n %}
+{% block no_heading %}
+<h1>{% trans 'Logistics' %}</h1>
+{% endblock %}
+{% block breadcrumbs %}
+<ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="/logistics/">{% trans 'Logistics' %}</a></li>
+    <li class="breadcrumb-item active">{% trans 'Print labels from CSV file' %}</li>
+</ol>
+{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h2 class="card-title">{% trans 'Print labels from CSV file' %}</h2>
+  </div>
+  <div class="card-body">
+        <form action="" method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="labels">{% trans 'Upload CSV with data' %}:</label>
+                <input id="labels" type="file" name="labels" class="form-control"/>
+            </div>
+            <div class="form-group">
+              <div class="form-check">
+                <input id="96x30" type="checkbox" name="96x30" class="form-check-input" />
+                <label for="96x30" class="form-check-label">{% trans '96x30 labels' %}</label>
+              </div>
+            </div>
+            <div class="form-group text-right">
+              <input type="submit" value="{% trans 'Generate PDF with labels' %}" class="btn btn-primary btn-gradient"/>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

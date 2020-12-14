@@ -1,0 +1,86 @@
+{% extends 'adminlte/base.html' %}
+{% load static i18n %}
+{% block no_heading %}
+<h1>{% trans 'Support' %}</h1>
+<p>{% trans 'Import new contacts' %}</p>
+{% endblock %}
+{% block breadcrumbs %}
+<ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="/support/">{% trans 'Support' %}</a></li>
+     <li class="breadcrumb-item active">{% trans 'Import subscriptions' %}</li>
+</ol>
+{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h3 class="card-title">{% trans 'Import subscriptions' %}</h3>
+  </div>
+  <div class="card-body">
+  {% if new_subs_list or errors_list %}
+      <h4>{% trans 'New subscribers entered' %}:</h4>
+      <ul>
+      {% for sub in new_subs_list %}
+          <a href="/admin/core/contacts/{{sub.id}}" target="_blank">{{sub.name}}</a><br/>
+      {% endfor %}
+      </ul>
+      {% if old_subs_list %}
+      <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="new_subtype_id" value="{{subtype}}"/>
+      {% for sub in old_subs_list %}
+          <span>{% trans 'Repeated' %}: {{sub.name}} en id <a href="/admin/core/contacts/{{sub.id}}" target="_blank">{{sub.id}}</a>
+          {% if sub.has_active_subscription %}<span style="color:red">{% trans 'Active subscription' %}</span>{% endif %}
+          <select name="move-{{sub.id}}" class="form-control">
+              <option value="">{% trans 'Do nothing' %}</option>
+              <option value="S">{% trans 'Add tag' %}</option>
+          </select>
+      {% endfor %}
+        <div class="form-group text-right">
+          <input type="submit" value="{% trans 'Execute actions' %}" class="btn bg-gradient-primary" />
+        </div>
+      </form>
+      {% else %}
+      <br/>
+      <a href=".">{% trans 'Back' %}</a>
+      {% endif %}
+      <ul>
+      {% for error in errors_list %}
+          <li>Error: {{error}}</li>
+      {% endfor %}
+      </ul>
+  {% elif changed_list %}
+      <p>{% trans 'Subscriptions moved to subtype' %}</p>
+          {% for sub in changed_list %}
+              <a href="/admin/core/contacts/{{sub.id}}" target="_blank">{{sub.name}}</a><br/>
+          {% endfor %}
+      <a href=".">{% trans 'Back' %}</a>
+  {% else %}
+      <form action="" method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      <div class="form-group">
+        <label for="file">{% trans 'Choose file to send. It has to be a csv file with the following header and columns' %}:</label>
+        <p>{% trans "name, phone, email, mobile, work_phone, notes, address_1, address_2, city, state" %}</p>
+        <p>{% trans "All columns must be present in the header. Only name and phone are required in the content." %}</p>
+        <input type="file" name="file" id="file" class="form-control">
+      </div>
+      <div class="form-group">
+        <label for="subtype">{% trans 'Subtype' %}:</label>
+        <select name="subtype" id="subtype" class="form-control">
+        {% for subtype in subtype_list %}
+            <option value="{{ subtype.id }}">{{ subtype.name }}</option>
+        {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="tags">{% trans 'Tags (separated by comma. Example: doctor, ex-subscriber, likes the product)' %}:</label>
+        <input type="text" id="tags" name="tags" class="form-control" />
+      </div>
+      <div class="form-group text-right">
+        <a href="/admin/core/subtype/add/" class="btn bg-gradient-primary">Add subtype</a>
+        <input type="submit" value="{% trans 'Import' %}" class="btn bg-gradient-primary" >
+      </div>
+      </form>
+  {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,236 @@
+{% extends 'adminlte/base.html' %}
+{% load sip static i18n %}
+{% block no_heading %}
+<h1>{% trans 'Support' %}</h1>
+<p>{% trans 'Manage campaign' %}: {{campaign.name}}</p>
+{% endblock %}
+{% block breadcrumbs %}
+<ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="/support/">{% trans 'Support' %}</a></li>
+    <li class="breadcrumb-item"><a href="/support/seller_console/">{% trans 'Sales and promotions' %}</a></li>
+    <li class="breadcrumb-item active">{{seller.name}} - {% trans 'Campaign' %}: {{campaign.name}}</li>
+</ol>
+{% endblock %}
+{% block stylesheets %}
+{{block.super}}
+<link rel="stylesheet" href="http://code.jquery.com/ui/1.10.3/themes/smoothness/jquery-ui.css" />
+{% endblock %}
+{% block extra_head %}
+    {{block.super}}
+    <script type="text/javascript" src="{% static 'js/jquery-3.3.1.min.js' %}"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+    <script type="text/javascript" src="{% static 'js/datepicker-es.js' %}"></script>
+    <script type="text/javascript">
+        $( function() {
+            $("#call_date").datepicker({ dateFormat: 'yy-mm-dd' });
+        });
+    </script>
+{% endblock %}
+{% block content %}
+    <div class="row">
+      <div class="col-sm-12">
+        <div class="card collapsed-card">
+          <div class="card-header">
+            <h3 class="card-title"><i class="fas fa-address-book"></i> <b>{% trans "Contacts" %}</b></h3>
+            <div class="card-tools">
+              <button type="button" class="btn btn-tool" data-card-widget="collapse"><i class="fas fa-plus"></i>
+              </button>
+            </div>
+          </div>
+          <div class="card-body">
+            {% for instance in console_instances %}
+            <a class="btn btn-sm {% if instance.contact == contact %}btn-primary{% else %}btn-secondary{% endif %}" href="{% url 'seller_console' category campaign.id %}?offset={{forloop.counter}}">{{ instance.contact }}</a>
+            {% endfor %}
+          </div>
+        </div>
+        </div>
+      </div>
+      <div class="text-right mb-4 mr-2">
+        <button type="button" class="btn btn-primary">{% trans "Next contact" %}</button>
+      </div>
+    <div class="row">
+
+
+
+    <div class="col-sm-9">
+      <div class="card">
+        <div class="card-header">
+          <h3><a href="/admin/core/contact/{{contact.id}}/" target="_blank">{{contact.name}}</a></h3>
+          <p>{% trans "Times contacted:" %} {{times_contacted}}</p>
+        </div>
+        <div class="card-body">
+          <table class="table table-bordered mb-4">
+            <tbody>
+              {% if contact.phone %}
+                <tr>
+                  <td><i class="fas fa-phone"></i> {% trans "Phone" %}:</td>
+                  <td>{% sip contact.phone %}</td>
+                </tr>
+                {% endif %}
+                {% if contact.work_phone %}
+                <tr>
+                  <td><i class="fas fa-phone"></i> {% trans "Work phone" %}:</td>
+                  <td>{% sip contact.work_phone %}</td>
+                </tr>
+                {% endif %}
+                {% if contact.mobile %}
+                <tr>
+                  <td><i class="fas fa-mobile-alt"></i> {% trans "Mobile" %}:</td>
+                  <td>{% sip contact.mobile %}</td>
+                </tr>
+                {% endif %}
+                <tr>
+                  <td><i class="fas fa-map-marker-alt"></i> {% trans "Addresses" %}:</td>
+                  <td>
+                    {% if addresses %}
+                    <ul>
+                    {% for address in addresses %}
+                      <li>{{address}}</li>
+                    {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p>{% trans 'The contact has no registered addresses' %}</p>
+                    {% endif %}
+                  </td>
+                </tr>
+
+            </tbody>
+          </table>
+
+
+
+
+        <form action="{% url 'seller_console_action' %}" method="post">
+            {% csrf_token %}
+            <input type="hidden" name="offset" value="{{ offset }}"/>
+            <input type="hidden" name="instance_type" value="{{ category }}"/>
+            <input type="hidden" name="instance_id" value="{{ console_instance.id }}"/>
+            <input type="hidden" name="campaign_id" value="{{ campaign.id }}"/>
+            <input type="hidden" name="seller_id" value="{{ seller.id }}"/>
+            <input type="hidden" name="url" value="{{ url }}"/>
+            <div class="form-group">
+              <label for="notes">{% trans "Register activity" %}</label><br>
+              <textarea class="form-control" name="notes" rows="3" cols="50">{{ activity.notes }}</textarea>
+            </div>
+
+            <div class="row">
+              <div class="col-sm-3">
+                <input class="btn btn-block bg-gradient-secondary btn-sm" type="submit" name="result" value="{% trans 'Cannot find customer' %}"/>
+                <input class="btn btn-block bg-gradient-secondary btn-sm" type="submit" name="result" value="{% trans 'Logistics' %}"/>
+                <input class="btn btn-block bg-gradient-secondary btn-sm" type="submit" name="result" value="{% trans 'Already a subscriber' %}"/>
+              </div>
+              <div class="col-sm-3">
+                <input class="btn btn-block bg-gradient-warning btn-sm" type="submit" name="result" value="{% trans 'Not interested' %}"/>
+                <input class="btn btn-block bg-gradient-warning btn-sm" type="submit" name="result" value="{% trans 'Error in promotion' %}"/>
+
+                <div class="form-group row mt-2">
+                  <div class="col-sm-7 ">
+                    <input class="btn btn-block bg-gradient-warning btn-sm " type="submit" name="result" value="{% trans 'Do not call anymore' %}"/>
+                  </div>
+                  <div class="col-sm-5 ">
+                    <select class="form-control form-control-sm" id="campaign_reject_reason" name="campaign_reject_reason">
+                        <option value="">{% trans 'Select a reason' %}</option>
+                        <option value="F">{% trans 'Failed delivery' %}</option>
+                        <option value="E">{% trans 'Financial reasons' %}</option>
+                        <option value="D">{% trans 'Error in data' %}</option>
+                        <option value="N">{% trans 'Never signed in for promotion' %}</option>
+                        <option value="P">{% trans 'Did not like the product' %}</option>
+                        <option value="C">{% trans 'Did not like the content' %}</option>
+                        <option value="R">{% trans 'Cannot reach the contact location' %}</option>
+                        <option value="K">{% trans 'Did not know what they signed up for' %}</option>
+                        <option value="T">{% trans 'Does not read/Does not have time' %}</option>
+                        <option value="Z">{% trans 'Dangerous zone' %}</option>
+                        <option value="A">{% trans 'Does not accept call' %}</option>
+                        <option value="O">{% trans 'Accepts call, does not accept offer' %}</option>
+                        <option value="H">{% trans 'Accepts call, will think about it' %}</option>
+                    </select>
+                    </div>
+                  </div>
+              </div>
+
+              <div class="col-sm-3">
+                <input type="submit" id="sell_button" name="result" value="{% trans 'Send promo' %}" class="btn btn-block bg-gradient-success btn-sm"/>
+                <input type="submit" id="sell_button" name="result" value="{% trans 'Sell' %}" class="btn btn-block bg-gradient-success btn-sm" />
+              </div>
+
+              <div class="col-sm-3">
+                <div class="form-group row">
+                  <div class="col-sm-3">
+                  <label for="call_date">{% trans 'Date' %}:</label>
+                  </div>
+                  <div class="col-sm-9">
+                  <input id="call_date" type="text" name="call_date" class="form-control form-control-sm" value="{{ call_date }}"/>
+                  </div>
+                </div>
+                <div class="form-group row">
+                  <div class="col-sm-3">
+                    <label for="call_time">{% trans 'Time' %}:</label>
+                  </div>
+                  <div class="col-sm-9">
+                   <input type="text" name="call_time" class="form-control form-control-sm" value="9:00"/>
+                   </div>
+                </div>
+                <input type="submit" class="btn btn-sm btn-primary float-right"  name="result" value="{% trans 'Schedule' %}" />
+              </div>
+            </div>
+        </div>
+      </div>
+    </div>
+
+    {% if all_subscriptions or all_activities %}
+     <div class="col-sm-3">
+        {% if all_subscriptions %}
+        <div class="card card-primary card-outline">
+          <div class="card-header">
+            <h3 class="card-title"><i class="fas fa-money-check-alt"></i> <b>{% trans 'Other subscriptions' %}</b></h3>
+          </div>
+          <div class="card-body">
+            <dl>
+            {% for s in all_subscriptions %}
+            <dt {% if forloop.counter != 1 %}class="border-top mt-4 pt-3"{% endif %}>{% trans "Type:" %} {{s.get_type}}</dt>
+            {% if s.type == 'P' %}<dd><i>{{s.campaign.name}}</i></dd>{% endif %}
+            <dd><b>{% trans 'Active'%}:</b> {{s.active}}</dd>
+            {% autoescape  off %}<dd>{{s.show_products_html}}</dd>{% endautoescape %}
+            <dd><b>{% trans 'Start'%}</b>: {{s.start_date|date:"SHORT_DATE_FORMAT"}}</dd>
+            {% if s.end_date %}
+            <dd><b>{% trans 'End'%}</b>: {{s.end_date|date:"SHORT_DATE_FORMAT"}}</dd>
+            {% endif %}
+            <dd><b>{% trans 'Payment type'%}:</b> {{s.get_payment_type}}</dd>
+            {% if s.unsubscription_reason %}<dt>{% trans 'Unsubscription reason'%}:</dt> <dd>{{s.get_unsubscription_reason}}</dd>{% endif %}
+            {% endfor %}
+            </dl>
+          </div>
+        </div>
+          {% endif %}
+
+        {% if all_activities %}
+        <div class="card card-primary card-outline">
+          <div class="card-header">
+            <h3 class="card-title"><i class="fas fa-route"></i> <b>{% trans 'Other activities' %}</b></h3>
+          </div>
+          <div class="card-body">
+            <dl>
+            {% for a in all_activities %}
+            <dt {% if forloop.counter != 1 %}class="border-top mt-4 pt-3"{% endif %}>{% trans "Type:" %} {{a.get_type}}
+            {% if a.campaign %}<i>{{a.campaign.name}}</i>{% endif %}</dt>
+            <dd><b>{% trans 'Status'%}:</b> {{a.get_status}}</dd>
+            {% if a.datetime %}
+            <dd><b>{% trans 'Start'%}</b>: {{a.datetime|date:"SHORT_DATETIME_FORMAT"}}</dd>
+            {% endif %}
+            {% if a.notes %}
+            <dd><b>{% trans 'Notes'%}</b>: {{a.notes|default_if_none:""}}</dd>
+            {% endif %}
+            {% endfor %}
+            </dl>
+          </div>
+        </div>
+        {% endif %}
+
+
+
+    </div>
+    {% endif %}
+    </form>
+
+
+{% endblock %}

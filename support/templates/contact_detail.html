@@ -1,0 +1,358 @@
+{% extends 'adminlte/base.html' %}
+{% load static i18n %}
+{% block content %}
+<section class="content-header">
+      <div class="container-fluid">
+        <div class="row mb-2">
+          <div class="col-sm-12">
+            <h1><a href="#">{% trans "Contacts" %}</a> &raquo; {{contact.id}} - {{contact.name}} - <a href="/admin/core/contact/{{contact.id}}/">[Admin]</a></h1>
+            <p>{% trans "Manage contact's information" %}</p>
+          </div>
+        </div>
+      </div><!-- /.container-fluid -->
+    </section>
+    <section class="content">
+      <div class="container-fluid">
+        <div class="row">
+          <div class="col-md-12">
+            <div class="card">
+              <div class="card-header p-2">
+                <ul class="nav nav-pills">
+                  <li class="nav-item"><a class="nav-link active" href="#resumen" data-toggle="tab">{% trans "Overview" %}</a></li>
+                  <li class="nav-item"><a class="nav-link" href="#datos" data-toggle="tab">{% trans "Contact information" %}</a></li>
+                  <li class="nav-item"><a class="nav-link" href="#suscripciones" data-toggle="tab">{% trans "Subscriptions" %}</a></li>
+                  <li class="nav-item"><a class="nav-link" href="{% url 'contact_invoices' contact.id %}" target="_blank">{% trans "Invoices" %}</a></li>
+                </ul>
+              </div>
+              <div class="card-body">
+                <div class="tab-content">
+                  <div class="active tab-pane" id="resumen">
+                    <div class="row">
+                    <div class="col-md-4">
+                        <div class="card">
+                          <div class="card-header">
+                            <h3 class="card-title">{% trans "Contact information" %}</h3>
+                          </div>
+                          <div class="card-body">
+                            <dl>
+                              <dt>{% trans "Name" %}</dt>
+                              <dd>{{contact.name}}</dd>
+                              <dt>{% trans "Documento" %}</dt>
+                              <dd>{{contact.id_document}}</dd>
+                              <dt>{% trans "Phone" %}</dt>
+                              <dd>{{contact.phone}}</dd>
+                              <dt>{% trans "Addresses" %}</dt>
+                              {% for address in addresses %}
+                                <dd>{{address}}</dd>
+                              {% endfor %}
+                              <dt>{% trans "Tags" %}</dt>
+                              <dd>
+                              {% for tag in contact.tags.all %}
+                                <span class="btn btn-default btn-sm">{{tag}}</span>
+                              {% endfor %}
+                              </dd>
+                            </dl>
+
+                          </div>
+                        </div>
+                      </div>
+                      <div class="col-md-4">
+                        <div class="card">
+                          <div class="card-header">
+                            <h3 class="card-title">{% trans "Active subscriptions" %}</h3>
+                          </div>
+                          <div class="card-body">
+                            {% if subscriptions %}
+                              {% for subscription in subscriptions %}
+                                <dt {% if forloop.counter != 1 %}class="border-top mt-4 pt-3"{% endif %}></dt>
+                                <dd>{% autoescape off %}{{subscription.show_products_html}}{% endautoescape %}</dd>
+                                <dd><b>{% trans "Frequency" %}:</b> {{subscription.get_frequency}}</dd>
+                                <dd><b>{% trans "Price" %}:</b> {{subscription.get_price_for_full_period}}</dd>
+                                <dd><b>{% trans "Payment type" %}:</b> {{subscription.get_payment_type}}</dd>
+                                {% if subscription.balance %}<dd><b>{% trans "Balance" %}:</b> {{subscription.balance}}</dd>{% endif %}
+                                <a href="{% url 'upgrade_subscription' subscription.id %}" class="btn btn-block btn-success">{% trans "Upgrade" %}</a>
+                              {% endfor %}
+                            {% else %}
+                              {% trans "This contact has no active subscriptions" %}
+                            {% endif %}
+                          </div>
+                          <div class="card-footer">
+                            <a href="{% url  'new_subscription' contact.id %}" class="btn btn-primary float-right">{% trans "Add subscription" %}</a>
+                          </div>
+                        </div>
+                        <div class="card">
+                          <div class="card-header">
+                            <h3 class="card-title">{% trans "Payments" %}</h3>
+                          </div>
+                          {% if last_paid_invoice or contact.get_debt %}
+                          <div class="card-body">
+                            <dl>
+                              <dt>{% trans "Latest payment" %}</dt>
+                              {% if last_paid_invoice %}
+                                <dd>{{last_paid_invoice.amount}}</dd>
+                              {% else %}
+                                <dd>N/A</dd>
+                              {% endif %}
+                              {% if contact.get_debt %}
+                              <dt>{% trans "Debt" %}</dt>
+                              <dd>${{ contact.get_debt }}<i class="fas fa-exclamation-triangle text-danger"></i></dd>
+                              {% endif %}
+                            </dl>
+                          </div>
+                          {% else %}
+                          <div class="card-body">
+                            <dl>
+                              <dd>{% trans "This contact has no payment data" %}</dd>
+                            </dl>
+                          </div>
+                          {% endif %}
+                        </div>
+                      </div>
+                      <div class="col-md-4">
+                        <div class="card">
+                          <div class="card-header">
+                            <h3 class="card-title">{% trans "Latest issues" %}</h3>
+                          </div>
+                          <div class="card-body">
+                            {% if issues %}
+                              <dl>
+                                {% for issue in issues %}
+                                  <dt>{{issue.get_status}}</dt>
+                                  <dd>{{issue.date_created}}</dd>
+                                  <dd>{{issue.notes}}</dd>
+                                {% endfor %}
+                              </dl>
+                            {% else %}
+                              <dl><dd>{% trans "This contact has no issues" %}</dd></dl>
+                            {% endif %}
+                          </div>
+                        </div>
+                        <div class="card">
+                          <div class="card-header">
+                            <h3 class="card-title">{% trans "Latest activities" %}</h3>
+                          </div>
+                          <div class="card-body">
+                            {% if activities %}
+                              <dl>
+                                {% for a in activities %}
+                                <dt {% if forloop.counter != 1 %}class="border-top mt-4 pt-3"{% endif %}>{{a.get_type}}
+                                {% if a.campaign %}<i>{{a.campaign.name}}</i>{% endif %}</dt>
+                                <dd><b>{% trans 'Status'%}:</b> {{a.get_status}}</dd>
+                                {% if a.datetime %}
+                                <dd><b>{% trans 'Date'%}</b>: {{a.datetime|date:"SHORT_DATETIME_FORMAT"}}</dd>
+                                {% endif %}
+                                {% if a.notes %}
+                                <dd><b>{% trans 'Notes'%}</b>: {{a.notes|default_if_none:""}}</dd>
+                                {% endif %}
+                                {% endfor %}
+                              </dl>
+                            {% else %}
+                              <dl><dd>{% trans "This contact has no activities" %}</dd></dl>
+                            {% endif %}
+                          </div>
+                        </div>
+                        <div class="card">
+                          <div class="card-header">
+                            <h3 class="card-title">{% trans "Newsletters" %}</h3>
+                          </div>
+                          <div class="card-body">
+                            {% if newsletters %}
+                            <ul class="pl-3">
+                            {% for newsletter in newsletters %}
+                              <li>{{newsletter.product}}</li>
+                            {% endfor %}
+                            </ul>
+                            {% else %}
+                            {% trans "This contact has no active newsletters" %}
+                            {% endif %}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    </div>
+                    <!-- Tab datos -->
+                    <div class="tab-pane" id="datos">
+                      <div class="row">
+                        <div class="card col-sm-9">
+                          <div class="card-header">
+                            <h3 class="card-title">{% trans "General information" %}</h3>
+                          </div>
+                          <div class="card-body">
+                            <dl>
+                              <dt>{% trans "Name" %}</dt>
+                              <dd>{{contact.name}}</dd>
+                              <dt>{% trans "Documento" %}</dt>
+                              <dd>{{contact.id_document}}</dd>
+                              <dt>{% trans "Phone" %}</dt>
+                              <dd>{{contact.phone}}</dd>
+                              <dt>{% trans "Addresses" %}</dt>
+                              {% for address in addresses %}
+                                <dd>{{address}}</dd>
+                              {% endfor %}
+                              <dt>{% trans "Tags" %}</dt>
+                              <dd>
+                              {% for tag in contact.tags.all %}
+                                <span class="btn btn-default btn-sm">{{tag}}</span>
+                              {% endfor %}
+                              </dd>
+                            </dl>
+
+                          </div>
+                        </div>
+                      </div>
+                      <div class="row">
+                        <div class="card col-sm-9">
+                          <div class="card-header">
+                            <h3 class="card-title">{% trans 'Addresses' %}</h3>
+                          </div>
+                          <div class="card-body">
+                            {% for address in addresses %}
+                            <div class="card collapsed-card">
+                              <div class="card-header">
+                                <h4 class="card-title">{{address}}</h4>
+                                <div class="card-tools">
+                                  <button type="button" class="btn btn-tool" data-card-widget="collapse"><i class="fas fa-plus"></i>
+                                  </button>
+                                </div>
+                              </div>
+                              <div class="card-body">
+                                <dl>
+                                  <dt>{% trans "Address 1" %}</dt>
+                                  <dd>{{address.address_1}}</dd>
+                                  {% if address.address_2 %}
+                                  <dt>{% trans "Address 2" %}</dt>
+                                  <dd>{{address.address_2}}</dd>
+                                  {% endif %}
+                                  <dt>{% trans "Address city" %}</dt>
+                                  <dd>{{address.address_city}}</dd>
+                                  <dt>{% trans "Address state" %}</dt>
+                                  <dd>{{address.address_state}}</dd>
+                                  {% if address.address_notes %}
+                                  <dt>{% trans "Address notes" %}</dt>
+                                  <dd>{{address.address_notes}}</dd>
+                                  {% endif %}
+                                </dl>
+                                  <div class="text-right">
+                                    <a href="#" class="btn btn-gradient btn-danger">{% trans ' Delete address' %}</a>
+                                    <a href="#" class="btn btn-gradient btn-primary">{% trans ' Edit address' %}</a>
+                                  </div>
+                              </div>
+                            </div>
+                            {% endfor %}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <!-- Tab Suscripciones -->
+                    <div class="tab-pane" id="suscripciones">
+                      <div class="row">
+                        <div class="card col-sm-9">
+                          <div class="card-header">
+                            <h3 class="card-title">{% trans 'Active subscriptions' %}</h3>
+                          </div>
+                          <div class="card-body">
+                            {% if subscriptions %}
+
+                              {% for subscription in subscriptions %}
+                              <dl {% if forloop.counter != 1 %}class="border-bottom pb-3"{% endif %}>
+                                <dt {% if forloop.counter != 1 %}class="border-top mt-4 pt-3"{% endif %}>{% trans "Products" %}:</dt>
+                                <dd>{% autoescape off %}{{subscription.show_products_html}}{% endautoescape %}</dd>
+                                <dt>{% trans "Frequency" %}:</dt> <dd>{{subscription.get_frequency}}</dd>
+                                <dt>{% trans "Price" %}:</dt> <dd>{{subscription.get_price_for_full_period}}</dd>
+                                <dt>{% trans "Type" %}:</dt> <dd>{{subscription.type}}</dd>
+                                <dt>{% trans "Payment type" %}:</dt>
+                                <dd>{{subscription.get_payment_type}}</dd>
+                                <dt>{% trans "Start date" %}:</dt> <dd>{{subscription.start_date}}</dd>
+                                {% if subscription.end_date %}
+                                <dt>{% trans "End date" %}:</dt> <dd>{{subscription.end_date}}</dd>
+                                {% endif %}
+                                {% if subscription.balance %}
+                                <dt>{% trans "Balance" %}:</dt> <dd>{{subscription.balance}}</dd>
+                                {% endif %}
+                              </dl>
+                              {% endfor %}
+
+                            <div class="card">
+                              <div class="card-header">
+                                <h4 class="card-title">{% trans "Billing information" %}</h4>
+                              </div>
+                              <div class="card-body">
+                              {% for subscription in subscriptions %}
+                              <dl {% if forloop.counter != 1 %}class="border-bottom pb-3"{% endif %}>
+                                <dt>{% trans "Payment type" %}:</dt>
+                                <dd class="border-bottom pb-2">{{subscription.get_payment_type}}</dd>
+                                <dt>{% trans "Billing address" %}:</dt>
+                                <dd class="border-bottom pb-2">{{subscription.billing_address}}</dd>
+                                <dt>{% trans "Billing name" %}:</dt>
+                                <dd>{{subscription.billing_name}}</dd>
+                                <dt>{% trans "Billing ID" %}:</dt>
+                                <dd class="border-bottom pb-2">{{subscription.billing_id_doc}}</dd>
+                                <dt>{% trans "RUT" %}:</dt>
+                                <dd>{{subscription.rut}}</dd>
+                                <dt>{% trans "Billing phone" %}:</dt>
+                                <dd>{{subscription.billing_phone}}</dd>
+                                <dt>{% trans "Billing email" %}:</dt>
+                                <dd class="border-bottom pb-2">{{subscription.billing_email}}</dd>
+                                <dt>{% trans "Balance" %}:</dt>
+                                <dd>{{subscription.balance}}</dd>
+                              </dl>
+                              {% endfor %}
+
+                              </div>
+                            </div>
+                            <div class="text-right">
+                              <a href="#" class="btn btn-primary btn-gradient">{% trans 'Edit' %}</a>
+                            </div>
+                            {% else %}
+                              <b>{% trans "This contact has no active subscriptions" %}</b>
+                              <div class="text-right">
+                                <a href="#" class="btn btn-primary btn-gradient">{% trans 'Add subscription' %}</a>
+                              </div>
+                            {% endif %}
+                          </div>
+                        </div>
+                      </div>
+                      {% if inactive_subscriptions %}
+                      <div class="row">
+                        <div class="card col-sm-9 collapsed-card">
+                          <div class="card-header">
+                            <h3 class="card-title">{% trans 'Old subscriptions' %}</h3>
+                            <div class="card-tools">
+                              <button type="button" class="btn btn-tool" data-card-widget="collapse"><i class="fas fa-plus"></i>
+                              </button>
+                            </div>
+                          </div>
+                          <div class="card-body">
+                              {% for subscription in inactive_subscriptions %}
+                              <dl {% if forloop.counter != 1 %}class="border-bottom pb-3"{% endif %}>
+                                <dt {% if forloop.counter != 1 %}class="border-top mt-4 pt-3"{% endif %}>{% trans "Products" %}:</dt>
+                                <dd>{% autoescape off %}{{subscription.show_products_html}}{% endautoescape %}</dd>
+                                <dt>{% trans "Frequency" %}:</dt> <dd>{{subscription.get_frequency}}</dd>
+                                <dt>{% trans "Price" %}:</dt> <dd>{{subscription.get_price_for_full_period}}</dd>
+                                <dt>{% trans "Type" %}:</dt> <dd>{{subscription.type}}</dd>
+                                <dt>{% trans "Payment type" %}:</dt>
+                                <dd>{{subscription.get_payment_type}}</dd>
+                                <dt>{% trans "Start date" %}:</dt> <dd>{{subscription.start_date}}</dd>
+                                {% if subscription.end_date %}
+                                <dt>{% trans "End date" %}:</dt> <dd>{{subscription.end_date}}</dd>
+                                {% endif %}
+                                {% if subscription.balance %}
+                                <dt>{% trans "Balance" %}:</dt> <dd>{{subscription.balance}}</dd>
+                                {% endif %}
+                                </dl>
+                              {% endfor %}
+
+                          </div>
+                        </div>
+                      </div>
+                      {% endif %}
+                    </div>
+                  </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+{% endblock %}

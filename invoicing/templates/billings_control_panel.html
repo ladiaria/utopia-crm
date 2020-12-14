@@ -1,0 +1,148 @@
+{% extends 'adminlte/base.html' %}
+{% load static %}
+{% load i18n %}
+{% block stylesheets %}
+    {{block.super}}
+    <link rel="stylesheet" href="{% static 'css/jquery-ui.css' %}" />
+{% endblock %}
+
+{% block extra_head %}
+<script type="text/javascript" src="{% static 'js/jquery-3.3.1.min.js' %}"></script>
+<script src="{% static 'js/1.12.1/jquery-ui.js' %}"></script>
+<script type="text/javascript">
+  $(function(){
+    $("#formsubmit").click(function () {
+     if(confirm("Confirmar inicio")){
+        $("#control").hide();
+        $("#loading").text("Comenzando facturación...")
+        $('#form').submit();
+      }
+      else{
+        return false;
+      }
+    });
+    function loadlink(){
+        // console.log('toast')
+        $.getJSON("/invoicing/billing_progress/", function(data){
+            var progress = data['progress'];
+            var billing_id = data['billing_id'];
+            if(billing_id=='N/A'){
+                // This means the thing ended and then we reload the page
+                location.reload();
+            }else{
+                // Here's where we update the progress bar
+                $('#progress').css('width', progress+'%');
+                $('#progressText').text('Completado: ' + progress);
+            }
+        });
+    }
+
+    setInterval(function(){
+        if ($('div#progress_div').length){
+            // If there's a div#progress_div this will run every 5 seconds
+            loadlink()
+        }
+    }, 5000);
+
+    $(".datepicker").datepicker(
+        { dateFormat: 'yy-mm-dd' }).datepicker("setDate", new Date());
+  });
+</script>
+{% endblock %}
+{% block no_heading %}
+<h1>{% trans 'Billings' %}</h1>
+<p>{% trans 'View current billings' %}</p>
+{% endblock %}
+{% block breadcrumbs %}
+<ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="/invoicing/">{% trans 'Invoicing' %}</a></li>
+    <li class="breadcrumb-item active">{% trans 'Billings' %}</li>
+</ol>
+{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h2 class="card-title">{% trans 'Billings' %}</h2>
+  </div>
+  <div class="card-body">
+    <form method="post" id="form">
+        {% csrf_token %}
+        {% comment "This is disabled for now" %}
+        <div class="form-group">
+          <label for="payment_method">{% trans 'Payment Method' %}</label>
+          <select name='payment_method' id='payment_method' class="form-control">
+              {% for payment_method in payment_methods %}
+              <option value="{{payment_method.0}}">{{payment_method.1}}</option>
+              {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="card_type">{% trans 'Card Type' %}</label>
+          <select name='card_type' id='card_type' class="form-control">
+              {% for card_type in card_types %}
+              <option value="{{card_type.0}}">{{card_type.1}}</option>
+              {% endfor %}
+          </select>
+        </div>
+        {% endcomment %}
+        <div id="control" style="margin:10px">
+        {% if progress %}
+        <div class="card card-primary card-outline">
+          <div class="card-header">
+            <h3 class="card-title">{% trans 'Billing' %} {{billing_id}} {% trans 'in progress' %}.</h3>
+          </div>
+          <div class="card-body">
+            <div id="progress_div" class="progress progress-striped">
+                <div id="progress" class="progress-bar progress-bar-danger" style="width: {{progress}}%" aria-valuenow="{{progress}}" valuemin="0" aria-valuemax="100"></div>
+            </div>
+            <span id="progressText">{% trans 'Completed' %}: {{progress}}</span>%
+          </div>
+        </div>
+        {% else %}
+        <div class="card card-primary card-outline">
+          <div class="card-header">
+            <h3 class="card-title">{% trans 'New billing' %}:</h3>
+          </div>
+          <div class="card-body">
+            <div class="form-group">
+              <label for="creation_date">{% trans 'Date' %}:</label>
+              <input type="text" class="datepicker form-control" name="creation_date" value="{% now 'Y-m-d' %}" required />
+            </div>
+            <div class="form-group text-right">
+              <input type="button" id="formsubmit" value="{% trans 'Start new' %}" class="btn bg-gradient-primary" />
+            </div>
+          </div>
+        </div>
+        {% endif %}
+        </div>
+        <div id='loading'></div>
+         <table class="table table-hover table-head-fixed">
+           <thead>
+             <tr>
+                 <th>{% trans 'id' %}</th>
+                 <th>{% trans 'payment type' %}</th>
+                 <th>{% trans 'card' %}</th>
+                 <th>{% trans 'progress' %}</th>
+                 <th>{% trans 'started by' %}</th>
+                 <th>{% trans 'start date' %}</th>
+                 <th>{% trans 'end date' %}</th>
+             </tr>
+           </thead>
+           <tbody>
+            {% for billing in billings %}
+            <tr>
+                <td><a href="/invoicing/billing_invoices/{{billing.id}}/">{{billing.id}}</a></td>
+                <td>{{billing.payment_type|default_if_none:"Todas"}}</td>
+                <td>{{billing.card_type|default_if_none:"N/A"}}</td>
+                <td>{{billing.progress}}</td>
+                <td>{{billing.created_by }}</td>
+                <td>{{billing.start|default_if_none:"N/A"}}</td>
+                <td>{{billing.end|default_if_none:"N/A"}}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </form>
+  </div>
+</div>
+{% endblock %}

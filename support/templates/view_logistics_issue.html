@@ -1,0 +1,90 @@
+{% extends 'adminlte/base.html' %}
+{% load static i18n %}
+{% block no_heading %}
+<h1>{% trans 'Support' %}</h1>
+<p>{% trans "Change logistics incident" %}</p>
+{% endblock %}
+{% block breadcrumbs %}
+<ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="/support/">{% trans 'Support' %}</a></li>
+    <li class="breadcrumb-item active">{% trans "Change logistics incident" %}</li>
+</ol>
+{% endblock %}
+{% block content %}
+<section class="content-header">
+    <div class="container-fluid">
+      <div class="row mb-2">
+        <div class="col-sm-12">
+          <h3>{% trans "Change logistics issue" %} - {{issue.id}} - {{issue.contact}}</h3>
+      </div>
+    </div>
+  </div><!-- /.container-fluid -->
+</section>
+<section class="content">
+      <div class="container-fluid">
+        <div class="row">
+
+          <div class="col-md-9">
+            <div class="card">
+              <div class="card-header p-2">
+                <h3>{% trans "Incident details" %}</h3>
+              </div>
+              <div class="card-body">
+                <dl>
+                    <dt>{% trans "Contact" %}</dt>
+                    <dd>{{issue.contact}}</dd>
+                    <dt>{% trans "Start date" %}</dt>
+                    <dd>{{issue.date_created}}</dd>
+                    <dt>{% trans "Contact phone" %}</dt>
+                    <dd>{{issue.contact.phone}}</dd>
+                    <dt>{% trans "Category" %}</dt>
+                    <dd>{{issue.get_category}}</dd>
+                    <dt>{% trans "Subcategory" %}</dt>
+                    <dd>{{issue.get_subcategory}}</dd>
+                    <dt>{% trans "Created by" %}</dt>
+                    <dd>{{issue.manager}}</dd>
+                    <dt>{% trans "Notes" %}</dt>
+                    <dd>{{issue.notes}}</dd>
+                  </dl>
+
+              </div><!-- /.card-body -->
+          </div>
+          <div class="card">
+              <div class="card-header p-2">
+                <h3>{% trans "Progress" %}</h3>
+              </div><!-- /.card-header -->
+              <div class="card-body">
+                <form method="post">
+                    {%csrf_token%}
+                    <div class="form-group">
+                      <label for="id_progress">{{form.progress.label}}</label>
+                      {{form.progress}}
+                    </div>
+                    <div class="form-group">
+                      <label id="id_answer_1">{{form.answer_1.label}}</label>
+                      {{form.answer_1}}
+                    </div>
+                    <div class="form-group">
+                      <label for="id_answer_2">{{form.answer_2.label}}</label>
+                      {{form.answer_2}}
+                    </div>
+                    <div class="form-group">
+                      <label for="id_assigned_to">{{form.assigned_to.label}}</label>
+                      {{form.assigned_to}}
+                    </div>
+                    <div class="form-group">
+                      <label id="id_status">{{form.status.label}}</label>
+                      {{form.status}}
+                    </div>
+                    <div class="form-group text-right">
+                      <button type="submit"  name="submit" class="btn bg-gradient-primary">{% trans 'Update' %}</button>
+                    </div>
+                </form>
+              </div>
+        </div>
+        </div>
+      </div>
+    </div>
+</section>
+
+{% endblock %}

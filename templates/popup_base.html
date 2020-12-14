@@ -1,0 +1,36 @@
+{% load setting %}
+{% load static from staticfiles %}
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <title>la diaria - {% block title %}Suscripciones{% endblock %}</title>
+        <link rel="shortcut icon" type="image/png" href="{% static 'img/favicon.ico' %}"/>
+        <link href="{% static 'css/base.css' %}" type="text/css" rel="stylesheet" />
+        {% block js %}{% endblock %}
+        {% block css %}{% endblock %}
+        {% block extrastyle %}
+        {{ block.super }}
+        <link rel="stylesheet" type="text/css" href="{% static 'css/admin-extra.css' %}"/>
+        {% endblock %}
+    </head>
+    <body{% block bodyclass %}{% endblock %}>
+    <div id="container-popup">
+        <div id="header">
+            <div id="branding">
+                <h1 id="site-name">
+                    <img src="/static/img/ladiaria_logo_blanco.png" alt="la diaria">
+                </h1>
+            </div>
+        </div>
+        <div class="breadcrumbs">
+        {% block breadcrumbs %}{% endblock %}
+        </div>
+        <div id="content">
+            {# <h1>{% block pagetitle %}Suscripciones{% endblock %}</h1> #}
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+    </body>
+    {% block footer %}{% endblock %}
+</html>

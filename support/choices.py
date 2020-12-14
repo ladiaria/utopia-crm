@@ -1,0 +1,92 @@
+# coding=utf-8
+from django.utils.translation import ugettext_lazy as _
+
+SCHEDULED_TASK_CATEGORIES = (
+    ('AC', _('Address change')),
+    ('PD', _('Deactivation (Pause)')),
+    ('PA', _('Activation (Pause)')),
+)
+
+
+ISSUE_CATEGORIES = (
+    ('L', _('Logistics')),
+    ('I', _('Invoicing')),
+    ('C', _('Contents')),
+    ('W', _('Web')),
+    ('S', _('Service')),
+    ('O', _('Community')),
+)
+
+ISSUE_SUBCATEGORIES = (
+    # Logistics
+    ('L01', _('Did not arrive')),
+    ('L02', _('Arrived late')),
+    ('L03', _('Arrived wet')),
+    ('L04', _('Changed delivery place')),
+    ('L05', _('Not delivered')),
+    ('L06', _('Delivered to a wrong place')),
+    ('L07', _('Wrong label')),
+    ('L08', _('Wrong invoice delivered')),
+    ('L10', _('Paused route')),
+    # Invoicing
+    ('I01', _('Product doesn\'t belong')),
+    ('I02', _('Price issue')),
+    ('I03', _('Payment type issue')),
+    ('I04', _('Subscription not being billed')),
+    ('I05', _('Payment type change')),
+    ('I06', _('Collection issue (active subscription)')),
+    ('I07', _('Collection issue (inactive subscription)')),
+    ('I08', _('Credit card expiration')),
+    # Contents
+    ('C01', _('Suggestions')),
+    ('C02', _('Complaints')),
+    ('C03', _('Corrections')),
+    ('C04', _('Requests')),
+    ('C05', _('Contact journalist')),
+    ('C06', _('Forward content')),
+    # Web
+    ('W01', _('Access (sign-in)')),
+    ('W02', _('Registry (sign-up)')),
+    ('W03', _('Website not available')),
+    ('W04', _('Settings issue')),
+    ('W05', _('Articles limit reached')),
+    ('W06', _('Not using service')),
+    # Service
+    ('S01', _('Promotion request')),
+    ('S02', _('Register new subscription')),
+    ('S03', _('End subscription')),
+    ('S04', _('Schedule subscription pause')),
+    ('S05', _('Schedule address change')),
+    ('S06', _('Vacation (Resorts)')),
+    ('S07', _('Newsletters')),
+    ('S08', _('Complaints on service')),
+    ('S09', _('Payment types')),
+    ('S10', _('Errors in data')),
+    ('S11', _('Special cases')),
+    ('S12', _('Schedule task')),
+    # Community
+    ('O01', _('Community Benefits')),
+    ('O02', _('Community Events')),
+    ('O03', _(u'Café')),
+    ('O04', _('Media-lab')),
+    ('O05', _('Shop')),
+    ('O06', _('Community Suggestions')),
+    ('O07', _('Community Complaints')),
+    ('O08', _('Community Requests')),
+    ('O09', _('Polls/Surveys')),
+)
+
+ISSUE_ANSWERS = (
+    ('I1', _('Collected')),
+    ('L1', _('Delivered again')),
+)
+
+ISSUE_STATUS = (
+    ('P', _('Pending')),
+    ('A', _('Assigned')),
+    ('I', _('In progress')),
+    ('D', _('Derived')),
+    ('N', _('Notify')),
+    ('S', _('Solved')),
+    ('X', _('No solution')),
+)

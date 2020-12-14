@@ -1,0 +1,12 @@
+[uwsgi]
+chdir=/srv/utopia/dev
+module=utopia.wsgi:application
+master=True
+socket=/var/local/utopia/uwsgi_dev.sock
+stats=/var/local/utopia/uwsgi_dev_stats.sock
+pidfile=/var/local/utopia/uwsgi_dev.pid
+vacuum=True
+max-requests=4000
+processes=2
+home=/opt/venv/utopia
+daemonize=/var/log/uwsgi/utopia_dev.log
