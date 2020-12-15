@@ -106,7 +106,7 @@ There is a requirements.txt file with all the libraries you need to have install
 <!-- USAGE EXAMPLES -->
 ## Usage
 
-_For CRM's features, please refer to the [Documentation](docs/FEATURES.md)_
+_For CRM's features, please refer to the [Documentation](docs/en/FEATURES.md)_
 
 
 <!-- ROADMAP -->
