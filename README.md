@@ -88,7 +88,7 @@ There is a requirements.txt file with all the libraries you need to have install
 
 1. Clone the repo
    ```sh
-   git clone git@github.com:utopia/utopia-crm.git
+   git clone git@github.com:ladiaria/utopia-crm.git
    ```
 2. Follow our [INSTALL](INSTALL) instructions in this repository to install requirements, setup the database and modify configuration.
 
