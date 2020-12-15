@@ -1,4 +1,4 @@
-# Utopia - Content Relationship Management
+# Utopia - Customer Relationship Management
 
 ## Main features
 
@@ -50,4 +50,4 @@ Debt's reports and visualizations per year, types of suscriptions and clients's 
 
 ### 11. Reports
 
-There is a large amount of different queries that can be done on the system and exported as CSV. 
+There is a large amount of different queries that can be done on the system and exported as CSV.

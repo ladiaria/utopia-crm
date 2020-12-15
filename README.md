@@ -80,7 +80,7 @@ To get a local copy up and running follow these simple steps.
 
 ### Prerequisites
 
-This is an example of how to list things you need to use the software and how to install them.
+There is a requirements.txt file with all the libraries you need to have installed:
 
 * ``pip install -r requirements.txt``
 
@@ -106,7 +106,7 @@ This is an example of how to list things you need to use the software and how to
 <!-- USAGE EXAMPLES -->
 ## Usage
 
-_For features, please refer to the [Documentation](docs/FEATURES.rst)_
+_For CRM's features, please refer to the [Documentation](docs/FEATURES.md)_
 
 
 <!-- ROADMAP -->
@@ -143,7 +143,7 @@ Distributed under the 3-clause BSD License. See `LICENSE` for more information.
 <!-- CONTACT -->
 ## Contact
 
-La Diaria - [@ladiaria](https://twitter.com/ladiaria)
+la diaria - [@ladiaria](https://twitter.com/ladiaria)
 
 Project Link: [https://github.com/ladiaria/utopia-crm](https://github.com/ladiaria/utopia-crm)
 
