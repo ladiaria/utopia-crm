@@ -191,6 +191,7 @@ class PickupPlace(models.Model):
     """
     resort = models.ForeignKey(Resort, verbose_name=_('Resort'))
     description = models.TextField(verbose_name=_('Description'))
+    the_geom = PointField(blank=True, null=True)
 
     def __unicode__(self):
         return self.description
@@ -211,7 +212,7 @@ class City(models.Model):
         state.choices = settings.STATES
 
     def __unicode__(self):
-        return self.nombre
+        return self.name
 
     class Meta:
         verbose_name = _('city')
@@ -281,6 +282,9 @@ class Edition(models.Model):
     TODO: Store information for each product on a many to many or similar.
     """
     product = models.ForeignKey('core.Product', verbose_name=_('Product'))
+    number = models.PositiveSmallIntegerField(null=True, blank=True)
+    year = models.PositiveSmallIntegerField(null=True, blank=True)
+    month = models.PositiveSmallIntegerField(null=True, blank=True)
     date = models.DateField(
         verbose_name=_('Date'))
     start_time = models.TimeField(
