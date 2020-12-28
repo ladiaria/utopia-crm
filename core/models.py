@@ -1202,26 +1202,38 @@ class DynamicContactFilter(models.Model):
     mode = models.PositiveSmallIntegerField(choices=DYNAMIC_CONTACT_FILTER_MODES)
     autosync = models.BooleanField(default=False, help_text=_('Automatically sync with Mailtrain'))
     mailtrain_id = models.CharField(max_length=9, blank=True)
+    last_time_synced = models.DateTimeField(null=True, blank=True)
 
     def __unicode__(self):
         return self.description
 
     def get_subscriptions(self):
-        products = self.products.all()
-        subscriptions = Subscription.objects.annotate(count=Count('products')).filter(
-            active=True, count=products.count())
-        for product in products:
-            subscriptions = subscriptions.filter(products=product)
+        if self.mode == 1:  # At least one product must match
+            products = self.products.all()
+            subscriptions = Subscription.objects.all()
+            for product in products:
+                subscriptions = subscriptions.filter(products=product)
+        elif self.mode == 2:  # All products must match
+            products = self.products.all()
+            subscriptions = Subscription.objects.annotate(count=Count('products')).filter(
+                active=True, count=products.count())
+            for product in products:
+                subscriptions = subscriptions.filter(products=product)
+        elif self.mode == 3:  # Newsletters
+            subscriptions = SubscriptionNewsletter.objects.all()
+            for newsletter in self.newsletters.all():
+                subscriptions = subscriptions.filter(product=newsletter)
         if self.allow_promotions:
-            subscriptions = subscriptions.filter(allow_promotions=True)
+            subscriptions = subscriptions.filter(contact__allow_promotions=True)
         if self.allow_polls:
-            subscriptions = subscriptions.filter(allow_polls=True)
+            subscriptions = subscriptions.filter(contact__allow_polls=True)
+        subscriptions = subscriptions.filter(contact__email__isnull=False)
         return subscriptions
 
-    def get_subscriptions_count(self):
+    def get_email_count(self):
         return self.get_subscriptions().count()
 
-    def get_emails_from_subscriptions(self):
+    def get_emails(self):
         emails = []
         for subscription in self.get_subscriptions():
             if subscription.contact.email:
@@ -1230,7 +1242,7 @@ class DynamicContactFilter(models.Model):
 
     def sync_with_mailtrain_list(self):
         # We get all the lists first
-        emails_in_filter = self.get_emails_from_subscriptions()
+        emails_in_filter = self.get_emails()
         emails_in_mailtrain = get_emails_from_mailtrain_list(self.mailtrain_id)
 
         print("synchronizing DCF {} with list {}".format(self.id, self.mailtrain_id))
@@ -1244,3 +1256,16 @@ class DynamicContactFilter(models.Model):
         for email_in_filter in emails_in_filter:
             if email_in_filter not in emails_in_mailtrain:
                 subscribe_email_to_mailtrain_list(email_in_filter, self.mailtrain_id)
+
+        # Finally we'll add "now" as last time synced
+        self.last_time_synced = date.now()
+
+    def get_mode(self):
+        modes = dict(DYNAMIC_CONTACT_FILTER_MODES)
+        return modes.get(self.mode, "N/A")
+
+    def get_products(self):
+        if self.mode == 3:
+            return self.newsletters.all()
+        else:
+            return self.products.all()

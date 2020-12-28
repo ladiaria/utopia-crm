@@ -5,8 +5,13 @@ from datetime import date, timedelta, datetime
 from django import forms
 from django.contrib.auth.models import User
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-from django.db.models import Q
-from django.http import HttpResponseNotFound, HttpResponseRedirect, HttpResponse, JsonResponse
+from django.db.models import Q, Sum, Count
+from django.http import (
+    HttpResponseNotFound,
+    HttpResponseRedirect,
+    HttpResponse,
+    JsonResponse,
+)
 from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
@@ -16,8 +21,17 @@ from django.contrib.auth.decorators import login_required
 from core.filters import ContactFilter
 from core.forms import AddressForm
 from core.models import (
-    Contact, Subscription, Campaign, Address, Product, Subtype, Activity, SubscriptionProduct,
-    ContactCampaignStatus)
+    Contact,
+    Subscription,
+    Campaign,
+    Address,
+    Product,
+    Subtype,
+    Activity,
+    SubscriptionProduct,
+    ContactCampaignStatus,
+    SubscriptionNewsletter,
+)
 
 from .forms import *
 from .models import Seller, ScheduledTask
@@ -32,7 +46,7 @@ def csv_sreader(src):
     """(Magic) CSV String Reader"""
 
     # Auto-detect the dialect
-    dialect = csv.Sniffer().sniff(src, delimiters=',;')
+    dialect = csv.Sniffer().sniff(src, delimiters=",;")
     return csv.reader(src.splitlines(), dialect=dialect)
 
 
@@ -50,8 +64,8 @@ def import_contacts(request):
         old_contacts_list = []
         errors_list = []
         tag_list = []
-        subtype = request.POST.get('subtype', None)
-        tags = request.POST.get('tags', None)
+        subtype = request.POST.get("subtype", None)
+        tags = request.POST.get("tags", None)
         if tags:
             tags = tags.split(",")
             for tag in tags:
@@ -59,12 +73,13 @@ def import_contacts(request):
         subtypeobj = Subtype.objects.get(pk=subtype)
         # check files for every possible match
         try:
-            reader = csv_sreader(request.FILES['file'].read())
+            reader = csv_sreader(request.FILES["file"].read())
             # consume header
             reader.next()
         except csv.Error:
             return HttpResponse(
-                _('No delimiters found in file. Please review delimiters.'))
+                _("No delimiters found in file. Please review delimiters.")
+            )
 
         for row in reader:
             try:
@@ -80,15 +95,18 @@ def import_contacts(request):
                 state = row[9].strip()
             except IndexError:
                 return HttpResponse(
-                    _('The column count is wrong, please review the header to have at least 10 columns'))
+                    _(
+                        "The column count is wrong, please review the header to have at least 10 columns"
+                    )
+                )
             cpx = Q()
             for var in (phone, work_phone, mobile):
                 if var:
-                    for attr in ('phone', 'work_phone', 'mobile', 'email'):
+                    for attr in ("phone", "work_phone", "mobile", "email"):
                         cpx = cpx | Q(**{attr: var})
                         # if we get a mobile, also check without 0
-                        if var.startswith('9') and len(var) == 8:
-                            cpx = cpx | Q(**{attr: '0' + var})
+                        if var.startswith("9") and len(var) == 8:
+                            cpx = cpx | Q(**{attr: "0" + var})
             matches = Contact.objects.filter(cpx)
             matches_count = matches.count()
             if matches_count > 0:
@@ -105,7 +123,8 @@ def import_contacts(request):
                         work_phone=work_phone,
                         mobile=mobile,
                         notes=notes,
-                        subtype=subtypeobj)
+                        subtype=subtypeobj,
+                    )
                     # Build the address if necessary
                     if address:
                         Address.objects.create(
@@ -114,8 +133,9 @@ def import_contacts(request):
                             address_2=address_2,
                             city=city,
                             state=state,
-                            type='physical',
-                            email=email)
+                            type="physical",
+                            email=email,
+                        )
                     new_contacts_list.append(new_contact)
                     if tag_list:
                         for tag in tags_list:
@@ -124,29 +144,34 @@ def import_contacts(request):
                     errors_list.append("%s - %s" % (name, e.message))
                 # todo: address
         return render(
-            request, 'import_subscribers.html', {
-                'new_subs_list': new_contacts_list,
-                'old_subs_list': old_contacts_list,
-                'errors_list': errors_list,
-                'subtype': subtype})
+            request,
+            "import_subscribers.html",
+            {
+                "new_subs_list": new_contacts_list,
+                "old_subs_list": old_contacts_list,
+                "errors_list": errors_list,
+                "subtype": subtype,
+            },
+        )
 
-    elif request.POST and request.POST.get('new_subtype_id'):
-        subtypeobj = Subtype.objects.get(pk=request.POST.get('new_subtype_id'))
+    elif request.POST and request.POST.get("new_subtype_id"):
+        subtypeobj = Subtype.objects.get(pk=request.POST.get("new_subtype_id"))
         changed_list = []
         for name, value in request.POST.items():
             if name.startswith("move") and value == "S":
-                sub = Contact.objects.get(pk=name.replace('move-', ''))
+                sub = Contact.objects.get(pk=name.replace("move-", ""))
                 sub.subtype = subtypeobj
                 sub.save()
                 changed_list.append(sub)
         return render(
-            request, 'import_subscribers.html', {'changed_list': changed_list})
+            request, "import_subscribers.html", {"changed_list": changed_list}
+        )
 
     else:
         subtype_list = Subtype.objects.all()
         return render(
-            request, 'import_subscribers.html', {
-                'subtype_list': subtype_list})
+            request, "import_subscribers.html", {"subtype_list": subtype_list}
+        )
 
 
 @login_required
@@ -166,20 +191,23 @@ def seller_console_list_campaigns(request):
         c.count = c.get_not_contacted_count(seller.id)
         not_contacted_list.append(c)
     for c in all_campaigns:
-        c.pending = c.get_activities_by_seller(seller, 'P', 'C', date.today()).count()
-        c.delayed = c.get_activities_by_seller(seller, 'D', 'C', date.today()).count()
+        c.pending = c.get_activities_by_seller(seller, "P", "C", date.today()).count()
+        c.delayed = c.get_activities_by_seller(seller, "D", "C", date.today()).count()
         all_campaigns_list.append(c)
     for c in all_campaigns:
-        c.pending = c.get_activities_by_seller(seller, 'P', 'C', date.today()).count()
-        c.delayed = c.get_activities_by_seller(seller, 'D', 'C', date.today()).count()
+        c.pending = c.get_activities_by_seller(seller, "P", "C", date.today()).count()
+        c.delayed = c.get_activities_by_seller(seller, "D", "C", date.today()).count()
         upcoming.append(c)
     return render(
-        request, 'seller_console_list_campaigns.html', {
-            'not_contacted': not_contacted_list,
-            'all_campaigns': all_campaigns_list,
-            'upcoming_campaigns': upcoming,
-            'seller': seller,
-        })
+        request,
+        "seller_console_list_campaigns.html",
+        {
+            "not_contacted": not_contacted_list,
+            "all_campaigns": all_campaigns_list,
+            "upcoming_campaigns": upcoming,
+            "seller": seller,
+        },
+    )
 
 
 @login_required
@@ -188,10 +216,10 @@ def seller_console(request, category, campaign_id):
     Dashboard-like control panel for sellers to take actions on contacts in campaigns one by one, calling them and
     registering the activity they had with the contacts.
     """
-    if request.GET.get('offset'):
-        offset = request.GET.get('offset')
+    if request.GET.get("offset"):
+        offset = request.GET.get("offset")
     else:
-        offset = request.POST.get('offset')
+        offset = request.POST.get("offset")
     offset = int(offset) - 1 if (offset and int(offset) > 0) else 0
 
     user = User.objects.get(username=request.user.username)
@@ -200,52 +228,57 @@ def seller_console(request, category, campaign_id):
 
     call_datetime = datetime.strftime(date.today() + timedelta(1), "%Y-%m-%d")
 
-    if category == 'new':
+    if category == "new":
         console_instances = campaign.get_not_contacted(seller.id)
-    elif category == 'act':
-        pending = campaign.get_activities_by_seller(seller, 'P')
-        delayed = campaign.get_activities_by_seller(seller, 'D')
+    elif category == "act":
+        pending = campaign.get_activities_by_seller(seller, "P")
+        delayed = campaign.get_activities_by_seller(seller, "D")
         console_instances = pending | delayed
     count = console_instances.count()
     if count == 0:
-        return HttpResponse(_('No more records.'))
+        return HttpResponse(_("No more records."))
     if offset:
         if offset >= count:
-            return HttpResponse('Error')
+            return HttpResponse("Error")
         console_instance = console_instances[int(offset)]
     else:
         console_instance = console_instances[0]
 
     contact = console_instance.contact
-    times_contacted = contact.activity_set.filter(activity_type='C', status='C', campaign=campaign).count()
+    times_contacted = contact.activity_set.filter(
+        activity_type="C", status="C", campaign=campaign
+    ).count()
     all_activities = Activity.objects.filter(contact=contact)
-    if category == 'act':
+    if category == "act":
         # If what we're watching is an activity, let's please not show it here
         all_activities = all_activities.exclude(pk=console_instance.id)
     all_subscriptions = Subscription.objects.filter(contact=contact)
-    url = request.META['PATH_INFO']
-    addresses = Address.objects.filter(contact=contact).order_by('address_1')
+    url = request.META["PATH_INFO"]
+    addresses = Address.objects.filter(contact=contact).order_by("address_1")
 
     return render(
-        request, 'seller_console.html', {
-            'campaign': campaign,
-            'times_contacted': times_contacted,
+        request,
+        "seller_console.html",
+        {
+            "campaign": campaign,
+            "times_contacted": times_contacted,
             # 'count': count,
             # 'activities_list': activities_list,
-            'console_instances': console_instances,
-            'category': category,
-            'position': offset + 1,
-            'offset': offset,
-            'seller': seller,
-            'contact': contact,
-            'url': url,
-            'addresses': addresses,
-            'call_date': call_datetime,
-            'all_activities': all_activities,
-            'all_subscriptions': all_subscriptions,
-            'console_instance': console_instance,
-            'url': url,
-        })
+            "console_instances": console_instances,
+            "category": category,
+            "position": offset + 1,
+            "offset": offset,
+            "seller": seller,
+            "contact": contact,
+            "url": url,
+            "addresses": addresses,
+            "call_date": call_datetime,
+            "all_activities": all_activities,
+            "all_subscriptions": all_subscriptions,
+            "console_instance": console_instance,
+            "url": url,
+        },
+    )
 
 
 @login_required
@@ -256,29 +289,31 @@ def seller_console_action(request):
     This should probably be moved to the main seller_console view.
     """
     if request.POST:
-        result = request.POST.get('result')
-        offset = request.POST.get('offset')
+        result = request.POST.get("result")
+        offset = request.POST.get("offset")
         position = int(offset) + 1 if offset else 0
-        url = request.POST.get('url')
-        campaign = get_object_or_404(Campaign, pk=request.POST.get('campaign_id'))
-        instance_type = request.POST.get('instance_type')
-        instance_id = request.POST.get('instance_id')
-        seller_id = request.POST.get('seller_id')
+        url = request.POST.get("url")
+        campaign = get_object_or_404(Campaign, pk=request.POST.get("campaign_id"))
+        instance_type = request.POST.get("instance_type")
+        instance_id = request.POST.get("instance_id")
+        seller_id = request.POST.get("seller_id")
         seller = Seller.objects.get(pk=seller_id)
-        if instance_type == 'act':
+        if instance_type == "act":
             instance = Activity.objects.get(pk=instance_id)
             activity = instance
             contact = instance.contact
-            campaign_status = ContactCampaignStatus.objects.get(campaign=campaign, contact=contact)
-        elif instance_type == 'new':
+            campaign_status = ContactCampaignStatus.objects.get(
+                campaign=campaign, contact=contact
+            )
+        elif instance_type == "new":
             instance = ContactCampaignStatus.objects.get(pk=instance_id)
             campaign_status = instance
             contact = instance.contact
-            activity = Activity.objects.create(contact=contact, activity_type='C')
+            activity = Activity.objects.create(contact=contact, activity_type="C")
 
         # We save the notes before doing anything else to the subscription
-        if activity.notes != request.POST.get('notes'):
-            activity.notes = request.POST.get('notes')
+        if activity.notes != request.POST.get("notes"):
+            activity.notes = request.POST.get("notes")
             activity.save()
 
         if result == _("Schedule"):
@@ -286,66 +321,80 @@ def seller_console_action(request):
             activity.campaign_resolution = "SC"
             campaign_status.campaign_resolution = "SC"
             campaign_status.status = 2
-            call_date = request.POST.get('call_date')
+            call_date = request.POST.get("call_date")
             call_date = datetime.strptime(call_date, "%Y-%m-%d")
-            call_time = request.POST.get('call_time')
+            call_time = request.POST.get("call_time")
             call_time = datetime.strptime(call_time, "%H:%M").time()
             call_datetime = datetime.combine(call_date, call_time)
             Activity.objects.create(
-                contact=contact, activity_type='C', datetime=call_datetime,
-                campaign=campaign, seller=seller, notes='%s %s'.format(_('Scheduled for'), call_datetime))
+                contact=contact,
+                activity_type="C",
+                datetime=call_datetime,
+                campaign=campaign,
+                seller=seller,
+                notes="%s %s".format(_("Scheduled for"), call_datetime),
+            )
             activity.save()
 
-        elif result == _('Not interested'):
-            activity.status = 'C'  # The activity was completed
-            campaign_status.campaign_resolution = 'NI'
+        elif result == _("Not interested"):
+            activity.status = "C"  # The activity was completed
+            campaign_status.campaign_resolution = "NI"
             campaign_status.status = 4
 
-        elif result == _('Cannot find contact'):
-            activity.status = 'C'  # The activity was completed
-            campaign_status.campaign_resolution = 'UN'
+        elif result == _("Cannot find contact"):
+            activity.status = "C"  # The activity was completed
+            campaign_status.campaign_resolution = "UN"
             campaign_status.status = 5
 
-        elif result == _('Error in promotion'):
-            activity.status = 'C'  # The activity was completed
-            campaign_status.campaign_resolution = 'EP'
+        elif result == _("Error in promotion"):
+            activity.status = "C"  # The activity was completed
+            campaign_status.campaign_resolution = "EP"
             campaign_status.status = 4
 
-        elif result == _('Do not call anymore'):
-            activity.status = 'C'  # The activity was completed
-            campaign_status.campaign_resolution = 'DN'
+        elif result == _("Do not call anymore"):
+            activity.status = "C"  # The activity was completed
+            campaign_status.campaign_resolution = "DN"
             campaign_status.status = 4
 
-        elif result == _('Logistics'):
-            activity.status = 'C'  # The activity was completed
-            campaign_status.campaign_resolution = 'LO'
+        elif result == _("Logistics"):
+            activity.status = "C"  # The activity was completed
+            campaign_status.campaign_resolution = "LO"
             campaign_status.status = 4
 
-        elif result == _('Already a subscriber'):
-            activity.status = 'C'  # The activity was completed
-            campaign_status.campaign_resolution = 'AS'
+        elif result == _("Already a subscriber"):
+            activity.status = "C"  # The activity was completed
+            campaign_status.campaign_resolution = "AS"
             campaign_status.status = 4
 
         if campaign_status.campaign_resolution:
-            campaign_status.campaign_reject_reason = request.POST.get('campaign_reject_reason', None)
+            campaign_status.campaign_reject_reason = request.POST.get(
+                "campaign_reject_reason", None
+            )
             campaign_status.save()
 
         if activity:
             activity.save()
 
-        if result == _('Sell'):
-            return HttpResponseRedirect(reverse(
-                'start_paid_subscription', args=[contact.id]) + '?url=%s&offset=%s&instance=%s&instance_type=%s' % (
-                url, position, instance.id, instance_type))
+        if result == _("Sell"):
+            return HttpResponseRedirect(
+                reverse("start_paid_subscription", args=[contact.id])
+                + "?url=%s&offset=%s&instance=%s&instance_type=%s"
+                % (url, position, instance.id, instance_type)
+            )
 
-        elif result == _('Send promo'):
-            return HttpResponseRedirect(reverse(
-                'send_promo', args=[contact.id]) + '?url=%s&offset=%s&instance=%s&instance_type=%s' % (
-                url, position, instance.id, instance_type))
+        elif result == _("Send promo"):
+            return HttpResponseRedirect(
+                reverse("send_promo", args=[contact.id])
+                + "?url=%s&offset=%s&instance=%s&instance_type=%s"
+                % (url, position, instance.id, instance_type)
+            )
 
     return HttpResponseRedirect(
-        reverse(
-            'seller_console', args=[instance_type, campaign.id]) + '?offset={}'.format(offset) if offset else None)
+        reverse("seller_console", args=[instance_type, campaign.id])
+        + "?offset={}".format(offset)
+        if offset
+        else None
+    )
 
 
 @login_required
@@ -361,22 +410,26 @@ def edit_address(request, contact_id, address_id=None):
             address_form = AddressForm(request.POST)
         if address_form.is_valid():
             address_form.save()
-        return render(request, 'close.html')
+        return render(request, "close.html")
     else:
         contact = Contact.objects.get(pk=contact_id)
         if address_id:
             form = AddressForm(
                 instance=Address.objects.get(pk=address_id),
-                initial={'contact': contact})
+                initial={"contact": contact},
+            )
         else:
-            form = AddressForm(initial={'contact': contact})
-        form.fields['contact'].widget = forms.HiddenInput()
+            form = AddressForm(initial={"contact": contact})
+        form.fields["contact"].widget = forms.HiddenInput()
         return render(
-            request, 'seller_console_edit_address.html', {
-                'contact': contact,
-                'address_form': form,
-                'address_id': address_id,
-            })
+            request,
+            "seller_console_edit_address.html",
+            {
+                "contact": contact,
+                "address_form": form,
+                "address_id": address_id,
+            },
+        )
 
 
 @login_required
@@ -384,19 +437,19 @@ def send_promo(request, contact_id):
     """
     Shows a form that the sellers can use to send promotions to the contact.
     """
-    url = request.GET.get('url')
-    offset = request.GET.get('offset', 0)
-    instance_type = request.GET.get('instance_type', None)
-    instance_id = request.GET.get('instance', None)
-    result = request.POST.get('result')
+    url = request.GET.get("url")
+    offset = request.GET.get("offset", 0)
+    instance_type = request.GET.get("instance_type", None)
+    instance_id = request.GET.get("instance", None)
+    result = request.POST.get("result")
     contact = Contact.objects.get(pk=contact_id)
     instance = None
     contact_addresses = Address.objects.filter(contact=contact)
-    offerable_products = Product.objects.filter(bundle_product=False, type='S')
+    offerable_products = Product.objects.filter(bundle_product=False, type="S")
 
-    if instance_type and instance_type == 'new' and instance_id:
+    if instance_type and instance_type == "new" and instance_id:
         instance = ContactCampaignStatus.objects.get(pk=instance_id)
-    elif instance_type and instance_type == 'act' and instance_id:
+    elif instance_type and instance_type == "act" and instance_id:
         instance = Activity.objects.get(pk=instance_id)
     else:
         instance = None
@@ -410,68 +463,71 @@ def send_promo(request, contact_id):
 
     form = NewPromoForm(
         initial={
-            'name': contact.name,
-            'phone': contact.phone,
-            'mobile': contact.mobile,
-            'email': contact.email,
-            'default_address': contact_addresses,
-            'start_date': start_date,
-            'end_date': end_date,
-            'copies': 1,
-        })
-    form.fields['default_address'].queryset = contact_addresses
-    address_form = NewAddressForm(initial={'address_type': 'physical'})
+            "name": contact.name,
+            "phone": contact.phone,
+            "mobile": contact.mobile,
+            "email": contact.email,
+            "default_address": contact_addresses,
+            "start_date": start_date,
+            "end_date": end_date,
+            "copies": 1,
+        }
+    )
+    form.fields["default_address"].queryset = contact_addresses
+    address_form = NewAddressForm(initial={"address_type": "physical"})
 
     if result == _("Cancel"):
         if offset:
-            return HttpResponseRedirect(url + '?offset=%d' % int(offset))
+            return HttpResponseRedirect(url + "?offset=%d" % int(offset))
         else:
             return HttpResponseRedirect(url)
     elif result == _("Send"):
         form = NewPromoForm(request.POST)
         if form.is_valid():
             # First we need to save all the new contact data if necessary
-            name = form.cleaned_data['name']
+            name = form.cleaned_data["name"]
             if contact.name != name:
                 contact.name = name
-            phone = form.cleaned_data['phone']
+            phone = form.cleaned_data["phone"]
             if contact.phone != phone:
                 contact.phone = phone
-            mobile = form.cleaned_data['mobile']
+            mobile = form.cleaned_data["mobile"]
             if contact.mobile != mobile:
                 contact.mobile = mobile
-            notes = form.cleaned_data['notes']
+            notes = form.cleaned_data["notes"]
             if contact.notes != notes:
                 contact.notes = notes
             contact.save()
             # After this we will create the subscription
-            start_date = form.cleaned_data['start_date']
-            end_date = form.cleaned_data['end_date']
+            start_date = form.cleaned_data["start_date"]
+            end_date = form.cleaned_data["end_date"]
             subscription = Subscription.objects.create(
                 contact=contact,
-                type='P',
+                type="P",
                 start_date=start_date,
                 end_date=end_date,
                 campaign=campaign,
             )
             for key, value in request.POST.items():
-                if key.startswith('check'):
-                    product_id = key.split('-')[1]
+                if key.startswith("check"):
+                    product_id = key.split("-")[1]
                     product = Product.objects.get(pk=product_id)
-                    address_id = request.POST.get('address-{}'.format(product_id))
+                    address_id = request.POST.get("address-{}".format(product_id))
                     address = Address.objects.get(pk=address_id)
-                    copies = request.POST.get('copies-{}'.format(product_id))
+                    copies = request.POST.get("copies-{}".format(product_id))
                     subscription.add_product(product, address, copies)
-            if instance_type == 'new':
+            if instance_type == "new":
                 # The instance is a contact campaign status
                 instance.status = 2  # contacted the customer
-                instance.campaign_resolution = 'SP'  # we sent the promo to this customer
+                instance.campaign_resolution = (
+                    "SP"  # we sent the promo to this customer
+                )
                 instance.save()
 
-            elif instance_type == 'act':
+            elif instance_type == "act":
                 # the instance is somehow an activity and we needed to send a promo again
-                instance.status = 'C'  # completed activity
-                instance.campaign_resolution = 'SP'  # success with promo
+                instance.status = "C"  # completed activity
+                instance.campaign_resolution = "SP"  # success with promo
                 instance.save()
 
             # Afterwards we need to make an activity to ask the customer how it went.
@@ -479,24 +535,27 @@ def send_promo(request, contact_id):
             Activity.objects.create(
                 contact=contact,
                 campaign=campaign,
-                direction='O',
+                direction="O",
                 datetime=end_date,
-                activity_type='C',
-                status='P',
+                activity_type="C",
+                status="P",
             )
 
-            return HttpResponseRedirect(url + '?offset=%d' % int(offset))
+            return HttpResponseRedirect(url + "?offset=%d" % int(offset))
 
     return render(
-        request, 'send_promo.html', {
-            'contact': contact,
-            'instance_type': instance_type,
-            'instance': instance,
-            'form': form,
-            'address_form': address_form,
-            'offerable_products': offerable_products,
-            'contact_addresses': contact_addresses,
-        })
+        request,
+        "send_promo.html",
+        {
+            "contact": contact,
+            "instance_type": instance_type,
+            "instance": instance,
+            "form": form,
+            "address_form": address_form,
+            "offerable_products": offerable_products,
+            "contact_addresses": contact_addresses,
+        },
+    )
 
 
 @login_required
@@ -505,19 +564,20 @@ def start_paid_subscription(request, contact_id):
     Shows a form that the sellers can use to sell products to the contact.
     """
     contact = get_object_or_404(Contact, pk=contact_id)
-    url = request.GET.get('url')
-    offset = request.GET.get('offset', 0)
-    instance_type = request.GET.get('instance_type', None)
-    instance_id = request.GET.get('instance', None)
-    result = request.POST.get('result')
+    url = request.GET.get("url")
+    offset = request.GET.get("offset", 0)
+    instance_type = request.GET.get("instance_type", None)
+    instance_id = request.GET.get("instance", None)
+    result = request.POST.get("result")
     contact_addresses = Address.objects.filter(contact=contact)
-    offerable_products = Product.objects.filter(bundle_product=False, type='S')
+    offerable_products = Product.objects.filter(bundle_product=False, type="S")
     other_active_normal_subscriptions = Subscription.objects.filter(
-        contact=contact, active=True, type='N')
+        contact=contact, active=True, type="N"
+    )
 
-    if instance_type and instance_type == 'new' and instance_id:
+    if instance_type and instance_type == "new" and instance_id:
         instance = ContactCampaignStatus.objects.get(pk=instance_id)
-    elif instance_type and instance_type == 'act' and instance_id:
+    elif instance_type and instance_type == "act" and instance_id:
         instance = Activity.objects.get(pk=instance_id)
     else:
         instance = None
@@ -527,51 +587,52 @@ def start_paid_subscription(request, contact_id):
 
     form = NewSubscriptionForm(
         initial={
-            'name': contact.name,
-            'phone': contact.phone,
-            'mobile': contact.mobile,
-            'email': contact.email,
-            'id_document': contact.id_document,
-            'default_address': contact_addresses,
-            'start_date': start_date,
-            'copies': 1,
-        })
-    form.fields['billing_address'].queryset = contact_addresses
-    form.fields['default_address'].queryset = contact_addresses
-    address_form = NewAddressForm(initial={'address_type': 'physical'})
+            "name": contact.name,
+            "phone": contact.phone,
+            "mobile": contact.mobile,
+            "email": contact.email,
+            "id_document": contact.id_document,
+            "default_address": contact_addresses,
+            "start_date": start_date,
+            "copies": 1,
+        }
+    )
+    form.fields["billing_address"].queryset = contact_addresses
+    form.fields["default_address"].queryset = contact_addresses
+    address_form = NewAddressForm(initial={"address_type": "physical"})
 
     if result == _("Cancel"):
         if offset:
-            return HttpResponseRedirect(url + '?offset=%d' % int(offset))
+            return HttpResponseRedirect(url + "?offset=%d" % int(offset))
         else:
             return HttpResponseRedirect(url)
     elif result == _("Send"):
         form = NewSubscriptionForm(request.POST)
-        replace_subscription = request.POST.get('replace_this_subscription', None)
+        replace_subscription = request.POST.get("replace_this_subscription", None)
         if form.is_valid():
             # First we need to save all the new contact data if necessary
-            name = form.cleaned_data['name']
+            name = form.cleaned_data["name"]
             if contact.name != name:
                 contact.name = name
-            phone = form.cleaned_data['phone']
+            phone = form.cleaned_data["phone"]
             if contact.phone != phone:
                 contact.phone = phone
-            mobile = form.cleaned_data['mobile']
+            mobile = form.cleaned_data["mobile"]
             if contact.mobile != mobile:
                 contact.mobile = mobile
-            notes = form.cleaned_data['notes']
+            notes = form.cleaned_data["notes"]
             if contact.notes != notes:
                 contact.notes = notes
-            id_document = form.cleaned_data['id_document']
+            id_document = form.cleaned_data["id_document"]
             if contact.id_document != id_document:
                 contact.id_document = id_document
             contact.save()
             # After this we will create the subscription
-            start_date = form.cleaned_data['start_date']
-            payment_type = form.cleaned_data['payment_type']
+            start_date = form.cleaned_data["start_date"]
+            payment_type = form.cleaned_data["payment_type"]
             subscription = Subscription.objects.create(
                 contact=contact,
-                type='N',
+                type="N",
                 start_date=start_date,
                 next_billing=start_date,
                 campaign=campaign,
@@ -586,49 +647,58 @@ def start_paid_subscription(request, contact_id):
                 subscription.balance = replace_subscription.amount_to_pay_in_period()
 
             # We need to decide what we do with the status of the subscription, for now it will be normal
-            subscription.status = 'OK'
+            subscription.status = "OK"
             subscription.save()
 
             # After this, we set all the products we sold
             for key, value in request.POST.items():
-                if key.startswith('check'):
-                    product_id = key.split('-')[1]
+                if key.startswith("check"):
+                    product_id = key.split("-")[1]
                     product = Product.objects.get(pk=product_id)
-                    address_id = request.POST.get('address-{}'.format(product_id))
+                    address_id = request.POST.get("address-{}".format(product_id))
                     address = Address.objects.get(pk=address_id)
-                    copies = request.POST.get('copies-{}'.format(product_id))
+                    copies = request.POST.get("copies-{}".format(product_id))
                     subscription.add_product(product, address, copies)
-            if instance_type == 'new':
+            if instance_type == "new":
                 # The instance is a contact campaign status so this is a direct sale without activity
                 instance.status = 4  # contacted the customer and ended the promo
-                instance.campaign_resolution = 'S2'  # we sent the promo to this customer
+                instance.campaign_resolution = (
+                    "S2"  # we sent the promo to this customer
+                )
                 instance.save()
-            elif instance_type == 'act':
+            elif instance_type == "act":
                 # the instance is an activity we need to mark this as the end of the campaign
-                instance.status = 'C'  # completed activity
-                instance.campaign_resolution = 'S1'  # success with promo
+                instance.status = "C"  # completed activity
+                instance.campaign_resolution = "S1"  # success with promo
                 instance.save()
                 # after this, we'll look for the ContactCampaignStatus that has this campaign, and close it
-                ccs = ContactCampaignStatus.objects.get(contact=contact, campaign=instance.campaign)
+                ccs = ContactCampaignStatus.objects.get(
+                    contact=contact, campaign=instance.campaign
+                )
                 ccs.status = 4
-                ccs.campaign_resolution = 'S1'
+                ccs.campaign_resolution = "S1"
                 ccs.save()
             if url:
-                return HttpResponseRedirect(url + '?offset=%d' % int(offset))
+                return HttpResponseRedirect(url + "?offset=%d" % int(offset))
             else:
-                return HttpResponseRedirect('/admin/core/contact/{}/'.format(contact.id))
+                return HttpResponseRedirect(
+                    "/admin/core/contact/{}/".format(contact.id)
+                )
 
     return render(
-        request, 'start_paid_subscription.html', {
-            'contact': contact,
-            'instance_type': instance_type,
-            'instance': instance,
-            'form': form,
-            'address_form': address_form,
-            'offerable_products': offerable_products,
-            'contact_addresses': contact_addresses,
-            'other_active_normal_subscriptions': other_active_normal_subscriptions,
-        })
+        request,
+        "start_paid_subscription.html",
+        {
+            "contact": contact,
+            "instance_type": instance_type,
+            "instance": instance,
+            "form": form,
+            "address_form": address_form,
+            "offerable_products": offerable_products,
+            "contact_addresses": contact_addresses,
+            "other_active_normal_subscriptions": other_active_normal_subscriptions,
+        },
+    )
 
 
 @login_required
@@ -638,63 +708,65 @@ def upgrade_subscription(request, subscription_id):
     subscription and making a new one, adding balance to the user equal to the amount of money that the user has
     """
     old_subscription = get_object_or_404(Subscription, pk=subscription_id)
-    if old_subscription.active is False or old_subscription.type != 'N':
-        return HttpResponse(_('This subscription does not support upgrading.'))
+    if old_subscription.active is False or old_subscription.type != "N":
+        return HttpResponse(_("This subscription does not support upgrading."))
     contact = old_subscription.contact
-    result = request.POST.get('result')
+    result = request.POST.get("result")
     contact_addresses = Address.objects.filter(contact=contact)
-    offerable_products = Product.objects.filter(bundle_product=False, type='S')
+    offerable_products = Product.objects.filter(bundle_product=False, type="S")
     other_active_normal_subscriptions = Subscription.objects.filter(
-        contact=contact, active=True, type='N')
+        contact=contact, active=True, type="N"
+    )
 
     start_date = date.today()
 
     form = NewSubscriptionForm(
         initial={
-            'name': contact.name,
-            'phone': contact.phone,
-            'mobile': contact.mobile,
-            'email': contact.email,
-            'id_document': contact.id_document,
-            'default_address': contact_addresses,
-            'start_date': start_date,
-            'copies': 1,
-            'billing_address': old_subscription.billing_address,
-            'billing_name': old_subscription.billing_name,
-            'billing_id_document': old_subscription.billing_id_doc,
-            'billing_rut': old_subscription.rut,
-            'billing_phone': old_subscription.billing_phone,
-            'billing_email': old_subscription.billing_email,
-        })
-    form.fields['billing_address'].queryset = contact_addresses
-    form.fields['default_address'].queryset = contact_addresses
-    address_form = NewAddressForm(initial={'address_type': 'physical'})
+            "name": contact.name,
+            "phone": contact.phone,
+            "mobile": contact.mobile,
+            "email": contact.email,
+            "id_document": contact.id_document,
+            "default_address": contact_addresses,
+            "start_date": start_date,
+            "copies": 1,
+            "billing_address": old_subscription.billing_address,
+            "billing_name": old_subscription.billing_name,
+            "billing_id_document": old_subscription.billing_id_doc,
+            "billing_rut": old_subscription.rut,
+            "billing_phone": old_subscription.billing_phone,
+            "billing_email": old_subscription.billing_email,
+        }
+    )
+    form.fields["billing_address"].queryset = contact_addresses
+    form.fields["default_address"].queryset = contact_addresses
+    address_form = NewAddressForm(initial={"address_type": "physical"})
 
     if result == _("Cancel"):
-        return HttpResponseRedirect(reverse('contact_detail', args=[contact.id]))
+        return HttpResponseRedirect(reverse("contact_detail", args=[contact.id]))
     elif result == _("Send"):
         form = NewSubscriptionForm(request.POST)
         if form.is_valid():
             # First we need to save all the new contact data if necessary
-            name = form.cleaned_data['name']
+            name = form.cleaned_data["name"]
             if contact.name != name:
                 contact.name = name
-            phone = form.cleaned_data['phone']
+            phone = form.cleaned_data["phone"]
             if contact.phone != phone:
                 contact.phone = phone
-            mobile = form.cleaned_data['mobile']
+            mobile = form.cleaned_data["mobile"]
             if contact.mobile != mobile:
                 contact.mobile = mobile
-            notes = form.cleaned_data['notes']
+            notes = form.cleaned_data["notes"]
             if contact.notes != notes:
                 contact.notes = notes
-            id_document = form.cleaned_data['id_document']
+            id_document = form.cleaned_data["id_document"]
             if contact.id_document != id_document:
                 contact.id_document = id_document
             contact.save()
             # After this we will create the subscription
-            start_date = form.cleaned_data['start_date']
-            payment_type = form.cleaned_data['payment_type']
+            start_date = form.cleaned_data["start_date"]
+            payment_type = form.cleaned_data["payment_type"]
 
             old_subscription.end_date = start_date
             old_subscription.active = False
@@ -702,7 +774,7 @@ def upgrade_subscription(request, subscription_id):
 
             subscription = Subscription.objects.create(
                 contact=contact,
-                type='N',
+                type="N",
                 start_date=start_date,
                 next_billing=start_date,
                 payment_type=payment_type,
@@ -712,30 +784,33 @@ def upgrade_subscription(request, subscription_id):
             subscription.balance = old_subscription.amount_to_pay_in_period()
 
             # We need to decide what we do with the status of the subscription, for now it will be normal
-            subscription.status = 'OK'
+            subscription.status = "OK"
             subscription.save()
 
             # After this, we set all the products we sold
             for key, value in request.POST.items():
-                if key.startswith('check'):
-                    product_id = key.split('-')[1]
+                if key.startswith("check"):
+                    product_id = key.split("-")[1]
                     product = Product.objects.get(pk=product_id)
-                    address_id = request.POST.get('address-{}'.format(product_id))
+                    address_id = request.POST.get("address-{}".format(product_id))
                     address = Address.objects.get(pk=address_id)
-                    copies = request.POST.get('copies-{}'.format(product_id))
+                    copies = request.POST.get("copies-{}".format(product_id))
                     subscription.add_product(product, address, copies)
-            return HttpResponseRedirect(reverse('contact_detail', args=[contact.id]))
+            return HttpResponseRedirect(reverse("contact_detail", args=[contact.id]))
 
     return render(
-        request, 'upgrade_subscription.html', {
-            'contact': contact,
-            'old_subscription': old_subscription,
-            'form': form,
-            'address_form': address_form,
-            'offerable_products': offerable_products,
-            'contact_addresses': contact_addresses,
-            'other_active_normal_subscriptions': other_active_normal_subscriptions,
-        })
+        request,
+        "upgrade_subscription.html",
+        {
+            "contact": contact,
+            "old_subscription": old_subscription,
+            "form": form,
+            "address_form": address_form,
+            "offerable_products": offerable_products,
+            "contact_addresses": contact_addresses,
+            "other_active_normal_subscriptions": other_active_normal_subscriptions,
+        },
+    )
 
 
 @login_required
@@ -744,76 +819,88 @@ def new_subscription(request, contact_id):
     Allows an user to add a new subscription to the account.
     """
     contact = get_object_or_404(Contact, pk=contact_id)
-    result = request.POST.get('result')
+    result = request.POST.get("result")
     contact_addresses = Address.objects.filter(contact=contact)
-    offerable_products = Product.objects.filter(bundle_product=False, type='S')
+    offerable_products = Product.objects.filter(bundle_product=False, type="S")
 
     start_date = date.today()
 
     form = NewSubscriptionForm(
         initial={
-            'name': contact.name, 'phone': contact.phone, 'mobile': contact.mobile, 'email': contact.email,
-            'id_document': contact.id_document, 'default_address': contact_addresses, 'start_date': start_date,
-            'copies': 1,
-        })
-    form.fields['billing_address'].queryset = contact_addresses
-    form.fields['default_address'].queryset = contact_addresses
-    address_form = NewAddressForm(initial={'address_type': 'physical'})
+            "name": contact.name,
+            "phone": contact.phone,
+            "mobile": contact.mobile,
+            "email": contact.email,
+            "id_document": contact.id_document,
+            "default_address": contact_addresses,
+            "start_date": start_date,
+            "copies": 1,
+        }
+    )
+    form.fields["billing_address"].queryset = contact_addresses
+    form.fields["default_address"].queryset = contact_addresses
+    address_form = NewAddressForm(initial={"address_type": "physical"})
 
     if result == _("Cancel"):
-        return HttpResponseRedirect(reverse('contact_detail', args=[contact.id]))
+        return HttpResponseRedirect(reverse("contact_detail", args=[contact.id]))
     elif result == _("Send"):
         form = NewSubscriptionForm(request.POST)
         if form.is_valid():
             # First we need to save all the new contact data if necessary
-            name = form.cleaned_data['name']
+            name = form.cleaned_data["name"]
             if contact.name != name:
                 contact.name = name
-            phone = form.cleaned_data['phone']
+            phone = form.cleaned_data["phone"]
             if contact.phone != phone:
                 contact.phone = phone
-            mobile = form.cleaned_data['mobile']
+            mobile = form.cleaned_data["mobile"]
             if contact.mobile != mobile:
                 contact.mobile = mobile
-            notes = form.cleaned_data['notes']
+            notes = form.cleaned_data["notes"]
             if contact.notes != notes:
                 contact.notes = notes
-            id_document = form.cleaned_data['id_document']
+            id_document = form.cleaned_data["id_document"]
             if contact.id_document != id_document:
                 contact.id_document = id_document
             contact.save()
             # After this we will create the subscription
-            start_date = form.cleaned_data['start_date']
-            payment_type = form.cleaned_data['payment_type']
+            start_date = form.cleaned_data["start_date"]
+            payment_type = form.cleaned_data["payment_type"]
 
             subscription = Subscription.objects.create(
-                contact=contact, type='N', start_date=start_date, next_billing=start_date,
+                contact=contact,
+                type="N",
+                start_date=start_date,
+                next_billing=start_date,
                 payment_type=payment_type,
             )
 
             # We need to decide what we do with the status of the subscription, for now it will be normal
-            subscription.status = 'OK'
+            subscription.status = "OK"
             subscription.save()
 
             # After this, we set all the products we sold
             for key, value in request.POST.items():
-                if key.startswith('check'):
-                    product_id = key.split('-')[1]
+                if key.startswith("check"):
+                    product_id = key.split("-")[1]
                     product = Product.objects.get(pk=product_id)
-                    address_id = request.POST.get('address-{}'.format(product_id))
+                    address_id = request.POST.get("address-{}".format(product_id))
                     address = Address.objects.get(pk=address_id)
-                    copies = request.POST.get('copies-{}'.format(product_id))
+                    copies = request.POST.get("copies-{}".format(product_id))
                     subscription.add_product(product, address, copies)
-            return HttpResponseRedirect(reverse('contact_detail', args=[contact.id]))
+            return HttpResponseRedirect(reverse("contact_detail", args=[contact.id]))
 
     return render(
-        request, 'upgrade_subscription.html', {
-            'contact': contact,
-            'form': form,
-            'address_form': address_form,
-            'offerable_products': offerable_products,
-            'contact_addresses': contact_addresses,
-        })
+        request,
+        "upgrade_subscription.html",
+        {
+            "contact": contact,
+            "form": form,
+            "address_form": address_form,
+            "offerable_products": offerable_products,
+            "contact_addresses": contact_addresses,
+        },
+    )
 
 
 @login_required
@@ -824,9 +911,9 @@ def assign_campaigns(request):
     campaigns = Campaign.objects.filter(active=True)
     if request.POST and request.FILES:
         response = []
-        campaign = request.POST.get('campaign')
+        campaign = request.POST.get("campaign")
         try:
-            reader = csv_sreader(request.FILES['file'].read())
+            reader = csv_sreader(request.FILES["file"].read())
             for row in reader:
                 try:
                     contact = Contact.objects.get(pk=row[0])
@@ -835,20 +922,24 @@ def assign_campaigns(request):
                 except Exception as e:
                     response.append(e.message)
             return render(
-                request, 'assign_campaigns.html', {
-                    'response': response,
-                })
+                request,
+                "assign_campaigns.html",
+                {
+                    "response": response,
+                },
+            )
         except csv.Error:
             return HttpResponse(
                 u"Error: No se encuentran delimitadores en el archivo "
                 u"ingresado, deben usarse ',' (comas) <br/><a href="
-                u"'.'>Volver</a>")
+                u"'.'>Volver</a>"
+            )
         except Exception as e:
             return HttpResponse(u"Error: %s" % e.message)
-    elif request.POST and request.POST.get('tags'):
+    elif request.POST and request.POST.get("tags"):
         response = []
-        campaign = request.POST.get('campaign')
-        tags = request.POST.get('tags')
+        campaign = request.POST.get("campaign")
+        tags = request.POST.get("tags")
         tag_list = tags.split(",")
         contacts = Contact.objects.filter(tags__name__in=tag_list)
         for contact in contacts:
@@ -857,13 +948,19 @@ def assign_campaigns(request):
             except Exception as e:
                 response.append(e.message)
         return render(
-            request, 'assign_campaigns.html', {
-                'response': response,
-            })
+            request,
+            "assign_campaigns.html",
+            {
+                "response": response,
+            },
+        )
     return render(
-        request, 'assign_campaigns.html', {
-            'campaigns': campaigns,
-        })
+        request,
+        "assign_campaigns.html",
+        {
+            "campaigns": campaigns,
+        },
+    )
 
 
 @login_required
@@ -872,13 +969,18 @@ def list_campaigns_with_no_seller(request):
     Shows a list of contacts in campaigns that have no seller.
     """
     campaigns = Campaign.objects.filter(
-        contactcampaignstatus__contact__seller=None).distinct()
+        contactcampaignstatus__contact__seller=None
+    ).distinct()
     campaign_list = []
     for campaign in campaigns:
-        count = ContactCampaignStatus.objects.filter(campaign=campaign, contact__seller=None).count()
+        count = ContactCampaignStatus.objects.filter(
+            campaign=campaign, contact__seller=None
+        ).count()
         campaign.count = count
         campaign_list.append(campaign)
-    return render(request, 'distribute_campaigns.html', {'campaign_list': campaign_list})
+    return render(
+        request, "distribute_campaigns.html", {"campaign_list": campaign_list}
+    )
 
 
 @login_required
@@ -887,44 +989,50 @@ def assign_seller(request, campaign_id):
     Shows a list of sellers to assign contacts to.
     """
     campaign = Campaign.objects.get(pk=campaign_id)
-    campaign.count = Contact.objects.filter(contactcampaignstatus__campaign=campaign, seller=None).count()
-    message = ''
+    campaign.count = Contact.objects.filter(
+        contactcampaignstatus__campaign=campaign, seller=None
+    ).count()
+    message = ""
 
     if request.POST:
         seller_list = []
         for name, value in request.POST.items():
             if name.startswith("seller"):
-                seller_list.append([name.replace('seller-', ''), value or 0])
+                seller_list.append([name.replace("seller-", ""), value or 0])
         total = 0
         for seller, amount in seller_list:
             total += int(amount)
         if total > campaign.count:
-            return HttpResponse(u'Cantidad de clientes superior a la que hay.')
+            return HttpResponse(u"Cantidad de clientes superior a la que hay.")
         for seller, amount in seller_list:
             if amount:
-                for contact in Contact.objects.filter(seller=None, contactcampaignstatus__campaign=campaign)[:amount]:
+                for contact in Contact.objects.filter(
+                    seller=None, contactcampaignstatus__campaign=campaign
+                )[:amount]:
                     contact.seller = Seller.objects.get(pk=seller)
                     try:
                         contact.save()
                     except Exception as e:
                         return HttpResponse(e.message)
-        return HttpResponseRedirect(reverse('assign_sellers', args=campaign_id))
+        return HttpResponseRedirect(reverse("assign_sellers", args=campaign_id))
 
     sellers = Seller.objects.filter(internal=True)
     seller_list = []
     for seller in sellers:
         seller.contacts = Contact.objects.filter(
-            seller=seller, contactcampaignstatus__campaign=campaign).count()
+            seller=seller, contactcampaignstatus__campaign=campaign
+        ).count()
         seller_list.append(seller)
     if message:
         # Refresh value if some subs were distributed
         campaign.count = Contact.objects.filter(
-            contactcampaignstatus__campaign=campaign, seller=None).count()
+            contactcampaignstatus__campaign=campaign, seller=None
+        ).count()
     return render(
-        request, 'assign_sellers.html', {
-            'seller_list': seller_list,
-            'campaign': campaign,
-            'message': message})
+        request,
+        "assign_sellers.html",
+        {"seller_list": seller_list, "campaign": campaign, "message": message},
+    )
 
 
 @login_required
@@ -932,7 +1040,7 @@ def edit_products(request, subscription_id):
     """
     Allows editing products in a subscription.
     """
-    products = Product.objects.filter(type='S').exclude(bundle_product=True)
+    products = Product.objects.filter(type="S").exclude(bundle_product=True)
     subscription = get_object_or_404(Subscription, pk=subscription_id)
     contact = subscription.contact
     contact_addresses = Address.objects.filter(contact=contact)
@@ -941,13 +1049,17 @@ def edit_products(request, subscription_id):
     # import pdb; pdb.set_trace()
     if request.POST:
         pass
-    return render(request, 'edit_products.html', {
-        'addresses': contact_addresses,
-        'subscription': subscription,
-        'products': products,
-        'subscription_products': subscription_products,
-        'subscription_products_through': subscription_products_through,
-    })
+    return render(
+        request,
+        "edit_products.html",
+        {
+            "addresses": contact_addresses,
+            "subscription": subscription,
+            "products": products,
+            "subscription_products": subscription_products,
+            "subscription_products_through": subscription_products_through,
+        },
+    )
 
 
 @login_required
@@ -955,8 +1067,8 @@ def list_issues(request):
     """
     Shows a very basic list of issues.
     """
-    page_number = request.GET.get('p')
-    issues = Issue.objects.all().order_by('-id')
+    page_number = request.GET.get("p")
+    issues = Issue.objects.all().order_by("-id")
     paginator = Paginator(issues, 100)
     try:
         page = paginator.page(page_number)
@@ -967,10 +1079,13 @@ def list_issues(request):
         # If page is out of range (e.g. 9999), deliver last page of results.
         page = paginator.page(paginator.num_pages)
     return render(
-        request, 'list_issues.html', {
-            'page': page,
-            'paginator': paginator,
-        })
+        request,
+        "list_issues.html",
+        {
+            "page": page,
+            "paginator": paginator,
+        },
+    )
 
 
 @login_required
@@ -978,116 +1093,180 @@ def select_contact_for_issue(request, issue_type):
     """
     Asks for a contact id before creating an issue.
     """
-    form = SelectContactForIssue(request.POST or None, initial={'issue_type': issue_type})
+    form = SelectContactForIssue(
+        request.POST or None, initial={"issue_type": issue_type}
+    )
     if request.POST:
         if form.is_valid():
-            issue_type = form.cleaned_data['issue_type']
-            contact_id = form.cleaned_data['contact_id']
-            if issue_type.startswith('S'):
-                return HttpResponseRedirect(reverse('new_issue', args=[contact_id, 'S', issue_type]))
-            elif issue_type.startswith('L'):
-                return HttpResponseRedirect(reverse('new_issue', args=[contact_id, 'L']))
+            issue_type = form.cleaned_data["issue_type"]
+            contact_id = form.cleaned_data["contact_id"]
+            if issue_type.startswith("S"):
+                return HttpResponseRedirect(
+                    reverse("new_issue", args=[contact_id, "S", issue_type])
+                )
+            elif issue_type.startswith("L"):
+                return HttpResponseRedirect(
+                    reverse("new_issue", args=[contact_id, "L"])
+                )
 
-    return render(request, 'select_contact_for_issue.html', {'form': form})
+    return render(request, "select_contact_for_issue.html", {"form": form})
 
 
 @login_required
-def new_issue(request, contact_id, category='L', subcategory=''):
+def new_issue(request, contact_id, category="L", subcategory=""):
     """
     Creates an issue of a selected category and subcategory.
     """
     contact = get_object_or_404(Contact, pk=contact_id)
-    if category == 'L' and subcategory == '':
+    if category == "L" and subcategory == "":
         # Logistics issue
         if request.POST:
             form = LogisticsIssueStartForm(request.POST)
             if form.is_valid():
                 Issue.objects.create(
-                    contact=form.cleaned_data['contact'],
-                    category='L',
-                    subcategory=form.cleaned_data['subcategory'],
-                    notes=form.cleaned_data['notes'],
-                    copies=form.cleaned_data['copies'],
-                    subscription=form.cleaned_data['subscription'],
-                    subscription_product=form.cleaned_data['subscription_product'],
-                    product=form.cleaned_data['product'],
+                    contact=form.cleaned_data["contact"],
+                    category="L",
+                    subcategory=form.cleaned_data["subcategory"],
+                    notes=form.cleaned_data["notes"],
+                    copies=form.cleaned_data["copies"],
+                    subscription=form.cleaned_data["subscription"],
+                    subscription_product=form.cleaned_data["subscription_product"],
+                    product=form.cleaned_data["product"],
                     inside=False,
                     manager=request.user,
-                    status='P')
-                return HttpResponseRedirect('/admin/core/contact/{}/'.format(form.cleaned_data['contact'].id))
+                    status="P",
+                )
+                return HttpResponseRedirect(
+                    "/admin/core/contact/{}/".format(form.cleaned_data["contact"].id)
+                )
                 # TODO: Reverse to admin
         else:
             form = LogisticsIssueStartForm(
-                initial={'contact': contact, 'category': 'L'})
-            form.fields['subscription'].queryset = contact.subscriptions.filter(active=True)
-            form.fields['subscription_product'].queryset = SubscriptionProduct.objects.filter(
-                subscription__contact=contact, subscription__active=True)
+                initial={"contact": contact, "category": "L"}
+            )
+            form.fields["subscription"].queryset = contact.subscriptions.filter(
+                active=True
+            )
+            form.fields[
+                "subscription_product"
+            ].queryset = SubscriptionProduct.objects.filter(
+                subscription__contact=contact, subscription__active=True
+            )
         return render(
-            request, 'new_logistics_issue.html', {'contact': contact, 'form': form})
+            request, "new_logistics_issue.html", {"contact": contact, "form": form}
+        )
 
-    elif category == 'S' and subcategory == 'S04':
+    elif category == "S" and subcategory == "S04":
         # Services / pause issue
         if request.POST:
             form = NewPauseScheduledTaskForm(request.POST)
             if form.is_valid():
                 # first we have to create an issue that will have this task
-                date1 = form.cleaned_data.get('date_1')
-                date2 = form.cleaned_data.get('date_2')
-                subscription = form.cleaned_data.get('subscription')
+                date1 = form.cleaned_data.get("date_1")
+                date2 = form.cleaned_data.get("date_2")
+                subscription = form.cleaned_data.get("subscription")
                 new_issue = Issue.objects.create(
-                    contact=contact, category=category, subcategory=subcategory, date=date.today(),
-                    manager=request.user, status='P', next_action_date=date1)
+                    contact=contact,
+                    category=category,
+                    subcategory=subcategory,
+                    date=date.today(),
+                    manager=request.user,
+                    status="P",
+                    next_action_date=date1,
+                )
                 # Then we create the deactivation and activation events
                 ScheduledTask.objects.create(
-                    issue=new_issue, contact=contact, subscription=subscription, execution_date=date1, category='PD')
+                    issue=new_issue,
+                    contact=contact,
+                    subscription=subscription,
+                    execution_date=date1,
+                    category="PD",
+                )
                 ScheduledTask.objects.create(
-                    issue=new_issue, contact=contact, subscription=subscription, execution_date=date2, category='PA')
-                return HttpResponseRedirect('/admin/core/contact/{}/'.format(contact.id))
+                    issue=new_issue,
+                    contact=contact,
+                    subscription=subscription,
+                    execution_date=date2,
+                    category="PA",
+                )
+                return HttpResponseRedirect(
+                    "/admin/core/contact/{}/".format(contact.id)
+                )
         else:
             form = NewPauseScheduledTaskForm()
-        form.fields['subscription'].queryset = contact.subscriptions.filter(active=True)
+        form.fields["subscription"].queryset = contact.subscriptions.filter(active=True)
         return render(
-            request, 'new_scheduled_task_issue.html', {
-                'contact': contact, 'form': form, 'subcategory': subcategory})
+            request,
+            "new_scheduled_task_issue.html",
+            {"contact": contact, "form": form, "subcategory": subcategory},
+        )
 
-    elif category == 'S' and subcategory == 'S05':
+    elif category == "S" and subcategory == "S05":
         # Services / address change issue
         if request.POST:
             form = NewAddressChangeScheduledTaskForm(request.POST)
             if form.is_valid():
-                if form.cleaned_data.get('new_address'):
+                if form.cleaned_data.get("new_address"):
                     address = Address.objects.create(
                         contact=contact,
-                        address_1=form.cleaned_data.get('new_address_1'),
-                        address_2=form.cleaned_data.get('new_address_2'),
-                        city=form.cleaned_data.get('new_address_city'),
-                        state=form.cleaned_data.get('new_address_state'),
-                        notes=form.cleaned_data.get('new_address_notes'))
+                        address_1=form.cleaned_data.get("new_address_1"),
+                        address_2=form.cleaned_data.get("new_address_2"),
+                        city=form.cleaned_data.get("new_address_city"),
+                        state=form.cleaned_data.get("new_address_state"),
+                        notes=form.cleaned_data.get("new_address_notes"),
+                    )
                 else:
-                    address = form.cleaned_data.get('contact_address')
-                date1 = form.cleaned_data.get('date_1')
+                    address = form.cleaned_data.get("contact_address")
+                date1 = form.cleaned_data.get("date_1")
                 # First we create the issue that will contain the scheduled task
                 new_issue = Issue.objects.create(
-                    contact=contact, category=category, subcategory=subcategory, date=date.today(),
-                    manager=request.user, status='P', next_action_date=date1)
+                    contact=contact,
+                    category=category,
+                    subcategory=subcategory,
+                    date=date.today(),
+                    manager=request.user,
+                    status="P",
+                    next_action_date=date1,
+                )
                 # after this, we will create this scheduled task
                 scheduled_task = ScheduledTask.objects.create(
-                    issue=new_issue, contact=contact, execution_date=date1, category='AC', address=address)
+                    issue=new_issue,
+                    contact=contact,
+                    execution_date=date1,
+                    category="AC",
+                    address=address,
+                )
                 for key, value in request.POST.items():
-                    if key.startswith('sp'):
+                    if key.startswith("sp"):
                         subscription_product_id = key[2:]
-                        subscription_product = SubscriptionProduct.objects.get(pk=subscription_product_id)
+                        subscription_product = SubscriptionProduct.objects.get(
+                            pk=subscription_product_id
+                        )
                         scheduled_task.subscription_products.add(subscription_product)
-                return HttpResponseRedirect('/admin/core/contact/{}/'.format(contact.id))
+                return HttpResponseRedirect(
+                    "/admin/core/contact/{}/".format(contact.id)
+                )
         else:
-            form = NewAddressChangeScheduledTaskForm(initial={'new_address_type': 'physical'})
+            form = NewAddressChangeScheduledTaskForm(
+                initial={"new_address_type": "physical"}
+            )
         subscription_products = [
-            s for s in SubscriptionProduct.objects.filter(subscription__contact=contact, subscription__active=True)]
-        form.fields['contact_address'].queryset = contact.addresses.all()
+            s
+            for s in SubscriptionProduct.objects.filter(
+                subscription__contact=contact, subscription__active=True
+            )
+        ]
+        form.fields["contact_address"].queryset = contact.addresses.all()
         return render(
-            request, 'new_scheduled_task_issue.html', {
-                'contact': contact, 'form': form, 'subscription_products': subscription_products,
-                'subcategory': subcategory})
+            request,
+            "new_scheduled_task_issue.html",
+            {
+                "contact": contact,
+                "form": form,
+                "subscription_products": subscription_products,
+                "subcategory": subcategory,
+            },
+        )
 
 
 @login_required
@@ -1100,17 +1279,25 @@ def view_logistics_issue(request, issue_id):
         form = LogisticsIssueChangeForm(request.POST, instance=issue)
         if form.is_valid():
             form.save()
-            return HttpResponseRedirect(reverse(''))
+            return HttpResponseRedirect(reverse(""))
     else:
         form = LogisticsIssueChangeForm(instance=issue)
-        form.fields['subscription'].queryset = issue.contact.subscriptions.filter(active=True)
-        form.fields['subscription_product'].queryset = SubscriptionProduct.objects.filter(
-            subscription__contact=issue.contact, subscription__active=True)
+        form.fields["subscription"].queryset = issue.contact.subscriptions.filter(
+            active=True
+        )
+        form.fields[
+            "subscription_product"
+        ].queryset = SubscriptionProduct.objects.filter(
+            subscription__contact=issue.contact, subscription__active=True
+        )
     return render(
-        request, 'view_logistics_issue.html', {
-            'form': form,
-            'issue': issue,
-        })
+        request,
+        "view_logistics_issue.html",
+        {
+            "form": form,
+            "issue": issue,
+        },
+    )
 
 
 @login_required
@@ -1118,9 +1305,13 @@ def contact_list(request):
     """
     Shows a very simple contact list.
     """
-    page = request.GET.get('p')
-    contact_queryset = Contact.objects.all().prefetch_related(
-        'subscriptions', 'activity_set').select_related().order_by('-id')
+    page = request.GET.get("p")
+    contact_queryset = (
+        Contact.objects.all()
+        .prefetch_related("subscriptions", "activity_set")
+        .select_related()
+        .order_by("-id")
+    )
     contact_filter = ContactFilter(request.GET, queryset=contact_queryset)
     paginator = Paginator(contact_filter.qs, 50)
     try:
@@ -1132,12 +1323,16 @@ def contact_list(request):
         # If page is out of range (e.g. 9999), deliver last page of results.
         contacts = paginator.page(paginator.num_pages)
     return render(
-        request, 'contact_list.html', {
-            'paginator': paginator,
-            'contacts': contacts,
-            'page': page,
-            'total_pages': paginator.num_pages,
-            'filter': contact_filter})
+        request,
+        "contact_list.html",
+        {
+            "paginator": paginator,
+            "contacts": contacts,
+            "page": page,
+            "total_pages": paginator.num_pages,
+            "filter": contact_filter,
+        },
+    )
 
 
 @login_required
@@ -1147,23 +1342,27 @@ def contact_detail(request, contact_id):
     """
     contact = get_object_or_404(Contact, pk=contact_id)
     addresses = contact.addresses.all()
-    activities = contact.activity_set.all().order_by('-id')[:3]
+    activities = contact.activity_set.all().order_by("-id")[:3]
     subscriptions = contact.subscriptions.filter(active=True)
-    issues = contact.issue_set.all().order_by('-id')[:3]
+    issues = contact.issue_set.all().order_by("-id")[:3]
     newsletters = contact.get_newsletters()
     last_paid_invoice = contact.get_last_paid_invoice()
     inactive_subscriptions = contact.subscriptions.filter(active=False)
 
     return render(
-        request, 'contact_detail.html', {
-            'contact': contact,
-            'addresses': addresses,
-            'activities': activities,
-            'subscriptions': subscriptions,
-            'newsletters': newsletters,
-            'issues': issues,
-            'inactive_subscriptions': inactive_subscriptions,
-            'last_paid_invoice': last_paid_invoice})
+        request,
+        "contact_detail.html",
+        {
+            "contact": contact,
+            "addresses": addresses,
+            "activities": activities,
+            "subscriptions": subscriptions,
+            "newsletters": newsletters,
+            "issues": issues,
+            "inactive_subscriptions": inactive_subscriptions,
+            "last_paid_invoice": last_paid_invoice,
+        },
+    )
 
 
 def api_new_address(request, contact_id):
@@ -1177,14 +1376,18 @@ def api_new_address(request, contact_id):
         if form.is_valid():
             address = Address.objects.create(
                 contact=contact,
-                address_1=form.cleaned_data['address_1'],
-                address_2=form.cleaned_data['address_2'],
-                city=form.cleaned_data['address_city'],
-                state=form.cleaned_data['address_state'],
-                address_type=form.cleaned_data['address_type'],
-                notes=form.cleaned_data['address_notes'],
+                address_1=form.cleaned_data["address_1"],
+                address_2=form.cleaned_data["address_2"],
+                city=form.cleaned_data["address_city"],
+                state=form.cleaned_data["address_state"],
+                address_type=form.cleaned_data["address_type"],
+                notes=form.cleaned_data["address_notes"],
             )
-            data = {address.id: "{} {} {}".format(address.address_1, address.city, address.state)}
+            data = {
+                address.id: "{} {} {}".format(
+                    address.address_1, address.city, address.state
+                )
+            }
             return JsonResponse(data)
     else:
         return HttpResponseNotFound()
@@ -1199,12 +1402,98 @@ def api_dynamic_prices(request):
     if request.method == "POST" and request.is_ajax():
         frequency, product_copies = 1, {}
         for key, value in request.POST.items():
-            if key == 'frequency':
+            if key == "frequency":
                 frequency = value
             else:
                 product_copies[key] = value
         product_copies = process_products(product_copies)
         price = calc_price_from_products(product_copies, frequency)
-        return JsonResponse({'price': price})
+        return JsonResponse({"price": price})
     else:
         return HttpResponseNotFound()
+
+
+def dynamic_contact_filter_new(request):
+
+    if request.POST:
+        form = NewDynamicContactFilterForm(request.POST)
+        if form.is_valid():
+            description = form.cleaned_data["description"]
+            products = form.cleaned_data["products"]
+            newsletters = form.cleaned_data["newsletters"]
+            allow_promotions = form.cleaned_data["allow_promotions"]
+            allow_polls = form.cleaned_data["allow_polls"]
+            mode = form.cleaned_data["mode"]
+            mailtrain_id = form.cleaned_data["mailtrain_id"]
+            autosync = form.cleaned_data["autosync"]
+            if request.POST.get('confirm', None):
+                dcf = DynamicContactFilter(
+                    description=description,
+                    allow_promotions=allow_promotions,
+                    allow_polls=allow_polls,
+                    mode=mode,
+                    mailtrain_id=mailtrain_id,
+                    autosync=autosync)
+                dcf.save()
+                if mode == 3:
+                    for newsletter in newsletters:
+                        dcf.newsletters.add(newsletter)
+                else:
+                    for product in products:
+                        dcf.products.add(product)
+                return HttpResponseRedirect(reverse('dynamic_contact_filter_list'))
+
+            # After getting the data, process it to find out how many records there are for the filter
+            if mode == 3:
+                subscription_newsletters = SubscriptionNewsletter.objects.all()
+                for newsletter in newsletters:
+                    subscription_newsletters = subscription_newsletters.filter(product=newsletter)
+                subscription_newsletters = subscription_newsletters.filter(contact__email__isnull=False)
+                count = subscription_newsletters.count()
+                email_sample = subscription_newsletters.values("contact__email")[:50]
+            else:
+                if mode == 1:  # At least one of the products
+                    subscriptions = Subscription.objects.all()
+                elif mode == 2:  # All products must match
+                    subscriptions = Subscription.objects.annotate(
+                        count=Count("products")
+                    ).filter(active=True, count=products.count())
+                for product in products:
+                    subscriptions = subscriptions.filter(products=product)
+                if allow_promotions:
+                    subscriptions = subscriptions.filter(contact__allow_promotions=True)
+                if allow_polls:
+                    subscriptions = subscriptions.filter(contact__allow_polls=True)
+                # Finally we remove the ones who don't have emails
+                subscriptions = subscriptions.filter(contact__email__isnull=False)
+                count = subscriptions.count()
+                email_sample = subscriptions.values("contact__email")[:50]
+
+            return render(
+                request,
+                "dynamic_contact_filter.html",
+                {
+                    "form": form,
+                    "confirm": True,
+                    "email_sample": email_sample,
+                    "count": count,
+                },
+            )
+    else:
+        form = NewDynamicContactFilterForm()
+        return render(request, "dynamic_contact_filter.html", {"form": form})
+
+
+def dynamic_contact_filter_list(request):
+    dcf_list = DynamicContactFilter.objects.all()
+    return render(request, "dynamic_contact_filter_list.html", {"dcf_list": dcf_list})
+
+
+def dynamic_contact_filter_edit(request, dcf_id):
+    dcf = get_object_or_404(DynamicContactFilter, pk=dcf_id)
+    return render(request, "dynamic_contact_filter_details.html", {"dcf": dcf})
+
+
+def export_dcf_emails(request, dcf_id):
+    dcf = get_object_or_404(pk=dcf_id)
+    return None

@@ -166,4 +166,5 @@ PRICERULE_MODE_CHOICES = (
 DYNAMIC_CONTACT_FILTER_MODES = [
     (1, _('At least one of the products')),
     (2, _('All products')),
+    (3, 'Newsletters'),
 ]
