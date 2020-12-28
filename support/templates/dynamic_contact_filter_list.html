@@ -1,0 +1,42 @@
+{% extends 'adminlte/base.html' %}
+{% load i18n %}
+{% block title %}{% trans "Dynamic contact filters" %}{% endblock %}
+{% block content %}
+
+<a href="{% url 'dynamic_contact_filter_add' %}">New filter</a>
+
+<table>
+    <tr>
+        <th>{% trans "Description" %}</th>
+        <th>{% trans "Mode" %}</th>
+        <th>{% trans "Products" %}</th>
+        <th>{% trans "Email count" %}</th>
+        <th>{% trans "Autosync" %}</th>
+        <th>{% trans "Mailtrain ID" %}</th>
+        <th>{% trans "Last sync" %}</th>
+        <th>{% trans "Edit" %}</th>
+        <th>{% trans "Sync now" %}</th>
+    </tr>
+{% for dcf in dcf_list %}
+    <tr>
+        <td><a href="{% url 'dynamic_contact_filter_detail' dcf.id %}">{{dcf.description}}</a></td>
+        <td>{{dcf.get_mode}}</td>
+        <td>
+            <ul>
+                {% for product in dcf.get_products %}
+                <li>{{product}}</li>
+                {% endfor %}
+            </ul>
+        </td>
+        <td>{{dcf.get_email_count}}</td>
+        <td>{{dcf.get_autosync}}</td>
+        <td>{{dcf.mailtrain_id}}</td>
+        <td>{{dcf.last_time_synced}}</td>
+        <td><a href="{% url 'dynamic_contact_filter_detail' dcf.id %}">EDIT</a></td>
+        <td><a href="#">SYNC NOW</a></td>
+    </tr>
+{% endfor %}
+
+</table>
+
+{% endblock %}

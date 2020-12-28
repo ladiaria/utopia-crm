@@ -1,0 +1,26 @@
+{% extends 'adminlte/base.html' %}
+{% load i18n %}
+{% block title %}{% trans "Dynamic contact filters" %}{% endblock %}
+{% block content %}
+
+<a href="{% url 'dynamic_contact_filter_add' %}">New filter</a> <br>
+<a href="{% url 'export_dcf_emails' dcf.id %}">Export</a> <br>
+<br>
+{{dcf.description}} ({{dcf.get_mode}})
+<br>
+<form method="post">
+    {% trans "Change Mailtrain ID" %}
+    <input name="mailtrain_id" value="{{dcf.mailtrain_id}}">
+    {% trans "Autosync" %}
+    <input type="checkbox" name="autosync" {% if dcf.autosync %}checked{% endif %}>
+    <input type="submit" name="submit"> 
+</form>
+{% trans "Email count" %}: {{dcf.get_email_count}}
+<br>
+{% trans "Email list" %}: 
+<ul>
+    {% for email in dcf.get_emails %}
+        <li>{{email}}</li>        
+    {% endfor %}    
+</ul>
+{% endblock %}

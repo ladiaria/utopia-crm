@@ -1,0 +1,24 @@
+{% extends 'adminlte/base.html' %}
+{% load i18n %}
+{% block title %}{% trans "Dynamic contact filters" %}{% endblock %}
+{% block content %}
+
+<form method="post">
+{% csrf_token %}
+{{form.as_p}}
+<input type="submit">
+{% if confirm %}
+    <input type="submit" name="confirm" value="Confirm">
+{% endif %}
+</form>
+{% if confirm %}
+    <p>{% trans "Amount of subscribers" %}: {{count}}</p>
+    {% trans "Email sample (50)" %}
+    <ul>
+        {% for email in email_sample %}
+            <li>{{email.contact__email}}</li>
+        {% endfor %}
+    </ul>
+{% endif %}
+
+{% endblock %}
