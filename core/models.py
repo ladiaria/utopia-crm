@@ -1258,7 +1258,8 @@ class DynamicContactFilter(models.Model):
                 subscribe_email_to_mailtrain_list(email_in_filter, self.mailtrain_id)
 
         # Finally we'll add "now" as last time synced
-        self.last_time_synced = date.now()
+        self.last_time_synced = datetime.now()
+        self.save()
 
     def get_mode(self):
         modes = dict(DYNAMIC_CONTACT_FILTER_MODES)

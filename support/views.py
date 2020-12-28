@@ -1413,6 +1413,7 @@ def api_dynamic_prices(request):
         return HttpResponseNotFound()
 
 
+@login_required
 def dynamic_contact_filter_new(request):
 
     if request.POST:
@@ -1484,16 +1485,46 @@ def dynamic_contact_filter_new(request):
         return render(request, "dynamic_contact_filter.html", {"form": form})
 
 
+@login_required
 def dynamic_contact_filter_list(request):
     dcf_list = DynamicContactFilter.objects.all()
     return render(request, "dynamic_contact_filter_list.html", {"dcf_list": dcf_list})
 
 
+@login_required
 def dynamic_contact_filter_edit(request, dcf_id):
     dcf = get_object_or_404(DynamicContactFilter, pk=dcf_id)
+    if request.POST:
+        mailtrain_id = request.POST.get('mailtrain_id', None)
+        autosync = request.POST.get('autosync', False)
+        dcf.mailtrain_id = mailtrain_id
+        dcf.autosync = True if autosync == 'on' else False
+        dcf.save()
     return render(request, "dynamic_contact_filter_details.html", {"dcf": dcf})
 
 
+@login_required
 def export_dcf_emails(request, dcf_id):
-    dcf = get_object_or_404(pk=dcf_id)
-    return None
+    dcf = get_object_or_404(DynamicContactFilter, pk=dcf_id)
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="dcf_list_{}.csv"'.format(dcf.id)
+
+    writer = csv.writer(response)
+    for email in dcf.get_emails():
+        writer.writerow([email])
+
+    return response
+
+
+@login_required
+def sync_with_mailtrain(request, dcf_id):
+    dcf = get_object_or_404(DynamicContactFilter, pk=dcf_id)
+    dcf.sync_with_mailtrain_list()
+    if dcf.mailtrain_id is None:
+        return HttpResponse(_("Error: This filter has no mailtrain id"))
+    try:
+        dcf.sync_with_mailtrain_list()
+    except Exception as e:
+        return HttpResponse(_("Error: {}".format(e.message)))
+    else:
+        return HttpResponse(_("List {} successfully synced with this filter".format(dcf.mailtrain_id)))
