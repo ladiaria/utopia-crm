@@ -315,6 +315,13 @@ class Contact(models.Model):
         genders = dict(GENDERS)
         return genders.get(self.gender, 'N/A')
 
+    def add_newsletter(self, newsletter_id):
+        try:
+            newsletter = Product.objects.get(id=newsletter_id, type='N')
+        except Exception:
+            raise _("Invalid product id")
+        SubscriptionNewsletter.objects.get_or_create(contact=self, product=newsletter, active=True)
+
     def get_newsletters(self):
         """
         Returns a queryset with all the newsletters that this contact has subscriptions in.
