@@ -22,8 +22,8 @@
 {% endblock %}
 {% block content %}
 <div class="text-right mb-4">
-  <a href="{% url 'dynamic_contact_filter_add' %}" class="btn btn-primary"><i class="fas fa-plus"></i>  New filter</a>
-  <a href="#" class="btn btn-secondary"><i class="fas fa-external-link-alt"></i>  Open Mailtrain</a>
+  <a href="{% url 'dynamic_contact_filter_add' %}" class="btn btn-primary"><i class="fas fa-plus"></i>  {% trans "New Filter" %}</a>
+  <a href="{{mailtrain_url}}" class="btn btn-secondary" target="_blank"><i class="fas fa-external-link-alt"></i>  {% trans "Go to Mailtrain" %}</a>
 </div>
 <div class="card">
   <div class="card-body">
@@ -31,34 +31,22 @@
       <thead>
         <tr>
             <th>{% trans "Description" %}</th>
-            <th>{% trans "Mode" %}</th>
-            <th>{% trans "Products" %}</th>
             <th>{% trans "Email count" %}</th>
             <th>{% trans "Autosync" %}</th>
-            <th>{% trans "Mailtrain ID" %}</th>
             <th>{% trans "Last sync" %}</th>
+            <th>{% trans "Mailtrain ID" %}</th>
             <th>{% trans "Edit" %}</th>
-            <th>{% trans "Sync now" %}</th>
         </tr>
       </thead>
       <tbody>
     {% for dcf in dcf_list %}
         <tr>
-            <td><a href="{% url 'dynamic_contact_filter_detail' dcf.id %}">{{dcf.description}}</a></td>
-            <td>{{dcf.get_mode}}</td>
-            <td>
-                <ul>
-                    {% for product in dcf.get_products %}
-                    <li>{{product}}</li>
-                    {% endfor %}
-                </ul>
-            </td>
+            <td><a href="{% url 'dynamic_contact_filter_detail' dcf.id %}">{{dcf.description}}</a></td>>
             <td>{{dcf.get_email_count}}</td>
             <td>{{dcf.get_autosync}}</td>
-            <td>{{dcf.mailtrain_id}}</td>
             <td>{{dcf.last_time_synced}}</td>
+            <td>{{dcf.mailtrain_id}}</td>
             <td><a href="{% url 'dynamic_contact_filter_detail' dcf.id %}" class="btn btn-primary btn-sm">Edit</a></td>
-            <td><a href="#" class="btn btn-success btn-sm">Sync now</a></td>
         </tr>
     {% endfor %}
       </tbody>

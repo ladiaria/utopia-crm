@@ -33,7 +33,7 @@ urlpatterns = [
     url(r'^seller_console_action/$', seller_console_action, name="seller_console_action"),
     url(r'^add_dynamic_contact_filter/$', dynamic_contact_filter_new, name="dynamic_contact_filter_add"),
     url(r'^dynamic_contact_filter_list/$', dynamic_contact_filter_list, name="dynamic_contact_filter_list"),
-    url(r'^dynamic_contact_filter/(\d+)/$', dynamic_contact_filter_edit, name="dynamic_contact_filter_detail"),
+    url(r'^dynamic_contact_filter/(\d+)/$', dynamic_contact_filter_edit, name="dynamic_contact_filter_edit"),
     url(r'^export_dcf_emails/(\d+)/$', export_dcf_emails, name="export_dcf_emails"),
     url(r'^sync_with_mailtrain/(\d+)/$', sync_with_mailtrain, name="sync_with_mailtrain"),
 ]

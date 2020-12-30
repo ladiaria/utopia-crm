@@ -15,39 +15,32 @@
   <div class="card-header">
     <h2 class="card-title">{{dcf.description}} ({{dcf.get_mode}})</h2>
   </div>
+
   <div class="card-body">
 
+    <b>{% trans "Last time synced" %}:</b><br> {{dcf.last_time_synced}} <a href="{% url 'sync_with_mailtrain' dcf.id %}" class="btn btn-sm btn-success"><i class="fas fa-sync"></i> {% trans "Sync now" %}</a>
+
+    <br><br>
     <form method="post">
         {% csrf_token %}
-        <div class="form-group">
-          <label for="mailtrain_id">{% trans "Change Mailtrain ID" %}</label>
-          <input name="mailtrain_id" value="{{dcf.mailtrain_id}}" class="form-control">
-        </div>
-        <div class="form-group">
-          <div class="form-check">
-            <input type="checkbox" name="autosync" {% if dcf.autosync %}checked{% endif %} class="form-check-input">
-            <label for="autosync" class="form-check-label">{% trans "Autosync" %}</label>
-          </div>
-        </div>
-        <div class="form-group">
-          <div class="form-check">
-            <input type="checkbox" name="active" {% if dcf.active %}checked{% endif %} class="form-check-input">
-            <label for="active" class="form-check-label">{% trans "Active" %}</label>
-          </div>
-        </div>
-        <b>{% trans "Last time synced" %}:</b><br> {{dcf.last_time_synced}} <a href="{% url 'sync_with_mailtrain' dcf.id %}" class="btn btn-sm btn-success"><i class="fas fa-sync"></i> {% trans "Sync now" %}</a>
-        <br><br>
-        <b>{% trans "Email count" %}:</b> {{dcf.get_email_count}}
-        <br><br>
-        <b>{% trans "Email list" %}:</b>
-        <ul>
-            {% for email in dcf.get_emails %}
-                <li>{{email}}</li>
-            {% endfor %}
-        </ul>
+        {{form.as_p}}
+        {% if confirm %}
+          <p><b>{% trans "Amount of subscribers" %}:</b> {{count}}</p>
+          <b>{% trans "Email sample (50)" %}</b>
+          <ul>
+              {% for email in email_sample %}
+                  <li>{{email.contact__email}}</li>
+              {% endfor %}
+          </ul>
+        {% endif %}
         <div class="text-right">
-          <input type="submit" name="submit" class="btn bg-gradient-primary">
+          <input type="submit" name="submit" class="btn bg-gradient-primary" value="Preview">
         </div>
+        {% if confirm %}
+        <div class="text-right">
+          <input type="submit" name="confirm" value="Save list" class="btn bg-gradient-success">
+        </div>
+        {% endif %}
     </form>
 
   </div>

@@ -1468,15 +1468,15 @@ def dynamic_contact_filter_new(request):
                 # Finally we remove the ones who don't have emails
                 subscriptions = subscriptions.filter(contact__email__isnull=False)
                 count = subscriptions.count()
-                email_sample = subscriptions.values("contact__email")[:50]
+                email_sample = subscription_newsletters.values("contact__email")[:50]
 
             return render(
                 request,
                 "dynamic_contact_filter.html",
                 {
+                    "email_sample": email_sample,
                     "form": form,
                     "confirm": True,
-                    "email_sample": email_sample,
                     "count": count,
                 },
             )
@@ -1488,19 +1488,78 @@ def dynamic_contact_filter_new(request):
 @login_required
 def dynamic_contact_filter_list(request):
     dcf_list = DynamicContactFilter.objects.all()
-    return render(request, "dynamic_contact_filter_list.html", {"dcf_list": dcf_list})
+    return render(request, "dynamic_contact_filter_list.html", {
+        "dcf_list": dcf_list,
+        "mailtrain_url": settings.MAILTRAIN_URL,
+    })
 
 
 @login_required
 def dynamic_contact_filter_edit(request, dcf_id):
     dcf = get_object_or_404(DynamicContactFilter, pk=dcf_id)
+    form = NewDynamicContactFilterForm(instance=dcf)
     if request.POST:
-        mailtrain_id = request.POST.get('mailtrain_id', None)
-        autosync = request.POST.get('autosync', False)
-        dcf.mailtrain_id = mailtrain_id
-        dcf.autosync = True if autosync == 'on' else False
-        dcf.save()
-    return render(request, "dynamic_contact_filter_details.html", {"dcf": dcf})
+        form = NewDynamicContactFilterForm(request.POST, instance=dcf)
+        if form.is_valid():
+            description = form.cleaned_data["description"]
+            products = form.cleaned_data["products"]
+            newsletters = form.cleaned_data["newsletters"]
+            allow_promotions = form.cleaned_data["allow_promotions"]
+            allow_polls = form.cleaned_data["allow_polls"]
+            mode = form.cleaned_data["mode"]
+            mailtrain_id = form.cleaned_data["mailtrain_id"]
+            autosync = form.cleaned_data["autosync"]
+            if request.POST.get('confirm', None):
+                dcf.description = description
+                dcf.allow_promotions = allow_promotions
+                dcf.allow_polls = allow_polls
+                dcf.mode = mode
+                dcf.mailtrain_id = mailtrain_id
+                dcf.autosync = autosync
+                dcf.products = products
+                dcf.newsletters = newsletters
+                dcf.save()
+                return HttpResponseRedirect(reverse('dynamic_contact_filter_edit', args=[dcf.id]))
+
+            # After getting the data, process it to find out how many records there are for the filter
+            if mode == 3:
+                subscription_newsletters = SubscriptionNewsletter.objects.all()
+                for newsletter in newsletters:
+                    subscription_newsletters = subscription_newsletters.filter(product=newsletter)
+                subscription_newsletters = subscription_newsletters.filter(contact__email__isnull=False)
+                count = subscription_newsletters.count()
+                email_sample = subscription_newsletters.values("contact__email")[:50]
+            else:
+                if mode == 1:  # At least one of the products
+                    subscriptions = Subscription.objects.all()
+                elif mode == 2:  # All products must match
+                    subscriptions = Subscription.objects.annotate(
+                        count=Count("products")
+                    ).filter(active=True, count=products.count())
+                for product in products:
+                    subscriptions = subscriptions.filter(products=product)
+                if allow_promotions:
+                    subscriptions = subscriptions.filter(contact__allow_promotions=True)
+                if allow_polls:
+                    subscriptions = subscriptions.filter(contact__allow_polls=True)
+                # Finally we remove the ones who don't have emails
+                subscriptions = subscriptions.filter(contact__email__isnull=False)
+                count = subscriptions.count()
+                email_sample = subscriptions.values("contact__email")[:50]
+
+            return render(
+                request,
+                "dynamic_contact_filter_details.html",
+                {
+                    "email_sample": email_sample,
+                    "dcf": dcf,
+                    "form": form,
+                    "confirm": True,
+                    "count": count,
+                },
+            )
+
+    return render(request, "dynamic_contact_filter_details.html", {"dcf": dcf, "form": form})
 
 
 @login_required

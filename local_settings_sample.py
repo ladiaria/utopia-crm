@@ -126,5 +126,6 @@ LOGO = 'static/img/utopia-logo.png'
 # Use your own logo for the invoices. It can be a route or just the regular logo.
 INVOICE_LOGO = LOGO
 
-MAILTRAIN_API_URL = 'https://mailtrain.example.com/api/'
+MAILTRAIN_URL = 'https://mailtrain.example.com/'
+MAILTRAIN_API_URL = MAILTRAIN_URL + 'api/'
 MAILTRAIN_API_KEY = 'your_secret_key'

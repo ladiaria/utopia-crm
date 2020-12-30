@@ -1277,3 +1277,6 @@ class DynamicContactFilter(models.Model):
             return self.newsletters.all()
         else:
             return self.products.all()
+
+    def get_autosync(self):
+        return _("Active") if self.autosync else _("Inactive")
