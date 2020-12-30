@@ -18,7 +18,8 @@
 
   <div class="card-body">
 
-    <b>{% trans "Last time synced" %}:</b><br> {{dcf.last_time_synced}} <a href="{% url 'sync_with_mailtrain' dcf.id %}" class="btn btn-sm btn-success"><i class="fas fa-sync"></i> {% trans "Sync now" %}</a>
+    <b>{% trans "Last time synced" %}:</b><br> {{dcf.last_time_synced}}<br>
+     <a href="{% url 'sync_with_mailtrain' dcf.id %}" class="btn btn-sm btn-success"><i class="fas fa-sync"></i> {% trans "Sync now" %}</a>
 
     <br><br>
     <form method="post">
@@ -35,12 +36,11 @@
         {% endif %}
         <div class="text-right">
           <input type="submit" name="submit" class="btn bg-gradient-primary" value="Preview">
-        </div>
+
         {% if confirm %}
-        <div class="text-right">
           <input type="submit" name="confirm" value="Save list" class="btn bg-gradient-success">
-        </div>
         {% endif %}
+        </div>
     </form>
 
   </div>

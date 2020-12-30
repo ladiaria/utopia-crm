@@ -41,12 +41,12 @@
       <tbody>
     {% for dcf in dcf_list %}
         <tr>
-            <td><a href="{% url 'dynamic_contact_filter_detail' dcf.id %}">{{dcf.description}}</a></td>>
+            <td><a href="{% url 'dynamic_contact_filter_edit' dcf.id %}">{{dcf.description}}</a></td>
             <td>{{dcf.get_email_count}}</td>
             <td>{{dcf.get_autosync}}</td>
             <td>{{dcf.last_time_synced}}</td>
             <td>{{dcf.mailtrain_id}}</td>
-            <td><a href="{% url 'dynamic_contact_filter_detail' dcf.id %}" class="btn btn-primary btn-sm">Edit</a></td>
+            <td><a href="{% url 'dynamic_contact_filter_edit' dcf.id %}" class="btn btn-primary btn-sm">Edit</a></td>
         </tr>
     {% endfor %}
       </tbody>
