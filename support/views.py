@@ -1427,14 +1427,15 @@ def dynamic_contact_filter_new(request):
             mode = form.cleaned_data["mode"]
             mailtrain_id = form.cleaned_data["mailtrain_id"]
             autosync = form.cleaned_data["autosync"]
-            if request.POST.get('confirm', None):
+            if request.POST.get("confirm", None):
                 dcf = DynamicContactFilter(
                     description=description,
                     allow_promotions=allow_promotions,
                     allow_polls=allow_polls,
                     mode=mode,
                     mailtrain_id=mailtrain_id,
-                    autosync=autosync)
+                    autosync=autosync,
+                )
                 dcf.save()
                 if mode == 3:
                     for newsletter in newsletters:
@@ -1442,14 +1443,18 @@ def dynamic_contact_filter_new(request):
                 else:
                     for product in products:
                         dcf.products.add(product)
-                return HttpResponseRedirect(reverse('dynamic_contact_filter_list'))
+                return HttpResponseRedirect(reverse("dynamic_contact_filter_list"))
 
             # After getting the data, process it to find out how many records there are for the filter
             if mode == 3:
                 subscription_newsletters = SubscriptionNewsletter.objects.all()
                 for newsletter in newsletters:
-                    subscription_newsletters = subscription_newsletters.filter(product=newsletter)
-                subscription_newsletters = subscription_newsletters.filter(contact__email__isnull=False)
+                    subscription_newsletters = subscription_newsletters.filter(
+                        product=newsletter
+                    )
+                subscription_newsletters = subscription_newsletters.filter(
+                    contact__email__isnull=False
+                )
                 count = subscription_newsletters.count()
                 email_sample = subscription_newsletters.values("contact__email")[:50]
             else:
@@ -1488,10 +1493,14 @@ def dynamic_contact_filter_new(request):
 @login_required
 def dynamic_contact_filter_list(request):
     dcf_list = DynamicContactFilter.objects.all()
-    return render(request, "dynamic_contact_filter_list.html", {
-        "dcf_list": dcf_list,
-        "mailtrain_url": settings.MAILTRAIN_URL,
-    })
+    return render(
+        request,
+        "dynamic_contact_filter_list.html",
+        {
+            "dcf_list": dcf_list,
+            "mailtrain_url": settings.MAILTRAIN_URL,
+        },
+    )
 
 
 @login_required
@@ -1509,7 +1518,7 @@ def dynamic_contact_filter_edit(request, dcf_id):
             mode = form.cleaned_data["mode"]
             mailtrain_id = form.cleaned_data["mailtrain_id"]
             autosync = form.cleaned_data["autosync"]
-            if request.POST.get('confirm', None):
+            if request.POST.get("confirm", None):
                 dcf.description = description
                 dcf.allow_promotions = allow_promotions
                 dcf.allow_polls = allow_polls
@@ -1519,14 +1528,20 @@ def dynamic_contact_filter_edit(request, dcf_id):
                 dcf.products = products
                 dcf.newsletters = newsletters
                 dcf.save()
-                return HttpResponseRedirect(reverse('dynamic_contact_filter_edit', args=[dcf.id]))
+                return HttpResponseRedirect(
+                    reverse("dynamic_contact_filter_edit", args=[dcf.id])
+                )
 
             # After getting the data, process it to find out how many records there are for the filter
             if mode == 3:
                 subscription_newsletters = SubscriptionNewsletter.objects.all()
                 for newsletter in newsletters:
-                    subscription_newsletters = subscription_newsletters.filter(product=newsletter)
-                subscription_newsletters = subscription_newsletters.filter(contact__email__isnull=False)
+                    subscription_newsletters = subscription_newsletters.filter(
+                        product=newsletter
+                    )
+                subscription_newsletters = subscription_newsletters.filter(
+                    contact__email__isnull=False
+                )
                 count = subscription_newsletters.count()
                 email_sample = subscription_newsletters.values("contact__email")[:50]
             else:
@@ -1559,14 +1574,18 @@ def dynamic_contact_filter_edit(request, dcf_id):
                 },
             )
 
-    return render(request, "dynamic_contact_filter_details.html", {"dcf": dcf, "form": form})
+    return render(
+        request, "dynamic_contact_filter_details.html", {"dcf": dcf, "form": form}
+    )
 
 
 @login_required
 def export_dcf_emails(request, dcf_id):
     dcf = get_object_or_404(DynamicContactFilter, pk=dcf_id)
-    response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = 'attachment; filename="dcf_list_{}.csv"'.format(dcf.id)
+    response = HttpResponse(content_type="text/csv")
+    response["Content-Disposition"] = 'attachment; filename="dcf_list_{}.csv"'.format(
+        dcf.id
+    )
 
     writer = csv.writer(response)
     for email in dcf.get_emails():
@@ -1586,4 +1605,6 @@ def sync_with_mailtrain(request, dcf_id):
     except Exception as e:
         return HttpResponse(_("Error: {}".format(e.message)))
     else:
-        return HttpResponse(_("List {} successfully synced with this filter".format(dcf.mailtrain_id)))
+        return HttpResponse(
+            _("List {} successfully synced with this filter".format(dcf.mailtrain_id))
+        )

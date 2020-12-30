@@ -11,14 +11,14 @@ class SellerAdmin(admin.ModelAdmin):
 
 
 class IssueAdmin(admin.ModelAdmin):
-    raw_id_fields = ['contact', 'address_1', 'address_2', 'subscription']
+    raw_id_fields = ["contact", "address_1", "address_2", "subscription"]
 
 
 class ScheduledTaskAdmin(admin.ModelAdmin):
-    list_display = ['contact', 'execution_date', 'category', 'completed']
-    readonly_fields = ['subscription_products']
-    ordering = ['-execution_date']
-    raw_id_fields = ['address', 'issue', 'contact', 'subscription']
+    list_display = ["contact", "execution_date", "category", "completed"]
+    readonly_fields = ["subscription_products"]
+    ordering = ["-execution_date"]
+    raw_id_fields = ["address", "issue", "contact", "subscription"]
 
 
 admin.site.register(ScheduledTask, ScheduledTaskAdmin)
