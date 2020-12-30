@@ -42,3 +42,4 @@ def get_emails_from_mailtrain_list(mailtrain_list_id):
     data = r.json()
     for subscription in data['data']['subscriptions']:
         emails.append(subscription['email'])
+    return emails

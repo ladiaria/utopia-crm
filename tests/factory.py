@@ -11,9 +11,9 @@ quieran pasarse por arriba, como por ejemplo la fecha de creado.
 
 
 # TODO: Review ???
-def create_contact(name, phone, mail=None):
-    contact = Contact(name=name, phone=phone)
-    if not mail:
+def create_contact(name, phone, email=None):
+    contact = Contact(name=name, phone=phone, email=email)
+    if not email:
         contact.no_mail = True
     else:
         contact.no_mail = False
@@ -151,3 +151,10 @@ def create_subtype(name):
     subtype = Subtype.objects.create(name=name)
 
     return Subtype.objects.get(pk=subtype.pk)
+
+
+def create_dynamiccontactfilter(description, mode=1):
+    from core.models import DynamicContactFilter
+    dcf = DynamicContactFilter.objects.create(description=description, mode=mode)
+
+    return DynamicContactFilter.objects.get(pk=dcf.pk)

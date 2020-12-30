@@ -1,0 +1,48 @@
+{% extends 'adminlte/base.html' %}
+{% load i18n %}
+{% block title %}{% trans "Dynamic contact filters" %}{% endblock %}
+{% block no_heading %}
+<h1>{% trans 'Dynamic contact filters' %}</h1>
+<p>{% trans 'Edit filter' %}</p>
+{% endblock %}
+{% block content %}
+<div class="mb-3">
+  <a href="{% url 'dynamic_contact_filter_add' %}" class="btn btn-primary"><i class="fas fa-plus"></i> New filter</a>
+  <a href="{% url 'export_dcf_emails' dcf.id %}" class="btn btn-primary"><i class="fas fa-upload"></i> Export</a>
+  <a href="{% url 'dynamic_contact_filter_list' %}" class="btn btn-primary"><i class="fas fa-list"></i> List</a>
+</div>
+<div class="card">
+  <div class="card-header">
+    <h2 class="card-title">{{dcf.description}} ({{dcf.get_mode}})</h2>
+  </div>
+
+  <div class="card-body">
+
+    <b>{% trans "Last time synced" %}:</b><br> {{dcf.last_time_synced}}<br>
+     <a href="{% url 'sync_with_mailtrain' dcf.id %}" class="btn btn-sm btn-success"><i class="fas fa-sync"></i> {% trans "Sync now" %}</a>
+
+    <br><br>
+    <form method="post">
+        {% csrf_token %}
+        {{form.as_p}}
+        {% if confirm %}
+          <p><b>{% trans "Amount of subscribers" %}:</b> {{count}}</p>
+          <b>{% trans "Email sample (50)" %}</b>
+          <ul>
+              {% for email in email_sample %}
+                  <li>{{email.contact__email}}</li>
+              {% endfor %}
+          </ul>
+        {% endif %}
+        <div class="text-right">
+          <input type="submit" name="submit" class="btn bg-gradient-primary" value="Preview">
+
+        {% if confirm %}
+          <input type="submit" name="confirm" value="Save list" class="btn bg-gradient-success">
+        {% endif %}
+        </div>
+    </form>
+
+  </div>
+</div>
+{% endblock %}

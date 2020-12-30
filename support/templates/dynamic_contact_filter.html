@@ -1,0 +1,33 @@
+{% extends 'adminlte/base.html' %}
+{% load i18n %}
+{% block title %}{% trans "Dynamic contact filters" %}{% endblock %}
+{% block no_heading %}
+<h1>{% trans 'Dynamic contact filters' %}</h1>
+<p>{% trans 'Create filter' %}</p>
+{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    <form method="post">
+    {% csrf_token %}
+    {{form.as_p}}
+    {% if confirm %}
+        <p><b>{% trans "Amount of subscribers" %}:</b> {{count}}</p>
+        <b>{% trans "Email sample (50)" %}</b>
+        <ul>
+            {% for email in email_sample %}
+                <li>{{email.contact__email}}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+    <div class="text-right">
+    <input type="submit" class="btn bg-gradient-primary" value="Preview">
+    {% if confirm %}
+        <input type="submit" name="confirm" value="Save list" class="btn bg-gradient-success">
+    {% endif %}
+    </div>
+    </form>
+
+    </div>
+</div>
+{% endblock %}
