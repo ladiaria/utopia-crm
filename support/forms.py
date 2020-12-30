@@ -370,6 +370,14 @@ class NewAddressForm(forms.Form):
 class NewDynamicContactFilterForm(forms.ModelForm):
     class Meta:
         model = DynamicContactFilter
+        widgets = {
+            "description": forms.TextInput(attrs={"class": "form-control"}),
+            "products": forms.SelectMultiple(attrs={"class": "form-control"}),
+            "newsletters": forms.SelectMultiple(attrs={"class": "form-control"}),
+            "mode": forms.Select(attrs={"class": "form-control"}),
+            "mailtrain_id": forms.TextInput(attrs={"class": "form-control"}),
+
+        }
         fields = (
             "description",
             "products",

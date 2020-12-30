@@ -1,42 +1,68 @@
 {% extends 'adminlte/base.html' %}
-{% load i18n %}
+{% load i18n static %}
 {% block title %}{% trans "Dynamic contact filters" %}{% endblock %}
+{% block stylesheets %}
+    {{block.super}}
+    <link rel="stylesheet" href="{% static '/admin-lte/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css' %}" />
+{% endblock %}
+{% block extra_head %}
+<script type="text/javascript" src="{% static 'js/jquery-3.3.1.min.js' %}"></script>
+<script type="text/javascript" src="{% static '/admin-lte/plugins/datatables/jquery.dataTables.min.js' %}"></script>
+<script src="{% static '/admin-lte/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js' %}"></script>
+<script>
+  $(function() {
+    $("#table1").DataTable();
+  });
+</script>
+
+{% endblock %}
+{% block no_heading %}
+<h1>{% trans 'Mailing lists' %}</h1>
+<p>{% trans 'Create and organize mailing lists to send through Mailtrain' %}</p>
+{% endblock %}
 {% block content %}
-
-<a href="{% url 'dynamic_contact_filter_add' %}">New filter</a>
-
-<table>
-    <tr>
-        <th>{% trans "Description" %}</th>
-        <th>{% trans "Mode" %}</th>
-        <th>{% trans "Products" %}</th>
-        <th>{% trans "Email count" %}</th>
-        <th>{% trans "Autosync" %}</th>
-        <th>{% trans "Mailtrain ID" %}</th>
-        <th>{% trans "Last sync" %}</th>
-        <th>{% trans "Edit" %}</th>
-        <th>{% trans "Sync now" %}</th>
-    </tr>
-{% for dcf in dcf_list %}
-    <tr>
-        <td><a href="{% url 'dynamic_contact_filter_detail' dcf.id %}">{{dcf.description}}</a></td>
-        <td>{{dcf.get_mode}}</td>
-        <td>
-            <ul>
-                {% for product in dcf.get_products %}
-                <li>{{product}}</li>
-                {% endfor %}
-            </ul>
-        </td>
-        <td>{{dcf.get_email_count}}</td>
-        <td>{{dcf.get_autosync}}</td>
-        <td>{{dcf.mailtrain_id}}</td>
-        <td>{{dcf.last_time_synced}}</td>
-        <td><a href="{% url 'dynamic_contact_filter_detail' dcf.id %}">EDIT</a></td>
-        <td><a href="#">SYNC NOW</a></td>
-    </tr>
-{% endfor %}
-
-</table>
-
+<div class="text-right mb-4">
+  <a href="{% url 'dynamic_contact_filter_add' %}" class="btn btn-primary"><i class="fas fa-plus"></i>  New filter</a>
+  <a href="#" class="btn btn-secondary"><i class="fas fa-external-link-alt"></i>  Open Mailtrain</a>
+</div>
+<div class="card">
+  <div class="card-body">
+    <table id="table1" class="table table-bordered table-hover">
+      <thead>
+        <tr>
+            <th>{% trans "Description" %}</th>
+            <th>{% trans "Mode" %}</th>
+            <th>{% trans "Products" %}</th>
+            <th>{% trans "Email count" %}</th>
+            <th>{% trans "Autosync" %}</th>
+            <th>{% trans "Mailtrain ID" %}</th>
+            <th>{% trans "Last sync" %}</th>
+            <th>{% trans "Edit" %}</th>
+            <th>{% trans "Sync now" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+    {% for dcf in dcf_list %}
+        <tr>
+            <td><a href="{% url 'dynamic_contact_filter_detail' dcf.id %}">{{dcf.description}}</a></td>
+            <td>{{dcf.get_mode}}</td>
+            <td>
+                <ul>
+                    {% for product in dcf.get_products %}
+                    <li>{{product}}</li>
+                    {% endfor %}
+                </ul>
+            </td>
+            <td>{{dcf.get_email_count}}</td>
+            <td>{{dcf.get_autosync}}</td>
+            <td>{{dcf.mailtrain_id}}</td>
+            <td>{{dcf.last_time_synced}}</td>
+            <td><a href="{% url 'dynamic_contact_filter_detail' dcf.id %}" class="btn btn-primary btn-sm">Edit</a></td>
+            <td><a href="#" class="btn btn-success btn-sm">Sync now</a></td>
+        </tr>
+    {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
 {% endblock %}
