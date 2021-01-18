@@ -33,10 +33,8 @@
 {% url "prints" as prints %}
 {% url "edition_time" direction="departure" as edition_time_departure %}
 {% url "edition_time" direction="arrival" as edition_time_arrival %}
+{% url "dynamic_contact_filter_list" as dynamic_contact_filter_list %}
 
-<li class="nav-item">
-  <a href="{% url 'admin:index' %}" class="nav-link">Admin</a>
-</li>
 <li class="nav-item">
   <a href="{{contact_list}}" class="nav-link {% ifequal request.path contact_list  %}active{% endifequal %}">{% trans "Contacts" %}</a>
 </li>
@@ -63,6 +61,7 @@
     <li class="nav-item"><a href="{{core_campaign_add}}" target="_blank" class="nav-link">{% trans "New campaign" %}</a></li>
     <li class="nav-item"><a href="{{list_issues}}" class="nav-link {% ifequal request.path list_issues %}active{% endifequal %}">{% trans 'List issues' %}</a></li>
     <li class="nav-item"><a href="{{seller_console_list_campaigns}}" class="nav-link {% ifequal request.path seller_console_list_campaigns %}active{% endifequal %}">{% trans 'Seller console' %}</a></li>
+    <li class="nav-item"><a href="{{dynamic_contact_filter_list}}" class="nav-link {% ifequal request.path dynamic_contact_filter_list %}active{% endifequal %}">{% trans 'Dynamic contact filter list' %}</a></li>
   </ul>
 </li>
 <li class="nav-item has-treeview">
@@ -96,6 +95,9 @@
     <li class="nav-item"><a href='{{edition_time_departure}}' class="nav-link {% ifequal request.path edition_time_departure %}active{% endifequal %}">{% trans 'Edition departure time' %}</a></li>
     <li class="nav-item"><a href='{{edition_time_arrival}}' class="nav-link {% ifequal request.path edition_time_arrival %}active{% endifequal %}">{% trans 'Edition arrival time' %}</a></li>
   </ul>
+</li>
+<li class="nav-item">
+  <a href="{% url 'admin:index' %}" class="nav-link">{% trans "Admin panel" %}</a>
 </li>
 <li class="nav-item">
   <a href="{% url 'logout' %}" class="nav-link">{% trans "Logout" %}</a>

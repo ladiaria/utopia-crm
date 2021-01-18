@@ -5,7 +5,7 @@ from datetime import date, timedelta, datetime
 from django import forms
 from django.contrib.auth.models import User
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-from django.db.models import Q, Sum, Count
+from django.db.models import Q, Count
 from django.http import (
     HttpResponseNotFound,
     HttpResponseRedirect,
@@ -1473,7 +1473,7 @@ def dynamic_contact_filter_new(request):
                 # Finally we remove the ones who don't have emails
                 subscriptions = subscriptions.filter(contact__email__isnull=False)
                 count = subscriptions.count()
-                email_sample = subscription_newsletters.values("contact__email")[:50]
+                email_sample = subscriptions.values("contact__email")[:50]
 
             return render(
                 request,
@@ -1605,6 +1605,6 @@ def sync_with_mailtrain(request, dcf_id):
     except Exception as e:
         return HttpResponse(_("Error: {}".format(e.message)))
     else:
-        return HttpResponse(
-            _("List {} successfully synced with this filter".format(dcf.mailtrain_id))
+        return HttpResponseRedirect(
+            reverse("dynamic_contact_filter_edit", args=[dcf.id])
         )
