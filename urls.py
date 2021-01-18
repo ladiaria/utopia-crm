@@ -8,7 +8,6 @@ from django.contrib import admin
 from django.conf.urls.static import static
 from django.contrib.auth.decorators import login_required
 
-
 # from core.views import updateuserfromweb, createinvoicefromweb
 
 
@@ -36,12 +35,6 @@ if 'logistics' in settings.INSTALLED_APPS:
         url(r'^logistics/', include('logistics.urls')),
     ]
 
-# API REST
-# urlpatterns += [
-#     url(r'^api/updateuserweb/$', updateuserfromweb),
-#     url(r'^api/createinvoiceweb/$', createinvoicefromweb),
-# ]
-
 # test
 urlpatterns += [
     url(r'^test/$', TemplateView.as_view(template_name='tests/index.html'))
@@ -61,3 +54,9 @@ if getattr(settings, 'SERVE_MEDIA', False):
     urlpatterns += static(
         settings.STATIC_URL, document_root=settings.STATIC_ROOT) + static(
         settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+# Used to add customized url patterns from a custom app
+urls_custom_modules = getattr(settings, 'URLS_CUSTOM_MODULES', None)
+if urls_custom_modules:
+    for m in urls_custom_modules:
+        urlpatterns += __import__(m, fromlist=['urlpatterns']).urlpatterns
