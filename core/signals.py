@@ -14,9 +14,6 @@ from django.forms import ValidationError
 
 from .models import Contact, Subscription
 
-# from suscripciones.models.suscripciones import regex_alphanumeric
-from util import validarNumeroTarjeta
-
 
 regex_alphanumeric = r'^[A-Za-z0-9ñüáéíóúÑÜÁÉÍÓÚ _\'.\-]*$'
 alphanumeric = re.compile(regex_alphanumeric)
