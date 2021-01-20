@@ -1,7 +1,6 @@
 import requests
 from datetime import date, timedelta
 from django.conf import settings
-from .models import Product, PriceRule
 
 dnames = ('monday', 'tuesday', 'wednesday', 'thursday', 'friday')
 
@@ -50,6 +49,8 @@ def calc_price_from_products(products_with_copies, frequency):
     """
     Returns the prices, we need the products already processed.
     """
+    from core.models import Product
+
     total_price, discount_pct, frequency_discount_amount, frequency = 0, 0, 0, int(frequency)
 
     for product_id, copies in products_with_copies.items():
@@ -83,6 +84,8 @@ def process_products(input_product_dict):
 
     Each of the products must be a tuple with product and copies.
     """
+    from core.models import Product, PriceRule
+
     input_product_ids = list(input_product_dict.keys())
     input_products = Product.objects.filter(id__in=input_product_ids)
     input_products_count = input_products.count()

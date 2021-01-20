@@ -18,7 +18,6 @@ from taggit.managers import TaggableManager
 from .choices import *
 from utils import delete_email_from_mailtrain_list, subscribe_email_to_mailtrain_list, get_emails_from_mailtrain_list
 from util.dates import get_default_next_billing, get_default_start_date
-from .utils import calc_price_from_products, process_products
 
 regex_alphanumeric = r'^[A-Za-z0-9ñüáéíóúÑÜÁÉÍÓÚ _\'.\-]*$'
 
@@ -770,6 +769,7 @@ class Subscription(models.Model):
         Takes each product for this subscription and returns a list with the copies for each.
         """
         # products = self.products.filter(type='S')
+        from .utils import process_products
         subscription_products = SubscriptionProduct.objects.filter(product__type='S', subscription=self)
         dict_all_products = {}
         for sp in subscription_products:
@@ -787,6 +787,7 @@ class Subscription(models.Model):
         """
         Returns the price for a single period on this customer, taking a view from invoicing as aid.
         """
+        from .utils import calc_price_from_products
         summary_of_products = self.product_summary()
         frequency = self.frequency
         price = calc_price_from_products(summary_of_products, frequency)
