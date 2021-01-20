@@ -35,7 +35,7 @@ from core.models import (
 
 from .forms import *
 from .models import Seller, ScheduledTask
-from core.views import calc_price_from_products, process_products
+from core.utils import calc_price_from_products, process_products
 from util.dates import add_business_days
 
 
