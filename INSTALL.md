@@ -81,6 +81,20 @@ Shall the new role be allowed to create more new roles? (y/n) n
 Password:
 ~~~~
 
+Finally, add this user to the role that has been created before.
+
+Again
+~~~~
+sudo -i
+su postgres
+psql
+~~~~
+
+Then on the postgres prompt, execute this command:
+~~~~
+postgres=# GRANT utopiadev_owners TO utopiadev_django;
+~~~~
+
 ## Project configuration
 
 In utopia-crm folder copy local_settings_sample.py to local_settings.py and configure the database by modifiying DATABASE variable. Write user and password for the utopiadev_django user recently created:
