@@ -28,6 +28,8 @@ ISSUE_SUBCATEGORIES = (
     ('L07', _('Wrong label')),
     ('L08', _('Wrong invoice delivered')),
     ('L10', _('Paused route')),
+    ('L11', _('Invoice wasn\'t delivered')),
+    ('L99', _('Uncategorized logistics issue')),
     # Invoicing
     ('I01', _('Product doesn\'t belong')),
     ('I02', _('Price issue')),
@@ -37,6 +39,8 @@ ISSUE_SUBCATEGORIES = (
     ('I06', _('Collection issue (active subscription)')),
     ('I07', _('Collection issue (inactive subscription)')),
     ('I08', _('Credit card expiration')),
+    ('I09', _('Debt issue')),
+    ('I99', _('Uncategorized invoicing issue')),
     # Contents
     ('C01', _('Suggestions')),
     ('C02', _('Complaints')),
@@ -64,6 +68,7 @@ ISSUE_SUBCATEGORIES = (
     ('S10', _('Errors in data')),
     ('S11', _('Special cases')),
     ('S12', _('Schedule task')),
+    ('S12', _('Change in subscription')),
     # Community
     ('O01', _('Community Benefits')),
     ('O02', _('Community Events')),
@@ -74,6 +79,8 @@ ISSUE_SUBCATEGORIES = (
     ('O07', _('Community Complaints')),
     ('O08', _('Community Requests')),
     ('O09', _('Polls/Surveys')),
+    # Uncategorized
+    ('N/A', _('No sub-category')),
 )
 
 ISSUE_ANSWERS = (
