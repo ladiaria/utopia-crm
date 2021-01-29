@@ -10,12 +10,16 @@ LOGOUT_REDIRECT_URL = '/'
 DEBUG = False
 DEBUG_INVOICING = True  # prints debug data for invoicing in uwsgi log
 
-# TODO: This email will receive *TODO*
-SERVER_EMAIL = ''
+SERVER_EMAIL = 'email@example.com'
 ADMINS = (
     ('Utopia Admins', SERVER_EMAIL),
 )
 MANAGERS = ADMINS
+# SMTP email host
+EMAIL_HOST = 'smtp.example.com'
+# supervision email.
+SUPERVISION_EMAIL = 'example@example.com'
+
 
 ALLOWED_HOSTS = []
 
@@ -81,28 +85,29 @@ MIDDLEWARE = [
 ROOT_URLCONF = 'urls'
 
 INSTALLED_APPS = (
-    'django.contrib.admin',
-    'django.contrib.admindocs',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
-    'django.contrib.gis',
+    "django.contrib.admin",
+    "django.contrib.admindocs",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
+    "django.contrib.gis",
     # Extra Django apps
-    'admin_honeypot',
-    'corsheaders',
-    'rest_framework',
-    'rest_framework.authtoken',
-    'django_filters',
-    'rosetta',
-    'widget_tweaks',
+    "taggit",
+    "admin_honeypot",
+    "corsheaders",
+    "rest_framework",
+    "rest_framework.authtoken",
+    "django_filters",
+    "rosetta",
+    "widget_tweaks",
     # crm apps enabled
-    'core',
-    'support',
-    'logistics',
-    'community',
-    'invoicing',
+    "core",
+    "support",
+    "logistics",
+    "community",
+    "invoicing",
 )
 
 # Password storage
@@ -127,12 +132,6 @@ CSS_URL = STATIC_URL + 'css/'
 IMG_URL = STATIC_URL + 'img/'
 
 LOGO = 'static/img/utopia-logo.png'  # Image logo under static directory
-
-# SMTP email host
-EMAIL_HOST = 'smtp.example.com'
-
-# supervision email.
-SUPERVISION_EMAIL = 'example@example.com'
 
 # Background tasks settings
 MAX_ATTEMPTS = 1

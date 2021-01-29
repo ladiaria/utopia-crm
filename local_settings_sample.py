@@ -9,6 +9,15 @@ DATABASES = {
     }
 }
 
+# Use your own email settings
+SERVER_EMAIL = 'email@example.com'
+ADMINS = (
+    ('Utopia Admins', SERVER_EMAIL),
+)
+MANAGERS = ADMINS
+# SMTP email host
+EMAIL_HOST = 'smtp.example.com'
+
 if DEBUG:
     # CorsMiddleware used in debug mode
     MIDDLEWARE = [
@@ -51,6 +60,9 @@ if DEBUG:
         "community",
         "invoicing",
     )
+else:
+    # Use your own installed apps here if you need different settings
+    pass
 
 # Replace with your own allowed hosts.
 ALLOWED_HOSTS = ["127.0.0.1"]
