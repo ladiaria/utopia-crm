@@ -181,7 +181,11 @@ def seller_console_list_campaigns(request):
     in to call.
     """
     user = User.objects.get(username=request.user.username)
-    seller = Seller.objects.get(user=user)
+    try:
+        seller = Seller.objects.get(user=user)
+    except Seller.DoesNotExist:
+        return HttpResponse(_("User has no seller selected."))
+
     # We'll make these lists so we can append the sub count to each campaign
     not_contacted_list, all_campaigns_list, upcoming = [], [], []
 
@@ -216,14 +220,18 @@ def seller_console(request, category, campaign_id):
     Dashboard-like control panel for sellers to take actions on contacts in campaigns one by one, calling them and
     registering the activity they had with the contacts.
     """
+    user = User.objects.get(username=request.user.username)
+    try:
+        seller = Seller.objects.get(user=user)
+    except Seller.DoesNotExist:
+        return HttpResponse(_("User has no seller selected."))
+
     if request.GET.get("offset"):
         offset = request.GET.get("offset")
     else:
         offset = request.POST.get("offset")
     offset = int(offset) - 1 if (offset and int(offset) > 0) else 0
 
-    user = User.objects.get(username=request.user.username)
-    seller = Seller.objects.get(user=user)
     campaign = Campaign.objects.get(pk=campaign_id)
 
     call_datetime = datetime.strftime(date.today() + timedelta(1), "%Y-%m-%d")
