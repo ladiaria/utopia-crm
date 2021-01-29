@@ -178,6 +178,7 @@ class SupporterInline(admin.StackedInline):
 
 
 class ContactAdmin(TabbedModelAdmin):
+    save_on_top = True
     form = ContactAdminForm
     tab_overview = (
         (None, {'fields': (('name', 'tags'), )}),
