@@ -44,7 +44,7 @@
 <div id="content-main" class="container-fluid">
     {% block object-tools %}
     {% if change %}{% if not is_popup %}
-    <ul class="object-tools">
+    <ul class="object-tools clearfix">
         {% block object-tools-items %}
         <li>
             {% url opts|admin_urlname:'history' original.pk|admin_urlquote as history_url %}
@@ -56,6 +56,8 @@
         {% endblock %}
     </ul>
     {% endif %}{% endif %}
+    <br><br>
+    {% block submit_buttons_top %}{% submit_row %}{% endblock %}
     {% endblock %}
     <div class="row">
         <div class="col-md-12">
@@ -64,7 +66,6 @@
 
                 {% if is_popup %}<input type="hidden" name="{{ is_popup_var }}" value="1" />{% endif %}
                 {% if to_field %}<input type="hidden" name="{{ to_field_var }}" value="{{ to_field }}" />{% endif %}
-                {% if save_on_top %}{% block submit_buttons_top %}{% submit_row %}{% endblock %}{% endif %}
                 {% if errors %}
                 <p class="errornote">
                     {% if errors|length == 1 %}{% trans "Please correct the error below." %}{% else %}{% trans "Please correct the errors below." %}{% endif %}
