@@ -137,4 +137,4 @@ MAILTRAIN_API_URL = MAILTRAIN_URL + "api/"
 MAILTRAIN_API_KEY = "your_secret_key"
 
 # Use this if you have a custom app that you want to load the URLs from
-URLS_CUSTOM_MODULES = ['your', 'list', 'of', 'modules']
+URLS_CUSTOM_MODULE = 'your.module.urls'

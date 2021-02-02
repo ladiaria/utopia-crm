@@ -2,10 +2,6 @@
 from datetime import date, timedelta, datetime
 
 from dateutil.relativedelta import relativedelta
-from StringIO import StringIO
-from reportlab.pdfgen import canvas
-from reportlab.lib.units import cm
-from pyPdf import PdfFileReader, PdfFileWriter
 
 from django.urls import reverse
 from django.conf import settings
@@ -112,6 +108,7 @@ def bill_subscription(subscription_id, billing_date=date.today(), dpp=10, check_
             frequency_extra = _(' {} months'.format(subscription.frequency)) if subscription.frequency > 1 else ''
             item.description = product.name + frequency_extra
             item.price = product.price * subscription.frequency
+            item.product = product
             if product.type == 'S':
                 # If the product is a subscription
                 copies = int(copies)
@@ -367,88 +364,6 @@ def billing_invoices(request, billing_id):
     return render(request, 'billing_invoices.html', {
         'billing': billing, 'invoice_list': invoice_list,
     })
-
-
-@login_required
-def _print_invoices(invoice_list, debug=False):
-    """
-    Gets a list of invoices and prints them.
-    """
-    # debug = True
-    buffer = StringIO()
-    output = PdfFileWriter()
-    for i, invoice in enumerate(invoice_list):
-
-        if invoice.pdf:
-            if debug:
-                print("DEBUG: Generating PDF for invoice %d (%d of %d)" % (invoice.id, i, len(invoice_list)))
-
-            invoice_roll_sio = StringIO(invoice.pdf.read())
-            invoice_roll = PdfFileReader(invoice_roll_sio)
-            dgi_page = invoice_roll.getPage(0)
-            invoice.pdf.close()
-
-            ld_buffer = StringIO()
-            ld_canvas = canvas.Canvas(ld_buffer, bottomup=False)
-            ld_canvas.setPageSize((200, dgi_page.mediaBox.upperRight[1] + 70))
-            ld_canvas.setFont("Arial", 12)
-            route = invoice.route
-            if not route:
-                route = u'N/A'
-            order = invoice.order
-            if not order:
-                order = u'N/A'
-            res = u'R %s O %s' % (route, order)
-            service_from = '#%d' % (invoice.service_from.month + 12 * (invoice.service_from.year - 2013) - 3)
-            service_to = '#%d' % (invoice.service_to.month + 12 * (invoice.service_to.year - 2013) - 3)
-            res += ' %s - %s' % (service_from, service_to)
-            ld_canvas.drawString(.5 * cm, .9 * cm, res)
-            ld_canvas.setFont("Arial", 8)
-
-            if not invoice.paid:
-                # if debtor all bars are zero without astersisk
-                contact = invoice.contact
-                is_debtor = contact.is_debtor()
-                string1, string2 = 2 * (24 * '0', ) if is_debtor else invoice.mercadopago_bars()
-                # text under bars
-                ld_canvas.drawString(.5 * cm, 1.0 * cm + 25, string1)
-                ld_canvas.drawString(.5 * cm, 2.0 * cm + 25, string2)
-                ld_canvas.setFont('3of9', 18)
-                # bars are print twice to be wider
-                ld_canvas.drawString(.5 * cm, 1.5 * cm, string1)
-                ld_canvas.drawString(.5 * cm, 2.5 * cm, string2)
-
-            ld_canvas.showPage()
-            ld_canvas.save()
-            ld_page = PdfFileReader(ld_buffer).getPage(0)
-            ld_page.mergePage(dgi_page)
-            output.addPage(ld_page)
-    output.write(buffer)
-    buffer_value = buffer.getvalue()
-    return buffer_value
-
-
-@login_required
-def print_invoice_pdf(request, invoice_id):
-    """
-    Prints a single invoice.
-    """
-    response = HttpResponse(content_type='application/pdf')
-    filename = 'invoice' + '%s.pdf'.format(invoice_id)
-    response['Content-Disposition'] = 'attachment; filename=' + filename
-    invoice_list = Invoice.objects.filter(pk=invoice_id)
-    if invoice_list[0].uuid:
-        pdf = _print_invoices(invoice_list)
-        response.write(pdf)
-        return response
-    else:
-        return HttpResponse(_('ERROR: Invoice has no PDF'))
-
-
-# should be deprecated
-@login_required
-def print_duplicate(request, invoice_id):
-    return print_invoice_pdf(request, invoice_id)
 
 
 @login_required
