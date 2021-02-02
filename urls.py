@@ -10,8 +10,15 @@ from django.contrib.auth.decorators import login_required
 
 # from core.views import updateuserfromweb, createinvoicefromweb
 
+urlpatterns = []
 
-urlpatterns = [
+# Used to add customized url patterns from a custom app, they're declared up here so you can add your own custom apps
+# and override existing URLs if you need.
+urls_custom_modules = getattr(settings, 'URLS_CUSTOM_MODULE', None)
+if urls_custom_modules:
+    urlpatterns += __import__(urls_custom_modules, fromlist=['urlpatterns']).urlpatterns
+
+urlpatterns += [
     # Django admindocs and admin
     url(r'^user/', include('django.contrib.auth.urls')),
     url(r'^admin/doc/', include('django.contrib.admindocs.urls')),
@@ -50,13 +57,8 @@ if settings.DEBUG:
         url(r'^__debug__/', include(debug_toolbar.urls)),
     ] + urlpatterns
 
+
 if getattr(settings, 'SERVE_MEDIA', False):
     urlpatterns += static(
         settings.STATIC_URL, document_root=settings.STATIC_ROOT) + static(
         settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-
-# Used to add customized url patterns from a custom app
-urls_custom_modules = getattr(settings, 'URLS_CUSTOM_MODULES', None)
-if urls_custom_modules:
-    for m in urls_custom_modules:
-        urlpatterns += __import__(m, fromlist=['urlpatterns']).urlpatterns
