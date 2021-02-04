@@ -8,10 +8,14 @@ from django.contrib import admin
 from django.conf.urls.static import static
 from django.contrib.auth.decorators import login_required
 from django.conf.urls import handler404
+from django.conf.urls import handler403
+from django.conf.urls import handler500
 
 # from core.views import updateuserfromweb, createinvoicefromweb
 
 handler404 = 'core.views.handler404'
+handler403 = 'core.views.handler403'
+handler500 = 'core.views.handler500'
 
 urlpatterns = [
     # Django admindocs and admin
