@@ -293,7 +293,11 @@ def bill_subscriptions_for_one_contact(request, contact_id):
         creation_date = datetime.strptime(creation_date, "%Y-%m-%d").date()
         dpp = request.POST.get('dpp', 10)
         for subscription in contact.subscriptions.filter(active=True, next_billing__lte=date.today()):
-            bill_subscription(subscription.id, creation_date, dpp)
+            try:
+                bill_subscription(subscription.id, creation_date, dpp)
+            except Exception as e:
+                # TODO: Use a fancier error page
+                return HttpResponse(e.message)
         return HttpResponseRedirect(
             reverse("contact_invoices", args=(contact_id,)))
     else:
