@@ -124,7 +124,8 @@ INVOICES_PATH = "path/to/folder/in/media/"
 # Set the payment types that you want to track on labels here. They must be set by type on a string.
 LABEL_INVOICE_PAYMENT_TYPES = "RI"
 
-# Set this to true to show only one item per subscription in subscription invoices.
+# Set this to true to show only one item per subscription in subscription invoices, instead of one item per
+# invoiceitem.
 USE_SQUASHED_SUBSCRIPTION_INVOICEITEMS = True
 
 # Use your own logo for the admin and dashboard
@@ -137,4 +138,4 @@ MAILTRAIN_API_URL = MAILTRAIN_URL + "api/"
 MAILTRAIN_API_KEY = "your_secret_key"
 
 # Use this if you have a custom app that you want to load the URLs from
-URLS_CUSTOM_MODULES = ['your', 'list', 'of', 'modules']
+URLS_CUSTOM_MODULE = 'your.module.urls'
