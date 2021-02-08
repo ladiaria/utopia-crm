@@ -11,6 +11,7 @@ from django.shortcuts import get_object_or_404, render
 from django.http import (
     HttpResponseServerError, HttpResponseRedirect, HttpResponse, JsonResponse)
 from django.utils.translation import ugettext_lazy as _
+from django.utils.text import format_lazy
 
 from invoicing.models import Invoice, InvoiceItem, Billing, CreditNote
 from core.models import Contact, Subscription, Product
@@ -106,7 +107,7 @@ def bill_subscription(subscription_id, billing_date=date.today(), dpp=10, check_
             item = InvoiceItem()
             product = Product.objects.get(pk=int(product_id))
             frequency_extra = _(' {} months'.format(subscription.frequency)) if subscription.frequency > 1 else ''
-            item.description = product.name + frequency_extra
+            item.description = format_lazy('{} {}', product.name, frequency_extra)
             item.price = product.price * subscription.frequency
             item.product = product
             if product.type == 'S':
@@ -161,8 +162,8 @@ def bill_subscription(subscription_id, billing_date=date.today(), dpp=10, check_
             discount_amount = round((sub_total * discount_pct) / 100)
             # Pack the discount invoiceitem and add it to the list
             frequency_discount_item = InvoiceItem()
-            frequency_discount_item.description = _('%s months discount (%s%% discount)') % (
-                subscription.frequency, discount_pct)
+            frequency_discount_item.description = _('{} months discount ({} discount)'.format(
+                subscription.frequency, discount_pct))
             frequency_discount_item.amount = discount_amount
             # 1 means it's a plain value. This is just in case you want to use percentage discounts.
             frequency_discount_item.type_dr = 1
