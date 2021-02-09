@@ -9,6 +9,26 @@ from .choices import ISSUE_SUBCATEGORIES
 from core.models import Contact, Product, Subscription, Address, DynamicContactFilter
 from core.choices import ADDRESS_TYPE_CHOICES, FREQUENCY_CHOICES
 
+from support.models import Seller
+
+
+class SellerForm(forms.ModelForm):
+    class Meta:
+        model = Seller
+        fields = '__all__'
+
+    def clean_user(self):
+        user = self.cleaned_data.get("user")
+
+        if user and self.instance:
+            s = Seller.objects.filter(user=user).exclude(pk=self.instance.pk)
+            if s:
+                seller = s[0]
+                msg = _("This user is already set in seller {}".format(seller))
+                raise forms.ValidationError(msg)
+
+        return user
+
 
 class ServiceIssueStartForm(forms.ModelForm):
     """
