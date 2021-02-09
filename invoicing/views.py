@@ -72,6 +72,9 @@ def bill_subscription(subscription_id, billing_date=date.today(), dpp=10, check_
     # Check that the next billing date exists or we need to raise an exception.
     assert subscription.next_billing, (_("Could not bill because next billing date does not exist"))
 
+    # Check that the subscription has a payment type
+    assert subscription.payment_type, (_("The subscription has no payment type, it can't be billed"))
+
     # First we need to check if the subscription has the Normal type, is active, and next billing is less than the
     # selected billing date. This probably has to be filtered in the function that calls this one. But just in case
     # this will be controlled here too. A bypass can be programmed to ignore this
