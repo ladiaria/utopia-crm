@@ -12,6 +12,7 @@ from django.contrib.gis.db.models import PointField
 from django.utils.translation import ugettext_lazy as _
 
 from logistics.choices import RESORT_STATUS_CHOICES, MESSAGE_PLACES
+from core.models import SubscriptionProduct
 
 regex_alphanumeric = r'^[A-Za-z0-9ñüáéíóúÑÜÁÉÍÓÚ _\'.\-]*$'
 
@@ -63,9 +64,9 @@ class Route(models.Model):
         and a week ago) are going to be shown.
         """
         if product is None:
-            subprods = self.subscriptionproduct_set.filter(subscription__active=True)
+            subprods = SubscriptionProduct.objects.filter(route=self, subscription__active=True)
         else:
-            subprods = self.subscriptionproduct_set.filter(product=product, subscription__active=True)
+            subprods = SubscriptionProduct.objects.filter(route=self, product=product, subscription__active=True)
         if new:
             subprods = subprods.filter(subscription__start_date__gte=date.today() - timedelta(7))
         subprods = subprods.aggregate(Sum('copies'))
@@ -82,19 +83,19 @@ class Route(models.Model):
         and a week ago) are going to be shown.
         """
         if product is None:
-            subprods = self.subscriptionproduct_set.filter(
-                subscription__active=True, subscription__type='P').aggregate(Sum('copies'))
+            subprods = SubscriptionProduct.objects.filter(
+                route=self, subscription__active=True, subscription__type='P').aggregate(Sum('copies'))
         else:
-            subprods = self.subscriptionproduct_set.filter(
-                product=product, subscription__active=True, subscription__type='P').aggregate(Sum('copies'))
+            subprods = SubscriptionProduct.objects.filter(
+                route=self, product=product, subscription__active=True, subscription__type='P').aggregate(Sum('copies'))
         return subprods['copies__sum']
 
-    def contacts_in_route(self):
+    def contacts_in_route_count(self):
         """
         Returns a count of how many distinct contacts there are in this route.
         """
-        subprods = self.subscriptionproduct_set.all().distinct('subscription__contact').count()
-        return subprods
+        subprods = SubscriptionProduct.objects.filter(route=self).distinct('subscription__contact')
+        return subprods.count
 
     def invoices_in_route(self):
         """
