@@ -30,7 +30,6 @@
 {% url "print_labels" page="Roll" as print_labels_page_roll %}
 {% url "print_labels_from_csv" as print_labels_from_csv %}
 {% url "issues_labels" as issues_labels %}
-{% url "prints" as prints %}
 {% url "edition_time" direction="departure" as edition_time_departure %}
 {% url "edition_time" direction="arrival" as edition_time_arrival %}
 {% url "dynamic_contact_filter_list" as dynamic_contact_filter_list %}
@@ -91,7 +90,6 @@
     <li class="nav-item"><a href='{{print_labels_page_roll}}' class="nav-link {% ifequal request.path print_labels_page_roll %}active{% endifequal %}">{% trans 'Print all labels for tomorrow' %}</a></li>
     <li class="nav-item"><a href='{{print_labels_from_csv}}' class="nav-link {% ifequal request.path print_labels_from_csv %}active{% endifequal %}">{% trans 'Print labels from CSV file' %}</a></li>
     <li class="nav-item"><a href='{{issues_labels}}' class="nav-link {% ifequal request.path issues_labels %}active{% endifequal %}">{% trans 'Issues labels' %}</a></li>
-    <li class="nav-item"><a href='{{prints}}' class="nav-link {% ifequal request.path prints %}active{% endifequal %}">{% trans 'Prints' %}</a></li>
     <li class="nav-item"><a href='{{edition_time_departure}}' class="nav-link {% ifequal request.path edition_time_departure %}active{% endifequal %}">{% trans 'Edition departure time' %}</a></li>
     <li class="nav-item"><a href='{{edition_time_arrival}}' class="nav-link {% ifequal request.path edition_time_arrival %}active{% endifequal %}">{% trans 'Edition arrival time' %}</a></li>
   </ul>
