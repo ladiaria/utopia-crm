@@ -3,11 +3,15 @@ from __future__ import unicode_literals
 
 from django.contrib import admin
 
+from .forms import SellerForm
 from .models import *
 
 
 class SellerAdmin(admin.ModelAdmin):
-    pass
+    list_display = ["name", "internal", "user"]
+    ordering = ["-internal", "name"]
+    raw_id_fields = ["user"]
+    form = SellerForm
 
 
 class IssueAdmin(admin.ModelAdmin):

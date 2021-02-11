@@ -185,6 +185,8 @@ def seller_console_list_campaigns(request):
         seller = Seller.objects.get(user=user)
     except Seller.DoesNotExist:
         return HttpResponse(_("User has no seller selected."))
+    except Seller.MultipleObjectsReturned as e:
+        return HttpResponse(e.message)
 
     # We'll make these lists so we can append the sub count to each campaign
     not_contacted_list, all_campaigns_list, upcoming = [], [], []

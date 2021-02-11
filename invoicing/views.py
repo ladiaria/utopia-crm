@@ -90,12 +90,6 @@ def bill_subscription(subscription_id, billing_date=date.today(), dpp=10, check_
     # We need to get all the subscription data. The priority is defined on the settings.
     billing_data = subscription.get_billing_data_by_priority()
 
-    # Check that the billing has any route at least. This might not be
-    # necessary since get_billing_data_by_priority already raises an
-    # exception when there's no route
-    if check_route:
-        assert billing_data['route'], (_("Could not bill because subscription has no route."))
-
     if subscription.next_billing > billing_date + timedelta(1):
         raise Exception(('Next billing date is {}'.format(subscription.next_billing)))
 
@@ -303,7 +297,11 @@ def bill_subscriptions_for_one_contact(request, contact_id):
         creation_date = datetime.strptime(creation_date, "%Y-%m-%d").date()
         dpp = request.POST.get('dpp', 10)
         for subscription in contact.subscriptions.filter(active=True, next_billing__lte=date.today()):
-            bill_subscription(subscription.id, creation_date, dpp)
+            try:
+                bill_subscription(subscription.id, creation_date, dpp)
+            except Exception as e:
+                # TODO: Use a fancier error page
+                return HttpResponse(e.message)
         return HttpResponseRedirect(
             reverse("contact_invoices", args=(contact_id,)))
     else:

@@ -666,9 +666,9 @@ class Subscription(models.Model):
         for product in Product.objects.filter(type='S').order_by('billing_priority'):
             if self.subscriptionproduct_set.filter(subscription=self, product=product).exists():
                 sp = self.subscriptionproduct_set.filter(subscription=self, product=product).first()
-                if sp.address and sp.route:
+                if sp.address:
                     result = {
-                        'route': sp.route.pk,
+                        'route': sp.route_id,
                         'order': sp.order,
                         'address': sp.address.address_1 or sp.subscription.contact.email,
                         'state': sp.address.state,
@@ -677,7 +677,12 @@ class Subscription(models.Model):
                     }
                     break
         if not result:
-            raise Exception("No billing data for subscription {}".format(self.id))
+            raise Exception(
+                "Subscription {} for contact {} requires an address to be billed.".format(self.id, self.contact.id))
+        if getattr(settings, 'REQUIRE_ROUTE_FOR_BILLING', False):
+            if result['route'] is None:
+                raise Exception(
+                    "Subscription {} for contact {} requires a route to be billed.".format(self.id, self.contact.id))
         return result
 
     def get_frequency_discount(self):

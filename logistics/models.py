@@ -269,7 +269,7 @@ class RouteChange(models.Model):
     old_address = models.CharField(
         max_length=255, null=True, verbose_name=_('Old address'))
     old_city = models.CharField(
-        max_length=20, null=True, verbose_name=_('Old city'))
+        max_length=64, null=True, verbose_name=_('Old city'))
 
     class Meta:
         verbose_name = _('route change')
