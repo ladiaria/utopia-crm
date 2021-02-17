@@ -97,7 +97,7 @@ class SubscriptionInline(admin.StackedInline):
                 ('billing_address'),
                 ('billing_name', 'billing_id_doc'),
                 ('rut', 'billing_phone', 'billing_email'),
-                ('balance',))}),
+                ('balance', 'send_bill_copy_by_email'))}),
         (_('Unsubscription'), {
             'classes': ('collapse',),
             'fields': (
