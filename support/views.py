@@ -189,28 +189,24 @@ def seller_console_list_campaigns(request):
         return HttpResponse(e.message)
 
     # We'll make these lists so we can append the sub count to each campaign
-    not_contacted_list, all_campaigns_list, upcoming = [], [], []
+    campaigns_with_not_contacted, campaigns_with_activities_to_do = [], []
 
     not_contacted_campaigns = seller.get_campaigns_by_status([1])
     all_campaigns = seller.get_unfinished_campaigns()
-    for c in not_contacted_campaigns:
-        c.count = c.get_not_contacted_count(seller.id)
-        not_contacted_list.append(c)
-    for c in all_campaigns:
-        c.pending = c.get_activities_by_seller(seller, "P", "C", date.today()).count()
-        c.delayed = c.get_activities_by_seller(seller, "D", "C", date.today()).count()
-        all_campaigns_list.append(c)
-    for c in all_campaigns:
-        c.pending = c.get_activities_by_seller(seller, "P", "C", date.today()).count()
-        c.delayed = c.get_activities_by_seller(seller, "D", "C", date.today()).count()
-        upcoming.append(c)
+    for campaign in not_contacted_campaigns:
+        campaign.count = campaign.get_not_contacted_count(seller.id)
+        campaigns_with_not_contacted.append(campaign)
+    for campaign in all_campaigns:
+        campaign.pending = campaign.get_activities_by_seller(seller, "P", "C", date.today()).count()
+        campaign.delayed = campaign.get_activities_by_seller(seller, "D", "C", date.today()).count()
+        if campaign.pending or campaign.delayed:
+            campaigns_with_activities_to_do.append(campaign)
     return render(
         request,
         "seller_console_list_campaigns.html",
         {
-            "not_contacted": not_contacted_list,
-            "all_campaigns": all_campaigns_list,
-            "upcoming_campaigns": upcoming,
+            "campaigns_with_not_contacted": campaigns_with_not_contacted,
+            "campaigns_with_activities_to_do": campaigns_with_activities_to_do,
             "seller": seller,
         },
     )

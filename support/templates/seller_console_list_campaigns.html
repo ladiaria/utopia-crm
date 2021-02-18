@@ -17,6 +17,7 @@
     <h3 class="card-title">{% trans 'Not contacted' %}</h3>
   </div>
   <div class="card-body">
+    {% if campaigns_with_not_contacted %}
     <table class="table table-bordered">
       <thead>
           <tr>
@@ -28,7 +29,7 @@
           </tr>
       </thead>
       <tbody>
-        {% for campaign in not_contacted %}
+        {% for campaign in campaigns_with_not_contacted %}
         <tr>
           <td>{{campaign.name}}</td>
           <td>{{campaign.count}}</td>
@@ -39,6 +40,9 @@
         {% endfor %}
       </tbody>
     </table>
+    {% else %}
+    <p>{% trans "There is nothing here now." %}</p>
+    {% endif %}
   </div>
 </div>
 <div class="card">
@@ -46,6 +50,7 @@
     <h3 class="card-title">{% trans 'Activities to do' %}</h3>
   </div>
   <div class="card-body">
+    {% if campaigns_with_activities_to_do %}
     <table class="table table-bordered">
       <thead>
           <tr>
@@ -58,7 +63,7 @@
           </tr>
       </thead>
       <tbody>
-          {% for campaign in all_campaigns %}
+          {% for campaign in campaigns_with_activities_to_do %}
           <tr>
             <td>{{campaign.name}}</td>
             <td>{{campaign.pending}}</td>
@@ -70,7 +75,10 @@
           {% endfor %}
         </tbody>
       </table>
-    </div>
+    {% else %}
+    <p>{% trans "Congratulations! Everything seems to be done." %}</p>
+    {% endif %}
+  </div>
 </div>
 
 {% endblock %}
