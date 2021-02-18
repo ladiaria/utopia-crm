@@ -64,52 +64,49 @@ def import_contacts(request):
         old_contacts_list = []
         errors_list = []
         tag_list = []
-        subtype = request.POST.get("subtype", None)
+        campaign_id = request.POST.get("campaign", None)
+        subtype_id = request.POST.get("subtype", None)
         tags = request.POST.get("tags", None)
         if tags:
             tags = tags.split(",")
             for tag in tags:
                 tag_list.append(tag.strip())
-        subtypeobj = Subtype.objects.get(pk=subtype)
         # check files for every possible match
         try:
             reader = csv_sreader(request.FILES["file"].read())
             # consume header
             reader.next()
         except csv.Error:
-            return HttpResponse(
-                _("No delimiters found in file. Please review delimiters.")
-            )
+            return HttpResponse(_("No delimiters found in csv file. Please check the delimiters for csv files."))
 
         for row in reader:
             try:
                 name = row[0]
-                phone = row[1]
-                email = row[2]
-                mobile = row[3]
-                work_phone = row[4]
-                notes = row[5].strip()
-                address = row[6]
-                address_2 = row[7]
-                city = row[8]
-                state = row[9].strip()
+                phone = row[1] or None
+                email = row[2] or None
+                mobile = row[3] or None
+                work_phone = row[4] or None
+                notes = row[5].strip() or None
+                address = row[6] or None
+                address_2 = row[7] or None
+                city = row[8] or None
+                state = row[9].strip() or None
             except IndexError:
                 return HttpResponse(
-                    _(
-                        "The column count is wrong, please review the header to have at least 10 columns"
-                    )
+                    _("The column count is wrong, please check that the header has at least 10 columns")
                 )
             cpx = Q()
-            for var in (phone, work_phone, mobile):
-                if var:
-                    for attr in ("phone", "work_phone", "mobile", "email"):
-                        cpx = cpx | Q(**{attr: var})
-                        # if we get a mobile, also check without 0
-                        if var.startswith("9") and len(var) == 8:
-                            cpx = cpx | Q(**{attr: "0" + var})
+            # We're going to look for all the fields with possible coincidences
+            if email:
+                cpx = cpx | Q(email=email)
+            if phone:
+                cpx = cpx | Q(work_phone=phone) | Q(mobile=phone) | Q(phone=phone)
+            if mobile:
+                cpx = cpx | Q(work_phone=mobile) | Q(mobile=mobile) | Q(phone=mobile)
+            if work_phone:
+                cpx = cpx | Q(work_phone=work_phone) | Q(mobile=work_phone) | Q(phone=work_phone)
             matches = Contact.objects.filter(cpx)
-            matches_count = matches.count()
-            if matches_count > 0:
+            if matches.count() > 0:
                 # if we get more than one match, alert the user
                 for c in matches:
                     if c not in old_contacts_list:
@@ -122,8 +119,7 @@ def import_contacts(request):
                         email=email,
                         work_phone=work_phone,
                         mobile=mobile,
-                        notes=notes,
-                        subtype=subtypeobj,
+                        notes=notes
                     )
                     # Build the address if necessary
                     if address:
@@ -138,40 +134,55 @@ def import_contacts(request):
                         )
                     new_contacts_list.append(new_contact)
                     if tag_list:
-                        for tag in tags_list:
+                        for tag in tag_list:
                             new_contact.tags.add(tag)
+                    if campaign_id:
+                        new_contact.add_to_campaign(campaign_id)
                 except Exception as e:
                     errors_list.append("%s - %s" % (name, e.message))
-                # todo: address
         return render(
-            request,
-            "import_subscribers.html",
-            {
-                "new_subs_list": new_contacts_list,
-                "old_subs_list": old_contacts_list,
+            request, "import_subscribers.html", {
+                "new_contacts_list": new_contacts_list,
+                "old_contacts_list": old_contacts_list,
                 "errors_list": errors_list,
-                "subtype": subtype,
+                "subtype_id": subtype_id,
+                "campaign_id": campaign_id,
+                "tag_list": tag_list,
             },
         )
 
-    elif request.POST and request.POST.get("new_subtype_id"):
-        subtypeobj = Subtype.objects.get(pk=request.POST.get("new_subtype_id"))
+    elif request.POST and (request.POST.get("hidden_campaign_id") or request.POST.get("hidden_tag_list")):
+        campaign_id = request.POST.get("hidden_campaign_id", None)
+        tag_list = request.POST.get("hidden_tag_list", None)
+        errors_in_changes = []
         changed_list = []
-        for name, value in request.POST.items():
-            if name.startswith("move") and value == "S":
-                sub = Contact.objects.get(pk=name.replace("move-", ""))
-                sub.subtype = subtypeobj
-                sub.save()
-                changed_list.append(sub)
+        try:
+            for name, value in request.POST.items():
+                if name.startswith("move") and value == "M":
+                    contact = Contact.objects.get(pk=name.replace("move-", ""))
+                    contact.add_to_campaign(campaign_id)
+                    for tag in eval(tag_list):
+                        contact.tags.add(tag)
+                    changed_list.append(contact)
+                elif name.startswith("move") and value == "C":
+                    contact = Contact.objects.get(pk=name.replace("move-", ""))
+                    contact.add_to_campaign(campaign_id)
+                    changed_list.append(contact)
+                elif name.startswith("move") and value == "T":
+                    contact = Contact.objects.get(pk=name.replace("move-", ""))
+                    for tag in eval(tag_list):
+                        contact.tags.add(tag)
+                    changed_list.append(contact)
+        except Exception as e:
+            errors_in_changes.append(u"{} - {}".format(contact.id, e.message))
         return render(
-            request, "import_subscribers.html", {"changed_list": changed_list}
+            request, "import_subscribers.html", {
+                "changed_list": changed_list,
+                "errors_in_changes": errors_in_changes,
+            }
         )
-
     else:
-        subtype_list = Subtype.objects.all()
-        return render(
-            request, "import_subscribers.html", {"subtype_list": subtype_list}
-        )
+        return render(request, "import_subscribers.html")
 
 
 @login_required
