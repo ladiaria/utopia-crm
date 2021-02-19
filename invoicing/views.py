@@ -454,3 +454,6 @@ def download_invoice(request, invoice_id):
             c.drawCentredString(40 * mm, 4 * mm, '%s' % _("Customer invoice"))
     c.save()
     return response
+
+def invoice_filter(request):
+    return render(request, 'invoice_filter.html')
