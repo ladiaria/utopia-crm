@@ -2,15 +2,35 @@
 {% load static i18n %}
 {% block stylesheets %}
     {{block.super}}
-    <link rel="stylesheet" href="{% static '/admin-lte/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css' %}" />
+    <link rel="stylesheet" href="{% static '/admin-lte/plugins/daterangepicker/daterangepicker.css' %}">
 {% endblock %}
-{% block extra_head %}
-<script type="text/javascript" src="{% static 'js/jquery-3.3.1.min.js' %}"></script>
-<script type="text/javascript" src="{% static '/admin-lte/plugins/datatables/jquery.dataTables.min.js' %}"></script>
-<script src="{% static '/admin-lte/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js' %}"></script>
+{% block javascript %}
+{{ block.super }}
+<script src="{% static '/admin-lte/plugins/daterangepicker/moment.min.js' %}"></script>
+
+<script src="{% static '/admin-lte/plugins/daterangepicker/daterangepicker.js' %}"></script>
+
 <script>
   $(function() {
-    $("#table1").DataTable();
+
+    //Date range as a button
+    $('#daterange-btn').daterangepicker(
+      {
+        ranges   : {
+         'Hoy'       : [moment(), moment()],
+         'Ayer'   : [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
+         'Últimos 7 días' : [moment().subtract(6, 'days'), moment()],
+         'Últimos 30 días': [moment().subtract(29, 'days'), moment()],
+          'Este mes'  : [moment().startOf('month'), moment().endOf('month')],
+          'Mes anterior'  : [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')]
+        },
+     startDate: moment().subtract(29, 'days'),
+     endDate  : moment()
+   },
+   function (start, end) {
+        $('#reportrange span').html(start.format('MMMM D, YYYY') + ' - ' + end.format('MMMM D, YYYY'))
+      }
+    )
   });
 </script>
 
@@ -23,26 +43,53 @@
 {% block content %}
 <div class="row">
     <div class="col-md-12">
-      <div class="card card-outline card-primary">
-        <div class="card-header">
-          <h3 class="card-title">{% trans 'Search' %}</h3>
-          <div class="card-tools">
-              <button type="button" class="btn btn-tool" data-card-widget="collapse"><i class="fas fa-minus"></i>
-              </button>
-            </div>
-        </div>
+      <div class="card">
         <div class="card-body">
           <form method="GET" id="form">
             <div class="row">
-              <div class="form-group row col-sm-4">
-                <label for="phone" class="col-sm-3 col-form-label">{% trans 'Filter' %}</label>
-                <div class="col-sm-9">
-
+              <div class="form-group col-4">
+                <label for="phone">Buscar por nombre</label>
+                <div class="row">
+                  <div class="col-9">
+                    <input type="text" class="form-control">
+                  </div>
+                  <div class="col-3">
+                    <input type="submit" class="btn bg-gradient-primary" value="{% trans 'Search' %}" />
+                  </div>
                 </div>
               </div>
-              <div class="form-group col-sm-4">
-                <input type="submit" class="btn bg-gradient-primary" value="{% trans 'Search' %}" />
+              <div class="form-group col">
+                <label for="phone">Suscripciones</label>
+                <select class="form-control">
+                  <option>Todas</option>
+                  <option>Digital ilimitada</option>
+                  <option>Lunes a viernes (2 d&iacute;as)</option>
+                  <option>Lunes a viernes (3 d&iacute;as)</option>
+                  <option>Lunes a viernes (full)</option>
+                  <option>Fin de semana</option>
+                  <option>Lento</option>
+                </select>
               </div>
+              <div class="form-group col">
+                <label for="phone">Emisi&oacute;n</label>
+                <button type="button" class="btn btn-default btn-block" id="daterange-btn">
+                  <i class="far fa-calendar-alt"></i> Cualquier fecha
+                  <i class="fas fa-caret-down"></i>
+                </button>
+              </div>
+              <div class="form-group col">
+                <label for="phone">Estado</label>
+                <select class="form-control">
+                  <option>Todos</option>
+                  <option>Paga</option>
+                  <option>Debilitada</option>
+                  <option>Incobrable</option>
+                  <option>Anulada</option>
+                </select>
+              </div>
+            </div>
+            <div class="text-right">
+              <a href="#" class="text-danger"><u>Borrar filtros</u></a>
             </div>
           </form>
         </div>
@@ -51,16 +98,42 @@
     <div class="col-md-12">
         <div class="card">
           <div class="card-body">
-            <h3>{% trans "All contacts" %}</h3>
-            <table id="table1" class="table table-bordered table-striped">
+            <table id="table1" class="table ">
               <thead>
                   <tr role="row">
-                    <th></th>
+                    <th>Numero</th>
+                    <th>Nombre</th>
+                    <th>Suscripciones</th>
+                    <th>Monto</th>
+                    <th>Metodo de pago</th>
+                    <th>Emsiion</th>
+                    <th>Vencimiento</th>
+                    <th>Estado</th>
+                    <th>Detalles</th>
                   </tr>
               </thead>
               <tbody>
                 <tr role="row">
-                    <td></td>
+                    <td>#2015</td>
+                    <td>Marta Gomez</td>
+                    <td>Digital ilimitada</td>
+                    <td>$320</td>
+                    <td>Visa</td>
+                    <td>23/04/21</td>
+                    <td>23/05/21</td>
+                    <td>Paga</td>
+                    <td><a href="#" class="btn-sm btn-primary">Ampliar</a></td>
+                </tr>
+                <tr role="row">
+                    <td>#2015</td>
+                    <td>Marta Gomez</td>
+                    <td>Digital ilimitada</td>
+                    <td>$320</td>
+                    <td>Visa</td>
+                    <td>23/04/21</td>
+                    <td>23/05/21</td>
+                    <td>Paga</td>
+                    <td><a href="#" class="btn-sm btn-primary">Ampliar</a></td>
                 </tr>
               </tbody>
             </table>
