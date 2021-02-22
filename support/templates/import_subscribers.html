@@ -1,5 +1,17 @@
 {% extends 'adminlte/base.html' %}
 {% load static i18n %}
+{% block extra_head %}
+<script type="text/javascript" src="{% static 'js/jquery-3.3.1.min.js' %}"></script>
+<script type="text/javascript">
+    $( function() {
+        $("#default_option").change(function(){
+            $(".contact_option").each(function(){
+                $(this).val($("#default_option").val());
+            });
+        });
+    });
+</script>
+{% endblock %}
 {% block no_heading %}
 <h1>{% trans 'Support' %}</h1>
 <p>{% trans 'Import new contacts' %}</p>
@@ -7,53 +19,85 @@
 {% block breadcrumbs %}
 <ol class="breadcrumb">
     <li class="breadcrumb-item"><a href="/support/">{% trans 'Support' %}</a></li>
-     <li class="breadcrumb-item active">{% trans 'Import subscriptions' %}</li>
+     <li class="breadcrumb-item active">{% trans 'Import new contacts' %}</li>
 </ol>
 {% endblock %}
 {% block content %}
 <div class="card">
   <div class="card-header">
-    <h3 class="card-title">{% trans 'Import subscriptions' %}</h3>
+    <h3 class="card-title">{% trans 'Import new contacts' %}</h3>
   </div>
   <div class="card-body">
-  {% if new_subs_list or errors_list %}
-      <h4>{% trans 'New subscribers entered' %}:</h4>
-      <ul>
-      {% for sub in new_subs_list %}
-          <a href="/admin/core/contacts/{{sub.id}}" target="_blank">{{sub.name}}</a><br/>
-      {% endfor %}
-      </ul>
-      {% if old_subs_list %}
-      <form method="post">
-      {% csrf_token %}
-      <input type="hidden" name="new_subtype_id" value="{{subtype}}"/>
-      {% for sub in old_subs_list %}
-          <span>{% trans 'Repeated' %}: {{sub.name}} en id <a href="/admin/core/contacts/{{sub.id}}" target="_blank">{{sub.id}}</a>
-          {% if sub.has_active_subscription %}<span style="color:red">{% trans 'Active subscription' %}</span>{% endif %}
-          <select name="move-{{sub.id}}" class="form-control">
-              <option value="">{% trans 'Do nothing' %}</option>
-              <option value="S">{% trans 'Add tag' %}</option>
-          </select>
-      {% endfor %}
-        <div class="form-group text-right">
-          <input type="submit" value="{% trans 'Execute actions' %}" class="btn bg-gradient-primary" />
-        </div>
-      </form>
-      {% else %}
-      <br/>
-      <a href=".">{% trans 'Back' %}</a>
-      {% endif %}
-      <ul>
-      {% for error in errors_list %}
-          <li>Error: {{error}}</li>
-      {% endfor %}
-      </ul>
-  {% elif changed_list %}
-      <p>{% trans 'Subscriptions moved to subtype' %}</p>
-          {% for sub in changed_list %}
-              <a href="/admin/core/contacts/{{sub.id}}" target="_blank">{{sub.name}}</a><br/>
+  {% if new_contacts_list or old_contacts_list or errors_list %}
+      {% if new_contacts_list %}
+          <h4>{% trans 'New contacts imported' %}:</h4>
+          <ul>
+          {% for contact in new_contacts_list %}
+              <a href="{% url 'contact_detail' contact.id %}" target="_blank">{{contact.name}}</a><br/>
           {% endfor %}
-      <a href=".">{% trans 'Back' %}</a>
+          </ul>
+      {% endif %}
+      
+      {% if old_contacts_list %}
+        <h4>{% trans 'Coincidences in contacts already in database found' %}:</h4>
+        <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="hidden_campaign_id" value="{{campaign_id}}"/>
+        <input type="hidden" name="hidden_tag_list" value="{{tag_list}}"/>
+        {% trans "Select an action for all contacts, you can them edit them individually" %}
+        <select id="default_option" class="form-control">
+          <option value="">{% trans 'Do nothing' %}</option>
+          <option value="M">{% trans 'Add tags and add to campaign' %}</option>
+          <option value="T">{% trans 'Only add tags' %}</option>
+          <option value="C">{% trans 'Only move to campaign' %}</option>
+        </select>
+        <br><br>
+        {% for contact in old_contacts_list %}
+          <span>{% trans 'Coincidence in' %}: {{contact.name}} <a href="{% url 'contact_detail' contact.id %}" target="_blank">({{contact.id}})</a>
+          {% if contact.has_active_subscription %}<span style="color:red">{% trans 'WARNING: Active subscription!' %}</span>{% endif %}
+          <select name="move-{{contact.id}}" class="form-control contact_option">
+            <option value="">{% trans 'Do nothing' %}</option>
+            <option value="M">{% trans 'Add tags' %} {{tag_list}} {% trans 'and add to campaign' %} {{campaign_id}}</option>
+            <option value="T">{% trans 'Only add tags' %} {{tag_list}}</option>
+            <option value="C">{% trans 'Only move to campaign' %} {{campaign_id}}</option>
+          </select>
+        {% endfor %}
+          <br>
+          <div class="form-group text-right">
+            <input type="submit" value="{% trans 'Execute actions' %}" class="btn bg-gradient-primary" />
+          </div>
+        </form>
+      {% else %}
+        <br>
+        <a href=".">{% trans 'Back' %}</a>
+      {% endif %}
+      {% if errors_list %}
+        <h4>{% trans 'Import has encountered some errors' %}:</h4>
+        <ul>
+          {% for error in errors_list %}
+            <li>{% trans "Error" %}: {{error}}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+      
+  {% elif changed_list or errors_in_changes %}
+      {% if changed_list %}
+        <p>{% trans 'These contacts have been updated' %}</p>
+        {% for contact in changed_list %}
+          <a href="{% url 'contact_detail' contact.id %}" target="_blank">{{contact.name}}</a><br/>
+        {% endfor %}
+      {% endif %}
+      {% if errors_in_changes %}
+        <h4>{% trans 'There were some errors assigning new data to contacts' %}:</h4>
+        <ul>
+          {% for error in errors_in_changes %}
+            <li>{% trans "Error" %}: {{error}}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+      <div class="form-group text-right">
+        <a href="." class="btn bg-gradient-primary">{% trans 'Back' %}</a>
+      </div>
   {% else %}
       <form action="" method="post" enctype="multipart/form-data">
       {% csrf_token %}
@@ -64,19 +108,20 @@
         <input type="file" name="file" id="file" class="form-control">
       </div>
       <div class="form-group">
-        <label for="subtype">{% trans 'Subtype' %}:</label>
-        <select name="subtype" id="subtype" class="form-control">
-        {% for subtype in subtype_list %}
-            <option value="{{ subtype.id }}">{{ subtype.name }}</option>
-        {% endfor %}
-        </select>
+        <label for="subtype">{% trans 'Enter the ID of the subtype you want these contacts to be in' %}:</label>
+        <input type="text" name="subtype" id="subtype" class="form-control" />
       </div>
       <div class="form-group">
-        <label for="tags">{% trans 'Tags (separated by comma. Example: doctor, ex-subscriber, likes the product)' %}:</label>
+        <label for="tags">{% trans 'Tags these contacts will have. (separated by comma. Example: doctor, ex-subscriber, likes the product)' %}:</label>
         <input type="text" id="tags" name="tags" class="form-control" />
       </div>
+      <div class="form-group">
+        <label for="tags">{% trans 'If you want these contacts to be on a campaign, enter the campaign ID here. Campaign must already exist' %}:</label>
+        <input type="text" id="campaign" name="campaign" class="form-control" />
+      </div>
       <div class="form-group text-right">
-        <a href="/admin/core/subtype/add/" class="btn bg-gradient-primary">Add subtype</a>
+        <a href="{% url 'admin:core_campaign_add' %}" class="btn bg-gradient-primary" target="_blank">{% trans "Add new campaign" %}</a>
+        <a href="{% url 'admin:core_subtype_add' %}" class="btn bg-gradient-primary" target="_blank">{% trans "Add new subtype" %}</a>
         <input type="submit" value="{% trans 'Import' %}" class="btn bg-gradient-primary" >
       </div>
       </form>
