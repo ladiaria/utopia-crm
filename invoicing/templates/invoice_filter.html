@@ -1,37 +1,13 @@
 {% extends 'adminlte/base.html' %}
-{% load static i18n %}
+{% load static i18n widget_tweaks %}
 {% block stylesheets %}
     {{block.super}}
     <link rel="stylesheet" href="{% static '/admin-lte/plugins/daterangepicker/daterangepicker.css' %}">
 {% endblock %}
 {% block javascript %}
 {{ block.super }}
-<script src="{% static '/admin-lte/plugins/daterangepicker/moment.min.js' %}"></script>
-
-<script src="{% static '/admin-lte/plugins/daterangepicker/daterangepicker.js' %}"></script>
-
 <script>
-  $(function() {
-
-    //Date range as a button
-    $('#daterange-btn').daterangepicker(
-      {
-        ranges   : {
-         'Hoy'       : [moment(), moment()],
-         'Ayer'   : [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
-         'Últimos 7 días' : [moment().subtract(6, 'days'), moment()],
-         'Últimos 30 días': [moment().subtract(29, 'days'), moment()],
-          'Este mes'  : [moment().startOf('month'), moment().endOf('month')],
-          'Mes anterior'  : [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')]
-        },
-     startDate: moment().subtract(29, 'days'),
-     endDate  : moment()
-   },
-   function (start, end) {
-        $('#reportrange span').html(start.format('MMMM D, YYYY') + ' - ' + end.format('MMMM D, YYYY'))
-      }
-    )
-  });
+  $(function() {});
 </script>
 
 {% endblock %}
@@ -48,10 +24,10 @@
           <form method="GET" id="form">
             <div class="row">
               <div class="form-group col-4">
-                <label for="phone">Buscar por nombre</label>
+                <label for="phone">{% trans "Contact name" %}</label>
                 <div class="row">
                   <div class="col-9">
-                    <input type="text" class="form-control">
+                    {% render_field invoice_filter.form.contact_name class="form-control" %}
                   </div>
                   <div class="col-3">
                     <input type="submit" class="btn bg-gradient-primary" value="{% trans 'Search' %}" />
@@ -59,33 +35,20 @@
                 </div>
               </div>
               <div class="form-group col">
-                <label for="phone">Suscripciones</label>
-                <select class="form-control">
-                  <option>Todas</option>
-                  <option>Digital ilimitada</option>
-                  <option>Lunes a viernes (2 d&iacute;as)</option>
-                  <option>Lunes a viernes (3 d&iacute;as)</option>
-                  <option>Lunes a viernes (full)</option>
-                  <option>Fin de semana</option>
-                  <option>Lento</option>
-                </select>
+                <label for="creation_date">{% trans "Creation date" %}</label>
+                  {% render_field invoice_filter.form.creation_date class="form-control" %}
               </div>
               <div class="form-group col">
-                <label for="phone">Emisi&oacute;n</label>
-                <button type="button" class="btn btn-default btn-block" id="daterange-btn">
-                  <i class="far fa-calendar-alt"></i> Cualquier fecha
-                  <i class="fas fa-caret-down"></i>
-                </button>
+                <label for="creation_date_gte">{% trans "Creation date (from)" %}</label>
+                  {% render_field invoice_filter.form.creation_gte class="form-control" %}
               </div>
               <div class="form-group col">
-                <label for="phone">Estado</label>
-                <select class="form-control">
-                  <option>Todos</option>
-                  <option>Paga</option>
-                  <option>Debilitada</option>
-                  <option>Incobrable</option>
-                  <option>Anulada</option>
-                </select>
+                <label for="creation_date_lte">{% trans "Creation date (to)" %}</label>
+                  {% render_field invoice_filter.form.creation_lte class="form-control" %}
+              </div>
+              <div class="form-group col">
+                <label for="status">{% trans "Status" %}</label>
+                {% render_field invoice_filter.form.status class="form-control" %}
               </div>
             </div>
             <div class="text-right">
@@ -101,45 +64,69 @@
             <table id="table1" class="table ">
               <thead>
                   <tr role="row">
-                    <th>Numero</th>
-                    <th>Nombre</th>
-                    <th>Suscripciones</th>
-                    <th>Monto</th>
-                    <th>Metodo de pago</th>
-                    <th>Emsiion</th>
-                    <th>Vencimiento</th>
-                    <th>Estado</th>
-                    <th>Detalles</th>
+                    <th>{% trans "Id" %}</th>
+                    <th>{% trans "Contact" %}</th>
+                    <th>{% trans "Subscriptions" %}</th>
+                    <th>{% trans "Amount" %}</th>
+                    <th>{% trans "Payment type" %}</th>
+                    <th>{% trans "Date" %}</th>
+                    <th>{% trans "Due" %}</th>
+                    <th>{% trans "Status" %}</th>
+                    <th>{% trans "Details" %}</th>
                   </tr>
               </thead>
               <tbody>
+                {% for invoice in invoices %}
                 <tr role="row">
-                    <td>#2015</td>
-                    <td>Marta Gomez</td>
-                    <td>Digital ilimitada</td>
-                    <td>$320</td>
-                    <td>Visa</td>
-                    <td>23/04/21</td>
-                    <td>23/05/21</td>
-                    <td>Paga</td>
-                    <td><a href="#" class="btn-sm btn-primary">Ampliar</a></td>
+                  <td>{{invoice.id}}</td>
+                  <td>{{invoice.contact.name}}</td>
+                  <td>{% autoescape off %}{{invoice.subscription.show_products_html}}{% endautoescape %}</td>
+                  <td>{{invoice.amount}}</td>
+                  <td>{{invoice.get_payment_type}}</td>
+                  <td>{{invoice.creation_date}}</td>
+                  <td>{{invoice.expiration_date}}</td>
+                  <td>{{invoice.get_status}}</td>
+                  <td><a href="#" class="btn-sm btn-primary">{% trans "Details" %}</a></td>
                 </tr>
-                <tr role="row">
-                    <td>#2015</td>
-                    <td>Marta Gomez</td>
-                    <td>Digital ilimitada</td>
-                    <td>$320</td>
-                    <td>Visa</td>
-                    <td>23/04/21</td>
-                    <td>23/05/21</td>
-                    <td>Paga</td>
-                    <td><a href="#" class="btn-sm btn-primary">Ampliar</a></td>
-                </tr>
+                {% endfor %}
               </tbody>
             </table>
           </div>
         </div>
       </div>
+    {% if invoices.has_other_pages %}
+    {% load proper_paginate %}
+    {% load url_replace %}
+    <ul class="pagination">
+        {% if invoices.number == 1 %}
+            <li class="page-item disabled"><span class="page-link">{% trans "first" %}</span></li>
+        {% else %}
+            <li><a class="page-link" href="?{% url_replace request 'p' 1 %}">{% trans "first" %}</a></li>
+        {% endif %}
+        {% if invoices.has_previous %}
+            <li><a class="page-link" href="?{% url_replace request 'p' invoices.previous_page_number %}">&laquo;</a></li>
+        {% else %}
+            <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+        {% endif %}
+        {% for i in paginator|proper_paginate:invoices.number %}
+            {% if invoices.number == i %}
+                <li class="page-item active"><span class="page-link">{{ i }} <span class="sr-only">{% trans "(current)" %}</span></span></li>
+            {% else %}
+                <li><a class="page-link" href="?{% url_replace request 'p' i %}">{{ i }}</a></li>
+            {% endif %}
+        {% endfor %}
+        {% if invoices.has_next %}
+            <li><a class="page-link" href="?{% url_replace request 'p' invoices.next_page_number %}">&raquo;</a></li>
+        {% else %}
+            <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+        {% endif %}
+        {% if invoices.number == paginator.num_pages %}
+            <li class="page-item disabled"><span class="page-link">{% trans "last" %}</span></li>
+        {% else %}
+            <li><a class="page-link" href="?{% url_replace request 'p' paginator.num_pages %}">{% trans "last" %}</a></li>
+        {% endif %}
+    </ul>
+  {% endif %}
   </div>
 
 {% endblock %}
