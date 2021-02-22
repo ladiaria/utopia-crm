@@ -23,6 +23,7 @@
 {% url 'seller_console_list_campaigns' as seller_console_list_campaigns %}
 {% url 'billings_control_panel' as billings_control_panel %}
 {% url 'print_invoices' as print_invoices %}
+{% url 'invoice_filter' as invoice_filter %}
 {% url "assign_routes" as assign_routes %}
 {% url "order_route_default" as order_route_default %}
 {% url "change_route_default" as change_route_default %}
@@ -66,13 +67,14 @@
 <li class="nav-item has-treeview">
   <a href="#" class="nav-link">
     <p>
-      {% trans 'Billing' %}
+      {% trans 'Finances' %}
       <i class="fas fa-angle-down right"></i>
     </p>
   </a>
   <ul class="nav nav-treeview">
     <li class="nav-item"><a href="{{billings_control_panel}}" class="nav-link {% ifequal request.path billings_control_panel %}active{% endifequal %}">{% trans 'Billings' %}</a></li>
     <li class="nav-item"><a href="{{print_invoices}}" class="nav-link {% ifequal request.path print_invoices %}active{% endifequal %}">{% trans 'Print invoices' %}</a></li>
+    <li class="nav-item"><a href="{{invoice_filter}}" class="nav-link {% ifequal request.path invoice_filter %}active{% endifequal %}">{% trans 'Invoice filter' %}</a></li>
   </ul>
 </li>
 <li class="nav-item has-treeview">
