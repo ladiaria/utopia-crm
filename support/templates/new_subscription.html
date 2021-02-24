@@ -56,8 +56,10 @@
 {% block content %}
 <div class="card">
   <div class="card-header">
-    {% if old_subscription %}
+    {% if upgrade_subscription %}
     <h2 class="card-title">{% trans 'Upgrade subscription' %}</h2>
+    {% elif edit_subscription %}
+    <h2 class="card-title">{% trans 'Edit subscription' %}</h2>
     {% else %}
     <h2 class="card-title">{% trans 'New subscription' %}</h2>
     {% endif %}
@@ -65,9 +67,9 @@
   <div class="card-body">
     <form method="post">
     {% csrf_token %}
-    {% if old_subscription %}
+    {% if upgrade_subscription %}
       <div class="alert alert-warning">
-      {% trans "Subscription with id" %} <b>{{old_subscription.id}}</b> {% trans "will be replaced and a balance of" %} <b>{{old_subscription.amount_already_paid_in_period}}</b> {% trans "will be discounted from the subscriber's new first invoice" %}
+      {% trans "Subscription with id" %} <b>{{form_subscription.id}}</b> {% trans "will be replaced and a balance of" %} <b>{{form_subscription.amount_already_paid_in_period}}</b> {% trans "will be discounted from the subscriber's new first invoice" %}
       </div>
     {% endif %}
     {% if form.errors %}
@@ -170,7 +172,7 @@
       <div class="row mt-2">
         <div class="col-6">
           <div class="form-check">
-            <input value="{{product.id}}" class='product_checkbox form-check-input' type='checkbox' name='check-{{product.id}}' id="check-{{product.id}}" {% if product in old_subscription.products.all %}checked{% endif %}>
+            <input value="{{product.id}}" class='product_checkbox form-check-input' type='checkbox' name='check-{{product.id}}' id="check-{{product.id}}" {% if product in form_subscription.products.all %}checked{% endif %}>
             <label for="check-{{product.id}}">{{product.name}}</label>
           </div>
           <select name='address-{{product.id}}' class="address_selector form-control">

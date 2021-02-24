@@ -568,6 +568,20 @@ class Subscription(models.Model):
             subscription=self, product=product, address=address, copies=copies, route=route, order=order)
         self.contact.add_product_history(product, 'A', self.campaign)
 
+    def remove_product(self, product):
+        """
+        Used to remove products from the current subscription. It is encouraged to always use this method when you want
+        to remove a product from a subscription, so you always have control of what happens here. This also creates a
+        product history with the current subscription, product, and date, with the type 'D' (De-activation)
+        """
+        try:
+            sp = SubscriptionProduct.objects.get(subscription=self, product=product)
+            sp.delete()
+        except SubscriptionProduct.DoesNotExist:
+            pass
+        else:
+            self.contact.add_product_history(product, 'D')
+
     def get_billing_name(self):
         """
         Gets the billing name for the contact. If it doesn't have one, then the contact's name is returned.
