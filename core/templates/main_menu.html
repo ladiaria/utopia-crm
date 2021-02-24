@@ -15,7 +15,7 @@
 {% block content %}
 <div class="card">
   <div class="card-header">
-    <h2 class="card-title">{% trans 'Hi' %} [username], {% trans ' choose where you want to go' %}</h2>
+    <h2 class="card-title">{% trans 'Hi' %} {{request.user.first_name}}, {% trans ' choose your destination' %}</h2>
   </div>
   <div class="card-body">
     <div class="row">
@@ -27,7 +27,7 @@
             <div class="card-body">
               <p>{% trans 'Manage all contacts in the database.' %}</p>
               <div class="text-right">
-                <a href="{{contact_list}}" class="btn btn-default">Go to Contacts</a>
+                <a href="{{contact_list}}" class="btn btn-default">{% trans "Go to contacts" %}</a>
               </div>
             </div>
           </div>
@@ -38,9 +38,9 @@
               <h3 class="card-title">{% trans 'Support' %}</h3>
             </div>
             <div class="card-body">
-              <p>{% trans 'Manage issues' %}</p>
+              <p>{% trans 'Manage everything related to contacts, issues, and customer support.' %}</p>
               <div class="text-right">
-                <a href="{{list_issues}}" class="btn btn-default">Go to Support</a>
+                <a href="{{list_issues}}" class="btn btn-default">{% trans "Go to support" %}</a>
               </div>
             </div>
           </div>
@@ -48,12 +48,12 @@
         <div class="col-lg-3 col-6">
           <div class="card">
             <div class="card-header">
-              <h3 class="card-title">{% trans 'Billing' %}</h3>
+              <h3 class="card-title">{% trans 'Finances' %}</h3>
             </div>
             <div class="card-body">
-              <p>{% trans 'Manage billings' %}</p>
+              <p>{% trans 'Manage everything related to invoices and finances' %}</p>
               <div class="text-right">
-                <a href="{{billings_control_panel}}" class="btn btn-default">Go to Billing</a>
+                <a href="{{billings_control_panel}}" class="btn btn-default">{% trans "Go to finances" %}</a>
               </div>
             </div>
           </div>
@@ -64,9 +64,9 @@
               <h3 class="card-title">{% trans 'Logistics' %}</h3>
             </div>
             <div class="card-body">
-              <p>{% trans 'Manage routes' %}</p>
+              <p>{% trans 'Make sure your product gets anywhere you want it to go.' %}</p>
               <div class="text-right">
-                <a href="{{list_routes}}" class="btn btn-default">Go to Logistics</a>
+                <a href="{{list_routes}}" class="btn btn-default">{% trans "Go to logistics" %}</a>
               </div>
             </div>
           </div>

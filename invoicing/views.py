@@ -7,14 +7,13 @@ from django.urls import reverse
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.admin.views.decorators import staff_member_required
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.db.models import Q
 from django.shortcuts import get_object_or_404, render
 from django.http import (
     HttpResponseServerError, HttpResponseRedirect, HttpResponse, JsonResponse)
 from django.utils.translation import ugettext_lazy as _
 from django.utils.text import format_lazy
-
-from invoicing.models import Invoice, InvoiceItem, Billing, CreditNote
-from core.models import Contact, Subscription, Product
 
 import reportlab
 from reportlab.pdfbase import pdfmetrics
@@ -22,6 +21,10 @@ from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.lib.units import mm
 from reportlab.pdfgen.canvas import Canvas
 from reportlab.platypus import Table, TableStyle
+
+from .filters import InvoiceFilter
+from invoicing.models import Invoice, InvoiceItem, Billing, CreditNote
+from core.models import Contact, Subscription, Product
 
 
 reportlab.rl_config.TTFSearchPath.append(str(settings.STATIC_ROOT) + '/fonts')
@@ -119,9 +122,6 @@ def bill_subscription(subscription_id, billing_date=date.today(), dpp=10, check_
                 # instead of a percentage.
                 item.type_dr = 1
             item.amount = item.price * item.copies
-            # this is probably not necessary if we just bind a single invoice to a subscription, but we'll keep it here
-            # for now
-            item.subscription = subscription
             # save all the package
             item.save()
             invoice_items.append(item)
@@ -454,3 +454,44 @@ def download_invoice(request, invoice_id):
             c.drawCentredString(40 * mm, 4 * mm, '%s' % _("Customer invoice"))
     c.save()
     return response
+
+
+def invoice_filter(request):
+    if not request.GET:
+        queryset = Invoice.objects.filter(creation_date=date.today())
+    else:
+        queryset = Invoice.objects.all()
+    page = request.GET.get("p")
+    invoice_queryset = queryset.order_by("-id")
+    invoice_filter = InvoiceFilter(request.GET, queryset=invoice_queryset)
+    paginator = Paginator(invoice_filter.qs, 200)
+    try:
+        invoices = paginator.page(page)
+    except PageNotAnInteger:
+        # If page is not an integer, deliver first page.
+        invoices = paginator.page(1)
+    except EmptyPage:
+        # If page is out of range (e.g. 9999), deliver last page of results.
+        invoices = paginator.page(paginator.num_pages)
+
+    invoices_count = invoice_filter.qs.count()
+    pending_count = invoice_filter.qs.filter(
+        canceled=False, uncollectible=False, paid=False, debited=False, expiration_date__gt=date.today()).count()
+    overdue_count = invoice_filter.qs.filter(
+        canceled=False, uncollectible=False, paid=False, debited=False, expiration_date__lte=date.today()).count()
+    paid_count = invoice_filter.qs.filter(Q(paid=True) | Q(debited=True)).count()
+    canceled_count = invoice_filter.qs.filter(canceled=True).count()
+    uncollectible_count = invoice_filter.qs.filter(uncollectible=True).count()
+    return render(
+        request, 'invoice_filter.html', {
+            'invoices': invoices,
+            'page': page,
+            'paginator': paginator,
+            'invoice_filter': invoice_filter,
+            'invoices_count': invoices_count,
+            'pending_count': pending_count,
+            'overdue_count': overdue_count,
+            'paid_count': paid_count,
+            'canceled_count': canceled_count,
+            'uncollectible_count': uncollectible_count,
+        })

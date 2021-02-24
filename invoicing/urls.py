@@ -1,7 +1,7 @@
 # coding=utf-8
 from invoicing.views import (
     bill_subscription, contact_invoices, bill_subscriptions_for_one_contact, billings_control_panel, billing_invoices,
-    cancel_invoice, billing_progress, download_invoice)
+    cancel_invoice, billing_progress, download_invoice, invoice_filter)
 
 from django.conf.urls import url
 
@@ -14,4 +14,5 @@ urlpatterns = [
     url(r'^cancel_invoice/(\d+)/$', cancel_invoice, name='cancel_invoice'),
     url(r'^download_invoice/(\d+)/$', download_invoice, name='download_invoice'),
     url(r'^billing_progress/$', billing_progress),
+    url(r'^invoice_filter/$', invoice_filter, name='invoice_filter'),
 ]

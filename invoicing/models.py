@@ -2,7 +2,7 @@
 
 from __future__ import unicode_literals
 
-
+from datetime import date
 from django.core.validators import RegexValidator
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
@@ -91,6 +91,18 @@ class Invoice(models.Model):
             amount = (
                 amount - i.amount if i.type == 'D' else amount + i.amount)
         return amount
+
+    def get_status(self):
+        if self.paid or self.debited:
+            return _('Paid on {}'.format(self.payment_date))
+        elif self.uncollectible:
+            return _('Uncollectible')
+        elif self.canceled:
+            return _('Canceled')
+        elif not(self.paid or self.debited) and self.expiration_date <= date.today():
+            return _('Overdue')
+        else:
+            return _('Pending')
 
     def get_payment_type(self):
         types = dict(settings.SUBSCRIPTION_PAYMENT_METHODS)
