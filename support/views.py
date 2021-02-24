@@ -661,7 +661,7 @@ def start_paid_subscription(request, contact_id):
                 replace_subscription.end_date = start_date
                 replace_subscription.active = False
                 replace_subscription.save()
-                subscription.balance = replace_subscription.amount_to_pay_in_period()
+                subscription.balance = replace_subscription.amount_already_paid_in_period()
 
             # We need to decide what we do with the status of the subscription, for now it will be normal
             subscription.status = "OK"
@@ -718,43 +718,61 @@ def start_paid_subscription(request, contact_id):
     )
 
 
-@login_required
-def upgrade_subscription(request, subscription_id):
+def new_subscription(request, contact_id):
     """
-    Takes a subscription and allows the user to add or remove products. That will end up in closing the selected
-    subscription and making a new one, adding balance to the user equal to the amount of money that the user has
+    Makes a new subscription for the selected contact. If you pass a subscription id on a get parameter, it will
+    attempt to change that subscription for a new one.
     """
-    old_subscription = get_object_or_404(Subscription, pk=subscription_id)
-    if old_subscription.active is False or old_subscription.type != "N":
-        return HttpResponse(_("This subscription does not support upgrading."))
-    contact = old_subscription.contact
+    contact = get_object_or_404(Contact, pk=contact_id)
+    if request.GET.get('old_subscription', None):
+        subscription_id = request.GET.get('old_subscription')
+        old_subscription = get_object_or_404(Subscription, pk=subscription_id)
+        if old_subscription.contact != contact:
+            return HttpResponseServerError(_('Wrong data'))
+    else:
+        old_subscription = None
+
     result = request.POST.get("result")
     contact_addresses = Address.objects.filter(contact=contact)
     offerable_products = Product.objects.filter(bundle_product=False, type="S")
     other_active_normal_subscriptions = Subscription.objects.filter(
         contact=contact, active=True, type="N"
     )
-
     start_date = date.today()
+    if old_subscription:
+        # If there's an old subscription, get their billing_data if necessary
+        form = NewSubscriptionForm(
+            initial={
+                "name": contact.name,
+                "phone": contact.phone,
+                "mobile": contact.mobile,
+                "email": contact.email,
+                "id_document": contact.id_document,
+                "default_address": contact_addresses,
+                "start_date": start_date,
+                "copies": 1,
+                "billing_address": old_subscription.billing_address,
+                "billing_name": old_subscription.billing_name,
+                "billing_id_document": old_subscription.billing_id_doc,
+                "billing_rut": old_subscription.rut,
+                "billing_phone": old_subscription.billing_phone,
+                "billing_email": old_subscription.billing_email,
+            }
+        )
+    else:
+        form = NewSubscriptionForm(
+            initial={
+                "name": contact.name,
+                "phone": contact.phone,
+                "mobile": contact.mobile,
+                "email": contact.email,
+                "id_document": contact.id_document,
+                "default_address": contact_addresses,
+                "start_date": start_date,
+                "copies": 1,
+            }
+        )
 
-    form = NewSubscriptionForm(
-        initial={
-            "name": contact.name,
-            "phone": contact.phone,
-            "mobile": contact.mobile,
-            "email": contact.email,
-            "id_document": contact.id_document,
-            "default_address": contact_addresses,
-            "start_date": start_date,
-            "copies": 1,
-            "billing_address": old_subscription.billing_address,
-            "billing_name": old_subscription.billing_name,
-            "billing_id_document": old_subscription.billing_id_doc,
-            "billing_rut": old_subscription.rut,
-            "billing_phone": old_subscription.billing_phone,
-            "billing_email": old_subscription.billing_email,
-        }
-    )
     form.fields["billing_address"].queryset = contact_addresses
     form.fields["default_address"].queryset = contact_addresses
     address_form = NewAddressForm(initial={"address_type": "physical"})
@@ -785,9 +803,11 @@ def upgrade_subscription(request, subscription_id):
             start_date = form.cleaned_data["start_date"]
             payment_type = form.cleaned_data["payment_type"]
 
-            old_subscription.end_date = start_date
-            old_subscription.active = False
-            old_subscription.save()
+            if old_subscription:
+                # We will end the old subscription here.
+                old_subscription.end_date = start_date
+                old_subscription.active = False
+                old_subscription.save()
 
             subscription = Subscription.objects.create(
                 contact=contact,
@@ -796,9 +816,10 @@ def upgrade_subscription(request, subscription_id):
                 next_billing=start_date,
                 payment_type=payment_type,
             )
-            # Then, the amount that was already paid in the period but was not used due to closing the old subscription
-            # will be added as a discount.
-            subscription.balance = old_subscription.amount_to_pay_in_period()
+            if old_subscription:
+                # Then, the amount that was already paid in the period but was not used due to closing the
+                # old subscription will be added as a discount.
+                subscription.balance = old_subscription.amount_already_paid_in_period()
 
             # We need to decide what we do with the status of the subscription, for now it will be normal
             subscription.status = "OK"
@@ -826,96 +847,6 @@ def upgrade_subscription(request, subscription_id):
             "offerable_products": offerable_products,
             "contact_addresses": contact_addresses,
             "other_active_normal_subscriptions": other_active_normal_subscriptions,
-        },
-    )
-
-
-@login_required
-def new_subscription(request, contact_id):
-    """
-    Allows an user to add a new subscription to the account.
-    """
-    contact = get_object_or_404(Contact, pk=contact_id)
-    result = request.POST.get("result")
-    contact_addresses = Address.objects.filter(contact=contact)
-    offerable_products = Product.objects.filter(bundle_product=False, type="S")
-
-    start_date = date.today()
-
-    form = NewSubscriptionForm(
-        initial={
-            "name": contact.name,
-            "phone": contact.phone,
-            "mobile": contact.mobile,
-            "email": contact.email,
-            "id_document": contact.id_document,
-            "default_address": contact_addresses,
-            "start_date": start_date,
-            "copies": 1,
-        }
-    )
-    form.fields["billing_address"].queryset = contact_addresses
-    form.fields["default_address"].queryset = contact_addresses
-    address_form = NewAddressForm(initial={"address_type": "physical"})
-
-    if result == _("Cancel"):
-        return HttpResponseRedirect(reverse("contact_detail", args=[contact.id]))
-    elif result == _("Send"):
-        form = NewSubscriptionForm(request.POST)
-        if form.is_valid():
-            # First we need to save all the new contact data if necessary
-            name = form.cleaned_data["name"]
-            if contact.name != name:
-                contact.name = name
-            phone = form.cleaned_data["phone"]
-            if contact.phone != phone:
-                contact.phone = phone
-            mobile = form.cleaned_data["mobile"]
-            if contact.mobile != mobile:
-                contact.mobile = mobile
-            notes = form.cleaned_data["notes"]
-            if contact.notes != notes:
-                contact.notes = notes
-            id_document = form.cleaned_data["id_document"]
-            if contact.id_document != id_document:
-                contact.id_document = id_document
-            contact.save()
-            # After this we will create the subscription
-            start_date = form.cleaned_data["start_date"]
-            payment_type = form.cleaned_data["payment_type"]
-
-            subscription = Subscription.objects.create(
-                contact=contact,
-                type="N",
-                start_date=start_date,
-                next_billing=start_date,
-                payment_type=payment_type,
-            )
-
-            # We need to decide what we do with the status of the subscription, for now it will be normal
-            subscription.status = "OK"
-            subscription.save()
-
-            # After this, we set all the products we sold
-            for key, value in request.POST.items():
-                if key.startswith("check"):
-                    product_id = key.split("-")[1]
-                    product = Product.objects.get(pk=product_id)
-                    address_id = request.POST.get("address-{}".format(product_id))
-                    address = Address.objects.get(pk=address_id)
-                    copies = request.POST.get("copies-{}".format(product_id))
-                    subscription.add_product(product, address, copies)
-            return HttpResponseRedirect(reverse("contact_detail", args=[contact.id]))
-
-    return render(
-        request,
-        "upgrade_subscription.html",
-        {
-            "contact": contact,
-            "form": form,
-            "address_form": address_form,
-            "offerable_products": offerable_products,
-            "contact_addresses": contact_addresses,
         },
     )
 

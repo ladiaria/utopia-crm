@@ -67,7 +67,7 @@
     {% csrf_token %}
     {% if old_subscription %}
       <div class="alert alert-warning">
-      {% trans "Subscription with id" %} <b>{{old_subscription.id}}</b> {% trans "will be replaced and a balance of" %} <b>{{old_subscription.amount_to_pay_in_period}}</b> {% trans "will be discounted from the subscriber's new first invoice" %}
+      {% trans "Subscription with id" %} <b>{{old_subscription.id}}</b> {% trans "will be replaced and a balance of" %} <b>{{old_subscription.amount_already_paid_in_period}}</b> {% trans "will be discounted from the subscriber's new first invoice" %}
       </div>
     {% endif %}
     {% if form.errors %}
