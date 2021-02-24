@@ -8,6 +8,7 @@ from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.admin.views.decorators import staff_member_required
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.db.models import Q
 from django.shortcuts import get_object_or_404, render
 from django.http import (
     HttpResponseServerError, HttpResponseRedirect, HttpResponse, JsonResponse)
@@ -472,10 +473,25 @@ def invoice_filter(request):
     except EmptyPage:
         # If page is out of range (e.g. 9999), deliver last page of results.
         invoices = paginator.page(paginator.num_pages)
+
+    invoices_count = invoice_filter.qs.count()
+    pending_count = invoice_filter.qs.filter(
+        canceled=False, uncollectible=False, paid=False, debited=False, expiration_date__gt=date.today()).count()
+    overdue_count = invoice_filter.qs.filter(
+        canceled=False, uncollectible=False, paid=False, debited=False, expiration_date__lte=date.today()).count()
+    paid_count = invoice_filter.qs.filter(Q(paid=True) | Q(debited=True)).count()
+    canceled_count = invoice_filter.qs.filter(canceled=True).count()
+    uncollectible_count = invoice_filter.qs.filter(uncollectible=True).count()
     return render(
         request, 'invoice_filter.html', {
             'invoices': invoices,
             'page': page,
             'paginator': paginator,
             'invoice_filter': invoice_filter,
+            'invoices_count': invoices_count,
+            'pending_count': pending_count,
+            'overdue_count': overdue_count,
+            'paid_count': paid_count,
+            'canceled_count': canceled_count,
+            'uncollectible_count': uncollectible_count,
         })

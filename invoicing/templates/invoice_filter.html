@@ -2,12 +2,26 @@
 {% load static i18n widget_tweaks %}
 {% block stylesheets %}
     {{block.super}}
-    <link rel="stylesheet" href="{% static '/admin-lte/plugins/daterangepicker/daterangepicker.css' %}">
+    <link rel="stylesheet" href="{% static '/admin-lte/plugins/jquery-ui/jquery-ui.min.css' %}" />
 {% endblock %}
 {% block javascript %}
 {{ block.super }}
 <script>
-  $(function() {});
+  $(function() {
+    $('#id_creation_date').change(function(){
+      var option = $(this).val();
+      if(option == "custom") {
+        $('.creation-range').removeClass('d-none');
+      }else {
+        $('.creation-range').addClass('d-none');
+        $('#id_creation_gte').attr('value', '');
+        $('#id_creation_lte').attr('value', '');
+      }
+    });
+    $('#id_creation_date').change();
+    $('#id_creation_gte').datepicker({ dateFormat: 'yy-mm-dd' });
+    $('#id_creation_lte').datepicker({ dateFormat: 'yy-mm-dd' });
+  });
 </script>
 
 {% endblock %}
@@ -23,28 +37,25 @@
         <div class="card-body">
           <form method="GET" id="form">
             <div class="row">
-              <div class="form-group col-4">
+              <div class="form-group col">
                 <label for="phone">{% trans "Contact name" %}</label>
+                {% render_field invoice_filter.form.contact_name class="form-control" %}
+              </div>
+                <div class="form-group col">
+                  <label for="creation_date">{% trans "Creation date" %}</label>
+                    {% render_field invoice_filter.form.creation_date class="form-control " %}
+                </div>
+              <div class="creation-range hidden d-none col-4">
                 <div class="row">
-                  <div class="col-9">
-                    {% render_field invoice_filter.form.contact_name class="form-control" %}
+                  <div class="form-group col">
+                    <label for="creation_date_gte">{% trans "Creation date (from)" %}</label>
+                      {% render_field invoice_filter.form.creation_gte class="form-control" %}
                   </div>
-                  <div class="col-3">
-                    <input type="submit" class="btn bg-gradient-primary" value="{% trans 'Search' %}" />
+                  <div class="form-group col">
+                    <label for="creation_date_lte">{% trans "Creation date (to)" %}</label>
+                      {% render_field invoice_filter.form.creation_lte class="form-control" %}
                   </div>
                 </div>
-              </div>
-              <div class="form-group col">
-                <label for="creation_date">{% trans "Creation date" %}</label>
-                  {% render_field invoice_filter.form.creation_date class="form-control" %}
-              </div>
-              <div class="form-group col">
-                <label for="creation_date_gte">{% trans "Creation date (from)" %}</label>
-                  {% render_field invoice_filter.form.creation_gte class="form-control" %}
-              </div>
-              <div class="form-group col">
-                <label for="creation_date_lte">{% trans "Creation date (to)" %}</label>
-                  {% render_field invoice_filter.form.creation_lte class="form-control" %}
               </div>
               <div class="form-group col">
                 <label for="status">{% trans "Status" %}</label>
@@ -52,10 +63,18 @@
               </div>
             </div>
             <div class="text-right">
-              <a href="#" class="text-danger"><u>Borrar filtros</u></a>
+
+              <input type="submit" class="btn bg-gradient-primary ml-3" value="{% trans 'Search' %}" />
             </div>
           </form>
         </div>
+      </div>
+    </div>
+    <div class="col-md-12">
+      <div class="callout callout-info">
+        <h5>{% trans "Invoices" %}: {{invoices_count}}</h5>
+        <p>{% trans "Paid" %}: {{paid_count}}, {% trans "Pending" %}:{{pending_count}}, {% trans "Overdue" %}: {{overdue_count}}, {% trans "Canceled" %}: {{canceled_count}}, {% trans "Uncollectible" %}:{{uncollectible_count}}</p>
+        <a href="{% url 'invoice_filter' %}" class="text-danger"><u>{% trans "Reset" %}</u></a>
       </div>
     </div>
     <div class="col-md-12">

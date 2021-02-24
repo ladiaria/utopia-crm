@@ -1,6 +1,7 @@
 from datetime import date, timedelta
 
 import django_filters
+from django import forms
 from django.utils.translation import ugettext_lazy as _
 from django.db.models import Q
 
@@ -32,17 +33,15 @@ STATUS_CHOICES = (
 class InvoiceFilter(django_filters.FilterSet):
     contact_name = django_filters.CharFilter(method='filter_by_contact_name')
     creation_date = django_filters.ChoiceFilter(choices=CREATION_CHOICES, method='filter_by_creation_date')
-    creation_gte = django_filters.DateFilter(field_name='creation_date', lookup_expr='gte')
-    creation_lte = django_filters.DateFilter(field_name='creation_date', lookup_expr='lte')
+    creation_gte = django_filters.DateFilter(
+        field_name='creation_date', lookup_expr='gte', widget=forms.TextInput(attrs={'autocomplete': 'off'}))
+    creation_lte = django_filters.DateFilter(
+        field_name='creation_date', lookup_expr='lte', widget=forms.TextInput(attrs={'autocomplete': 'off'}))
     status = django_filters.ChoiceFilter(choices=STATUS_CHOICES, method='filter_by_status')
 
     class Meta:
         model = Invoice
         fields = ['contact_name']
-
-    def __init__(self, *args, **kwargs):
-        super(InvoiceFilter, self).__init__(*args, **kwargs)
-        self.form.initial['creation_date'] = 'today'
 
     def filter_by_contact_name(self, queryset, name, value):
         return queryset.filter(contact__name__icontains=value)
@@ -61,6 +60,12 @@ class InvoiceFilter(django_filters.FilterSet):
         elif value == 'this_month':
             return queryset.filter(
                 creation_date__month=date.today().month, creation_date__year=date.today().year)
+        elif value == 'last_month':
+            month = date.today().month - 1 if date.today().month != 1 else 12
+            year = date.today().year if date.today().month != 1 else date.today().year - 1
+            return queryset.filter(creation_date__month=month, creation_date__year=year)
+        else:
+            return queryset
 
     def filter_by_status(self, queryset, name, value):
         if value == 'paid':
