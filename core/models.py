@@ -568,6 +568,20 @@ class Subscription(models.Model):
             subscription=self, product=product, address=address, copies=copies, route=route, order=order)
         self.contact.add_product_history(product, 'A', self.campaign)
 
+    def remove_product(self, product):
+        """
+        Used to remove products from the current subscription. It is encouraged to always use this method when you want
+        to remove a product from a subscription, so you always have control of what happens here. This also creates a
+        product history with the current subscription, product, and date, with the type 'D' (De-activation)
+        """
+        try:
+            sp = SubscriptionProduct.objects.get(subscription=self, product=product)
+            sp.delete()
+        except SubscriptionProduct.DoesNotExist:
+            pass
+        else:
+            self.contact.add_product_history(product, 'D')
+
     def get_billing_name(self):
         """
         Gets the billing name for the contact. If it doesn't have one, then the contact's name is returned.
@@ -806,8 +820,8 @@ class Subscription(models.Model):
         if not self.next_billing:
             return None
         assert self.type == 'N', _('Subscription must be normal to use this method')
-        start = self.next_billing
-        end = self.next_billing + relativedelta(months=self.frequency)
+        start = self.next_billing - relativedelta(months=self.frequency)
+        end = self.next_billing
         return start, end
 
     def amount_already_paid_in_period(self):
@@ -815,26 +829,31 @@ class Subscription(models.Model):
         Divides the price of one period between the amount of days (frequency) to get the price for one day of
         this subscription. Then multiplies the value of this single day by the amount of days that have passed since
         the start of the period, giving as a result the amount that the customer has already paid.
+
+        This is useful to add that amount as a discount for the next subscription when selling a new subscription to
+        the customer, in the case the new subscription price is greater than the old one.
         """
         assert self.type == 'N', _('Subscription must be normal to use this method')
         period_start, period_end = self.get_current_period()
         price_per_day = self.get_price_for_full_period() / (period_end - period_start).days
         days_already_used = (date.today() - period_start).days
-        return int(price_per_day * days_already_used)
+        amount = int(price_per_day * days_already_used)
+        if amount > self.get_price_for_full_period():
+            amount = self.get_price_for_full_period()
+        if amount < 0:
+            amount = 0
+        return amount
 
     def amount_to_pay_in_period(self):
         """
         Divides the price of one period between the amount of days (frequency) to get the price for one day of
         this subscription. Then multiplies the value of this single day by the amount of days that have passed since
-        the start of the period, giving as a result the amount that the customer has already paid.
-
-        This is useful to add that amount as a discount for the next subscription when selling a new subscription to
-        the customer.
+        the start of the period, giving as a result the amount that the customer has yet to pay.
         """
         assert self.type == 'N', _('Subscription must be normal to use this method')
         period_start, period_end = self.get_current_period()
         price_per_day = self.get_price_for_full_period() / (period_end - period_start).days
-        days_not_used = 30 - (date.today() - period_start).days
+        days_not_used = 30 * self.frequency - (date.today() - period_start).days
         return int(price_per_day * days_not_used)
 
     def render_weekdays(self):
