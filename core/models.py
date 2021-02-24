@@ -241,6 +241,10 @@ class Contact(models.Model):
             contact=self, expiration_date__lte=date.today(), paid=False, debited=False)
         return invoices
 
+    def get_latest_invoice(self):
+        from invoicing.models import Invoice
+        return Invoice.objects.filter(contact=self).latest('id')
+
     def add_to_campaign(self, campaign_id):
         """
         Adds a contact to a campaign. If the contact is already in that campaign this will raise an exception.
@@ -332,8 +336,10 @@ class Contact(models.Model):
         """
         Returns the last paid invoice for this contact if it exists. Returns None if they have none.
         """
+        from invoicing.models import Invoice
+
         try:
-            return Invoice.objects.get(Q(paid=True) | Q(debited=True), contact=self).latest('id')
+            return Invoice.objects.filter(Q(paid=True) | Q(debited=True), contact=self).latest('id')
         except Exception:
             return None
 

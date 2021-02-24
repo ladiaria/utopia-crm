@@ -90,13 +90,15 @@
                             <dl>
                               <dt>{% trans "Latest payment" %}</dt>
                               {% if last_paid_invoice %}
-                                <dd>{{last_paid_invoice.amount}}</dd>
+                                <dd>{{last_paid_invoice.payment_date}} (${{last_paid_invoice.amount}})</dd>
                               {% else %}
                                 <dd>N/A</dd>
                               {% endif %}
                               {% if contact.get_debt %}
                               <dt>{% trans "Debt" %}</dt>
-                              <dd>${{ contact.get_debt }}<i class="fas fa-exclamation-triangle text-danger"></i></dd>
+                              <dd>${{ contact.get_debt }} ({{contact.expired_invoices_count}} {% trans "overdue invoices" %})<i class="fas fa-exclamation-triangle text-danger"></i></dd>
+                              <dt>{% trans "Payment type of last invoice" %}</dt>
+                              <dd>{{ contact.get_latest_invoice.get_payment_type }}</dd>
                               {% endif %}
                             </dl>
                           </div>
@@ -342,7 +344,6 @@
                                 {% endif %}
                                 </dl>
                               {% endfor %}
-
                           </div>
                         </div>
                       </div>
