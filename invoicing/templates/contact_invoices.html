@@ -1,136 +1,137 @@
 {% extends 'adminlte/base.html' %}
-{% load static i18n %}
-{% block page_name %}
-Facturas para contacto: <a href="/admin/core/contact/{{ contact.id }}">{{ contact.name }}</a>
+{% load static i18n widget_tweaks %}
+
+{% block no_heading %}
+<h1>Facturas para contacto: <a href="/admin/core/contact/{{ contact.id }}">{{ contact.name }}</a></h1>
 {% endblock %}
 {% block stylesheets %}
-{{block.super}}
-<style type="text/css" media="all">
-body, td {
-  font-size: 12px;
-}
+    {{block.super}}
+    <link rel="stylesheet" href="{% static '/admin-lte/plugins/jquery-ui/jquery-ui.min.css' %}" />
+    <style type="text/css" media="all">
+    .paid {
+      background: green;
+      color: white;
+    }
 
-th {
-  font-size: 12px;
-  font-weight: bold;
-  text-align: left;
-}
+    .null {
+      background: #333;
+      color: #eee;
+    }
 
-table {
-  width: 100%;
-  border-collapse: collapse;
-}
+    .expired {
+      background: red;
+      color: white;
+    }
 
-td {
-  vertical-align: top;
-  border: 1px solid #ccc;
-}
+    .uncollectible {
+      background: #800080;
+      color: white;
+    }
 
-.row1 {
-  background: #eee;
-}
-
-.paid {
-  background: green;
-  color: black;
-}
-
-.null {
-  background: #333;
-  color: #eee;
-}
-
-.expired {
-  background: red;
-  color: black;
-}
-
-.uncollectible {
-  background: #800080;
-  color: white;
-  text-transform: uppercase;
-}
-</style>
+    .pending {
+      background: #ffc107;
+    }
+    </style>
 {% endblock %}
+
 {% block content %}
 
-{% if contact.protected %}
-        <div style="border: 1px solid #c00; background: #fee; font-size: 1.2em; padding: .5em; margin: .5em 0;">
-        {% trans "WARNING: Protected contact" %}<br/>
-        {{ contact.protection_reason|linebreaks }}
+<div class="row">
+    {% if contact.protected %}
+        <div class="col-md-12">
+            <div  class="alert alert-warning  col-md-3">
+              <h5><i class="fas fa-exclamation-circle"></i> {% trans "WARNING: Protected contact" %}</h5>
+              <p>{{ contact.protection_reason|linebreaks }}</p>
+            </div>
         </div>
-{% endif %}
+      {% endif %}
 
       {% if debt %}
-        <h3 style='color:red;float:right'>{% trans "Debt" %}: {{debt}}</h3>
-      {% endif %}
-      <h3>
-         {% trans "Invoices" %} (<a href="/invoicing/bill_one_contact/{{ contact.id }}/">{% trans "Bill contact subscriptions" %}</a>)
-      </h3>
-      
-      <table>
-            <tr>
-                <th>{% trans "Invoice" %}</th>
-                <th>{% trans "From" %}</th>
-                <th>{% trans "To" %}</th>
-                <th>{% trans "Issue" %}</th>
-                <th>{% trans "Due" %}</th>
-                <th>{% trans "Amount" %}</th>
-                <th>{% trans "Payment method" %}</th>
-                <th>{% trans "Status" %}</th>
-            </tr>
-        {% for invoice in invoice_list %}
-           <tr class="{% cycle 'row1' 'row2' %}">
-                <td>
-                    <a href="/admin/invoicing/invoice/{{ invoice.id }}/">{{ invoice.id }}</a>
-                    <a href="/invoicing/download_invoice/{{ invoice.id }}/" title="{% trans 'Download invoice' %}">
-                        <img src="{% static 'img/pdficon_small.png' %}" alt="PDF"/>
-                    </a>
-                </td>
-                <td>{{ invoice.service_from }}</td>
-                <td>{{ invoice.service_to }}</td>
-                <td>{{ invoice.creation_date }}</td>
-                <td>{{ invoice.expiration_date }}</td>
-                <td>{{ invoice.amount }}</td>
-                <td>{{ invoice.payment_type }}</td>
-                {% ifequal invoice.status "paid" %}
-                  <td class="paid">{% trans "PAID" %} {{ invoice.payment_date }}</td>
-                {% else %}
-                  <td class="{{ invoice.status }}">{{ invoice.status }}</td>
-                {% endifequal %}
-            </tr>
-        {% endfor %}
-      </table>
-      {% if lista_facturas_items %}
-          <h3>{% trans "Item invoices" %}</h3>
-          <table cellpadding="2" cellspacing="2">
-                <tr>
-                    <th>{% trans "Invoice" %}</th>
-                    <th>{% trans "From" %}</th>
-                    <th>{% trans "To" %}</th>
-                    <th>{% trans "Issue" %}</th>
-                    <th>{% trans "Due" %}</th>
-                    <th>{% trans "Amount" %}</th>
-                    <th>{% trans "Payment method" %}</th>
-                    <th>{% trans "Status" %}</th>
-                </tr>
-            {% for factura in lista_facturas_items %}
-               <tr class="{% cycle 'row1' 'row2' %}">
-                    <td><a href="/admin/invoicing/invoice/{{ invoice.id }}/">{{ invoice.id }}</a></td>
-                    <td>{{ factura.servicio_desde }}</td>
-                    <td>{{ factura.servicio_hasta }}</td>
-                    <td>{{ factura.fecha_emision }}</td>
-                    <td>{{ factura.fecha_vencimiento }}</td>
-                    <td>{{ factura.importe }}</td>
-                    <td>{{ factura.metodo_pago }}</td>
-                    {% ifequal factura.estado "paga" %}
-                      <td class="paga">{% trans "PAID" %} {{ factura.fecha_pago }}</td>
-                    {% else %}
-                      <td class="{{ factura.estado }}">{{ factura.estado }}</td>
-                    {% endifequal %}
-                </tr>
-            {% endfor %}
-          </table>
+      <div class="col-md-12">
+          <div class="alert bg-danger disabled col-md-3">
+              <h5><i class="fas fa-exclamation-circle"></i>  {% trans "Debt" %}: <b>{{debt}}</b></h5>
+          </div>
+      </div>
       {% endif %}
 
+      <div class="col-md-12">
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">
+                 {% trans "Invoices" %} (<a href="/invoicing/bill_one_contact/{{ contact.id }}/">{% trans "Bill contact subscriptions" %}</a>)
+              </h3>
+            </div>
+            <div class="card-body">
+              <table class="table ">
+                <thead>
+                    <tr role="row">
+                        <th>{% trans "Invoice" %}</th>
+                        <th>{% trans "From" %}</th>
+                        <th>{% trans "To" %}</th>
+                        <th>{% trans "Issue" %}</th>
+                        <th>{% trans "Due" %}</th>
+                        <th>{% trans "Amount" %}</th>
+                        <th>{% trans "Payment method" %}</th>
+                        <th>{% trans "Status" %}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for invoice in invoice_list %}
+                   <tr role="row">
+                        <td>
+                            <a href="/admin/invoicing/invoice/{{ invoice.id }}/">{{ invoice.id }}</a>
+                            <a href="/invoicing/download_invoice/{{ invoice.id }}/" title="{% trans 'Download invoice' %}">
+                                <img src="{% static 'img/pdficon_small.png' %}" alt="PDF"/>
+                            </a>
+                        </td>
+                        <td>{{ invoice.service_from }}</td>
+                        <td>{{ invoice.service_to }}</td>
+                        <td>{{ invoice.creation_date }}</td>
+                        <td>{{ invoice.expiration_date }}</td>
+                        <td>{{ invoice.amount }}</td>
+                        <td>{{ invoice.payment_type }}</td>
+                        {% ifequal invoice.status "paid" %}
+                          <td class="paid">{% trans "PAID" %} {{ invoice.payment_date }}</td>
+                        {% else %}
+                          <td class="{{ invoice.status }}">{{ invoice.status }}</td>
+                        {% endifequal %}
+                    </tr>
+                {% endfor %}
+                </tbody>
+              </table>
+              {% if lista_facturas_items %}
+                  <h3>{% trans "Item invoices" %}</h3>
+                  <table cellpadding="2" cellspacing="2">
+                        <tr>
+                            <th>{% trans "Invoice" %}</th>
+                            <th>{% trans "From" %}</th>
+                            <th>{% trans "To" %}</th>
+                            <th>{% trans "Issue" %}</th>
+                            <th>{% trans "Due" %}</th>
+                            <th>{% trans "Amount" %}</th>
+                            <th>{% trans "Payment method" %}</th>
+                            <th>{% trans "Status" %}</th>
+                        </tr>
+                    {% for factura in lista_facturas_items %}
+                       <tr class="{% cycle 'row1' 'row2' %}">
+                            <td><a href="/admin/invoicing/invoice/{{ invoice.id }}/">{{ invoice.id }}</a></td>
+                            <td>{{ factura.servicio_desde }}</td>
+                            <td>{{ factura.servicio_hasta }}</td>
+                            <td>{{ factura.fecha_emision }}</td>
+                            <td>{{ factura.fecha_vencimiento }}</td>
+                            <td>{{ factura.importe }}</td>
+                            <td>{{ factura.metodo_pago }}</td>
+                            {% ifequal factura.estado "paga" %}
+                              <td class="paga">{% trans "PAID" %} {{ factura.fecha_pago }}</td>
+                            {% else %}
+                              <td class="{{ factura.estado }}">{{ factura.estado }}</td>
+                            {% endifequal %}
+                        </tr>
+                    {% endfor %}
+                  </table>
+              {% endif %}
+            </div>
+          </div>
+
+</div>
 {% endblock %}
