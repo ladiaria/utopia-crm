@@ -4,7 +4,7 @@ from __future__ import unicode_literals
 from django.contrib import admin
 
 from .forms import SellerForm
-from .models import *
+from .models import ScheduledTask, Issue, Seller
 
 
 class SellerAdmin(admin.ModelAdmin):
@@ -15,7 +15,11 @@ class SellerAdmin(admin.ModelAdmin):
 
 
 class IssueAdmin(admin.ModelAdmin):
-    raw_id_fields = ["contact", "address_1", "address_2", "subscription"]
+    list_display = ["id", "contact", "status"]
+    raw_id_fields = [
+        "contact", "subscription", "route", "manager", "assigned_to", "product", "address_1", "address_2",
+        "subscription_product"
+    ]
 
 
 class ScheduledTaskAdmin(admin.ModelAdmin):
