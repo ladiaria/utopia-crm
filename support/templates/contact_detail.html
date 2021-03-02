@@ -23,6 +23,8 @@
                   <li class="nav-item"><a class="nav-link" href="#suscripciones" data-toggle="tab">{% trans "Subscriptions" %}</a></li>
                   <li class="nav-item"><a class="nav-link" href="{% url 'contact_invoices' contact.id %}" target="_blank">{% trans "Invoices" %}</a></li>
                   <li class="nav-item"><a class="nav-link" href="#issues" data-toggle="tab">{% trans "Issues" %}</a></li>
+                  <li class="nav-item"><a class="nav-link" href="#tasks" data-toggle="tab">{% trans "Tasks" %}</a></li>
+                  <li class="nav-item"><a class="nav-link" href="#activities" data-toggle="tab">{% trans "Activities" %}</a></li>
                 </ul>
               </div>
               <div class="card-body">
@@ -400,12 +402,12 @@
                             <table class="table">
                               <thead>
                                 <tr role="row">
-                                  <th>ID</th>
-                                  <th>Start date</th>
-                                  <th>Category</th>
-                                  <th>Subcategory</th>
-                                  <th>Status</th>
-                                  <th>Assigned to</th>
+                                  <th>{% trans 'ID' %}</th>
+                                  <th>{% trans 'Start date' %}</th>
+                                  <th>{% trans 'Category' %}</th>
+                                  <th>{% trans 'Subcategory' %}</th>
+                                  <th>{% trans 'Status' %}</th>
+                                  <th>{% trans 'Assigned to' %}</th>
                                   <th></th>
                                 </tr>
                               </thead>
@@ -425,8 +427,82 @@
                           </div>
                         </div>
                       </div>
-
                     </div>
+
+                    <!-- Tab scheduled tasks -->
+                    <div class="tab-pane" id="tasks">
+                      <div class="row">
+                        <div class="card col-sm-12">
+                          <div class="card-header">
+                            <h3 class="card-title">{% trans 'Scheduled Tasks' %}</h3>
+                          </div>
+                          <div class="card-body">
+                            <table class="table">
+                              <thead>
+                                <tr role="row">
+                                  <th>{% trans 'Category' %}</th>
+                                  <th>{% trans 'Creation date' %}</th>
+                                  <th>{% trans 'Execution date' %}</th>
+                                  <th>{% trans 'Completed' %}</th>
+                                  <th></th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                <tr role="row">
+                                  <td>Call</td>
+                                  <td>23/01/2021</td>
+                                  <td>20/03/2021</td>
+                                  <td>No</td>
+                                  <td><a href="#" class="btn btn-primary btn-sm">Ver</a></td>
+                                </tr>
+                              </tbody>
+                            </table>
+
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Tab activities -->
+                    <div class="tab-pane" id="activities">
+                      <div class="row">
+                        <div class="card col-sm-12">
+                          <div class="card-header">
+                            <h3 class="card-title">{% trans 'Latest activities' %}</h3>
+                          </div>
+                          <div class="card-body">
+                            <table class="table">
+                              <thead>
+                                <tr role="row">
+                                  <th>{% trans 'Date' %}</th>
+                                  <th>{% trans 'Activity type' %}</th>
+                                  <th>{% trans 'Direction' %}</th>
+                                  <th>{% trans 'Campaign' %}</th>
+                                  <th>{% trans 'Product' %}</th>
+                                  <th>{% trans 'Issue' %}</th>
+                                  <th>{% trans 'Status' %}</th>
+                                  <th></th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                <tr role="row">
+                                  <td>23/01/2021</td>
+                                  <td>Call</td>
+                                  <td>In</td>
+                                  <td>No</td>
+                                  <td>Lento</td>
+                                  <td>735</td>
+                                  <td>Active</td>
+                                  <td><a href="#" class="btn btn-primary btn-sm">Ver</a></td>
+                                </tr>
+                              </tbody>
+                            </table>
+
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
                   </div>
               </div>
             </div>
