@@ -6,7 +6,7 @@
         <div class="row mb-2">
           <div class="col-sm-12">
             <h1><a href="#">{% trans "Contacts" %}</a> &raquo; {{contact.id}} - {{contact.name}} - <a href="/admin/core/contact/{{contact.id}}/">[Admin]</a></h1>
-            <p>{% trans "Manage contact's information" %}</p>
+            <p>{% trans "Manage all your contacts' information" %}</p>
           </div>
         </div>
       </div><!-- /.container-fluid -->
@@ -284,7 +284,7 @@
                                 <dd>{% autoescape off %}{{subscription.show_products_html}}{% endautoescape %}</dd>
                                 <dt>{% trans "Frequency" %}:</dt> <dd>{{subscription.get_frequency}}</dd>
                                 <dt>{% trans "Price" %}:</dt> <dd>{{subscription.get_price_for_full_period}}</dd>
-                                <dt>{% trans "Type" %}:</dt> <dd>{{subscription.type}}</dd>
+                                <dt>{% trans "Type" %}:</dt> <dd>{{subscription.get_type}}</dd>
                                 <dt>{% trans "Payment type" %}:</dt>
                                 <dd>{{subscription.get_payment_type}}</dd>
                                 <dt>{% trans "Start date" %}:</dt> <dd>{{subscription.start_date}}</dd>
@@ -412,15 +412,17 @@
                                 </tr>
                               </thead>
                               <tbody>
+                                {% for issue in all_issues %}
                                 <tr role="row">
-                                  <td><a href="#">123</a></td>
-                                  <td>23/01/2021</td>
-                                  <td>Billing</td>
-                                  <td>N</td>
-                                  <td>Active</td>
-                                  <td>Juana Perez</td>
-                                  <td><a href="#" class="btn btn-primary btn-sm">Ver</a></td>
+                                  <td>{{issue.id}}</td>
+                                  <td>{{issue.date}}</td>
+                                  <td>{{issue.get_category}}</td>
+                                  <td>{{issue.get_subcategory}}</td>
+                                  <td>{{issue.get_status}}</td>
+                                  <td>{{issue.assigned_to}}</td>
+                                  <td><a href="{% url 'view_issue' issue.id %}" class="btn btn-primary btn-sm">{% trans "View" %}</a></td>
                                 </tr>
+                                {% endfor %}
                               </tbody>
                             </table>
 
@@ -448,13 +450,20 @@
                                 </tr>
                               </thead>
                               <tbody>
-                                <tr role="row">
-                                  <td>Call</td>
-                                  <td>23/01/2021</td>
-                                  <td>20/03/2021</td>
-                                  <td>No</td>
-                                  <td><a href="#" class="btn btn-primary btn-sm">Ver</a></td>
-                                </tr>
+                                {% for task in all_scheduled_tasks %}
+                                  <tr role="row">
+                                    <td>{{task.get_category}}</td>
+                                    <td>{{task.creation_date}}</td>
+                                    <td>{{task.execution_date}}</td>
+                                    <td>{{task.completed}}</td>
+                                    <td>{% if task.issue %}
+                                        {% url 'view_issue' task.issue.id %}
+                                        {% else %}-
+                                        {% endif %}
+                                    </td>
+                                    <td><a href="#" class="btn btn-primary btn-sm">{% trans "View" %}</a></td>
+                                  </tr>
+                                {% endfor %}
                               </tbody>
                             </table>
 
@@ -485,16 +494,22 @@
                                 </tr>
                               </thead>
                               <tbody>
+                                {% for activity in all_activities %}
                                 <tr role="row">
-                                  <td>23/01/2021</td>
-                                  <td>Call</td>
-                                  <td>In</td>
-                                  <td>No</td>
-                                  <td>Lento</td>
-                                  <td>735</td>
-                                  <td>Active</td>
-                                  <td><a href="#" class="btn btn-primary btn-sm">Ver</a></td>
+                                  <td>{{activity.date}}</td>
+                                  <td>{{activity.get_type}}</td>
+                                  <td>{{activity.get_direction}}</td>
+                                  <td>{{activity.campaign|default_if_none:"-"}}</td>
+                                  <td>{{activity.product}}</td>
+                                  <td>{% if activity.issue %}
+                                      {% url 'view_issue' activity.issue.id %}
+                                      {% else %}-
+                                      {% endif %}
+                                  </td>
+                                  <td>{{activity.get_status}}</td>
+                                  <td><a href="#" class="btn btn-primary btn-sm">{% trans "View" %}</a></td>
                                 </tr>
+                                {% endfor %}
                               </tbody>
                             </table>
 

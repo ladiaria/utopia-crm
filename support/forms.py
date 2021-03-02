@@ -296,23 +296,12 @@ class LogisticsIssueChangeForm(forms.ModelForm):
     """
 
     contact = forms.ModelChoiceField(queryset=Contact.objects, widget=forms.TextInput)
-    product = forms.ModelChoiceField(
-        queryset=Product.objects.filter(type="S", bundle_product=False)
-    )
-    # Add a default empty option
-    logistics_subcategories = [("", "-----")]
-    for subcategory in ISSUE_SUBCATEGORIES:
-        # Only show the options that are set as logistics, they all start with an L on the key
-        if subcategory[0][0] == "L":
-            logistics_subcategories.append(subcategory)
 
     class Meta:
         model = Issue
         widgets = {
+            "contact": forms.Textarea(attrs={"class": "form-control"}),
             "progress": forms.Textarea(attrs={"class": "form-control"}),
-            "subcategory": forms.Select(attrs={"class": "form-control"}),
-            "category": forms.Select(attrs={"class": "form-control"}),
-            "copies": forms.NumberInput(attrs={"class": "form-control"}),
             "assigned_to": forms.Select(attrs={"class": "form-control"}),
             "answer_1": forms.Select(attrs={"class": "form-control"}),
             "answer_2": forms.Textarea(attrs={"class": "form-control"}),
@@ -320,22 +309,11 @@ class LogisticsIssueChangeForm(forms.ModelForm):
         }
         fields = (
             "contact",
-            "date",
-            "category",
-            "subcategory",
-            "notes",
-            "assigned_to",
             "progress",
             "answer_1",
             "answer_2",
+            "assigned_to",
             "status",
-            "end_date",
-            "next_action_date",
-            "closing_date",
-            "subscription",
-            "product",
-            "copies",
-            "subscription_product",
         )
 
 

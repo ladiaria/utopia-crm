@@ -46,7 +46,7 @@
               <tbody>
                 {% for issue in page %}
                 <tr  role="row">
-                    <td><a href='{% url "view_logistics_issue" issue.id %}'>{{issue.id}}</a></td>
+                    <td><a href='{% url "view_issue" issue.id %}'>{{issue.id}}</a></td>
                     <td>{{issue.date_created}}</td>
                     <td>{{issue.contact}}</td>
                     <td>{{issue.get_category}}</td>
