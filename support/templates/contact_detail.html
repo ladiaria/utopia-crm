@@ -22,6 +22,7 @@
                   <li class="nav-item"><a class="nav-link" href="#datos" data-toggle="tab">{% trans "Contact information" %}</a></li>
                   <li class="nav-item"><a class="nav-link" href="#suscripciones" data-toggle="tab">{% trans "Subscriptions" %}</a></li>
                   <li class="nav-item"><a class="nav-link" href="{% url 'contact_invoices' contact.id %}" target="_blank">{% trans "Invoices" %}</a></li>
+                  <li class="nav-item"><a class="nav-link" href="#issues" data-toggle="tab">{% trans "Issues" %}</a></li>
                 </ul>
               </div>
               <div class="card-body">
@@ -386,6 +387,45 @@
                         </div>
                       </div>
                       {% endif %}
+                    </div>
+
+                    <!-- Tab Issues -->
+                    <div class="tab-pane" id="issues">
+                      <div class="row">
+                        <div class="card col-sm-12">
+                          <div class="card-header">
+                            <h3 class="card-title">{% trans 'Latest issues' %}</h3>
+                          </div>
+                          <div class="card-body">
+                            <table class="table">
+                              <thead>
+                                <tr role="row">
+                                  <th>ID</th>
+                                  <th>Start date</th>
+                                  <th>Category</th>
+                                  <th>Subcategory</th>
+                                  <th>Status</th>
+                                  <th>Assigned to</th>
+                                  <th></th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                <tr role="row">
+                                  <td><a href="#">123</a></td>
+                                  <td>23/01/2021</td>
+                                  <td>Billing</td>
+                                  <td>N</td>
+                                  <td>Active</td>
+                                  <td>Juana Perez</td>
+                                  <td><a href="#" class="btn btn-primary btn-sm">Ver</a></td>
+                                </tr>
+                              </tbody>
+                            </table>
+
+                          </div>
+                        </div>
+                      </div>
+
                     </div>
                   </div>
               </div>
