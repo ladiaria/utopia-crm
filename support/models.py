@@ -152,5 +152,9 @@ class ScheduledTask(models.Model):
         auto_now=True, verbose_name=_("Modification date"), blank=True, null=True
     )
 
+    def get_category(self):
+        categories = dict(SCHEDULED_TASK_CATEGORIES)
+        return categories.get(self.category, "N/A")
+
     class Meta:
         pass

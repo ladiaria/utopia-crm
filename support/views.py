@@ -1246,7 +1246,7 @@ def new_issue(request, contact_id, category="L", subcategory=""):
 
 
 @login_required
-def view_logistics_issue(request, issue_id):
+def view_issue(request, issue_id):
     """
     Shows a logistics type issue.
     """
@@ -1255,20 +1255,12 @@ def view_logistics_issue(request, issue_id):
         form = LogisticsIssueChangeForm(request.POST, instance=issue)
         if form.is_valid():
             form.save()
-            return HttpResponseRedirect(reverse(""))
+            return HttpResponseRedirect(reverse("view_issue", args=(issue_id,)))
     else:
         form = LogisticsIssueChangeForm(instance=issue)
-        form.fields["subscription"].queryset = issue.contact.subscriptions.filter(
-            active=True
-        )
-        form.fields[
-            "subscription_product"
-        ].queryset = SubscriptionProduct.objects.filter(
-            subscription__contact=issue.contact, subscription__active=True
-        )
     return render(
         request,
-        "view_logistics_issue.html",
+        "view_issue.html",
         {
             "form": form,
             "issue": issue,
@@ -1324,6 +1316,9 @@ def contact_detail(request, contact_id):
     newsletters = contact.get_newsletters()
     last_paid_invoice = contact.get_last_paid_invoice()
     inactive_subscriptions = contact.subscriptions.filter(active=False)
+    all_activities = contact.activity_set.all()
+    all_issues = contact.issue_set.all()
+    all_scheduled_tasks = contact.scheduledtask_set.all()
 
     return render(
         request,
@@ -1337,6 +1332,9 @@ def contact_detail(request, contact_id):
             "issues": issues,
             "inactive_subscriptions": inactive_subscriptions,
             "last_paid_invoice": last_paid_invoice,
+            "all_activities": all_activities,
+            "all_issues": all_issues,
+            "all_scheduled_tasks": all_scheduled_tasks,
         },
     )
 

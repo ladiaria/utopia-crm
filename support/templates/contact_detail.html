@@ -6,7 +6,7 @@
         <div class="row mb-2">
           <div class="col-sm-12">
             <h1><a href="#">{% trans "Contacts" %}</a> &raquo; {{contact.id}} - {{contact.name}} - <a href="/admin/core/contact/{{contact.id}}/">[Admin]</a></h1>
-            <p>{% trans "Manage contact's information" %}</p>
+            <p>{% trans "Manage all your contacts' information" %}</p>
           </div>
         </div>
       </div><!-- /.container-fluid -->
@@ -22,6 +22,9 @@
                   <li class="nav-item"><a class="nav-link" href="#datos" data-toggle="tab">{% trans "Contact information" %}</a></li>
                   <li class="nav-item"><a class="nav-link" href="#suscripciones" data-toggle="tab">{% trans "Subscriptions" %}</a></li>
                   <li class="nav-item"><a class="nav-link" href="{% url 'contact_invoices' contact.id %}" target="_blank">{% trans "Invoices" %}</a></li>
+                  <li class="nav-item"><a class="nav-link" href="#issues" data-toggle="tab">{% trans "Issues" %}</a></li>
+                  <li class="nav-item"><a class="nav-link" href="#tasks" data-toggle="tab">{% trans "Tasks" %}</a></li>
+                  <li class="nav-item"><a class="nav-link" href="#activities" data-toggle="tab">{% trans "Activities" %}</a></li>
                 </ul>
               </div>
               <div class="card-body">
@@ -281,7 +284,7 @@
                                 <dd>{% autoescape off %}{{subscription.show_products_html}}{% endautoescape %}</dd>
                                 <dt>{% trans "Frequency" %}:</dt> <dd>{{subscription.get_frequency}}</dd>
                                 <dt>{% trans "Price" %}:</dt> <dd>{{subscription.get_price_for_full_period}}</dd>
-                                <dt>{% trans "Type" %}:</dt> <dd>{{subscription.type}}</dd>
+                                <dt>{% trans "Type" %}:</dt> <dd>{{subscription.get_type}}</dd>
                                 <dt>{% trans "Payment type" %}:</dt>
                                 <dd>{{subscription.get_payment_type}}</dd>
                                 <dt>{% trans "Start date" %}:</dt> <dd>{{subscription.start_date}}</dd>
@@ -387,6 +390,134 @@
                       </div>
                       {% endif %}
                     </div>
+
+                    <!-- Tab Issues -->
+                    <div class="tab-pane" id="issues">
+                      <div class="row">
+                        <div class="card col-sm-12">
+                          <div class="card-header">
+                            <h3 class="card-title">{% trans 'Latest issues' %}</h3>
+                          </div>
+                          <div class="card-body">
+                            <table class="table">
+                              <thead>
+                                <tr role="row">
+                                  <th>{% trans 'ID' %}</th>
+                                  <th>{% trans 'Start date' %}</th>
+                                  <th>{% trans 'Category' %}</th>
+                                  <th>{% trans 'Subcategory' %}</th>
+                                  <th>{% trans 'Status' %}</th>
+                                  <th>{% trans 'Assigned to' %}</th>
+                                  <th></th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {% for issue in all_issues %}
+                                <tr role="row">
+                                  <td>{{issue.id}}</td>
+                                  <td>{{issue.date}}</td>
+                                  <td>{{issue.get_category}}</td>
+                                  <td>{{issue.get_subcategory}}</td>
+                                  <td>{{issue.get_status}}</td>
+                                  <td>{{issue.assigned_to}}</td>
+                                  <td><a href="{% url 'view_issue' issue.id %}" class="btn btn-primary btn-sm">{% trans "View" %}</a></td>
+                                </tr>
+                                {% endfor %}
+                              </tbody>
+                            </table>
+
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Tab scheduled tasks -->
+                    <div class="tab-pane" id="tasks">
+                      <div class="row">
+                        <div class="card col-sm-12">
+                          <div class="card-header">
+                            <h3 class="card-title">{% trans 'Scheduled Tasks' %}</h3>
+                          </div>
+                          <div class="card-body">
+                            <table class="table">
+                              <thead>
+                                <tr role="row">
+                                  <th>{% trans 'Category' %}</th>
+                                  <th>{% trans 'Creation date' %}</th>
+                                  <th>{% trans 'Execution date' %}</th>
+                                  <th>{% trans 'Completed' %}</th>
+                                  <th></th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {% for task in all_scheduled_tasks %}
+                                  <tr role="row">
+                                    <td>{{task.get_category}}</td>
+                                    <td>{{task.creation_date}}</td>
+                                    <td>{{task.execution_date}}</td>
+                                    <td>{{task.completed}}</td>
+                                    <td>{% if task.issue %}
+                                        {% url 'view_issue' task.issue.id %}
+                                        {% else %}-
+                                        {% endif %}
+                                    </td>
+                                    <td><a href="#" class="btn btn-primary btn-sm">{% trans "View" %}</a></td>
+                                  </tr>
+                                {% endfor %}
+                              </tbody>
+                            </table>
+
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Tab activities -->
+                    <div class="tab-pane" id="activities">
+                      <div class="row">
+                        <div class="card col-sm-12">
+                          <div class="card-header">
+                            <h3 class="card-title">{% trans 'Latest activities' %}</h3>
+                          </div>
+                          <div class="card-body">
+                            <table class="table">
+                              <thead>
+                                <tr role="row">
+                                  <th>{% trans 'Date' %}</th>
+                                  <th>{% trans 'Activity type' %}</th>
+                                  <th>{% trans 'Direction' %}</th>
+                                  <th>{% trans 'Campaign' %}</th>
+                                  <th>{% trans 'Product' %}</th>
+                                  <th>{% trans 'Issue' %}</th>
+                                  <th>{% trans 'Status' %}</th>
+                                  <th></th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {% for activity in all_activities %}
+                                <tr role="row">
+                                  <td>{{activity.date}}</td>
+                                  <td>{{activity.get_type}}</td>
+                                  <td>{{activity.get_direction}}</td>
+                                  <td>{{activity.campaign|default_if_none:"-"}}</td>
+                                  <td>{{activity.product}}</td>
+                                  <td>{% if activity.issue %}
+                                      {% url 'view_issue' activity.issue.id %}
+                                      {% else %}-
+                                      {% endif %}
+                                  </td>
+                                  <td>{{activity.get_status}}</td>
+                                  <td><a href="#" class="btn btn-primary btn-sm">{% trans "View" %}</a></td>
+                                </tr>
+                                {% endfor %}
+                              </tbody>
+                            </table>
+
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
                   </div>
               </div>
             </div>
