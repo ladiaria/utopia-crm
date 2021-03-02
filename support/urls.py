@@ -19,8 +19,8 @@ urlpatterns = [
     url(r'^start_paid_subscription/(\d+)/$', start_paid_subscription, name="start_paid_subscription"),
     url(r'^new_subscription/(\d+)/$', new_subscription, name="new_subscription"),
     url(r'^edit_products/(\d+)/$', edit_products, name="edit_products"),
-    url(r'^contact_list/$', contact_list, name="contact_list"),
-    url(r'^contact_detail/(\d+)/$', contact_detail, name="contact_detail"),
+    url(r'^contacts/$', contact_list, name="contact_list"),
+    url(r'^contacts/(\d+)/$', contact_detail, name="contact_detail"),
     url(r'^api_new_address/(\d+)/$', api_new_address),
     url(r'^api_dynamic_prices/$', api_dynamic_prices),
     # Issues
