@@ -2,7 +2,7 @@
 {% load sip static i18n %}
 {% block no_heading %}
 <h1>{% trans 'Support' %}</h1>
-<p>{% trans 'Manage campaign' %}: {{campaign.name}}</p>
+<p>{% trans 'Manage campaign' %}: {{campaign.name}} <a href='{% url "seller_console_list_campaigns" %}'>({% trans "Go back to console" %})</a></p>
 {% endblock %}
 {% block breadcrumbs %}
 <ol class="breadcrumb">
@@ -45,9 +45,6 @@
         </div>
         </div>
       </div>
-      <div class="text-right mb-4 mr-2">
-        <button type="button" class="btn btn-primary">{% trans "Next contact" %}</button>
-      </div>
     <div class="row">
 
 
@@ -55,8 +52,8 @@
     <div class="col-sm-9">
       <div class="card">
         <div class="card-header">
-          <h3><a href="/admin/core/contact/{{contact.id}}/" target="_blank">{{contact.name}}</a></h3>
-          <p>{% trans "Times contacted:" %} {{times_contacted}}</p>
+          <h3><a href="{% url 'contact_detail' contact.id %}" target="_blank">{{contact.name}}</a></h3>
+          <p>{% trans "Times contacted in this campaign:" %} {{times_contacted}}</p>
         </div>
         <div class="card-body">
           <table class="table table-bordered mb-4">
@@ -77,6 +74,12 @@
                 <tr>
                   <td><i class="fas fa-mobile-alt"></i> {% trans "Mobile" %}:</td>
                   <td>{% sip contact.mobile %}</td>
+                </tr>
+                {% endif %}
+                {% if contact.email %}
+                <tr>
+                  <td><i class="fas fa-at"></i> {% trans "Email" %}:</td>
+                  <td>{{ contact.email }}</td>
                 </tr>
                 {% endif %}
                 <tr>
@@ -100,7 +103,7 @@
 
 
 
-        <form action="{% url 'seller_console_action' %}" method="post">
+        <form method="post">
             {% csrf_token %}
             <input type="hidden" name="offset" value="{{ offset }}"/>
             <input type="hidden" name="instance_type" value="{{ category }}"/>
@@ -114,6 +117,26 @@
             </div>
 
             <div class="row">
+              <div class="col-sm-6">
+                <select class="form-control form-control-sm" id="campaign_reject_reason" name="campaign_reject_reason">
+                    <option value="">{% trans 'Select a reason' %}</option>
+                    <option value="F">{% trans 'Failed delivery' %}</option>
+                    <option value="E">{% trans 'Financial reasons' %}</option>
+                    <option value="D">{% trans 'Error in data' %}</option>
+                    <option value="N">{% trans 'Never signed in for promotion' %}</option>
+                    <option value="P">{% trans 'Did not like the product' %}</option>
+                    <option value="C">{% trans 'Did not like the content' %}</option>
+                    <option value="R">{% trans 'Cannot reach the contact location' %}</option>
+                    <option value="K">{% trans 'Did not know what they signed up for' %}</option>
+                    <option value="T">{% trans 'Does not read/Does not have time' %}</option>
+                    <option value="Z">{% trans 'Dangerous zone' %}</option>
+                    <option value="A">{% trans 'Does not accept call' %}</option>
+                    <option value="O">{% trans 'Accepts call, does not accept offer' %}</option>
+                    <option value="H">{% trans 'Accepts call, will think about it' %}</option>
+                </select>
+              </div>
+            </div>
+            <div class="row">
               <div class="col-sm-3">
                 <input class="btn btn-block bg-gradient-secondary btn-sm" type="submit" name="result" value="{% trans 'Cannot find customer' %}"/>
                 <input class="btn btn-block bg-gradient-secondary btn-sm" type="submit" name="result" value="{% trans 'Logistics' %}"/>
@@ -122,30 +145,7 @@
               <div class="col-sm-3">
                 <input class="btn btn-block bg-gradient-warning btn-sm" type="submit" name="result" value="{% trans 'Not interested' %}"/>
                 <input class="btn btn-block bg-gradient-warning btn-sm" type="submit" name="result" value="{% trans 'Error in promotion' %}"/>
-
-                <div class="form-group row mt-2">
-                  <div class="col-sm-7 ">
-                    <input class="btn btn-block bg-gradient-warning btn-sm " type="submit" name="result" value="{% trans 'Do not call anymore' %}"/>
-                  </div>
-                  <div class="col-sm-5 ">
-                    <select class="form-control form-control-sm" id="campaign_reject_reason" name="campaign_reject_reason">
-                        <option value="">{% trans 'Select a reason' %}</option>
-                        <option value="F">{% trans 'Failed delivery' %}</option>
-                        <option value="E">{% trans 'Financial reasons' %}</option>
-                        <option value="D">{% trans 'Error in data' %}</option>
-                        <option value="N">{% trans 'Never signed in for promotion' %}</option>
-                        <option value="P">{% trans 'Did not like the product' %}</option>
-                        <option value="C">{% trans 'Did not like the content' %}</option>
-                        <option value="R">{% trans 'Cannot reach the contact location' %}</option>
-                        <option value="K">{% trans 'Did not know what they signed up for' %}</option>
-                        <option value="T">{% trans 'Does not read/Does not have time' %}</option>
-                        <option value="Z">{% trans 'Dangerous zone' %}</option>
-                        <option value="A">{% trans 'Does not accept call' %}</option>
-                        <option value="O">{% trans 'Accepts call, does not accept offer' %}</option>
-                        <option value="H">{% trans 'Accepts call, will think about it' %}</option>
-                    </select>
-                    </div>
-                  </div>
+                <input class="btn btn-block bg-gradient-warning btn-sm " type="submit" name="result" value="{% trans 'Do not call anymore' %}"/>
               </div>
 
               <div class="col-sm-3">
@@ -195,7 +195,9 @@
             {% if s.end_date %}
             <dd><b>{% trans 'End'%}</b>: {{s.end_date|date:"SHORT_DATE_FORMAT"}}</dd>
             {% endif %}
-            <dd><b>{% trans 'Payment type'%}:</b> {{s.get_payment_type}}</dd>
+            {% ifequal s.type 'N' %}
+                <dd><b>{% trans 'Payment type'%}:</b> {{s.get_payment_type}}</dd>
+            {% endifequal %}
             {% if s.unsubscription_reason %}<dt>{% trans 'Unsubscription reason'%}:</dt> <dd>{{s.get_unsubscription_reason}}</dd>{% endif %}
             {% endfor %}
             </dl>
@@ -211,8 +213,8 @@
           <div class="card-body">
             <dl>
             {% for a in all_activities %}
-            <dt {% if forloop.counter != 1 %}class="border-top mt-4 pt-3"{% endif %}>{% trans "Type:" %} {{a.get_type}}
-            {% if a.campaign %}<i>{{a.campaign.name}}</i>{% endif %}</dt>
+            <dt {% if forloop.counter != 1 %}class="border-top mt-4 pt-3"{% endif %}>{% trans "Type:" %} {{a.get_type}} ({{a.get_direction}})</dt>
+            {% if a.campaign %}<dd><b>{% trans "Campaign" %}</b>: <i>{{a.campaign.name}}</i></dd>{% endif %}
             <dd><b>{% trans 'Status'%}:</b> {{a.get_status}}</dd>
             {% if a.datetime %}
             <dd><b>{% trans 'Start'%}</b>: {{a.datetime|date:"SHORT_DATETIME_FORMAT"}}</dd>

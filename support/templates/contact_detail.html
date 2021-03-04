@@ -40,8 +40,10 @@
                             <dl>
                               <dt>{% trans "Name" %}</dt>
                               <dd>{{contact.name}}</dd>
-                              <dt>{% trans "Documento" %}</dt>
-                              <dd>{{contact.id_document}}</dd>
+                              {% if contact.id_document %}
+                                <dt>{% trans "Documento" %}</dt>
+                                <dd>{{contact.id_document}}</dd>
+                              {% endif %}
                               <dt>{% trans "Phone" %}</dt>
                               <dd>{{contact.phone}}</dd>
                               {% if contact.mobile %}
@@ -52,10 +54,12 @@
                                 <dt>{% trans "Work phone" %}</dt>
                                 <dd>{{contact.work_phone}}</dd>
                               {% endif %}
-                              <dt>{% trans "Addresses" %}</dt>
-                              {% for address in addresses %}
-                                <dd>{{address}}</dd>
-                              {% endfor %}
+                              {% if addresses %}
+                                <dt>{% trans "Addresses" %}</dt>
+                                {% for address in addresses %}
+                                  <dd>{{address}}</dd>
+                                {% endfor %}
+                              {% endif %}
                               {% if contact.tags.all %}
                                 <dt>{% trans "Tags" %}</dt>
                                 <dd>
@@ -198,8 +202,10 @@
                             <dl>
                               <dt>{% trans "Name" %}</dt>
                               <dd>{{contact.name}}</dd>
-                              <dt>{% trans "Documento" %}</dt>
-                              <dd>{{contact.id_document}}</dd>
+                              {% if contact.id_document %}
+                                <dt>{% trans "Documento" %}</dt>
+                                <dd>{{contact.id_document}}</dd>
+                              {% endif %}
                               <dt>{% trans "Phone" %}</dt>
                               <dd>{{contact.phone}}</dd>
                               {% if contact.mobile %}
@@ -496,11 +502,11 @@
                               <tbody>
                                 {% for activity in all_activities %}
                                 <tr role="row">
-                                  <td>{{activity.date}}</td>
+                                  <td>{{activity.datetime}}</td>
                                   <td>{{activity.get_type}}</td>
                                   <td>{{activity.get_direction}}</td>
                                   <td>{{activity.campaign|default_if_none:"-"}}</td>
-                                  <td>{{activity.product}}</td>
+                                  <td>{{activity.product|default_if_none:"-"}}</td>
                                   <td>{% if activity.issue %}
                                       {% url 'view_issue' activity.issue.id %}
                                       {% else %}-
