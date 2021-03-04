@@ -513,7 +513,7 @@
                                       {% endif %}
                                   </td>
                                   <td>{{activity.get_status}}</td>
-                                  <td><a href="#" class="btn btn-primary btn-sm">{% trans "View" %}</a></td>
+                                  <td><a href="#" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#activityView">{% trans "View" %}</a></td>
                                 </tr>
                                 {% endfor %}
                               </tbody>
@@ -531,5 +531,20 @@
         </div>
       </div>
     </section>
+
+    <div class="modal fade"  id="activityView" tabindex="-1" role="dialog">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h4 class="modal-title">Fulano activities</h4>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+          </div>
+          <div class="modal-body">
+            <p>"Aca iria el mensaje que escribieron"</p>
+            <p><b>- Autor del mensaje</b></p>
+          </div>
+       </div><!-- /.modal-content -->
+     </div><!-- /.modal-dialog -->
+    </div><!-- /.modal -->
 
 {% endblock %}
