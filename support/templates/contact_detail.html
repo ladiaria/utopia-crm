@@ -518,12 +518,10 @@
                                 {% endfor %}
                               </tbody>
                             </table>
-
                           </div>
                         </div>
                       </div>
                     </div>
-
                   </div>
               </div>
             </div>
@@ -532,19 +530,31 @@
       </div>
     </section>
 
-    <div class="modal fade"  id="activityView" tabindex="-1" role="dialog">
+    {% for activity in all_activities %}
+    <div class="modal fade"  id="activityView-{{activity.id}}" tabindex="-1" role="dialog">
       <div class="modal-dialog" role="document">
         <div class="modal-content">
           <div class="modal-header">
-            <h4 class="modal-title">Fulano activities</h4>
+            <h4 class="modal-title">{% trans "Activity" %} {{activity.id}}</h4>
             <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
           </div>
           <div class="modal-body">
-            <p>"Aca iria el mensaje que escribieron"</p>
-            <p><b>- Autor del mensaje</b></p>
+            <dl>
+              <dd><b>{% trans "Date" %}</b></dd>
+              <dd>{{activity.datetime}}</dd>
+              {% if activity.notes %}
+                <dd><b>{% trans "Notes" %}</b></dd>
+                <dd>{{activity.notes}}</dd>
+              {% endif %}
+              {% if activity.seller %}
+                <dd><b>{% trans "Seller" %}</b></dd>
+                <dd>{{activity.seller}}</dd>
+              {% endif %}
+            </dl>
           </div>
        </div><!-- /.modal-content -->
      </div><!-- /.modal-dialog -->
     </div><!-- /.modal -->
+    {% endfor %}
 
 {% endblock %}

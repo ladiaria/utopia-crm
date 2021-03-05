@@ -945,14 +945,10 @@ def list_campaigns_with_no_seller(request):
     """
     Shows a list of contacts in campaigns that have no seller.
     """
-    campaigns = Campaign.objects.filter(
-        contactcampaignstatus__contact__seller=None
-    ).distinct()
+    campaigns = Campaign.objects.filter(contactcampaignstatus__seller=None).distinct()
     campaign_list = []
     for campaign in campaigns:
-        count = ContactCampaignStatus.objects.filter(
-            campaign=campaign, contact__seller=None
-        ).count()
+        count = ContactCampaignStatus.objects.filter(campaign=campaign, seller=None).count()
         campaign.count = count
         campaign_list.append(campaign)
     return render(
@@ -966,9 +962,7 @@ def assign_seller(request, campaign_id):
     Shows a list of sellers to assign contacts to.
     """
     campaign = Campaign.objects.get(pk=campaign_id)
-    campaign.count = Contact.objects.filter(
-        contactcampaignstatus__campaign=campaign, seller=None
-    ).count()
+    campaign.count = ContactCampaignStatus.objects.filter(campaign=campaign, seller=None).count()
     message = ""
 
     if request.POST:
@@ -983,12 +977,12 @@ def assign_seller(request, campaign_id):
             return HttpResponse(u"Cantidad de clientes superior a la que hay.")
         for seller, amount in seller_list:
             if amount:
-                for contact in Contact.objects.filter(
-                    seller=None, contactcampaignstatus__campaign=campaign
+                for status in ContactCampaignStatus.objects.filter(
+                    seller=None, campaign=campaign
                 )[:amount]:
-                    contact.seller = Seller.objects.get(pk=seller)
+                    status.seller = Seller.objects.get(pk=seller)
                     try:
-                        contact.save()
+                        status.save()
                     except Exception as e:
                         return HttpResponse(e.message)
         return HttpResponseRedirect(reverse("assign_sellers", args=campaign_id))
@@ -996,15 +990,11 @@ def assign_seller(request, campaign_id):
     sellers = Seller.objects.filter(internal=True)
     seller_list = []
     for seller in sellers:
-        seller.contacts = Contact.objects.filter(
-            seller=seller, contactcampaignstatus__campaign=campaign
-        ).count()
+        seller.contacts = ContactCampaignStatus.objects.filter(seller=seller, campaign=campaign).count()
         seller_list.append(seller)
     if message:
         # Refresh value if some subs were distributed
-        campaign.count = Contact.objects.filter(
-            contactcampaignstatus__campaign=campaign, seller=None
-        ).count()
+        campaign.count = ContactCampaignStatus.objects.filter(campaign=campaign, seller=None).count()
     return render(
         request,
         "assign_sellers.html",

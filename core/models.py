@@ -1012,7 +1012,7 @@ class Campaign(models.Model):
         Returns all the activities on this campaign, for a specific seller. Activities on a campaign imply that the
         contact has been scheduled to be called in the future.
         """
-        acts = Activity.objects.filter(campaign=self, contact__seller=seller)
+        acts = Activity.objects.filter(campaign=self, seller=seller)
         if status:
             acts = acts.filter(status__in=status)
         if type:
@@ -1025,7 +1025,7 @@ class Campaign(models.Model):
         """
         Returns the ContactCampaignStatus objects for all Contacts that have not been called yet (status=1)
         """
-        return ContactCampaignStatus.objects.filter(contact__seller_id=seller_id, status=1)
+        return self.contactcampaignstatus_set.filter(seller_id=seller_id, status=1)
 
     def get_not_contacted_count(self, seller_id):
         """
@@ -1037,7 +1037,7 @@ class Campaign(models.Model):
         """
         Returns the ContactCampaignStatus objects for all Contacts that have already been called yet (status=2, 3)
         """
-        return ContactCampaignStatus.objects.filter(contact__seller_id=seller_id, status__in=[2, 3])
+        return self.contactcampaignstatus_set.filter(seller_id=seller_id, status__in=[2, 3])
 
     def get_already_contacted_count(self, seller_id):
         """
@@ -1144,7 +1144,7 @@ class ContactCampaignStatus(models.Model):
         choices=CAMPAIGN_RESOLUTION_CHOICES, null=True, blank=True, max_length=2)
     campaign_reject_reason = models.CharField(
         choices=CAMPAIGN_REJECT_REASONS_CHOICES, null=True, blank=True, max_length=1)
-    seller_resolution = models.ForeignKey('support.Seller', null=True, blank=True)
+    seller = models.ForeignKey('support.Seller', null=True, blank=True)
     date_created = models.DateField(auto_now_add=True)
     last_action_date = models.DateField(auto_now=True)
     times_contacted = models.SmallIntegerField(default=0)

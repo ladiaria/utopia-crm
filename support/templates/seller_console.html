@@ -23,6 +23,18 @@
     <script type="text/javascript">
         $( function() {
             $("#call_date").datepicker({ dateFormat: 'yy-mm-dd' });
+
+            var rejectHandler = function (e) {
+                if ($.trim(this.value)){
+                    $(".reject").removeAttr("disabled");
+                } else {
+                    $(".reject").attr("disabled", "disabled");        
+                }
+            };
+
+            rejectHandler();
+
+            $("#campaign_reject_reason").change(rejectHandler);
         });
     </script>
 {% endblock %}
@@ -119,7 +131,7 @@
             <div class="row">
               <div class="col-sm-6">
                 <select class="form-control form-control-sm" id="campaign_reject_reason" name="campaign_reject_reason">
-                    <option value="">{% trans 'Select a reason' %}</option>
+                    <option value="">{% trans 'Select a reason before selecting one of these options' %}</option>
                     <option value="F">{% trans 'Failed delivery' %}</option>
                     <option value="E">{% trans 'Financial reasons' %}</option>
                     <option value="D">{% trans 'Error in data' %}</option>
@@ -138,18 +150,18 @@
             </div>
             <div class="row">
               <div class="col-sm-3">
-                <input class="btn btn-block bg-gradient-secondary btn-sm" type="submit" name="result" value="{% trans 'Cannot find customer' %}"/>
-                <input class="btn btn-block bg-gradient-secondary btn-sm" type="submit" name="result" value="{% trans 'Logistics' %}"/>
-                <input class="btn btn-block bg-gradient-secondary btn-sm" type="submit" name="result" value="{% trans 'Already a subscriber' %}"/>
+                <input class="reject btn btn-block bg-gradient-secondary btn-sm" type="submit" name="result" value="{% trans 'Cannot find customer' %}"/>
+                <input class="reject btn btn-block bg-gradient-secondary btn-sm" type="submit" name="result" value="{% trans 'Logistics' %}"/>
+                <input class="reject btn btn-block bg-gradient-secondary btn-sm" type="submit" name="result" value="{% trans 'Already a subscriber' %}"/>
               </div>
               <div class="col-sm-3">
-                <input class="btn btn-block bg-gradient-warning btn-sm" type="submit" name="result" value="{% trans 'Not interested' %}"/>
-                <input class="btn btn-block bg-gradient-warning btn-sm" type="submit" name="result" value="{% trans 'Error in promotion' %}"/>
-                <input class="btn btn-block bg-gradient-warning btn-sm " type="submit" name="result" value="{% trans 'Do not call anymore' %}"/>
+                <input class="reject btn btn-block bg-gradient-warning btn-sm" type="submit" name="result" value="{% trans 'Not interested' %}"/>
+                <input class="reject btn btn-block bg-gradient-warning btn-sm" type="submit" name="result" value="{% trans 'Error in promotion' %}"/>
+                <input class="reject btn btn-block bg-gradient-warning btn-sm " type="submit" name="result" value="{% trans 'Do not call anymore' %}"/>
               </div>
 
               <div class="col-sm-3">
-                <input type="submit" id="sell_button" name="result" value="{% trans 'Send promo' %}" class="btn btn-block bg-gradient-success btn-sm"/>
+                <input type="submit" id="promo_button" name="result" value="{% trans 'Send promo' %}" class="btn btn-block bg-gradient-success btn-sm"/>
                 <input type="submit" id="sell_button" name="result" value="{% trans 'Sell' %}" class="btn btn-block bg-gradient-success btn-sm" />
               </div>
 
