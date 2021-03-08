@@ -46,6 +46,38 @@
                 $(this).val($("#id_default_address").val());
             });
         });
+
+        function activateSend() {
+          var disable = false;
+          if ($("#subscription_form input:checkbox:checked").length == 0){
+            disable = true;  // Can't submit without a product
+          }
+
+          if ($(".address_selector").has('option').length == 0){
+            disable = true;  // Can't submit without addresses
+          }
+
+          if ($("#price_amount").html() == "0"){
+            disable = true;
+          }
+
+          if (disable == false){
+            $("#send_form").removeAttr("disabled");  // Enable the send button
+          } else {
+            $("#send_form").attr("disabled", "disabled");  // Disable the send button
+          }
+        };
+
+        activateSend();
+
+        $("input:checkbox, select").change(function(){
+          activateSend();
+        });
+
+        $("#price_amount").on('DOMSubtreeModified',function(){
+          //Do calculation and change value of other span2,span3 here
+          activateSend();
+        });
     });
 </script>
 {% endblock %}
@@ -58,7 +90,7 @@
     <h2 class="card-title">{% trans 'Start paid subscription' %}</h2>
   </div>
   <div class="card-body">
-    <form method="post">
+    <form method="post" id="subscription_form">
     {% csrf_token %}
     {% if form.errors %}
         {% for field in form %}
@@ -190,7 +222,7 @@
     <div class="form-group text-right">
       <h4 class="mb-4 mt-4">{% trans "Total price" %}: <span class="text-success" id="price_amount">$0</span></h4>
       <input type="submit" name='result' value="{% trans 'Cancel' %}" class="btn bg-gradient-secondary" />
-      <input type="submit" name="result" value="{% trans 'Send' %}" class="btn bg-gradient-primary" />
+      <input type="submit" name="result" id="send_form" value="{% trans 'Send' %}" class="btn bg-gradient-primary" />
     </div>
 
     </form>

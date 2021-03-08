@@ -39,14 +39,14 @@ class Seller(models.Model):
 
     def get_unfinished_campaigns(self):
         seller_campaigns = Campaign.objects.filter(
-            contactcampaignstatus__contact__seller=self,
+            contactcampaignstatus__seller=self,
             contactcampaignstatus__status__lt=4,
         ).distinct()
         return seller_campaigns
 
     def get_campaigns_by_status(self, status):
         seller_campaigns = Campaign.objects.filter(
-            contactcampaignstatus__contact__seller=self,
+            contactcampaignstatus__seller=self,
             contactcampaignstatus__status__in=status,
         ).distinct()
         return seller_campaigns
