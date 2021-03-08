@@ -535,7 +535,7 @@
       <div class="modal-dialog" role="document">
         <div class="modal-content">
           <div class="modal-header">
-            <h4 class="modal-title">{% trans "Activity" %} {{activity.id}}</h4>
+            <h4 class="modal-title">{% trans "Activity" %} {{activity.id}} ({{activity.get_type}} - {{activity.get_direction}})</h4>
             <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
           </div>
           <div class="modal-body">
@@ -550,6 +550,12 @@
                 <dd><b>{% trans "Seller" %}</b></dd>
                 <dd>{{activity.seller}}</dd>
               {% endif %}
+              {% if activity.campaign %}
+                <dd><b>{% trans "Campaign" %}</b></dd>
+                <dd>{{activity.campaign}}</dd>
+              {% endif %}
+              <dd><b>{% trans "Status" %}</b></dd>
+              <dd>{{ activity.get_status }}</dd>
             </dl>
           </div>
        </div><!-- /.modal-content -->
