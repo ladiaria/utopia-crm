@@ -184,7 +184,7 @@ def list_routes(request):
 
 
 @login_required
-def print_labels(request, page='Roll', list_type='', route_list=''):
+def print_labels(request, page='Roll', list_type='', route_list='', exclude_routes=[]):
     today = date.today()
     tomorrow = date.today() + timedelta(1)
     next_day = next_business_day()
@@ -204,12 +204,14 @@ def print_labels(request, page='Roll', list_type='', route_list=''):
                 # Then for each route, we add to that empty queryset all those values
                 subscription_products = subscription_products | SubscriptionProduct.objects.filter(
                     product__weekday=isoweekday, subscription__active=True, route__number=route_number,
-                    subscription__start_date__lte=tomorrow).order_by('route', 'order', 'address__address_1')
+                    subscription__start_date__lte=tomorrow).exclude(route_id__in=exclude_routes).order_by(
+                        'route', 'order', 'address__address_1')
     else:
         # If not, all the queryset gets rendered into the labels
         subscription_products = SubscriptionProduct.objects.filter(
             product__weekday=isoweekday, subscription__active=True,
-            subscription__start_date__lte=tomorrow).order_by('route', 'order', 'address__address_1')
+            subscription__start_date__lte=tomorrow).exclude(route_id__in=exclude_routes).order_by(
+                'route', 'order', 'address__address_1')
 
     days = 2 if today.isoweekday() == 6 else 1
 
@@ -219,6 +221,10 @@ def print_labels(request, page='Roll', list_type='', route_list=''):
 
         # If the subscription_product has no route, then we'll skip it.
         if sp.route is None:
+            continue
+
+        # If the subscription_product has no address, continue. There should be a way to control this doesn't happen
+        if sp.address is None:
             continue
 
         # Separator label
@@ -257,10 +263,10 @@ def print_labels(request, page='Roll', list_type='', route_list=''):
             # Here we determine if the subscription needs an envelope. We might need to move those words to a setting
             if sp.subscription.envelope or sp.subscription.free_envelope or (
                     sp.subscription.start_date >= next_business_day() -
-                    timedelta(days) and sp.subscription.address and (
-                    sp.subscription.address.address_1.find(' ap ') != -1 or
-                    sp.subscription.address.address_1.find(' of ') != -1 or
-                    sp.subscription.address.address_1.find(' esc ') != -1)):
+                    timedelta(days) and sp.address and (
+                    sp.address.address_1.find(' ap ') != -1 or
+                    sp.address.address_1.find(' of ') != -1 or
+                    sp.address.address_1.find(' esc ') != -1)):
                 label.envelope = True
 
             if sp.subscription.start_date == next_business_day():
