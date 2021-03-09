@@ -25,8 +25,8 @@ class Route(models.Model):
     product for the different distributors. There are routes that are parents of other routes in hierarchy.
     """
     number = models.IntegerField(primary_key=True, verbose_name=_('Number'))
-    name = models.CharField(max_length=40, verbose_name=_('Name'))
-    state = models.CharField(max_length=20, verbose_name=_('State'))
+    name = models.CharField(max_length=40, verbose_name=_('Name'), blank=True, null=True)
+    state = models.CharField(max_length=20, verbose_name=_('State'), blank=True, null=True)
     description = models.TextField(blank=True, verbose_name=_('Description'))
     distributor = models.CharField(max_length=40, blank=True, verbose_name=_('Distributor'))
     phone = models.CharField(max_length=20, blank=True, verbose_name=_('Phone'))
