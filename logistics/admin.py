@@ -43,7 +43,7 @@ class RouteChangeAdmin(admin.ModelAdmin):
 
 
 class DeliveryAdmin(admin.ModelAdmin):
-    pass
+    list_display = ('date', 'route', 'copies')
 
 
 class ResortAdmin(admin.ModelAdmin):
