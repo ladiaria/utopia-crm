@@ -108,27 +108,16 @@ class Product(models.Model):
 
     Products MUST have a billing priority to be billed.
     """
-    name = models.CharField(
-        max_length=50, verbose_name=_('Name'))
-    slug = AutoSlugField(
-        populate_from='name', null=True, blank=True)
-    active = models.BooleanField(
-        default=False, verbose_name=_('Active'))
-    price = models.IntegerField(
-        default=0)
-    type = models.CharField(
-        max_length=1, default='O', choices=PRODUCT_TYPE_CHOICES)
-    weekday = models.IntegerField(
-        default=None, choices=PRODUCT_WEEKDAYS, null=True, blank=True)
-    bundle_product = models.BooleanField(
-        default=False, verbose_name=_('Bundle of products'))
-    billing_priority = models.PositiveSmallIntegerField(
-        null=True, blank=True)
-    digital = models.BooleanField(
-        default=False, verbose_name=_('Digital'))
-
-    old_pk = models.PositiveIntegerField(
-        blank=True, null=True)
+    name = models.CharField(max_length=50, verbose_name=_('Name'), db_index=True)
+    slug = AutoSlugField(populate_from='name', null=True, blank=True)
+    active = models.BooleanField(default=False, verbose_name=_('Active'))
+    price = models.IntegerField(default=0)
+    type = models.CharField(max_length=1, default='O', choices=PRODUCT_TYPE_CHOICES, db_index=True)
+    weekday = models.IntegerField(default=None, choices=PRODUCT_WEEKDAYS, null=True, blank=True)
+    bundle_product = models.BooleanField(default=False, verbose_name=_('Bundle of products'))
+    billing_priority = models.PositiveSmallIntegerField(null=True, blank=True)
+    digital = models.BooleanField(default=False, verbose_name=_('Digital'))
+    old_pk = models.PositiveIntegerField(blank=True, null=True)
 
     def __unicode__(self):
         name = self.name
