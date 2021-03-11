@@ -58,20 +58,20 @@
                 <td>{{sp.subscription.contact.mobile|default_if_none:""}}</td>
                 <td>
                   {{ sp.address.address_1 }} {{ sp.address.address_2|default_if_none:"" }} 
-                {% if sp.subscription.directions %}
+                {% if sp.special_instructions %}
                   <br/>
                   {% if sp.subscription.highlight_in_listing %}
-                    <strong>{% trans "Directions" %}: {{ sp.subscription.directions }}</strong>
+                    <strong>{% trans "Special Instructions" %}: {{ sp.special_instructions }}</strong>
                   {% else %}
-                    <strong>--&gt;</strong>{% trans "Directions" %}: {{ sp.subscription.directions }} <strong>&lt;--</strong>
+                    <strong>--&gt;</strong>{% trans "Special Instructions" %}: {{ sp.special_instructions }} <strong>&lt;--</strong>
                   {% endif %}
                 {% endif %}
-                {% if sp.subscription.message %}
+                {% if sp.label_message %}
                   <br/>
                   {% if sp.subscription.highlight_in_listing %}
-                    <strong>{% trans "Message" %}: {{ sp.subscription.message }}</strong>
+                    <strong>{% trans "Label Message" %}: {{ sp.label_message }}</strong>
                   {% else %}
-                    <strong>--&gt;</strong>{% trans "Message" %}: {{ sp.subscription.message }} <strong>&lt;--</strong>
+                    <strong>--&gt;</strong>{% trans "Label Message" %}: {{ sp.label_message }} <strong>&lt;--</strong>
                   {% endif %}
                 {% endif %}
                 </td>

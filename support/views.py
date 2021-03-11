@@ -679,7 +679,9 @@ def start_paid_subscription(request, contact_id):
                     address_id = request.POST.get("address-{}".format(product_id))
                     address = Address.objects.get(pk=address_id)
                     copies = request.POST.get("copies-{}".format(product_id))
-                    subscription.add_product(product, address, copies)
+                    message = request.POST.get("message-{}".format(product_id))
+                    instructions = request.POST.get("instructions-{}".format(product_id))
+                    subscription.add_product(product, address, copies, message, instructions)
 
             if instance_type == "new":
                 # The instance is a contact campaign status so this is a direct sale without activity
@@ -852,20 +854,21 @@ def new_subscription(request, contact_id):
                     product_id = key.split("-")[1]
                     product = Product.objects.get(pk=product_id)
                     new_products_list.append(product)
+                    address_id = request.POST.get("address-{}".format(product_id))
+                    address = Address.objects.get(pk=address_id)
+                    copies = request.POST.get("copies-{}".format(product_id))
+                    message = request.POST.get("message-{}".format(product_id))
+                    instructions = request.POST.get("instructions-{}".format(product_id))
                     if not SubscriptionProduct.objects.filter(subscription=subscription, product=product).exists():
                         # For each product, if it is a product that this subscription didn't have, then we'll add it.
-                        address_id = request.POST.get("address-{}".format(product_id))
-                        address = Address.objects.get(pk=address_id)
-                        copies = request.POST.get("copies-{}".format(product_id))
-                        subscription.add_product(product, address, copies)
+                        subscription.add_product(product, address, copies, message, instructions)
                     elif request.GET.get('edit_subscription', None) and SubscriptionProduct.objects.filter(
                             subscription=subscription, product=product).exists():
                         sp = SubscriptionProduct.objects.get(subscription=subscription, product=product)
-                        address_id = request.POST.get("address-{}".format(product_id))
-                        address = Address.objects.get(pk=address_id)
                         sp.address = address
-                        copies = request.POST.get("copies-{}".format(product_id))
                         sp.copies = copies
+                        sp.label_message = message
+                        sp.special_instructions = instructions
                         sp.save()
             for subscriptionproduct in SubscriptionProduct.objects.filter(subscription=subscription):
                 if subscriptionproduct.product not in new_products_list:

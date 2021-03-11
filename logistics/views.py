@@ -42,16 +42,9 @@ def assign_routes(request):
                 route = Route.objects.get(number=value)
                 sp.route = route
                 sp.order = None
+                sp.special_instructions = request.POST.get('instructions-{}'.format(sp_id), None)
+                sp.label_message = request.POST.get('message-{}'.format(sp_id), None)
                 sp.save()
-            if name.startswith('address-notes-'):
-                address_id = name.replace('address-notes-', '')
-                address = Address.objects.get(pk=address_id)
-                if value:
-                    address.notes = value
-                    address.save()
-                elif address.notes is not None:
-                    address.notes = None
-                    address.save()
         return HttpResponseRedirect(reverse('assign_routes'))
 
     subscription_products = SubscriptionProduct.objects.filter(
@@ -90,16 +83,9 @@ def order_route(request, route=1):
                 # Finally we set the value of whatever route we set, and then save the sp
                 order = value
                 sp.order = order
+                sp.special_instructions = request.POST.get('instructions-{}'.format(sp_id), None)
+                sp.label_message = request.POST.get('message-{}'.format(sp_id), None)
                 sp.save()
-            if name.startswith('address-notes-'):
-                address_id = name.replace('address-notes-', '')
-                address = Address.objects.get(pk=address_id)
-                if value:
-                    address.notes = value
-                    address.save()
-                elif address.notes is not None:
-                    address.notes = None
-                    address.save()
 
     subscription_products = SubscriptionProduct.objects.filter(
         route=route_object, subscription__active=True).exclude(
@@ -139,16 +125,9 @@ def change_route(request, route=1):
                 route = Route.objects.get(number=value)
                 sp.route = route
                 sp.order = None
+                sp.special_instructions = request.POST.get('instructions-{}'.format(sp_id), None)
+                sp.label_message = request.POST.get('message-{}'.format(sp_id), None)
                 sp.save()
-            if name.startswith('address-notes-'):
-                address_id = name.replace('address-notes-', '')
-                address = Address.objects.get(pk=address_id)
-                if value:
-                    address.notes = value
-                    address.save()
-                elif address.notes is not None:
-                    address.notes = None
-                    address.save()
 
     subscription_products = SubscriptionProduct.objects.filter(
         route=route_object, subscription__active=True).exclude(
@@ -291,11 +270,11 @@ def print_labels(request, page='Roll', list_type='', route_list='', exclude_rout
             if sp.subscription.start_date == next_business_day():
                 label.new = True
 
-            if sp.subscription.directions:
+            if sp.special_instructions:
                 label.special_instructions = True
 
-            if sp.subscription.label_message and sp.subscription.label_message.strip():
-                label.message_for_contact = sp.subscription.label_message
+            if sp.label_message and sp.label_message.strip():
+                label.message_for_contact = sp.label_message
             else:
                 if sp.subscription.type == 'P':
                     if sp.subscription.seller:
@@ -374,11 +353,11 @@ def print_labels_for_product(request, page='Roll', product_id=None, list_type=''
             if sp.subscription.start_date == next_business_day():
                 label.new = True
 
-            if sp.subscription.directions:
+            if sp.special_instructions:
                 label.special_instructions = True
 
-            if sp.subscription.label_message and sp.subscription.label_message.strip():
-                label.message_for_contact = sp.subscription.label_message
+            if sp.label_message and sp.label_message.strip():
+                label.message_for_contact = sp.label_message
             else:
                 if sp.subscription.type == 'P':
                     if sp.subscription.seller:
