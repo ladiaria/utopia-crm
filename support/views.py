@@ -858,6 +858,15 @@ def new_subscription(request, contact_id):
                         address = Address.objects.get(pk=address_id)
                         copies = request.POST.get("copies-{}".format(product_id))
                         subscription.add_product(product, address, copies)
+                    elif request.GET.get('edit_subscription', None) and SubscriptionProduct.objects.filter(
+                            subscription=subscription, product=product).exists():
+                        sp = SubscriptionProduct.objects.get(subscription=subscription, product=product)
+                        address_id = request.POST.get("address-{}".format(product_id))
+                        address = Address.objects.get(pk=address_id)
+                        sp.address = address
+                        copies = request.POST.get("copies-{}".format(product_id))
+                        sp.copies = copies
+                        sp.save()
             for subscriptionproduct in SubscriptionProduct.objects.filter(subscription=subscription):
                 if subscriptionproduct.product not in new_products_list:
                     subscription.remove_product(subscriptionproduct.product)
