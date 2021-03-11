@@ -25,8 +25,8 @@ class Route(models.Model):
     product for the different distributors. There are routes that are parents of other routes in hierarchy.
     """
     number = models.IntegerField(primary_key=True, verbose_name=_('Number'))
-    name = models.CharField(max_length=40, verbose_name=_('Name'))
-    state = models.CharField(max_length=20, verbose_name=_('State'))
+    name = models.CharField(max_length=40, verbose_name=_('Name'), blank=True, null=True)
+    state = models.CharField(max_length=20, verbose_name=_('State'), blank=True, null=True)
     description = models.TextField(blank=True, verbose_name=_('Description'))
     distributor = models.CharField(max_length=40, blank=True, verbose_name=_('Distributor'))
     phone = models.CharField(max_length=20, blank=True, verbose_name=_('Phone'))
@@ -40,6 +40,7 @@ class Route(models.Model):
     notes = models.TextField(blank=True, verbose_name=_('Notes'))
     beach = models.BooleanField(default=False, verbose_name=_('Beach'))
     active = models.BooleanField(default=True, verbose_name=_('Active'))
+    print_labels = models.BooleanField(default=True, verbose_name=_('Print labels from this route'))
 
     price_per_copy = models.DecimalField(
         max_digits=10, decimal_places=2, blank=True, null=True, verbose_name=_('Price per copy'))
@@ -137,13 +138,9 @@ class PickupPoint(models.Model):
     """
     A pickup point is a place where people can go and get their product, if we can't deliver it to certain places.
     """
-    name = models.CharField(
-        max_length=60, verbose_name=_('Name'))
-    address = models.CharField(
-        max_length=255, blank=True, null=True, verbose_name=_('Address'))
-
-    old_pk = models.PositiveIntegerField(
-        blank=True, null=True)
+    name = models.CharField(max_length=60, verbose_name=_('Name'))
+    address = models.CharField(max_length=255, blank=True, null=True, verbose_name=_('Address'))
+    old_pk = models.PositiveIntegerField(blank=True, null=True, db_index=True)
 
     def __unicode__(self):
         return u"{}{}".format(self.name, (u' ({})'.format(self.address)) if self.address else u'')

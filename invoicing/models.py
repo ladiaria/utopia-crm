@@ -79,8 +79,6 @@ class Invoice(models.Model):
 
     billing = models.ForeignKey('invoicing.Billing', blank=True, null=True)
 
-    old_pk = models.PositiveIntegerField(blank=True, null=True)
-
     def calc_total_amount(self):
         """
         Calculates the total amount of the invoice according to the items. If the item is a discount, then the amount

@@ -19,7 +19,7 @@ class EditionProductAdmin(admin.ModelAdmin):
 
 
 class RouteAdmin(admin.ModelAdmin):
-    pass
+    list_display = ('number', 'name', 'state', 'active', 'print_labels')
 
 
 class PickupPlaceAdmin(admin.ModelAdmin):

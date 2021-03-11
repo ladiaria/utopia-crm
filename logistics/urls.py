@@ -18,7 +18,9 @@ urlpatterns = [
     url(r'^issues_labels/$', issues_labels, name='issues_labels'),
 
     # Label printing system
-    url(r'^print_labels_product/$', print_labels_for_product, name='print_labels_for_product'),
+    url(
+        r'^print_labels_for_product/(?P<page>Roll|SheetA4)/(?P<product_id>\d+)(/(?P<list_type>route)/(?P<route_list>\d+(,\d+)*))?/$',
+        print_labels_for_product, name='print_labels_for_product'),
     url(
         r'^print_labels/(?P<page>Roll|SheetA4)(/(?P<list_type>route)/(?P<route_list>\d+(,\d+)*))?/$',
         print_labels, name='print_labels'),
