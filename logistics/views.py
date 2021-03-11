@@ -202,14 +202,14 @@ def print_labels(request, page='Roll', list_type='', route_list='', exclude_rout
                 # Then for each route, we add to that empty queryset all those values
                 subscription_products = subscription_products | SubscriptionProduct.objects.filter(
                     product__weekday=isoweekday, subscription__active=True, route__number=route_number,
-                    subscription__start_date__lte=tomorrow).exclude(route_id__in=exclude_routes).order_by(
-                        'route', 'order', 'address__address_1')
+                    subscription__start_date__lte=tomorrow).exclude(route_id__in=exclude_routes).exclude(
+                    route__print_labels=False).order_by('route', 'order', 'address__address_1')
     else:
         # If not, all the queryset gets rendered into the labels
         subscription_products = SubscriptionProduct.objects.filter(
             product__weekday=isoweekday, subscription__active=True,
-            subscription__start_date__lte=tomorrow).exclude(route_id__in=exclude_routes).order_by(
-                'route', 'order', 'address__address_1')
+            subscription__start_date__lte=tomorrow).exclude(route_id__in=exclude_routes).exclude(
+            route__print_labels=False).order_by('route', 'order', 'address__address_1')
 
     days = 2 if today.isoweekday() == 6 else 1
 
@@ -318,12 +318,14 @@ def print_labels_for_product(request, page='Roll', product_id=None, list_type=''
                 # Then for each route, we add to that empty queryset all those values
                 subscription_products = subscription_products | SubscriptionProduct.objects.filter(
                     product=product, subscription__active=True, route__number=route_number,
-                    subscription__start_date__lte=today).order_by('route', 'order', 'address__address_1')
+                    subscription__start_date__lte=today).exclude(
+                    route__print_labels=False).order_by('route', 'order', 'address__address_1')
     else:
         # If not, all the queryset gets rendered into the labels
         subscription_products = SubscriptionProduct.objects.filter(
             product=product, subscription__active=True,
-            subscription__start_date__lte=today).order_by('route', 'order', 'address__address_1')
+            subscription__start_date__lte=today).exclude(
+            route__print_labels=False).order_by('route', 'order', 'address__address_1')
 
     old_route = 0
 

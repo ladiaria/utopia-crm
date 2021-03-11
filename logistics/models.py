@@ -40,6 +40,7 @@ class Route(models.Model):
     notes = models.TextField(blank=True, verbose_name=_('Notes'))
     beach = models.BooleanField(default=False, verbose_name=_('Beach'))
     active = models.BooleanField(default=True, verbose_name=_('Active'))
+    print_labels = models.BooleanField(default=True, verbose_name=_('Print labels from this route'))
 
     price_per_copy = models.DecimalField(
         max_digits=10, decimal_places=2, blank=True, null=True, verbose_name=_('Price per copy'))
