@@ -432,6 +432,8 @@ class SubscriptionProduct(models.Model):
     address = models.ForeignKey('core.Address', blank=True, null=True)
     route = models.ForeignKey('logistics.Route', blank=True, null=True, verbose_name=_('Route'), related_name='route')
     order = models.PositiveSmallIntegerField(verbose_name=_('Order'), blank=True, null=True)
+    label_message = models.CharField(max_length=40, blank=True, null=True)
+    special_instructions = models.TextField(blank=True, null=True)
 
     def __unicode__(self):
         return '{} x{} ({})'.format(self.product, self.copies, self.subscription.contact.name)
@@ -564,14 +566,23 @@ class Subscription(models.Model):
     edit_products_field.allow_tags = True
     edit_products_field.short_description = "Products"
 
-    def add_product(self, product, address, copies=1, route=None, order=None):
+    def add_product(
+            self, product, address, copies=1, message=None, instructions=None, seller=None):
         """
         Used to add products to the current subscription. It is encouraged to always use this method when you want
         to add a product to a subscription, so you always have control of what happens here. This also creates a
         product history with the current subscription, product, and date, with the type 'A' (Activation)
+
+        TODO: Add product history with a seller.
         """
         SubscriptionProduct.objects.create(
-            subscription=self, product=product, address=address, copies=copies, route=route, order=order)
+            subscription=self,
+            product=product,
+            address=address,
+            copies=copies,
+            label_message=message or None,
+            special_instructions=instructions or None
+        )
         self.contact.add_product_history(product, 'A', self.campaign)
 
     def remove_product(self, product):
@@ -983,6 +994,34 @@ class Subscription(models.Model):
         """
         frequencies = dict(FREQUENCY_CHOICES)
         return frequencies.get(self.frequency, 'N/A')
+
+    def get_copies_for_product(self, product_id):
+        try:
+            sp = SubscriptionProduct.objects.get(subscription=self, product_id=product_id)
+            return sp.copies or 1
+        except SubscriptionProduct.DoesNotExist:
+            return 1
+
+    def get_message_for_product(self, product_id):
+        try:
+            sp = SubscriptionProduct.objects.get(subscription=self, product_id=product_id)
+            return sp.label_message or ""
+        except SubscriptionProduct.DoesNotExist:
+            return ""
+
+    def get_address_for_product(self, product_id):
+        try:
+            sp = SubscriptionProduct.objects.get(subscription=self, product_id=product_id)
+            return sp.address
+        except SubscriptionProduct.DoesNotExist:
+            return None
+
+    def get_instructions_for_product(self, product_id):
+        try:
+            sp = SubscriptionProduct.objects.get(subscription=self, product_id=product_id)
+            return sp.special_instructions or ""
+        except SubscriptionProduct.DoesNotExist:
+            return ""
 
     class Meta:
         verbose_name = _('subscription')

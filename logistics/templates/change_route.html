@@ -62,6 +62,7 @@
               <th>{% trans 'Product' %}</th>
               <th>{% trans 'Address' %}</th>
               <th>{% trans 'Complement' %}</th>
+              <th>{% trans 'Message' %}</th>
               <th>{% trans 'Instructions' %}</th>
               <th>{% trans 'Route' %}</th>
           </tr>
@@ -73,8 +74,9 @@
               <td>{{ sp.product.name }}</td>
               <td>{{ sp.address.address_1|default_if_none:'' }}</td>
               <td>{{ sp.address.address_2|default_if_none:'' }}</td>
-              <td><input type="text" name="address-notes-{{ sp.address.id }}" value="{{ sp.address.notes|default_if_none:'' }}" class="form-control" /></td>
-              <td><input type="text" name="sp-routechange-{{ sp.id }}" value="{{sp.route.number}}" size="2" tabindex="{{ forloop.counter }}" class="form-control" /></td>
+              <td><input maxlength="40" type="text" name="message-{{ sp.id }}" value="{{ sp.label_message|default_if_none:'' }}" /></td>
+              <td><input type="text" name="instructions-{{ sp.id }}" value="{{ sp.special_instructions|default_if_none:'' }}" /></td>
+              <td><input type="text" name="sp-{{ sp.id }}" value="{{sp.route|default_if_none:''}}" size="2" tabindex="{{ forloop.counter }}"/></td>
           </tr>
         {% endfor %}
         </tbody>
