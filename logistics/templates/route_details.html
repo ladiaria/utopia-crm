@@ -53,7 +53,7 @@
                 {% else %}
                     <td></td>
                 {% endif %}
-                <td><a href="/admin/core/contact/{{sp.subscription.contact.id}}/">{{ sp.subscription.contact.name }}</a></td>
+                <td><a href="{% url 'contact_detail' sp.subscription.contact.id %}">{{ sp.subscription.contact.name }}</a></td>
                 <td>{{sp.subscription.contact.phone|default_if_none:""}}</td>
                 <td>{{sp.subscription.contact.mobile|default_if_none:""}}</td>
                 <td>
