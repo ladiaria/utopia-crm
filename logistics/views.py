@@ -22,7 +22,7 @@ from util.dates import next_business_day
 from .labels import LogisticsLabel, LogisticsLabel96x30, Roll, Roll96x30
 
 
-product_list = Product.objects.filter(type='S')
+PRODUCT_LIST = Product.objects.filter(type='S', bundle_product=False)
 
 
 @login_required
@@ -30,6 +30,7 @@ def assign_routes(request):
     """
     Assigns routes to contacts that have no route. The assignation is per SubscriptionProduct.
     """
+    product_id = 'all'
     if request.POST:
         for name, value in request.POST.items():
             if name.startswith('sp') and value:
@@ -60,8 +61,14 @@ def assign_routes(request):
         product_id = request.GET.get('product_id', 'all')
         if product_id != 'all':
             subscription_products = subscription_products.filter(product_id=product_id)
+        exclude = request.GET.get('exclude', None)
+        if exclude:
+            subscription_products = subscription_products.exclude(product_id=exclude)
     return render(
-        request, 'assign_routes.html', {'subscription_products': subscription_products})
+        request, 'assign_routes.html', {
+            'subscription_products': subscription_products,
+            'product_list': PRODUCT_LIST
+        })
 
 
 @login_required
@@ -71,6 +78,7 @@ def order_route(request, route=1):
 
     TODO: Do something to quickly change route from the template itself.
     """
+    product_id = 'all'
     route_object = get_object_or_404(Route, pk=route)
     if request.POST:
         for name, value in request.POST.items():
@@ -96,12 +104,18 @@ def order_route(request, route=1):
     subscription_products = SubscriptionProduct.objects.filter(
         route=route_object, subscription__active=True).exclude(
             product__name__contains='digital').order_by('order', 'address__address_1')
-    product_id = request.GET.get('product_id', 'all')
-    if product_id != 'all':
-        subscription_products = subscription_products.filter(product_id=product_id)
+    if request.GET:
+        product_id = request.GET.get('product_id', 'all')
+        if product_id != 'all':
+            subscription_products = subscription_products.filter(product_id=product_id)
+        exclude = request.GET.get('exclude', None)
+        if exclude:
+            subscription_products = subscription_products.exclude(product_id=exclude)
     return render(
         request, 'order_route.html', {
-            'subscription_products': subscription_products, 'route': route, 'product_list': product_list,
+            'subscription_products': subscription_products,
+            'route': route,
+            'product_list': PRODUCT_LIST,
             'product_id': product_id})
 
 
@@ -112,6 +126,7 @@ def change_route(request, route=1):
 
     TODO: Do something to quickly change route form the template itself.
     """
+    product_id = 'all'
     route_object = get_object_or_404(Route, pk=route)
     if request.POST:
         for name, value in request.POST.items():
@@ -138,12 +153,16 @@ def change_route(request, route=1):
     subscription_products = SubscriptionProduct.objects.filter(
         route=route_object, subscription__active=True).exclude(
             product__name__contains='digital').order_by('address__address_1')
-    product_id = request.GET.get('product_id', 'all')
-    if product_id != 'all':
-        subscription_products = subscription_products.filter(product_id=product_id)
+    if request.GET:
+        product_id = request.GET.get('product_id', 'all')
+        if product_id != 'all':
+            subscription_products = subscription_products.filter(product_id=product_id)
+        exclude = request.GET.get('exclude', None)
+        if exclude:
+            subscription_products = subscription_products.exclude(product_id=exclude)
     return render(
         request, 'change_route.html', {
-            'subscription_products': subscription_products, 'route': route, 'product_list': product_list,
+            'subscription_products': subscription_products, 'route': route, 'product_list': PRODUCT_LIST,
             'product_id': product_id})
 
 
