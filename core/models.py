@@ -32,10 +32,8 @@ class Institution(models.Model):
     """
     If the contact comes from an institution. This holds the institutions.
     """
-    name = models.CharField(
-        max_length=255, verbose_name=_('Name'))
-    old_pk = models.PositiveIntegerField(
-        blank=True, null=True)
+    name = models.CharField(max_length=255, verbose_name=_('Name'))
+    old_pk = models.PositiveIntegerField(blank=True, null=True, db_index=True)
 
     def __unicode__(self):
         return self.name
@@ -68,12 +66,9 @@ class Subtype(models.Model):
     """
     Holds the origin of a contact. Probably will be deprecated soon and will be totally replaced by tags.
     """
-    name = models.CharField(
-        max_length=255, verbose_name=_('name'))
-    description = models.TextField(
-        blank=True, null=True, verbose_name=_('Description'))
-    old_pk = models.PositiveIntegerField(
-        blank=True, null=True)
+    name = models.CharField(max_length=255, verbose_name=_('name'))
+    description = models.TextField(blank=True, null=True, verbose_name=_('Description'))
+    old_pk = models.PositiveIntegerField(blank=True, null=True, db_index=True)
 
     def get_contact_count(self):
         return self.contact_set.all().count()
@@ -209,9 +204,6 @@ class Contact(models.Model):
         default=True, verbose_name=_('Allows polls'))
     allow_promotions = models.BooleanField(
         default=True, verbose_name=_('Allows promotions'))
-
-    old_pk = models.PositiveIntegerField(
-        blank=True, null=True)
 
     def __unicode__(self):
         return self.name

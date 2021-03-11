@@ -137,13 +137,9 @@ class PickupPoint(models.Model):
     """
     A pickup point is a place where people can go and get their product, if we can't deliver it to certain places.
     """
-    name = models.CharField(
-        max_length=60, verbose_name=_('Name'))
-    address = models.CharField(
-        max_length=255, blank=True, null=True, verbose_name=_('Address'))
-
-    old_pk = models.PositiveIntegerField(
-        blank=True, null=True)
+    name = models.CharField(max_length=60, verbose_name=_('Name'))
+    address = models.CharField(max_length=255, blank=True, null=True, verbose_name=_('Address'))
+    old_pk = models.PositiveIntegerField(blank=True, null=True, db_index=True)
 
     def __unicode__(self):
         return u"{}{}".format(self.name, (u' ({})'.format(self.address)) if self.address else u'')
