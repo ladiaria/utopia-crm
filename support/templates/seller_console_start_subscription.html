@@ -192,29 +192,37 @@
     <a href="#address_modal" id="add_address"data-toggle="modal" data-target="#address_modal" class="btn bg-gradient-success"><i class="fas fa-plus"></i>Add new address</a>
 
     <div class="mt-4">
-    {% for product in offerable_products %}
-    <div class="form-group border-bottom pb-2">
-      <div class="row mt-2">
-        <div class="col-6">
-          <div class="form-check">
-            <input value="{{product.id}}" type='checkbox' name='check-{{product.id}}'  id="check-{{product.id}}" class='product_checkbox form-check-input' />
-            <label for="check-{{product.id}}">{{product.name}}</label>
+      {% for product in offerable_products %}
+      <div class='form-group border-bottom pb-2 {% if "lunes" in product.slug or "martes" in product.slug or "miercoles" in product.slug or "jueves" in product.slug or "viernes" in product.slug %}la_diaria_product_fg{% endif %}'>
+        <div class="row mt-2">
+          <div class="col-5">
+            <div class="form-check">
+              <input {% if product in form_subscription.products.all %}checked{% endif %} value="{{product.id}}" type='checkbox' name='check-{{product.id}}'  id="check-{{product.id}}" class='product_checkbox form-check-input {% if "lunes" in product.slug or "martes" in product.slug or "miercoles" in product.slug or "jueves" in product.slug or "viernes" in product.slug %}la_diaria_product{% endif %}{% if product.slug == "la-diaria-digital" %}la_diaria_digital{% endif %}' />
+              <label for="check-{{product.id}}">{{product.name}}</label>
+            </div>
+            <select name='address-{{product.id}}' class="address_selector form-control">
+                {% for address in contact_addresses %}
+                    <option value="{{address.id}}">{{address.address_1}} {{address.city}} {{address.state}}</option>
+                {% endfor %}
+            </select>
           </div>
-        <select name='address-{{product.id}}' class="address_selector form-control">
-            {% for address in contact_addresses %}
-                <option value="{{address.id}}">{{address.address_1}} {{address.city}} {{address.state}}</option>
-            {% endfor %}
-        </select>
+          <div class="col-1">
+            <label for="copies-{{product.id}}"><small>{% trans 'Copies' %}</small></label>
+            <input type="text" id="copies-{{product.id}}" name="copies-{{product.id}}" value="1" class="form-control">
+          </div>
+          <div class="col-3">
+            <label for="message-{{product.id}}"><small>{% trans 'Label Message' %}</small></label>
+            <input maxlength="40" type="text" id="message-{{product.id}}" name="message-{{product.id}}" value="" class="form-control">
+          </div>
+          <div class="col-3">
+            <label for="instructions-{{product.id}}"><small>{% trans 'Special Instructions' %}</small></label>
+            <input type="text" id="instructions-{{product.id}}" name="instructions-{{product.id}}" value="" class="form-control">
+          </div>
         </div>
-        <div class="col-2">
-          <label for="copies-{{product.id}}"><small>{% trans 'Copies' %}</small></label>
-          <input type="text" id="copies-{{product.id}}" name="copies-{{product.id}}" value="1" class="form-control">
-        </div>
-
+      </div>
+      {% endfor %}
     </div>
-  </div>
-    {% endfor %}
-  </div>
+
     <div class="form-group text-right">
       <h4 class="mb-4 mt-4">{% trans "Total price" %}: <span class="text-success" id="price_amount">$0</span></h4>
       <input type="submit" name='result' value="{% trans 'Cancel' %}" class="btn bg-gradient-secondary" />
