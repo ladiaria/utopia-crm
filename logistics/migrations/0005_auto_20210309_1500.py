@@ -13,16 +13,6 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.AlterField(
-            model_name='city',
-            name='state',
-            field=models.CharField(choices=[(b'State 1', b'State 1'), (b'State 2', b'State 2')], max_length=20, verbose_name='City'),
-        ),
-        migrations.AlterField(
-            model_name='resort',
-            name='state',
-            field=models.CharField(choices=[(b'State 1', b'State 1'), (b'State 2', b'State 2')], max_length=20, verbose_name='State'),
-        ),
-        migrations.AlterField(
             model_name='route',
             name='name',
             field=models.CharField(blank=True, max_length=40, null=True, verbose_name='Name'),

@@ -17,16 +17,6 @@ class Migration(migrations.Migration):
             name='old_pk',
         ),
         migrations.AlterField(
-            model_name='billing',
-            name='payment_type',
-            field=models.CharField(blank=True, choices=[(b'O', b'Other'), (b'D', b'Debit card'), (b'S', b'Cash payment')], max_length=1, null=True),
-        ),
-        migrations.AlterField(
-            model_name='invoice',
-            name='payment_type',
-            field=models.CharField(choices=[(b'O', b'Other'), (b'D', b'Debit card'), (b'S', b'Cash payment')], max_length=2, verbose_name='Payment type'),
-        ),
-        migrations.AlterField(
             model_name='invoice',
             name='pdf',
             field=models.FileField(blank=True, editable=False, null=True, upload_to=b'path/to/folder/in/media/'),
