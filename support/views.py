@@ -37,7 +37,7 @@ from core.models import (
 from .forms import *
 from .models import Seller, ScheduledTask
 from core.utils import calc_price_from_products, process_products
-from util.dates import add_business_days
+from util.dates import add_business_days, next_business_day, format_date, add_month
 
 
 now = datetime.now()
@@ -1581,3 +1581,81 @@ def sync_with_mailtrain(request, dcf_id):
         return HttpResponseRedirect(
             reverse("dynamic_contact_filter_edit", args=[dcf.id])
         )
+
+
+@login_required
+def issues_statistics(request, category='L'):
+    today = date.today()
+    control_date = today - timedelta(7 + today.isoweekday() - 1)
+
+    days = []
+    weeks = []
+    months = []
+
+    while control_date <= today:
+        day = {}
+        day['date'] = format_date(control_date)
+        day['issues'] = Issue.objects.filter(date_created=control_date, category=category).count()
+        if day['issues']:
+            isoweekday = next_business_day().isoweekday()
+            count = SubscriptionProduct.objects.filter(
+                subscription__active=True, product__weekday=isoweekday).exclude(
+                product__slug__contains='digital').count()
+            day['pct'] = float(day['issues']) * 100 / count
+            day['pct'] = '%.2f' % day['pct']
+        day['inicio'] = control_date.strftime('%Y-%m-%d')
+        days.append(day)
+
+        control_date += timedelta(1)
+
+    end = today - timedelta(today.isoweekday() - 1)
+    start = end - timedelta(7 * 4)
+    control_date = start
+
+    while control_date <= end:
+        week = {}
+        week['date'] = format_date(control_date)
+
+        week['issues'] = Issue.objects.filter(
+            date_created__gte=control_date, date_created__lte=control_date + timedelta(6)).count()
+
+        if week['issues']:
+            isoweekday = next_business_day().isoweekday()
+            count = SubscriptionProduct.objects.filter(
+                subscription__active=True, product__weekday=isoweekday).exclude(
+                product__slug__contains='digital').count()
+            week['pct'] = float(week['issues']) * 100 / (count * 6)
+            week['pct'] = '%.2f' % week['pct']
+
+        week['start'] = control_date.strftime('%Y-%m-%d')
+        week['end'] = (control_date + timedelta(6)).strftime('%Y-%m-%d')
+        weeks.append(week)
+
+        control_date += timedelta(7)
+
+    today = add_month(today, -4)
+    control_date = date(today.year, today.month, 1)
+    while control_date <= end:
+        month = {}
+        month['date'] = str(control_date.month)
+
+        month['issues'] = Issue.objects.filter(
+            date_created__gte=control_date, date_created__lte=add_month(date) - timedelta(1)).count()
+
+        if month['issues']:
+            isoweekday = next_business_day().isoweekday()
+            count = SubscriptionProduct.objects.filter(
+                subscription__active=True, product__weekday=isoweekday).exclude(
+                product__slug__contains='digital').count()
+            month['pct'] = float(month['issues']) * 100 / (count * 24)
+            month['pct'] = '%.2f' % month['pct']
+
+        month['start'] = control_date.strftime('%Y-%m-%d')
+        month['end'] = (add_month(control_date) - timedelta(1)).strftime('%Y-%m-%d')
+        months.append(month)
+
+        control_date = add_month(control_date, 1)
+
+    return render(
+        request, 'issues_statistics.html', {
+            'days': days, 'weeks': weeks, 'months': months, 'category': category})

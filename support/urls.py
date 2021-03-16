@@ -28,6 +28,7 @@ urlpatterns = [
     url(r'^new_issue/(\d+)/(\w+)/$', new_issue, name="new_issue"),
     url(r'^new_issue/(\d+)/(\w+)/(\w+)/$', new_issue, name="new_issue"),
     url(r'^view_issue/(\d+)/$', view_issue, name="view_issue"),
+    url(r'^issues_statistics/(\w+)/$', issues_statistics, name="issues_statistics"),
     url(r'^select_contact_for_issue/(\w+)/$', select_contact_for_issue, name="select_contact_for_issue"),
     url(r'^add_dynamic_contact_filter/$', dynamic_contact_filter_new, name="dynamic_contact_filter_add"),
     url(r'^dynamic_contact_filter_list/$', dynamic_contact_filter_list, name="dynamic_contact_filter_list"),
