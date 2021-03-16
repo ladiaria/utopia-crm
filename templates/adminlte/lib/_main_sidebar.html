@@ -13,8 +13,6 @@
 {% url 'contact_list' as contact_list %}
 {% url 'list_issues' as list_issues %}
 {% url 'select_contact_for_issue' 'L' as select_contact_for_issue_l %}
-{% url 'select_contact_for_issue' 'S05' as select_contact_for_issue_s05 %}
-{% url 'select_contact_for_issue' 'S04' as select_contact_for_issue_s04 %}
 {% url 'import_contacts' as import_contacts %}
 {% url 'assign_campaigns' as assign_campaigns %}
 {% url 'assign_to_seller' as assign_to_seller %}
@@ -47,13 +45,7 @@
   </a>
   <ul class="nav nav-treeview">
     <li class="nav-item {% ifequal request.path select_contact_for_issue_l %}active{% endifequal %}">
-      <a id="holus"  href="{{select_contact_for_issue_l}}" class="nav-link {% ifequal request.path select_contact_for_issue_l %}active{% endifequal %}">{% trans 'New incident' %}</a>
-    </li>
-    <li class="nav-item">
-      <a href="{{select_contact_for_issue_s05}}" class="nav-link {% ifequal request.path select_contact_for_issue_s05 %}active{% endifequal %}">{% trans 'Change address' %}</a>
-    </li>
-    <li class="nav-item">
-      <a href="{{select_contact_for_issue_s04}}" class="nav-link {% ifequal request.path select_contact_for_issue_s04 %}active{% endifequal %}">{% trans 'Pause subscription' %}</a>
+      <a href="{{select_contact_for_issue_l}}" class="nav-link {% ifequal request.path select_contact_for_issue_l %}active{% endifequal %}">{% trans 'New incident' %}</a>
     </li>
     <li class="nav-item"><a href="{{import_contacts}}" class="nav-link {% ifequal request.path import_contacts %}active{% endifequal %}">{% trans 'Import new contacts' %}</a></li>
     <li class="nav-item"><a href="{{assign_campaigns}}" class="nav-link {% ifequal request.path assign_campaigns %}active{% endifequal %}">{% trans 'Assign campaigns' %}</a></li>
