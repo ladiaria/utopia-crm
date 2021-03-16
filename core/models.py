@@ -252,7 +252,8 @@ class Contact(models.Model):
         """
         from invoicing.models import Invoice
         sum_import = Invoice.objects.filter(
-            contact=self, expiration_date__lte=date.today(), paid=False, debited=False).aggregate(Sum('amount'))
+            contact=self, expiration_date__lte=date.today(), paid=False,
+            debited=False, canceled=False, uncollectible=False).aggregate(Sum('amount'))
         return sum_import.get('amount__sum', None)
 
     def has_no_open_issues(self):
