@@ -261,12 +261,14 @@ class RouteChange(models.Model):
         auto_now_add=True, verbose_name=_('Dt'))
     contact = models.ForeignKey(
         'core.Contact', verbose_name=_('Contact'))
+    product = models.ForeignKey(
+        'core.Product', verbose_name=_('Product'), null=True, blank=True)
     old_route = models.ForeignKey(
         Route, verbose_name=_('Old route'))
     old_address = models.CharField(
-        max_length=255, null=True, verbose_name=_('Old address'))
+        max_length=255, null=True, blank=True, verbose_name=_('Old address'))
     old_city = models.CharField(
-        max_length=64, null=True, verbose_name=_('Old city'))
+        max_length=64, null=True, blank=True, verbose_name=_('Old city'))
 
     class Meta:
         verbose_name = _('route change')

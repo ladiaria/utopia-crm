@@ -21,6 +21,7 @@
 
     {% if subscription_products_dict|get_item:route_id %}
       <table cellpadding="2" cellspacing="2">
+        <caption style="caption-side: top">{% trans "Contacts in route" %}</caption>
             <tr>
                 <th width="1%">L</th>
                 <th width="1%">M</th>
@@ -83,27 +84,52 @@
                 <td>{{ sp.order|default_if_none:"&nbsp;&nbsp;" }}</td>
             </tr>
         {% endfor %}
+        </table>
+
         {% if changes_dict|get_item:route_id %}
-        <tr>
-            <td colspan="6">
-                <strong>{% trans "Changes in route" %}</strong>
-                <ul>
-                    {% for rc in changes_dict|get_item:route_id %}
-                        <li>{{ rc.contact.name }} - {{ rc.old_address }}</li>
-                    {% endfor %}
-                </ul>
-            </td>
-        </tr>
+        <strong>{% trans "Changes in route" %}</strong>
+        <ul>
+            {% for rc in changes_dict|get_item:route_id %}
+                <li>{{ rc.contact.name }} - {{ rc.old_address }}</li>
+            {% endfor %}
+        </ul>
         {% endif %}
-        {% if route_dict|get_item:route_id.distributor_directions %}
-        <tr>
-            <td colspan="6">
-                <pre style="font-size:1.4em;font-weight:bold;padding:1em;">{{ route_dict.route_id.distributor_directions }}</pre>
-            </td>
-        </tr>
+        {% if directions_dict|get_item:route_id %}
+            <pre style="font-size:1.4em;font-weight:bold;padding:1em;">{{ directions_dict|get_item:route_id }}</pre>
         {% endif %}
-      </table>
+      {% if issues_dict|get_item:route_id %}
+      <div class="container-fluid">
+        <table>
+            <caption style="caption-side: top">{% trans "Issues" %}</caption>
+            <thead>
+                <tr>
+                    <th>{% trans "Date" %}</th>
+                    <th>{% trans "Contact" %}</th>
+                    <th>{% trans "Phone" %}</th>
+                    <th>{% trans "Address" %}</th>
+                    <th>{% trans "Issue type" %}</th>
+                    <th>{% trans "Product" %}</th>
+                    <th>{% trans "Notes" %}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for issue in issues_dict|get_item:route_id %}
+                <tr>
+                    <td>{{issue.date}}</td>
+                    <td><a href="{% url 'contact_detail' issue.contact.id %}">{{ issue.contact.name }}</a></td>
+                    <td>{{issue.contact.phone}} {% if issue.contact.mobile %}{{issue.contact.mobile}}{% endif %}</td>
+                    <td>{{issue.get_address}}</td>
+                    <td>{{issue.get_subcategory}}</td>
+                    <td>{{issue.product}}</td>
+                    <td>{{issue.notes}}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+      </div>
+      {% endif %}
     {% endif %}
+<hr>
 <div style="page-break-after: always"></div> 
 {% endfor %}
 {% endblock %}

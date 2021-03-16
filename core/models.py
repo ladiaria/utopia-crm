@@ -417,7 +417,12 @@ class SubscriptionProduct(models.Model):
     special_instructions = models.TextField(blank=True, null=True)
 
     def __unicode__(self):
-        return '{} x{} ({})'.format(self.product, self.copies, self.subscription.contact.name)
+        if self.address:
+            address = self.address.address_1
+        else:
+            address = ""
+
+        return '{}  - {} - (Suscripción de ${})'.format(self.product, address, self.subscription.get_price_for_full_period())
 
 
 class SubscriptionNewsletter(models.Model):
@@ -522,8 +527,8 @@ class Subscription(models.Model):
     customer_id = models.CharField(max_length=24, blank=True, null=True)
 
     def __unicode__(self):
-        return _('%s subscription for the contact %s') % (
-            _('Active') if self.active else _('Inactive'), self.contact)
+        return _('{} subscription for the contact {} ({})').format(
+            _('Active') if self.active else _('Inactive'), self.contact.name, self.get_price_for_full_period())
 
     def get_product_count(self):
         """
@@ -696,6 +701,15 @@ class Subscription(models.Model):
                 raise Exception(
                     "Subscription {} for contact {} requires a route to be billed.".format(self.id, self.contact.id))
         return result
+
+    def get_address_by_priority(self):
+        for product in Product.objects.filter(type='S').order_by('billing_priority'):
+            if self.subscriptionproduct_set.filter(subscription=self, product=product).exists():
+                sp = self.subscriptionproduct_set.filter(subscription=self, product=product).first()
+                if sp.address:
+                    return sp.address.address_1
+                    break
+        return None
 
     def get_frequency_discount(self):
         """
