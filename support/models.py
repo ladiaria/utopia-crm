@@ -121,6 +121,14 @@ class Issue(models.Model):
         statuses = dict(ISSUE_STATUS)
         return statuses.get(self.status, "N/A")
 
+    def get_address(self):
+        if self.subscription_product and self.subscription_product.address:
+            return self.subscription_product.address.address_1
+        elif self.subscription:
+            return self.subscription.get_address_by_priority()
+        else:
+            return None
+
     def __unicode__(self):
         return "Issue of category {} for {} with status {}".format(
             self.get_category(), self.contact.name, self.get_status()

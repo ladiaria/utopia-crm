@@ -1108,7 +1108,6 @@ def new_issue(request, contact_id, category="L", subcategory=""):
                     subcategory=form.cleaned_data["subcategory"],
                     notes=form.cleaned_data["notes"],
                     copies=form.cleaned_data["copies"],
-                    subscription=form.cleaned_data["subscription"],
                     subscription_product=form.cleaned_data["subscription_product"],
                     product=form.cleaned_data["product"],
                     inside=False,
@@ -1122,9 +1121,6 @@ def new_issue(request, contact_id, category="L", subcategory=""):
         else:
             form = LogisticsIssueStartForm(
                 initial={"contact": contact, "category": "L"}
-            )
-            form.fields["subscription"].queryset = contact.subscriptions.filter(
-                active=True
             )
             form.fields[
                 "subscription_product"

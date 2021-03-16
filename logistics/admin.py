@@ -39,7 +39,7 @@ class GeorefAddressAdmin(admin.ModelAdmin):
 
 
 class RouteChangeAdmin(admin.ModelAdmin):
-    pass
+    raw_id_fields = ['contact']
 
 
 class DeliveryAdmin(admin.ModelAdmin):

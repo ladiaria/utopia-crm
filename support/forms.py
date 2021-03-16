@@ -274,7 +274,7 @@ class LogisticsIssueStartForm(forms.ModelForm):
         model = Issue
         widgets = {
             "notes": forms.Textarea(attrs={"class": "form-control"}),
-            "subscription": forms.Select(attrs={"class": "form-control"}),
+            "subscription_product": forms.Select(attrs={"class": "form-control"}),
             "category": forms.Select(attrs={"class": "form-control"}),
             "copies": forms.NumberInput(attrs={"class": "form-control"}),
         }
@@ -285,7 +285,6 @@ class LogisticsIssueStartForm(forms.ModelForm):
             "notes",
             "copies",
             "subscription_product",
-            "subscription",
             "product",
         )
 

@@ -6,6 +6,7 @@ from django.core.management import BaseCommand
 
 from core.models import ContactProductHistory, SubscriptionProduct
 from support.models import ScheduledTask
+from logistics.models import RouteChange
 
 
 class Command(BaseCommand):
@@ -88,6 +89,15 @@ class Command(BaseCommand):
                 print(_("Started address change scheduled task for {}'".format(contact)))
                 for sp in task.subscription_products.all():
                     # We need to change the address for said subscription_product
+                    rc = RouteChange.objects.create(
+                        product=sp.product,
+                        old_route=sp.route,
+                        contact=task.contact,
+                    )
+                    if sp.address:
+                        rc.old_address = "{} {}".format(sp.address.address_1, sp.address.address_2 or '')
+                        rc.old_city = sp.address.city or ''
+                        rc.save()
                     sp.address = address
                     # After this, we will delete their route anr orders
                     sp.route = None
