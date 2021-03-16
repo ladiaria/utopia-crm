@@ -376,11 +376,6 @@
         "invoiceitem"
       ],
       [
-        "change_operation",
-        "invoicing",
-        "operation"
-      ],
-      [
         "add_issue",
         "support",
         "issue"

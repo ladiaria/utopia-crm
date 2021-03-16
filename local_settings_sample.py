@@ -65,7 +65,7 @@ else:
     pass
 
 # Replace with your own allowed hosts.
-ALLOWED_HOSTS = ["127.0.0.1"]
+ALLOWED_HOSTS = ["localhost"]
 
 WEB_UPDATE_USER_ENABLED = False
 
@@ -139,7 +139,7 @@ MAILTRAIN_API_URL = MAILTRAIN_URL + "api/"
 MAILTRAIN_API_KEY = "your_secret_key"
 
 # Use this if you have a custom app that you want to load the URLs from
-URLS_CUSTOM_MODULE = 'your.module.urls'
+# URLS_CUSTOM_MODULE = 'your.module.urls'
 
 # Set this to true if you want to require route for billing. Useful for when you explicitly require to send the invoice
 # via logistics.
