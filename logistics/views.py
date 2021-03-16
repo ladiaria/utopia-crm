@@ -505,7 +505,8 @@ def route_details(request, route_list):
     changes_dict = {}
     copies_dict = {}
     subscription_products_dict = {}
-    # new_subscriptions_dict = {}
+    new_subscriptions_dict = {}
+    closing_subscriptions_dict = {}
     directions_dict = {}
     issues_dict = {}
     routes_with_subscriptions = []
@@ -513,7 +514,7 @@ def route_details(request, route_list):
     for route in routes:
         subscription_products = SubscriptionProduct.objects.filter(
             route=route, subscription__active=True, product__weekday=isoweekday).exclude(
-                product__name__contains='digital').order_by('order', 'address__address_1').select_related(
+                product__slug__contains='digital').order_by('order', 'address__address_1').select_related(
                 'subscription')
         if not subscription_products.exists():
             continue
@@ -528,6 +529,14 @@ def route_details(request, route_list):
 
         changes_list = route.routechange_set.filter(dt__gt=day - timedelta(4)).order_by('-dt')
         changes_dict[str(route.number)] = changes_list
+
+        # new_subscriptions = SubscriptionProduct.objects.filter(
+        #     route=route, subscription__start_date__gte=date.today() - timedelta(2), product__weekday=isoweekday)
+        closing_subscriptions = SubscriptionProduct.objects.filter(
+            route=route, subscription__end_date__gte=date.today() - timedelta(3)).exclude(
+            product__slug__contains='digital').distinct('subscription')
+        closing_subscriptions_dict[str(route.number)] = closing_subscriptions
+
         if route.directions:
             directions_dict[str(route.number)] = route.directions
 
@@ -542,6 +551,7 @@ def route_details(request, route_list):
         'changes_dict': changes_dict,
         'directions_dict': directions_dict,
         'issues_dict': issues_dict,
+        'closing_subscriptions_dict': closing_subscriptions_dict,
         'day': day,
         'one_month_ago': one_month_ago,
         'product': product,
