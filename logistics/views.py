@@ -487,39 +487,65 @@ def issues_labels(request):
 # TODO: Make a function similar to prints but generic.
 
 @login_required
-def route_details(request, route_number):
+def route_details(request, route_list):
     """
     Shows details for a selected route.
     """
     day = next_business_day()
     one_month_ago = day - timedelta(30)
     isoweekday = day.isoweekday()
-    route_object = get_object_or_404(Route, pk=route_number)
+
+    route_list = route_list.split(',')
+    route_list = [r for r in route_list if r.isdigit()]
+    routes = Route.objects.filter(number__in=route_list)
+
     product = Product.objects.get(weekday=isoweekday)
 
-    subscription_products = SubscriptionProduct.objects.filter(
-        route=route_object, subscription__active=True, product__weekday=isoweekday).exclude(
-            product__name__contains='digital').order_by('order', 'address__address_1').select_related(
-            'subscription')
+    routes_dict = {}
+    changes_dict = {}
+    copies_dict = {}
+    subscription_products_dict = {}
+    # new_subscriptions_dict = {}
+    directions_dict = {}
+    issues_dict = {}
+    routes_with_subscriptions = []
 
-    copies = subscription_products.aggregate(sum_copies=Sum('copies'))['sum_copies'] or 0
+    for route in routes:
+        subscription_products = SubscriptionProduct.objects.filter(
+            route=route, subscription__active=True, product__weekday=isoweekday).exclude(
+                product__name__contains='digital').order_by('order', 'address__address_1').select_related(
+                'subscription')
+        if not subscription_products.exists():
+            continue
+        subscription_products_dict[str(route.number)] = subscription_products
 
-    change_list = route_object.routechange_set.filter(dt__gt=day - timedelta(4)).order_by('-dt')
+        routes_dict[str(route.number)] = route
 
-    # TODO: De-activation log was migrated to CambioRuta Model, see eventos.py
-    #       ejecutar_evento view, and update/test this commented code
-    # lista_desactivados = Evento.objects.filter(
-    #    ruta=ruta, tipo='D', ejecutado=True,
-    #    fecha__gt=dia_siguiente() - timedelta(4))
+        routes_with_subscriptions.append(str(route.number))
+
+        copies = subscription_products.aggregate(sum_copies=Sum('copies'))['sum_copies'] or 0
+        copies_dict[str(route.number)] = copies
+
+        changes_list = route.routechange_set.filter(dt__gt=day - timedelta(4)).order_by('-dt')
+        changes_dict[str(route.number)] = changes_list
+        if route.directions:
+            directions_dict[str(route.number)] = route.directions
+
+        issues = Issue.objects.filter(subscription_product__route=route, category='L').exclude(
+            status='X').exclude(status='S').distinct()
+        issues_dict[str(route.number)] = issues
 
     return render(request, 'route_details.html', {
-        'route': route_object,
+        'route_list': routes_with_subscriptions,
+        'routes_dict': routes_dict,
+        'copies_dict': copies_dict,
+        'changes_dict': changes_dict,
+        'directions_dict': directions_dict,
+        'issues_dict': issues_dict,
         'day': day,
         'one_month_ago': one_month_ago,
         'product': product,
-        'copies': copies,
-        'subscription_products': subscription_products,
-        'change_list': change_list,
+        'subscription_products_dict': subscription_products_dict,
         'deactivated_list': []  # lista_desactivados,
     })
 

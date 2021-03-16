@@ -13,8 +13,8 @@ urlpatterns = [
     url(r'^change_route/$', change_route, name='change_route_default'),
     url(r'^order_route/(\d+)/$', order_route, name='order_route'),
     url(r'^change_route/(\d+)/$', change_route, name='change_route'),
-    url(r'^list_routes/$', list_routes, name='list_routes'),
-    url(r'^route/(\d+)/$', route_details, name='route_details'),
+    url(r'^routes/$', list_routes, name='list_routes'),
+    url(r'^routes/(?P<route_list>\d+(,\d+)*)/$', route_details, name='route_details'),
     url(r'^issues_labels/$', issues_labels, name='issues_labels'),
 
     # Label printing system

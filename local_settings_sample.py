@@ -95,7 +95,8 @@ STATES = (("State 1", "State 1"), ("State 2", "State 2"))
 
 # Add your payment methods for subscriptions here. This is required for the program to work.
 SUBSCRIPTION_PAYMENT_METHODS = (
-    ("O", "Other")("D", "Debit card"),
+    ("O", "Other"),
+    ("D", "Debit card"),
     ("S", "Cash payment"),
 )
 

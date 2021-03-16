@@ -1,5 +1,5 @@
 {% extends "adminlte/base.html" %}
-{% load static i18n %}
+{% load static i18n core_tags %}
 {% block stylesheets %}
     {{block.super}}
     <link href="{% static 'css/stylish-tables.css' %}" type="text/css" rel="stylesheet" />
@@ -9,14 +9,19 @@
 {% block content %}
 <div style="margin-bottom: 2em; font-size: 1.2em; font-weight: bold;">
 {% trans "Date" %}: {{ day }}<br>
-{% trans "Route" %}: {{ route.number }}<br>
-{% trans "Total" %}: {{ subscription_products|length }}<br>
-{% trans "Copies" %}: {{ copies }}<br>
 {% trans "Product" %}: {{ product }}
 </div>
 
-    {% if subscription_products %}
+{% for route_id in route_list %}
+    <div style="margin-bottom: 2em; font-size: 1.2em; font-weight: bold;">
+    {% trans "Route" %}: {{ route_id }}<br>
+    {% trans "Total" %}: {{ subscription_products_dict|get_item:route_id|length }}<br>
+    {% trans "Copies" %}: {{ copies_dict|get_item:route_id }}<br>
+    </div>
+
+    {% if subscription_products_dict|get_item:route_id %}
       <table cellpadding="2" cellspacing="2">
+        <caption style="caption-side: top">{% trans "Contacts in route" %}</caption>
             <tr>
                 <th width="1%">L</th>
                 <th width="1%">M</th>
@@ -33,7 +38,7 @@
                 <th>{% trans "City" %}</th>
                 <th>{% trans "Order" %}</th>
             </tr>
-        {% for sp in subscription_products %}
+        {% for sp in subscription_products_dict|get_item:route_id %}
             <tr class="{% cycle 'row1' 'row2' %}">
                 {% autoescape off %}
                 <td>{% if sp.subscription.has_monday %}*{% endif %}</td>
@@ -79,25 +84,52 @@
                 <td>{{ sp.order|default_if_none:"&nbsp;&nbsp;" }}</td>
             </tr>
         {% endfor %}
-        {% if change_list %}
-        <tr>
-            <td colspan="6">
-                <strong>{% trans "Changes in route" %}</strong>
-                <ul>
-                    {% for rc in change_list %}
-                        <li>{{ rc.contact.name }} - {{ rc.old_address }}</li>
-                    {% endfor %}
-                </ul>
-            </td>
-        </tr>
+        </table>
+
+        {% if changes_dict|get_item:route_id %}
+        <strong>{% trans "Changes in route" %}</strong>
+        <ul>
+            {% for rc in changes_dict|get_item:route_id %}
+                <li>{{ rc.contact.name }} - {{ rc.old_address }}</li>
+            {% endfor %}
+        </ul>
         {% endif %}
-        {% if route.distributor_directions %}
-        <tr>
-            <td colspan="6">
-                <pre style="font-size:1.4em;font-weight:bold;padding:1em;">{{ route.distributor_directions }}</pre>
-            </td>
-        </tr>
+        {% if directions_dict|get_item:route_id %}
+            <pre style="font-size:1.4em;font-weight:bold;padding:1em;">{{ directions_dict|get_item:route_id }}</pre>
         {% endif %}
-      </table>
+      {% if issues_dict|get_item:route_id %}
+      <div class="container-fluid">
+        <table>
+            <caption style="caption-side: top">{% trans "Issues" %}</caption>
+            <thead>
+                <tr>
+                    <th>{% trans "Date" %}</th>
+                    <th>{% trans "Contact" %}</th>
+                    <th>{% trans "Phone" %}</th>
+                    <th>{% trans "Address" %}</th>
+                    <th>{% trans "Issue type" %}</th>
+                    <th>{% trans "Product" %}</th>
+                    <th>{% trans "Notes" %}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for issue in issues_dict|get_item:route_id %}
+                <tr>
+                    <td>{{issue.date}}</td>
+                    <td><a href="{% url 'contact_detail' issue.contact.id %}">{{ issue.contact.name }}</a></td>
+                    <td>{{issue.contact.phone}} {% if issue.contact.mobile %}{{issue.contact.mobile}}{% endif %}</td>
+                    <td>{{issue.get_address}}</td>
+                    <td>{{issue.get_subcategory}}</td>
+                    <td>{{issue.product}}</td>
+                    <td>{{issue.notes}}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+      </div>
+      {% endif %}
     {% endif %}
+<hr>
+<div style="page-break-after: always"></div> 
+{% endfor %}
 {% endblock %}
