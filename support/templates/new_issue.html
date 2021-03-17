@@ -16,13 +16,13 @@
     <div class="card">
       <div class="card-header p-2">
         <ul class="nav nav-pills">
-          <li class="new-item"><a class="nav-link active" href="{% url 'new_issue' contact.id 'L'  %}">{% trans 'Common incidents' %}</a></li>
-          <li class="new-item"><a class="nav-link" href="{% url 'new_issue' contact.id 'S' 'S05'  %}">{% trans 'Change address' %}</a></li>
-          <li class="new-item"><a class="nav-link" href="{% url 'new_issue' contact.id 'S' 'S04'  %}">{% trans 'Pause subscription' %}</a></li>
+          <li class="new-item"><a class="nav-link active" href="{% url 'new_issue' contact.id  %}">{% trans 'Common incidents' %}</a></li>
+          <li class="new-item"><a class="nav-link" href="{% url 'new_scheduled_task' contact.id 'S05'  %}">{% trans 'Change address' %}</a></li>
+          <li class="new-item"><a class="nav-link" href="{% url 'new_scheduled_task' contact.id 'S04'  %}">{% trans 'Pause subscription' %}</a></li>
         </ul>
       </div>
       <div class="card-body">
-        <h3>{% trans "New logistics issue" %}</h3>
+        <h3>{% trans "New issue" %}</h3>
         <form method="post">
           {% if form.errors %}
               {% for field in form %}

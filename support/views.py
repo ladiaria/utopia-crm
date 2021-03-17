@@ -34,6 +34,7 @@ from core.models import (
     SubscriptionNewsletter,
 )
 
+from .filters import IssueFilter
 from .forms import *
 from .models import Seller, ScheduledTask
 from core.utils import calc_price_from_products, process_products
@@ -1046,9 +1047,10 @@ def list_issues(request):
     """
     Shows a very basic list of issues.
     """
+    issues_queryset = Issue.objects.all().order_by("-date")
+    issues_filter = IssueFilter(request.GET, queryset=issues_queryset)
     page_number = request.GET.get("p")
-    issues = Issue.objects.all().order_by("-id")
-    paginator = Paginator(issues, 100)
+    paginator = Paginator(issues_filter.qs, 100)
     try:
         page = paginator.page(page_number)
     except PageNotAnInteger:
@@ -1063,6 +1065,7 @@ def list_issues(request):
         {
             "page": page,
             "paginator": paginator,
+            "issues_filter": issues_filter,
         },
     )
 
@@ -1092,46 +1095,40 @@ def select_contact_for_issue(request, issue_type):
 
 
 @login_required
-def new_issue(request, contact_id, category="L", subcategory=""):
+def new_issue(request, contact_id):
     """
     Creates an issue of a selected category and subcategory.
     """
     contact = get_object_or_404(Contact, pk=contact_id)
-    if category == "L" and subcategory == "":
-        # Logistics issue
-        if request.POST:
-            form = LogisticsIssueStartForm(request.POST)
-            if form.is_valid():
-                Issue.objects.create(
-                    contact=form.cleaned_data["contact"],
-                    category="L",
-                    subcategory=form.cleaned_data["subcategory"],
-                    notes=form.cleaned_data["notes"],
-                    copies=form.cleaned_data["copies"],
-                    subscription_product=form.cleaned_data["subscription_product"],
-                    product=form.cleaned_data["product"],
-                    inside=False,
-                    manager=request.user,
-                    status="P",
-                )
-                return HttpResponseRedirect(
-                    "/admin/core/contact/{}/".format(form.cleaned_data["contact"].id)
-                )
-                # TODO: Reverse to admin
-        else:
-            form = LogisticsIssueStartForm(
-                initial={"contact": contact, "category": "L"}
+    if request.POST:
+        form = IssueStartForm(request.POST)
+        if form.is_valid():
+            if form.cleaned_data["assigned_to"]:
+                status = IssueStatus.objects.get(slug=settings.ASSIGNED_ISSUE_STATUS_SLUG)
+            else:
+                status = IssueStatus.objects.get(slug=settings.UNASSIGNED_ISSUE_STATUS_SLUG)
+            Issue.objects.create(
+                contact=form.cleaned_data["contact"],
+                category=form.cleaned_data["category"],
+                subcategory=form.cleaned_data["subcategory"],
+                notes=form.cleaned_data["notes"],
+                copies=form.cleaned_data["copies"],
+                subscription_product=form.cleaned_data["subscription_product"],
+                product=form.cleaned_data["product"],
+                inside=False,
+                manager=request.user,
+                assigned_to=form.cleaned_data["assigned_to"],
+                status=status,
             )
-            form.fields[
-                "subscription_product"
-            ].queryset = SubscriptionProduct.objects.filter(
-                subscription__contact=contact, subscription__active=True
-            )
-        return render(
-            request, "new_logistics_issue.html", {"contact": contact, "form": form}
-        )
+            return HttpResponseRedirect(reverse("contact_detail", args=[contact.id]))
+    else:
+        form = IssueStartForm()
+    return render(request, "new_issue.html", {"contact": contact, "form": form})
 
-    elif category == "S" and subcategory == "S04":
+
+@login_required
+def new_scheduled_task(request, contact_id, subcategory):
+    if subcategory == "S04":
         # Services / pause issue
         if request.POST:
             form = NewPauseScheduledTaskForm(request.POST)
@@ -1176,7 +1173,7 @@ def new_issue(request, contact_id, category="L", subcategory=""):
             {"contact": contact, "form": form, "subcategory": subcategory},
         )
 
-    elif category == "S" and subcategory == "S05":
+    elif subcategory == "S05":
         # Services / address change issue
         if request.POST:
             form = NewAddressChangeScheduledTaskForm(request.POST)
@@ -1251,12 +1248,12 @@ def view_issue(request, issue_id):
     """
     issue = get_object_or_404(Issue, pk=issue_id)
     if request.POST:
-        form = LogisticsIssueChangeForm(request.POST, instance=issue)
+        form = IssueChangeForm(request.POST, instance=issue)
         if form.is_valid():
             form.save()
             return HttpResponseRedirect(reverse("view_issue", args=(issue_id,)))
     else:
-        form = LogisticsIssueChangeForm(instance=issue)
+        form = IssueChangeForm(instance=issue)
     return render(
         request,
         "view_issue.html",

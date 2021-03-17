@@ -47,19 +47,13 @@
   </a>
   <ul class="nav nav-treeview">
     <li class="nav-item {% ifequal request.path select_contact_for_issue_l %}active{% endifequal %}">
-      <a id="holus"  href="{{select_contact_for_issue_l}}" class="nav-link {% ifequal request.path select_contact_for_issue_l %}active{% endifequal %}">{% trans 'New incident' %}</a>
+      <a href="{{select_contact_for_issue_l}}" class="nav-link {% ifequal request.path select_contact_for_issue_l %}active{% endifequal %}">{% trans 'New issue' %}</a>
     </li>
-    <li class="nav-item">
-      <a href="{{select_contact_for_issue_s05}}" class="nav-link {% ifequal request.path select_contact_for_issue_s05 %}active{% endifequal %}">{% trans 'Change address' %}</a>
-    </li>
-    <li class="nav-item">
-      <a href="{{select_contact_for_issue_s04}}" class="nav-link {% ifequal request.path select_contact_for_issue_s04 %}active{% endifequal %}">{% trans 'Pause subscription' %}</a>
-    </li>
+    <li class="nav-item"><a href="{{list_issues}}" class="nav-link {% ifequal request.path list_issues %}active{% endifequal %}">{% trans 'List issues' %}</a></li>
     <li class="nav-item"><a href="{{import_contacts}}" class="nav-link {% ifequal request.path import_contacts %}active{% endifequal %}">{% trans 'Import new contacts' %}</a></li>
     <li class="nav-item"><a href="{{assign_campaigns}}" class="nav-link {% ifequal request.path assign_campaigns %}active{% endifequal %}">{% trans 'Assign campaigns' %}</a></li>
     <li class="nav-item"><a href="{{assign_to_seller}}" class="nav-link {% ifequal request.path assign_to_seller %}active{% endifequal %}">{% trans 'Assign contacts to sellers' %}</a></li>
     <li class="nav-item"><a href="{{core_campaign_add}}" target="_blank" class="nav-link">{% trans "New campaign" %}</a></li>
-    <li class="nav-item"><a href="{{list_issues}}" class="nav-link {% ifequal request.path list_issues %}active{% endifequal %}">{% trans 'List issues' %}</a></li>
     <li class="nav-item"><a href="{{seller_console_list_campaigns}}" class="nav-link {% ifequal request.path seller_console_list_campaigns %}active{% endifequal %}">{% trans 'Seller console' %}</a></li>
     <li class="nav-item"><a href="{{dynamic_contact_filter_list}}" class="nav-link {% ifequal request.path dynamic_contact_filter_list %}active{% endifequal %}">{% trans 'Dynamic contact filter list' %}</a></li>
   </ul>

@@ -7,13 +7,13 @@ from datetime import date
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils.translation import ugettext_lazy as _
+from django_extensions.db.fields import AutoSlugField
 
 from core.models import Campaign
 
 from support.choices import (
     ISSUE_CATEGORIES,
     ISSUE_ANSWERS,
-    ISSUE_STATUS,
     ISSUE_SUBCATEGORIES,
     SCHEDULED_TASK_CATEGORIES,
 )
@@ -92,9 +92,7 @@ class Issue(models.Model):
         max_length=2, blank=True, null=True, choices=ISSUE_ANSWERS
     )
     answer_2 = models.TextField(blank=True, null=True)
-    status = models.CharField(
-        max_length=1, blank=True, null=True, choices=ISSUE_STATUS, default="P"
-    )
+    status = models.ForeignKey('support.IssueStatus', blank=True, null=True)
     end_date = models.DateField(blank=True, null=True)
     next_action_date = models.DateField(blank=True, null=True)
     closing_date = models.DateField(blank=True, null=True)
@@ -118,8 +116,10 @@ class Issue(models.Model):
         return subcategories.get(self.subcategory, "N/A")
 
     def get_status(self):
-        statuses = dict(ISSUE_STATUS)
-        return statuses.get(self.status, "N/A")
+        if self.status:
+            return self.status.name
+        else:
+            return None
 
     def get_address(self):
         if self.subscription_product and self.subscription_product.address:
@@ -162,6 +162,17 @@ class ScheduledTask(models.Model):
     def get_category(self):
         categories = dict(SCHEDULED_TASK_CATEGORIES)
         return categories.get(self.category, "N/A")
+
+    class Meta:
+        pass
+
+
+class IssueStatus(models.Model):
+    name = models.CharField(max_length=60)
+    slug = AutoSlugField(populate_from='name', null=True, blank=True)
+
+    def __unicode__(self):
+        return self.name
 
     class Meta:
         pass

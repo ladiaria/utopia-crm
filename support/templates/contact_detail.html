@@ -138,9 +138,11 @@
                             {% if issues %}
                               <dl>
                                 {% for issue in issues %}
-                                  <dt>{{issue.get_status}}</dt>
+                                  <dt>{{issue.get_category}} - {{issue.get_subcategory}} - <a href="{% url 'view_issue' issue.id %}" target="_blank" class="btn btn-primary btn-sm">{% trans "View" %}</a></dt>
+                                  <dd>{{issue.get_status}}</dd>
                                   <dd>{{issue.date_created}}</dd>
-                                  <dd>{{issue.notes}}</dd>
+                                  <dd>{{issue.notes|linebreaks}}</dd>
+                                  <hr>
                                 {% endfor %}
                               </dl>
                             {% else %}
@@ -426,7 +428,7 @@
                                   <td>{{issue.get_subcategory}}</td>
                                   <td>{{issue.get_status}}</td>
                                   <td>{{issue.assigned_to}}</td>
-                                  <td><a href="{% url 'view_issue' issue.id %}" class="btn btn-primary btn-sm">{% trans "View" %}</a></td>
+                                  <td><a href="{% url 'view_issue' issue.id %}" target="_blank" class="btn btn-primary btn-sm">{% trans "View" %}</a></td>
                                 </tr>
                                 {% endfor %}
                               </tbody>

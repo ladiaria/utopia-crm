@@ -234,7 +234,6 @@ class GestionStartForm(forms.ModelForm):
             "progress",
             "answer_1",
             "answer_2",
-            "status",
             "end_date",
             "next_action_date",
             "closing_date",
@@ -242,7 +241,7 @@ class GestionStartForm(forms.ModelForm):
         )
 
 
-class LogisticsIssueStartForm(forms.ModelForm):
+class IssueStartForm(forms.ModelForm):
     """
     Used when you want to start an issue to track logistics, what used to be 'Claims
     """
@@ -257,16 +256,11 @@ class LogisticsIssueStartForm(forms.ModelForm):
     product = forms.ModelChoiceField(
         queryset=Product.objects.filter(type="S"),
         widget=forms.Select(attrs={"class": "form-control"}),
+        required=False,
     )
 
-    # Add a default empty option
-    logistics_subcategories = [("", "-----")]
-    for subcategory in ISSUE_SUBCATEGORIES:
-        # Only show the options that are set as logistics, they all start with an L on the key
-        if subcategory[0][0] == "L":
-            logistics_subcategories.append(subcategory)
     subcategory = forms.ChoiceField(
-        choices=logistics_subcategories,
+        choices=ISSUE_SUBCATEGORIES,
         widget=forms.Select(attrs={"class": "form-control"}),
     )
 
@@ -289,7 +283,7 @@ class LogisticsIssueStartForm(forms.ModelForm):
         )
 
 
-class LogisticsIssueChangeForm(forms.ModelForm):
+class IssueChangeForm(forms.ModelForm):
     """
     Used when you want to start an issue to track logistics, what used to be 'Claims'
     """
@@ -308,11 +302,11 @@ class LogisticsIssueChangeForm(forms.ModelForm):
         }
         fields = (
             "contact",
+            "status",
             "progress",
             "answer_1",
             "answer_2",
             "assigned_to",
-            "status",
         )
 
 

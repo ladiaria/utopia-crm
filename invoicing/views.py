@@ -461,12 +461,12 @@ def invoice_filter(request):
         queryset = Invoice.objects.filter(creation_date=date.today())
     else:
         queryset = Invoice.objects.all()
-    page = request.GET.get("p")
+    page_number = request.GET.get("p")
     invoice_queryset = queryset.order_by("-id")
     invoice_filter = InvoiceFilter(request.GET, queryset=invoice_queryset)
     paginator = Paginator(invoice_filter.qs, 200)
     try:
-        invoices = paginator.page(page)
+        invoices = paginator.page(page_number)
     except PageNotAnInteger:
         # If page is not an integer, deliver first page.
         invoices = paginator.page(1)
@@ -485,7 +485,7 @@ def invoice_filter(request):
     return render(
         request, 'invoice_filter.html', {
             'invoices': invoices,
-            'page': page,
+            'page': page_number,
             'paginator': paginator,
             'invoice_filter': invoice_filter,
             'invoices_count': invoices_count,

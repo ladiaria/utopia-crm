@@ -1,5 +1,5 @@
 {% extends 'adminlte/base.html' %}
-{% load static i18n %}
+{% load static i18n sip %}
 {% block no_heading %}
 <h1>{% trans 'Support' %}</h1>
 <p>{% trans "View and update issue details" %}</p>
@@ -23,19 +23,23 @@
               <div class="card-body">
                 <dl>
                     <dt>{% trans "Contact" %}</dt>
-                    <dd><a href="{% url 'contact_detail' issue.contact.id %}">{{issue.contact}}</a></dd>
+                    <dd><a href="{% url 'contact_detail' issue.contact.id %}" target="_blank">{{issue.contact}}</a></dd>
                     <dt>{% trans "Start date" %}</dt>
                     <dd>{{issue.date_created}}</dd>
                     <dt>{% trans "Contact phone" %}</dt>
-                    <dd>{{issue.contact.phone}}</dd>
+                    <dd>{{ issue.contact.phone }}</dd>
+                    {% if issue.contact.mobile %}
+                      <dt>{% trans "Contact mobile phone" %}</dt>
+                      <dd>{{ issue.contact.mobile }}</dd>
+                    {% endif %}
                     <dt>{% trans "Category" %}</dt>
                     <dd>{{issue.get_category}}</dd>
                     <dt>{% trans "Subcategory" %}</dt>
                     <dd>{{issue.get_subcategory}}</dd>
                     <dt>{% trans "Created by" %}</dt>
-                    <dd>{{issue.manager}}</dd>
+                    <dd>{{issue.manager|default_if_none:"-"}}</dd>
                     <dt>{% trans "Notes" %}</dt>
-                    <dd>{{issue.notes}}</dd>
+                    <dd>{{issue.notes|linebreaks}}</dd>
                   </dl>
 
               </div><!-- /.card-body -->
@@ -47,9 +51,13 @@
               <div class="card-body">
                 <form method="post">
                     {%csrf_token%}
-                    <div class="form-group">
+                    <div class="form-group d-none">
                       <label for="id_progress">{{form.contact.label}}</label>
                       {{form.contact}}
+                    </div>
+                    <div class="form-group">
+                      <label id="id_status">{{form.status.label}}</label>
+                      {{form.status}}
                     </div>
                     <div class="form-group">
                       <label for="id_progress">{{form.progress.label}}</label>
@@ -66,10 +74,6 @@
                     <div class="form-group">
                       <label for="id_assigned_to">{{form.assigned_to.label}}</label>
                       {{form.assigned_to}}
-                    </div>
-                    <div class="form-group">
-                      <label id="id_status">{{form.status.label}}</label>
-                      {{form.status}}
                     </div>
                     <div class="form-group text-right">
                       <button type="submit"  name="submit" class="btn bg-gradient-primary">{% trans 'Update' %}</button>
