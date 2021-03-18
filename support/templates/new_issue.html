@@ -2,12 +2,12 @@
 {% load static i18n %}
 {% block no_heading %}
 <h1>{% trans 'Support' %}</h1>
-<p>{% trans 'Create new logistics incident' %}</p>
+<p>{% trans 'Register an issue' %}</p>
 {% endblock %}
 {% block breadcrumbs %}
 <ol class="breadcrumb">
     <li class="breadcrumb-item"><a href="/support/">{% trans 'Support' %}</a></li>
-    <li class="breadcrumb-item active">{% trans 'New incident' %}</li>
+    <li class="breadcrumb-item active">{% trans 'New issue' %}</li>
 </ol>
 {% endblock %}
 {% block content %}
@@ -16,13 +16,13 @@
     <div class="card">
       <div class="card-header p-2">
         <ul class="nav nav-pills">
-          <li class="new-item"><a class="nav-link active" href="{% url 'new_issue' contact.id 'L'  %}">{% trans 'Common incidents' %}</a></li>
-          <li class="new-item"><a class="nav-link" href="{% url 'new_issue' contact.id 'S' 'S05'  %}">{% trans 'Change address' %}</a></li>
-          <li class="new-item"><a class="nav-link" href="{% url 'new_issue' contact.id 'S' 'S04'  %}">{% trans 'Pause subscription' %}</a></li>
+          <li class="new-item"><a class="nav-link active" href="{% url 'new_issue' contact.id  %}">{% trans 'Common incidents' %}</a></li>
+          <li class="new-item"><a class="nav-link" href="{% url 'new_scheduled_task' contact.id 'S05'  %}">{% trans 'Change address' %}</a></li>
+          <li class="new-item"><a class="nav-link" href="{% url 'new_scheduled_task' contact.id 'S04'  %}">{% trans 'Pause subscription' %}</a></li>
         </ul>
       </div>
       <div class="card-body">
-        <h3>{% trans "New logistics issue" %}</h3>
+        <h3>{% trans "New issue for contact" %} {{contact.name}}</h3>
         <form method="post">
           {% if form.errors %}
               {% for field in form %}
@@ -39,7 +39,7 @@
               {% endfor %}
           {% endif %}
             {%csrf_token%}
-            <div class="form-group">
+            <div class="form-group d-none">
               <label for="id_contact">{{form.contact.label}}</label>
               {{form.contact}}
               <span class="error invalid-feedback">{{form.contact.errors}}</span>
@@ -60,18 +60,8 @@
               <span class="error invalid-feedback">{{form.copies.errors}}</span>
             </div>
             <div class="form-group">
-              <label>{% trans "Priority (Required)" %}</label>
-              <select class="form-control">
-                  <option>{% trans "Choose" %}</option>
-                  <option>{% trans "Normal" %}</option>
-                  <option>{% trans "Highest" %}</option>
-              </select>
-            </div>
-            <div class="form-group">
               <label>{% trans "Assigned to" %}</label>
-              <select class="form-control">
-                <option>{% trans "Choose" %}</option>
-              </select>
+              {{form.assigned_to}}
             </div>
             <div class="form-group">
               <label for="id_subscription_product">{{form.subscription_product.label}}</label>
@@ -82,6 +72,11 @@
               <label for="id_product">{{form.product.label}}</label>
               {{form.product}}
               <span class="error invalid-feedback">{{form.product.errors}}</span>
+            </div>
+            <div class="form-group">
+              <label for="id_activity_type">{{form.activity_type.label}}</label>
+              {{form.activity_type}}
+              <span class="error invalid-feedback">{{form.activity_type.errors}}</span>
             </div>
             <div class="form-group">
               <label for="id_notes">{{form.notes.label}}</label>

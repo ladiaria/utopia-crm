@@ -219,7 +219,8 @@ class Contact(models.Model):
         """
         from invoicing.models import Invoice
         invoices = Invoice.objects.filter(
-            contact=self, expiration_date__lte=date.today(), paid=False, debited=False)
+            contact=self, expiration_date__lte=date.today(), paid=False, debited=False,
+            canceled=False, uncollectible=False)
         return invoices
 
     def get_latest_invoice(self):
@@ -256,11 +257,18 @@ class Contact(models.Model):
             debited=False, canceled=False, uncollectible=False).aggregate(Sum('amount'))
         return sum_import.get('amount__sum', None)
 
-    def has_no_open_issues(self):
+    def has_no_open_issues(self, category=None):
         """
-        Checks if all the issues for this contact are finalized (Both solved and Finalized unsolved)
+        Checks if all the issues for this contact are finalized, based off the finished issue status slug list on
+        the settings. Use any statuses you like to be used as an issue finisher.
         """
-        return self.issue_set.filter(status__in='XS').count() == self.issue_set.all().count()
+        if category:
+            return self.issue_set.filter(
+                status__slug__in=settings.FINISHED_ISSUE_STATUS_SLUG_LIST,
+                category=category).count() == self.issue_set.all().count()
+        else:
+            return self.issue_set.filter(
+                status__slug__in=settings.FINISHED_ISSUE_STATUS_SLUG_LIST).count() == self.issue_set.all().count()
 
     def get_subscriptions(self):
         """
@@ -934,11 +942,18 @@ class Subscription(models.Model):
         """
         return self.products.filter(type='S', weekday=10).exists()
 
-    def has_no_open_issues(self):
+    def has_no_open_issues(self, category=None):
         """
-        Checks if all this subscription's issues are solved or unsolved (finalized)
+        Checks if all this subscription's issues are finished based off the finished issue status slug list on the
+        settings. Use any statuses you like as issue finishers.
         """
-        return self.issue_set.exclude(status__in='XS').count() == self.issue_set.all().count()
+        if category:
+            return self.issue_set.exclude(
+                status__slug__in=FINISHED_ISSUE_STATUS_SLUG_LIST,
+                category=category).count() == self.issue_set.all().count()
+        else:
+            return self.issue_set.exclude(
+                status__slug__in=FINISHED_ISSUE_STATUS_SLUG_LIST).count() == self.issue_set.all().count()
 
     def show_products_html(self, ul=False):
         """

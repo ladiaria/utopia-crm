@@ -144,3 +144,23 @@ MAILTRAIN_API_KEY = "your_secret_key"
 # Set this to true if you want to require route for billing. Useful for when you explicitly require to send the invoice
 # via logistics.
 REQUIRE_ROUTE_FOR_BILLING = False
+
+# Use these to set your own answers to issues. Each answer must be a tuple with two characters on the first element,
+# and a string on the second element.
+ISSUE_ANSWERS = (
+    ('I1', 'Collected'),
+    ('L1', 'Delivered again'),
+)
+
+# Used to generate new issues on the generate_invoicing_issues management command. Use a slug for your preferred status
+NEW_INVOICING_ISSUE_STATUS_SLUG = 'new'
+
+# Set a list of statuses slugs that will be used to mark the issue as finished. Examples below.
+SOLVED_ISSUE_STATUS_SLUG = 'solved'
+FINISHED_ISSUE_STATUS_SLUG_LIST = ['solved', 'not-solved']
+
+# Used when a new issue is created, depending if it was assigned or not
+ASSIGNED_ISSUE_STATUS_SLUG = 'assigned'
+UNASSIGNED_ISSUE_STATUS_SLUG = 'unassigned'
+PENDING_ISSUE_STATUS_SLUG = 'pending'
+AUTO_ISSUE_STATUS_SLUG = 'automatic'  # for automatic tasks that have not been completed yet
