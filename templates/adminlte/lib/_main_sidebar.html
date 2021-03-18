@@ -12,16 +12,12 @@
 
 {% url 'contact_list' as contact_list %}
 {% url 'list_issues' as list_issues %}
-{% url 'select_contact_for_issue' 'L' as select_contact_for_issue_l %}
-{% url 'select_contact_for_issue' 'S05' as select_contact_for_issue_s05 %}
-{% url 'select_contact_for_issue' 'S04' as select_contact_for_issue_s04 %}
 {% url 'import_contacts' as import_contacts %}
 {% url 'assign_campaigns' as assign_campaigns %}
 {% url 'assign_to_seller' as assign_to_seller %}
 {% url 'admin:core_campaign_add' as core_campaign_add %}
 {% url 'list_issues' as list_issues %}
 {% url 'seller_console_list_campaigns' as seller_console_list_campaigns %}
-{% url 'billings_control_panel' as billings_control_panel %}
 {% url 'print_invoices' as print_invoices %}
 {% url 'invoice_filter' as invoice_filter %}
 {% url "assign_routes" as assign_routes %}
@@ -46,9 +42,6 @@
     </p>
   </a>
   <ul class="nav nav-treeview">
-    <li class="nav-item {% ifequal request.path select_contact_for_issue_l %}active{% endifequal %}">
-      <a href="{{select_contact_for_issue_l}}" class="nav-link {% ifequal request.path select_contact_for_issue_l %}active{% endifequal %}">{% trans 'New issue' %}</a>
-    </li>
     <li class="nav-item"><a href="{{list_issues}}" class="nav-link {% ifequal request.path list_issues %}active{% endifequal %}">{% trans 'List issues' %}</a></li>
     <li class="nav-item"><a href="{{import_contacts}}" class="nav-link {% ifequal request.path import_contacts %}active{% endifequal %}">{% trans 'Import new contacts' %}</a></li>
     <li class="nav-item"><a href="{{assign_campaigns}}" class="nav-link {% ifequal request.path assign_campaigns %}active{% endifequal %}">{% trans 'Assign campaigns' %}</a></li>
@@ -66,7 +59,6 @@
     </p>
   </a>
   <ul class="nav nav-treeview">
-    <li class="nav-item"><a href="{{billings_control_panel}}" class="nav-link {% ifequal request.path billings_control_panel %}active{% endifequal %}">{% trans 'Billings' %}</a></li>
     <li class="nav-item"><a href="{{print_invoices}}" class="nav-link {% ifequal request.path print_invoices %}active{% endifequal %}">{% trans 'Print invoices' %}</a></li>
     <li class="nav-item"><a href="{{invoice_filter}}" class="nav-link {% ifequal request.path invoice_filter %}active{% endifequal %}">{% trans 'Invoice filter' %}</a></li>
   </ul>

@@ -6,8 +6,8 @@ from django import forms
 from .models import Issue
 from .choices import ISSUE_SUBCATEGORIES
 
-from core.models import Contact, Product, Subscription, Address, DynamicContactFilter
-from core.choices import ADDRESS_TYPE_CHOICES, FREQUENCY_CHOICES
+from core.models import Contact, Product, Subscription, Address, DynamicContactFilter, SubscriptionProduct
+from core.choices import ADDRESS_TYPE_CHOICES, FREQUENCY_CHOICES, ACTIVITY_TYPES
 
 from support.models import Seller
 
@@ -61,6 +61,10 @@ class NewPauseScheduledTaskForm(forms.Form):
             attrs={"class": "datepicker form-control float-right"}
         )
     )
+    activity_type = forms.ChoiceField(
+        widget=forms.Select(attrs={"class": "form-control"}),
+        choices=ACTIVITY_TYPES,
+    )
 
     def clean(self):
         date_1 = self.cleaned_data.get("date_1")
@@ -109,6 +113,10 @@ class NewAddressChangeScheduledTaskForm(forms.Form):
         required=False,
         choices=ADDRESS_TYPE_CHOICES,
         widget=forms.Select(attrs={"class": "form-control"}),
+    )
+    activity_type = forms.ChoiceField(
+        widget=forms.Select(attrs={"class": "form-control"}),
+        choices=ACTIVITY_TYPES,
     )
 
     def clean(self):
@@ -259,9 +267,20 @@ class IssueStartForm(forms.ModelForm):
         required=False,
     )
 
+    subscription_product = forms.ModelChoiceField(
+        queryset=SubscriptionProduct.objects.all(),
+        widget=forms.Select(attrs={"class": "form-control"}),
+        required=False,
+    )
+
     subcategory = forms.ChoiceField(
         choices=ISSUE_SUBCATEGORIES,
         widget=forms.Select(attrs={"class": "form-control"}),
+    )
+
+    activity_type = forms.ChoiceField(
+        widget=forms.Select(attrs={"class": "form-control"}),
+        choices=ACTIVITY_TYPES,
     )
 
     class Meta:
@@ -271,6 +290,7 @@ class IssueStartForm(forms.ModelForm):
             "subscription_product": forms.Select(attrs={"class": "form-control"}),
             "category": forms.Select(attrs={"class": "form-control"}),
             "copies": forms.NumberInput(attrs={"class": "form-control"}),
+            "assigned_to": forms.Select(attrs={"class": "form-control"}),
         }
         fields = (
             "contact",
@@ -280,6 +300,7 @@ class IssueStartForm(forms.ModelForm):
             "copies",
             "subscription_product",
             "product",
+            "assigned_to",
         )
 
 

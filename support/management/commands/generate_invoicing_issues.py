@@ -5,7 +5,7 @@ from django.utils.translation import ugettext_lazy as _
 from django.core.management import BaseCommand
 from django.conf import settings
 
-from core.models import Contact, Invoice
+from core.models import Invoice
 from support.models import Issue, IssueStatus
 
 
@@ -28,7 +28,7 @@ class Command(BaseCommand):
         for invoice in invoices.iterator():
             try:
                 contact = invoice.contact
-                if contact.has_no_open_issues():
+                if contact.has_no_open_issues('I'):  # No open issues with category I
                     print(_("Generating issue for contact {}".format(contact.name)))
                     expired_invoices = contact.get_expired_invoices()
                     overdue_invoices_str = str([x.id for x in expired_invoices]).strip('[]')

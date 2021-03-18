@@ -36,7 +36,7 @@ from core.models import (
 
 from .filters import IssueFilter
 from .forms import *
-from .models import Seller, ScheduledTask
+from .models import Seller, ScheduledTask, IssueStatus
 from core.utils import calc_price_from_products, process_products
 from util.dates import add_business_days
 
@@ -701,7 +701,7 @@ def start_paid_subscription(request, contact_id):
             if url:
                 return HttpResponseRedirect(url + "?offset=%d" % int(offset))
             else:
-                return HttpResponseRedirect("/admin/core/contact/{}/".format(contact.id))
+                return HttpResponseRedirect(reverse("contact_detail", args=[contact.id]))
 
     return render(
         request,
@@ -1071,30 +1071,6 @@ def list_issues(request):
 
 
 @login_required
-def select_contact_for_issue(request, issue_type):
-    """
-    Asks for a contact id before creating an issue.
-    """
-    form = SelectContactForIssue(
-        request.POST or None, initial={"issue_type": issue_type}
-    )
-    if request.POST:
-        if form.is_valid():
-            issue_type = form.cleaned_data["issue_type"]
-            contact_id = form.cleaned_data["contact_id"]
-            if issue_type.startswith("S"):
-                return HttpResponseRedirect(
-                    reverse("new_issue", args=[contact_id, "S", issue_type])
-                )
-            elif issue_type.startswith("L"):
-                return HttpResponseRedirect(
-                    reverse("new_issue", args=[contact_id, "L"])
-                )
-
-    return render(request, "select_contact_for_issue.html", {"form": form})
-
-
-@login_required
 def new_issue(request, contact_id):
     """
     Creates an issue of a selected category and subcategory.
@@ -1107,7 +1083,7 @@ def new_issue(request, contact_id):
                 status = IssueStatus.objects.get(slug=settings.ASSIGNED_ISSUE_STATUS_SLUG)
             else:
                 status = IssueStatus.objects.get(slug=settings.UNASSIGNED_ISSUE_STATUS_SLUG)
-            Issue.objects.create(
+            new_issue = Issue.objects.create(
                 contact=form.cleaned_data["contact"],
                 category=form.cleaned_data["category"],
                 subcategory=form.cleaned_data["subcategory"],
@@ -1120,14 +1096,30 @@ def new_issue(request, contact_id):
                 assigned_to=form.cleaned_data["assigned_to"],
                 status=status,
             )
+            Activity.objects.create(
+                datetime=datetime.now(),
+                contact=contact,
+                issue=new_issue,
+                notes=_("See related issue"),
+                activity_type=form.cleaned_data["activity_type"],
+                status='C',  # completed
+                direction='I',
+            )
             return HttpResponseRedirect(reverse("contact_detail", args=[contact.id]))
     else:
-        form = IssueStartForm()
+        form = IssueStartForm(initial={
+            'contact': contact,
+            'category': 'L',
+            'activity_type': 'C',
+        })
+    form.fields['subscription_product'].queryset = SubscriptionProduct.objects.filter(
+        subscription__contact=contact, subscription__active=True)
     return render(request, "new_issue.html", {"contact": contact, "form": form})
 
 
 @login_required
 def new_scheduled_task(request, contact_id, subcategory):
+    contact = get_object_or_404(Contact, pk=contact_id)
     if subcategory == "S04":
         # Services / pause issue
         if request.POST:
@@ -1139,11 +1131,11 @@ def new_scheduled_task(request, contact_id, subcategory):
                 subscription = form.cleaned_data.get("subscription")
                 new_issue = Issue.objects.create(
                     contact=contact,
-                    category=category,
-                    subcategory=subcategory,
+                    category='S',
+                    subcategory='S04',
                     date=date.today(),
                     manager=request.user,
-                    status="P",
+                    status=IssueStatus.objects.get(slug=settings.AUTO_ISSUE_STATUS_SLUG),
                     next_action_date=date1,
                 )
                 # Then we create the deactivation and activation events
@@ -1152,20 +1144,27 @@ def new_scheduled_task(request, contact_id, subcategory):
                     contact=contact,
                     subscription=subscription,
                     execution_date=date1,
-                    category="PD",
+                    category="PD",  # Deactivation
                 )
                 ScheduledTask.objects.create(
                     issue=new_issue,
                     contact=contact,
                     subscription=subscription,
                     execution_date=date2,
-                    category="PA",
+                    category="PA",  # Activation
                 )
-                return HttpResponseRedirect(
-                    "/admin/core/contact/{}/".format(contact.id)
+                Activity.objects.create(
+                    datetime=datetime.now(),
+                    contact=contact,
+                    issue=new_issue,
+                    notes=_("See related issue"),
+                    activity_type=form.cleaned_data["activity_type"],
+                    status='C',  # completed
+                    direction='I',
                 )
+                return HttpResponseRedirect(reverse("contact_detail", args=[contact.id]))
         else:
-            form = NewPauseScheduledTaskForm()
+            form = NewPauseScheduledTaskForm(initial={'activity_type': 'C'})
         form.fields["subscription"].queryset = contact.subscriptions.filter(active=True)
         return render(
             request,
@@ -1193,11 +1192,11 @@ def new_scheduled_task(request, contact_id, subcategory):
                 # First we create the issue that will contain the scheduled task
                 new_issue = Issue.objects.create(
                     contact=contact,
-                    category=category,
-                    subcategory=subcategory,
+                    category='S',
+                    subcategory='S05',
                     date=date.today(),
                     manager=request.user,
-                    status="P",
+                    status=IssueStatus.objects.get(slug=settings.AUTO_ISSUE_STATUS_SLUG),
                     next_action_date=date1,
                 )
                 # after this, we will create this scheduled task
@@ -1208,6 +1207,15 @@ def new_scheduled_task(request, contact_id, subcategory):
                     category="AC",
                     address=address,
                 )
+                Activity.objects.create(
+                    datetime=datetime.now(),
+                    contact=contact,
+                    issue=new_issue,
+                    notes=_("See related issue"),
+                    activity_type=form.cleaned_data["activity_type"],
+                    status='C',  # completed
+                    direction='I',
+                )
                 for key, value in request.POST.items():
                     if key.startswith("sp"):
                         subscription_product_id = key[2:]
@@ -1215,12 +1223,12 @@ def new_scheduled_task(request, contact_id, subcategory):
                             pk=subscription_product_id
                         )
                         scheduled_task.subscription_products.add(subscription_product)
-                return HttpResponseRedirect(
-                    "/admin/core/contact/{}/".format(contact.id)
-                )
+                return HttpResponseRedirect(reverse("contact_detail", args=[contact.id]))
         else:
             form = NewAddressChangeScheduledTaskForm(
-                initial={"new_address_type": "physical"}
+                initial={
+                    "new_address_type": "physical",
+                    "activity_type": 'C'}
             )
         subscription_products = [
             s

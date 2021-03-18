@@ -5,6 +5,7 @@ from __future__ import unicode_literals
 from datetime import date
 
 from django.db import models
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.utils.translation import ugettext_lazy as _
 from django_extensions.db.fields import AutoSlugField
@@ -72,15 +73,6 @@ class Issue(models.Model):
     )
     inside = models.BooleanField(default=True)
     notes = models.TextField(blank=True, null=True)
-    address_1 = models.ForeignKey(
-        "core.Address", blank=True, null=True, related_name="issue_address_1"
-    )
-    address_2 = models.ForeignKey(
-        "core.Address", blank=True, null=True, related_name="issue_address_2"
-    )
-    route = models.ForeignKey(
-        "logistics.Route", blank=True, null=True
-    )  # Only for logistics
     manager = models.ForeignKey(
         "auth.User", blank=True, null=True, related_name="issue_manager"
     )  # User who created the issue. Non-editable
@@ -128,6 +120,19 @@ class Issue(models.Model):
             return self.subscription.get_address_by_priority()
         else:
             return None
+
+    def mark_solved(self):
+        self.status = IssueStatus.objects.get(slug=settings.SOLVED_ISSUE_STATUS_SLUG)
+        self.closing_date = date.today()
+        self.save()
+
+    def set_status(self, slug):
+        try:
+            self.status = IssueStatus.objects.get(slug=slug)
+        except IssueStatus.DoesNotExist:
+            return None
+        else:
+            self.save()
 
     def __unicode__(self):
         return "Issue of category {} for {} with status {}".format(

@@ -17,7 +17,7 @@ class SellerAdmin(admin.ModelAdmin):
 class IssueAdmin(admin.ModelAdmin):
     list_display = ["id", "contact", "status"]
     raw_id_fields = [
-        "contact", "subscription", "route", "manager", "assigned_to", "product", "address_1", "address_2",
+        "contact", "subscription", "manager", "assigned_to", "product",
         "subscription_product"
     ]
 

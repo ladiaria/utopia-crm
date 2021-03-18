@@ -156,8 +156,11 @@ ISSUE_ANSWERS = (
 NEW_INVOICING_ISSUE_STATUS_SLUG = 'new'
 
 # Set a list of statuses slugs that will be used to mark the issue as finished. Examples below.
+SOLVED_ISSUE_STATUS_SLUG = 'solved'
 FINISHED_ISSUE_STATUS_SLUG_LIST = ['solved', 'not-solved']
 
 # Used when a new issue is created, depending if it was assigned or not
 ASSIGNED_ISSUE_STATUS_SLUG = 'assigned'
 UNASSIGNED_ISSUE_STATUS_SLUG = 'unassigned'
+PENDING_ISSUE_STATUS_SLUG = 'pending'
+AUTO_ISSUE_STATUS_SLUG = 'automatic'  # for automatic tasks that have not been completed yet
