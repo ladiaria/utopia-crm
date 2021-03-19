@@ -260,19 +260,19 @@
                                   <dd>{{address.address_2}}</dd>
                                   {% endif %}
                                   <dt>{% trans "Address city" %}</dt>
-                                  {% if not addres.city %}<i class="fas fa-exclamation-triangle text-danger"></i>{% endif %}
-                                  <dd>{{address.address_city}}</dd>
+                                  {% if not address.city %}<i class="fas fa-exclamation-triangle text-danger"></i>{% endif %}
+                                  <dd>{{address.city}}</dd>
                                   <dt>{% trans "Address state" %}</dt>
-                                  {% if not addres.state %}<i class="fas fa-exclamation-triangle text-danger"></i>{% endif %}
-                                  <dd>{{address.address_state}}</dd>
-                                  {% if address.address_notes %}
+                                  {% if not address.state %}<i class="fas fa-exclamation-triangle text-danger"></i>{% endif %}
+                                  <dd>{{address.state}}</dd>
+                                  {% if address.notes %}
                                   <dt>{% trans "Address notes" %}</dt>
-                                  <dd>{{address.address_notes}}</dd>
+                                  <dd>{{address.notes}}</dd>
                                   {% endif %}
                                 </dl>
                                   <div class="text-right">
-                                    <a href="#" class="btn btn-gradient btn-danger">{% trans ' Delete address' %}</a>
-                                    <a href="#" class="btn btn-gradient btn-primary">{% trans ' Edit address' %}</a>
+                                    <a href="{% url 'admin:core_address_delete' address.id %}" class="btn btn-gradient btn-danger">{% trans ' Delete address' %}</a>
+                                    <a href="{% url 'admin:core_address_change' address.id %}" class="btn btn-gradient btn-primary">{% trans ' Edit address' %}</a>
                                   </div>
                               </div>
                             </div>
@@ -298,27 +298,26 @@
                                 <dt>{% trans "Frequency" %}:</dt> <dd>{{subscription.get_frequency}}</dd>
                                 <dt>{% trans "Price" %}:</dt> <dd>{{subscription.get_price_for_full_period}}</dd>
                                 <dt>{% trans "Type" %}:</dt> <dd>{{subscription.get_type}}</dd>
-                                <dt>{% trans "Payment type" %}:</dt>
-                                <dd>{{subscription.get_payment_type}}</dd>
                                 <dt>{% trans "Start date" %}:</dt> <dd>{{subscription.start_date}}</dd>
                                 {% if subscription.end_date %}
                                 <dt>{% trans "End date" %}:</dt> <dd>{{subscription.end_date}}</dd>
+                                {% endif %}
+                                {% if subscription.type == 'N' %}
+                                <dt>{% trans "Next billing" %}:</dt> <dd>{{subscription.next_billing}}</dd>
                                 {% endif %}
                                 {% if subscription.balance %}
                                 <dt>{% trans "Balance" %}:</dt> <dd>{{subscription.balance}}</dd>
                                 {% endif %}
                               </dl>
-                              {% endfor %}
-
                             <div class="card">
                               <div class="card-header">
                                 <h4 class="card-title">{% trans "Billing information" %}</h4>
                               </div>
                               <div class="card-body">
-                              {% for subscription in subscriptions %}
                               <dl {% if forloop.counter != 1 %}class="border-bottom pb-3"{% endif %}>
                                 <dt>{% trans "Payment type" %}:</dt>
-                                <dd class="border-bottom pb-2">{{subscription.get_payment_type|default_if_none:""}}}</dd>
+                                <dd class="border-bottom pb-2">{{subscription.get_payment_type}}</dd>
+
                                 {% if subscription.billing_address %}
                                   <dt>{% trans "Billing address" %}:</dt>
                                   <dd class="border-bottom pb-2">{{subscription.billing_address}}</dd>
@@ -353,17 +352,18 @@
                                   <dd>{{subscription.balance}}</dd>
                                 {% endif %}
                               </dl>
-                              {% endfor %}
 
                               </div>
                             </div>
-                            <div class="text-right">
-                              <a href="#" class="btn btn-primary btn-gradient">{% trans 'Edit' %}</a>
-                            </div>
+                              <div class="text-right">
+                                <a href="{% url 'new_subscription' contact.id %}?upgrade_subscription={{subscription.id}}" class="btn  btn-success">{% trans "Upgrade" %}</a>
+                                <a href="{% url 'new_subscription' contact.id %}?edit_subscription={{subscription.id}}" class="btn  btn-success">{% trans "Edit" %}</a>
+                              </div>
+                            {% endfor %}
                             {% else %}
                               <b>{% trans "This contact has no active subscriptions" %}</b>
                               <div class="text-right">
-                                <a href="#" class="btn btn-primary btn-gradient">{% trans 'Add subscription' %}</a>
+                                <a href="{% url  'new_subscription' contact.id %}" class="btn btn-primary float-right">{% trans "Add subscription" %}</a>
                               </div>
                             {% endif %}
                           </div>
