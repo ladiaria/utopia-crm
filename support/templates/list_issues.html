@@ -1,8 +1,9 @@
 {% extends 'adminlte/base.html' %}
-{% load static i18n %}
+{% load static i18n widget_tweaks %}
 {% block stylesheets %}
     {{block.super}}
     <link rel="stylesheet" href="{% static '/admin-lte/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css' %}" />
+    <link rel="stylesheet" href="{% static '/admin-lte/plugins/jquery-ui/jquery-ui.min.css' %}" />
 {% endblock %}
 {% block extra_head %}
 <script type="text/javascript" src="{% static 'js/jquery-3.3.1.min.js' %}"></script>
@@ -10,24 +11,80 @@
 <script src="{% static '/admin-lte/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js' %}"></script>
 <script>
   $(function() {
-    $("#table1").DataTable();
+    $('#id_date').change(function(){
+      var option = $(this).val();
+      if(option == "custom") {
+        $('.creation-range').removeClass('d-none');
+      }else {
+        $('.creation-range').addClass('d-none');
+        $('#id_date_gte').attr('value', '');
+        $('#id_date_lte').attr('value', '');
+      }
+    });
+    $('#id_date').change();
+    $('#id_date_gte').datepicker({ dateFormat: 'yy-mm-dd' });
+    $('#id_date_lte').datepicker({ dateFormat: 'yy-mm-dd' });
   });
 </script>
 
 {% endblock %}
 {% block no_heading %}
 <h1>{% trans 'Support' %}</h1>
-<p>{% trans 'List incidents' %}</p>
+<p>{% trans 'List issues' %}</p>
 {% endblock %}
 {% block breadcrumbs %}
 <ol class="breadcrumb">
     <li class="breadcrumb-item"><a href="/support/">{% trans 'Support' %}</a></li>
-    <li class="breadcrumb-item active">{% trans 'List incidents' %}</li>
+    <li class="breadcrumb-item active">{% trans 'List issues' %}</li>
 </ol>
 {% endblock %}
 {% block content %}
 <div class="row">
     <div class="col-md-12">
+        <div class="card">
+        <div class="card-body">
+          <form method="GET" id="form">
+            <div class="row">
+                <div class="form-group col">
+                    <label for="status">{% trans "Status" %}</label>
+                    {% render_field issues_filter.form.status class="form-control" %}
+                </div>
+                <div class="form-group col">
+                    <label for="category">{% trans "Category" %}</label>
+                    {% render_field issues_filter.form.category class="form-control" %}
+                </div>
+                <div class="form-group col">
+                    <label for="subcategory">{% trans "Subcategory" %}</label>
+                    {% render_field issues_filter.form.subcategory class="form-control" %}
+                </div>
+                <div class="form-group col">
+                    <label for="assigned_to">{% trans "Assigned to" %}</label>
+                    {% render_field issues_filter.form.assigned_to class="form-control" %}
+                </div>
+                <div class="form-group col">
+                    <label for="date">{% trans "Date" %}</label>
+                    {% render_field issues_filter.form.date class="form-control " %}
+                </div>
+              <div class="creation-range hidden d-none col-4">
+                <div class="row">
+                  <div class="form-group col">
+                    <label for="creation_date_gte">{% trans "Creation date (from)" %}</label>
+                      {% render_field issues_filter.form.date_gte class="form-control" %}
+                  </div>
+                  <div class="form-group col">
+                    <label for="creation_date_lte">{% trans "Creation date (to)" %}</label>
+                      {% render_field issues_filter.form.date_lte class="form-control" %}
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="text-right">
+
+              <input type="submit" class="btn bg-gradient-primary ml-3" value="{% trans 'Search' %}" />
+            </div>
+          </form>
+        </div>
+      </div>
         <div class="card">
           <div class="card-body">
             <h3>{% trans "All issues" %}</h3>
@@ -39,7 +96,7 @@
                     <th>{% trans "Contact" %}</th>
                     <th>{% trans "Category" %}</th>
                     <th>{% trans "Subcategory" %}</th>
-                    <th>{% trans "State" %}</th>
+                    <th>{% trans "Status" %}</th>
                     <th>{% trans "Assigned to" %}</th>
                   </tr>
               </thead>
@@ -47,12 +104,12 @@
                 {% for issue in page %}
                 <tr  role="row">
                     <td><a href='{% url "view_issue" issue.id %}'>{{issue.id}}</a></td>
-                    <td>{{issue.date_created}}</td>
+                    <td>{{issue.date}}</td>
                     <td>{{issue.contact}}</td>
                     <td>{{issue.get_category}}</td>
                     <td>{{issue.get_subcategory}}</td>
                     <td>{{issue.status}}</td>
-                    <td>{{issue.manager}}</td>
+                    <td>{{issue.manager|default_if_none:"-"}}</td>
                 </tr>
                 {% endfor %}
               </tbody>

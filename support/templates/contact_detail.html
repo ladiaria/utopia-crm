@@ -1,12 +1,17 @@
 {% extends 'adminlte/base.html' %}
 {% load static i18n %}
 {% block content %}
-<section class="content-header">
+    <section class="content-header">
       <div class="container-fluid">
         <div class="row mb-2">
-          <div class="col-sm-12">
+          <div class="col-sm-8">
             <h1><a href="#">{% trans "Contacts" %}</a> &raquo; {{contact.id}} - {{contact.name}} - <a href="/admin/core/contact/{{contact.id}}/">[Admin]</a></h1>
             <p>{% trans "Manage all your contacts' information" %}</p>
+          </div>
+          <div class="text-right col-sm-4">
+            <a href="{% url 'new_issue' contact.id %}" target="_blank" class="btn btn-primary">{% trans "New issue" %}</a>
+            <a href="{% url 'new_scheduled_task' contact.id 'S04' %}" target="_blank" class="btn btn-primary">{% trans "Schedule pause" %}</a>
+            <a href="{% url 'new_scheduled_task' contact.id 'S05' %}" target="_blank" class="btn btn-primary">{% trans "Schedule address change" %}</a>
           </div>
         </div>
       </div><!-- /.container-fluid -->
@@ -138,9 +143,11 @@
                             {% if issues %}
                               <dl>
                                 {% for issue in issues %}
-                                  <dt>{{issue.get_status}}</dt>
+                                  <dt>{{issue.get_category}} - {{issue.get_subcategory}} - <a href="{% url 'view_issue' issue.id %}" target="_blank" class="btn btn-primary btn-sm">{% trans "View" %}</a></dt>
+                                  <dd>{{issue.get_status}} {{issue.assigned_to|default_if_none:""}}</dd>
                                   <dd>{{issue.date_created}}</dd>
-                                  <dd>{{issue.notes}}</dd>
+                                  <dd>{{issue.notes|linebreaks}}</dd>
+                                  <hr>
                                 {% endfor %}
                               </dl>
                             {% else %}
@@ -426,7 +433,7 @@
                                   <td>{{issue.get_subcategory}}</td>
                                   <td>{{issue.get_status}}</td>
                                   <td>{{issue.assigned_to}}</td>
-                                  <td><a href="{% url 'view_issue' issue.id %}" class="btn btn-primary btn-sm">{% trans "View" %}</a></td>
+                                  <td><a href="{% url 'view_issue' issue.id %}" target="_blank" class="btn btn-primary btn-sm">{% trans "View" %}</a></td>
                                 </tr>
                                 {% endfor %}
                               </tbody>
@@ -452,6 +459,7 @@
                                   <th>{% trans 'Creation date' %}</th>
                                   <th>{% trans 'Execution date' %}</th>
                                   <th>{% trans 'Completed' %}</th>
+                                  <th>{% trans 'Issue' %}</th>
                                   <th></th>
                                 </tr>
                               </thead>
@@ -463,7 +471,7 @@
                                     <td>{{task.execution_date}}</td>
                                     <td>{{task.completed}}</td>
                                     <td>{% if task.issue %}
-                                        {% url 'view_issue' task.issue.id %}
+                                        <a href="{% url 'view_issue' task.issue.id %}" class="btn btn-primary btn-sm">View</a>
                                         {% else %}-
                                         {% endif %}
                                     </td>
@@ -508,7 +516,7 @@
                                   <td>{{activity.campaign|default_if_none:"-"}}</td>
                                   <td>{{activity.product|default_if_none:"-"}}</td>
                                   <td>{% if activity.issue %}
-                                      {% url 'view_issue' activity.issue.id %}
+                                      <a href="{% url 'view_issue' activity.issue.id %}" class="btn btn-primary btn-sm">View</a>
                                       {% else %}-
                                       {% endif %}
                                   </td>

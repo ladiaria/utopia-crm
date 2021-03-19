@@ -13,7 +13,7 @@ from django.contrib.auth.decorators import login_required
 
 from reportlab.pdfgen.canvas import Canvas
 
-from core.models import SubscriptionProduct, Address, Product
+from core.models import SubscriptionProduct, Product
 from core.choices import PRODUCT_WEEKDAYS
 from logistics.models import Route, Edition
 from support.models import Issue
@@ -171,10 +171,6 @@ def list_routes(request):
         route.new = route.sum_copies_per_product(tomorrow_product, new=True)
         route.invoices = route.invoices_in_route()
         route_list.append(route)
-    subscription_products = SubscriptionProduct.objects.filter(
-        product__weekday=show_day, subscription__active=True, subscription__type='N',
-        subscription__start_date__lte=today)
-    # TODO: What was I supposed to do with that queryset?
     return render(
         request, 'list_routes.html', {
             'route_list': route_list, 'day': weekdays[show_day], 'tomorrow_product': tomorrow_product
@@ -484,8 +480,6 @@ def issues_labels(request):
         return HttpResponseRedirect('/logistics/')
 
 
-# TODO: Make a function similar to prints but generic.
-
 @login_required
 def route_details(request, route_list):
     """
@@ -505,7 +499,7 @@ def route_details(request, route_list):
     changes_dict = {}
     copies_dict = {}
     subscription_products_dict = {}
-    new_subscriptions_dict = {}
+    # new_subscriptions_dict = {}
     closing_subscriptions_dict = {}
     directions_dict = {}
     issues_dict = {}

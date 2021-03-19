@@ -6,8 +6,8 @@ from django import forms
 from .models import Issue
 from .choices import ISSUE_SUBCATEGORIES
 
-from core.models import Contact, Product, Subscription, Address, DynamicContactFilter
-from core.choices import ADDRESS_TYPE_CHOICES, FREQUENCY_CHOICES
+from core.models import Contact, Product, Subscription, Address, DynamicContactFilter, SubscriptionProduct
+from core.choices import ADDRESS_TYPE_CHOICES, FREQUENCY_CHOICES, ACTIVITY_TYPES
 
 from support.models import Seller
 
@@ -61,6 +61,10 @@ class NewPauseScheduledTaskForm(forms.Form):
             attrs={"class": "datepicker form-control float-right"}
         )
     )
+    activity_type = forms.ChoiceField(
+        widget=forms.Select(attrs={"class": "form-control"}),
+        choices=ACTIVITY_TYPES,
+    )
 
     def clean(self):
         date_1 = self.cleaned_data.get("date_1")
@@ -109,6 +113,10 @@ class NewAddressChangeScheduledTaskForm(forms.Form):
         required=False,
         choices=ADDRESS_TYPE_CHOICES,
         widget=forms.Select(attrs={"class": "form-control"}),
+    )
+    activity_type = forms.ChoiceField(
+        widget=forms.Select(attrs={"class": "form-control"}),
+        choices=ACTIVITY_TYPES,
     )
 
     def clean(self):
@@ -234,7 +242,6 @@ class GestionStartForm(forms.ModelForm):
             "progress",
             "answer_1",
             "answer_2",
-            "status",
             "end_date",
             "next_action_date",
             "closing_date",
@@ -242,7 +249,7 @@ class GestionStartForm(forms.ModelForm):
         )
 
 
-class LogisticsIssueStartForm(forms.ModelForm):
+class IssueStartForm(forms.ModelForm):
     """
     Used when you want to start an issue to track logistics, what used to be 'Claims
     """
@@ -257,17 +264,23 @@ class LogisticsIssueStartForm(forms.ModelForm):
     product = forms.ModelChoiceField(
         queryset=Product.objects.filter(type="S"),
         widget=forms.Select(attrs={"class": "form-control"}),
+        required=False,
     )
 
-    # Add a default empty option
-    logistics_subcategories = [("", "-----")]
-    for subcategory in ISSUE_SUBCATEGORIES:
-        # Only show the options that are set as logistics, they all start with an L on the key
-        if subcategory[0][0] == "L":
-            logistics_subcategories.append(subcategory)
-    subcategory = forms.ChoiceField(
-        choices=logistics_subcategories,
+    subscription_product = forms.ModelChoiceField(
+        queryset=SubscriptionProduct.objects.all(),
         widget=forms.Select(attrs={"class": "form-control"}),
+        required=False,
+    )
+
+    subcategory = forms.ChoiceField(
+        choices=ISSUE_SUBCATEGORIES,
+        widget=forms.Select(attrs={"class": "form-control"}),
+    )
+
+    activity_type = forms.ChoiceField(
+        widget=forms.Select(attrs={"class": "form-control"}),
+        choices=ACTIVITY_TYPES,
     )
 
     class Meta:
@@ -277,6 +290,7 @@ class LogisticsIssueStartForm(forms.ModelForm):
             "subscription_product": forms.Select(attrs={"class": "form-control"}),
             "category": forms.Select(attrs={"class": "form-control"}),
             "copies": forms.NumberInput(attrs={"class": "form-control"}),
+            "assigned_to": forms.Select(attrs={"class": "form-control"}),
         }
         fields = (
             "contact",
@@ -286,10 +300,11 @@ class LogisticsIssueStartForm(forms.ModelForm):
             "copies",
             "subscription_product",
             "product",
+            "assigned_to",
         )
 
 
-class LogisticsIssueChangeForm(forms.ModelForm):
+class IssueChangeForm(forms.ModelForm):
     """
     Used when you want to start an issue to track logistics, what used to be 'Claims'
     """
@@ -308,11 +323,11 @@ class LogisticsIssueChangeForm(forms.ModelForm):
         }
         fields = (
             "contact",
+            "status",
             "progress",
             "answer_1",
             "answer_2",
             "assigned_to",
-            "status",
         )
 
 

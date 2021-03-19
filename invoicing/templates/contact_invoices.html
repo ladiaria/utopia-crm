@@ -2,7 +2,7 @@
 {% load static i18n widget_tweaks %}
 
 {% block no_heading %}
-<h1>Facturas para contacto: <a href="/admin/core/contact/{{ contact.id }}">{{ contact.name }}</a></h1>
+<h1>Facturas para contacto: <a href="{% url 'contact_detail' contact.id %}">{{ contact.name }}</a></h1>
 {% endblock %}
 {% block stylesheets %}
     {{block.super}}

@@ -5,15 +5,16 @@ from __future__ import unicode_literals
 from datetime import date
 
 from django.db import models
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.utils.translation import ugettext_lazy as _
+from django_extensions.db.fields import AutoSlugField
 
 from core.models import Campaign
 
 from support.choices import (
     ISSUE_CATEGORIES,
     ISSUE_ANSWERS,
-    ISSUE_STATUS,
     ISSUE_SUBCATEGORIES,
     SCHEDULED_TASK_CATEGORIES,
 )
@@ -72,15 +73,6 @@ class Issue(models.Model):
     )
     inside = models.BooleanField(default=True)
     notes = models.TextField(blank=True, null=True)
-    address_1 = models.ForeignKey(
-        "core.Address", blank=True, null=True, related_name="issue_address_1"
-    )
-    address_2 = models.ForeignKey(
-        "core.Address", blank=True, null=True, related_name="issue_address_2"
-    )
-    route = models.ForeignKey(
-        "logistics.Route", blank=True, null=True
-    )  # Only for logistics
     manager = models.ForeignKey(
         "auth.User", blank=True, null=True, related_name="issue_manager"
     )  # User who created the issue. Non-editable
@@ -92,9 +84,7 @@ class Issue(models.Model):
         max_length=2, blank=True, null=True, choices=ISSUE_ANSWERS
     )
     answer_2 = models.TextField(blank=True, null=True)
-    status = models.CharField(
-        max_length=1, blank=True, null=True, choices=ISSUE_STATUS, default="P"
-    )
+    status = models.ForeignKey('support.IssueStatus', blank=True, null=True)
     end_date = models.DateField(blank=True, null=True)
     next_action_date = models.DateField(blank=True, null=True)
     closing_date = models.DateField(blank=True, null=True)
@@ -118,8 +108,10 @@ class Issue(models.Model):
         return subcategories.get(self.subcategory, "N/A")
 
     def get_status(self):
-        statuses = dict(ISSUE_STATUS)
-        return statuses.get(self.status, "N/A")
+        if self.status:
+            return self.status.name
+        else:
+            return None
 
     def get_address(self):
         if self.subscription_product and self.subscription_product.address:
@@ -128,6 +120,19 @@ class Issue(models.Model):
             return self.subscription.get_address_by_priority()
         else:
             return None
+
+    def mark_solved(self):
+        self.status = IssueStatus.objects.get(slug=settings.SOLVED_ISSUE_STATUS_SLUG)
+        self.closing_date = date.today()
+        self.save()
+
+    def set_status(self, slug):
+        try:
+            self.status = IssueStatus.objects.get(slug=slug)
+        except IssueStatus.DoesNotExist:
+            return None
+        else:
+            self.save()
 
     def __unicode__(self):
         return "Issue of category {} for {} with status {}".format(
@@ -162,6 +167,17 @@ class ScheduledTask(models.Model):
     def get_category(self):
         categories = dict(SCHEDULED_TASK_CATEGORIES)
         return categories.get(self.category, "N/A")
+
+    class Meta:
+        pass
+
+
+class IssueStatus(models.Model):
+    name = models.CharField(max_length=60)
+    slug = AutoSlugField(populate_from='name', null=True, blank=True)
+
+    def __unicode__(self):
+        return self.name
 
     class Meta:
         pass
