@@ -419,8 +419,11 @@ class SubscriptionProduct(models.Model):
     product = models.ForeignKey('core.Product', limit_choices_to={'type': 'S'})
     subscription = models.ForeignKey('core.Subscription')
     copies = models.PositiveSmallIntegerField(default=1)
-    address = models.ForeignKey('core.Address', blank=True, null=True)
-    route = models.ForeignKey('logistics.Route', blank=True, null=True, verbose_name=_('Route'), related_name='route')
+    address = models.ForeignKey('core.Address', blank=True, null=True, on_delete=models.SET_NULL)
+    route = models.ForeignKey(
+        'logistics.Route', blank=True, null=True, verbose_name=_('Route'), related_name='route',
+        on_delete=models.SET_NULL
+    )
     order = models.PositiveSmallIntegerField(verbose_name=_('Order'), blank=True, null=True)
     label_message = models.CharField(max_length=40, blank=True, null=True)
     special_instructions = models.TextField(blank=True, null=True)
@@ -451,7 +454,7 @@ class Subscription(models.Model):
     has a paid type.
     """
     campaign = models.ForeignKey(
-        'core.Campaign', blank=True, null=True, verbose_name=_('Campaign'))
+        'core.Campaign', blank=True, null=True, verbose_name=_('Campaign'), on_delete=models.SET_NULL)
     active = models.BooleanField(
         default=True, verbose_name=_('Active'))
     contact = models.ForeignKey(
@@ -475,7 +478,9 @@ class Subscription(models.Model):
     send_bill_copy_by_email = models.BooleanField(
         default=False, verbose_name=_('Send bill copy by email'))
     billing_address = models.ForeignKey(
-        Address, blank=True, null=True, verbose_name=_('Billing address'), related_name='billing_contacts')
+        Address, blank=True, null=True, verbose_name=_('Billing address'), related_name='billing_contacts',
+        on_delete=models.SET_NULL
+    )
     billing_email = models.EmailField(
         blank=True, null=True, verbose_name=_('Billing email'))
 
@@ -514,7 +519,7 @@ class Subscription(models.Model):
     unsubscription_date = models.DateField(
         blank=True, null=True, verbose_name=_('Unsubscription date'))
     unsubscription_manager = models.ForeignKey(
-        User, verbose_name=_('Unsubscription manager'), null=True, blank=True)
+        User, verbose_name=_('Unsubscription manager'), null=True, blank=True, on_delete=models.SET_NULL)
     unsubscription_reason = models.PositiveSmallIntegerField(
         choices=settings.UNSUBSCRIPTION_REASONS, blank=True, null=True, verbose_name=_('Unsubscription reason'))
     unsubscription_addendum = models.TextField(
