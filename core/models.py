@@ -567,7 +567,7 @@ class Subscription(models.Model):
     edit_products_field.short_description = "Products"
 
     def add_product(
-            self, product, address, copies=1, message=None, instructions=None, seller=None):
+            self, product, address, copies=1, message=None, instructions=None, route=None, order=None):
         """
         Used to add products to the current subscription. It is encouraged to always use this method when you want
         to add a product to a subscription, so you always have control of what happens here. This also creates a
@@ -1178,7 +1178,7 @@ class ContactProductHistory(models.Model):
     product = models.ForeignKey(Product)
     campaign = models.ForeignKey(Campaign, null=True, blank=True)
     status = models.CharField(max_length=1, choices=PRODUCTHISTORY_CHOICES)
-    date = models.DateField(auto_now_add=True)
+    date = models.DateField()
 
     def get_status(self):
         """
