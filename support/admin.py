@@ -26,7 +26,7 @@ class ScheduledTaskAdmin(admin.ModelAdmin):
     list_display = ["contact", "execution_date", "category", "completed"]
     readonly_fields = ["subscription_products"]
     ordering = ["-execution_date"]
-    raw_id_fields = ["address", "issue", "contact", "subscription"]
+    raw_id_fields = ["address", "ends", "contact", "subscription"]
 
 
 class IssueStatusAdmin(admin.ModelAdmin):
