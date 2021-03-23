@@ -53,6 +53,7 @@ if DEBUG:
         "django_filters",
         "rosetta",
         "widget_tweaks",
+        "tabbed_admin",
         # crm apps enabled
         "core",
         "support",
