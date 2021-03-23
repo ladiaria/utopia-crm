@@ -8,8 +8,7 @@ from django.db import models
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.utils.translation import ugettext_lazy as _
-from django_extensions.db.fields import AutoSlugField
-
+from autoslug import AutoSlugField
 from core.models import Campaign
 
 from support.choices import (
@@ -174,7 +173,7 @@ class ScheduledTask(models.Model):
 
 class IssueStatus(models.Model):
     name = models.CharField(max_length=60)
-    slug = AutoSlugField(populate_from='name', null=True, blank=True)
+    slug = AutoSlugField(populate_from='name', always_update=True, null=True, blank=True)
 
     def __unicode__(self):
         return self.name

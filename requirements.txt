@@ -1,5 +1,6 @@
 chartkick
 django-admin-honeypot==1.1
+django-autoslug<1.9.7
 django-cors-headers==3.0.2
 django-debug-toolbar~=1.11
 django-extensions<3
