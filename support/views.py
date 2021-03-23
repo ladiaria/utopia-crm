@@ -1129,35 +1129,24 @@ def new_scheduled_task(request, contact_id, subcategory):
                 date1 = form.cleaned_data.get("date_1")
                 date2 = form.cleaned_data.get("date_2")
                 subscription = form.cleaned_data.get("subscription")
-                new_issue = Issue.objects.create(
-                    contact=contact,
-                    category='S',
-                    subcategory='S04',
-                    date=date.today(),
-                    manager=request.user,
-                    status=IssueStatus.objects.get(slug=settings.AUTO_ISSUE_STATUS_SLUG),
-                    next_action_date=date1,
-                )
                 # Then we create the deactivation and activation events
-                ScheduledTask.objects.create(
-                    issue=new_issue,
+                start_task = ScheduledTask.objects.create(
                     contact=contact,
                     subscription=subscription,
                     execution_date=date1,
                     category="PD",  # Deactivation
                 )
                 ScheduledTask.objects.create(
-                    issue=new_issue,
                     contact=contact,
                     subscription=subscription,
                     execution_date=date2,
                     category="PA",  # Activation
+                    ends=start_task,
                 )
                 Activity.objects.create(
                     datetime=datetime.now(),
                     contact=contact,
-                    issue=new_issue,
-                    notes=_("See related issue"),
+                    notes=_("Scheduled task for pause"),
                     activity_type=form.cleaned_data["activity_type"],
                     status='C',  # completed
                     direction='I',
@@ -1189,19 +1178,8 @@ def new_scheduled_task(request, contact_id, subcategory):
                 else:
                     address = form.cleaned_data.get("contact_address")
                 date1 = form.cleaned_data.get("date_1")
-                # First we create the issue that will contain the scheduled task
-                new_issue = Issue.objects.create(
-                    contact=contact,
-                    category='S',
-                    subcategory='S05',
-                    date=date.today(),
-                    manager=request.user,
-                    status=IssueStatus.objects.get(slug=settings.AUTO_ISSUE_STATUS_SLUG),
-                    next_action_date=date1,
-                )
                 # after this, we will create this scheduled task
                 scheduled_task = ScheduledTask.objects.create(
-                    issue=new_issue,
                     contact=contact,
                     execution_date=date1,
                     category="AC",
@@ -1210,8 +1188,7 @@ def new_scheduled_task(request, contact_id, subcategory):
                 Activity.objects.create(
                     datetime=datetime.now(),
                     contact=contact,
-                    issue=new_issue,
-                    notes=_("See related issue"),
+                    notes=_("Scheduled task for address change"),
                     activity_type=form.cleaned_data["activity_type"],
                     status='C',  # completed
                     direction='I',

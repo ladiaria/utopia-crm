@@ -152,7 +152,6 @@ class ScheduledTask(models.Model):
         "core.Address", verbose_name=_("Address"), null=True, blank=True
     )
     completed = models.BooleanField(default=False, verbose_name=_("Completed"))
-    issue = models.ForeignKey(Issue, blank=True, null=True)
     execution_date = models.DateField(verbose_name=_("Date of execution"))
 
     subscription = models.ForeignKey("core.Subscription", blank=True, null=True)
@@ -162,6 +161,7 @@ class ScheduledTask(models.Model):
     modification_date = models.DateField(
         auto_now=True, verbose_name=_("Modification date"), blank=True, null=True
     )
+    ends = models.ForeignKey("support.ScheduledTask", blank=True, null=True, on_delete=models.SET_NULL)
 
     def get_category(self):
         categories = dict(SCHEDULED_TASK_CATEGORIES)
