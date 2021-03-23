@@ -84,7 +84,7 @@ class Issue(models.Model):
         max_length=2, blank=True, null=True, choices=ISSUE_ANSWERS
     )
     answer_2 = models.TextField(blank=True, null=True)
-    status = models.ForeignKey('support.IssueStatus', blank=True, null=True)
+    status = models.ForeignKey('support.IssueStatus', blank=True, null=True, on_delete=models.SET_NULL)
     end_date = models.DateField(blank=True, null=True)
     next_action_date = models.DateField(blank=True, null=True)
     closing_date = models.DateField(blank=True, null=True)
@@ -178,6 +178,9 @@ class IssueStatus(models.Model):
 
     def __unicode__(self):
         return self.name
+
+    def natural_key(self):
+        return (self.name, self.slug)
 
     class Meta:
         pass
