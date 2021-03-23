@@ -470,12 +470,12 @@
                                     <td>{{task.creation_date}}</td>
                                     <td>{{task.execution_date}}</td>
                                     <td>{{task.completed}}</td>
-                                    <td>{% if task.issue %}
-                                        <a href="{% url 'view_issue' task.issue.id %}" class="btn btn-primary btn-sm">View</a>
+                                    <td>{% if task.ends %}
+                                        <a href='{% url "admin:support_scheduledtask_change" task.ends.id %}' class="btn btn-primary btn-sm">{% trans "View" %}</a>
                                         {% else %}-
                                         {% endif %}
                                     </td>
-                                    <td><a href="#" class="btn btn-primary btn-sm">{% trans "View" %}</a></td>
+                                    <td><a href='{% url "admin:support_scheduledtask_change" task.id %}' class="btn btn-primary btn-sm">{% trans "View" %}</a></td>
                                   </tr>
                                 {% endfor %}
                               </tbody>
