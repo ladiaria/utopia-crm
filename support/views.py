@@ -1240,12 +1240,23 @@ def view_issue(request, issue_id):
             return HttpResponseRedirect(reverse("view_issue", args=(issue_id,)))
     else:
         form = IssueChangeForm(instance=issue)
+
+    activities = issue.activity_set.all().order_by('-datetime')
+    activity_form = NewActivityForm(
+        initial={
+            "contact": issue.contact,
+            "direction": "O",
+            "activity_type": "C",
+        })
+    activity_form.fields['contact'].label = False
     return render(
         request,
         "view_issue.html",
         {
             "form": form,
             "issue": issue,
+            "activities": activities,
+            "activity_form": activity_form,
         },
     )
 
@@ -1563,4 +1574,27 @@ def sync_with_mailtrain(request, dcf_id):
     else:
         return HttpResponseRedirect(
             reverse("dynamic_contact_filter_edit", args=[dcf.id])
+        )
+
+
+@login_required
+def register_activity(request):
+    issue_id = request.GET.get('issue_id', None)
+    form = NewActivityForm(request.POST)
+    if form.is_valid():
+        Activity.objects.create(
+            contact=form.cleaned_data['contact'],
+            issue_id=issue_id,
+            direction=form.cleaned_data['direction'],
+            notes=form.cleaned_data['notes'],
+            datetime=datetime.now(),
+            activity_type=form.cleaned_data['activity_type'],
+        )
+    if issue_id:
+        return HttpResponseRedirect(
+            reverse("view_issue", args=[issue_id])
+        )
+    else:
+        return HttpResponseRedirect(
+            reverse("contact_detail", args=[form.cleaned_data['contact'].id])
         )

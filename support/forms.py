@@ -6,7 +6,7 @@ from django import forms
 from .models import Issue, IssueStatus
 from .choices import ISSUE_SUBCATEGORIES
 
-from core.models import Contact, Product, Subscription, Address, DynamicContactFilter, SubscriptionProduct
+from core.models import Contact, Product, Subscription, Address, DynamicContactFilter, SubscriptionProduct, Activity
 from core.choices import ADDRESS_TYPE_CHOICES, FREQUENCY_CHOICES, ACTIVITY_TYPES
 
 from support.models import Seller
@@ -396,3 +396,20 @@ class NewDynamicContactFilterForm(forms.ModelForm):
             "autosync",
             "mailtrain_id",
         )
+
+
+class NewActivityForm(forms.ModelForm):
+    class Meta:
+        model = Activity
+        fields = (
+            "contact",
+            "direction",
+            "activity_type",
+            "notes",
+        )
+        widgets = {
+            "contact": forms.TextInput(attrs={"class": "form-control d-none"}),
+            "direction": forms.Select(attrs={"class": "form-control"}),
+            "activity_type": forms.Select(attrs={"class": "form-control"}),
+            "notes": forms.TextInput(attrs={"class": "form-control"}),
+        }
