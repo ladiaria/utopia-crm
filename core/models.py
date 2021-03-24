@@ -276,6 +276,12 @@ class Contact(models.Model):
         """
         return self.subscriptions.all()
 
+    def get_active_subscriptions(self):
+        return self.subscriptions.filter(active=True)
+
+    def get_active_subscriptionproducts(self):
+        return SubscriptionProduct.objects.filter(subscription__active=True, subscription__contact=self)
+
     def get_subscriptions_with_expired_invoices(self):
         """
         Returns a list with the distinct subscriptions that have expired invoices

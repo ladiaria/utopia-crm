@@ -3,10 +3,10 @@ from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 from django import forms
 
-from .models import Issue
+from .models import Issue, IssueStatus
 from .choices import ISSUE_SUBCATEGORIES
 
-from core.models import Contact, Product, Subscription, Address, DynamicContactFilter, SubscriptionProduct
+from core.models import Contact, Product, Subscription, Address, DynamicContactFilter, SubscriptionProduct, Activity
 from core.choices import ADDRESS_TYPE_CHOICES, FREQUENCY_CHOICES, ACTIVITY_TYPES
 
 from support.models import Seller
@@ -28,23 +28,6 @@ class SellerForm(forms.ModelForm):
                 raise forms.ValidationError(msg)
 
         return user
-
-
-class ServiceIssueStartForm(forms.ModelForm):
-    """
-    Used when you want to start an issue to change something on a Contact, what used to be 'Events'
-    """
-
-    logistics_subcategories = [("", "-----")]
-    for subcategory in ISSUE_SUBCATEGORIES:
-        # Only show the options that are set as logistics, they all start with an L on the key
-        if subcategory[0] in ("S04", "S05"):
-            logistics_subcategories.append(subcategory)
-    subcategory = forms.ChoiceField(choices=logistics_subcategories)
-
-    class Meta:
-        model = Issue
-        fields = ("contact", "category", "subcategory", "notes", "subscription")
 
 
 class NewPauseScheduledTaskForm(forms.Form):
@@ -273,6 +256,12 @@ class IssueStartForm(forms.ModelForm):
         required=False,
     )
 
+    subscription = forms.ModelChoiceField(
+        queryset=Subscription.objects.all(),
+        widget=forms.Select(attrs={"class": "form-control"}),
+        required=False,
+    )
+
     subcategory = forms.ChoiceField(
         choices=ISSUE_SUBCATEGORIES,
         widget=forms.Select(attrs={"class": "form-control"}),
@@ -283,11 +272,17 @@ class IssueStartForm(forms.ModelForm):
         choices=ACTIVITY_TYPES,
     )
 
+    status = forms.ModelChoiceField(
+        queryset=IssueStatus.objects.all(),
+        widget=forms.Select(attrs={"class": "form-control"})
+    )
+
     class Meta:
         model = Issue
         widgets = {
             "notes": forms.Textarea(attrs={"class": "form-control"}),
             "subscription_product": forms.Select(attrs={"class": "form-control"}),
+            "subscription": forms.Select(attrs={"class": "form-control"}),
             "category": forms.Select(attrs={"class": "form-control"}),
             "copies": forms.NumberInput(attrs={"class": "form-control"}),
             "assigned_to": forms.Select(attrs={"class": "form-control"}),
@@ -301,6 +296,8 @@ class IssueStartForm(forms.ModelForm):
             "subscription_product",
             "product",
             "assigned_to",
+            "subscription",
+            "status",
         )
 
 
@@ -399,3 +396,20 @@ class NewDynamicContactFilterForm(forms.ModelForm):
             "autosync",
             "mailtrain_id",
         )
+
+
+class NewActivityForm(forms.ModelForm):
+    class Meta:
+        model = Activity
+        fields = (
+            "contact",
+            "direction",
+            "activity_type",
+            "notes",
+        )
+        widgets = {
+            "contact": forms.TextInput(attrs={"class": "form-control d-none"}),
+            "direction": forms.Select(attrs={"class": "form-control"}),
+            "activity_type": forms.Select(attrs={"class": "form-control"}),
+            "notes": forms.TextInput(attrs={"class": "form-control"}),
+        }

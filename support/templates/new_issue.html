@@ -69,6 +69,11 @@
               <span class="error invalid-feedback">{{form.subscription_product.errors}}</span>
             </div>
             <div class="form-group">
+              <label for="id_subscription">{{form.subscription.label}}</label>
+              {{form.subscription}}
+              <span class="error invalid-feedback">{{form.subscription_product.errors}}</span>
+            </div>
+            <div class="form-group">
               <label for="id_product">{{form.product.label}}</label>
               {{form.product}}
               <span class="error invalid-feedback">{{form.product.errors}}</span>
@@ -77,6 +82,11 @@
               <label for="id_activity_type">{{form.activity_type.label}}</label>
               {{form.activity_type}}
               <span class="error invalid-feedback">{{form.activity_type.errors}}</span>
+            </div>
+            <div class="form-group">
+              <label for="id_status">{{form.status.label}}</label>
+              {{form.status}}
+              <span class="error invalid-feedback">{{form.status.errors}}</span>
             </div>
             <div class="form-group">
               <label for="id_notes">{{form.notes.label}}</label>

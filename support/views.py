@@ -27,7 +27,6 @@ from core.models import (
     Campaign,
     Address,
     Product,
-    Subtype,
     Activity,
     SubscriptionProduct,
     ContactCampaignStatus,
@@ -1089,6 +1088,7 @@ def new_issue(request, contact_id):
                 subcategory=form.cleaned_data["subcategory"],
                 notes=form.cleaned_data["notes"],
                 copies=form.cleaned_data["copies"],
+                subscription=form.cleaned_data["subscription"],
                 subscription_product=form.cleaned_data["subscription_product"],
                 product=form.cleaned_data["product"],
                 inside=False,
@@ -1108,12 +1108,13 @@ def new_issue(request, contact_id):
             return HttpResponseRedirect(reverse("contact_detail", args=[contact.id]))
     else:
         form = IssueStartForm(initial={
+            'copies': 1,
             'contact': contact,
             'category': 'L',
             'activity_type': 'C',
         })
-    form.fields['subscription_product'].queryset = SubscriptionProduct.objects.filter(
-        subscription__contact=contact, subscription__active=True)
+    form.fields['subscription_product'].queryset = contact.get_active_subscriptionproducts()
+    form.fields['subscription'].queryset = contact.get_active_subscriptions()
     return render(request, "new_issue.html", {"contact": contact, "form": form})
 
 
@@ -1239,12 +1240,23 @@ def view_issue(request, issue_id):
             return HttpResponseRedirect(reverse("view_issue", args=(issue_id,)))
     else:
         form = IssueChangeForm(instance=issue)
+
+    activities = issue.activity_set.all().order_by('-datetime')
+    activity_form = NewActivityForm(
+        initial={
+            "contact": issue.contact,
+            "direction": "O",
+            "activity_type": "C",
+        })
+    activity_form.fields['contact'].label = False
     return render(
         request,
         "view_issue.html",
         {
             "form": form,
             "issue": issue,
+            "activities": activities,
+            "activity_form": activity_form,
         },
     )
 
@@ -1562,4 +1574,27 @@ def sync_with_mailtrain(request, dcf_id):
     else:
         return HttpResponseRedirect(
             reverse("dynamic_contact_filter_edit", args=[dcf.id])
+        )
+
+
+@login_required
+def register_activity(request):
+    issue_id = request.GET.get('issue_id', None)
+    form = NewActivityForm(request.POST)
+    if form.is_valid():
+        Activity.objects.create(
+            contact=form.cleaned_data['contact'],
+            issue_id=issue_id,
+            direction=form.cleaned_data['direction'],
+            notes=form.cleaned_data['notes'],
+            datetime=datetime.now(),
+            activity_type=form.cleaned_data['activity_type'],
+        )
+    if issue_id:
+        return HttpResponseRedirect(
+            reverse("view_issue", args=[issue_id])
+        )
+    else:
+        return HttpResponseRedirect(
+            reverse("contact_detail", args=[form.cleaned_data['contact'].id])
         )
