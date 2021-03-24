@@ -27,7 +27,6 @@ from core.models import (
     Campaign,
     Address,
     Product,
-    Subtype,
     Activity,
     SubscriptionProduct,
     ContactCampaignStatus,
@@ -1089,6 +1088,7 @@ def new_issue(request, contact_id):
                 subcategory=form.cleaned_data["subcategory"],
                 notes=form.cleaned_data["notes"],
                 copies=form.cleaned_data["copies"],
+                subscription=form.cleaned_data["subscription"],
                 subscription_product=form.cleaned_data["subscription_product"],
                 product=form.cleaned_data["product"],
                 inside=False,
@@ -1108,12 +1108,13 @@ def new_issue(request, contact_id):
             return HttpResponseRedirect(reverse("contact_detail", args=[contact.id]))
     else:
         form = IssueStartForm(initial={
+            'copies': 1,
             'contact': contact,
             'category': 'L',
             'activity_type': 'C',
         })
-    form.fields['subscription_product'].queryset = SubscriptionProduct.objects.filter(
-        subscription__contact=contact, subscription__active=True)
+    form.fields['subscription_product'].queryset = contact.get_active_subscriptionproducts()
+    form.fields['subscription'].queryset = contact.get_active_subscriptions()
     return render(request, "new_issue.html", {"contact": contact, "form": form})
 
 
