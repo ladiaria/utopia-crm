@@ -31,7 +31,7 @@ class Invoice(models.Model):
     amount = models.DecimalField(
         _('Amount'), max_digits=10, decimal_places=2, blank=True, null=True)
     payment_type = models.CharField(
-        _('Payment type'), max_length=2, choices=settings.SUBSCRIPTION_PAYMENT_METHODS)
+        _('Payment type'), max_length=2, choices=settings.INVOICE_PAYMENT_METHODS)
     debited = models.BooleanField(
         _('Debited'), default=False)
     paid = models.BooleanField(
@@ -103,7 +103,7 @@ class Invoice(models.Model):
             return _('Pending')
 
     def get_payment_type(self):
-        types = dict(settings.SUBSCRIPTION_PAYMENT_METHODS)
+        types = dict(settings.INVOICE_PAYMENT_METHODS)
         return types.get(self.payment_type, _('Unspecified payment method'))
 
     class Meta:
