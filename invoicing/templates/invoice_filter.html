@@ -98,14 +98,14 @@
                 {% for invoice in invoices %}
                 <tr role="row">
                   <td>{{invoice.id}}</td>
-                  <td>{{invoice.contact.name}}</td>
+                  <td><a href='{% url "contact_detail" invoice.contact.id %}' target="_blank">{{invoice.contact.name}}</a></td>
                   <td>{% autoescape off %}{{invoice.subscription.show_products_html}}{% endautoescape %}</td>
                   <td>{{invoice.amount}}</td>
                   <td>{{invoice.get_payment_type}}</td>
                   <td>{{invoice.creation_date}}</td>
                   <td>{{invoice.expiration_date}}</td>
                   <td>{{invoice.get_status}}</td>
-                  <td><a href="#" class="btn-sm btn-primary">{% trans "Details" %}</a></td>
+                  <td><a href='{% url "admin:invoicing_invoice_change" invoice.id %}' target="_blank" class="btn-sm btn-primary">{% trans "Details" %}</a></td>
                 </tr>
                 {% endfor %}
               </tbody>
