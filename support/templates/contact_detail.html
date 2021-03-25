@@ -5,7 +5,7 @@
       <div class="container-fluid">
         <div class="row mb-2">
           <div class="col-sm-8">
-            <h1><a href="#">{% trans "Contacts" %}</a> &raquo; {{contact.id}} - {{contact.name}} - <a href="/admin/core/contact/{{contact.id}}/">[Admin]</a></h1>
+            <h1><a href="#">{% trans "Contacts" %}</a> &raquo; {{contact.id}} - {{contact.name}} - <a href='{% url "admin:core_contact_change" contact.id %}'>[Admin]</a></h1>
             <p>{% trans "Manage all your contacts' information" %}</p>
           </div>
           <div class="text-right col-sm-4">
@@ -26,10 +26,10 @@
                   <li class="nav-item"><a class="nav-link active" href="#resumen" data-toggle="tab">{% trans "Overview" %}</a></li>
                   <li class="nav-item"><a class="nav-link" href="#datos" data-toggle="tab">{% trans "Contact information" %}</a></li>
                   <li class="nav-item"><a class="nav-link" href="#suscripciones" data-toggle="tab">{% trans "Subscriptions" %}</a></li>
-                  <li class="nav-item"><a class="nav-link" href="{% url 'contact_invoices' contact.id %}" target="_blank">{% trans "Invoices" %}</a></li>
-                  <li class="nav-item"><a class="nav-link" href="#issues" data-toggle="tab">{% trans "Issues" %}</a></li>
-                  <li class="nav-item"><a class="nav-link" href="#tasks" data-toggle="tab">{% trans "Tasks" %}</a></li>
-                  <li class="nav-item"><a class="nav-link" href="#activities" data-toggle="tab">{% trans "Activities" %}</a></li>
+                  <li class="nav-item"><a class="nav-link" href="#issues" data-toggle="tab">{% trans "Issues" %} ({{contact.get_total_issues_count}}{% if contact.get_open_issues_count > 0 %} / {{contact.get_open_issues_count}}{% endif %})</a></li>
+                  <li class="nav-item"><a class="nav-link" href="#tasks" data-toggle="tab">{% trans "Tasks" %} ({{contact.get_total_scheduledtask_count}})</a></li>
+                  <li class="nav-item"><a class="nav-link" href="#activities" data-toggle="tab">{% trans "Activities" %} ({{contact.get_total_activities_count}})</a></li>
+                  <li class="nav-item"><a class="{% if contact.expired_invoices_count > 0 %}btn-danger{% else %}btn-success{% endif %} btn" href="{% url 'contact_invoices' contact.id %}" target="_blank">{% trans "Go to Invoices" %} ({{contact.get_total_invoices_count}}{% if contact.expired_invoices_count > 0 %} / {{contact.expired_invoices_count}}{% endif %})</a></li>
                 </ul>
               </div>
               <div class="card-body">
@@ -49,6 +49,8 @@
                                 <dt>{% trans "Documento" %}</dt>
                                 <dd>{{contact.id_document}}</dd>
                               {% endif %}
+                              <dt>{% trans "Email" %}</dt>
+                              <dd>{{contact.email}}</dd>
                               <dt>{% trans "Phone" %}</dt>
                               <dd>{{contact.phone}}</dd>
                               {% if contact.mobile %}
@@ -90,8 +92,8 @@
                                 <dd>{% autoescape off %}{{subscription.show_products_html}}{% endautoescape %}</dd>
                                 <dd><b>{% trans "Frequency" %}:</b> {{subscription.get_frequency}}</dd>
                                 <dd><b>{% trans "Price" %}:</b> {{subscription.get_price_for_full_period}}</dd>
-                                <dd><b>{% trans "Payment type" %}:</b> {{subscription.get_payment_type}}</dd>
                                 <dd><b>{% trans "Type" %}:</b> {{subscription.get_type}}</dd>
+                                <dd><b>{% trans "Payment type" %}:</b> {{subscription.get_payment_type}}</dd>
                                 {% if subscription.balance %}<dd><b>{% trans "Balance" %}:</b> {{subscription.balance}}</dd>{% endif %}
                                 <a href="{% url 'new_subscription' contact.id %}?upgrade_subscription={{subscription.id}}" class="btn  btn-success">{% trans "Upgrade" %}</a>
                                 <a href="{% url 'new_subscription' contact.id %}?edit_subscription={{subscription.id}}" class="btn  btn-success">{% trans "Edit" %}</a>
@@ -114,14 +116,16 @@
                               <dt>{% trans "Latest payment" %}</dt>
                               {% if last_paid_invoice %}
                                 <dd>{{last_paid_invoice.payment_date}} (${{last_paid_invoice.amount}})</dd>
+                                <dt>{% trans "Total invoices paid" %}</dt>
+                                <dd>{{contact.get_paid_invoices_count}}</dd>
                               {% else %}
                                 <dd>N/A</dd>
                               {% endif %}
+                              <dt>{% trans "Payment type of last invoice" %}</dt>
+                              <dd>{{ contact.get_latest_invoice.get_payment_type }}</dd>
                               {% if contact.get_debt %}
                               <dt>{% trans "Debt" %}</dt>
                               <dd>${{ contact.get_debt }} ({{contact.expired_invoices_count}} {% trans "overdue invoices" %})<i class="fas fa-exclamation-triangle text-danger"></i></dd>
-                              <dt>{% trans "Payment type of last invoice" %}</dt>
-                              <dd>{{ contact.get_latest_invoice.get_payment_type }}</dd>
                               {% endif %}
                             </dl>
                           </div>
@@ -143,11 +147,12 @@
                             {% if issues %}
                               <dl>
                                 {% for issue in issues %}
-                                  <dt>{{issue.get_category}} - {{issue.get_subcategory}} - <a href="{% url 'view_issue' issue.id %}" target="_blank" class="btn btn-primary btn-sm">{% trans "View" %}</a></dt>
+                                  <dt {% if forloop.counter != 1 %}class="border-top mt-4 pt-3"{% endif %}>
+                                    {{issue.get_category}} - {{issue.get_subcategory}} - <a href="{% url 'view_issue' issue.id %}" target="_blank" class="btn btn-primary btn-sm">{% trans "View" %}</a>
+                                  </dt>
                                   <dd>{{issue.get_status}} {{issue.assigned_to|default_if_none:""}}</dd>
                                   <dd>{{issue.date_created}}</dd>
-                                  <dd>{{issue.notes|linebreaks}}</dd>
-                                  <hr>
+                                  <dd>{{issue.notes|default_if_none:""|linebreaks}}</dd>
                                 {% endfor %}
                               </dl>
                             {% else %}
@@ -209,10 +214,10 @@
                             <dl>
                               <dt>{% trans "Name" %}</dt>
                               <dd>{{contact.name}}</dd>
-                              {% if contact.id_document %}
-                                <dt>{% trans "Documento" %}</dt>
-                                <dd>{{contact.id_document}}</dd>
-                              {% endif %}
+                              <dt>{% trans "Documento" %}</dt>
+                              <dd>{{contact.id_document}}</dd>
+                              <dt>{% trans "Email" %}</dt>
+                              <dd>{{contact.email}}</dd>
                               <dt>{% trans "Phone" %}</dt>
                               <dd>{{contact.phone}}</dd>
                               {% if contact.mobile %}
@@ -232,7 +237,6 @@
                                 </dd>
                               {% endif %}
                             </dl>
-
                           </div>
                         </div>
                       </div>
@@ -403,7 +407,6 @@
                       </div>
                       {% endif %}
                     </div>
-
                     <!-- Tab Issues -->
                     <div class="tab-pane" id="issues">
                       <div class="row">
@@ -416,7 +419,7 @@
                               <thead>
                                 <tr role="row">
                                   <th>{% trans 'ID' %}</th>
-                                  <th>{% trans 'Start date' %}</th>
+                                  <th>{% trans 'Date' %}</th>
                                   <th>{% trans 'Category' %}</th>
                                   <th>{% trans 'Subcategory' %}</th>
                                   <th>{% trans 'Status' %}</th>
@@ -459,7 +462,7 @@
                                   <th>{% trans 'Creation date' %}</th>
                                   <th>{% trans 'Execution date' %}</th>
                                   <th>{% trans 'Completed' %}</th>
-                                  <th>{% trans 'Issue' %}</th>
+                                  <th>{% trans 'Linked task' %}</th>
                                   <th></th>
                                 </tr>
                               </thead>
@@ -475,7 +478,9 @@
                                         {% else %}-
                                         {% endif %}
                                     </td>
-                                    <td><a href='{% url "admin:support_scheduledtask_change" task.id %}' class="btn btn-primary btn-sm">{% trans "View" %}</a></td>
+                                    <td>
+                                      <a href='{% url "admin:support_scheduledtask_change" task.id %}' class="btn btn-primary btn-sm">{% trans "View" %}</a>
+                                    </td>
                                   </tr>
                                 {% endfor %}
                               </tbody>
@@ -521,7 +526,7 @@
                                       {% endif %}
                                   </td>
                                   <td>{{activity.get_status}}</td>
-                                  <td><a href="#" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#activityView">{% trans "View" %}</a></td>
+                                  <td><a href="#" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#activityView-{{activity.id}}">{% trans "View" %}</a></td>
                                 </tr>
                                 {% endfor %}
                               </tbody>
