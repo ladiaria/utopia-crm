@@ -203,29 +203,27 @@ class Contact(models.Model):
         """
         return bool(self.expired_invoices_count())
 
-    def expired_invoices_count(self):
-        """
-        Counts the amount of expired invoices for the contact.
-        """
-        from invoicing.models import Invoice
-        count = Invoice.objects.filter(
-            contact=self, expiration_date__lte=date.today(), paid=False, debited=False, canceled=False,
-            uncollectible=False).count()
-        return count
-
     def get_expired_invoices(self):
         """
         Returns a queryset with the expired invoices for the contact.
         """
-        from invoicing.models import Invoice
-        invoices = Invoice.objects.filter(
-            contact=self, expiration_date__lte=date.today(), paid=False, debited=False,
-            canceled=False, uncollectible=False)
-        return invoices
+        return self.invoice_set.filter(
+            expiration_date__lte=date.today(), paid=False, debited=False, canceled=False, uncollectible=False)
+
+    def expired_invoices_count(self):
+        """
+        Counts the amount of expired invoices for the contact.
+        """
+        return self.get_expired_invoices().count()
+
+    def get_total_invoices_count(self):
+        return self.invoice_set.all().count()
+
+    def get_paid_invoices_count(self):
+        return self.invoice_set.filter(Q(paid=True) | Q(debited=True)).count()
 
     def get_latest_invoice(self):
-        from invoicing.models import Invoice
-        return Invoice.objects.filter(contact=self).latest('id')
+        return self.invoice_set.all().latest('id')
 
     def add_to_campaign(self, campaign_id):
         """
@@ -251,10 +249,9 @@ class Contact(models.Model):
         """
         Returns how much money the contact owes.
         """
-        from invoicing.models import Invoice
-        sum_import = Invoice.objects.filter(
-            contact=self, expiration_date__lte=date.today(), paid=False,
-            debited=False, canceled=False, uncollectible=False).aggregate(Sum('amount'))
+        sum_import = self.invoice_set.filter(
+            expiration_date__lte=date.today(), paid=False, debited=False, canceled=False,
+            uncollectible=False).aggregate(Sum('amount'))
         return sum_import.get('amount__sum', None)
 
     def has_no_open_issues(self, category=None):
@@ -332,10 +329,8 @@ class Contact(models.Model):
         """
         Returns the last paid invoice for this contact if it exists. Returns None if they have none.
         """
-        from invoicing.models import Invoice
-
         try:
-            return Invoice.objects.filter(Q(paid=True) | Q(debited=True), contact=self).latest('id')
+            return self.invoice_set.filter(Q(paid=True) | Q(debited=True)).latest('id')
         except Exception:
             return None
 
@@ -344,8 +339,7 @@ class Contact(models.Model):
         Adds a product history for this contact on the ContactProductHistory table. This is used to keep record of
         how many times a Contact has been active or inactive, and when. Soon this will be improved.
         """
-        history_of_this_product = ContactProductHistory.objects.filter(
-            contact=self, product=product)
+        history_of_this_product = self.contactproducthistory_set.filter(product=product)
         if history_of_this_product.exists():
             latest_history_of_this_product = history_of_this_product.latest('id')
         else:
@@ -361,6 +355,21 @@ class Contact(models.Model):
         else:
             ContactProductHistory.objects.create(
                 contact=self, date=date.today(), product=product, status=new_status)
+
+    def get_total_issues_count(self):
+        return self.issue_set.all().count()
+
+    def get_finished_issues_count(self):
+        return self.issue_set.filter(status__slug__in=settings.FINISHED_ISSUE_STATUS_SLUG_LIST).count()
+
+    def get_open_issues_count(self):
+        return self.get_total_issues_count() - self.get_finished_issues_count()
+
+    def get_total_scheduledtask_count(self):
+        return self.scheduledtask_set.count()
+
+    def get_total_activities_count(self):
+        return self.activity_set.count()
 
     class Meta:
         verbose_name = _('contact')
