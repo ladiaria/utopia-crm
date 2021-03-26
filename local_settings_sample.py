@@ -119,7 +119,7 @@ DISCOUNT_12_MONTHS = 11.91
 ENVELOPE_PRICE = 4
 
 # Payment methods for invoicing
-INVOICES_PAYMENT_METHODS = (("M", "Mastercard"), ("V", "Visa"), ("C", "Cash"))
+INVOICE_PAYMENT_METHODS = (("M", "Mastercard"), ("V", "Visa"), ("C", "Cash"))
 
 INVOICES_PATH = "path/to/folder/in/media/"
 
