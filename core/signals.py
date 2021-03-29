@@ -38,9 +38,6 @@ def contact_pre_save_signal(sender, instance, **kwargs):
     #     raise ValidationError(
     #         u'Si no tiene email entonces se debe dejar en blanco el email')
 
-    # Sincronizamos campos sincronizables con la web
-    # instance._updateWebUser()
-
     if not alphanumeric.match(instance.name):
         return  # BYPASS MIGRATION
         raise ValidationError(_('The name only admits alphanumeric characters'))
