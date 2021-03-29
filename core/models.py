@@ -5,10 +5,10 @@ from dateutil.relativedelta import relativedelta
 
 from django.contrib.auth.models import User
 from django.conf import settings
-from django.core.validators import (
-    RegexValidator, MinValueValidator, MaxValueValidator)
+from django.core.validators import RegexValidator, MinValueValidator, MaxValueValidator
 from django.db import models
 from django.db.models import Q, Sum, Count
+from django.forms import ValidationError
 from django.utils.translation import ugettext_lazy as _
 from django_extensions.db.fields import AutoSlugField
 from django.utils.html import mark_safe
@@ -196,6 +196,23 @@ class Contact(models.Model):
 
     def __unicode__(self):
         return self.name
+
+    def clean(self):
+        if getattr(settings, 'WEB_UPDATE_USER_ENABLED', False) and self.email and self.id:
+            custom_module = getattr(settings, 'WEB_UPDATE_USER_VALIDATION_MODULE', None)
+            if custom_module:
+                validateEmailOnWeb_func = __import__(custom_module, fromlist=['validateEmailOnWeb']).validateEmailOnWeb
+                msg = validateEmailOnWeb_func(self.id, self.email)
+                if msg == 'TIMEOUT':
+                    # TODO: Alert user about web timeout
+                    pass
+                elif msg != 'OK':
+                    raise ValidationError({'email': msg})
+
+    def save(self, *args, **kwargs):
+        if not getattr(self, "updatefromweb", False):
+            self.clean()
+        return super(Contact, self).save(*args, **kwargs)
 
     def is_debtor(self):
         """
