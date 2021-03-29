@@ -1,3 +1,4 @@
+# coding=utf-8
 DEBUG = True
 
 DATABASES = {
@@ -67,8 +68,6 @@ else:
 
 # Replace with your own allowed hosts.
 ALLOWED_HOSTS = ["localhost"]
-
-WEB_UPDATE_USER_ENABLED = False
 
 # Use this setting to only import certain contacts, activate with True and
 # type the id numbers (int) in the MIGRATION_CUSTOM_CONTACT_LIST.

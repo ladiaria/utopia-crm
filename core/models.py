@@ -541,15 +541,15 @@ class Subscription(models.Model):
         blank=True, null=True, verbose_name=_('Unsubscription addendum'))
 
     # Product
-    products = models.ManyToManyField(
-        Product, through='SubscriptionProduct')
-
-    frequency = models.PositiveSmallIntegerField(
-        default=1, choices=FREQUENCY_CHOICES)
-
+    products = models.ManyToManyField(Product, through='SubscriptionProduct')
+    frequency = models.PositiveSmallIntegerField(default=1, choices=FREQUENCY_CHOICES)
     payment_type = models.CharField(
-        max_length=1, choices=settings.SUBSCRIPTION_PAYMENT_METHODS, null=True, blank=True,
-        verbose_name=_('Payment type'))
+        max_length=1,
+        choices=settings.SUBSCRIPTION_PAYMENT_METHODS,
+        null=True,
+        blank=True,
+        verbose_name=_('Payment type'),
+    )
 
     # Mercadopago tokens, and others
     card_id = models.CharField(max_length=13, blank=True, null=True)
