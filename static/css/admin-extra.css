@@ -178,3 +178,6 @@ label,
 .object-tools {
     margin-top:0;
 }
+.empty-form {
+    display: none !important;
+}
