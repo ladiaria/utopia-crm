@@ -1284,6 +1284,7 @@ def view_issue(request, issue_id):
             "issue": issue,
             "activities": activities,
             "activity_form": activity_form,
+            "invoice_list": issue.contact.invoice_set.all()
         },
     )
 
@@ -1302,6 +1303,32 @@ def contact_list(request):
     )
     contact_filter = ContactFilter(request.GET, queryset=contact_queryset)
     paginator = Paginator(contact_filter.qs, 50)
+    if request.GET.get('export'):
+        response = HttpResponse(content_type="text/csv")
+        response["Content-Disposition"] = 'attachment; filename="contacts_export.csv"'
+        writer = unicodecsv.writer(response)
+        header = [
+            _("Id"),
+            _("Full name"),
+            _("Email"),
+            _("Phone"),
+            _("Mobile"),
+            _("Subscription"),
+            _("Last activity")
+        ]
+        writer.writerow(header)
+        for contact in contact_filter.qs.all():
+            writer.writerow([
+                contact.id,
+                contact.name,
+                contact.email,
+                contact.phone,
+                contact.mobile,
+                contact.get_first_active_subscription().show_products_html(
+                    br=False) if contact.get_first_active_subscription() else None,
+                contact.last_activity().datetime if contact.last_activity() else None
+            ])
+        return response
     try:
         contacts = paginator.page(page)
     except PageNotAnInteger:
@@ -1319,6 +1346,7 @@ def contact_list(request):
             "page": page,
             "total_pages": paginator.num_pages,
             "filter": contact_filter,
+            "count": contact_filter.qs.count()
         },
     )
 

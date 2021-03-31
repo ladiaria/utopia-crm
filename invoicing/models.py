@@ -102,6 +102,18 @@ class Invoice(models.Model):
         else:
             return _('Pending')
 
+    def get_status_code(self):
+        if self.paid or self.debited:
+            return "p"
+        elif self.uncollectible:
+            return "u"
+        elif self.canceled:
+            return "c"
+        elif not(self.paid or self.debited) and self.expiration_date <= date.today():
+            return "o"
+        else:
+            return "d"
+
     def get_payment_type(self):
         types = dict(settings.INVOICE_PAYMENT_METHODS)
         return types.get(self.payment_type, _('Unspecified payment method'))

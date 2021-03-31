@@ -303,7 +303,10 @@ class Contact(models.Model):
         """
         Returns the latest activity of this contact.
         """
-        return self.activity_set.latest('id')
+        if self.activity_set.exists():
+            return self.activity_set.latest('id')
+        else:
+            return None
 
     def get_gender(self):
         """
@@ -990,18 +993,25 @@ class Subscription(models.Model):
             return self.issue_set.exclude(
                 status__slug__in=FINISHED_ISSUE_STATUS_SLUG_LIST).count() == self.issue_set.all().count()
 
-    def show_products_html(self, ul=False):
+    def show_products_html(self, ul=False, br=True):
         """
         Renders all the products into a list of products.
         """
         output = ""
         if ul:
             output += "<ul>"
-        for p in self.products.filter(type='S'):
+        products = self.products.filter(type='S')
+        count = products.count()
+        for p in products:
             if ul:
                 output += "<li>{}</li>".format(p.name)
             else:
-                output += "{}<br>".format(p.name)
+                output += "{}".format(p.name)
+                if count > 1:
+                    if br:
+                        output += "<br>"
+                    else:
+                        output += "\n"
         if ul:
             output += "</ul>"
         return output
