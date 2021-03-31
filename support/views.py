@@ -1,4 +1,5 @@
 # coding=utf-8
+import unicodecsv
 import csv
 from datetime import date, timedelta, datetime
 
@@ -1050,6 +1051,31 @@ def list_issues(request):
     issues_filter = IssueFilter(request.GET, queryset=issues_queryset)
     page_number = request.GET.get("p")
     paginator = Paginator(issues_filter.qs, 100)
+    if request.GET.get('export'):
+        response = HttpResponse(content_type="text/csv")
+        response["Content-Disposition"] = 'attachment; filename="issues_export.csv"'
+        writer = unicodecsv.writer(response)
+        header = [
+            _("Start date"),
+            _("Contact name"),
+            _("Category"),
+            _("Subcategory"),
+            _("Activities count"),
+            _("Status"),
+            _("Assigned to")
+        ]
+        writer.writerow(header)
+        for issue in issues_filter.qs.all():
+            writer.writerow([
+                issue.date,
+                issue.contact.name,
+                issue.get_category(),
+                issue.get_subcategory(),
+                issue.activity_count(),
+                issue.get_status(),
+                issue.get_assigned_to()
+            ])
+        return response
     try:
         page = paginator.page(page_number)
     except PageNotAnInteger:
@@ -1065,6 +1091,7 @@ def list_issues(request):
             "page": page,
             "paginator": paginator,
             "issues_filter": issues_filter,
+            "count": issues_filter.qs.count()
         },
     )
 
