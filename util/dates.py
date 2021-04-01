@@ -72,3 +72,7 @@ def get_default_start_date():
 
 def get_default_next_billing():
     return date.today() + timedelta(days=1)
+
+
+def diff_month(newer, older):
+    return (newer.year - older.year) * 12 + newer.month - older.month

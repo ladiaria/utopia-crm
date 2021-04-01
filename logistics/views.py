@@ -22,14 +22,12 @@ from util.dates import next_business_day
 from .labels import LogisticsLabel, LogisticsLabel96x30, Roll, Roll96x30
 
 
-PRODUCT_LIST = Product.objects.filter(type='S', bundle_product=False)
-
-
 @login_required
 def assign_routes(request):
     """
     Assigns routes to contacts that have no route. The assignation is per SubscriptionProduct.
     """
+    product_list = Product.objects.filter(type='S', bundle_product=False)
     product_id = 'all'
     if request.POST:
         for name, value in request.POST.items():
@@ -60,7 +58,7 @@ def assign_routes(request):
     return render(
         request, 'assign_routes.html', {
             'subscription_products': subscription_products,
-            'product_list': PRODUCT_LIST
+            'product_list': product_list
         })
 
 
@@ -71,6 +69,7 @@ def order_route(request, route=1):
 
     TODO: Do something to quickly change route from the template itself.
     """
+    product_list = Product.objects.filter(type='S', bundle_product=False)
     product_id = 'all'
     route_object = get_object_or_404(Route, pk=route)
     if request.POST:
@@ -101,7 +100,7 @@ def order_route(request, route=1):
         request, 'order_route.html', {
             'subscription_products': subscription_products,
             'route': route,
-            'product_list': PRODUCT_LIST,
+            'product_list': product_list,
             'product_id': product_id})
 
 
@@ -112,6 +111,7 @@ def change_route(request, route=1):
 
     TODO: Do something to quickly change route form the template itself.
     """
+    product_list = Product.objects.filter(type='S', bundle_product=False)
     product_id = 'all'
     route_object = get_object_or_404(Route, pk=route)
     if request.POST:
@@ -141,7 +141,7 @@ def change_route(request, route=1):
             subscription_products = subscription_products.exclude(product_id=exclude)
     return render(
         request, 'change_route.html', {
-            'subscription_products': subscription_products, 'route': route, 'product_list': PRODUCT_LIST,
+            'subscription_products': subscription_products, 'route': route, 'product_list': product_list,
             'product_id': product_id})
 
 

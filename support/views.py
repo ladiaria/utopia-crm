@@ -464,7 +464,7 @@ def send_promo(request, contact_id):
     contact = Contact.objects.get(pk=contact_id)
     instance = None
     contact_addresses = Address.objects.filter(contact=contact)
-    offerable_products = Product.objects.filter(bundle_product=False, type="S")
+    offerable_products = Product.objects.filter(offerable=True)
 
     if instance_type and instance_type == "new" and instance_id:
         instance = ContactCampaignStatus.objects.get(pk=instance_id)
@@ -589,7 +589,7 @@ def start_paid_subscription(request, contact_id):
     instance_id = request.GET.get("instance", None)
     result = request.POST.get("result")
     contact_addresses = Address.objects.filter(contact=contact)
-    offerable_products = Product.objects.filter(bundle_product=False, type="S")
+    offerable_products = Product.objects.filter(offerable=True)
     other_active_normal_subscriptions = Subscription.objects.filter(contact=contact, active=True, type="N")
 
     if instance_type and instance_type == "new" and instance_id:
@@ -741,7 +741,7 @@ def new_subscription(request, contact_id):
 
     result = request.POST.get("result")
     contact_addresses = Address.objects.filter(contact=contact)
-    offerable_products = Product.objects.filter(bundle_product=False, type="S")
+    offerable_products = Product.objects.filter(offerable=True)
     other_active_normal_subscriptions = Subscription.objects.filter(contact=contact, active=True, type="N")
 
     if form_subscription:
@@ -1019,7 +1019,7 @@ def edit_products(request, subscription_id):
     """
     Allows editing products in a subscription.
     """
-    products = Product.objects.filter(type="S").exclude(bundle_product=True)
+    products = Product.objects.filter(offerable=True)
     subscription = get_object_or_404(Subscription, pk=subscription_id)
     contact = subscription.contact
     contact_addresses = Address.objects.filter(contact=contact)

@@ -17,7 +17,7 @@ from taggit.managers import TaggableManager
 
 from .choices import *
 from utils import delete_email_from_mailtrain_list, subscribe_email_to_mailtrain_list, get_emails_from_mailtrain_list
-from util.dates import get_default_next_billing, get_default_start_date
+from util.dates import get_default_next_billing, get_default_start_date, diff_month
 
 regex_alphanumeric = r'^[A-Za-z0-9ñüáéíóúÑÜÁÉÍÓÚ _\'.\-]*$'
 
@@ -114,7 +114,7 @@ class Product(models.Model):
     price = models.IntegerField(default=0)
     type = models.CharField(max_length=1, default='O', choices=PRODUCT_TYPE_CHOICES, db_index=True)
     weekday = models.IntegerField(default=None, choices=PRODUCT_WEEKDAYS, null=True, blank=True)
-    bundle_product = models.BooleanField(default=False, verbose_name=_('Bundle of products'))
+    offerable = models.BooleanField(default=False, verbose_name=_('Allow offer'))
     billing_priority = models.PositiveSmallIntegerField(null=True, blank=True)
     digital = models.BooleanField(default=False, verbose_name=_('Digital'))
     old_pk = models.PositiveIntegerField(blank=True, null=True)
@@ -862,7 +862,7 @@ class Subscription(models.Model):
         """
         # products = self.products.filter(type='S')
         from .utils import process_products
-        subscription_products = SubscriptionProduct.objects.filter(product__type='S', subscription=self)
+        subscription_products = SubscriptionProduct.objects.filter(subscription=self)
         dict_all_products = {}
         for sp in subscription_products:
             dict_all_products[str(sp.product.id)] = str(sp.copies)
@@ -1014,7 +1014,7 @@ class Subscription(models.Model):
         output = ""
         if ul:
             output += "<ul>"
-        for p in self.products.filter(type='S'):
+        for p in self.products.filter(offerable=True):
             if ul:
                 output += "<li>{}</li>".format(p.name)
             else:
@@ -1085,6 +1085,13 @@ class Subscription(models.Model):
             return sp.special_instructions or ""
         except SubscriptionProduct.DoesNotExist:
             return ""
+
+    def months_in_invoices_with_product(self, product_slug):
+        months = 0
+        for invoice in self.invoice_set.filter(invoiceitem__product__slug=product_slug):
+            m = diff_month(invoice.service_to, invoice.service_from)
+            months += m
+        return months
 
     class Meta:
         verbose_name = _('subscription')
@@ -1291,7 +1298,7 @@ class PriceRule(models.Model):
     active = models.BooleanField(default=False)
     # Used so the function that checks the rules can check if the products exist.
     products_pool = models.ManyToManyField(
-        Product, limit_choices_to={'bundle_product': False, 'type': 'S'}, related_name='pool')
+        Product, limit_choices_to={'offerable': True, 'type': 'S'}, related_name='pool')
     # If any of the resulting products of the previous rules (by priority) or any of the products on the input products
     # that are still being checked for the rule are present, then the current check is discarded.
     products_not_pool = models.ManyToManyField(
@@ -1307,7 +1314,7 @@ class PriceRule(models.Model):
     # Select one product from the pool that will be replaced. This is only used in the 'replace one' mode.
     choose_one_product = models.ForeignKey(
         Product, null=True, blank=True, related_name='chosen_product',
-        limit_choices_to={'bundle_product': False, 'type': 'S'})
+        limit_choices_to={'offerable': True, 'type': 'S'})
     # When the rule is applied, instead of modifying prices, it will result into a different product that will be
     # added to the output. The product can modify one, or even be added. What can be added can be a normal product or
     # even a discount, depending on what you need.
@@ -1315,7 +1322,7 @@ class PriceRule(models.Model):
     # price when selected together, or to add a discount instead of changing those products. Combine this with the
     # not_pool so you make sure you add the specific product you want.
     resulting_product = models.ForeignKey(
-        Product, null=True, blank=True, related_name='resulting_product', limit_choices_to={'bundle_product': True})
+        Product, null=True, blank=True, related_name='resulting_product', limit_choices_to={'offerable': False})
     # A field for leaving notes on this rule.
     notes = models.TextField(blank=True, null=True)
     # This is the order in which every rule will be checked, from lower to higher. This will probably be renamed to
@@ -1333,7 +1340,7 @@ class DynamicContactFilter(models.Model):
     description = models.CharField(max_length=150, unique=True)
 
     products = models.ManyToManyField(
-        Product, limit_choices_to={'bundle_product': False, 'type': 'S'}, related_name='products',
+        Product, limit_choices_to={'offerable': True}, related_name='products',
         blank=True)
     newsletters = models.ManyToManyField(
         Product, limit_choices_to={'type': 'N'}, related_name='newsletters', blank=True)

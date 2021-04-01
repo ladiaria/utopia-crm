@@ -164,3 +164,9 @@ ASSIGNED_ISSUE_STATUS_SLUG = 'assigned'
 UNASSIGNED_ISSUE_STATUS_SLUG = 'unassigned'
 PENDING_ISSUE_STATUS_SLUG = 'pending'
 AUTO_ISSUE_STATUS_SLUG = 'automatic'  # for automatic tasks that have not been completed yet
+
+# Temporary discount: slug: months. Use this dictionary if you want certain products to disappear from the subscription
+# after a set amount of months.
+TEMPORARY_DISCOUNT = {
+    'product-slug': 3,
+}

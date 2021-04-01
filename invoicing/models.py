@@ -106,6 +106,9 @@ class Invoice(models.Model):
         types = dict(settings.INVOICE_PAYMENT_METHODS)
         return types.get(self.payment_type, _('Unspecified payment method'))
 
+    def has_product(self, product_slug):
+        return self.invoiceitem_set.filter(product__slug=product_slug).exists()
+
     class Meta:
         verbose_name = 'invoice'
         verbose_name_plural = 'invoices'

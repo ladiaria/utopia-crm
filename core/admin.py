@@ -244,8 +244,8 @@ class ContactAdmin2(admin.ModelAdmin):
 
 
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'price', 'active', 'type', 'weekday', 'slug', 'bundle_product', 'billing_priority')
-    list_editable = ['name', 'type', 'price', 'weekday', 'bundle_product', 'billing_priority']
+    list_display = ('id', 'name', 'price', 'active', 'type', 'weekday', 'slug', 'offerable', 'billing_priority')
+    list_editable = ['name', 'type', 'price', 'weekday', 'billing_priority', 'offerable']
     readonly_fields = ('slug',)
     # prepopulated_fields = {'slug': ('name',)}
 
