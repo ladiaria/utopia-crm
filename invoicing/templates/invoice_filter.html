@@ -63,7 +63,8 @@
               </div>
             </div>
             <div class="text-right">
-
+              {{invoices_count}} {% trans "invoices" %}
+              <input type="submit" class="btn bg-gradient-primary ml-3" value="{% trans 'Export to CSV' %}" name="export" />
               <input type="submit" class="btn bg-gradient-primary ml-3" value="{% trans 'Search' %}" />
             </div>
           </form>

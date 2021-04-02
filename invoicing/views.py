@@ -1,4 +1,5 @@
 # coding=utf-8
+import unicodecsv
 from datetime import date, timedelta, datetime
 
 from dateutil.relativedelta import relativedelta
@@ -429,7 +430,37 @@ def invoice_filter(request):
     except EmptyPage:
         # If page is out of range (e.g. 9999), deliver last page of results.
         invoices = paginator.page(paginator.num_pages)
-
+    if request.GET.get('export'):
+        response = HttpResponse(content_type="text/csv")
+        response["Content-Disposition"] = 'attachment; filename="invoices_export.csv"'
+        writer = unicodecsv.writer(response)
+        header = [
+            _("Id"),
+            _("Contact name"),
+            _("Subscriptions"),
+            _("Amount"),
+            _("Payment type"),
+            _("Date"),
+            _("Due"),
+            _("Status"),
+            _("Serie"),
+            _("Number"),
+        ]
+        writer.writerow(header)
+        for invoice in invoice_filter.qs.all():
+            writer.writerow([
+                invoice.id,
+                invoice.contact.name,
+                invoice.subscription.show_products_html(br=False) if invoice.subscription else None,
+                invoice.amount,
+                invoice.get_payment_type(),
+                invoice.creation_date,
+                invoice.expiration_date,
+                invoice.get_status(),
+                invoice.serie,
+                invoice.numero,
+            ])
+        return response
     invoices_count = invoice_filter.qs.count()
     pending_count = invoice_filter.qs.filter(
         canceled=False, uncollectible=False, paid=False, debited=False, expiration_date__gt=date.today()).count()
