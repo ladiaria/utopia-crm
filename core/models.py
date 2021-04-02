@@ -1018,6 +1018,7 @@ class Subscription(models.Model):
         if ul:
             output += "<ul>"
         for p in self.products.filter(offerable=True):
+            count = self.products.filter(offerable=True).count()
             if ul:
                 output += "<li>{}</li>".format(p.name)
             else:
