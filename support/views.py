@@ -197,7 +197,7 @@ def seller_console_list_campaigns(request):
     try:
         seller = Seller.objects.get(user=user)
     except Seller.DoesNotExist:
-        return HttpResponse(_("User has no seller selected."))
+        return HttpResponse(_("User has no seller selected. Please contact your manager."))
     except Seller.MultipleObjectsReturned as e:
         return HttpResponse(e.message)
 
@@ -351,7 +351,7 @@ def seller_console(request, category, campaign_id):
         try:
             seller = Seller.objects.get(user=user)
         except Seller.DoesNotExist:
-            return HttpResponse(_("User has no seller selected."))
+            return HttpResponse(_("User has no seller selected. Please contact your manager."))
 
         if request.GET.get("offset"):
             offset = request.GET.get("offset")
@@ -372,10 +372,10 @@ def seller_console(request, category, campaign_id):
             console_instances = pending | delayed
         count = console_instances.count()
         if count == 0:
-            return HttpResponse(_("No more records."))
+            return HttpResponseRedirect(reverse('seller_console_list_campaigns'))
         if offset:
             if offset >= count:
-                return HttpResponse("Error")
+                return HttpResponseRedirect(reverse('seller_console_list_campaigns'))
             console_instance = console_instances[int(offset)]
         else:
             console_instance = console_instances[0]
@@ -896,7 +896,7 @@ def new_subscription(request, contact_id):
 @login_required
 def assign_campaigns(request):
     """
-    Allows a supervisor to add contacts to campaigns, using tags or a csv file.
+    Allows a manager to add contacts to campaigns, using tags or a csv file.
     """
     campaigns = Campaign.objects.filter(active=True)
     if request.POST and request.FILES:
