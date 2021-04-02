@@ -48,6 +48,12 @@
                 <input type="submit" class="btn bg-gradient-primary" value="{% trans 'Search' %}" />
               </div>
             </div>
+            <div class="row">
+              <div class="form-group col-4">
+                <input type="submit" class="btn bg-gradient-primary" name="export" value="{% trans 'Export to CSV' %}" />
+                {{count}} {% trans "contacts" %}
+              </div>
+            </div>
           </form>
         </div>
       </div>

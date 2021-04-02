@@ -133,6 +133,15 @@ class Issue(models.Model):
         else:
             self.save()
 
+    def activity_count(self):
+        return self.activity_set.count()
+
+    def get_assigned_to(self):
+        if self.assigned_to:
+            return self.assigned_to.username
+        else:
+            return None
+
     def __unicode__(self):
         return "Issue of category {} for {} with status {}".format(
             self.get_category(), self.contact.name, self.get_status()

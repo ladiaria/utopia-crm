@@ -79,7 +79,8 @@
               </div>
             </div>
             <div class="text-right">
-
+              {{count}} {% trans "issues" %}
+              <input type="submit" class="btn bg-gradient-primary ml-3" value="{% trans 'Export to CSV' %}" name="export" />
               <input type="submit" class="btn bg-gradient-primary ml-3" value="{% trans 'Search' %}" />
             </div>
           </form>
@@ -97,6 +98,7 @@
                     <th>{% trans "Category" %}</th>
                     <th>{% trans "Subcategory" %}</th>
                     <th>{% trans "Status" %}</th>
+                    <th>{% trans "Activities" %}</th>
                     <th>{% trans "Assigned to" %}</th>
                   </tr>
               </thead>
@@ -109,7 +111,8 @@
                     <td>{{issue.get_category}}</td>
                     <td>{{issue.get_subcategory}}</td>
                     <td>{{issue.status}}</td>
-                    <td>{{issue.manager|default_if_none:"-"}}</td>
+                    <td>{{issue.activity_count}}</td>
+                    <td>{{issue.assigned_to|default_if_none:"-"}}</td>
                 </tr>
                 {% endfor %}
               </tbody>

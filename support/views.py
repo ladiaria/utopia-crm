@@ -1,4 +1,5 @@
 # coding=utf-8
+import unicodecsv
 import csv
 from datetime import date, timedelta, datetime
 
@@ -1050,6 +1051,31 @@ def list_issues(request):
     issues_filter = IssueFilter(request.GET, queryset=issues_queryset)
     page_number = request.GET.get("p")
     paginator = Paginator(issues_filter.qs, 100)
+    if request.GET.get('export'):
+        response = HttpResponse(content_type="text/csv")
+        response["Content-Disposition"] = 'attachment; filename="issues_export.csv"'
+        writer = unicodecsv.writer(response)
+        header = [
+            _("Start date"),
+            _("Contact name"),
+            _("Category"),
+            _("Subcategory"),
+            _("Activities count"),
+            _("Status"),
+            _("Assigned to")
+        ]
+        writer.writerow(header)
+        for issue in issues_filter.qs.all():
+            writer.writerow([
+                issue.date,
+                issue.contact.name,
+                issue.get_category(),
+                issue.get_subcategory(),
+                issue.activity_count(),
+                issue.get_status(),
+                issue.get_assigned_to()
+            ])
+        return response
     try:
         page = paginator.page(page_number)
     except PageNotAnInteger:
@@ -1065,6 +1091,7 @@ def list_issues(request):
             "page": page,
             "paginator": paginator,
             "issues_filter": issues_filter,
+            "count": issues_filter.qs.count()
         },
     )
 
@@ -1257,6 +1284,7 @@ def view_issue(request, issue_id):
             "issue": issue,
             "activities": activities,
             "activity_form": activity_form,
+            "invoice_list": issue.contact.invoice_set.all()
         },
     )
 
@@ -1275,6 +1303,32 @@ def contact_list(request):
     )
     contact_filter = ContactFilter(request.GET, queryset=contact_queryset)
     paginator = Paginator(contact_filter.qs, 50)
+    if request.GET.get('export'):
+        response = HttpResponse(content_type="text/csv")
+        response["Content-Disposition"] = 'attachment; filename="contacts_export.csv"'
+        writer = unicodecsv.writer(response)
+        header = [
+            _("Id"),
+            _("Full name"),
+            _("Email"),
+            _("Phone"),
+            _("Mobile"),
+            _("Subscription"),
+            _("Last activity")
+        ]
+        writer.writerow(header)
+        for contact in contact_filter.qs.all():
+            writer.writerow([
+                contact.id,
+                contact.name,
+                contact.email,
+                contact.phone,
+                contact.mobile,
+                contact.get_first_active_subscription().show_products_html(
+                    br=False) if contact.get_first_active_subscription() else None,
+                contact.last_activity().datetime if contact.last_activity() else None
+            ])
+        return response
     try:
         contacts = paginator.page(page)
     except PageNotAnInteger:
@@ -1292,6 +1346,7 @@ def contact_list(request):
             "page": page,
             "total_pages": paginator.num_pages,
             "filter": contact_filter,
+            "count": contact_filter.qs.count()
         },
     )
 
