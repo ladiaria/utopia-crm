@@ -15,7 +15,7 @@ class CreditNoteAdmin(admin.ModelAdmin):
 class InvoiceItemInline(admin.StackedInline):
     model = InvoiceItem
     fields = [
-        'amount', 'product', 'description', 'price', 'copies', 'service_from', 'service_to'
+        'amount', 'product', 'description', 'price', 'copies', 'service_from', 'service_to', 'type',
     ]
     extra = 0
 
