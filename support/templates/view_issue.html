@@ -51,6 +51,12 @@
                     {% if issue.subscription %}
                       <dd>{% trans "Subscription" %}: {{issue.subscription}}</dd>
                     {% endif %}
+                    {% ifequal issue.category "I" %}
+                      {% if issue.contact.get_debt %}
+                        <dt>{% trans "Debt" %}</dt>
+                        <dd>${{ issue.contact.get_debt }} ({{issue.contact.expired_invoices_count}} {% trans "overdue invoices" %})<i class="fas fa-exclamation-triangle text-danger"></i><a href="#" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#invoices_modal">{% trans "View" %}</a></dd>
+                      {% endif %}
+                    {% endifequal %}
                   </dl>
               </div><!-- /.card-body -->
           </div>
@@ -137,6 +143,56 @@
             </div>
         </form>
       </div>
+    </div>
+  </div>
+</div>
+
+<div id="invoices_modal" class="modal" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+        <div class="modal-header">
+         <h5 class="modal-title" id="exampleModalLabel">{% trans 'Contact invoices' %}</h5>
+         <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+           <span aria-hidden="true">&times;</span>
+         </button>
+       </div>
+       <div class="modal-body">
+        <div class="card-body">
+          <table class="table ">
+                <thead>
+                    <tr role="row">
+                        <th>{% trans "Invoice" %}</th>
+                        <th>{% trans "From" %}</th>
+                        <th>{% trans "To" %}</th>
+                        <th>{% trans "Issue" %}</th>
+                        <th>{% trans "Due" %}</th>
+                        <th>{% trans "Amount" %}</th>
+                        <th>{% trans "Payment method" %}</th>
+                        <th>{% trans "Status" %}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for invoice in invoice_list %}
+                   <tr role="row">
+                        <td>
+                            <a href="/admin/invoicing/invoice/{{ invoice.id }}/">{{ invoice.id }}</a>
+                            <a href="/invoicing/download_invoice/{{ invoice.id }}/" title="{% trans 'Download invoice' %}">
+                                <img src="{% static 'img/pdficon_small.png' %}" alt="PDF"/>
+                            </a>
+                        </td>
+                        <td>{{ invoice.service_from }}</td>
+                        <td>{{ invoice.service_to }}</td>
+                        <td>{{ invoice.creation_date }}</td>
+                        <td>{{ invoice.expiration_date }}</td>
+                        <td>{{ invoice.amount }}</td>
+                        <td>{{ invoice.payment_type }}</td>
+                        <td>{{ invoice.get_status }}</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+              </table>
+          </div>
+       </div>
     </div>
   </div>
 </div>
