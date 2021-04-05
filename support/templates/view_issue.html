@@ -148,7 +148,7 @@
 </div>
 
 <div id="invoices_modal" class="modal" tabindex="-1" role="dialog">
-  <div class="modal-dialog" role="document">
+  <div class="modal-dialog" role="document" style="max-width:800px">
     <div class="modal-content">
         <div class="modal-header">
          <h5 class="modal-title" id="exampleModalLabel">{% trans 'Contact invoices' %}</h5>
@@ -180,10 +180,10 @@
                                 <img src="{% static 'img/pdficon_small.png' %}" alt="PDF"/>
                             </a>
                         </td>
-                        <td>{{ invoice.service_from }}</td>
-                        <td>{{ invoice.service_to }}</td>
-                        <td>{{ invoice.creation_date }}</td>
-                        <td>{{ invoice.expiration_date }}</td>
+                        <td>{{ invoice.service_from|date:"SHORT_DATE_FORMAT" }}</td>
+                        <td>{{ invoice.service_to|date:"SHORT_DATE_FORMAT" }}</td>
+                        <td>{{ invoice.creation_date|date:"SHORT_DATE_FORMAT" }}</td>
+                        <td>{{ invoice.expiration_date|date:"SHORT_DATE_FORMAT" }}</td>
                         <td>{{ invoice.amount }}</td>
                         <td>{{ invoice.payment_type }}</td>
                         <td>{{ invoice.get_status }}</td>
