@@ -125,6 +125,7 @@ ACTIVITY_TYPES = (
     ('M', _('E-mail')),
     ('L', _('Link hit')),
     ('E', _('Event participation')),
+    ('I', _('In-place visit')),
 )
 
 PRODUCT_TYPE_CHOICES = (

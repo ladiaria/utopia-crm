@@ -3,11 +3,11 @@ from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 from django import forms
 
-from .models import Issue
+from .models import Issue, IssueStatus
 from .choices import ISSUE_SUBCATEGORIES
 
-from core.models import Contact, Product, Subscription, Address, DynamicContactFilter
-from core.choices import ADDRESS_TYPE_CHOICES, FREQUENCY_CHOICES
+from core.models import Contact, Product, Subscription, Address, DynamicContactFilter, SubscriptionProduct, Activity
+from core.choices import ADDRESS_TYPE_CHOICES, FREQUENCY_CHOICES, ACTIVITY_TYPES
 
 from support.models import Seller
 
@@ -30,23 +30,6 @@ class SellerForm(forms.ModelForm):
         return user
 
 
-class ServiceIssueStartForm(forms.ModelForm):
-    """
-    Used when you want to start an issue to change something on a Contact, what used to be 'Events'
-    """
-
-    logistics_subcategories = [("", "-----")]
-    for subcategory in ISSUE_SUBCATEGORIES:
-        # Only show the options that are set as logistics, they all start with an L on the key
-        if subcategory[0] in ("S04", "S05"):
-            logistics_subcategories.append(subcategory)
-    subcategory = forms.ChoiceField(choices=logistics_subcategories)
-
-    class Meta:
-        model = Issue
-        fields = ("contact", "category", "subcategory", "notes", "subscription")
-
-
 class NewPauseScheduledTaskForm(forms.Form):
     subscription = forms.ModelChoiceField(
         Subscription.objects.all(), widget=forms.Select(attrs={"class": "form-control"})
@@ -60,6 +43,10 @@ class NewPauseScheduledTaskForm(forms.Form):
         widget=forms.DateTimeInput(
             attrs={"class": "datepicker form-control float-right"}
         )
+    )
+    activity_type = forms.ChoiceField(
+        widget=forms.Select(attrs={"class": "form-control"}),
+        choices=ACTIVITY_TYPES,
     )
 
     def clean(self):
@@ -109,6 +96,10 @@ class NewAddressChangeScheduledTaskForm(forms.Form):
         required=False,
         choices=ADDRESS_TYPE_CHOICES,
         widget=forms.Select(attrs={"class": "form-control"}),
+    )
+    activity_type = forms.ChoiceField(
+        widget=forms.Select(attrs={"class": "form-control"}),
+        choices=ACTIVITY_TYPES,
     )
 
     def clean(self):
@@ -234,7 +225,6 @@ class GestionStartForm(forms.ModelForm):
             "progress",
             "answer_1",
             "answer_2",
-            "status",
             "end_date",
             "next_action_date",
             "closing_date",
@@ -242,7 +232,7 @@ class GestionStartForm(forms.ModelForm):
         )
 
 
-class LogisticsIssueStartForm(forms.ModelForm):
+class IssueStartForm(forms.ModelForm):
     """
     Used when you want to start an issue to track logistics, what used to be 'Claims
     """
@@ -257,17 +247,34 @@ class LogisticsIssueStartForm(forms.ModelForm):
     product = forms.ModelChoiceField(
         queryset=Product.objects.filter(type="S"),
         widget=forms.Select(attrs={"class": "form-control"}),
+        required=False,
     )
 
-    # Add a default empty option
-    logistics_subcategories = [("", "-----")]
-    for subcategory in ISSUE_SUBCATEGORIES:
-        # Only show the options that are set as logistics, they all start with an L on the key
-        if subcategory[0][0] == "L":
-            logistics_subcategories.append(subcategory)
-    subcategory = forms.ChoiceField(
-        choices=logistics_subcategories,
+    subscription_product = forms.ModelChoiceField(
+        queryset=SubscriptionProduct.objects.all(),
         widget=forms.Select(attrs={"class": "form-control"}),
+        required=False,
+    )
+
+    subscription = forms.ModelChoiceField(
+        queryset=Subscription.objects.all(),
+        widget=forms.Select(attrs={"class": "form-control"}),
+        required=False,
+    )
+
+    subcategory = forms.ChoiceField(
+        choices=ISSUE_SUBCATEGORIES,
+        widget=forms.Select(attrs={"class": "form-control"}),
+    )
+
+    activity_type = forms.ChoiceField(
+        widget=forms.Select(attrs={"class": "form-control"}),
+        choices=ACTIVITY_TYPES,
+    )
+
+    status = forms.ModelChoiceField(
+        queryset=IssueStatus.objects.all(),
+        widget=forms.Select(attrs={"class": "form-control"})
     )
 
     class Meta:
@@ -275,8 +282,10 @@ class LogisticsIssueStartForm(forms.ModelForm):
         widgets = {
             "notes": forms.Textarea(attrs={"class": "form-control"}),
             "subscription_product": forms.Select(attrs={"class": "form-control"}),
+            "subscription": forms.Select(attrs={"class": "form-control"}),
             "category": forms.Select(attrs={"class": "form-control"}),
             "copies": forms.NumberInput(attrs={"class": "form-control"}),
+            "assigned_to": forms.Select(attrs={"class": "form-control"}),
         }
         fields = (
             "contact",
@@ -286,10 +295,13 @@ class LogisticsIssueStartForm(forms.ModelForm):
             "copies",
             "subscription_product",
             "product",
+            "assigned_to",
+            "subscription",
+            "status",
         )
 
 
-class LogisticsIssueChangeForm(forms.ModelForm):
+class IssueChangeForm(forms.ModelForm):
     """
     Used when you want to start an issue to track logistics, what used to be 'Claims'
     """
@@ -308,11 +320,11 @@ class LogisticsIssueChangeForm(forms.ModelForm):
         }
         fields = (
             "contact",
+            "status",
             "progress",
             "answer_1",
             "answer_2",
             "assigned_to",
-            "status",
         )
 
 
@@ -384,3 +396,20 @@ class NewDynamicContactFilterForm(forms.ModelForm):
             "autosync",
             "mailtrain_id",
         )
+
+
+class NewActivityForm(forms.ModelForm):
+    class Meta:
+        model = Activity
+        fields = (
+            "contact",
+            "direction",
+            "activity_type",
+            "notes",
+        )
+        widgets = {
+            "contact": forms.TextInput(attrs={"class": "form-control d-none"}),
+            "direction": forms.Select(attrs={"class": "form-control"}),
+            "activity_type": forms.Select(attrs={"class": "form-control"}),
+            "notes": forms.TextInput(attrs={"class": "form-control"}),
+        }

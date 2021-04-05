@@ -19,18 +19,6 @@ regex_alphanumeric = r'^[A-Za-z0-9ñüáéíóúÑÜÁÉÍÓÚ _\'.\-]*$'
 alphanumeric = re.compile(regex_alphanumeric)
 
 
-# TODO
-# @receiver(post_save, sender=SuscripcionProducto)
-# @receiver(post_delete, sender=SuscripcionProducto)
-# def subscription_pre_save_signal(sender, instance, **kwargs):
-#     instance.cliente._updateWebUser(u'newsletters', json.dumps(
-#         [
-#             sp.plan.product.nombre for sp in
-#             instance.cliente.suscripcionproducto_set.filter(
-#                 plan__id__in=settings.WEB_UPDATE_NEWSLETTER_MAP.values()
-#             )
-#         ]))
-
 @receiver(pre_save, sender=Contact)
 def contact_pre_save_signal(sender, instance, **kwargs):
     # Estas validaciones deben estar acorde con las definidas en la
@@ -49,9 +37,6 @@ def contact_pre_save_signal(sender, instance, **kwargs):
     # if instance.no_email and instance.email:
     #     raise ValidationError(
     #         u'Si no tiene email entonces se debe dejar en blanco el email')
-
-    # Sincronizamos campos sincronizables con la web
-    # instance._updateWebUser()
 
     if not alphanumeric.match(instance.name):
         return  # BYPASS MIGRATION

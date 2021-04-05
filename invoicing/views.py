@@ -1,17 +1,16 @@
 # coding=utf-8
+import unicodecsv
 from datetime import date, timedelta, datetime
 
 from dateutil.relativedelta import relativedelta
 
 from django.urls import reverse
 from django.conf import settings
-from django.contrib.auth.decorators import login_required
 from django.contrib.admin.views.decorators import staff_member_required
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, render
-from django.http import (
-    HttpResponseServerError, HttpResponseRedirect, HttpResponse, JsonResponse)
+from django.http import HttpResponseServerError, HttpResponseRedirect, HttpResponse
 from django.utils.translation import ugettext_lazy as _
 from django.utils.text import format_lazy
 
@@ -31,7 +30,7 @@ reportlab.rl_config.TTFSearchPath.append(str(settings.STATIC_ROOT) + '/fonts')
 pdfmetrics.registerFont(TTFont('3of9', 'static/fonts/FREE3OF9.TTF'))
 
 
-@login_required
+@staff_member_required
 def contact_invoices(request, contact_id):
     """
     Shows a page with the invoices for a chosen contact.
@@ -256,6 +255,17 @@ def bill_subscription(subscription_id, billing_date=date.today(), dpp=10, check_
                 months=subscription.frequency)
             subscription.save()
 
+            # When the invoice has finally been created and every date has been moved where it should have been, we're
+            # going to check if there's any temporary discounts, and remove them if it applies.
+            if getattr(settings, 'TEMPORARY_DISCOUNT', None):
+                temporary_discount_list = getattr(settings, 'TEMPORARY_DISCOUNT').items()
+                for discount_slug, months in temporary_discount_list:
+                    if (
+                        invoice.has_product(discount_slug) and
+                        invoice.subscription.months_in_invoices_with_product(discount_slug) >= months
+                    ):
+                        invoice.subscription.remove_product(Product.objects.get(slug=discount_slug))
+
             # TODO:
             # - Notes
         except Exception as e:
@@ -267,25 +277,7 @@ def bill_subscription(subscription_id, billing_date=date.today(), dpp=10, check_
     return invoice
 
 
-def create_billing(
-        payment_type=None, billing_date=date.today(), dpp=10):
-    """
-    Creates a new empty billing.
-    """
-    exclude = []
-    excluded_contacts = Contact.objects.filter(id__in=[e for e in exclude])
-    billing = Billing.objects.create(
-        payment_type=payment_type, billing_date=billing_date,
-        dpp=dpp,  # Days before expiration, default is 10
-        status='P',  # Pending status
-    )
-    billing.subscriber_amount = billing.subscriptions_to_bill(count=True)
-    billing.exclude = excluded_contacts
-    billing.save()
-    return billing
-
-
-@login_required
+@staff_member_required
 def bill_subscriptions_for_one_contact(request, contact_id):
     """
     Bills all subscriptions for a single contact. If the contact has more than one active subscription, it will
@@ -312,32 +304,7 @@ def bill_subscriptions_for_one_contact(request, contact_id):
             })
 
 
-@login_required
-def billings_control_panel(request):
-    """
-    Shows all billings that were generated.
-
-    TODO: Allow to create and schedule new billings to be billed at a certain time.
-    """
-    billings = Billing.objects.filter().order_by('-id')
-    if Billing.objects.filter(status__in='PRS').exists():
-        current_billing = Billing.objects.filter(status__in='PRS').latest()
-        progress = current_billing.progress()
-        return render(
-            request, 'billings_control_panel.html', {
-                'billings': billings,
-                'payment_methods': settings.SUBSCRIPTION_PAYMENT_METHODS,
-                'progress': progress,
-                'billing_id': current_billing.id,
-            })
-    return render(
-        request, 'billings_control_panel.html', {
-            'billings': billings,
-            'payment_methods': settings.SUBSCRIPTION_PAYMENT_METHODS,
-        })
-
-
-@login_required
+@staff_member_required
 def billing_invoices(request, billing_id):
     """
     Shows a list of invoices from a billing.
@@ -368,7 +335,7 @@ def billing_invoices(request, billing_id):
     })
 
 
-@login_required
+@staff_member_required
 def cancel_invoice(request, invoice_id):
     """
     Marks the invoice as canceled with today's date.
@@ -382,17 +349,6 @@ def cancel_invoice(request, invoice_id):
         'invoice_id': invoice_id,
         'credit_note': n
     })
-
-
-def billing_progress(request):
-    """
-    View to be called that shows the progress % of a billing.
-    """
-    if Billing.objects.filter(status__in='PRS').exists():
-        b = Billing.objects.filter(status__in='PRS').latest()
-        return JsonResponse({'progress': b.progress(), 'billing_id': b.id})
-    else:
-        return JsonResponse({'progress': '100', 'billing_id': 'N/A'})
 
 
 @staff_member_required
@@ -456,24 +412,55 @@ def download_invoice(request, invoice_id):
     return response
 
 
+@staff_member_required
 def invoice_filter(request):
     if not request.GET:
         queryset = Invoice.objects.filter(creation_date=date.today())
     else:
         queryset = Invoice.objects.all()
-    page = request.GET.get("p")
+    page_number = request.GET.get("p")
     invoice_queryset = queryset.order_by("-id")
     invoice_filter = InvoiceFilter(request.GET, queryset=invoice_queryset)
     paginator = Paginator(invoice_filter.qs, 200)
     try:
-        invoices = paginator.page(page)
+        invoices = paginator.page(page_number)
     except PageNotAnInteger:
         # If page is not an integer, deliver first page.
         invoices = paginator.page(1)
     except EmptyPage:
         # If page is out of range (e.g. 9999), deliver last page of results.
         invoices = paginator.page(paginator.num_pages)
-
+    if request.GET.get('export'):
+        response = HttpResponse(content_type="text/csv")
+        response["Content-Disposition"] = 'attachment; filename="invoices_export.csv"'
+        writer = unicodecsv.writer(response)
+        header = [
+            _("Id"),
+            _("Contact name"),
+            _("Subscriptions"),
+            _("Amount"),
+            _("Payment type"),
+            _("Date"),
+            _("Due"),
+            _("Status"),
+            _("Serie"),
+            _("Number"),
+        ]
+        writer.writerow(header)
+        for invoice in invoice_filter.qs.all():
+            writer.writerow([
+                invoice.id,
+                invoice.contact.name,
+                invoice.subscription.show_products_html(br=False) if invoice.subscription else None,
+                invoice.amount,
+                invoice.get_payment_type(),
+                invoice.creation_date,
+                invoice.expiration_date,
+                invoice.get_status(),
+                invoice.serie,
+                invoice.numero,
+            ])
+        return response
     invoices_count = invoice_filter.qs.count()
     pending_count = invoice_filter.qs.filter(
         canceled=False, uncollectible=False, paid=False, debited=False, expiration_date__gt=date.today()).count()
@@ -485,7 +472,7 @@ def invoice_filter(request):
     return render(
         request, 'invoice_filter.html', {
             'invoices': invoices,
-            'page': page,
+            'page': page_number,
             'paginator': paginator,
             'invoice_filter': invoice_filter,
             'invoices_count': invoices_count,

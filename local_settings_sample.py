@@ -1,3 +1,4 @@
+# coding=utf-8
 DEBUG = True
 
 DATABASES = {
@@ -53,6 +54,7 @@ if DEBUG:
         "django_filters",
         "rosetta",
         "widget_tweaks",
+        "tabbed_admin",
         # crm apps enabled
         "core",
         "support",
@@ -66,8 +68,6 @@ else:
 
 # Replace with your own allowed hosts.
 ALLOWED_HOSTS = ["localhost"]
-
-WEB_UPDATE_USER_ENABLED = False
 
 # Use this setting to only import certain contacts, activate with True and
 # type the id numbers (int) in the MIGRATION_CUSTOM_CONTACT_LIST.
@@ -118,7 +118,7 @@ DISCOUNT_12_MONTHS = 11.91
 ENVELOPE_PRICE = 4
 
 # Payment methods for invoicing
-INVOICES_PAYMENT_METHODS = (("M", "Mastercard"), ("V", "Visa"), ("C", "Cash"))
+INVOICE_PAYMENT_METHODS = (("M", "Mastercard"), ("V", "Visa"), ("C", "Cash"))
 
 INVOICES_PATH = "path/to/folder/in/media/"
 
@@ -144,3 +144,29 @@ MAILTRAIN_API_KEY = "your_secret_key"
 # Set this to true if you want to require route for billing. Useful for when you explicitly require to send the invoice
 # via logistics.
 REQUIRE_ROUTE_FOR_BILLING = False
+
+# Use these to set your own answers to issues. Each answer must be a tuple with two characters on the first element,
+# and a string on the second element.
+ISSUE_ANSWERS = (
+    ('I1', 'Collected'),
+    ('L1', 'Delivered again'),
+)
+
+# Used to generate new issues on the generate_invoicing_issues management command. Use a slug for your preferred status
+NEW_INVOICING_ISSUE_STATUS_SLUG = 'new'
+
+# Set a list of statuses slugs that will be used to mark the issue as finished. Examples below.
+SOLVED_ISSUE_STATUS_SLUG = 'solved'
+FINISHED_ISSUE_STATUS_SLUG_LIST = ['solved', 'not-solved']
+
+# Used when a new issue is created, depending if it was assigned or not
+ASSIGNED_ISSUE_STATUS_SLUG = 'assigned'
+UNASSIGNED_ISSUE_STATUS_SLUG = 'unassigned'
+PENDING_ISSUE_STATUS_SLUG = 'pending'
+AUTO_ISSUE_STATUS_SLUG = 'automatic'  # for automatic tasks that have not been completed yet
+
+# Temporary discount: slug: months. Use this dictionary if you want certain products to disappear from the subscription
+# after a set amount of months.
+TEMPORARY_DISCOUNT = {
+    'product-slug': 3,
+}

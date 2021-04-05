@@ -4,7 +4,6 @@ from core.models import Subscription
 from datetime import date
 
 
-
 class Command(BaseCommand):
     help = 'Executes all the stuff that needs to be maintained daily'
 
@@ -13,6 +12,7 @@ class Command(BaseCommand):
         # Deactivate all ended subscriptions
         for s in Subscription.objects.filter(active=True, end_date__lte=date.today()):
             s.active = False
+            # TODO: Contact product history deactivation
             s.save()
 
         for s in Subscription.objects.filter(active=True, type__in='NG'):

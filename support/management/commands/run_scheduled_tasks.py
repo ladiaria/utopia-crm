@@ -3,9 +3,10 @@ from datetime import date
 
 from django.utils.translation import ugettext_lazy as _
 from django.core.management import BaseCommand
+from django.conf import settings
 
 from core.models import ContactProductHistory, SubscriptionProduct
-from support.models import ScheduledTask
+from support.models import ScheduledTask, IssueStatus
 from logistics.models import RouteChange
 
 
@@ -42,12 +43,11 @@ class Command(BaseCommand):
                         product=sp.product,
                         status='P')
                 subscription.status = 'PA'
-                # Then we need to check if we need to change the next billing, if there is an activation event
-                # associated with the same issue.
-                if ScheduledTask.objects.filter(issue=task.issue).count() == 2:
-                    activation_task = ScheduledTask.objects.get(issue=task.issue, category='PA')
+                # Then we need to check if we need to change the next billing, if this task is ending another one.
+                if task.ends:
+                    deactivation_task = task.ends
                     # We need to calculate the difference in days, this is gonna result in a timedelta object
-                    date_difference = activation_task.execution_date - task.execution_date
+                    date_difference = task.execution_date - deactivation_task.execution_date
                     # Next we need to sum that timedelta object
                     subscription.next_billing = subscription.next_billing + date_difference
                 subscription.save()
@@ -55,7 +55,8 @@ class Command(BaseCommand):
                 task.completed = True
                 task.save()
                 issue = task.issue
-                issue.status = 'S'
+                issue.status = IssueStatus.objects.get(slug=settings.SOLVED_ISSUE_STATUS_SLUG)
+                issue.closing_date = date.today()
                 issue.save()
                 print(_("Task {} completed successfully.".format(task.id)))
 
@@ -78,7 +79,8 @@ class Command(BaseCommand):
                 subscription.save()
                 task.completed = True
                 task.save()
-                issue.status = 'S'
+                issue.status = IssueStatus.objects.get(slug=settings.SOLVED_ISSUE_STATUS_SLUG)
+                issue.closing_date = date.today()
                 issue.save()
                 print(_("Task {} completed successfully.".format(task.id)))
 
@@ -105,6 +107,7 @@ class Command(BaseCommand):
                     sp.save()
                 task.completed = True
                 task.save()
-                issue.status = 'S'
+                issue.status = IssueStatus.objects.get(slug=settings.SOLVED_ISSUE_STATUS_SLUG)
+                issue.closing_date = date.today()
                 issue.save()
                 print(_("Task {} completed successfully.".format(task.id)))

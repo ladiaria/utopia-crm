@@ -1,4 +1,5 @@
 # coding=utf-8
+import unicodecsv
 import csv
 from datetime import date, timedelta, datetime
 
@@ -27,15 +28,15 @@ from core.models import (
     Campaign,
     Address,
     Product,
-    Subtype,
     Activity,
     SubscriptionProduct,
     ContactCampaignStatus,
     SubscriptionNewsletter,
 )
 
+from .filters import IssueFilter
 from .forms import *
-from .models import Seller, ScheduledTask
+from .models import Seller, ScheduledTask, IssueStatus
 from core.utils import calc_price_from_products, process_products
 from util.dates import add_business_days, next_business_day, format_date, add_month
 
@@ -196,7 +197,7 @@ def seller_console_list_campaigns(request):
     try:
         seller = Seller.objects.get(user=user)
     except Seller.DoesNotExist:
-        return HttpResponse(_("User has no seller selected."))
+        return HttpResponse(_("User has no seller selected. Please contact your manager."))
     except Seller.MultipleObjectsReturned as e:
         return HttpResponse(e.message)
 
@@ -350,7 +351,7 @@ def seller_console(request, category, campaign_id):
         try:
             seller = Seller.objects.get(user=user)
         except Seller.DoesNotExist:
-            return HttpResponse(_("User has no seller selected."))
+            return HttpResponse(_("User has no seller selected. Please contact your manager."))
 
         if request.GET.get("offset"):
             offset = request.GET.get("offset")
@@ -371,10 +372,10 @@ def seller_console(request, category, campaign_id):
             console_instances = pending | delayed
         count = console_instances.count()
         if count == 0:
-            return HttpResponse(_("No more records."))
+            return HttpResponseRedirect(reverse('seller_console_list_campaigns'))
         if offset:
             if offset >= count:
-                return HttpResponse("Error")
+                return HttpResponseRedirect(reverse('seller_console_list_campaigns'))
             console_instance = console_instances[int(offset)]
         else:
             console_instance = console_instances[0]
@@ -464,7 +465,7 @@ def send_promo(request, contact_id):
     contact = Contact.objects.get(pk=contact_id)
     instance = None
     contact_addresses = Address.objects.filter(contact=contact)
-    offerable_products = Product.objects.filter(bundle_product=False, type="S")
+    offerable_products = Product.objects.filter(offerable=True)
 
     if instance_type and instance_type == "new" and instance_id:
         instance = ContactCampaignStatus.objects.get(pk=instance_id)
@@ -589,7 +590,7 @@ def start_paid_subscription(request, contact_id):
     instance_id = request.GET.get("instance", None)
     result = request.POST.get("result")
     contact_addresses = Address.objects.filter(contact=contact)
-    offerable_products = Product.objects.filter(bundle_product=False, type="S")
+    offerable_products = Product.objects.filter(offerable=True)
     other_active_normal_subscriptions = Subscription.objects.filter(contact=contact, active=True, type="N")
 
     if instance_type and instance_type == "new" and instance_id:
@@ -700,7 +701,7 @@ def start_paid_subscription(request, contact_id):
             if url:
                 return HttpResponseRedirect(url + "?offset=%d" % int(offset))
             else:
-                return HttpResponseRedirect("/admin/core/contact/{}/".format(contact.id))
+                return HttpResponseRedirect(reverse("contact_detail", args=[contact.id]))
 
     return render(
         request,
@@ -741,7 +742,7 @@ def new_subscription(request, contact_id):
 
     result = request.POST.get("result")
     contact_addresses = Address.objects.filter(contact=contact)
-    offerable_products = Product.objects.filter(bundle_product=False, type="S")
+    offerable_products = Product.objects.filter(offerable=True)
     other_active_normal_subscriptions = Subscription.objects.filter(contact=contact, active=True, type="N")
 
     if form_subscription:
@@ -895,7 +896,7 @@ def new_subscription(request, contact_id):
 @login_required
 def assign_campaigns(request):
     """
-    Allows a supervisor to add contacts to campaigns, using tags or a csv file.
+    Allows a manager to add contacts to campaigns, using tags or a csv file.
     """
     campaigns = Campaign.objects.filter(active=True)
     if request.POST and request.FILES:
@@ -1019,7 +1020,7 @@ def edit_products(request, subscription_id):
     """
     Allows editing products in a subscription.
     """
-    products = Product.objects.filter(type="S").exclude(bundle_product=True)
+    products = Product.objects.filter(offerable=True)
     subscription = get_object_or_404(Subscription, pk=subscription_id)
     contact = subscription.contact
     contact_addresses = Address.objects.filter(contact=contact)
@@ -1046,9 +1047,35 @@ def list_issues(request):
     """
     Shows a very basic list of issues.
     """
+    issues_queryset = Issue.objects.all().order_by("-date")
+    issues_filter = IssueFilter(request.GET, queryset=issues_queryset)
     page_number = request.GET.get("p")
-    issues = Issue.objects.all().order_by("-id")
-    paginator = Paginator(issues, 100)
+    paginator = Paginator(issues_filter.qs, 100)
+    if request.GET.get('export'):
+        response = HttpResponse(content_type="text/csv")
+        response["Content-Disposition"] = 'attachment; filename="issues_export.csv"'
+        writer = unicodecsv.writer(response)
+        header = [
+            _("Start date"),
+            _("Contact name"),
+            _("Category"),
+            _("Subcategory"),
+            _("Activities count"),
+            _("Status"),
+            _("Assigned to")
+        ]
+        writer.writerow(header)
+        for issue in issues_filter.qs.all():
+            writer.writerow([
+                issue.date,
+                issue.contact.name,
+                issue.get_category(),
+                issue.get_subcategory(),
+                issue.activity_count(),
+                issue.get_status(),
+                issue.get_assigned_to()
+            ])
+        return response
     try:
         page = paginator.page(page_number)
     except PageNotAnInteger:
@@ -1063,75 +1090,65 @@ def list_issues(request):
         {
             "page": page,
             "paginator": paginator,
+            "issues_filter": issues_filter,
+            "count": issues_filter.qs.count()
         },
     )
 
 
 @login_required
-def select_contact_for_issue(request, issue_type):
-    """
-    Asks for a contact id before creating an issue.
-    """
-    form = SelectContactForIssue(
-        request.POST or None, initial={"issue_type": issue_type}
-    )
-    if request.POST:
-        if form.is_valid():
-            issue_type = form.cleaned_data["issue_type"]
-            contact_id = form.cleaned_data["contact_id"]
-            if issue_type.startswith("S"):
-                return HttpResponseRedirect(
-                    reverse("new_issue", args=[contact_id, "S", issue_type])
-                )
-            elif issue_type.startswith("L"):
-                return HttpResponseRedirect(
-                    reverse("new_issue", args=[contact_id, "L"])
-                )
-
-    return render(request, "select_contact_for_issue.html", {"form": form})
-
-
-@login_required
-def new_issue(request, contact_id, category="L", subcategory=""):
+def new_issue(request, contact_id):
     """
     Creates an issue of a selected category and subcategory.
     """
     contact = get_object_or_404(Contact, pk=contact_id)
-    if category == "L" and subcategory == "":
-        # Logistics issue
-        if request.POST:
-            form = LogisticsIssueStartForm(request.POST)
-            if form.is_valid():
-                Issue.objects.create(
-                    contact=form.cleaned_data["contact"],
-                    category="L",
-                    subcategory=form.cleaned_data["subcategory"],
-                    notes=form.cleaned_data["notes"],
-                    copies=form.cleaned_data["copies"],
-                    subscription_product=form.cleaned_data["subscription_product"],
-                    product=form.cleaned_data["product"],
-                    inside=False,
-                    manager=request.user,
-                    status="P",
-                )
-                return HttpResponseRedirect(
-                    "/admin/core/contact/{}/".format(form.cleaned_data["contact"].id)
-                )
-                # TODO: Reverse to admin
-        else:
-            form = LogisticsIssueStartForm(
-                initial={"contact": contact, "category": "L"}
+    if request.POST:
+        form = IssueStartForm(request.POST)
+        if form.is_valid():
+            if form.cleaned_data["assigned_to"]:
+                status = IssueStatus.objects.get(slug=settings.ASSIGNED_ISSUE_STATUS_SLUG)
+            else:
+                status = IssueStatus.objects.get(slug=settings.UNASSIGNED_ISSUE_STATUS_SLUG)
+            new_issue = Issue.objects.create(
+                contact=form.cleaned_data["contact"],
+                category=form.cleaned_data["category"],
+                subcategory=form.cleaned_data["subcategory"],
+                notes=form.cleaned_data["notes"],
+                copies=form.cleaned_data["copies"],
+                subscription=form.cleaned_data["subscription"],
+                subscription_product=form.cleaned_data["subscription_product"],
+                product=form.cleaned_data["product"],
+                inside=False,
+                manager=request.user,
+                assigned_to=form.cleaned_data["assigned_to"],
+                status=status,
             )
-            form.fields[
-                "subscription_product"
-            ].queryset = SubscriptionProduct.objects.filter(
-                subscription__contact=contact, subscription__active=True
+            Activity.objects.create(
+                datetime=datetime.now(),
+                contact=contact,
+                issue=new_issue,
+                notes=_("See related issue"),
+                activity_type=form.cleaned_data["activity_type"],
+                status='C',  # completed
+                direction='I',
             )
-        return render(
-            request, "new_logistics_issue.html", {"contact": contact, "form": form}
-        )
+            return HttpResponseRedirect(reverse("contact_detail", args=[contact.id]))
+    else:
+        form = IssueStartForm(initial={
+            'copies': 1,
+            'contact': contact,
+            'category': 'L',
+            'activity_type': 'C',
+        })
+    form.fields['subscription_product'].queryset = contact.get_active_subscriptionproducts()
+    form.fields['subscription'].queryset = contact.get_active_subscriptions()
+    return render(request, "new_issue.html", {"contact": contact, "form": form})
 
-    elif category == "S" and subcategory == "S04":
+
+@login_required
+def new_scheduled_task(request, contact_id, subcategory):
+    contact = get_object_or_404(Contact, pk=contact_id)
+    if subcategory == "S04":
         # Services / pause issue
         if request.POST:
             form = NewPauseScheduledTaskForm(request.POST)
@@ -1140,35 +1157,31 @@ def new_issue(request, contact_id, category="L", subcategory=""):
                 date1 = form.cleaned_data.get("date_1")
                 date2 = form.cleaned_data.get("date_2")
                 subscription = form.cleaned_data.get("subscription")
-                new_issue = Issue.objects.create(
-                    contact=contact,
-                    category=category,
-                    subcategory=subcategory,
-                    date=date.today(),
-                    manager=request.user,
-                    status="P",
-                    next_action_date=date1,
-                )
                 # Then we create the deactivation and activation events
-                ScheduledTask.objects.create(
-                    issue=new_issue,
+                start_task = ScheduledTask.objects.create(
                     contact=contact,
                     subscription=subscription,
                     execution_date=date1,
-                    category="PD",
+                    category="PD",  # Deactivation
                 )
                 ScheduledTask.objects.create(
-                    issue=new_issue,
                     contact=contact,
                     subscription=subscription,
                     execution_date=date2,
-                    category="PA",
+                    category="PA",  # Activation
+                    ends=start_task,
                 )
-                return HttpResponseRedirect(
-                    "/admin/core/contact/{}/".format(contact.id)
+                Activity.objects.create(
+                    datetime=datetime.now(),
+                    contact=contact,
+                    notes=_("Scheduled task for pause"),
+                    activity_type=form.cleaned_data["activity_type"],
+                    status='C',  # completed
+                    direction='I',
                 )
+                return HttpResponseRedirect(reverse("contact_detail", args=[contact.id]))
         else:
-            form = NewPauseScheduledTaskForm()
+            form = NewPauseScheduledTaskForm(initial={'activity_type': 'C'})
         form.fields["subscription"].queryset = contact.subscriptions.filter(active=True)
         return render(
             request,
@@ -1176,7 +1189,7 @@ def new_issue(request, contact_id, category="L", subcategory=""):
             {"contact": contact, "form": form, "subcategory": subcategory},
         )
 
-    elif category == "S" and subcategory == "S05":
+    elif subcategory == "S05":
         # Services / address change issue
         if request.POST:
             form = NewAddressChangeScheduledTaskForm(request.POST)
@@ -1193,23 +1206,20 @@ def new_issue(request, contact_id, category="L", subcategory=""):
                 else:
                     address = form.cleaned_data.get("contact_address")
                 date1 = form.cleaned_data.get("date_1")
-                # First we create the issue that will contain the scheduled task
-                new_issue = Issue.objects.create(
-                    contact=contact,
-                    category=category,
-                    subcategory=subcategory,
-                    date=date.today(),
-                    manager=request.user,
-                    status="P",
-                    next_action_date=date1,
-                )
                 # after this, we will create this scheduled task
                 scheduled_task = ScheduledTask.objects.create(
-                    issue=new_issue,
                     contact=contact,
                     execution_date=date1,
                     category="AC",
                     address=address,
+                )
+                Activity.objects.create(
+                    datetime=datetime.now(),
+                    contact=contact,
+                    notes=_("Scheduled task for address change"),
+                    activity_type=form.cleaned_data["activity_type"],
+                    status='C',  # completed
+                    direction='I',
                 )
                 for key, value in request.POST.items():
                     if key.startswith("sp"):
@@ -1218,12 +1228,12 @@ def new_issue(request, contact_id, category="L", subcategory=""):
                             pk=subscription_product_id
                         )
                         scheduled_task.subscription_products.add(subscription_product)
-                return HttpResponseRedirect(
-                    "/admin/core/contact/{}/".format(contact.id)
-                )
+                return HttpResponseRedirect(reverse("contact_detail", args=[contact.id]))
         else:
             form = NewAddressChangeScheduledTaskForm(
-                initial={"new_address_type": "physical"}
+                initial={
+                    "new_address_type": "physical",
+                    "activity_type": 'C'}
             )
         subscription_products = [
             s
@@ -1251,18 +1261,30 @@ def view_issue(request, issue_id):
     """
     issue = get_object_or_404(Issue, pk=issue_id)
     if request.POST:
-        form = LogisticsIssueChangeForm(request.POST, instance=issue)
+        form = IssueChangeForm(request.POST, instance=issue)
         if form.is_valid():
             form.save()
             return HttpResponseRedirect(reverse("view_issue", args=(issue_id,)))
     else:
-        form = LogisticsIssueChangeForm(instance=issue)
+        form = IssueChangeForm(instance=issue)
+
+    activities = issue.activity_set.all().order_by('-datetime')
+    activity_form = NewActivityForm(
+        initial={
+            "contact": issue.contact,
+            "direction": "O",
+            "activity_type": "C",
+        })
+    activity_form.fields['contact'].label = False
     return render(
         request,
         "view_issue.html",
         {
             "form": form,
             "issue": issue,
+            "activities": activities,
+            "activity_form": activity_form,
+            "invoice_list": issue.contact.invoice_set.all()
         },
     )
 
@@ -1281,6 +1303,32 @@ def contact_list(request):
     )
     contact_filter = ContactFilter(request.GET, queryset=contact_queryset)
     paginator = Paginator(contact_filter.qs, 50)
+    if request.GET.get('export'):
+        response = HttpResponse(content_type="text/csv")
+        response["Content-Disposition"] = 'attachment; filename="contacts_export.csv"'
+        writer = unicodecsv.writer(response)
+        header = [
+            _("Id"),
+            _("Full name"),
+            _("Email"),
+            _("Phone"),
+            _("Mobile"),
+            _("Subscription"),
+            _("Last activity")
+        ]
+        writer.writerow(header)
+        for contact in contact_filter.qs.all():
+            writer.writerow([
+                contact.id,
+                contact.name,
+                contact.email,
+                contact.phone,
+                contact.mobile,
+                contact.get_first_active_subscription().show_products_html(
+                    br=False) if contact.get_first_active_subscription() else None,
+                contact.last_activity().datetime if contact.last_activity() else None
+            ])
+        return response
     try:
         contacts = paginator.page(page)
     except PageNotAnInteger:
@@ -1298,6 +1346,7 @@ def contact_list(request):
             "page": page,
             "total_pages": paginator.num_pages,
             "filter": contact_filter,
+            "count": contact_filter.qs.count()
         },
     )
 
@@ -1659,3 +1708,25 @@ def issues_statistics(request, category='L'):
     return render(
         request, 'issues_statistics.html', {
             'days': days, 'weeks': weeks, 'months': months, 'category': category})
+
+
+def register_activity(request):
+    issue_id = request.GET.get('issue_id', None)
+    form = NewActivityForm(request.POST)
+    if form.is_valid():
+        Activity.objects.create(
+            contact=form.cleaned_data['contact'],
+            issue_id=issue_id,
+            direction=form.cleaned_data['direction'],
+            notes=form.cleaned_data['notes'],
+            datetime=datetime.now(),
+            activity_type=form.cleaned_data['activity_type'],
+        )
+    if issue_id:
+        return HttpResponseRedirect(
+            reverse("view_issue", args=[issue_id])
+        )
+    else:
+        return HttpResponseRedirect(
+            reverse("contact_detail", args=[form.cleaned_data['contact'].id])
+        )

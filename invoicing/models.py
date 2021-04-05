@@ -31,7 +31,7 @@ class Invoice(models.Model):
     amount = models.DecimalField(
         _('Amount'), max_digits=10, decimal_places=2, blank=True, null=True)
     payment_type = models.CharField(
-        _('Payment type'), max_length=2, choices=settings.SUBSCRIPTION_PAYMENT_METHODS)
+        _('Payment type'), max_length=2, choices=settings.INVOICE_PAYMENT_METHODS)
     debited = models.BooleanField(
         _('Debited'), default=False)
     paid = models.BooleanField(
@@ -102,9 +102,24 @@ class Invoice(models.Model):
         else:
             return _('Pending')
 
+    def get_status_code(self):
+        if self.paid or self.debited:
+            return "p"
+        elif self.uncollectible:
+            return "u"
+        elif self.canceled:
+            return "c"
+        elif not(self.paid or self.debited) and self.expiration_date <= date.today():
+            return "o"
+        else:
+            return "d"
+
     def get_payment_type(self):
-        types = dict(settings.SUBSCRIPTION_PAYMENT_METHODS)
+        types = dict(settings.INVOICE_PAYMENT_METHODS)
         return types.get(self.payment_type, _('Unspecified payment method'))
+
+    def has_product(self, product_slug):
+        return self.invoiceitem_set.filter(product__slug=product_slug).exists()
 
     class Meta:
         verbose_name = 'invoice'

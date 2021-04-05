@@ -15,7 +15,7 @@ class CreditNoteAdmin(admin.ModelAdmin):
 class InvoiceItemInline(admin.StackedInline):
     model = InvoiceItem
     fields = [
-        'amount', 'product', 'description', 'price', 'copies', 'service_from', 'service_to'
+        'amount', 'product', 'description', 'price', 'copies', 'service_from', 'service_to', 'type',
     ]
     extra = 0
 
@@ -29,7 +29,7 @@ class InvoiceAdmin(admin.ModelAdmin):
         'service_to', 'balance', 'amount', 'payment_type', 'debited', 'paid',
         'payment_date', 'payment_reference', 'notes', 'canceled',
         'cancelation_date', 'uncollectible', 'uuid', 'serie', 'numero',
-        'pdf', 'old_pk', 'subscription',
+        'pdf', 'subscription',
         'billing_name', 'billing_address', 'billing_state', 'billing_city',
         'billing_document', 'route', 'order']
     raw_id_fields = ['contact', 'subscription']

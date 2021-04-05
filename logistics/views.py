@@ -13,7 +13,7 @@ from django.contrib.auth.decorators import login_required
 
 from reportlab.pdfgen.canvas import Canvas
 
-from core.models import SubscriptionProduct, Address, Product
+from core.models import SubscriptionProduct, Product
 from core.choices import PRODUCT_WEEKDAYS
 from logistics.models import Route, Edition
 from support.models import Issue
@@ -22,14 +22,12 @@ from util.dates import next_business_day
 from .labels import LogisticsLabel, LogisticsLabel96x30, Roll, Roll96x30
 
 
-PRODUCT_LIST = Product.objects.filter(type='S', bundle_product=False)
-
-
 @login_required
 def assign_routes(request):
     """
     Assigns routes to contacts that have no route. The assignation is per SubscriptionProduct.
     """
+    product_list = Product.objects.filter(type='S', bundle_product=False)
     product_id = 'all'
     if request.POST:
         for name, value in request.POST.items():
@@ -60,7 +58,7 @@ def assign_routes(request):
     return render(
         request, 'assign_routes.html', {
             'subscription_products': subscription_products,
-            'product_list': PRODUCT_LIST
+            'product_list': product_list
         })
 
 
@@ -71,6 +69,7 @@ def order_route(request, route=1):
 
     TODO: Do something to quickly change route from the template itself.
     """
+    product_list = Product.objects.filter(type='S', bundle_product=False)
     product_id = 'all'
     route_object = get_object_or_404(Route, pk=route)
     if request.POST:
@@ -101,7 +100,7 @@ def order_route(request, route=1):
         request, 'order_route.html', {
             'subscription_products': subscription_products,
             'route': route,
-            'product_list': PRODUCT_LIST,
+            'product_list': product_list,
             'product_id': product_id})
 
 
@@ -112,6 +111,7 @@ def change_route(request, route=1):
 
     TODO: Do something to quickly change route form the template itself.
     """
+    product_list = Product.objects.filter(type='S', bundle_product=False)
     product_id = 'all'
     route_object = get_object_or_404(Route, pk=route)
     if request.POST:
@@ -141,7 +141,7 @@ def change_route(request, route=1):
             subscription_products = subscription_products.exclude(product_id=exclude)
     return render(
         request, 'change_route.html', {
-            'subscription_products': subscription_products, 'route': route, 'product_list': PRODUCT_LIST,
+            'subscription_products': subscription_products, 'route': route, 'product_list': product_list,
             'product_id': product_id})
 
 
@@ -171,10 +171,6 @@ def list_routes(request):
         route.new = route.sum_copies_per_product(tomorrow_product, new=True)
         route.invoices = route.invoices_in_route()
         route_list.append(route)
-    subscription_products = SubscriptionProduct.objects.filter(
-        product__weekday=show_day, subscription__active=True, subscription__type='N',
-        subscription__start_date__lte=today)
-    # TODO: What was I supposed to do with that queryset?
     return render(
         request, 'list_routes.html', {
             'route_list': route_list, 'day': weekdays[show_day], 'tomorrow_product': tomorrow_product
@@ -484,8 +480,6 @@ def issues_labels(request):
         return HttpResponseRedirect('/logistics/')
 
 
-# TODO: Make a function similar to prints but generic.
-
 @login_required
 def route_details(request, route_list):
     """
@@ -505,7 +499,7 @@ def route_details(request, route_list):
     changes_dict = {}
     copies_dict = {}
     subscription_products_dict = {}
-    new_subscriptions_dict = {}
+    # new_subscriptions_dict = {}
     closing_subscriptions_dict = {}
     directions_dict = {}
     issues_dict = {}

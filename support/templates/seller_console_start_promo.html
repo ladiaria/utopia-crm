@@ -60,10 +60,6 @@
             disable = true;  // Can't submit without addresses
           }
 
-          if ($("#price_amount").html() == "0"){
-            disable = true;
-          }
-
           if (disable == false){
             $("#send_form").removeAttr("disabled");  // Enable the send button
           } else {
@@ -74,11 +70,6 @@
         activateSend();
 
         $("input:checkbox, select").change(function(){
-          activateSend();
-        });
-
-        $("#price_amount").on('DOMSubtreeModified',function(){
-          //Do calculation and change value of other span2,span3 here
           activateSend();
         });
     });
@@ -168,7 +159,7 @@
           </div>
           <div class="col-2">
             <label for="copies-{{product.id}}"><small>{% trans 'Copies' %}</small></label>
-              <input type="text" name="copies-{{product.id}}" value="1" class="form-control">
+            <input type="text" id="copies-{{product.id}}" name="copies-{{product.id}}" value="1" class="form-control">
           </div>
         </div>
       </div>

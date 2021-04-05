@@ -36,7 +36,7 @@ ISSUE_SUBCATEGORIES = (
     ('I03', _('Payment type issue')),
     ('I04', _('Subscription not being billed')),
     ('I05', _('Payment type change')),
-    ('I06', _('Collection issue (active subscription)')),
+    ('I06', _('Collection issue')),
     ('I07', _('Collection issue (inactive subscription)')),
     ('I08', _('Credit card expiration')),
     ('I09', _('Debt issue')),
@@ -86,14 +86,9 @@ ISSUE_SUBCATEGORIES = (
 ISSUE_ANSWERS = (
     ('I1', _('Collected')),
     ('L1', _('Delivered again')),
-)
-
-ISSUE_STATUS = (
-    ('P', _('Pending')),
-    ('A', _('Assigned')),
-    ('I', _('In progress')),
-    ('D', _('Derived')),
-    ('N', _('Notify')),
-    ('S', _('Solved')),
-    ('X', _('No solution')),
+    ('L2', _('Not delivered')),
+    ('L3', _('Can\'t be delivered that way')),
+    ('L4', _('Delivered late')),
+    ('L5', _('Problems to be delivered')),
+    ('L6', _('Delivered in a specific way'))
 )

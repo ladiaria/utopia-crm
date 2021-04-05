@@ -57,10 +57,6 @@
             disable = true;  // Can't submit without addresses
           }
 
-          if ($("#price_amount").html() == "0"){
-            disable = true;
-          }
-
           if (disable == false){
             $("#send_form").removeAttr("disabled");  // Enable the send button
           } else {

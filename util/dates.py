@@ -96,3 +96,7 @@ def add_month(d, n=1):
     if d.month != (d + timedelta(days=1)).month or d.day >= eom.day:
         return eom
     return eom.replace(day=d.day)
+
+
+def diff_month(newer, older):
+    return (newer.year - older.year) * 12 + newer.month - older.month
