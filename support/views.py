@@ -1284,7 +1284,7 @@ def view_issue(request, issue_id):
             "issue": issue,
             "activities": activities,
             "activity_form": activity_form,
-            "invoice_list": issue.contact.invoice_set.all()
+            "invoice_list": issue.contact.invoice_set.all().order_by('-creation_date')
         },
     )
 
