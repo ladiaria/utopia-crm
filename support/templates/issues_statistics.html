@@ -2,8 +2,8 @@
 {% load static i18n %}
 
 {% block content %}
-      <h2>{% trans "Issues" %}</h2>
-      <h3 style="margin-top: 3em;">{% trans "Daily" %}</h3>
+      <h2>{% trans "Issues statistics" %}</h2>
+      <h3>{% trans "Daily" %}</h3>
       <table cellpadding="4" cellspacing="2">
         <tr>
           <th>&nbsp;</th>
@@ -36,8 +36,8 @@
         <tr>
           <th>{% trans "Issues" %}</th>
           {% for week in weeks %}
-            {% if sema.reclamos %}
-              <td><a href="/reclamos_ruta_estadistica/{{ semana.inicio }}/{{ semana.fin }}/{{ lugar }}">{{ semana.reclamos }} / {{ semana.porcentaje }}%</td>
+            {% if week.issues %}
+              <td>{{ week.issues }} / {{ week.pct }}%</td>
             {% else %}
               <td>&nbsp;</td>
             {% endif %}
@@ -45,19 +45,19 @@
         </tr>
       </table>
 
-      <h3 style="margin-top: 3em;">Mes a mes</h3>
+      <h3 style="margin-top: 3em;">{% trans "Monthly" %}</h3>
       <table cellpadding="4" cellspacing="2">
         <tr>
           <th>&nbsp;</th>
-          {% for mes in meses %}
-            <th>{{ mes.fecha|safe }}</th>
+          {% for month in months %}
+            <th>{{ month.date|safe }}</th>
           {% endfor %}
         </tr>
         <tr>
-          <th>Reclamos</th>
-          {% for mes in meses %}
-            {% if mes.reclamos %}
-              <td><a href="/reclamos_ruta_estadistica/{{ mes.inicio }}/{{ mes.fin }}/{{ lugar }}">{{ mes.reclamos }} / {{ mes.porcentaje }}%</td>
+          <th>{% trans "Issues" %}</th>
+          {% for month in months %}
+            {% if month.issues %}
+              <td>{{ month.issues }} / {{ month.pct }}%</td>
             {% else %}
               <td>&nbsp;</td>
             {% endif %}
