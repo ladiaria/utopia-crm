@@ -863,7 +863,7 @@ class Subscription(models.Model):
         """
         Takes each product for this subscription and returns a list with the copies for each.
         """
-        # products = self.products.filter(type='S')
+        # products = self.products.filter(type='S')  # TODO: explain the usage of this commented line or remove it
         from .utils import process_products
         subscription_products = SubscriptionProduct.objects.filter(subscription=self)
         dict_all_products = {}

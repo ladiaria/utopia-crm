@@ -1,4 +1,6 @@
 # coding=utf-8
+# TODO: All commented code should be explained or removed
+
 from django.test import TestCase
 # from django.utils.translation import ugettext_lazy as _
 
@@ -125,5 +127,4 @@ class TestContact(TestCase):
         product2.weekday = 1
         subscription.add_product(product2, address)
 
-        summary = subscription.product_summary()
-        assert not summary
+        self.assertEqual(subscription.product_summary(), {1: '1', 2: '1'})
