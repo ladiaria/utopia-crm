@@ -1,6 +1,7 @@
 import calendar
 from datetime import date, datetime, timedelta
 from time import localtime
+from django.utils.translation import ugettext_lazy as _
 
 
 def add_business_days(from_date, add_days):
@@ -72,6 +73,29 @@ def get_default_start_date():
 
 def get_default_next_billing():
     return date.today() + timedelta(days=1)
+
+
+def format_date(d):
+    if d == date.today():
+        return _('Today')
+    elif d == date.today() - timedelta(1):
+        return _('Yesterday')
+    else:
+        if d.isoweekday() == 1:
+            return _('Mon') + d.strftime('%d-%m')
+        else:
+            return d.strftime('%d')
+
+
+def add_month(d, n=1):
+    """
+    Add n+1 months to date then subtract 1 day. To get eom, last day of target month.
+    """
+    q, r = divmod(d.month + n, 12)
+    eom = date(d.year + q, r + 1, 1) - timedelta(days=1)
+    if d.month != (d + timedelta(days=1)).month or d.day >= eom.day:
+        return eom
+    return eom.replace(day=d.day)
 
 
 def diff_month(newer, older):
