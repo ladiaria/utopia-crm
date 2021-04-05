@@ -38,7 +38,7 @@ from .filters import IssueFilter
 from .forms import *
 from .models import Seller, ScheduledTask, IssueStatus
 from core.utils import calc_price_from_products, process_products
-from util.dates import add_business_days
+from util.dates import add_business_days, next_business_day
 
 
 now = datetime.now()
@@ -1632,7 +1632,6 @@ def sync_with_mailtrain(request, dcf_id):
         )
 
 
-@login_required
 def register_activity(request):
     issue_id = request.GET.get('issue_id', None)
     form = NewActivityForm(request.POST)

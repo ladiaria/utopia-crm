@@ -2,6 +2,7 @@
 
 import csv
 from datetime import date, timedelta
+from dateutil.relativedelta import relativedelta
 
 from django.shortcuts import render, reverse, get_object_or_404
 from django.http import (
@@ -13,12 +14,12 @@ from django.contrib.auth.decorators import login_required
 
 from reportlab.pdfgen.canvas import Canvas
 
-from core.models import SubscriptionProduct, Product
+from core.models import SubscriptionProduct, Subscription, Product
 from core.choices import PRODUCT_WEEKDAYS
 from logistics.models import Route, Edition
 from support.models import Issue
 
-from util.dates import next_business_day
+from util.dates import next_business_day, format_date
 from .labels import LogisticsLabel, LogisticsLabel96x30, Roll, Roll96x30
 
 
@@ -574,3 +575,88 @@ def edition_time(request, direction):
     last_editions = Edition.objects.all().order_by('-id')[:5]
     return render(request, 'edition_time.html', {
         'edition': edition, 'last_editions': last_editions, 'what': what})
+
+
+@login_required
+def logistics_issues_statistics(request, category='L'):
+    # TODO: Maybe we need to switch subscriptionproduct for subscriptions
+    days = []
+    weeks = []
+    months = []
+
+    start_date = date.today() - timedelta(7)
+    end_date = date.today()
+
+    control_date = start_date
+
+    while control_date <= end_date:
+        day = {}
+        isoweekday = control_date.isoweekday()
+        day['date'] = format_date(control_date)
+        day['issues'] = Issue.objects.filter(
+            date=control_date,
+            category=category).count()
+        if day['issues']:
+            count = SubscriptionProduct.objects.filter(
+                subscription__active=True,
+                product__weekday=isoweekday).exclude(product__slug__contains='digital').count()
+            day['pct'] = float(day['issues']) * 100 / count
+            day['pct'] = '%.2f' % day['pct']
+        day['inicio'] = control_date.strftime('%Y-%m-%d')
+        days.append(day)
+
+        control_date += timedelta(1)
+
+    start_date = date.today() - timedelta(7 * 4)
+    end_date = date.today() - timedelta(date.today().isoweekday() - 1)
+
+    control_date = start_date
+
+    while control_date <= end_date:
+        week = {}
+        week['date'] = format_date(control_date)
+
+        week['issues'] = Issue.objects.filter(
+            category=category,
+            date__gte=control_date,
+            date__lte=control_date + timedelta(6)).count()
+
+        if week['issues']:
+            isoweekday = next_business_day().isoweekday()
+            count = Subscription.objects.filter(
+                active=True).exclude(products__slug__contains='digital').count()
+            week['pct'] = float(week['issues']) * 100 / (count * 6)
+            week['pct'] = '%.2f' % week['pct']
+
+        week['start'] = control_date.strftime('%Y-%m-%d')
+        week['end'] = (control_date + timedelta(6)).strftime('%Y-%m-%d')
+        weeks.append(week)
+        control_date += timedelta(7)
+
+    start_date = date.today() + relativedelta(months=-4)
+    end_date = date(date.today().year, date.today().month, 1)
+
+    control_date = start_date
+
+    while control_date <= end_date:
+        month = {}
+        month['date'] = str(control_date.month)
+
+        month['issues'] = Issue.objects.filter(
+            category=category,
+            date__gte=control_date,
+            date__lte=control_date + relativedelta(months=+1) - timedelta(1)).count()
+
+        if month['issues']:
+            count = Subscription.objects.filter(active=True).exclude(products__slug__contains='digital').count()
+            month['pct'] = float(month['issues']) * 100 / (count * 24)
+            month['pct'] = '%.2f' % month['pct']
+
+        month['start'] = control_date.strftime('%Y-%m-%d')
+        month['end'] = (control_date + relativedelta(months=+1) - timedelta(1)).strftime('%Y-%m-%d')
+        months.append(month)
+        control_date = control_date + relativedelta(months=+1)
+
+    return render(
+        request, 'issues_statistics.html', {
+            'days': days, 'weeks': weeks, 'months': months, 'category': category})
