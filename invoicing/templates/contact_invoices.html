@@ -7,31 +7,6 @@
 {% block stylesheets %}
     {{block.super}}
     <link rel="stylesheet" href="{% static '/admin-lte/plugins/jquery-ui/jquery-ui.min.css' %}" />
-    <style type="text/css" media="all">
-    .paid {
-      background: green;
-      color: white;
-    }
-
-    .null {
-      background: #333;
-      color: #eee;
-    }
-
-    .expired {
-      background: red;
-      color: white;
-    }
-
-    .uncollectible {
-      background: #800080;
-      color: white;
-    }
-
-    .pending {
-      background: #ffc107;
-    }
-    </style>
 {% endblock %}
 
 {% block content %}
@@ -48,18 +23,22 @@
 
       {% if debt %}
       <div class="col-md-12">
-          <div class="alert bg-danger disabled col-md-3">
-              <h5><i class="fas fa-exclamation-circle"></i>  {% trans "Debt" %}: <b>{{debt}}</b></h5>
-          </div>
+
+        <div class="alert alert-danger">
+            <i class="fas fa-exclamation-circle"></i>
+            <span class="info-box-text">{% trans "Debt" %}:</span>
+            <span class="info-box-number"><b>{{debt}}</b></span>
+        </div>
       </div>
       {% endif %}
 
       <div class="col-md-12">
           <div class="card">
-            <div class="card-header">
-              <h3 class="card-title">
-                 {% trans "Invoices" %} (<a href="/invoicing/bill_one_contact/{{ contact.id }}/">{% trans "Bill contact subscriptions" %}</a>)
+            <div class="card-header d-flex">
+              <h3 class="card-title flex-fill">
+                 {% trans "Invoices" %}
               </h3>
+              <a class="btn btn-sm btn-primary float-end" href="/invoicing/bill_one_contact/{{ contact.id }}/">{% trans "Bill contact subscriptions" %}</a>
             </div>
             <div class="card-body">
               <table class="table ">
