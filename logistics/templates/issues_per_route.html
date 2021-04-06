@@ -1,0 +1,119 @@
+{% load i18n %}
+<html>
+<head>
+<title>{% trans "Issues per route" %}</title>
+<style type="text/css" media="all">
+body {
+  margin: 10px;
+  padding: 0;
+  font-family: Verdana, Arial, sans-serif;
+  color: #333;
+}
+
+body, td {
+  font-size: 12px;
+}
+
+th {
+  font-size: 12px;
+  font-weight: bold;
+  text-align: left;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+tr.especial{
+    height:20em;
+    page-break-inside:avoid;
+}
+
+tr.especial td{
+  vertical-align: top;
+  border: 1px dashed #666;
+  font-size:1.6em;
+  padding:.5em;
+}
+
+td {
+  vertical-align: top;
+  border: 1px solid #666;
+}
+
+td p.ie{font-size:1.6em;}
+
+.row1 {
+  background: #eee;
+}
+</style>
+<body>
+<div style="font-size: 1.4em; margin-bottom: 20px;">
+{% trans "Issues per route" %}
+</div>
+      <table cellpadding="5" cellspacing="2">
+            <tr>
+                <th style="width:1%">{% trans "Route" %}</th>
+                <th style="width:1%">{% trans "Date" %}</th>
+                <th style="width:10%">{% trans "Contact" %}</th>
+                <th style="width:4%">{% trans "Phone" %}</th>
+                <th style="width:15%">{% trans "Address" %}</th>
+                <th style="width:1%">{% trans "Product" %}</th>
+                <th style="width:23%">{% trans "Notes" %}</th>
+                <th style="width:5%">{% trans "Manager" %}</th>
+                <th style="width:40%">{% trans "Answer" %}</th>
+            </tr>
+        {% for issue in issues %}
+            <tr class="{% cycle 'row1' 'row2' %}">
+                <td>{{ issue.subscription_product.route.number }}</td>
+                <td>{{ issue.date|date:"SHORT_DATE_FORMAT" }}</td>
+                <td>
+                  <a href='{% url "contact_detail" issue.contact.id %}' target="_blank">{{issue.contact.name}}</a>
+                </td>
+                <td>
+                  {{ issue.contact.phone }}
+                  {% if issue.contact.work_phone %}
+                    <br/>{{ issue.contact.work_phone }}
+                  {% endif %}
+                  {% if issue.contact.mobile %}
+                  <br/>{{ issue.contact.mobile }}
+                  {% endif %}
+                </td>
+                <td>{{ issue.subscription_product.address.address_1 }} {{ issue.subscription_product.address.address_2|default_if_none:" " }}
+                  {% if issue.subscription_product.special_instructions %}
+                    <p class="ie"><strong>IE:</strong>{{ issue.subscription_product.special_instructions|safe }}</p>
+                  {% endif %}
+                </td>
+                <td>{{ issue.subscription_product.product|safe }}</td>
+                <td>{{ issue.notes }}</td>
+                <td>{{ issue.manager }}</td>
+                <td>
+                    {{ issue.get_answer_1 }}<hr/>
+                    {{ issue.answer_2|default_if_none:""}}
+                </td>
+            </tr>
+        {% endfor %}
+      </table>
+
+      <h3>{% trans "New contacts with special instructions" %}</h3>
+      <table cellpadding="2" cellspacing="2">
+            <tr>
+                <th>{% trans "Route" %}</th>
+                <th>{% trans "Name" %}</th>
+                <th>{% trans "Address" %}</th>
+                <th>{% trans "Address 2" %}</th>
+                <th>{% trans "Instructions" %}</th>
+            </tr>
+        {% for sp in subscription_list %}
+            <tr class="especial {% cycle 'row1' 'row2' %}">
+                <td>{{ sp.route }}</td>
+                <td><a href='{% url "contact_detail" sp.subscription.contact.id %}' target="_blank">{{sp.subscription.contact.name}}</a></td>
+                <td>{{ sp.address.address_1 }}</td>
+                <td>{{ sp.address.address_2|default_if_none:"" }}</td>
+                <td>{{ sp.special_instructions }}</td>
+            </tr>
+        {% endfor %}
+      </table>
+</body>
+</html>
