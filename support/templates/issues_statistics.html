@@ -1,67 +1,100 @@
 {% extends 'adminlte/base.html' %}
 {% load static i18n %}
-
+{% block no_heading %}
+<h1>{% trans "Issues statistics" %}</h1>
+{% endblock %}
 {% block content %}
-      <h2>{% trans "Issues statistics" %}</h2>
-      <h3>{% trans "Daily" %}</h3>
-      <table cellpadding="4" cellspacing="2">
-        <tr>
-          <th>&nbsp;</th>
-          {% for day in days %}
-            <th>{{ day.date|safe }}</th>
-          {% endfor %}
-        </tr>
-        <tr>
-          <th>{% trans "Issues" %}</th>
-          {% for day in days %}
-              <td>
-            {% if day.issues %}
-              {{ day.issues }} / {{ day.pct }}%
-            {% else %}
-              &nbsp;
-            {% endif %}
-            </td>
-          {% endfor %}
-        </tr>
-      </table>
-
-      <h3 style="margin-top: 3em;">{% trans "Weekly" %}</h3>
-      <table cellpadding="4" cellspacing="2">
-        <tr>
-          <th>&nbsp;</th>
-          {% for week in weeks %}
-            <th>{{ week.date|safe }}</th>
-          {% endfor %}
-        </tr>
-        <tr>
-          <th>{% trans "Issues" %}</th>
-          {% for week in weeks %}
-            {% if week.issues %}
-              <td>{{ week.issues }} / {{ week.pct }}%</td>
-            {% else %}
-              <td>&nbsp;</td>
-            {% endif %}
-          {% endfor %}
-        </tr>
-      </table>
-
-      <h3 style="margin-top: 3em;">{% trans "Monthly" %}</h3>
-      <table cellpadding="4" cellspacing="2">
-        <tr>
-          <th>&nbsp;</th>
-          {% for month in months %}
-            <th>{{ month.date|safe }}</th>
-          {% endfor %}
-        </tr>
-        <tr>
-          <th>{% trans "Issues" %}</th>
-          {% for month in months %}
-            {% if month.issues %}
-              <td>{{ month.issues }} / {{ month.pct }}%</td>
-            {% else %}
-              <td>&nbsp;</td>
-            {% endif %}
-          {% endfor %}
-        </tr>
-      </table>
+<div class="row">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">{% trans "Daily" %}</h3>
+      </div>
+      <div class="card-body">
+          <table class="table text-center table-bordered"">
+            <thead>
+              <tr>
+                <th>&nbsp;</th>
+                {% for day in days %}
+                  <th>{{ day.date|safe }}</th>
+                {% endfor %}
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th class="text-left">{% trans "Issues" %}</th>
+                {% for day in days %}
+                    <td>
+                  {% if day.issues %}
+                    {{ day.issues }} / {{ day.pct }}%
+                  {% else %}
+                    &nbsp;
+                  {% endif %}
+                  </td>
+                {% endfor %}
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">{% trans "Weekly" %}</h3>
+        </div>
+        <div class="card-body">
+          <table class="table text-center table-bordered"">
+            <thead>
+              <tr>
+                <th>&nbsp;</th>
+                {% for week in weeks %}
+                  <th>{{ week.date|safe }}</th>
+                {% endfor %}
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th class="text-left">{% trans "Issues" %}</th>
+                {% for week in weeks %}
+                  {% if week.issues %}
+                    <td>{{ week.issues }} / {{ week.pct }}%</td>
+                  {% else %}
+                    <td>&nbsp;</td>
+                  {% endif %}
+                {% endfor %}
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">{% trans "Monthly" %}</h3>
+        </div>
+        <div class="card-body">
+          <table class="table text-center table-bordered"">
+            <thead>
+              <tr>
+                <th>&nbsp;</th>
+                {% for month in months %}
+                  <th>{{ month.date|safe }}</th>
+                {% endfor %}
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th class="text-left">{% trans "Issues" %}</th>
+                {% for month in months %}
+                  {% if month.issues %}
+                    <td>{{ month.issues }} / {{ month.pct }}%</td>
+                  {% else %}
+                    <td>&nbsp;</td>
+                  {% endif %}
+                {% endfor %}
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+</div>
 {% endblock %}
