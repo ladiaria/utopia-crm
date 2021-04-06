@@ -1,7 +1,7 @@
 # -*- encoding: utf-8 -*-
 
 import csv
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 from dateutil.relativedelta import relativedelta
 
 from django.shortcuts import render, reverse, get_object_or_404
@@ -602,7 +602,7 @@ def logistics_issues_statistics(request, category='L'):
                 product__weekday=isoweekday).exclude(product__slug__contains='digital').count()
             day['pct'] = float(day['issues']) * 100 / count
             day['pct'] = '%.2f' % day['pct']
-        day['inicio'] = control_date.strftime('%Y-%m-%d')
+        day['start'] = control_date.strftime('%Y-%m-%d')
         days.append(day)
 
         control_date += timedelta(1)
@@ -680,4 +680,42 @@ def issues_per_route(request, route, start_date, end_date, category='L'):
         request,
         'issues_per_route.html',
         {'issues': issues, 'route': route, 'subscription_list': subscription_list}
+    )
+
+
+@login_required
+def issues_route_list(request, start_date, end_date):
+    routes = Route.objects.filter(print_labels=True)
+    routes_list = []
+    days = 0
+    control_date = datetime.strptime(start_date, '%Y-%m-%d')
+    while control_date <= datetime.strptime(end_date, '%Y-%m-%d'):
+        if control_date.isoweekday() <= 5:
+            days += 1
+        control_date += timedelta(1)
+
+    for r in routes:
+        route_dict = {}
+        route_dict['route_number'] = r.number
+        route_dict['issues_count'] = Issue.objects.filter(
+            subscription_product__route=r,
+            date__gte=start_date,
+            date__lte=end_date,
+            category='L').count()
+        route_dict['subscriptions_count'] = Subscription.objects.filter(
+            active=True,
+            subscriptionproduct__route=r,
+        ).exclude(products__slug__contains='digital').count()
+        if route_dict['issues_count'] > 0:
+            route_dict['pct'] = float(route_dict['issues_count']) * 100 / (route_dict['subscriptions_count'] * days)
+            route_dict['pct'] = '%.2f%%' % route_dict['pct']
+        routes_list.append(route_dict)
+    return render(
+        request,
+        'issues_route_list.html', {
+            'start_date': start_date,
+            'end_date': end_date,
+            'routes_list': routes_list,
+            'days': days
+        }
     )
