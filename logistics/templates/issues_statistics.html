@@ -11,7 +11,7 @@
         <h3 class="card-title">{% trans "Daily" %}</h3>
       </div>
       <div class="card-body">
-          <table class="table text-center table-bordered"">
+          <table class="table text-center table-bordered">
             <thead>
               <tr>
                 <th>&nbsp;</th>
@@ -26,7 +26,7 @@
                 {% for day in days %}
                     <td>
                   {% if day.issues %}
-                    {{ day.issues }} / {{ day.pct }}%
+                    <a href='{% url "issues_route_list" day.start day.start %}'>{{ day.issues }} / {{ day.pct }}%</a>
                   {% else %}
                     &nbsp;
                   {% endif %}
@@ -42,7 +42,7 @@
           <h3 class="card-title">{% trans "Weekly" %}</h3>
         </div>
         <div class="card-body">
-          <table class="table text-center table-bordered"">
+          <table class="table text-center table-bordered">
             <thead>
               <tr>
                 <th>&nbsp;</th>
@@ -56,7 +56,7 @@
                 <th class="text-left">{% trans "Issues" %}</th>
                 {% for week in weeks %}
                   {% if week.issues %}
-                    <td>{{ week.issues }} / {{ week.pct }}%</td>
+                    <td><a href='{% url "issues_route_list" week.start week.end %}'>{{ week.issues }} / {{ week.pct }}%</a></td>
                   {% else %}
                     <td>&nbsp;</td>
                   {% endif %}
@@ -71,7 +71,7 @@
           <h3 class="card-title">{% trans "Monthly" %}</h3>
         </div>
         <div class="card-body">
-          <table class="table text-center table-bordered"">
+          <table class="table text-center table-bordered">
             <thead>
               <tr>
                 <th>&nbsp;</th>
@@ -85,7 +85,7 @@
                 <th class="text-left">{% trans "Issues" %}</th>
                 {% for month in months %}
                   {% if month.issues %}
-                    <td>{{ month.issues }} / {{ month.pct }}%</td>
+                    <td><a href='{% url "issues_route_list" month.start month.end %}'>{{ month.issues }} / {{ month.pct }}%</a></td>
                   {% else %}
                     <td>&nbsp;</td>
                   {% endif %}

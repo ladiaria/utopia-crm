@@ -1,0 +1,58 @@
+{% extends 'adminlte/base.html' %}
+{% load static i18n widget_tweaks %}
+{% block stylesheets %}
+    {{block.super}}
+    <link rel="stylesheet" href="{% static '/admin-lte/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css' %}" />
+{% endblock %}
+{% block extra_head %}
+<script type="text/javascript" src="{% static 'js/jquery-3.3.1.min.js' %}"></script>
+<script type="text/javascript" src="{% static '/admin-lte/plugins/datatables/jquery.dataTables.min.js' %}"></script>
+<script src="{% static '/admin-lte/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js' %}"></script>
+<script>
+  $(function() {
+    $("#table1").DataTable();
+  });
+</script>
+
+{% endblock %}
+{% block no_heading %}
+<h1>{% trans 'Issues route list' %}</h1>
+<p>{% trans 'Showing statistics for issues in routes for the period' %} {{start_date}} - {{end_date}} ({{days}} {% trans "days" %})</p>
+{% endblock %}
+{% block breadcrumbs %}
+<ol class="breadcrumb">
+    <li class="breadcrumb-item active">{% trans 'Contacts' %}</li>
+</ol>
+{% endblock %}
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+          <div class="card-body">
+            <table id="table1" class="table table-bordered table-striped">
+              <thead>
+                  <tr role="row">
+                    <th>{% trans "Route Number" %}</th>
+                    <th>{% trans "Active subscriptions" %}</th>
+                    <th>{% trans "Issues" %}</th>
+                    <th>{% trans "Ratio" %}</th>
+                    <th></th>
+                  </tr>
+              </thead>
+              <tbody>
+                {% for route_data in routes_list %}
+                <tr role="row">
+                    <td><a href='{% url "admin:logistics_route_change" route_data.route_number %}'>{{route_data.route_number}}</a></td>
+                    <td>{{route_data.subscriptions_count}}</td>
+                    <td>{{route_data.issues_count}}</td>
+                    <td>{{route_data.pct}}</td>
+                    <td><a href="{% url 'issues_per_route' route_data.route_number start_date end_date %}" target="_blank" class="btn btn-primary btn-sm">{% trans "View" %}</a></td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+  </div>
+{% endblock %}
