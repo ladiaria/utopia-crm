@@ -660,3 +660,24 @@ def logistics_issues_statistics(request, category='L'):
     return render(
         request, 'issues_statistics.html', {
             'days': days, 'weeks': weeks, 'months': months, 'category': category})
+
+
+@login_required
+def issues_per_route(request, route, start_date, end_date, category='L'):
+    route = get_object_or_404(Route, pk=route)
+    issues = Issue.objects.filter(
+        subscription_product__route=route,
+        date__gte=start_date,
+        date__lte=end_date,
+        category='L'
+    )
+    subscription_list = SubscriptionProduct.objects.filter(
+        subscription__start_date=next_business_day(),
+        route=route,
+        special_instructions__isnull=False
+    ).distinct('subscription')
+    return render(
+        request,
+        'issues_per_route.html',
+        {'issues': issues, 'route': route, 'subscription_list': subscription_list}
+    )
