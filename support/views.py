@@ -659,6 +659,7 @@ def start_paid_subscription(request, contact_id):
                 rut=form.cleaned_data['billing_rut'],
                 billing_phone=form.cleaned_data['billing_phone'],
                 billing_email=form.cleaned_data['billing_email'],
+                frequency=form.cleaned_data['frequency'],
             )
 
             if replace_subscription:
@@ -755,7 +756,7 @@ def new_subscription(request, contact_id):
                 "email": contact.email,
                 "id_document": contact.id_document,
                 "default_address": contact_addresses,
-                "start_date": date.today(),
+                "start_date": form_subscription.start_date,
                 "copies": 1,
                 "billing_address": form_subscription.billing_address,
                 "billing_name": form_subscription.billing_name,
@@ -763,8 +764,10 @@ def new_subscription(request, contact_id):
                 "billing_rut": form_subscription.rut,
                 "billing_phone": form_subscription.billing_phone,
                 "billing_email": form_subscription.billing_email,
+                "frequency": form_subscription.frequency,
             }
         )
+        form.fields['start_date'].widget.attrs['readonly'] = True
     else:
         form = NewSubscriptionForm(
             initial={
@@ -823,6 +826,7 @@ def new_subscription(request, contact_id):
                 subscription.rut = form.cleaned_data['billing_rut']
                 subscription.billing_phone = form.cleaned_data['billing_phone']
                 subscription.billing_email = form.cleaned_data['billing_email']
+                subscription.frequency = form.cleaned_data['frequency']
                 subscription.save()
 
             else:
@@ -838,6 +842,7 @@ def new_subscription(request, contact_id):
                     rut=form.cleaned_data['billing_rut'],
                     billing_phone=form.cleaned_data['billing_phone'],
                     billing_email=form.cleaned_data['billing_email'],
+                    frequency=form.cleaned_data['frequency'],
                 )
             if upgrade_subscription:
                 # Then, the amount that was already paid in the period but was not used due to closing the
