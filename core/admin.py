@@ -49,8 +49,11 @@ class TaggitListFilter(SimpleListFilter):
 
 class SubscriptionProductInline(admin.TabularInline):
     model = SubscriptionProduct
-    fields = ('product', 'copies', 'address', 'route', 'order')
-    raw_id_fields = ['route']
+    fields = (
+        ('product', 'copies', 'address'),
+        ('route', 'order', 'label_contact'),
+    )
+    raw_id_fields = ['route', 'label_contact']
     extra = 1
 
     def get_parent_object_from_request(self, request):

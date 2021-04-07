@@ -283,7 +283,10 @@ def print_labels(request, page='Roll', list_type='', route_list='', product_id=N
                 # elif getattr(sp.subscription.product, 'id', None) == 6:
                 #     label.message_for_contact = "2x1"
 
-            label.name = sp.subscription.contact.name.upper()
+            if sp.label_contact:
+                label.name = sp.label_contact.name.upper()
+            else:
+                label.name = sp.subscription.contact.name.upper()
             label.address = (sp.address.address_1 or '') + '\n' + (sp.address.address_2 or '')
             label.route = sp.route.number
             label.route_order = sp.order
