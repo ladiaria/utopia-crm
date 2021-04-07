@@ -187,6 +187,7 @@ class ScheduledTask(models.Model):
 class IssueStatus(models.Model):
     name = models.CharField(max_length=60)
     slug = AutoSlugField(populate_from='name', always_update=True, null=True, blank=True)
+    category = models.CharField(max_length=2, blank=True, null=True, choices=ISSUE_CATEGORIES)
 
     def __unicode__(self):
         return self.name
