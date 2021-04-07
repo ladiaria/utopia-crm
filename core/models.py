@@ -470,6 +470,7 @@ class SubscriptionProduct(models.Model):
     order = models.PositiveSmallIntegerField(verbose_name=_('Order'), blank=True, null=True)
     label_message = models.CharField(max_length=40, blank=True, null=True)
     special_instructions = models.TextField(blank=True, null=True)
+    label_contact = models.ForeignKey('core.contact', blank=True, null=True, on_delete=models.SET_NULL)
 
     def __unicode__(self):
         if self.address:
