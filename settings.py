@@ -19,7 +19,7 @@ MANAGERS = ADMINS
 EMAIL_HOST = 'smtp.example.com'
 # supervision email.
 SUPERVISION_EMAIL = 'example@example.com'
-
+DEFAULT_EMAIL_FROM = SUPERVISION_EMAIL
 
 ALLOWED_HOSTS = []
 
