@@ -30,7 +30,8 @@ class ScheduledTaskAdmin(admin.ModelAdmin):
 
 
 class IssueStatusAdmin(admin.ModelAdmin):
-    list_display = ["name", "slug"]
+    list_editable = ["category"]
+    list_display = ["name", "slug", "category"]
     readonly_fields = ["slug"]
 
 
