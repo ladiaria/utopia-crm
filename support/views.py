@@ -210,8 +210,10 @@ def seller_console_list_campaigns(request):
         campaign.count = campaign.get_not_contacted_count(seller.id)
         campaigns_with_not_contacted.append(campaign)
     for campaign in all_campaigns:
-        campaign.pending = campaign.get_activities_by_seller(seller, "P", "C", date.today()).count()
-        campaign.delayed = campaign.get_activities_by_seller(seller, "D", "C", date.today()).count()
+        campaign.pending = campaign.get_activities_by_seller(
+            seller=seller, status="P", type="C", date=date.today()).count()
+        campaign.delayed = campaign.get_activities_by_seller(
+            seller=seller, status="D", type="C", date=date.today()).count()
         if campaign.pending or campaign.delayed:
             campaigns_with_activities_to_do.append(campaign)
     return render(
@@ -474,6 +476,7 @@ def send_promo(request, contact_id):
     else:
         instance = None
 
+    seller = instance.seller
     campaign = instance.campaign
     start_date = date.today()
     if campaign:
@@ -559,6 +562,7 @@ def send_promo(request, contact_id):
                 datetime=end_date,
                 activity_type="C",
                 status="P",
+                seller=seller,
             )
 
             return HttpResponseRedirect(url + "?offset=%d" % int(offset))
@@ -1648,6 +1652,7 @@ def register_activity(request):
             notes=form.cleaned_data['notes'],
             datetime=datetime.now(),
             activity_type=form.cleaned_data['activity_type'],
+            status="C",  # it should be completed
         )
     if issue_id:
         return HttpResponseRedirect(
