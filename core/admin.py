@@ -282,6 +282,7 @@ class SubtypeAdmin(admin.ModelAdmin):
 
 
 class ActivityAdmin(admin.ModelAdmin):
+    raw_id_fields = ['contact', 'issue']
     list_display = (
         'id', 'contact', 'seller', 'activity_type',
         'campaign', 'get_contact_seller', 'status')
