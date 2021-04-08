@@ -1,7 +1,8 @@
 # -*- encoding: utf-8 -*-
 
 import csv
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
+from dateutil.relativedelta import relativedelta
 
 from django.shortcuts import render, reverse, get_object_or_404
 from django.http import (
@@ -13,12 +14,12 @@ from django.contrib.auth.decorators import login_required
 
 from reportlab.pdfgen.canvas import Canvas
 
-from core.models import SubscriptionProduct, Product
+from core.models import SubscriptionProduct, Subscription, Product
 from core.choices import PRODUCT_WEEKDAYS
 from logistics.models import Route, Edition
 from support.models import Issue
 
-from util.dates import next_business_day
+from util.dates import next_business_day, format_date
 from .labels import LogisticsLabel, LogisticsLabel96x30, Roll, Roll96x30
 
 
@@ -282,7 +283,10 @@ def print_labels(request, page='Roll', list_type='', route_list='', product_id=N
                 # elif getattr(sp.subscription.product, 'id', None) == 6:
                 #     label.message_for_contact = "2x1"
 
-            label.name = sp.subscription.contact.name.upper()
+            if sp.label_contact:
+                label.name = sp.label_contact.name.upper()
+            else:
+                label.name = sp.subscription.contact.name.upper()
             label.address = (sp.address.address_1 or '') + '\n' + (sp.address.address_2 or '')
             label.route = sp.route.number
             label.route_order = sp.order
@@ -574,3 +578,147 @@ def edition_time(request, direction):
     last_editions = Edition.objects.all().order_by('-id')[:5]
     return render(request, 'edition_time.html', {
         'edition': edition, 'last_editions': last_editions, 'what': what})
+
+
+@login_required
+def logistics_issues_statistics(request, category='L'):
+    # TODO: Maybe we need to switch subscriptionproduct for subscriptions
+    days = []
+    weeks = []
+    months = []
+
+    start_date = date.today() - timedelta(7)
+    end_date = date.today()
+
+    control_date = start_date
+
+    while control_date <= end_date:
+        day = {}
+        isoweekday = control_date.isoweekday()
+        day['date'] = format_date(control_date)
+        day['issues'] = Issue.objects.filter(
+            date=control_date,
+            category=category).count()
+        if day['issues']:
+            count = SubscriptionProduct.objects.filter(
+                subscription__active=True,
+                product__weekday=isoweekday).exclude(product__slug__contains='digital').count()
+            day['pct'] = float(day['issues']) * 100 / count
+            day['pct'] = '%.2f' % day['pct']
+        day['start'] = control_date.strftime('%Y-%m-%d')
+        days.append(day)
+
+        control_date += timedelta(1)
+
+    start_date = date.today() - timedelta(7 * 4)
+    end_date = date.today() - timedelta(date.today().isoweekday() - 1)
+
+    control_date = start_date
+
+    while control_date <= end_date:
+        week = {}
+        week['date'] = format_date(control_date)
+
+        week['issues'] = Issue.objects.filter(
+            category=category,
+            date__gte=control_date,
+            date__lte=control_date + timedelta(6)).count()
+
+        if week['issues']:
+            isoweekday = next_business_day().isoweekday()
+            count = Subscription.objects.filter(
+                active=True).exclude(products__slug__contains='digital').count()
+            week['pct'] = float(week['issues']) * 100 / (count * 6)
+            week['pct'] = '%.2f' % week['pct']
+
+        week['start'] = control_date.strftime('%Y-%m-%d')
+        week['end'] = (control_date + timedelta(6)).strftime('%Y-%m-%d')
+        weeks.append(week)
+        control_date += timedelta(7)
+
+    start_date = date.today() + relativedelta(months=-4)
+    end_date = date(date.today().year, date.today().month, 1)
+
+    control_date = start_date
+
+    while control_date <= end_date:
+        month = {}
+        month['date'] = str(control_date.month)
+
+        month['issues'] = Issue.objects.filter(
+            category=category,
+            date__gte=control_date,
+            date__lte=control_date + relativedelta(months=+1) - timedelta(1)).count()
+
+        if month['issues']:
+            count = Subscription.objects.filter(active=True).exclude(products__slug__contains='digital').count()
+            month['pct'] = float(month['issues']) * 100 / (count * 24)
+            month['pct'] = '%.2f' % month['pct']
+
+        month['start'] = control_date.strftime('%Y-%m-%d')
+        month['end'] = (control_date + relativedelta(months=+1) - timedelta(1)).strftime('%Y-%m-%d')
+        months.append(month)
+        control_date = control_date + relativedelta(months=+1)
+
+    return render(
+        request, 'issues_statistics.html', {
+            'days': days, 'weeks': weeks, 'months': months, 'category': category})
+
+
+@login_required
+def issues_per_route(request, route, start_date, end_date, category='L'):
+    route = get_object_or_404(Route, pk=route)
+    issues = Issue.objects.filter(
+        subscription_product__route=route,
+        date__gte=start_date,
+        date__lte=end_date,
+        category='L'
+    )
+    subscription_list = SubscriptionProduct.objects.filter(
+        subscription__start_date=next_business_day(),
+        route=route,
+        special_instructions__isnull=False
+    ).distinct('subscription')
+    return render(
+        request,
+        'issues_per_route.html',
+        {'issues': issues, 'route': route, 'subscription_list': subscription_list}
+    )
+
+
+@login_required
+def issues_route_list(request, start_date, end_date):
+    routes = Route.objects.filter(print_labels=True)
+    routes_list = []
+    days = 0
+    control_date = datetime.strptime(start_date, '%Y-%m-%d')
+    while control_date <= datetime.strptime(end_date, '%Y-%m-%d'):
+        if control_date.isoweekday() <= 5:
+            days += 1
+        control_date += timedelta(1)
+
+    for r in routes:
+        route_dict = {}
+        route_dict['route_number'] = r.number
+        route_dict['issues_count'] = Issue.objects.filter(
+            subscription_product__route=r,
+            date__gte=start_date,
+            date__lte=end_date,
+            category='L').count()
+        route_dict['subscriptions_count'] = Subscription.objects.filter(
+            active=True,
+            subscriptionproduct__route=r,
+        ).exclude(products__slug__contains='digital').count()
+        if route_dict['issues_count'] > 0:
+            route_dict['pct'] = float(route_dict['issues_count']) * 100 / (route_dict['subscriptions_count'] * days)
+            route_dict['pct'] = '%.2f%%' % route_dict['pct']
+        routes_list.append(route_dict)
+    return render(
+        request,
+        'issues_route_list.html', {
+            'start_date': start_date,
+            'end_date': end_date,
+            'routes_list': routes_list,
+            'days': days
+        }
+    )

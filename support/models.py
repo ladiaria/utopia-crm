@@ -142,6 +142,10 @@ class Issue(models.Model):
         else:
             return None
 
+    def get_answer_1(self):
+        answers = dict(ISSUE_ANSWERS)
+        return answers.get(self.answer_1, "N/A")
+
     def __unicode__(self):
         return "Issue of category {} for {} with status {}".format(
             self.get_category(), self.contact.name, self.get_status()
@@ -183,6 +187,7 @@ class ScheduledTask(models.Model):
 class IssueStatus(models.Model):
     name = models.CharField(max_length=60)
     slug = AutoSlugField(populate_from='name', always_update=True, null=True, blank=True)
+    category = models.CharField(max_length=2, blank=True, null=True, choices=ISSUE_CATEGORIES)
 
     def __unicode__(self):
         return self.name
