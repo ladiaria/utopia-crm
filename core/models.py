@@ -240,7 +240,10 @@ class Contact(models.Model):
         return self.invoice_set.filter(Q(paid=True) | Q(debited=True)).count()
 
     def get_latest_invoice(self):
-        return self.invoice_set.all().latest('id')
+        if self.invoice_set.exists():
+            return self.invoice_set.all().latest('id')
+        else:
+            return None
 
     def add_to_campaign(self, campaign_id):
         """
@@ -773,6 +776,15 @@ class Subscription(models.Model):
                 sp = self.subscriptionproduct_set.filter(subscription=self, product=product).first()
                 if sp.address:
                     return sp.address.address_1
+                    break
+        return None
+
+    def get_address_2_by_priority(self):
+        for product in Product.objects.filter(type='S').order_by('billing_priority'):
+            if self.subscriptionproduct_set.filter(subscription=self, product=product).exists():
+                sp = self.subscriptionproduct_set.filter(subscription=self, product=product).first()
+                if sp.address:
+                    return sp.address.address_2
                     break
         return None
 
