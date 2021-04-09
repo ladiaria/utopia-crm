@@ -53,6 +53,8 @@ def calc_price_from_products(products_with_copies, frequency):
 
     total_price, discount_pct, frequency_discount_amount, frequency = 0, 0, 0, int(frequency)
 
+    percentage_discount = None
+
     for product_id, copies in products_with_copies.items():
         product = Product.objects.get(pk=int(product_id))
         copies = int(copies)
@@ -61,6 +63,14 @@ def calc_price_from_products(products_with_copies, frequency):
         elif product.type == 'D':
             # Discounts are only applied once (TODO: Decide if we need to change this)
             total_price -= product.price
+        elif product.type == 'P':
+            percentage_discount = product
+
+    # After calculating the prices of S and D products, we need to calculate the one for P.
+    # It's important that we only put one percentage discount product.
+    if percentage_discount:
+        percentage_discount_amount = round((total_price * percentage_discount.price) / 100)
+        total_price -= percentage_discount_amount
 
     # Then we multiply all this by the frequenccy
     total_price = total_price * frequency

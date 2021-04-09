@@ -132,6 +132,7 @@ PRODUCT_TYPE_CHOICES = (
     ('S', _('Subscription')),
     ('N', _('Newsletter')),
     ('D', _('Discount')),
+    ('P', _('Percentage discount')),
     ('O', _('Other')),
 )
 
