@@ -1,5 +1,5 @@
 {% extends 'adminlte/base.html' %}
-{% load static i18n sip %}
+{% load static i18n sip core_tags %}
 {% block no_heading %}
 <h1>{% trans 'Support' %}</h1>
 <p>{% trans "View and update issue details" %}</p>
@@ -138,9 +138,11 @@
         <form method="post" id="activity_form" action='{% url "register_activity" %}?issue_id={{issue.id}}'>
             {% csrf_token %}
             {{activity_form.as_p}}
+            {% if request.user|in_group:"Managers" or request.user|in_group:"Support" or request.user|in_group:"Logistics" or request.user|in_group:"Finances"  %}
             <div class="form-group text-right">
               <input id="submit_address" type="submit" value="{% trans 'Send' %}"  class="btn bg-gradient-primary">
             </div>
+            {% endif %}
         </form>
       </div>
     </div>

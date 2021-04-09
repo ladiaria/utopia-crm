@@ -1,5 +1,5 @@
 {% extends 'adminlte/original/_main_sidebar.html' %}
-{% load static %}
+{% load static core_tags %}
 {% load i18n %}
 {% block logo %}
         <a href="/" class="brand-link">
@@ -34,6 +34,7 @@
 <li class="nav-item">
   <a href="{{contact_list}}" class="nav-link {% ifequal request.path contact_list  %}active{% endifequal %}">{% trans "Contacts" %}</a>
 </li>
+{% if request.user|in_group:"Support" %}
 <li class="nav-item has-treeview" id="hagda">
   <a href="#" class="nav-link">
     <p>
@@ -43,14 +44,29 @@
   </a>
   <ul class="nav nav-treeview">
     <li class="nav-item"><a href="{{list_issues}}" class="nav-link {% ifequal request.path list_issues %}active{% endifequal %}">{% trans 'List issues' %}</a></li>
+    <li class="nav-item"><a href="{{dynamic_contact_filter_list}}" class="nav-link {% ifequal request.path dynamic_contact_filter_list %}active{% endifequal %}">{% trans 'Dynamic contact filter list' %}</a></li>
+  </ul>
+</li>
+{% endif %}
+
+{% if request.user|in_group:"Managers" %}
+<li class="nav-item has-treeview" id="hagda">
+  <a href="#" class="nav-link">
+    <p>
+      {% trans 'Campaign Management' %}
+      <i class="fas fa-angle-down right"></i>
+    </p>
+  </a>
+  <ul class="nav nav-treeview">
     <li class="nav-item"><a href="{{import_contacts}}" class="nav-link {% ifequal request.path import_contacts %}active{% endifequal %}">{% trans 'Import new contacts' %}</a></li>
     <li class="nav-item"><a href="{{assign_campaigns}}" class="nav-link {% ifequal request.path assign_campaigns %}active{% endifequal %}">{% trans 'Assign campaigns' %}</a></li>
     <li class="nav-item"><a href="{{assign_to_seller}}" class="nav-link {% ifequal request.path assign_to_seller %}active{% endifequal %}">{% trans 'Assign contacts to sellers' %}</a></li>
     <li class="nav-item"><a href="{{core_campaign_add}}" target="_blank" class="nav-link">{% trans "New campaign" %}</a></li>
-    <li class="nav-item"><a href="{{seller_console_list_campaigns}}" class="nav-link {% ifequal request.path seller_console_list_campaigns %}active{% endifequal %}">{% trans 'Seller console' %}</a></li>
-    <li class="nav-item"><a href="{{dynamic_contact_filter_list}}" class="nav-link {% ifequal request.path dynamic_contact_filter_list %}active{% endifequal %}">{% trans 'Dynamic contact filter list' %}</a></li>
   </ul>
 </li>
+{% endif %}
+
+{% if request.user|in_group:"Finances" or request.user|in_group:"Admins" %}
 <li class="nav-item has-treeview">
   <a href="#" class="nav-link">
     <p>
@@ -63,6 +79,8 @@
     <li class="nav-item"><a href="{{invoice_filter}}" class="nav-link {% ifequal request.path invoice_filter %}active{% endifequal %}">{% trans 'Invoice filter' %}</a></li>
   </ul>
 </li>
+{% endif %}
+{% if request.user|in_group:"Logistics" or request.user|in_group:"Admins" %}
 <li class="nav-item has-treeview">
   <a href="#" class="nav-link">
     <p>
@@ -82,9 +100,17 @@
     <li class="nav-item"><a href='{{edition_time_arrival}}' class="nav-link {% ifequal request.path edition_time_arrival %}active{% endifequal %}">{% trans 'Edition arrival time' %}</a></li>
   </ul>
 </li>
+{% endif %}
+{% if request.user|in_group:"Managers" or request.user|in_group:"Admins" %}
 <li class="nav-item">
   <a href="{% url 'admin:index' %}" class="nav-link">{% trans "Admin panel" %}</a>
 </li>
+{% endif %}
+{% if request.user|in_group:"Sellers" or request.user|in_group:"Admins" %}
+  <li class="nav-item">
+    <a href="{{seller_console_list_campaigns}}" class="nav-link {% ifequal request.path seller_console_list_campaigns %}active{% endifequal %}">{% trans 'Seller console' %}</a>
+  </li>
+{% endif %}
 <li class="nav-item">
   <a href="{% url 'logout' %}" class="nav-link">{% trans "Logout" %}</a>
 </li>

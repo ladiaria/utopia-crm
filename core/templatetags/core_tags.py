@@ -21,3 +21,15 @@ def call_method(obj, method_name, *args):
 @register.filter
 def get_item(dictionary, key):
     return dictionary.get(key)
+
+
+@register.filter('in_group')
+def in_group(user, group_name):
+    """
+    TODO: Improve this using generic names with settings.
+    """
+    if user.is_superuser:
+        return True
+    if user.groups.filter(name=group_name).exists():
+        return True
+    return False
