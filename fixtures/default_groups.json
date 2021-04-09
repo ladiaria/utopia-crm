@@ -9,7 +9,7 @@
 {
   "model": "auth.group",
   "fields": {
-    "name": "Supervisors",
+    "name": "Managers",
     "permissions": [
       [
         "add_activity",

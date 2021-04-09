@@ -1,8 +1,8 @@
 {% extends 'adminlte/base.html' %}
-{% load static i18n widget_tweaks %}
+{% load static i18n widget_tweaks core_tags %}
 
 {% block no_heading %}
-<h1>Facturas para contacto: <a href="{% url 'contact_detail' contact.id %}">{{ contact.name }}</a></h1>
+<h1>{% trans "Invoices for contact:" %} <a href="{% url 'contact_detail' contact.id %}">{{ contact.name }}</a></h1>
 {% endblock %}
 {% block stylesheets %}
     {{block.super}}
@@ -38,7 +38,9 @@
               <h3 class="card-title flex-fill">
                  {% trans "Invoices" %}
               </h3>
-              <a class="btn btn-sm btn-primary float-end" href="/invoicing/bill_one_contact/{{ contact.id }}/">{% trans "Bill contact subscriptions" %}</a>
+              {% if request.user|in_group:"Finances"  %}
+                <a class="btn btn-sm btn-primary float-end" href="/invoicing/bill_one_contact/{{ contact.id }}/">{% trans "Bill contact subscriptions" %}</a>
+              {% endif %}
             </div>
             <div class="card-body">
               <table class="table ">
@@ -59,9 +61,11 @@
                    <tr role="row">
                         <td>
                             <a href="/admin/invoicing/invoice/{{ invoice.id }}/">{{ invoice.id }}</a>
+                            {% if request.user|in_group:"Finances" or request.user|in_group:"Managers" or request.user|in_group:"Logistics" or request.user|in_group:"Support" %}
                             <a href="/invoicing/download_invoice/{{ invoice.id }}/" title="{% trans 'Download invoice' %}">
                                 <img src="{% static 'img/pdficon_small.png' %}" alt="PDF"/>
                             </a>
+                            {% endif %}
                         </td>
                         <td>{{ invoice.service_from }}</td>
                         <td>{{ invoice.service_to }}</td>

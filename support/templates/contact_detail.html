@@ -5,14 +5,15 @@
       <div class="container-fluid">
         <div class="row mb-2">
           <div class="col-sm-8">
-            <h1><a href="#">{% trans "Contacts" %}</a> &raquo; {{contact.id}} - {{contact.name}} - <a href='{% url "admin:core_contact_change" contact.id %}'>[Admin]</a></h1>
-            <p>{% trans "Manage all your contacts' information" %}</p>
+            <h1><a href="#">{% trans "Contacts" %}</a> &raquo; {{contact.id}} - {{contact.name}} {% if request.user|in_group:"Managers" or request.user|in_group:"Support" or request.user|in_group:"Finances" %}<a href='{% url "admin:core_contact_change" contact.id %}' class="btn btn-primary">{% trans "See in Admin" %}</a>{% endif %}</h1>
           </div>
+          {% if request.user|in_group:"Support" or request.user|in_group:"Managers" %}
           <div class="text-right col-sm-4">
             <a href="{% url 'new_issue' contact.id %}" target="_blank" class="btn btn-primary">{% trans "New issue" %}</a>
             <a href="{% url 'new_scheduled_task' contact.id 'S04' %}" target="_blank" class="btn btn-primary">{% trans "Schedule pause" %}</a>
             <a href="{% url 'new_scheduled_task' contact.id 'S05' %}" target="_blank" class="btn btn-primary">{% trans "Schedule address change" %}</a>
           </div>
+          {% endif %}
         </div>
       </div><!-- /.container-fluid -->
     </section>
@@ -95,16 +96,20 @@
                                 <dd><b>{% trans "Type" %}:</b> {{subscription.get_type}}</dd>
                                 <dd><b>{% trans "Payment type" %}:</b> {{subscription.get_payment_type}}</dd>
                                 {% if subscription.balance %}<dd><b>{% trans "Balance" %}:</b> {{subscription.balance}}</dd>{% endif %}
+                                {% if request.user|in_group:"Support" or request.user|in_group:"Managers" %}
                                 <a href="{% url 'new_subscription' contact.id %}?upgrade_subscription={{subscription.id}}" class="btn  btn-success">{% trans "Upgrade" %}</a>
                                 <a href="{% url 'new_subscription' contact.id %}?edit_subscription={{subscription.id}}" class="btn  btn-success">{% trans "Edit" %}</a>
+                                {% endif %}
                               {% endfor %}
                             {% else %}
                               {% trans "This contact has no active subscriptions" %}
                             {% endif %}
                           </div>
+                          {% if request.user|in_group:"Support" or request.user|in_group:"Managers" %}
                           <div class="card-footer">
                             <a href="{% url  'new_subscription' contact.id %}" class="btn btn-primary float-right">{% trans "Add subscription" %}</a>
                           </div>
+                          {% endif %}
                         </div>
                         <div class="card">
                           <div class="card-header">
