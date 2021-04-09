@@ -126,6 +126,7 @@ def bill_subscription(subscription_id, billing_date=date.today(), dpp=10, check_
                 item.type = 'D'  # This means this is a discount item
                 # We'll use the type of discount/surcharge of 1, that uses the numeric value instead of a percentage.
                 item.type_dr = 1
+                subtotal -= item.price
             item.amount = item.price * item.copies
             # save all the package
             item.save()
