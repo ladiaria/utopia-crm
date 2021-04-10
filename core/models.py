@@ -615,7 +615,7 @@ class Subscription(models.Model):
 
     def add_product(
             self, product, address, copies=1, message=None, instructions=None, route=None, order=None, seller=None,
-            override_date=None):
+            override_date=None, label_contact=None):
         """
         Used to add products to the current subscription. It is encouraged to always use this method when you want
         to add a product to a subscription, so you always have control of what happens here. This also creates a
@@ -630,6 +630,7 @@ class Subscription(models.Model):
             copies=copies,
             label_message=message or None,
             special_instructions=instructions or None,
+            label_contact=label_contact,
         )
         self.contact.add_product_history(
             product=product,
