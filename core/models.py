@@ -462,7 +462,7 @@ class SubscriptionProduct(models.Model):
     This allows contacts to have more than one product with its respective amount of copies, address where the product
     is delivered, and route/order.
     """
-    product = models.ForeignKey('core.Product', limit_choices_to={'type': 'S'})
+    product = models.ForeignKey('core.Product')
     subscription = models.ForeignKey('core.Subscription')
     copies = models.PositiveSmallIntegerField(default=1)
     address = models.ForeignKey('core.Address', blank=True, null=True, on_delete=models.SET_NULL)
