@@ -182,7 +182,10 @@ def list_routes(request):
 def print_labels(request, page='Roll', list_type='', route_list='', product_id=None):
     today = date.today()
     tomorrow = date.today() + timedelta(1)
-    next_day = next_business_day()
+    if datetime.now().hour in range(0, 3):
+        next_day = date.today()
+    else:
+        next_day = next_business_day()
     isoweekday = next_day.isoweekday()
     response = HttpResponse(content_type='application/pdf')
     response['Content-Disposition'] = \
