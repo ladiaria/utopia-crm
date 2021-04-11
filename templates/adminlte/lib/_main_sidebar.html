@@ -1,9 +1,9 @@
 {% extends 'adminlte/original/_main_sidebar.html' %}
-{% load static core_tags %}
+{% load static core_tags setting %}
 {% load i18n %}
 {% block logo %}
         <a href="/" class="brand-link">
-            <img src="{% static 'img/logo-utopia.png' %}" alt="utopia" class="brand-image">
+            <img src="/{% setting LOGO %}" alt="utopia" class="brand-image">
             {% block logo_text %}<span style="color:transparent;">.</span>{% endblock %}
         </a>
 {% endblock %}
