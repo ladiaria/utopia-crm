@@ -28,7 +28,7 @@ def assign_routes(request):
     """
     Assigns routes to contacts that have no route. The assignation is per SubscriptionProduct.
     """
-    product_list = Product.objects.filter(type='S', bundle_product=False)
+    product_list = Product.objects.filter(type='S', offerable_product=True)
     product_id = 'all'
     if request.POST:
         for name, value in request.POST.items():
@@ -70,7 +70,7 @@ def order_route(request, route=1):
 
     TODO: Do something to quickly change route from the template itself.
     """
-    product_list = Product.objects.filter(type='S', bundle_product=False)
+    product_list = Product.objects.filter(type='S', offerable_product=True)
     product_id = 'all'
     route_object = get_object_or_404(Route, pk=route)
     if request.POST:
@@ -112,7 +112,7 @@ def change_route(request, route=1):
 
     TODO: Do something to quickly change route form the template itself.
     """
-    product_list = Product.objects.filter(type='S', bundle_product=False)
+    product_list = Product.objects.filter(type='S', offerable_product=True)
     product_id = 'all'
     route_object = get_object_or_404(Route, pk=route)
     if request.POST:
