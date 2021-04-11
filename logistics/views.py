@@ -70,7 +70,8 @@ def order_route(request, route=1):
 
     TODO: Do something to quickly change route from the template itself.
     """
-    product_list = Product.objects.filter(type='S', offerable_product=True)
+    product_list = Product.objects.filter(
+        type='S', offerable_product=True)
     product_id = 'all'
     route_object = get_object_or_404(Route, pk=route)
     if request.POST:
