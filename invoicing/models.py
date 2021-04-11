@@ -121,6 +121,12 @@ class Invoice(models.Model):
     def has_product(self, product_slug):
         return self.invoiceitem_set.filter(product__slug=product_slug).exists()
 
+    def get_invoiceitem_count(self, ignore_type=None):
+        if ignore_type is None:
+            return self.invoiceitem_set.all().count()
+        else:
+            return self.invoiceitem_set.all().exclude(type=ignore_type).count()
+
     class Meta:
         verbose_name = 'invoice'
         verbose_name_plural = 'invoices'
