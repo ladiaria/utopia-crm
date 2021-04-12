@@ -278,7 +278,8 @@ class VariableAdmin(admin.ModelAdmin):
 
 
 class SubtypeAdmin(admin.ModelAdmin):
-    pass
+    list_display = ('id', 'name')
+    search_fields = ('name')
 
 
 class ActivityAdmin(admin.ModelAdmin):
