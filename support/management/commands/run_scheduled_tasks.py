@@ -6,7 +6,7 @@ from django.core.management import BaseCommand
 from django.conf import settings
 
 from core.models import ContactProductHistory, SubscriptionProduct
-from support.models import ScheduledTask, IssueStatus
+from support.models import ScheduledTask
 from logistics.models import RouteChange
 
 
@@ -54,10 +54,6 @@ class Command(BaseCommand):
                 # Then we'll set the task as completed
                 task.completed = True
                 task.save()
-                issue = task.issue
-                issue.status = IssueStatus.objects.get(slug=settings.SOLVED_ISSUE_STATUS_SLUG)
-                issue.closing_date = date.today()
-                issue.save()
                 print(_("Task {} completed successfully.".format(task.id)))
 
             elif task.category == 'PA':
@@ -79,9 +75,6 @@ class Command(BaseCommand):
                 subscription.save()
                 task.completed = True
                 task.save()
-                issue.status = IssueStatus.objects.get(slug=settings.SOLVED_ISSUE_STATUS_SLUG)
-                issue.closing_date = date.today()
-                issue.save()
                 print(_("Task {} completed successfully.".format(task.id)))
 
             elif task.category == 'AC':
@@ -107,7 +100,4 @@ class Command(BaseCommand):
                     sp.save()
                 task.completed = True
                 task.save()
-                issue.status = IssueStatus.objects.get(slug=settings.SOLVED_ISSUE_STATUS_SLUG)
-                issue.closing_date = date.today()
-                issue.save()
                 print(_("Task {} completed successfully.".format(task.id)))
