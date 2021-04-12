@@ -307,6 +307,9 @@ class IssueChangeForm(forms.ModelForm):
     """
 
     contact = forms.ModelChoiceField(queryset=Contact.objects, widget=forms.TextInput)
+    next_action_date = forms.DateField(
+        required=False, widget=forms.DateInput(format="%Y-%m-%d", attrs={"class": "datepicker form-control"}),
+    )
 
     class Meta:
         model = Issue
@@ -324,6 +327,7 @@ class IssueChangeForm(forms.ModelForm):
             "progress",
             "answer_1",
             "answer_2",
+            "next_action_date",
             "assigned_to",
         )
 
