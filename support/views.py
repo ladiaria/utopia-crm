@@ -909,7 +909,7 @@ def assign_campaigns(request):
     """
     campaigns = Campaign.objects.filter(active=True)
     if request.POST and request.FILES:
-        response = []
+        errors, count = [], 0
         campaign = request.POST.get("campaign")
         try:
             reader = csv_sreader(request.FILES["file"].read())
@@ -917,14 +917,15 @@ def assign_campaigns(request):
                 try:
                     contact = Contact.objects.get(pk=row[0])
                     contact.add_to_campaign(campaign)
-                    response.append(contact.add_to_campaign(campaign))
+                    count += 1
                 except Exception as e:
-                    response.append(e.message)
+                    errors.append(e.message)
             return render(
                 request,
                 "assign_campaigns.html",
                 {
-                    "response": response,
+                    "count": count,
+                    "errors": errors,
                 },
             )
         except csv.Error:
@@ -936,21 +937,23 @@ def assign_campaigns(request):
         except Exception as e:
             return HttpResponse(u"Error: %s" % e.message)
     elif request.POST and request.POST.get("tags"):
-        response = []
+        errors, count = [], 0
         campaign = request.POST.get("campaign")
         tags = request.POST.get("tags")
         tag_list = tags.split(",")
         contacts = Contact.objects.filter(tags__name__in=tag_list)
         for contact in contacts:
             try:
-                response.append(contact.add_to_campaign(campaign))
+                contact.add_to_campaign(campaign)
+                count += 1
             except Exception as e:
-                response.append(e.message)
+                errors.append(e.message)
         return render(
             request,
             "assign_campaigns.html",
             {
-                "response": response,
+                "count": count,
+                "errors": errors,
             },
         )
     return render(
