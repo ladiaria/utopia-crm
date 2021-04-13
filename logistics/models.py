@@ -301,6 +301,8 @@ class Edition(models.Model):
         blank=True, null=True, verbose_name=_('Promotions'))
     total = models.IntegerField(
         blank=True, null=True, verbose_name=_('Total'))
+    extras = models.IntegerField(
+        blank=True, null=True, verbose_name='Extras')
     rounding = models.IntegerField(
         blank=True, null=True)
 
