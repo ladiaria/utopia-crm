@@ -155,15 +155,11 @@ def list_routes(request):
     """
     route_list = []
     routes = Route.objects.all()
-    today = date.today()
     weekdays = dict(PRODUCT_WEEKDAYS)
-    if today.isoweekday() in (6, 7):
-        # This means it's Saturday or Sunday, we're going to show data for the product that goes out on Monday
-        show_day = 1
+    if datetime.now().hour in range(0, 3):
+        show_day = date.today().isoweekday()
     else:
-        # If it's not Sautrday or Sunday, we're going to show data for the product that goes out tomorrow
-        # This is only considering we don't have a product on Sundays.
-        show_day = today.isoweekday() + 1
+        show_day = next_business_day().isoweekday()
     tomorrow_product = Product.objects.get(weekday=show_day)
     for route in routes:
         route.copies = route.sum_copies_per_product(tomorrow_product)
@@ -492,7 +488,10 @@ def route_details(request, route_list):
     """
     Shows details for a selected route.
     """
-    day = next_business_day()
+    if datetime.now().hour in range(0, 3):
+        day = date.today()
+    else:
+        day = next_business_day()
     one_month_ago = day - timedelta(30)
     isoweekday = day.isoweekday()
 
