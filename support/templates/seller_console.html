@@ -211,6 +211,9 @@
                 <dd><b>{% trans 'Payment type'%}:</b> {{s.get_payment_type}}</dd>
             {% endifequal %}
             {% if s.unsubscription_reason %}<dt>{% trans 'Unsubscription reason'%}:</dt> <dd>{{s.get_unsubscription_reason}}</dd>{% endif %}
+            {% if s.active %}
+              <a href="{% url 'new_subscription' contact.id %}?upgrade_subscription={{s.id}}&url={{url}}&offset={{offset}}" class="btn  btn-success">{% trans "Upgrade" %}</a>
+            {% endif %}
             {% endfor %}
             </dl>
           </div>

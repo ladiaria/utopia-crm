@@ -38,7 +38,7 @@ from .filters import IssueFilter
 from .forms import *
 from .models import Seller, ScheduledTask, IssueStatus
 from core.utils import calc_price_from_products, process_products
-from util.dates import add_business_days, next_business_day
+from util.dates import add_business_days
 
 
 now = datetime.now()
@@ -390,7 +390,7 @@ def seller_console(request, category, campaign_id):
         if category == "act":
             # If what we're watching is an activity, let's please not show it here
             all_activities = all_activities.exclude(pk=console_instance.id)
-        all_subscriptions = Subscription.objects.filter(contact=contact)
+        all_subscriptions = Subscription.objects.filter(contact=contact).order_by('-active')
         url = request.META["PATH_INFO"]
         addresses = Address.objects.filter(contact=contact).order_by("address_1")
 
@@ -400,8 +400,6 @@ def seller_console(request, category, campaign_id):
             {
                 "campaign": campaign,
                 "times_contacted": times_contacted,
-                # 'count': count,
-                # 'activities_list': activities_list,
                 "console_instances": console_instances,
                 "category": category,
                 "position": offset + 1,
