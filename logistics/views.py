@@ -330,6 +330,9 @@ def print_labels_for_product(request, page='Roll', product_id=None, list_type=''
 
     for sp in subscription_products:
 
+        if sp.address is None:
+            continue
+
         # Separator between routes
         if sp.route and old_route != sp.route:
             label = iterator.next()
@@ -370,7 +373,10 @@ def print_labels_for_product(request, page='Roll', product_id=None, list_type=''
                 # elif getattr(sp.subscription.product, 'id', None) == 6:
                 #     eti.comunicar_cliente = "2x1"
 
-            label.name = sp.subscription.contact.name.upper()
+            if sp.label_contact:
+                label.name = sp.label_contact.name.upper()
+            else:
+                label.name = sp.subscription.contact.name.upper()
             label.address = (sp.address.address_1 or '') + '\n' + (sp.address.address_2 or '')
             if sp.route:
                 label.route = sp.route.number
