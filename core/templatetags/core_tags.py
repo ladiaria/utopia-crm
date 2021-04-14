@@ -30,6 +30,8 @@ def in_group(user, group_name):
     """
     if user.is_superuser:
         return True
+    if user.groups.filter(name="Admins").exists():
+        return True
     if user.groups.filter(name=group_name).exists():
         return True
     return False
