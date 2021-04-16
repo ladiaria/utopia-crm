@@ -359,7 +359,8 @@ def seller_console(request, category, campaign_id):
             offset = request.GET.get("offset")
         else:
             offset = request.POST.get("offset")
-        offset = int(offset) - 1 if (offset and int(offset) > 0) else 0
+
+        offset = int(offset) if offset else 1
 
         campaign = Campaign.objects.get(pk=campaign_id)
 
@@ -375,10 +376,10 @@ def seller_console(request, category, campaign_id):
         count = console_instances.count()
         if count == 0:
             return HttpResponseRedirect(reverse('seller_console_list_campaigns'))
-        if offset:
-            if offset >= count:
-                return HttpResponseRedirect(reverse('seller_console_list_campaigns'))
-            console_instance = console_instances[int(offset)]
+        if offset - 1 >= count:
+            return HttpResponseRedirect(reverse('seller_console_list_campaigns'))
+        elif offset - 1 > 0:
+            console_instance = console_instances[int(offset) - 1]
         else:
             console_instance = console_instances[0]
 
@@ -406,6 +407,7 @@ def seller_console(request, category, campaign_id):
                 "offset": offset,
                 "seller": seller,
                 "contact": contact,
+                "count": count,
                 "url": url,
                 "addresses": addresses,
                 "call_date": call_datetime,
