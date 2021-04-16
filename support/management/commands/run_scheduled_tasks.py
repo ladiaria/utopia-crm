@@ -90,7 +90,7 @@ class Command(BaseCommand):
                             contact=task.contact,
                         )
                         if sp.address:
-                            rc.old_address = "{} {}".format(sp.address.address_1, sp.address.address_2 or '')
+                            rc.old_address = u"{} {}".format(sp.address.address_1, sp.address.address_2 or '')
                             rc.old_city = sp.address.city or ''
                             rc.save()
                     sp.address = address
