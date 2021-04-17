@@ -18,7 +18,7 @@ MANAGERS = ADMINS
 # SMTP email host
 EMAIL_HOST = 'smtp.example.com'
 # supervision email.
-SUPERVISION_EMAIL = 'example@example.com'
+SUPERVISION_EMAIL = u'example@example.com'
 DEFAULT_EMAIL_FROM = SUPERVISION_EMAIL
 
 ALLOWED_HOSTS = []
