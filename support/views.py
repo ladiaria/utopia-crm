@@ -236,7 +236,6 @@ def seller_console(request, category, campaign_id):
     if request.POST and request.POST.get("result"):
         result = request.POST.get("result")
         offset = request.POST.get("offset")
-        position = int(offset) + 1 if offset else 0
         url = request.POST.get("url")
         campaign = get_object_or_404(Campaign, pk=request.POST.get("campaign_id"))
         instance_type = request.POST.get("instance_type")
@@ -462,10 +461,18 @@ def send_promo(request, contact_id):
     instance = None
     contact_addresses = Address.objects.filter(contact=contact)
     offerable_products = Product.objects.filter(offerable=True)
-
-    seller = instance.seller
-    campaign = instance.campaign
     start_date = date.today()
+
+    if request.GET.get('act', None):
+        activity = Activity.objects.get(pk=request.GET.get('act'))
+        campaign = activity.campaign
+        ccs = ContactCampaignStatus.objects.get(contact=contact, campaign=campaign)
+    elif request.GET.get('new', None):
+        ccs = ContactCampaignStatus.objects.get(pk=request.GET['new'])
+        campaign = ccs.campaign
+
+    seller = ccs.seller
+
     if campaign:
         end_date = add_business_days(date.today(), campaign.days)
     else:
@@ -516,6 +523,8 @@ def send_promo(request, contact_id):
                 type="P",
                 start_date=start_date,
                 end_date=end_date,
+                campaign=campaign,
+                seller=seller,
             )
             for key, value in request.POST.items():
                 if key.startswith("check"):
@@ -528,23 +537,15 @@ def send_promo(request, contact_id):
 
             if request.GET.get('act', None):
                 # the instance is somehow an activity and we needed to send a promo again, or has been scheduled
-                activity = Activity.objects.get(pk=request.GET.get('act'))
                 activity.status = "C"  # completed activity
                 activity.save()
-                campaign = activity.campaign
-                ccs = ContactCampaignStatus.objects.get(contact=contact, campaign=campaign)
                 ccs.campaign_resolution = "SP"
                 ccs.status = 2  # Contacted this person
                 ccs.save()
             elif request.GET.get('new', None):
-                ccs = ContactCampaignStatus.objects.get(pk=request.GET['new'])
-                campaign = ccs.campaign
                 ccs.status = 2  # contacted this person
                 ccs.campaign_resolution = "SP"  # Sent promo to this c c ustomer
                 ccs.save()
-
-            subscription.campaign = campaign
-            subscription.save()
 
             # Afterwards we need to make an activity to ask the customer how it went.
             # The activity will show up in the menu after the datetime has passed.
@@ -565,8 +566,6 @@ def send_promo(request, contact_id):
         "seller_console_start_promo.html",
         {
             "contact": contact,
-            "instance_type": instance_type,
-            "instance": instance,
             "form": form,
             "address_form": address_form,
             "offerable_products": offerable_products,
