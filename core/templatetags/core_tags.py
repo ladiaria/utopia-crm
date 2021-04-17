@@ -1,4 +1,5 @@
 from django import template
+from core.models import SubscriptionProduct
 
 register = template.Library()
 
@@ -35,3 +36,14 @@ def in_group(user, group_name):
     if user.groups.filter(name=group_name).exists():
         return True
     return False
+
+
+@register.filter('get_address_id_from_subscription')
+def get_address_id_from_subscription(subscription_id, product_slug):
+    try:
+        sp = SubscriptionProduct.objects.filter(
+            subscription_id=subscription_id, product__slug=product_slug
+        ).first()
+        return sp.address.id
+    except Exception:
+        return ''

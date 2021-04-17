@@ -1139,7 +1139,7 @@ class Campaign(models.Model):
     def __unicode__(self):
         return self.name
 
-    def get_activities_by_seller(self, seller, status=None, type=None, date=None):
+    def get_activities_by_seller(self, seller, status=None, type=None, datetime=None):
         """
         Returns all the activities on this campaign, for a specific seller. Activities on a campaign imply that the
         contact has been scheduled to be called in the future.
@@ -1150,7 +1150,7 @@ class Campaign(models.Model):
         if type:
             acts = acts.filter(activity_type__in=type)
         if date:
-            acts = acts.filter(datetime__lte=date)
+            acts = acts.filter(datetime__lte=datetime)
         return acts
 
     def get_not_contacted(self, seller_id):
