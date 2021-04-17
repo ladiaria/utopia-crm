@@ -211,9 +211,9 @@ def seller_console_list_campaigns(request):
         campaigns_with_not_contacted.append(campaign)
     for campaign in all_campaigns:
         campaign.pending = campaign.get_activities_by_seller(
-            seller=seller, status="P", type="C", date=date.today()).count()
+            seller=seller, status="P", type="C", datetime=datetime.now()).count()
         campaign.delayed = campaign.get_activities_by_seller(
-            seller=seller, status="D", type="C", date=date.today()).count()
+            seller=seller, status="D", type="C", datetime=datetime.now()).count()
         if campaign.pending or campaign.delayed:
             campaigns_with_activities_to_do.append(campaign)
     return render(
@@ -248,14 +248,19 @@ def seller_console(request, category, campaign_id):
             activity = instance
             contact = instance.contact
             campaign_status = ContactCampaignStatus.objects.get(
-                campaign=campaign, contact=contact
+                campaign=campaign,
+                contact=contact
             )
         elif instance_type == "new":
             instance = ContactCampaignStatus.objects.get(pk=instance_id)
             campaign_status = instance
             contact = instance.contact
             activity = Activity.objects.create(
-                contact=contact, activity_type="C", datetime=datetime.now(), campaign=campaign, seller=seller
+                contact=contact,
+                activity_type="C",
+                datetime=datetime.now(),
+                campaign=campaign,
+                seller=seller
             )
 
         # We save the notes before doing anything else to the subscription
@@ -322,28 +327,12 @@ def seller_console(request, category, campaign_id):
         if activity:
             activity.save()
 
-        if result == _("Sell"):
-            activity.status = 'C'
-            activity.save()
-            return HttpResponseRedirect(
-                reverse("start_paid_subscription", args=[contact.id]) +
-                "?url={}&offset={}&instance={}&instance_type={}".format(url, position, instance.id, instance_type)
-            )
-
-        elif result == _("Send promo"):
-            activity.status = 'C'
-            activity.save()
-            return HttpResponseRedirect(
-                reverse("send_promo", args=[contact.id]) +
-                "?url={}&offset={}&instance={}&instance_type={}".format(url, position, instance.id, instance_type)
-            )
-        else:
-            return HttpResponseRedirect(
-                reverse("seller_console", args=[instance_type, campaign.id]) +
-                "?offset={}".format(offset)
-                if offset
-                else None
-            )
+        return HttpResponseRedirect(
+            reverse("seller_console", args=[instance_type, campaign.id]) +
+            "?offset={}".format(offset)
+            if offset
+            else None
+        )
 
     else:
         """
@@ -370,8 +359,16 @@ def seller_console(request, category, campaign_id):
             console_instances = campaign.get_not_contacted(seller.id)
         elif category == "act":
             # We make sure to show the seller only the activities that are for today.
-            pending = campaign.get_activities_by_seller(seller, "P", None, date.today())
-            delayed = campaign.get_activities_by_seller(seller, "D", None, date.today())
+            pending = campaign.get_activities_by_seller(
+                seller=seller,
+                status="P",
+                datetime=datetime.now()
+            )
+            delayed = campaign.get_activities_by_seller(
+                seller=seller,
+                status="D",
+                datetime=datetime.now()
+            )
             console_instances = pending | delayed
         count = console_instances.count()
         if count == 0:
@@ -387,7 +384,7 @@ def seller_console(request, category, campaign_id):
         times_contacted = contact.activity_set.filter(
             activity_type="C", status="C", campaign=campaign
         ).count()
-        all_activities = Activity.objects.filter(contact=contact)
+        all_activities = Activity.objects.filter(contact=contact).order_by('-datetime')
         if category == "act":
             # If what we're watching is an activity, let's please not show it here
             all_activities = all_activities.exclude(pk=console_instance.id)
@@ -401,7 +398,6 @@ def seller_console(request, category, campaign_id):
             {
                 "campaign": campaign,
                 "times_contacted": times_contacted,
-                "console_instances": console_instances,
                 "category": category,
                 "position": offset + 1,
                 "offset": offset,
@@ -461,20 +457,11 @@ def send_promo(request, contact_id):
     """
     url = request.GET.get("url")
     offset = request.GET.get("offset", 0)
-    instance_type = request.GET.get("instance_type", None)
-    instance_id = request.GET.get("instance", None)
-    result = request.POST.get("result")
     contact = Contact.objects.get(pk=contact_id)
+    result = request.POST.get("result")
     instance = None
     contact_addresses = Address.objects.filter(contact=contact)
     offerable_products = Product.objects.filter(offerable=True)
-
-    if instance_type and instance_type == "new" and instance_id:
-        instance = ContactCampaignStatus.objects.get(pk=instance_id)
-    elif instance_type and instance_type == "act" and instance_id:
-        instance = Activity.objects.get(pk=instance_id)
-    else:
-        instance = None
 
     seller = instance.seller
     campaign = instance.campaign
@@ -501,7 +488,7 @@ def send_promo(request, contact_id):
 
     if result == _("Cancel"):
         if offset:
-            return HttpResponseRedirect(url + "?offset=%d" % int(offset))
+            return HttpResponseRedirect("{}?offset={}".format(url, offset))
         else:
             return HttpResponseRedirect(url)
     elif result == _("Send"):
@@ -529,7 +516,6 @@ def send_promo(request, contact_id):
                 type="P",
                 start_date=start_date,
                 end_date=end_date,
-                campaign=campaign,
             )
             for key, value in request.POST.items():
                 if key.startswith("check"):
@@ -539,19 +525,26 @@ def send_promo(request, contact_id):
                     address = Address.objects.get(pk=address_id)
                     copies = request.POST.get("copies-{}".format(product_id))
                     subscription.add_product(product, address, copies)
-            if instance_type == "new":
-                # The instance is a contact campaign status
-                instance.status = 2  # contacted the customer
-                instance.campaign_resolution = (
-                    "SP"  # we sent the promo to this customer
-                )
-                instance.save()
 
-            elif instance_type == "act":
-                # the instance is somehow an activity and we needed to send a promo again
-                instance.status = "C"  # completed activity
-                instance.campaign_resolution = "SP"  # success with promo
-                instance.save()
+            if request.GET.get('act', None):
+                # the instance is somehow an activity and we needed to send a promo again, or has been scheduled
+                activity = Activity.objects.get(pk=request.GET.get('act'))
+                activity.status = "C"  # completed activity
+                activity.save()
+                campaign = activity.campaign
+                ccs = ContactCampaignStatus.objects.get(contact=contact, campaign=campaign)
+                ccs.campaign_resolution = "SP"
+                ccs.status = 2  # Contacted this person
+                ccs.save()
+            elif request.GET.get('new', None):
+                ccs = ContactCampaignStatus.objects.get(pk=request.GET['new'])
+                campaign = ccs.campaign
+                ccs.status = 2  # contacted this person
+                ccs.campaign_resolution = "SP"  # Sent promo to this c c ustomer
+                ccs.save()
+
+            subscription.campaign = campaign
+            subscription.save()
 
             # Afterwards we need to make an activity to ask the customer how it went.
             # The activity will show up in the menu after the datetime has passed.
@@ -565,7 +558,7 @@ def send_promo(request, contact_id):
                 seller=seller,
             )
 
-            return HttpResponseRedirect(url + "?offset=%d" % int(offset))
+            return HttpResponseRedirect("{}?offset={}".format(url, offset))
 
     return render(
         request,
@@ -578,148 +571,6 @@ def send_promo(request, contact_id):
             "address_form": address_form,
             "offerable_products": offerable_products,
             "contact_addresses": contact_addresses,
-        },
-    )
-
-
-@login_required
-def start_paid_subscription(request, contact_id):
-    """
-    Shows a form that the sellers can use to sell products to the contact.
-    """
-    contact = get_object_or_404(Contact, pk=contact_id)
-    url = request.GET.get("url")
-    offset = request.GET.get("offset", 0)
-    instance_type = request.GET.get("instance_type", None)
-    instance_id = request.GET.get("instance", None)
-    result = request.POST.get("result")
-    contact_addresses = Address.objects.filter(contact=contact)
-    offerable_products = Product.objects.filter(offerable=True)
-    other_active_normal_subscriptions = Subscription.objects.filter(contact=contact, active=True, type="N")
-
-    if instance_type and instance_type == "new" and instance_id:
-        instance = ContactCampaignStatus.objects.get(pk=instance_id)
-    elif instance_type and instance_type == "act" and instance_id:
-        instance = Activity.objects.get(pk=instance_id)
-    else:
-        instance = None
-
-    campaign = instance.campaign if instance else None
-    start_date = date.today()
-
-    form = NewSubscriptionForm(
-        initial={
-            "name": contact.name,
-            "phone": contact.phone,
-            "mobile": contact.mobile,
-            "email": contact.email,
-            "id_document": contact.id_document,
-            "default_address": contact_addresses,
-            "start_date": start_date,
-            "copies": 1,
-        }
-    )
-    form.fields["billing_address"].queryset = contact_addresses
-    form.fields["default_address"].queryset = contact_addresses
-    address_form = NewAddressForm(initial={"address_type": "physical"})
-
-    if result == _("Cancel"):
-        if offset:
-            return HttpResponseRedirect(url + "?offset=%d" % int(offset))
-        else:
-            return HttpResponseRedirect(url)
-    elif result == _("Send"):
-        form = NewSubscriptionForm(request.POST)
-        replace_subscription = request.POST.get("replace_this_subscription", None)
-        if form.is_valid():
-            # First we need to save all the new contact data if necessary
-            name = form.cleaned_data["name"]
-            if contact.name != name:
-                contact.name = name
-            phone = form.cleaned_data["phone"]
-            if contact.phone != phone:
-                contact.phone = phone
-            mobile = form.cleaned_data["mobile"]
-            if contact.mobile != mobile:
-                contact.mobile = mobile
-            notes = form.cleaned_data["notes"]
-            if contact.notes != notes:
-                contact.notes = notes
-            id_document = form.cleaned_data["id_document"]
-            if contact.id_document != id_document:
-                contact.id_document = id_document
-            contact.save()
-            # After this we will create the subscription
-            subscription = Subscription.objects.create(
-                contact=contact,
-                type="N",
-                campaign=campaign,
-                start_date=form.cleaned_data["start_date"],
-                next_billing=form.cleaned_data["start_date"],
-                payment_type=form.cleaned_data["payment_type"],
-                billing_address=form.cleaned_data['billing_address'],
-                billing_name=form.cleaned_data['billing_name'],
-                billing_id_doc=form.cleaned_data['billing_id_document'],
-                rut=form.cleaned_data['billing_rut'],
-                billing_phone=form.cleaned_data['billing_phone'],
-                billing_email=form.cleaned_data['billing_email'],
-                frequency=form.cleaned_data['frequency'],
-            )
-
-            if replace_subscription:
-                replace_subscription = Subscription.objects.get(pk=replace_subscription)
-                replace_subscription.end_date = start_date
-                replace_subscription.active = False
-                replace_subscription.save()
-                subscription.balance = replace_subscription.amount_already_paid_in_period()
-
-            # We need to decide what we do with the status of the subscription, for now it will be normal
-            subscription.status = "OK"
-            subscription.save()
-
-            # After this, we set all the products we sold
-            for key, value in request.POST.items():
-                if key.startswith("check"):
-                    product_id = key.split("-")[1]
-                    product = Product.objects.get(pk=product_id)
-                    address_id = request.POST.get("address-{}".format(product_id))
-                    address = Address.objects.get(pk=address_id)
-                    copies = request.POST.get("copies-{}".format(product_id))
-                    message = request.POST.get("message-{}".format(product_id))
-                    instructions = request.POST.get("instructions-{}".format(product_id))
-                    subscription.add_product(product, address, copies, message, instructions)
-
-            if instance_type == "new":
-                # The instance is a contact campaign status so this is a direct sale without activity
-                instance.status = 4  # contacted the customer and ended the promo
-                instance.campaign_resolution = "S2"  # this is a success with direct sale
-                instance.save()
-            elif instance_type == "act":
-                # the instance is an activity we need to mark this as the end of the campaign
-                instance.status = "C"  # completed activity
-                instance.save()
-                # after this, we'll look for the ContactCampaignStatus that has this campaign, and close it
-                ccs = ContactCampaignStatus.objects.get(contact=contact, campaign=instance.campaign)
-                ccs.status = 4  # contacted the customer and ended the promo
-                ccs.campaign_resolution = "S1"  # success after a promo
-                ccs.save()
-            if url:
-                return HttpResponseRedirect(url + "?offset=%d" % int(offset))
-            else:
-                return HttpResponseRedirect(reverse("contact_detail", args=[contact.id]))
-
-    return render(
-        request,
-        "seller_console_start_subscription.html",
-        {
-            "contact": contact,
-            "instance_type": instance_type,
-            "instance": instance,
-            "form": form,
-            "address_form": address_form,
-            "offerable_products": offerable_products,
-            "contact_addresses": contact_addresses,
-            "other_active_normal_subscriptions": other_active_normal_subscriptions,
         },
     )
 
@@ -752,25 +603,26 @@ def new_subscription(request, contact_id):
 
     if form_subscription:
         # If there's an old subscription, get their billing_data if necessary
-        form = NewSubscriptionForm(
-            initial={
-                "name": contact.name,
-                "phone": contact.phone,
-                "mobile": contact.mobile,
-                "email": contact.email,
-                "id_document": contact.id_document,
-                "default_address": contact_addresses,
-                "start_date": form_subscription.start_date,
-                "copies": 1,
-                "billing_address": form_subscription.billing_address,
-                "billing_name": form_subscription.billing_name,
-                "billing_id_document": form_subscription.billing_id_doc,
-                "billing_rut": form_subscription.rut,
-                "billing_phone": form_subscription.billing_phone,
-                "billing_email": form_subscription.billing_email,
-                "frequency": form_subscription.frequency,
-            }
-        )
+        initial_dict = {
+            "name": contact.name,
+            "phone": contact.phone,
+            "mobile": contact.mobile,
+            "email": contact.email,
+            "id_document": contact.id_document,
+            "default_address": contact_addresses,
+            "start_date": form_subscription.start_date,
+            "end_date": form_subscription.end_date,
+            "copies": 1,
+            "payment_type": form_subscription.payment_type,
+            "billing_address": form_subscription.billing_address,
+            "billing_name": form_subscription.billing_name,
+            "billing_id_document": form_subscription.billing_id_doc,
+            "billing_rut": form_subscription.rut,
+            "billing_phone": form_subscription.billing_phone,
+            "billing_email": form_subscription.billing_email,
+            "frequency": form_subscription.frequency,
+        }
+        form = NewSubscriptionForm(initial=initial_dict)
         form.fields['start_date'].widget.attrs['readonly'] = True
     else:
         form = NewSubscriptionForm(
@@ -811,6 +663,9 @@ def new_subscription(request, contact_id):
             id_document = form.cleaned_data["id_document"]
             if contact.id_document != id_document:
                 contact.id_document = id_document
+            email = form.cleaned_data["email"]
+            if contact.email != email:
+                contact.email = email
             contact.save()
 
             if upgrade_subscription:
@@ -822,7 +677,7 @@ def new_subscription(request, contact_id):
             if edit_subscription:
                 # this means we are editing the subscription, and we don't need to create a new one
                 subscription = form_subscription
-                subscription.start_date = form.cleaned_data["start_date"]
+                # We're not going to change start_date
                 subscription.payment_type = form.cleaned_data["payment_type"]
                 subscription.billing_address = form.cleaned_data['billing_address']
                 subscription.billing_name = form.cleaned_data['billing_name']
@@ -831,8 +686,8 @@ def new_subscription(request, contact_id):
                 subscription.billing_phone = form.cleaned_data['billing_phone']
                 subscription.billing_email = form.cleaned_data['billing_email']
                 subscription.frequency = form.cleaned_data['frequency']
+                subscription.end_date = form.cleaned_data['end_date']
                 subscription.save()
-
             else:
                 subscription = Subscription.objects.create(
                     contact=contact,
@@ -847,6 +702,7 @@ def new_subscription(request, contact_id):
                     billing_phone=form.cleaned_data['billing_phone'],
                     billing_email=form.cleaned_data['billing_email'],
                     frequency=form.cleaned_data['frequency'],
+                    end_date=form.cleaned_data['end_date'],
                 )
             if upgrade_subscription:
                 # Then, the amount that was already paid in the period but was not used due to closing the
@@ -870,8 +726,14 @@ def new_subscription(request, contact_id):
                     message = request.POST.get("message-{}".format(product_id))
                     instructions = request.POST.get("instructions-{}".format(product_id))
                     if not SubscriptionProduct.objects.filter(subscription=subscription, product=product).exists():
-                        # For each product, if it is a product that this subscription didn't have, then we'll add it.
-                        subscription.add_product(product, address, copies, message, instructions)
+                        # For each product, if it is a product that this subscription didn't have, then we'll add it
+                        subscription.add_product(
+                            product=product,
+                            address=address,
+                            copies=copies,
+                            message=message,
+                            instructions=instructions
+                        )
                     elif request.GET.get('edit_subscription', None) and SubscriptionProduct.objects.filter(
                             subscription=subscription, product=product).exists():
                         sp = SubscriptionProduct.objects.get(subscription=subscription, product=product)
@@ -883,7 +745,51 @@ def new_subscription(request, contact_id):
             for subscriptionproduct in SubscriptionProduct.objects.filter(subscription=subscription):
                 if subscriptionproduct.product not in new_products_list:
                     subscription.remove_product(subscriptionproduct.product)
-            return HttpResponseRedirect(reverse("contact_detail", args=[contact.id]))
+            if request.GET.get('new', None):
+                # This means this is direct sale
+                url = request.GET.get('url')
+                offset = request.GET.get('offset')
+                ccs = ContactCampaignStatus.objects.get(pk=request.GET['new'])
+                ccs.campaign_resolution = "S2"  # this is a success with direct sale
+                ccs.status = 4  # Ended with contact
+                ccs.save()
+                # We also need to register the activity as just started
+                Activity.objects.create(
+                    campaign=ccs.campaign,
+                    seller=ccs.seller,
+                    contact=contact,
+                    status='C',
+                    direction='O',
+                    datetime=datetime.now(),
+                    notes=_("Success with direct sale"),
+                )
+                subscription.campaign = campaign
+                subscription.save()
+                return HttpResponseRedirect("{}?offset={}".format(url, offset))
+            elif request.GET.get('act', None):
+                # This means this is a sale from an activity
+                activity = Activity.objects.get(pk=request.GET['act'])
+                activity.status = 'C'
+                activity.save
+                campaign = activity.campaign
+                ccs = ContactCampaignStatus.objects.get(campaign=campaign, contact=contact)
+                ccs.campaign_resolution = "S1"  # success after a promo
+                ccs.status = 4  # Ended with contact
+                ccs.save()
+                Activity.objects.create(
+                    campaign=Campaign,
+                    seller=ccs.seller,
+                    contact=contact,
+                    status='C',
+                    direction='O',
+                    datetime=datetime.now(),
+                    notes=_("Success with promotion"),
+                )
+                subscription.campaign = campaign
+                subscription.save()
+                return HttpResponseRedirect("{}?offset={}".format(url, offset))
+            else:
+                return HttpResponseRedirect(reverse("contact_detail", args=[contact.id]))
 
     return render(
         request,

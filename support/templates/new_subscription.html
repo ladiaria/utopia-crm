@@ -88,6 +88,10 @@
     {% endif %}
 
     <div class="row">
+      <div class="form-group d-none">
+        <label for="id_contact_id">{{form.id.label}}</label>
+        {{form.contact_id}}
+      </div>
       <div class="form-group col-sm-6">
         <label for="id_name">{{form.name.label}}</label>
         {{form.name}}
@@ -177,7 +181,7 @@
             </div>
             <select name='address-{{product.id}}' class="address_selector form-control">
                 {% for address in contact_addresses %}
-                    <option value="{{address.id}}">{{address.address_1}} {{address.city}} {{address.state}}</option>
+                    <option value="{{address.id}}" {% if form_subscription|get_address_id_from_subscription:product.slug == address.id %}selected{% endif %}>{{address.address_1}} {{address.city}} {{address.state}}</option>
                 {% endfor %}
             </select>
           </div>

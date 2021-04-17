@@ -2,6 +2,7 @@
 from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 from django import forms
+from django.core.exceptions import ValidationError
 
 from .models import Issue, IssueStatus
 from .choices import ISSUE_SUBCATEGORIES
@@ -150,6 +151,7 @@ class NewPromoForm(forms.Form):
 
 
 class NewSubscriptionForm(forms.Form):
+    contact_id = forms.CharField(required=False)
     name = forms.CharField(widget=forms.TextInput(attrs={"class": "form-control"}))
     phone = forms.CharField(
         required=False, widget=forms.TextInput(attrs={"class": "form-control"})
@@ -178,7 +180,13 @@ class NewSubscriptionForm(forms.Form):
     )
     start_date = forms.DateField(
         widget=forms.DateInput(
-            format="%Y-%m-%d", attrs={"class": "datepicker form-control"}
+            format="%Y-%m-%d", attrs={"class": "datepicker form-control", "autocomplete": "off"}
+        )
+    )
+    end_date = forms.DateField(
+        required=False,
+        widget=forms.DateInput(
+            format="%Y-%m-%d", attrs={"class": "datepicker form-control", "autocomplete": "off"}
         )
     )
     billing_address = forms.ModelChoiceField(
@@ -206,6 +214,17 @@ class NewSubscriptionForm(forms.Form):
         required=False,
         widget=forms.Select(attrs={"class": "form-control"}),
     )
+
+    def clean(self):
+        contact_id = self.cleaned_data['contact_id']
+        id_document = self.cleaned_data['id_document']
+        email = self.cleaned_data['email']
+
+        if Contact.objects.filter(email=email).exclude(id=contact_id).exists():
+            raise ValidationError(_("This email already exists in a different contact"))
+
+        if Contact.objects.filter(id_document=id_document).exclude(id=contact_id).exists():
+            raise ValidationError(_("This id document already exists in a different contact"))
 
 
 class GestionStartForm(forms.ModelForm):

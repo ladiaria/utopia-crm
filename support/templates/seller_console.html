@@ -146,8 +146,8 @@
               </div>
 
               <div class="col-sm-3">
-                <input type="submit" id="promo_button" name="result" value="{% trans 'Send promo' %}" class="btn btn-block bg-gradient-success btn-sm"/>
-                <input type="submit" id="sell_button" name="result" value="{% trans 'Sell' %}" class="btn btn-block bg-gradient-success btn-sm" />
+                <a href="{% url 'send_promo' contact.id %}?url={{url}}&offset={{offset}}&{{category}}={{console_instance.id}}" class="btn btn-block bg-gradient-success btn-sm">{% trans "Send promo" %}</a>
+                <a href="{% url 'new_subscription' contact.id %}?url={{url}}&offset={{offset}}&{{category}}={{console_instance.id}}" class="btn btn-block bg-gradient-success btn-sm">{% trans "Sell" %}</a>
                 <a href="{{url}}?offset={{position}}" class="btn btn-block bg-gradient-secondary btn-sm">{% trans "Next (Don't take actions)" %}</a>
               </div>
 
@@ -186,20 +186,25 @@
             <dl>
             {% for s in all_subscriptions %}
             <dt {% if forloop.counter != 1 %}class="border-top mt-4 pt-3"{% endif %}>{% trans "Type:" %} {{s.get_type}}</dt>
-            {% if s.type == 'P' %}<dd><i>{{s.campaign.name}}</i></dd>{% endif %}
             <dd><b>{% trans 'Active'%}:</b> {{s.active}}</dd>
-            {% autoescape  off %}<dd>{{s.show_products_html}}</dd>{% endautoescape %}
-            <dd><b>{% trans 'Start'%}</b>: {{s.start_date|date:"SHORT_DATE_FORMAT"}}</dd>
-            {% if s.end_date %}
-            <dd><b>{% trans 'End'%}</b>: {{s.end_date|date:"SHORT_DATE_FORMAT"}}</dd>
+            {% if s.active == False %}
+            <button class="btn btn-primary btn-sm" type="button" data-toggle="collapse" data-target="#collapse-{{s.id}}" aria-expanded="false" aria-controls="collapseExample">+ {% trans "Expand" %}</button>
             {% endif %}
-            {% ifequal s.type 'N' %}
-                <dd><b>{% trans 'Payment type'%}:</b> {{s.get_payment_type}}</dd>
-            {% endifequal %}
-            {% if s.unsubscription_reason %}<dt>{% trans 'Unsubscription reason'%}:</dt> <dd>{{s.get_unsubscription_reason}}</dd>{% endif %}
-            {% if s.active and s.type == 'N' %}
-              <a href="{% url 'new_subscription' contact.id %}?upgrade_subscription={{s.id}}&url={{url}}&offset={{offset}}" class="btn  btn-success">{% trans "Upgrade" %}</a>
-            {% endif %}
+            <div class="{% if s.active == False %}collapse{% endif %}" id="collapse-{{s.id}}">
+              {% if s.type == 'P' %}<dd><i>{{s.campaign.name}}</i></dd>{% endif %}
+              {% autoescape  off %}<dd>{{s.show_products_html}}</dd>{% endautoescape %}
+              <dd><b>{% trans 'Start'%}</b>: {{s.start_date|date:"SHORT_DATE_FORMAT"}}</dd>
+              {% if s.end_date %}
+              <dd><b>{% trans 'End'%}</b>: {{s.end_date|date:"SHORT_DATE_FORMAT"}}</dd>
+              {% endif %}
+              {% ifequal s.type 'N' %}
+                  <dd><b>{% trans 'Payment type'%}:</b> {{s.get_payment_type}}</dd>
+              {% endifequal %}
+              {% if s.unsubscription_reason %}<dt>{% trans 'Unsubscription reason'%}:</dt> <dd>{{s.get_unsubscription_reason}}</dd>{% endif %}
+              {% if s.active and s.type == 'N' %}
+                <a href="{% url 'new_subscription' contact.id %}?upgrade_subscription={{s.id}}&url={{url}}&offset={{offset}}&{{category}}={{console_instance.id}}" class="btn  btn-success">{% trans "Upgrade" %}</a>
+              {% endif %}
+            </div>
             {% endfor %}
             </dl>
           </div>

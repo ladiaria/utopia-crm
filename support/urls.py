@@ -14,7 +14,6 @@ urlpatterns = [
     url(r'^edit_address/(\d+)/(\d+)/$', edit_address),
     url(r'^import/$', import_contacts, name="import_contacts"),
     url(r'^send_promo/(\d+)/$', send_promo, name="send_promo"),
-    url(r'^start_paid_subscription/(\d+)/$', start_paid_subscription, name="start_paid_subscription"),
     url(r'^new_subscription/(\d+)/$', new_subscription, name="new_subscription"),
     url(r'^edit_products/(\d+)/$', edit_products, name="edit_products"),
     url(r'^contacts/$', contact_list, name="contact_list"),
