@@ -30,8 +30,10 @@ class Command(BaseCommand):
             if task.category == 'PD':
                 contact = task.contact
                 subscription = task.subscription
-                print(_("Started deactivation (start of pause) scheduled task for {}'s subscription {}".format(
-                    contact, subscription)))
+                print(
+                    _("Started deactivation (start of pause) scheduled task for {}'s subscription {}".format(
+                        contact.id, subscription.id))
+                )
                 subscription.active = False
                 # We're going to create contact product histories showing that this contact is now paused for all
                 # these products
@@ -58,8 +60,10 @@ class Command(BaseCommand):
             elif task.category == 'PA':
                 contact = task.contact
                 subscription = task.subscription
-                print(_("Started activation (end of pause) scheduled task for {}'s subscription {}".format(
-                    contact, subscription)))
+                print(
+                    _("Started activation (end of pause) scheduled task for {} subscription {}".format(
+                        contact.id, subscription.id))
+                )
                 subscription.active = True
                 # We're going to create new contact product histories as this contact is now active again
                 for sp in SubscriptionProduct.objects.filter(subscription=subscription):
@@ -80,7 +84,7 @@ class Command(BaseCommand):
                 contact = task.contact
                 subscription = task.subscription
                 address = task.address
-                print(_("Started address change scheduled task for {}'".format(contact)))
+                print(_("Started address change scheduled task for contact {}".format(contact.id)))
                 for sp in task.subscription_products.all():
                     # We need to change the address for said subscription_product
                     if sp.route:
