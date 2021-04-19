@@ -82,18 +82,15 @@ def bill_subscription(subscription_id, billing_date=date.today(), dpp=10, check_
     # this will be controlled here too. A bypass can be programmed to ignore this
     active = subscription.active
     subscription_type_is_normal = subscription.type == 'N'
-    next_billing_lte_billing_date = subscription.next_billing <= billing_date
-    if not (active and subscription_type_is_normal and next_billing_lte_billing_date):
-        return
 
-    # TODO: SOMETHING HAS TO BE DONE TO NOT BILL SUBSCRIPTIONS IN CERTAIN
-    # ROUTES.
+    if not (active and subscription_type_is_normal):
+        raise Exception(_('This subscription is not normal and should not be billed.'))
+
+    if subscription.next_billing > billing_date + timedelta(getattr(settings, 'BILLING_EXTRA_DAYS', 0)):
+        raise Exception(_('This subscription should not be billed yet.'))
 
     # We need to get all the subscription data. The priority is defined on the settings.
     billing_data = subscription.get_billing_data_by_priority()
-
-    if subscription.next_billing > billing_date + timedelta(1):
-        raise Exception(('Next billing date is {}'.format(subscription.next_billing)))
 
     invoice_items = []
     # We only take the normal subscriptions, not promo or free
@@ -310,7 +307,7 @@ def bill_subscriptions_for_one_contact(request, contact_id):
         creation_date = request.POST.get('creation_date', date.today())
         creation_date = datetime.strptime(creation_date, "%Y-%m-%d").date()
         dpp = request.POST.get('dpp', 10)
-        for subscription in contact.subscriptions.filter(active=True, next_billing__lte=date.today()):
+        for subscription in contact.subscriptions.filter(active=True, next_billing__lte=creation_date):
             try:
                 bill_subscription(subscription.id, creation_date, dpp)
             except Exception as e:

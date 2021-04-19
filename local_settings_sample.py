@@ -170,3 +170,6 @@ AUTO_ISSUE_STATUS_SLUG = 'automatic'  # for automatic tasks that have not been c
 TEMPORARY_DISCOUNT = {
     'product-slug': 3,
 }
+
+# How many days into the future are we going to bill contacts
+BILLING_EXTRA_DAYS = 2
