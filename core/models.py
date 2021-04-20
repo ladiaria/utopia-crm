@@ -357,16 +357,18 @@ class Contact(models.Model):
         except Exception:
             return None
 
-    def add_product_history(self, product, new_status, campaign=None, seller=None, override_date=None):
+    def add_product_history(self, subscription, product, new_status, campaign=None, seller=None, override_date=None):
         """
         Adds a product history for this contact on the ContactProductHistory table. This is used to keep record of
         how many times a Contact has been active or inactive, and when. Soon this will be improved.
         """
-        history_of_this_product = self.contactproducthistory_set.filter(product=product)
+        history_of_this_product = subscription.contactproducthistory_set.filter(product=product)
+
         if history_of_this_product.exists():
             latest_history_of_this_product = history_of_this_product.latest('id')
         else:
             latest_history_of_this_product = None
+
         if latest_history_of_this_product:
             if latest_history_of_this_product.status == new_status:
                 # if this is the same event, we will do nothing
@@ -375,17 +377,21 @@ class Contact(models.Model):
                 # if this is a different event, then we will activate or deactivate accordingly
                 ContactProductHistory.objects.create(
                     contact=self,
+                    subscription=subscription,
                     date=override_date or date.today(),
                     product=product,
                     status=new_status,
-                    seller=seller)
+                    seller=seller,
+                )
         else:
             ContactProductHistory.objects.create(
                 contact=self,
+                subscription=subscription,
                 date=override_date or date.today(),
                 product=product,
                 status=new_status,
-                seller=seller)
+                seller=seller,
+            )
 
     def get_total_issues_count(self):
         return self.issue_set.all().count()
@@ -614,14 +620,22 @@ class Subscription(models.Model):
     edit_products_field.short_description = "Products"
 
     def add_product(
-            self, product, address, copies=1, message=None, instructions=None, route=None, order=None, seller=None,
-            override_date=None, label_contact=None):
+        self,
+        product,
+        address,
+        copies=1,
+        message=None,
+        instructions=None,
+        route=None,
+        order=None,
+        seller=None,
+        override_date=None,
+        label_contact=None,
+    ):
         """
         Used to add products to the current subscription. It is encouraged to always use this method when you want
         to add a product to a subscription, so you always have control of what happens here. This also creates a
-        product history with the current subscription, product, and date, with the type 'A' (Activation)
-
-        TODO: Add product history with a seller.
+        product history with the current subscription, product, and date, with the type 'A' (Activation).
         """
         SubscriptionProduct.objects.create(
             subscription=self,
@@ -633,6 +647,7 @@ class Subscription(models.Model):
             label_contact=label_contact,
         )
         self.contact.add_product_history(
+            subscription=self,
             product=product,
             new_status='A',
             campaign=self.campaign,
@@ -652,7 +667,7 @@ class Subscription(models.Model):
         except SubscriptionProduct.DoesNotExist:
             pass
         else:
-            self.contact.add_product_history(product, 'D')
+            self.contact.add_product_history(self, product, 'D')
 
     def get_billing_name(self):
         """

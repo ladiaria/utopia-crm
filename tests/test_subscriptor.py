@@ -93,7 +93,7 @@ class TestContact(TestCase):
 
         subscription.add_product(product, address)
         status = 'A'
-        contact.add_product_history(product, status)
+        contact.add_product_history(subscription, product, status)
 
         # default name
         billing_name = subscription.get_billing_name()
