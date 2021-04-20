@@ -133,7 +133,7 @@ class Invoice(models.Model):
             for index, item in enumerate(self.invoiceitem_set.all()):
                 if index > 0:
                     resp += u", "
-                resp += item.description
+                resp += unicode(item.description)
         return resp
 
     def get_creditnote(self):
