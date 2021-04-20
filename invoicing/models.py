@@ -127,6 +127,20 @@ class Invoice(models.Model):
         else:
             return self.invoiceitem_set.all().exclude(type=ignore_type).count()
 
+    def get_invoiceitem_description_list(self):
+        resp = ""
+        for index, item in enumerate(self.invoiceitem_set.all()):
+            if index > 1:
+                item += ", "
+            resp += item.description
+        return resp
+
+    def get_creditnote(self):
+        if self.creditnote_set.exists():
+            return self.creditnote_set.first()
+        else:
+            return None
+
     class Meta:
         verbose_name = 'invoice'
         verbose_name_plural = 'invoices'
