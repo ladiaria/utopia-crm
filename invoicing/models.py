@@ -128,11 +128,12 @@ class Invoice(models.Model):
             return self.invoiceitem_set.all().exclude(type=ignore_type).count()
 
     def get_invoiceitem_description_list(self):
-        resp = ""
-        for index, item in enumerate(self.invoiceitem_set.all()):
-            if index > 1:
-                item += ", "
-            resp += item.description
+        resp = u""
+        if self.invoiceitem_set.exists():
+            for index, item in enumerate(self.invoiceitem_set.all()):
+                if index > 0:
+                    resp += u", "
+                resp += item.description
         return resp
 
     def get_creditnote(self):
