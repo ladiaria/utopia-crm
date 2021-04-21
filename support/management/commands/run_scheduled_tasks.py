@@ -10,12 +10,12 @@ from logistics.models import RouteChange
 
 
 class Command(BaseCommand):
-    help = """Executes scheduled tasks daily"""
+    help = u"Executes pending scheduled tasks"
     """
     These are the categories for the scheduled tasks:
-    ('AC', 'Address change'),
-    ('PD', 'De-activation (Pause)'),
-    ('PA', 'Activation (Pause)'),
+        'AC': 'Address change'
+        'PD': 'De-activation (Pause)'
+        'PA': 'Activation (Pause)'
     """
 
     # This is left blank if it's necessary to add some arguments
@@ -31,19 +31,13 @@ class Command(BaseCommand):
                 contact = task.contact
                 subscription = task.subscription
                 print(
-                    _("Started deactivation (start of pause) scheduled task for {}'s subscription {}".format(
-                        contact.id, subscription.id))
+                    _(
+                        "Started deactivation (start of pause) scheduled task for {}'s subscription {}".format(
+                            contact.id, subscription.id
+                        )
+                    )
                 )
-                subscription.active = False
-                # We're going to create contact product histories showing that this contact is now paused for all
-                # these products
-                for sp in SubscriptionProduct.objects.filter(subscription=subscription):
-                    ContactProductHistory.objects.create(
-                        contact=contact,
-                        subscription=subscription,
-                        product=sp.product,
-                        status='P')
-                subscription.status = 'PA'
+                subscription.active, subscription.status = False, 'PA'
                 # Then we need to check if we need to change the next billing, if this task is ending another one.
                 if task.ends:
                     deactivation_task = task.ends
@@ -61,8 +55,11 @@ class Command(BaseCommand):
                 contact = task.contact
                 subscription = task.subscription
                 print(
-                    _("Started activation (end of pause) scheduled task for {} subscription {}".format(
-                        contact.id, subscription.id))
+                    _(
+                        "Started activation (end of pause) scheduled task for {} subscription {}".format(
+                            contact.id, subscription.id
+                        )
+                    )
                 )
                 subscription.active = True
                 # We're going to create new contact product histories as this contact is now active again
@@ -71,7 +68,8 @@ class Command(BaseCommand):
                         contact=contact,
                         subscription=subscription,
                         product=sp.product,
-                        status='A')
+                        status='A',
+                    )
                 # The status of the subscription is going to be OK again
                 subscription.status = 'OK'
                 # We don't need to change any next_billing since that has been done in the previous run

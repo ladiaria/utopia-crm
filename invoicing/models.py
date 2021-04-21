@@ -276,6 +276,9 @@ class CreditNote(models.Model):
     class Meta:
         verbose_name_plural = u'credit notes'
 
+    def get_contact_id(self):
+        return self.invoice.contact_id
+
 
 class CreditNoteCopy(CreditNote):
     """
