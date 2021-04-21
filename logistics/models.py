@@ -1,11 +1,8 @@
 # coding=utf-8
-
 from __future__ import unicode_literals
-
 from datetime import date, timedelta
 
 from django.conf import settings
-from django.core.validators import RegexValidator
 from django.db import models
 from django.db.models import Sum
 from django.contrib.gis.db.models import PointField
@@ -13,10 +10,6 @@ from django.utils.translation import ugettext_lazy as _
 
 from logistics.choices import RESORT_STATUS_CHOICES, MESSAGE_PLACES
 from core.models import SubscriptionProduct
-
-regex_alphanumeric = r'^[A-Za-z0-9ñüáéíóúÑÜÁÉÍÓÚ _\'.\-]*$'
-
-alphanumeric = RegexValidator(regex_alphanumeric, _('This name only admits alphanumeric characters'))
 
 
 class Route(models.Model):
