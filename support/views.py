@@ -458,7 +458,6 @@ def send_promo(request, contact_id):
     offset = request.GET.get("offset", 0)
     contact = Contact.objects.get(pk=contact_id)
     result = request.POST.get("result")
-    instance = None
     contact_addresses = Address.objects.filter(contact=contact)
     offerable_products = Product.objects.filter(offerable=True)
     start_date = date.today()
@@ -644,6 +643,7 @@ def new_subscription(request, contact_id):
     if result == _("Cancel"):
         return HttpResponseRedirect(reverse("contact_detail", args=[contact.id]))
     elif result == _("Send"):
+        url = request.GET.get('url', None)
         form = NewSubscriptionForm(request.POST)
         if form.is_valid():
             # First we need to save all the new contact data if necessary
@@ -746,7 +746,6 @@ def new_subscription(request, contact_id):
                     subscription.remove_product(subscriptionproduct.product)
             if request.GET.get('new', None):
                 # This means this is direct sale
-                url = request.GET.get('url')
                 offset = request.GET.get('offset')
                 ccs = ContactCampaignStatus.objects.get(pk=request.GET['new'])
                 ccs.campaign_resolution = "S2"  # this is a success with direct sale
@@ -1323,7 +1322,7 @@ def api_new_address(request, contact_id):
                 notes=form.cleaned_data["address_notes"],
             )
             data = {
-                address.id: "{} {} {}".format(
+                address.id: u"{} {} {}".format(
                     address.address_1, address.city, address.state
                 )
             }
