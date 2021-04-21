@@ -19,9 +19,13 @@ from .choices import *
 from utils import delete_email_from_mailtrain_list, subscribe_email_to_mailtrain_list, get_emails_from_mailtrain_list
 from util.dates import get_default_next_billing, get_default_start_date, diff_month
 
-regex_alphanumeric = r'^[A-Za-z0-9ñüáéíóúÑÜÁÉÍÓÚ _\'.\-]*$'
 
-alphanumeric = RegexValidator(regex_alphanumeric, _('This name only admits alphanumeric characters'))
+regex_alphanumeric = u'^[@A-Za-z0-9ñüáéíóúÑÜÁÉÍÓÚ _\'.\-]*$'
+regex_alphanumeric_msg = _(
+    'This name only supports alphanumeric characters, at, apostrophes, spaces, hyphens, underscores, and periods.'
+)
+
+alphanumeric = RegexValidator(regex_alphanumeric, regex_alphanumeric_msg)
 
 min_month = MinValueValidator(1, _("Month can't be less than 1"))
 max_month = MaxValueValidator(12, _("Month can't be more than 12"))
