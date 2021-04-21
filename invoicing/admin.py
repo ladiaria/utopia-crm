@@ -8,8 +8,11 @@ from .models import *
 
 class CreditNoteAdmin(admin.ModelAdmin):
     model = CreditNote
+    search_fields = ('numero', 'invoice__id', 'invoice__contact__id')
+    list_display = ('invoice_id', 'serie', 'numero', 'get_contact_id')
     raw_id_fields = ['invoice']
     readonly_fields = ['serie', 'numero']
+    ordering = ["-id"]
 
 
 class InvoiceItemInline(admin.StackedInline):
@@ -21,9 +24,10 @@ class InvoiceItemInline(admin.StackedInline):
 
 
 class InvoiceAdmin(admin.ModelAdmin):
+    search_fields = ('contact__id', 'contact__name')
     list_display = (
         'id', 'contact', 'amount', 'paid', 'debited', 'canceled',
-        'uncollectible')
+        'uncollectible', 'serie', 'numero')
     fields = [
         'contact', 'creation_date', 'expiration_date', 'service_from',
         'service_to', 'balance', 'amount', 'payment_type', 'debited', 'paid',
