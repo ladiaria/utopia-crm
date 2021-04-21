@@ -130,13 +130,9 @@ class TestCoreContact(TestCase):
         newsletters = contact.get_newsletters()
         assert not newsletters
 
-        # PRODUCTHISTORY_CHOICES = (
-        # ('A', _('Active')),
-        # ('I', _('Inactive')),
-        # ('P', _('Paused')),
-        # ('R', _('Resumed')),
-        status = 'A'
-        contact.add_product_history(product, status)
+        # TODO: complete this test (if it makes sense to test product history here) (final lines were commented)
+        # status = 'A'
+        # contact.add_product_history(product, status)
 
     def test7_others_classes(self):
         # ADDRESS_TYPE_CHOICES = (

@@ -10,9 +10,9 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
 
         # Deactivate all ended subscriptions
-        for s in Subscription.objects.filter(active=True, end_date__lte=date.today()):
+        for s in Subscription.objects.filter(active=True, end_date__lte=date.today()).iterator():
             s.active = False
-            # TODO: Contact product history deactivation
+            # NOTE: after saving, a signal will be triggered to add deactivation contactproducthistory entries
             s.save()
 
         for s in Subscription.objects.filter(active=True, type__in='NG'):

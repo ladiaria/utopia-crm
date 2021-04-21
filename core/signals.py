@@ -25,6 +25,7 @@ def contact_pre_save_signal(sender, instance, **kwargs):
     # definición de los atributos, que al parecer se validan sólo en el
     # admin, o a veces ni siquiera en el admin.
     # Por otro lado estas se van a ejecutar siempre.
+    # TODO: check this commented blocks
 
     # if instance.expiration_month or instance.expiration_year:
     #    try:
@@ -39,18 +40,19 @@ def contact_pre_save_signal(sender, instance, **kwargs):
     #         u'Si no tiene email entonces se debe dejar en blanco el email')
 
     if not alphanumeric.match(instance.name):
-        return  # BYPASS MIGRATION
         raise ValidationError(_('The name only admits alphanumeric characters'))
 
 
+# TODO: check this
 # @receiver(pre_save, sender=Ocupation)
 # def table_changes_forbidden_signal(sender, instance, **kwargs):
 #     raise ValidationError(u"No se permiten cambios en esta tabla")
 
+
 @receiver(post_save, sender=Subscription)
 def subscription_post_save_signal(sender, instance, **kwargs):
-    # This is when subscriptions gets deactivated
+    # Adds history entries when subscriptions gets deactivated (or deactivated on pause).
     contact = instance.contact
     if instance.active is False:
         for product in instance.products.all():
-            contact.add_product_history(product, 'I', instance.campaign or None)
+            contact.add_product_history(instance, product, 'P' if instance.status == 'PA' else 'I', instance.campaign)
