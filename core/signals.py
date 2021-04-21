@@ -12,10 +12,9 @@ from django.db.models.signals import pre_save, post_save
 from django.dispatch import receiver
 from django.forms import ValidationError
 
-from .models import Contact, Subscription
+from .models import Contact, Subscription, regex_alphanumeric, regex_alphanumeric_msg
 
 
-regex_alphanumeric = r'^[A-Za-z0-9ñüáéíóúÑÜÁÉÍÓÚ _\'.\-]*$'
 alphanumeric = re.compile(regex_alphanumeric)
 
 
@@ -40,7 +39,7 @@ def contact_pre_save_signal(sender, instance, **kwargs):
     #         u'Si no tiene email entonces se debe dejar en blanco el email')
 
     if not alphanumeric.match(instance.name):
-        raise ValidationError(_('The name only admits alphanumeric characters'))
+        raise ValidationError(regex_alphanumeric_msg)
 
 
 # TODO: check this

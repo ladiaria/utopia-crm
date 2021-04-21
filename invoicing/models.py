@@ -1,22 +1,15 @@
 # coding=utf-8
-
 from __future__ import unicode_literals
-
 from datetime import date
-from django.core.validators import RegexValidator
+
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 from django.db.models import Sum, Q
 from django.contrib.auth.models import User
-from core.models import Subscription, Contact
 from django.conf import settings
 
+from core.models import Subscription, Contact
 from invoicing.choices import INVOICEITEM_TYPE_CHOICES, INVOICEITEM_DR_TYPE_CHOICES, BILLING_STATUS
-
-
-regex_alphanumeric = r'^[A-Za-z0-9ñüáéíóúÑÜÁÉÍÓÚ _\'.\-]*$'
-
-alphanumeric = RegexValidator(regex_alphanumeric, _('This name only admits alphanumeric characters'))
 
 
 class Invoice(models.Model):
