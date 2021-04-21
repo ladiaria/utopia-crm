@@ -19,6 +19,7 @@ luhn
 lxml
 mercadopago
 postgis
+progress
 psycopg2
 pyPdf
 python-dateutil
