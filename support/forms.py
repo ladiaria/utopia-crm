@@ -122,16 +122,16 @@ class NewAddressChangeScheduledTaskForm(forms.Form):
 class NewPromoForm(forms.Form):
     name = forms.CharField(widget=forms.TextInput(attrs={"class": "form-control"}))
     phone = forms.CharField(
-        required=False, widget=forms.TextInput(attrs={"class": "form-control"})
+        empty_value=None, required=False, widget=forms.TextInput(attrs={"class": "form-control"})
     )
     mobile = forms.CharField(
-        required=False, widget=forms.TextInput(attrs={"class": "form-control"})
+        empty_value=None, required=False, widget=forms.TextInput(attrs={"class": "form-control"})
     )
     notes = forms.CharField(
-        required=False, widget=forms.Textarea(attrs={"class": "form-control"})
+        empty_value=None, required=False, widget=forms.Textarea(attrs={"class": "form-control"})
     )
     email = forms.CharField(
-        required=False, widget=forms.TextInput(attrs={"class": "form-control"})
+        empty_value=None, required=False, widget=forms.TextInput(attrs={"class": "form-control"})
     )
     start_date = forms.DateField(
         widget=forms.DateInput(
@@ -154,19 +154,19 @@ class NewSubscriptionForm(forms.Form):
     contact_id = forms.CharField(required=False)
     name = forms.CharField(widget=forms.TextInput(attrs={"class": "form-control"}))
     phone = forms.CharField(
-        required=False, widget=forms.TextInput(attrs={"class": "form-control"})
+        empty_value=None, required=False, widget=forms.TextInput(attrs={"class": "form-control"})
     )
     mobile = forms.CharField(
-        required=False, widget=forms.TextInput(attrs={"class": "form-control"})
+        empty_value=None, required=False, widget=forms.TextInput(attrs={"class": "form-control"})
     )
     notes = forms.CharField(
-        required=False, widget=forms.Textarea(attrs={"class": "form-control"})
+        empty_value=None, required=False, widget=forms.Textarea(attrs={"class": "form-control"})
     )
     email = forms.CharField(
-        required=False, widget=forms.TextInput(attrs={"class": "form-control"})
+        empty_value=None, required=False, widget=forms.TextInput(attrs={"class": "form-control"})
     )
     id_document = forms.CharField(
-        required=False, widget=forms.TextInput(attrs={"class": "form-control"})
+        empty_value=None, required=False, widget=forms.TextInput(attrs={"class": "form-control"})
     )
     frequency = forms.ChoiceField(
         required=False,
@@ -195,19 +195,19 @@ class NewSubscriptionForm(forms.Form):
         widget=forms.Select(attrs={"class": "form-control"}),
     )
     billing_name = forms.CharField(
-        required=False, widget=forms.TextInput(attrs={"class": "form-control"})
+        empty_value=None, required=False, widget=forms.TextInput(attrs={"class": "form-control"})
     )
     billing_id_document = forms.CharField(
-        required=False, widget=forms.TextInput(attrs={"class": "form-control"})
+        empty_value=None, required=False, widget=forms.TextInput(attrs={"class": "form-control"})
     )
     billing_rut = forms.CharField(
-        required=False, widget=forms.TextInput(attrs={"class": "form-control"})
+        empty_value=None, required=False, widget=forms.TextInput(attrs={"class": "form-control"})
     )
     billing_phone = forms.CharField(
-        required=False, widget=forms.TextInput(attrs={"class": "form-control"})
+        empty_value=None, required=False, widget=forms.TextInput(attrs={"class": "form-control"})
     )
     billing_email = forms.CharField(
-        required=False, widget=forms.TextInput(attrs={"class": "form-control"})
+        empty_value=None, required=False, widget=forms.TextInput(attrs={"class": "form-control"})
     )
     default_address = forms.ModelChoiceField(
         Address.objects.all(),
