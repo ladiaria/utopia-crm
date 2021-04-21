@@ -362,6 +362,8 @@ class Contact(models.Model):
         Adds a product history for this contact on the ContactProductHistory table. This is used to keep record of
         how many times a Contact has been active or inactive, and when. Soon this will be improved.
         """
+        # TODO: this method should be migrated to the Subscription model
+
         history_of_this_product = subscription.contactproducthistory_set.filter(product=product)
 
         if history_of_this_product.exists():
@@ -792,7 +794,6 @@ class Subscription(models.Model):
                 sp = self.subscriptionproduct_set.filter(subscription=self, product=product).first()
                 if sp.address:
                     return sp.address.address_1
-                    break
         return None
 
     def get_address_2_by_priority(self):
@@ -801,7 +802,6 @@ class Subscription(models.Model):
                 sp = self.subscriptionproduct_set.filter(subscription=self, product=product).first()
                 if sp.address:
                     return sp.address.address_2
-                    break
         return None
 
     def get_frequency_discount(self):
@@ -1263,14 +1263,16 @@ class Activity(models.Model):
 
 class ContactProductHistory(models.Model):
     """
-    Stores the activation and deactivation history for a contact.
+    Stores the activation and deactivation log (and also other useful changes) history for a contact.
+    TODO: This model should be renamed to SubscriptionProductHistory, also the subscription field can be set to None
+          when the subscription is deleted (with the on_cascade option).
     """
     contact = models.ForeignKey(Contact)
-    subscription = models.ForeignKey(Subscription, null=True, blank=True)  # TODO: Check if this is necessary
+    subscription = models.ForeignKey(Subscription, null=True, blank=True)
     product = models.ForeignKey(Product)
     campaign = models.ForeignKey(Campaign, null=True, blank=True)
     status = models.CharField(max_length=1, choices=PRODUCTHISTORY_CHOICES)
-    seller = models.ForeignKey('support.seller', null=True, blank=True)  # To register what was the last seller
+    seller = models.ForeignKey('support.seller', null=True, blank=True)  # To register who was the last seller
     date = models.DateField()
 
     def get_status(self):
