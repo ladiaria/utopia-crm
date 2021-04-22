@@ -51,9 +51,9 @@ class SubscriptionProductInline(admin.TabularInline):
     model = SubscriptionProduct
     fields = (
         ('product', 'copies', 'address'),
-        ('route', 'order', 'label_contact'),
+        ('route', 'order', 'label_contact', 'seller'),
     )
-    raw_id_fields = ['route', 'label_contact']
+    raw_id_fields = ['route', 'label_contact', 'seller']
     extra = 1
 
     def get_parent_object_from_request(self, request):
@@ -295,7 +295,9 @@ class ContactProductHistoryAdmin(admin.ModelAdmin):
 
 
 class ContactCampaignStatusAdmin(admin.ModelAdmin):
+    raw_id_fields = ['contact']
     list_display = ('contact', 'campaign', 'status', 'times_contacted')
+    search_fields = ('contact__name', )
 
 
 class PriceRuleAdmin(admin.ModelAdmin):

@@ -486,6 +486,7 @@ class SubscriptionProduct(models.Model):
     label_message = models.CharField(max_length=40, blank=True, null=True)
     special_instructions = models.TextField(blank=True, null=True)
     label_contact = models.ForeignKey('core.contact', blank=True, null=True, on_delete=models.SET_NULL)
+    seller = models.ForeignKey('support.Seller', blank=True, null=True, on_delete=models.SET_NULL)
 
     def __unicode__(self):
         if self.address:
@@ -634,7 +635,7 @@ class Subscription(models.Model):
         instructions=None,
         route=None,
         order=None,
-        seller=None,
+        seller_id=None,
         override_date=None,
         label_contact=None,
     ):
@@ -643,7 +644,7 @@ class Subscription(models.Model):
         to add a product to a subscription, so you always have control of what happens here. This also creates a
         product history with the current subscription, product, and date, with the type 'A' (Activation).
         """
-        SubscriptionProduct.objects.create(
+        sp = SubscriptionProduct.objects.create(
             subscription=self,
             product=product,
             address=address,
@@ -651,15 +652,17 @@ class Subscription(models.Model):
             label_message=message or None,
             special_instructions=instructions or None,
             label_contact=label_contact,
+            seller_id=seller_id
         )
         self.contact.add_product_history(
             subscription=self,
             product=product,
             new_status='A',
             campaign=self.campaign,
-            seller=seller,
+            seller=sp.seller,
             override_date=override_date,
         )
+        return sp
 
     def remove_product(self, product):
         """
