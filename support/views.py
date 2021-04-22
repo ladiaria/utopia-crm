@@ -1,6 +1,5 @@
 # coding=utf-8
 import unicodecsv
-import csv
 from datetime import date, timedelta, datetime
 
 from django import forms
@@ -18,6 +17,7 @@ from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
+from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
 
 from core.filters import ContactFilter
@@ -48,11 +48,11 @@ def csv_sreader(src):
     """(Magic) CSV String Reader"""
 
     # Auto-detect the dialect
-    dialect = csv.Sniffer().sniff(src, delimiters=",;")
-    return csv.reader(src.splitlines(), dialect=dialect)
+    dialect = unicodecsv.Sniffer().sniff(src, delimiters=",;")
+    return unicodecsv.reader(src.splitlines(), dialect=dialect)
 
 
-@login_required
+@staff_member_required
 def import_contacts(request):
     """
     Imports contacts from a CSV file.
@@ -61,13 +61,15 @@ def import_contacts(request):
 
     TODO: Pandas this
     """
+    subtypes = Subtype.objects.all()
+    campaigns = Campaign.objects.filter(active=True)
     if request.POST and request.FILES:
         new_contacts_list = []
         old_contacts_list = []
         errors_list = []
         tag_list = []
-        campaign_id = request.POST.get("campaign", None)
-        subtype_id = request.POST.get("subtype", None)
+        campaign_id = request.POST.get("campaign_id", None)
+        subtype_id = request.POST.get("subtype_id", None)
         tags = request.POST.get("tags", None)
         if tags:
             tags = tags.split(",")
@@ -78,7 +80,7 @@ def import_contacts(request):
             reader = csv_sreader(request.FILES["file"].read())
             # consume header
             reader.next()
-        except csv.Error:
+        except unicodecsv.Error:
             return HttpResponse(_("No delimiters found in csv file. Please check the delimiters for csv files."))
 
         for row in reader:
@@ -89,7 +91,7 @@ def import_contacts(request):
                 mobile = row[3] or None
                 work_phone = row[4] or None
                 notes = row[5].strip() or None
-                address = row[6] or None
+                address_1 = row[6] or None
                 address_2 = row[7] or None
                 city = row[8] or None
                 state = row[9].strip() or None
@@ -124,7 +126,7 @@ def import_contacts(request):
                         notes=notes
                     )
                     # Build the address if necessary
-                    if address:
+                    if address_1:
                         Address.objects.create(
                             contact=new_contact,
                             address_1=address_1,
@@ -141,10 +143,10 @@ def import_contacts(request):
                     if campaign_id:
                         new_contact.add_to_campaign(campaign_id)
                 except Exception as e:
-                    errors_list.append("%s - %s" % (name, e.message))
+                    errors_list.append("{} - {}".format(name, e.message))
         return render(
-            request, "import_subscribers.html", {
-                "new_contacts_list": new_contacts_list,
+            request, "import_contacts.html", {
+                "new_contacts_count": len(new_contacts_list),
                 "old_contacts_list": old_contacts_list,
                 "errors_list": errors_list,
                 "subtype_id": subtype_id,
@@ -152,7 +154,6 @@ def import_contacts(request):
                 "tag_list": tag_list,
             },
         )
-
     elif request.POST and (request.POST.get("hidden_campaign_id") or request.POST.get("hidden_tag_list")):
         campaign_id = request.POST.get("hidden_campaign_id", None)
         tag_list = request.POST.get("hidden_tag_list", None)
@@ -178,16 +179,19 @@ def import_contacts(request):
         except Exception as e:
             errors_in_changes.append(u"{} - {}".format(contact.id, e.message))
         return render(
-            request, "import_subscribers.html", {
+            request, "import_contacts.html", {
                 "changed_list": changed_list,
                 "errors_in_changes": errors_in_changes,
             }
         )
     else:
-        return render(request, "import_subscribers.html")
+        return render(request, "import_contacts.html", {
+            "subtypes": subtypes,
+            "campaigns": campaigns,
+        })
 
 
-@login_required
+@staff_member_required
 def seller_console_list_campaigns(request):
     """
     List all campaigns on a dashboard style list for sellers to use, so they can see which campaigns they have contacts
@@ -832,7 +836,7 @@ def assign_campaigns(request):
                     "errors": errors,
                 },
             )
-        except csv.Error:
+        except unicodecsv.Error:
             return HttpResponse(
                 u"Error: No se encuentran delimitadores en el archivo "
                 u"ingresado, deben usarse ',' (comas) <br/><a href="
@@ -1525,7 +1529,7 @@ def export_dcf_emails(request, dcf_id):
         dcf.id
     )
 
-    writer = csv.writer(response)
+    writer = unicodecsv.writer(response)
     for email in dcf.get_emails():
         writer.writerow([email])
 
