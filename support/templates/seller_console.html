@@ -1,5 +1,5 @@
 {% extends 'adminlte/base.html' %}
-{% load sip static i18n %}
+{% load sip static i18n core_tags %}
 {% block no_heading %}
 <h1>{% trans 'Support' %}</h1>
 <p>{% trans 'Manage campaign' %}: {{campaign.name}} <a href='{% url "seller_console_list_campaigns" %}'>({% trans "Go back to console" %})</a></p>
@@ -44,6 +44,8 @@
       <div class="card">
         <div class="card-header">
           <h3><a href="{% url 'contact_detail' contact.id %}" target="_blank">{{contact.name}} ({{offset}} {% trans "of" %} {{count}})</a></h3>
+          {% if contact.has_active_subscription %}<h3 class="text-danger">{% trans "WARNING: THE CONTACT HAS ACTIVE SUBSCRIPTIONS" %}</h3>{% endif %}
+          {% if contact.is_debtor %}<h3 class="text-danger">{% trans "WARNING: THE CONTACT IS A DEBTOR" %}</h3>{% endif %}
           <p>{% trans "Times contacted in this campaign:" %} {{times_contacted}}</p>
         </div>
         <div class="card-body">
@@ -103,7 +105,7 @@
         <form method="post">
             {% csrf_token %}
             <input type="hidden" name="offset" value="{{ offset }}"/>
-            <input type="hidden" name="instance_type" value="{{ category }}"/>
+            <input type="hidden" name="category" value="{{ category }}"/>
             <input type="hidden" name="instance_id" value="{{ console_instance.id }}"/>
             <input type="hidden" name="campaign_id" value="{{ campaign.id }}"/>
             <input type="hidden" name="seller_id" value="{{ seller.id }}"/>
@@ -201,7 +203,7 @@
                   <dd><b>{% trans 'Payment type'%}:</b> {{s.get_payment_type}}</dd>
               {% endifequal %}
               {% if s.unsubscription_reason %}<dt>{% trans 'Unsubscription reason'%}:</dt> <dd>{{s.get_unsubscription_reason}}</dd>{% endif %}
-              {% if s.active and s.type == 'N' %}
+              {% if s.active and s.type == 'N' and request.user|in_group:"AdvancedSellers" %}
                 <a href="{% url 'new_subscription' contact.id %}?upgrade_subscription={{s.id}}&url={{url}}&offset={{offset}}&{{category}}={{console_instance.id}}" class="btn  btn-success">{% trans "Upgrade" %}</a>
               {% endif %}
             </div>
