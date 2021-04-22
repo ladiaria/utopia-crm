@@ -32,6 +32,7 @@ from core.models import (
     SubscriptionProduct,
     ContactCampaignStatus,
     SubscriptionNewsletter,
+    Subtype,
 )
 
 from .filters import IssueFilter
