@@ -12,7 +12,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         # Deactivate all ended subscriptions
-        ended_subscriptions = Subscription.objects.filter(active=True, end_date__lte=date.today())
+        ended_subscriptions = Subscription.objects.filter(active=True, end_date__lt=date.today())
         bar = Bar('Processing', max=ended_subscriptions.count()) if options.get('verbosity') > 1 else None
         for s in ended_subscriptions.iterator():
             s.active = False
