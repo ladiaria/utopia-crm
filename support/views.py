@@ -83,7 +83,7 @@ def import_contacts(request):
         except unicodecsv.Error:
             return HttpResponse(_("No delimiters found in csv file. Please check the delimiters for csv files."))
 
-        for row in reader:
+        for row_number, row in enumerate(reader, start=1):
             try:
                 name = row[0]
                 phone = row[1] or None
@@ -95,6 +95,13 @@ def import_contacts(request):
                 address_2 = row[7] or None
                 city = row[8] or None
                 state = row[9].strip() or None
+                # This is only valid for Uruguay. If needed we might move this to a custom function or setting
+                if phone and phone.startswith("9"):
+                    phone = "0{}".format(phone)
+                if mobile and mobile.startswith("9"):
+                    mobile = "0{}".format(mobile)
+                if work_phone and work_phone.startswith("9"):
+                    work_phone = "0{}".format(work_phone)
             except IndexError:
                 return HttpResponse(
                     _("The column count is wrong, please check that the header has at least 10 columns")
@@ -143,7 +150,7 @@ def import_contacts(request):
                     if campaign_id:
                         new_contact.add_to_campaign(campaign_id)
                 except Exception as e:
-                    errors_list.append("{} - {}".format(name, e.message))
+                    errors_list.append("CSV Row {}: {}".format(row_number, e.message))
         return render(
             request, "import_contacts.html", {
                 "new_contacts_count": len(new_contacts_list),
@@ -189,7 +196,6 @@ def import_contacts(request):
             "subtypes": subtypes,
             "campaigns": campaigns,
         })
-
 
 @staff_member_required
 def seller_console_list_campaigns(request):
