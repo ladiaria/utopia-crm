@@ -179,13 +179,13 @@ def import_contacts(request):
         except Exception as e:
             errors_in_changes.append(u"{} - {}".format(contact.id, e.message))
         return render(
-            request, "import_subscribers.html", {
+            request, "import_contacts.html", {
                 "changed_list": changed_list,
                 "errors_in_changes": errors_in_changes,
             }
         )
     else:
-        return render(request, "import_subscribers.html", {
+        return render(request, "import_contacts.html", {
             "subtypes": subtypes,
             "campaigns": campaigns,
         })
