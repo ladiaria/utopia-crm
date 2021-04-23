@@ -480,9 +480,9 @@ def invoice_filter(request):
                 invoice.numero,
             ])
         return response
-    invoices = invoice_filter.qs.all()
-    invoices_sum = invoices.aggregate(Sum('amount'))['amount__sum']
-    invoices_count = invoices.count()
+
+    invoices_sum = invoice_filter.qs.aggregate(Sum('amount'))['amount__sum']
+    invoices_count = invoice_filter.qs.count()
 
     pending = invoice_filter.qs.filter(
         canceled=False, uncollectible=False, paid=False, debited=False, expiration_date__gt=date.today())
