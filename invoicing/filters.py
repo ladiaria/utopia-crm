@@ -41,7 +41,7 @@ class InvoiceFilter(django_filters.FilterSet):
 
     class Meta:
         model = Invoice
-        fields = ['contact_name']
+        fields = ['contact_name', 'payment_type']
 
     def filter_by_contact_name(self, queryset, name, value):
         return queryset.filter(contact__name__icontains=value)
