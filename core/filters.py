@@ -29,10 +29,10 @@ class ContactFilter(django_filters.FilterSet):
         )
 
     def by_state(self, queryset, name, value):
-        return queryset.filter(addresses__state=value).distinct('contact')
+        return queryset.filter(addresses__state=value).distinct()
 
     def with_active_subscription(self, queryset, name, value):
         if value == "0":
-            return queryset.filter(subscriptions__active=False).distinct('contact')
+            return queryset.filter(subscriptions__active=False).distinct()
         elif value == "1":
-            return queryset.filter(subscriptions__active=True).distinct('contact')
+            return queryset.filter(subscriptions__active=True).distinct()
