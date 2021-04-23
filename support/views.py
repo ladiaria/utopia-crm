@@ -1287,20 +1287,40 @@ def contact_list(request):
             _("Email"),
             _("Phone"),
             _("Mobile"),
-            _("Subscription"),
-            _("Last activity")
+            _("Has active subscriptions"),
+            _("Active products"),
+            _("Last activity"),
+            _("Overdue invoices"),
+            _("Address"),
+            _("State"),
+            _("City"),
         ]
         writer.writerow(header)
         for contact in contact_filter.qs.all():
+            active_products = ""
+            for index, sp in enumerate(contact.get_active_subscriptionproducts()):
+                if index > 0:
+                    active_products += "\n"
+                active_products += sp.product.name
+            first_subscription = contact.get_first_active_subscription()
+            if first_subscription:
+                address = first_subscription.get_full_address_by_priority()
+                address_1, state, city = address.address_1, address.state, address.city
+            else:
+                address_1, state, city = "", "", ""
             writer.writerow([
                 contact.id,
                 contact.name,
                 contact.email,
                 contact.phone,
                 contact.mobile,
-                contact.get_first_active_subscription().show_products_html(
-                    br=False) if contact.get_first_active_subscription() else None,
-                contact.last_activity().datetime if contact.last_activity() else None
+                contact.has_active_subscription(),
+                active_products,
+                contact.last_activity().datetime if contact.last_activity() else None,
+                contact.expired_invoices_count(),
+                address_1,
+                state,
+                city,
             ])
         return response
     try:

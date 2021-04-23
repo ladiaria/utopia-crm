@@ -38,13 +38,25 @@
         <div class="card-body">
           <form method="GET" id="form">
             <div class="row">
-              <div class="form-group row col-sm-4">
+              <div class="form-group row col">
                 <label for="phone" class="col-sm-3 col-form-label">{% trans 'Filter' %}</label>
                 <div class="col-sm-9">
                   {% render_field filter.form.filter_multiple class="form-control" %}
                 </div>
               </div>
-              <div class="form-group col-sm-4">
+              <div class="form-group row col">
+                <label for="phone" class="col-sm-3 col-form-label">{% trans 'State' %}</label>
+                <div class="col-sm-9">
+                  {% render_field filter.form.state class="form-control" %}
+                </div>
+              </div>
+              <div class="form-group row col">
+                <label for="phone" class="col-sm-3 col-form-label">{% trans 'Active subscriptions' %}</label>
+                <div class="col-sm-9">
+                  {% render_field filter.form.active_subscriptions class="form-control" %}
+                </div>
+              </div>
+              <div class="form-group col-sm-1">
                 <input type="submit" class="btn bg-gradient-primary" value="{% trans 'Search' %}" />
               </div>
             </div>
