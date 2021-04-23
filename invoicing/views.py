@@ -8,7 +8,7 @@ from django.urls import reverse
 from django.conf import settings
 from django.contrib.admin.views.decorators import staff_member_required
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-from django.db.models import Q
+from django.db.models import Q, Sum
 from django.shortcuts import get_object_or_404, render
 from django.http import HttpResponseServerError, HttpResponseRedirect, HttpResponse
 from django.utils.translation import ugettext_lazy as _
@@ -480,14 +480,32 @@ def invoice_filter(request):
                 invoice.numero,
             ])
         return response
-    invoices_count = invoice_filter.qs.count()
-    pending_count = invoice_filter.qs.filter(
-        canceled=False, uncollectible=False, paid=False, debited=False, expiration_date__gt=date.today()).count()
-    overdue_count = invoice_filter.qs.filter(
-        canceled=False, uncollectible=False, paid=False, debited=False, expiration_date__lte=date.today()).count()
-    paid_count = invoice_filter.qs.filter(Q(paid=True) | Q(debited=True)).count()
-    canceled_count = invoice_filter.qs.filter(canceled=True).count()
-    uncollectible_count = invoice_filter.qs.filter(uncollectible=True).count()
+    invoices = invoice_filter.qs.all()
+    invoices_sum = invoices.aggregate(Sum('amount'))['amount__sum']
+    invoices_count = invoices.count()
+
+    pending = invoice_filter.qs.filter(
+        canceled=False, uncollectible=False, paid=False, debited=False, expiration_date__gt=date.today())
+    pending_sum = pending.aggregate(Sum('amount'))['amount__sum']
+    pending_count = pending.count()
+
+    overdue = invoice_filter.qs.filter(
+        canceled=False, uncollectible=False, paid=False, debited=False, expiration_date__lte=date.today())
+    overdue_sum = overdue.aggregate(Sum('amount'))['amount__sum']
+    overdue_count = overdue.count()
+
+    paid = invoice_filter.qs.filter(Q(paid=True) | Q(debited=True))
+    paid_sum = paid.aggregate(Sum('amount'))['amount__sum']
+    paid_count = paid.count()
+
+    canceled = invoice_filter.qs.filter(canceled=True)
+    canceled_sum = canceled.aggregate(Sum('amount'))['amount__sum']
+    canceled_count = canceled.count()
+
+    uncollectible = invoice_filter.qs.filter(uncollectible=True)
+    uncollectible_sum = uncollectible.aggregate(Sum('amount'))['amount__sum']
+    uncollectible_count = uncollectible.count()
+
     return render(
         request, 'invoice_filter.html', {
             'invoices': invoices,
@@ -499,5 +517,11 @@ def invoice_filter(request):
             'overdue_count': overdue_count,
             'paid_count': paid_count,
             'canceled_count': canceled_count,
+            'invoices_sum': invoices_sum,
+            'paid_sum': paid_sum,
+            'pending_sum': pending_sum,
+            'overdue_sum': overdue_sum,
+            'canceled_sum': canceled_sum,
+            'uncollectible_sum': uncollectible_sum,
             'uncollectible_count': uncollectible_count,
         })
