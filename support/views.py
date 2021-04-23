@@ -1305,7 +1305,8 @@ def contact_list(request):
             first_subscription = contact.get_first_active_subscription()
             if first_subscription:
                 address = first_subscription.get_full_address_by_priority()
-                address_1, state, city = address.address_1, address.state, address.city
+                if address:
+                    address_1, state, city = address.address_1, address.state, address.city
             writer.writerow([
                 contact.id,
                 contact.name,
