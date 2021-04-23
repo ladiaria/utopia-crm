@@ -267,7 +267,7 @@ class Contact(models.Model):
         how many of these they have.
         """
         subs = self.subscriptions.filter(active=True)
-        return subs if count is False else subs.count()
+        return subs.exists() if count is False else subs.count()
 
     def get_debt(self):
         """
@@ -794,6 +794,14 @@ class Subscription(models.Model):
                 raise Exception(
                     "Subscription {} for contact {} requires a route to be billed.".format(self.id, self.contact.id))
         return result
+
+    def get_full_address_by_priority(self):
+        for product in Product.objects.filter(type='S').order_by('billing_priority'):
+            if self.subscriptionproduct_set.filter(subscription=self, product=product).exists():
+                sp = self.subscriptionproduct_set.filter(subscription=self, product=product).first()
+                if sp.address:
+                    return sp.address
+        return None
 
     def get_address_by_priority(self):
         for product in Product.objects.filter(type='S').order_by('billing_priority'):
