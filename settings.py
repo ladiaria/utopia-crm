@@ -131,7 +131,7 @@ AUTH_PASSWORD_VALIDATORS = [{
 CSS_URL = STATIC_URL + 'css/'
 IMG_URL = STATIC_URL + 'img/'
 
-LOGO = 'static/img/utopia-logo.png'  # Image logo under static directory
+LOGO = 'static/img/logo-utopia.png'  # Image logo under static directory
 
 # Background tasks settings
 MAX_ATTEMPTS = 1

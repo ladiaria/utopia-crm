@@ -186,7 +186,7 @@ class ContactAdmin(TabbedModelAdmin):
         (None, {'fields': (('name', 'tags'), )}),
         (None, {'fields': (('subtype', 'id_document'), )}),
         (None, {'fields': (
-            ('email'),
+            ('email', 'no_email'),
             ('phone', 'mobile'),
             ('gender', 'education'),
             ('seller'),

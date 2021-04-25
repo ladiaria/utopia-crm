@@ -130,7 +130,7 @@ LABEL_INVOICE_PAYMENT_TYPES = "RI"
 USE_SQUASHED_SUBSCRIPTION_INVOICEITEMS = True
 
 # Use your own logo for the admin and dashboard
-LOGO = "static/img/utopia-logo.png"
+LOGO = "static/img/logo-utopia.png"
 # Use your own logo for the invoices. It can be a route or just the regular logo.
 INVOICE_LOGO = LOGO
 
