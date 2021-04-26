@@ -74,124 +74,125 @@
       {% trans "Subscription with id" %} <b>{{form_subscription.id}}</b> {% trans "will be replaced and a balance of" %} <b>{{form_subscription.amount_already_paid_in_period}}</b> {% trans "will be discounted from the subscriber's new first invoice" %}
       </div>
       {% endif %}
-    {% if form.errors %}
+
+      {% if form.errors %}
         {% for field in form %}
-            {% for error in field.errors %}
-                <div class="alert alert-danger">
-                    <strong>{{ error|escape }}</strong>
-                </div>
-            {% endfor %}
+          {% for error in field.errors %}
+            <div class="alert alert-danger">
+              <strong>{{ error|escape }}</strong>
+            </div>
+          {% endfor %}
         {% endfor %}
         {% for error in form.non_field_errors %}
-            <div class="alert alert-danger">
-                <strong>{{ error|escape }}</strong>
-            </div>
+          <div class="alert alert-danger">
+            <strong>{{ error|escape }}</strong>
+          </div>
         {% endfor %}
-    {% endif %}
+      {% endif %}
 
       {% block contact_info %}
-      <div class="row">
-        <div class="form-group d-none">
-          <label for="id_contact_id">{{form.id.label}}</label>
-          {{form.contact_id}}
-        </div>
-        <div class="form-group col-sm-4">
-          <label for="id_name">{{form.name.label}}</label>
-          {{form.name}}
-        </div>
-        <div class="form-group col-sm-4">
-          <label for="id_email">{{form.email.label}}</label>
-          {{form.email}}
-        </div>
-        <div class="form-group col-sm-4">
-          <label for="id_id_document">{{form.id_document.label}}</label>
-          {{form.id_document}}
-        </div>
-      </div>
-
-      <div class="row">
-        <div class="form-group col-sm-6">
-          <label for="id_phone">{{form.phone.label}}</label>
-          {{form.phone}}
-        </div>
-        <div class="form-group col-sm-6">
-          <label for="id_mobile">{{form.mobile.label}}</label>
-          {{form.mobile}}
-        </div>
-      </div>
-
-      <div class="form-group">
-        <label for="id_notes">{{form.notes.label}}</label>
-        {{form.notes}}
-      </div>
-
-      {% block payment_type %}
-      <div class="row">
-        <div class="form-group col-sm-6">
-          <label for="id_frequency">{{form.frequency.label}}</label>
-          {{form.frequency}}
-        </div>
-        <div class="form-group col-sm-6">
-          <label for="id_payment_type">{{form.payment_type.label}}</label>
-          {{form.payment_type}}
-        </div>
-      </div>
-      {% block extra_payment %}{% endblock extra_payment %}
-      {% endblock payment_type %}
-
-      <div class="row">
-        <div class="form-group col-sm-6">
-          <label for="id_start_date">{{form.start_date.label}}</label>
-          {{form.start_date}}
-        </div>
-        <div class="form-group col-sm-6">
-          <label for="id_end_date">{{form.end_date.label}}</label>
-          {{form.end_date}}
-        </div>
-      </div>
-
-      {% block billing_info %}
-      <button class="btn btn-primary btn-sm" type="button" data-toggle="collapse" data-target="#collapse-billing-information" aria-expanded="false" aria-controls="collapseExample"><i class="fas fa-plus"></i> {% trans "Show extra billing information" %}</button>
-      <div id="collapse-billing-information" class="collapse">
         <div class="row">
-          <div class="form-group col-sm-6">
-            <label for="id_billing_address">{{form.billing_address.label}}</label>
-            {{form.billing_address}}
+          <div class="form-group d-none">
+            <label for="id_contact_id">{{form.id.label}}</label>
+            {{form.contact_id}}
           </div>
-          <div class="form-group col-sm-6">
-            <label for="id_billing_name">{{form.billing_name.label}}</label>
-            {{form.billing_name}}
+          <div class="form-group col-sm-4">
+            <label for="id_name">{{form.name.label}}</label>
+            {{form.name}}
+          </div>
+          <div class="form-group col-sm-4">
+            <label for="id_email">{{form.email.label}}</label>
+            {{form.email}}
+          </div>
+          <div class="form-group col-sm-4">
+            <label for="id_id_document">{{form.id_document.label}}</label>
+            {{form.id_document}}
           </div>
         </div>
 
         <div class="row">
           <div class="form-group col-sm-6">
-            <label for="id_billing_id_document">{{form.billing_id_document.label}}</label>
-            {{form.billing_id_document}}
+            <label for="id_phone">{{form.phone.label}}</label>
+            {{form.phone}}
           </div>
           <div class="form-group col-sm-6">
-            <label for="id_billing_rut">{{form.billing_rut.label}}</label>
-            {{form.billing_rut}}
+            <label for="id_mobile">{{form.mobile.label}}</label>
+            {{form.mobile}}
           </div>
         </div>
+
+        <div class="form-group">
+          <label for="id_notes">{{form.notes.label}}</label>
+          {{form.notes}}
+        </div>
+
+        {% block payment_type %}
+        <div class="row">
+          <div class="form-group col-sm-6">
+            <label for="id_frequency">{{form.frequency.label}}</label>
+            {{form.frequency}}
+          </div>
+          <div class="form-group col-sm-6">
+            <label for="id_payment_type">{{form.payment_type.label}}</label>
+            {{form.payment_type}}
+          </div>
+        </div>
+        {% block extra_payment %}{% endblock extra_payment %}
+        {% endblock payment_type %}
 
         <div class="row">
           <div class="form-group col-sm-6">
-            <label for="id_billing_phone">{{form.billing_phone.label}}</label>
-            {{form.billing_phone}}
+            <label for="id_start_date">{{form.start_date.label}}</label>
+            {{form.start_date}}
           </div>
           <div class="form-group col-sm-6">
-            <label for="id_billing_email">{{form.billing_email.label}}</label>
-            {{form.billing_email}}
+            <label for="id_end_date">{{form.end_date.label}}</label>
+            {{form.end_date}}
           </div>
         </div>
-      </div>
-      {% endblock billing_info %}
 
-      <div class="form-group">
-        <label for="id_default_address">{{form.default_address.label}}</label>
-        {{form.default_address}}
-      </div>
+        {% block billing_info %}
+          <button class="btn btn-primary btn-sm" type="button" data-toggle="collapse" data-target="#collapse-billing-information" aria-expanded="false" aria-controls="collapseExample"><i class="fas fa-plus"></i> {% trans "Show extra billing information" %}</button>
+          <div id="collapse-billing-information" class="collapse">
+            <div class="row">
+              <div class="form-group col-sm-6">
+                <label for="id_billing_address">{{form.billing_address.label}}</label>
+                {{form.billing_address}}
+              </div>
+              <div class="form-group col-sm-6">
+                <label for="id_billing_name">{{form.billing_name.label}}</label>
+                {{form.billing_name}}
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="form-group col-sm-6">
+                <label for="id_billing_id_document">{{form.billing_id_document.label}}</label>
+                {{form.billing_id_document}}
+              </div>
+              <div class="form-group col-sm-6">
+                <label for="id_billing_rut">{{form.billing_rut.label}}</label>
+                {{form.billing_rut}}
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="form-group col-sm-6">
+                <label for="id_billing_phone">{{form.billing_phone.label}}</label>
+                {{form.billing_phone}}
+              </div>
+              <div class="form-group col-sm-6">
+                <label for="id_billing_email">{{form.billing_email.label}}</label>
+                {{form.billing_email}}
+              </div>
+            </div>
+          </div>
+        {% endblock billing_info %}
+
+        <div class="form-group">
+          <label for="id_default_address">{{form.default_address.label}}</label>
+          {{ form.default_address }}
+        </div>
       {% endblock contact_info %}
 
       <a href="#address_modal" id="add_address" data-toggle="modal" data-target="#address_modal" class="btn bg-gradient-success"><i class="fas fa-plus"></i> Add new address</a>
@@ -233,7 +234,7 @@
       {% block form_send_controls %}
       <div class="form-group text-right">
         <h4 class="mb-4 mt-4">{% trans "Total price is" %}: <span class="text-success" id="price_amount">$0</span>
-          <span id="custom_error_message" class="text-danger"><small>asfd</small></span>
+          <span id="custom_error_message" class="text-danger"><small></small></span>
         </h4>
         <input type="submit" name='result' value="{% trans 'Cancel' %}" class="btn bg-gradient-secondary">
         <input type="submit" name="result" id="send_form" value="{% trans 'Send' %}" class="btn bg-gradient-primary">
