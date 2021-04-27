@@ -210,8 +210,7 @@ class ContactAdmin(TabbedModelAdmin):
     change_form_template = 'admin/core/contact/change_form.html'
 
     def get_queryset(self, request):
-        return super(
-            ContactAdmin, self).get_queryset(request).prefetch_related('tags')
+        return super(ContactAdmin, self).get_queryset(request).prefetch_related('tags')
 
     def tag_list(self, obj):
         return u", ".join(o.name for o in obj.tags.all())
