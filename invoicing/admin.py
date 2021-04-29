@@ -11,7 +11,7 @@ class CreditNoteAdmin(admin.ModelAdmin):
     search_fields = ('numero', 'invoice__id', 'invoice__contact__id')
     list_display = ('invoice_id', 'serie', 'numero', 'get_contact_id')
     raw_id_fields = ['invoice']
-    readonly_fields = ['serie', 'numero']
+    readonly_fields = ['uuid', 'serie', 'numero']
     ordering = ["-id"]
 
 
