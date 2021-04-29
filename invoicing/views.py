@@ -357,17 +357,23 @@ def billing_invoices(request, billing_id):
 @staff_member_required
 def cancel_invoice(request, invoice_id):
     """
-    Marks the invoice as canceled with today's date.
-    Generates a credit note.
+    Marks the invoice as canceled with today's date and creaates a credit note.
     """
-    i = Invoice.objects.get(pk=invoice_id)
-    if i.canceled:
-        return HttpResponseServerError(_('Invoice already canceled'))
-    n = CreditNote(invoice_id=invoice_id)
-    return render(request, 'cancel_invoice.html', {
-        'invoice_id': invoice_id,
-        'credit_note': n
-    })
+    i = get_object_or_404(Invoice, pk=invoice_id)
+    error = _('The invoice is already canceled') if i.canceled else False
+    n, notes = None, []
+    if not error:
+        # search for a matching credit note already created
+        notes = CreditNote.objects.filter(invoice=i)
+        if notes:
+            error = _('The following credit notes already exist for this invoice')
+        else:
+            n = CreditNote.objects.create(invoice=i)
+            i.canceled, i.cancelation_date = True, date.today()
+            i.save()
+    return render(
+        request, 'cancel_invoice.html', {'invoice_id': invoice_id, 'credit_note': n, 'error': error, 'notes': notes}
+    )
 
 
 @staff_member_required

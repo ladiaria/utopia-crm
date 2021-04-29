@@ -1,12 +1,37 @@
 {% extends 'adminlte/base.html' %}
-{% load static i18n %}
+{% load i18n admin_urls %}
+
 {% block title %}Anulación de factura{% endblock %}
+
 {% block pagetitle %}Anulación de factura{% endblock %}
+
 {% block content %}
-    {% if credit_note.uuid %}
-        <p>Invoice <a href="/admin/invoicing/invoice/{{ invoice_id }}/">{{ invoice_id }}</a> has been canceled and the credit note number <a href="/admin/invoicing/creditnote/{{ credit_note.id }}/">{{ credit_note.id }} has been created.</a></p>
-    {% else %}
-        <p style="color:red"><strong>ERROR: Invoice couldn't be canceled.</strong></p>
-        <p style="color:red"><strong>{{ error }}</strong></p>
+
+  {% if credit_note %}
+
+    <p>
+      {% trans "The invoice" %} <a href="{% url 'admin:invoicing_invoice_change' invoice_id %}">{{ invoice_id }}</a>
+      {% trans "has been canceled and the credit note number" %}
+      <a href="{% url 'admin:invoicing_creditnote_change' credit_note.id %}">{{ credit_note.id }}</a>
+      {% trans "has been created" %}.
+    </p>
+
+    {% if error %}
+      <p><strong style="color:orange">{% trans "WARNING" %}</strong> {{ error }}</p>
     {% endif %}
+
+  {% else %}
+
+    <p>
+      <strong style="color:red">ERROR:</strong> {% trans "The invoice couldn't be canceled" %}<br>
+      <strong>{% trans "Error detail" %}:</strong> {{ error }}{% if notes %}:{% endif %}
+      {% if notes %}<ul>{% endif %}
+      {% for note in notes %}
+        <li><a href="{% url 'admin:invoicing_creditnote_change' note.id %}">{{ note.id }}</a></li>
+      {% endfor %}
+      {% if notes %}</ul>{% endif %}
+    </p>
+
+  {% endif %}
+
 {% endblock %}
