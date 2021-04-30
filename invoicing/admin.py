@@ -9,25 +9,21 @@ from .models import *
 class CreditNoteAdmin(admin.ModelAdmin):
     model = CreditNote
     search_fields = ('numero', 'invoice__id', 'invoice__contact__id')
-    list_display = ('invoice_id', 'serie', 'numero', 'get_contact_id')
+    list_display = ('invoice', 'serie', 'numero', 'get_contact_id')
     raw_id_fields = ['invoice']
-    readonly_fields = ['uuid', 'serie', 'numero']
+    readonly_fields = ['invoice', 'uuid', 'serie', 'numero']
     ordering = ["-id"]
 
 
 class InvoiceItemInline(admin.StackedInline):
     model = InvoiceItem
-    fields = [
-        'amount', 'product', 'description', 'price', 'copies', 'service_from', 'service_to', 'type',
-    ]
+    fields = ['amount', 'product', 'description', 'price', 'copies', 'service_from', 'service_to', 'type']
     extra = 0
 
 
 class InvoiceAdmin(admin.ModelAdmin):
     search_fields = ('contact__id', 'contact__name')
-    list_display = (
-        'id', 'contact', 'amount', 'paid', 'debited', 'canceled',
-        'uncollectible', 'serie', 'numero')
+    list_display = ('id', 'contact', 'amount', 'paid', 'debited', 'canceled', 'uncollectible', 'serie', 'numero')
     fields = [
         'contact', 'creation_date', 'expiration_date', 'service_from',
         'service_to', 'balance', 'amount', 'payment_type', 'debited', 'paid',
@@ -38,8 +34,7 @@ class InvoiceAdmin(admin.ModelAdmin):
         'billing_document', 'route', 'order']
     raw_id_fields = ['contact', 'subscription']
     inlines = (InvoiceItemInline,)
-    readonly_fields = [
-        'canceled', 'cancelation_date', 'uuid', 'serie', 'numero', 'pdf']
+    readonly_fields = ['canceled', 'cancelation_date', 'uuid', 'serie', 'numero', 'pdf']
     ordering = ['-id']
 
 

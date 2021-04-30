@@ -23,65 +23,44 @@ class Invoice(models.Model):
     service_from = models.DateField()
     service_to = models.DateField()
 
-    balance = models.DecimalField(
-        _("Balance"), max_digits=10, decimal_places=2, blank=True, null=True
-    )
-    amount = models.DecimalField(
-        _("Amount"), max_digits=10, decimal_places=2, blank=True, null=True
-    )
-    payment_type = models.CharField(
-        _("Payment type"), max_length=2, choices=settings.INVOICE_PAYMENT_METHODS
-    )
+    balance = models.DecimalField(_("Balance"), max_digits=10, decimal_places=2, blank=True, null=True)
+    amount = models.DecimalField(_("Amount"), max_digits=10, decimal_places=2, blank=True, null=True)
+    payment_type = models.CharField(_("Payment type"), max_length=2, choices=settings.INVOICE_PAYMENT_METHODS)
     debited = models.BooleanField(_("Debited"), default=False)
     paid = models.BooleanField(_("Paid"), default=False)
     payment_date = models.DateField(_("Payment date"), blank=True, null=True)
-    payment_reference = models.CharField(
-        _("Payment reference"), max_length=32, blank=True, null=True
-    )
+    payment_reference = models.CharField(_("Payment reference"), max_length=32, blank=True, null=True)
     notes = models.TextField(_("Invoice notes"), blank=True, null=True)
     canceled = models.BooleanField(_("Canceled"), default=False, editable=False)
-    cancelation_date = models.DateField(
-        _("Cancelation date"), blank=True, editable=False, null=True
-    )
+    cancelation_date = models.DateField(_("Cancelation date"), blank=True, editable=False, null=True)
     uncollectible = models.BooleanField(_("Uncollectible"), default=False)
-    subscription = models.ForeignKey(
-        "core.Subscription", blank=True, null=True, on_delete=models.SET_NULL
-    )
+    subscription = models.ForeignKey("core.Subscription", blank=True, null=True, on_delete=models.SET_NULL)
 
     uuid = models.CharField(max_length=36, editable=False, blank=True, null=True)
     serie = models.CharField(max_length=1, editable=False, blank=True, null=True)
     numero = models.PositiveIntegerField(editable=False, blank=True, null=True)
-    pdf = models.FileField(
-        upload_to=settings.INVOICES_PATH, editable=False, blank=True, null=True
-    )
+    pdf = models.FileField(upload_to=settings.INVOICES_PATH, editable=False, blank=True, null=True)
 
-    # New fields for CFE
-    billing_address = models.CharField(
-        max_length=255, blank=True, null=True, verbose_name=_("Billing Address")
-    )
-    billing_state = models.CharField(
-        max_length=50, blank=True, null=True, verbose_name=_("Billing State")
-    )
-    billing_city = models.CharField(
-        max_length=64, blank=True, null=True, verbose_name=_("Billing City")
-    )
+    # Fields for CFE
+    billing_address = models.CharField(max_length=255, blank=True, null=True, verbose_name=_("Billing Address"))
+    billing_state = models.CharField(max_length=50, blank=True, null=True, verbose_name=_("Billing State"))
+    billing_city = models.CharField(max_length=64, blank=True, null=True, verbose_name=_("Billing City"))
     billing_document = models.CharField(
         max_length=20,
         blank=True,
         null=True,
         verbose_name=_("Billing Identifcation Document"),
     )
-    billing_name = models.CharField(
-        max_length=100, verbose_name=_("Billing Name"), null=True, blank=True
-    )
+    billing_name = models.CharField(max_length=100, verbose_name=_("Billing Name"), null=True, blank=True)
 
     # Fields for logistics
     route = models.PositiveIntegerField(blank=True, null=True)
     order = models.PositiveIntegerField(blank=True, null=True)
 
-    billing = models.ForeignKey(
-        "invoicing.Billing", blank=True, null=True, on_delete=models.SET_NULL
-    )
+    billing = models.ForeignKey("invoicing.Billing", blank=True, null=True, on_delete=models.SET_NULL)
+
+    def __unicode__(self):
+        return u'%s %d' % (_('Invoice'), self.id)
 
     def calc_total_amount(self):
         """
