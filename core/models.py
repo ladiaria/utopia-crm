@@ -915,12 +915,13 @@ class Subscription(models.Model):
             subscription_products = SubscriptionProduct.objects.filter(
                 subscription=self
             )
-            addresses = [sp.address for sp in subscription_products]
-            if all(a is None for a in addresses):
+            addresses = [sp.address for sp in subscription_products if sp.address]
+            if not addresses:
                 raise Exception(_("No available address in products"))
             elif addresses:
                 return addresses[0].address_1
             else:
+                # TODO: this else will never be reached
                 if self.contact.addresses:
                     return self.contact.addresses[0].address_1
                 else:
