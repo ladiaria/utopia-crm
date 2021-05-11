@@ -915,12 +915,13 @@ class Subscription(models.Model):
             subscription_products = SubscriptionProduct.objects.filter(
                 subscription=self
             )
-            addresses = [sp.address for sp in subscription_products]
-            if all(a is None for a in addresses):
+            addresses = [sp.address for sp in subscription_products if sp.address]
+            if not addresses:
                 raise Exception(_("No available address in products"))
             elif addresses:
                 return addresses[0].address_1
             else:
+                # TODO: this else will never be reached
                 if self.contact.addresses:
                     return self.contact.addresses[0].address_1
                 else:
@@ -968,29 +969,28 @@ class Subscription(models.Model):
         """
         result = {}
         for product in Product.objects.filter(type="S").order_by("billing_priority"):
-            if self.subscriptionproduct_set.filter(
-                subscription=self, product=product
-            ).exists():
-                sp = self.subscriptionproduct_set.filter(
-                    subscription=self, product=product
-                ).first()
+            # TODO: check if subscription=self param is redundant
+            if self.subscriptionproduct_set.filter(subscription=self, product=product).exists():
+                sp = self.subscriptionproduct_set.filter(subscription=self, product=product).first()
                 if sp.address:
                     result = {
                         "route": sp.route_id,
                         "order": sp.order,
-                        "address": sp.address.address_1
-                        or sp.subscription.contact.email,
+                        "address": sp.address.address_1 or sp.subscription.contact.email,
                         "state": sp.address.state,
                         "city": sp.address.city,
                         "name": self.get_billing_name(),
                     }
                     break
         if not result:
-            raise Exception(
-                "Subscription {} for contact {} requires an address to be billed.".format(
-                    self.id, self.contact.id
+            if getattr(settings, "FORCE_DUMMY_MISSING_BILLING_DATA", False):
+                result = {}
+            else:
+                raise Exception(
+                    "Subscription {} for contact {} requires an address to be billed.".format(
+                        self.id, self.contact.id
+                    )
                 )
-            )
         if getattr(settings, "REQUIRE_ROUTE_FOR_BILLING", False):
             if result["route"] is None:
                 raise Exception(
