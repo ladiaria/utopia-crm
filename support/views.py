@@ -1559,7 +1559,7 @@ def dynamic_contact_filter_edit(request, dcf_id):
                 email_sample = subscription_newsletters.values("contact__email")[:50]
             else:
                 if mode == 1:  # At least one of the products
-                    subscriptions = Subscription.objects.all()
+                    subscriptions = Subscription.objects.filter(active=True)
                 elif mode == 2:  # All products must match
                     subscriptions = Subscription.objects.annotate(
                         count=Count("products")
