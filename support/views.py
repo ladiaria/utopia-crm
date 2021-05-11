@@ -348,6 +348,7 @@ def seller_console(request, category, campaign_id):
         """
         This is if the user has not selected any option.
         """
+        campaign = get_object_or_404(Campaign, pk=campaign_id)
         user = User.objects.get(username=request.user.username)
         try:
             seller = Seller.objects.get(user=user)
@@ -360,8 +361,6 @@ def seller_console(request, category, campaign_id):
             offset = request.POST.get("offset")
 
         offset = int(offset) if offset else 1
-
-        campaign = Campaign.objects.get(pk=campaign_id)
         call_datetime = datetime.strftime(date.today() + timedelta(1), "%Y-%m-%d")
 
         if category == "new":
@@ -861,7 +860,6 @@ def new_subscription(request, contact_id):
             "other_active_normal_subscriptions": other_active_normal_subscriptions,
         }
     )
-
 
 
 @login_required
