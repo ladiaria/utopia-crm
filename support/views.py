@@ -972,7 +972,7 @@ def assign_seller(request, campaign_id):
                         status.save()
                     except Exception as e:
                         return HttpResponse(e.message)
-        return HttpResponseRedirect(reverse("assign_sellers", args=campaign_id))
+        return HttpResponseRedirect(reverse("assign_sellers", args=[campaign_id]))
 
     sellers = Seller.objects.filter(internal=True)
     seller_list = []
