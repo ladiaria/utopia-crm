@@ -90,7 +90,8 @@ class SubscriptionInline(admin.StackedInline):
                 ('campaign', 'seller'),
                 ('type', 'edit_products_field'),
                 ('start_date', 'end_date'),
-                ('next_billing', 'balance'),)
+                ('next_billing', ),
+            )
         }),
         (None, {
             'fields': ('directions', ),
