@@ -90,15 +90,16 @@
                             {% if subscriptions %}
                               {% for subscription in subscriptions %}
                                 <dt {% if forloop.counter != 1 %}class="border-top mt-4 pt-3"{% endif %}></dt>
-                                <dd>{% autoescape off %}{{subscription.show_products_html}}{% endautoescape %}</dd>
-                                <dd><b>{% trans "Frequency" %}:</b> {{subscription.get_frequency}}</dd>
-                                <dd><b>{% trans "Price" %}:</b> {{subscription.get_price_for_full_period}}</dd>
-                                <dd><b>{% trans "Type" %}:</b> {{subscription.get_type}}</dd>
-                                <dd><b>{% trans "Payment type" %}:</b> {{subscription.get_payment_type}}</dd>
-                                {% if subscription.balance %}<dd><b>{% trans "Balance" %}:</b> {{subscription.balance}}</dd>{% endif %}
+                                <dd>{% autoescape off %}{{ subscription.show_products_html }}{% endautoescape %}</dd>
+                                <dd><b>{% trans "Frequency" %}:</b> {{ subscription.get_frequency }}</dd>
+                                <dd><b>{% trans "Price" %}:</b> {{ subscription.get_price_for_full_period }}</dd>
+                                <dd><b>{% trans "Type" %}:</b> {{ subscription.get_type }}</dd>
+                                <dd><b>{% trans "Payment type" %}:</b> {{ subscription.get_payment_type }}</dd>
+                                <dd><strong>{% trans "Next billing date" %}:</strong> {{ subscription.next_billing }}</dd>
+                                {% if subscription.balance %}<dd><b>{% trans "Balance" %}:</b> {{ subscription.balance }}</dd>{% endif %}
                                 {% if request.user|in_group:"Support" or request.user|in_group:"Managers" %}
-                                <a href="{% url 'new_subscription' contact.id %}?upgrade_subscription={{subscription.id}}" class="btn  btn-success">{% trans "Upgrade" %}</a>
-                                <a href="{% url 'new_subscription' contact.id %}?edit_subscription={{subscription.id}}" class="btn  btn-success">{% trans "Edit" %}</a>
+                                <a href="{% url 'new_subscription' contact.id %}?upgrade_subscription={{ subscription.id }}" class="btn btn-success">{% trans "Upgrade" %}</a>
+                                <a href="{% url 'new_subscription' contact.id %}?edit_subscription={{ subscription.id }}" class="btn btn-success">{% trans "Edit" %}</a>
                                 {% endif %}
                               {% endfor %}
                             {% else %}
