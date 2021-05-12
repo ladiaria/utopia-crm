@@ -52,36 +52,38 @@
             <div class="card-body">
               <table class="table ">
                 <thead>
-                    <tr role="row">
-                        <th>{% trans "Invoice" %}</th>
-                        <th>{% trans "From" %}</th>
-                        <th>{% trans "To" %}</th>
-                        <th>{% trans "Issue" %}</th>
-                        <th>{% trans "Due" %}</th>
-                        <th>{% trans "Amount" %}</th>
-                        <th>{% trans "Payment method" %}</th>
-                        <th>{% trans "Status" %}</th>
-                    </tr>
+                  <tr role="row">
+                    <th>{% trans "Invoice" %}</th>
+                    <th>{% trans "Subscription" %}</th>
+                    <th>{% trans "From" %}</th>
+                    <th>{% trans "To" %}</th>
+                    <th>{% trans "Issue" %}</th>
+                    <th>{% trans "Due" %}</th>
+                    <th>{% trans "Amount" %}</th>
+                    <th>{% trans "Payment method" %}</th>
+                    <th>{% trans "Status" %}</th>
+                  </tr>
                 </thead>
                 <tbody>
                 {% for invoice in invoice_list %}
-                   <tr role="row">
-                        <td>
-                            <a href="/admin/invoicing/invoice/{{ invoice.id }}/">{{ invoice.id }}</a>
-                            {% if request.user|in_group:"Finances" or request.user|in_group:"Managers" or request.user|in_group:"Logistics" or request.user|in_group:"Support" %}
-                            <a href="/invoicing/download_invoice/{{ invoice.id }}/" title="{% trans 'Download invoice' %}">
-                                <img src="{% static 'img/pdficon_small.png' %}" alt="PDF"/>
-                            </a>
-                            {% endif %}
-                        </td>
-                        <td>{{ invoice.service_from }}</td>
-                        <td>{{ invoice.service_to }}</td>
-                        <td>{{ invoice.creation_date }}</td>
-                        <td>{{ invoice.expiration_date }}</td>
-                        <td>{{ invoice.amount }}</td>
-                        <td>{{ invoice.payment_type }}</td>
-                        <td class="{{ invoice.get_status_code }} text-center">{{ invoice.get_status }}</td>
-                    </tr>
+                  <tr role="row">
+                    <td>
+                      <a href="/admin/invoicing/invoice/{{ invoice.id }}/">{{ invoice.id }}</a>
+                      {% if request.user|in_group:"Finances" or request.user|in_group:"Managers" or request.user|in_group:"Logistics" or request.user|in_group:"Support" %}
+                      <a href="/invoicing/download_invoice/{{ invoice.id }}/" title="{% trans 'Download invoice' %}">
+                          <img src="{% static 'img/pdficon_small.png' %}" alt="PDF"/>
+                      </a>
+                      {% endif %}
+                    </td>
+                    <td>{{ invoice.subscription_id }}</td>
+                    <td>{{ invoice.service_from }}</td>
+                    <td>{{ invoice.service_to }}</td>
+                    <td>{{ invoice.creation_date }}</td>
+                    <td>{{ invoice.expiration_date }}</td>
+                    <td>{{ invoice.amount }}</td>
+                    <td>{{ invoice.payment_type }}</td>
+                    <td class="{{ invoice.get_status_code }} text-center">{{ invoice.get_status }}</td>
+                  </tr>
                 {% endfor %}
                 </tbody>
               </table>

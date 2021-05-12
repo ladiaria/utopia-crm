@@ -1,16 +1,17 @@
 {% extends "tabbed_admin/change_form.html" %}
 {% load staticfiles %}
 {% load i18n %}
+
 {% block extrahead %}
-{{ block.super }}
-<link rel="stylesheet" type="text/css" href="{% static 'css/admin-extra.css' %}"/>
+    {{ block.super }}
+    <link rel="stylesheet" type="text/css" href="{% static 'css/admin-extra.css' %}"/>
 {% endblock %}
 
 {% block object-tools-items %}
-<li><a href="/invoicing/contact_invoices/{{ object_id }}/" class="historylink">{% trans 'Invoices' %}</a></li>
-<li><a href="{% url 'new_issue' object_id %}" class="historylink">{% trans 'New logistics issue' %}</a></li>
-<li><a href="{% url 'new_scheduled_task' object_id 'S04' %}" class="historylink">{% trans 'Schedule pause' %}</a></li>
-<li><a href="{% url 'new_scheduled_task' object_id 'S05' %}" class="historylink">{% trans 'Schedule address change' %}</a></li>
-<li><a href="{% url 'contact_detail' object_id %}" class="historylink">{% trans 'Go to contact details' %}</a></li>
-{{block.super}}
+    <li><a href="/invoicing/contact_invoices/{{ object_id }}/" class="historylink">{% trans 'Invoices' %}</a></li>
+    <li><a href="{% url 'new_issue' object_id %}" class="historylink">{% trans 'New logistics issue' %}</a></li>
+    <li><a href="{% url 'new_scheduled_task' object_id 'S04' %}" class="historylink">{% trans 'Schedule pause' %}</a></li>
+    <li><a href="{% url 'new_scheduled_task' object_id 'S05' %}" class="historylink">{% trans 'Schedule address change' %}</a></li>
+    <li><a href="{% url 'contact_detail' object_id %}" class="historylink">{% trans 'Go to contact details' %}</a></li>
+    {{ block.super }}
 {% endblock %}

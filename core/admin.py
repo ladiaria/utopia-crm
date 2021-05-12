@@ -80,19 +80,20 @@ class SubscriptionProductInline(admin.TabularInline):
 
 class SubscriptionInline(admin.StackedInline):
     model = Subscription
+    # TODO: remove or explain the next commented line
     # form = SubscriptionAdminForm
     extra = 0
     fieldsets = (
         (None, {
             'fields': (
-                ('active', 'frequency', 'status'),
+                ('id', 'active', 'frequency', 'status'),
                 ('campaign', 'seller'),
                 ('type', 'edit_products_field'),
                 ('start_date', 'end_date'),
                 ('next_billing', 'balance'),)
         }),
         (None, {
-            'fields': ('directions',),
+            'fields': ('directions', ),
         }),
         (_('Billing data'), {
             'fields': (
@@ -102,14 +103,14 @@ class SubscriptionInline(admin.StackedInline):
                 ('rut', 'billing_phone', 'billing_email'),
                 ('balance', 'send_bill_copy_by_email'))}),
         (_('Unsubscription'), {
-            'classes': ('collapse',),
+            'classes': ('collapse', ),
             'fields': (
                 ('inactivity_reason', 'unsubscription_date'),
-                ('unsubscription_reason',),
-                ('unsubscription_addendum',)),
+                ('unsubscription_reason', ),
+                ('unsubscription_addendum', )),
         }),
     )
-    readonly_fields = ('web_comments', 'edit_products_field')
+    readonly_fields = ('id', 'web_comments', 'edit_products_field')
     raw_id_fields = ['campaign']
 
     def get_parent_object_from_request(self, request):
@@ -137,17 +138,10 @@ class SubscriptionInline(admin.StackedInline):
 class SubscriptionAdmin(admin.ModelAdmin):
     model = Subscription
     inlines = [SubscriptionProductInline]
-    fieldsets = (
-        ('Contact data', {
-            'fields': ('contact',),
-        }),)
-
-    list_display = (
-        'contact', 'campaign', 'product_summary')
-    list_filter = (
-        'campaign',)
-    readonly_fields = (
-        'contact', 'edit_products_field', 'campaign', 'seller')
+    fieldsets = (('Contact data', {'fields': ('contact', )}), )
+    list_display = ('contact', 'campaign', 'product_summary')
+    list_filter = ('campaign', )
+    readonly_fields = ('contact', 'edit_products_field', 'campaign', 'seller')
 
     class Media:
         pass
@@ -192,10 +186,10 @@ class ContactAdmin(TabbedModelAdmin):
             ('seller'),
             ('birthdate', 'private_birthdate'),
             ('protected',), 'protection_reason', 'notes')}),)
-    tab_subscriptions = (SubscriptionInline,)
-    tab_addresses = (AddressInline,)
-    tab_newsletters = (SubscriptionNewsletterInline,)
-    tab_community = (SupporterInline, ProductParticipationInline,)
+    tab_subscriptions = (SubscriptionInline, )
+    tab_addresses = (AddressInline, )
+    tab_newsletters = (SubscriptionNewsletterInline, )
+    tab_community = (SupporterInline, ProductParticipationInline)
     tabs = [
         ('Overview', tab_overview),
         ('Subscriptions', tab_subscriptions),
@@ -205,7 +199,7 @@ class ContactAdmin(TabbedModelAdmin):
     ]
     list_display = ('id', 'name', 'subtype', 'tag_list', 'seller')
     list_filter = ('subtype', TaggitListFilter)
-    ordering = ('id',)
+    ordering = ('id', )
     raw_id_fields = ('subtype', 'seller')
     change_form_template = 'admin/core/contact/change_form.html'
 
