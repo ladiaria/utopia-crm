@@ -20,6 +20,9 @@ class ContactAdminForm(forms.ModelForm):
     class Meta:
         model = Contact
         fields = "__all__"
+        widgets = {
+            "birthdate": forms.TextInput(attrs={"class": "form-control datepicker"}),
+        }
 
     def clean(self):
         protected = self.cleaned_data.get("protected")

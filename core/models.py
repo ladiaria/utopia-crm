@@ -421,11 +421,27 @@ class Contact(models.Model):
             contact=self, product=newsletter, active=True
         )
 
+    def remove_newsletter(self, newsletter_id):
+        try:
+            newsletter = Product.objects.get(id=newsletter_id, type="N")
+        except Exception:
+            raise _("Invalid product id")
+        try:
+            SubscriptionNewsletter.objects.get(contact=self, product=newsletter).delete()
+        except SubscriptionNewsletter.DoesNotExist:
+            pass
+
+    def has_newsletter(self, newsletter_id):
+        return SubscriptionNewsletter.objects.filter(contact=self, product_id=newsletter_id, active=True).exists()
+
     def get_newsletters(self):
         """
         Returns a queryset with all the newsletters that this contact has subscriptions in.
         """
         return SubscriptionNewsletter.objects.filter(contact=self)
+
+    def get_newsletter_products(self):
+        return Product.objects.filter(type='N', subscriptionnewsletter__contact=self)
 
     def get_last_paid_invoice(self):
         """
@@ -1304,12 +1320,19 @@ class Subscription(models.Model):
         output = ""
         if ul:
             output += "<ul>"
-        for p in self.products.filter(offerable=True):
+        for sp in SubscriptionProduct.objects.filter(
+                subscription=self, product__offerable=True).order_by('product_id'):
             count = self.products.filter(offerable=True).count()
             if ul:
-                output += "<li>{}</li>".format(p.name)
+                if sp.label_contact:
+                    output += "<li>{} ({})</li>".format(sp.product.name, sp.label_contact.name)
+                else:
+                    output += "<li>{}</li>".format(sp.product.name)
             else:
-                output += "{}".format(p.name)
+                if sp.label_contact:
+                    output += "{} ({})".format(sp.product.name, sp.label_contact.name)
+                else:
+                    output += "{}".format(sp.product.name)
                 if count > 1:
                     if br:
                         output += "<br>"
