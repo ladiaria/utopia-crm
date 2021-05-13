@@ -1,5 +1,5 @@
 {% extends 'adminlte/base.html' %}
-{% load static i18n widget_tweaks %}
+{% load static i18n widget_tweaks core_tags %}
 {% block stylesheets %}
     {{block.super}}
     <link rel="stylesheet" href="{% static '/admin-lte/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css' %}" />
@@ -38,22 +38,46 @@
         <div class="card-body">
           <form method="GET" id="form">
             <div class="row">
-              <div class="form-group row col-sm-4">
+              <div class="form-group row col">
                 <label for="phone" class="col-sm-3 col-form-label">{% trans 'Filter' %}</label>
                 <div class="col-sm-9">
                   {% render_field filter.form.filter_multiple class="form-control" %}
                 </div>
               </div>
-              <div class="form-group col-sm-4">
+              <div class="form-group row col">
+                <label for="state" class="col-sm-3 col-form-label">{% trans 'State' %}</label>
+                <div class="col-sm-9">
+                  {% render_field filter.form.state class="form-control" %}
+                </div>
+              </div>
+              <div class="form-group row col">
+                <label for="active_subscriptions" class="col-sm-3 col-form-label">{% trans 'Active subscriptions' %}</label>
+                <div class="col-sm-9">
+                  {% render_field filter.form.active_subscriptions class="form-control" %}
+                </div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="form-group row col">
+                <label for="tags" class="col-sm-3 col-form-label">{% trans 'Tags' %}</label>
+                <div class="col-sm-9">
+                  {% render_field filter.form.tags class="form-control" %}
+                </div>
+              </div>
+              <div class="form-group col-sm-1">
                 <input type="submit" class="btn bg-gradient-primary" value="{% trans 'Search' %}" />
               </div>
             </div>
+
+            {% if request.user|in_group:"Managers" %}
             <div class="row">
               <div class="form-group col-4">
                 <input type="submit" class="btn bg-gradient-primary" name="export" value="{% trans 'Export to CSV' %}" />
                 {{count}} {% trans "contacts" %}
               </div>
             </div>
+            {% endif %}
+
           </form>
         </div>
       </div>

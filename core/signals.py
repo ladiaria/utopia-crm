@@ -12,45 +12,28 @@ from django.db.models.signals import pre_save, post_save
 from django.dispatch import receiver
 from django.forms import ValidationError
 
-from .models import Contact, Subscription
+from .models import Contact, Subscription, regex_alphanumeric, regex_alphanumeric_msg
+from .forms import no_email_validation_msg
 
 
-regex_alphanumeric = r'^[A-Za-z0-9ñüáéíóúÑÜÁÉÍÓÚ _\'.\-]*$'
 alphanumeric = re.compile(regex_alphanumeric)
 
 
 @receiver(pre_save, sender=Contact)
 def contact_pre_save_signal(sender, instance, **kwargs):
-    # Estas validaciones deben estar acorde con las definidas en la
-    # definición de los atributos, que al parecer se validan sólo en el
-    # admin, o a veces ni siquiera en el admin.
-    # Por otro lado estas se van a ejecutar siempre.
+    # These validations should be consistent with the ones defined in the model attrs.
 
-    # if instance.expiration_month or instance.expiration_year:
-    #    try:
-    #        date(
-    #            int(instance.expiration_year), int(instance.expiration_month),
-    #            1)
-    #    except (ValueError, TypeError):
-    #        raise ValidationError(u'Mes y año no válidos')
-
-    # if instance.no_email and instance.email:
-    #     raise ValidationError(
-    #         u'Si no tiene email entonces se debe dejar en blanco el email')
+    if instance.no_email and instance.email:
+        raise ValidationError(no_email_validation_msg)
 
     if not alphanumeric.match(instance.name):
-        return  # BYPASS MIGRATION
-        raise ValidationError(_('The name only admits alphanumeric characters'))
+        raise ValidationError(regex_alphanumeric_msg)
 
-
-# @receiver(pre_save, sender=Ocupation)
-# def table_changes_forbidden_signal(sender, instance, **kwargs):
-#     raise ValidationError(u"No se permiten cambios en esta tabla")
 
 @receiver(post_save, sender=Subscription)
 def subscription_post_save_signal(sender, instance, **kwargs):
-    # This is when subscriptions gets deactivated
+    # Adds history entries when subscriptions gets deactivated (or deactivated on pause).
     contact = instance.contact
     if instance.active is False:
         for product in instance.products.all():
-            contact.add_product_history(product, 'I', instance.campaign or None)
+            contact.add_product_history(instance, product, 'P' if instance.status == 'PA' else 'I', instance.campaign)

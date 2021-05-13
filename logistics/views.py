@@ -11,6 +11,7 @@ from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 from django.db.models import Sum
 from django.contrib.auth.decorators import login_required
+from django.db.models import F
 
 from reportlab.pdfgen.canvas import Canvas
 
@@ -28,7 +29,7 @@ def assign_routes(request):
     """
     Assigns routes to contacts that have no route. The assignation is per SubscriptionProduct.
     """
-    product_list = Product.objects.filter(type='S', bundle_product=False)
+    product_list = Product.objects.filter(type='S', offerable=True)
     product_id = 'all'
     if request.POST:
         for name, value in request.POST.items():
@@ -70,7 +71,7 @@ def order_route(request, route=1):
 
     TODO: Do something to quickly change route from the template itself.
     """
-    product_list = Product.objects.filter(type='S', bundle_product=False)
+    product_list = Product.objects.filter(type='S', offerable=True)
     product_id = 'all'
     route_object = get_object_or_404(Route, pk=route)
     if request.POST:
@@ -112,7 +113,7 @@ def change_route(request, route=1):
 
     TODO: Do something to quickly change route form the template itself.
     """
-    product_list = Product.objects.filter(type='S', bundle_product=False)
+    product_list = Product.objects.filter(type='S', offerable=True)
     product_id = 'all'
     route_object = get_object_or_404(Route, pk=route)
     if request.POST:
@@ -155,15 +156,11 @@ def list_routes(request):
     """
     route_list = []
     routes = Route.objects.all()
-    today = date.today()
     weekdays = dict(PRODUCT_WEEKDAYS)
-    if today.isoweekday() in (6, 7):
-        # This means it's Saturday or Sunday, we're going to show data for the product that goes out on Monday
-        show_day = 1
+    if datetime.now().hour in range(0, 3):
+        show_day = date.today().isoweekday()
     else:
-        # If it's not Sautrday or Sunday, we're going to show data for the product that goes out tomorrow
-        # This is only considering we don't have a product on Sundays.
-        show_day = today.isoweekday() + 1
+        show_day = next_business_day().isoweekday()
     tomorrow_product = Product.objects.get(weekday=show_day)
     for route in routes:
         route.copies = route.sum_copies_per_product(tomorrow_product)
@@ -182,7 +179,10 @@ def list_routes(request):
 def print_labels(request, page='Roll', list_type='', route_list='', product_id=None):
     today = date.today()
     tomorrow = date.today() + timedelta(1)
-    next_day = next_business_day()
+    if datetime.now().hour in range(0, 3):
+        next_day = date.today()
+    else:
+        next_day = next_business_day()
     isoweekday = next_day.isoweekday()
     response = HttpResponse(content_type='application/pdf')
     response['Content-Disposition'] = \
@@ -200,13 +200,14 @@ def print_labels(request, page='Roll', list_type='', route_list='', product_id=N
                 subscription_products = subscription_products | SubscriptionProduct.objects.filter(
                     product__weekday=isoweekday, subscription__active=True, route__number=route_number,
                     subscription__start_date__lte=tomorrow).exclude(
-                    route__print_labels=False).order_by('route', 'order', 'address__address_1')
+                    route__print_labels=False).order_by(
+                    'route', F('order').asc(nulls_first=True), 'address__address_1')
     else:
         # If not, all the queryset gets rendered into the labels
         subscription_products = SubscriptionProduct.objects.filter(
             product__weekday=isoweekday, subscription__active=True,
             subscription__start_date__lte=tomorrow).exclude(
-            route__print_labels=False).order_by('route', 'order', 'address__address_1')
+            route__print_labels=False).order_by('route', F('order').asc(nulls_first=True), 'address__address_1')
 
     days = 2 if today.isoweekday() == 6 else 1
 
@@ -318,18 +319,22 @@ def print_labels_for_product(request, page='Roll', product_id=None, list_type=''
                 # Then for each route, we add to that empty queryset all those values
                 subscription_products = subscription_products | SubscriptionProduct.objects.filter(
                     product=product, subscription__active=True, route__number=route_number,
-                    subscription__start_date__lte=today).exclude(
-                    route__print_labels=False).order_by('route', 'order', 'address__address_1')
+                    subscription__start_date__lte=today + timedelta(5)).exclude(
+                    route__print_labels=False).order_by(
+                        'route', F('order').asc(nulls_first=True), 'address__address_1')
     else:
         # If not, all the queryset gets rendered into the labels
         subscription_products = SubscriptionProduct.objects.filter(
             product=product, subscription__active=True,
-            subscription__start_date__lte=today).exclude(
-            route__print_labels=False).order_by('route', 'order', 'address__address_1')
+            subscription__start_date__lte=today + timedelta(5)).exclude(
+            route__print_labels=False).order_by('route', F('order').asc(nulls_first=True), 'address__address_1')
 
     old_route = 0
 
     for sp in subscription_products:
+
+        if sp.address is None:
+            continue
 
         # Separator between routes
         if sp.route and old_route != sp.route:
@@ -371,7 +376,10 @@ def print_labels_for_product(request, page='Roll', product_id=None, list_type=''
                 # elif getattr(sp.subscription.product, 'id', None) == 6:
                 #     eti.comunicar_cliente = "2x1"
 
-            label.name = sp.subscription.contact.name.upper()
+            if sp.label_contact:
+                label.name = sp.label_contact.name.upper()
+            else:
+                label.name = sp.subscription.contact.name.upper()
             label.address = (sp.address.address_1 or '') + '\n' + (sp.address.address_2 or '')
             if sp.route:
                 label.route = sp.route.number
@@ -489,7 +497,10 @@ def route_details(request, route_list):
     """
     Shows details for a selected route.
     """
-    day = next_business_day()
+    if datetime.now().hour in range(0, 3):
+        day = date.today()
+    else:
+        day = next_business_day()
     one_month_ago = day - timedelta(30)
     isoweekday = day.isoweekday()
 
@@ -539,7 +550,7 @@ def route_details(request, route_list):
             directions_dict[str(route.number)] = route.directions
 
         issues = Issue.objects.filter(subscription_product__route=route, category='L').exclude(
-            status='X').exclude(status='S').distinct()
+            status__slug__in=settings.FINISHED_ISSUE_STATUS_SLUG_LIST).distinct()
         issues_dict[str(route.number)] = issues
 
     return render(request, 'route_details.html', {

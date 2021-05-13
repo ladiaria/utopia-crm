@@ -130,7 +130,7 @@ LABEL_INVOICE_PAYMENT_TYPES = "RI"
 USE_SQUASHED_SUBSCRIPTION_INVOICEITEMS = True
 
 # Use your own logo for the admin and dashboard
-LOGO = "static/img/utopia-logo.png"
+LOGO = "static/img/logo-utopia.png"
 # Use your own logo for the invoices. It can be a route or just the regular logo.
 INVOICE_LOGO = LOGO
 
@@ -170,3 +170,6 @@ AUTO_ISSUE_STATUS_SLUG = 'automatic'  # for automatic tasks that have not been c
 TEMPORARY_DISCOUNT = {
     'product-slug': 3,
 }
+
+# How many days into the future are we going to bill contacts
+BILLING_EXTRA_DAYS = 2

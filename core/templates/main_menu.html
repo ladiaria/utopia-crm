@@ -1,6 +1,5 @@
 {% extends 'adminlte/base.html' %}
-{% load static %}
-{% load i18n %}
+{% load static core_tags i18n %}
 
 {% block stylesheets %}
     {{block.super}}
@@ -32,6 +31,8 @@
             </div>
           </div>
         </div>
+
+        {% if request.user|in_group:"Support" %}
         <div class="col-lg-3 col-6">
           <div class="card">
             <div class="card-header">
@@ -45,6 +46,9 @@
             </div>
           </div>
         </div>
+        {% endif %}
+
+        {% if request.user|in_group:"Finances" %}
         <div class="col-lg-3 col-6">
           <div class="card">
             <div class="card-header">
@@ -58,6 +62,9 @@
             </div>
           </div>
         </div>
+        {% endif %}
+
+        {% if request.user|in_group:"Logistics" %}
         <div class="col-lg-3 col-6">
           <div class="card">
             <div class="card-header">
@@ -71,6 +78,7 @@
             </div>
           </div>
         </div>
+        {% endif %}
 
      </div>
   </div>

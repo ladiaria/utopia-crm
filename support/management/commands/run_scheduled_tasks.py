@@ -3,20 +3,19 @@ from datetime import date
 
 from django.utils.translation import ugettext_lazy as _
 from django.core.management import BaseCommand
-from django.conf import settings
 
 from core.models import ContactProductHistory, SubscriptionProduct
-from support.models import ScheduledTask, IssueStatus
+from support.models import ScheduledTask
 from logistics.models import RouteChange
 
 
 class Command(BaseCommand):
-    help = """Executes scheduled tasks daily"""
+    help = u"Executes pending scheduled tasks"
     """
     These are the categories for the scheduled tasks:
-    ('AC', 'Address change'),
-    ('PD', 'De-activation (Pause)'),
-    ('PA', 'Activation (Pause)'),
+        'AC': 'Address change'
+        'PD': 'De-activation (Pause)'
+        'PA': 'Activation (Pause)'
     """
 
     # This is left blank if it's necessary to add some arguments
@@ -31,18 +30,14 @@ class Command(BaseCommand):
             if task.category == 'PD':
                 contact = task.contact
                 subscription = task.subscription
-                print(_("Started deactivation (start of pause) scheduled task for {}'s subscription {}".format(
-                    contact, subscription)))
-                subscription.active = False
-                # We're going to create contact product histories showing that this contact is now paused for all
-                # these products
-                for sp in SubscriptionProduct.objects.filter(subscription=subscription):
-                    ContactProductHistory.objects.create(
-                        contact=contact,
-                        subscription=subscription,
-                        product=sp.product,
-                        status='P')
-                subscription.status = 'PA'
+                print(
+                    _(
+                        "Started deactivation (start of pause) scheduled task for {}'s subscription {}".format(
+                            contact.id, subscription.id
+                        )
+                    )
+                )
+                subscription.active, subscription.status = False, 'PA'
                 # Then we need to check if we need to change the next billing, if this task is ending another one.
                 if task.ends:
                     deactivation_task = task.ends
@@ -54,17 +49,18 @@ class Command(BaseCommand):
                 # Then we'll set the task as completed
                 task.completed = True
                 task.save()
-                issue = task.issue
-                issue.status = IssueStatus.objects.get(slug=settings.SOLVED_ISSUE_STATUS_SLUG)
-                issue.closing_date = date.today()
-                issue.save()
                 print(_("Task {} completed successfully.".format(task.id)))
 
             elif task.category == 'PA':
                 contact = task.contact
                 subscription = task.subscription
-                print(_("Started activation (end of pause) scheduled task for {}'s subscription {}".format(
-                    contact, subscription)))
+                print(
+                    _(
+                        "Started activation (end of pause) scheduled task for {} subscription {}".format(
+                            contact.id, subscription.id
+                        )
+                    )
+                )
                 subscription.active = True
                 # We're going to create new contact product histories as this contact is now active again
                 for sp in SubscriptionProduct.objects.filter(subscription=subscription):
@@ -72,34 +68,33 @@ class Command(BaseCommand):
                         contact=contact,
                         subscription=subscription,
                         product=sp.product,
-                        status='A')
+                        status='A',
+                    )
                 # The status of the subscription is going to be OK again
                 subscription.status = 'OK'
                 # We don't need to change any next_billing since that has been done in the previous run
                 subscription.save()
                 task.completed = True
                 task.save()
-                issue.status = IssueStatus.objects.get(slug=settings.SOLVED_ISSUE_STATUS_SLUG)
-                issue.closing_date = date.today()
-                issue.save()
                 print(_("Task {} completed successfully.".format(task.id)))
 
             elif task.category == 'AC':
                 contact = task.contact
                 subscription = task.subscription
                 address = task.address
-                print(_("Started address change scheduled task for {}'".format(contact)))
+                print(_("Started address change scheduled task for contact {}".format(contact.id)))
                 for sp in task.subscription_products.all():
                     # We need to change the address for said subscription_product
-                    rc = RouteChange.objects.create(
-                        product=sp.product,
-                        old_route=sp.route,
-                        contact=task.contact,
-                    )
-                    if sp.address:
-                        rc.old_address = "{} {}".format(sp.address.address_1, sp.address.address_2 or '')
-                        rc.old_city = sp.address.city or ''
-                        rc.save()
+                    if sp.route:
+                        rc = RouteChange.objects.create(
+                            product=sp.product,
+                            old_route=sp.route,
+                            contact=task.contact,
+                        )
+                        if sp.address:
+                            rc.old_address = u"{} {}".format(sp.address.address_1, sp.address.address_2 or '')
+                            rc.old_city = sp.address.city or ''
+                            rc.save()
                     sp.address = address
                     # After this, we will delete their route anr orders
                     sp.route = None
@@ -107,7 +102,4 @@ class Command(BaseCommand):
                     sp.save()
                 task.completed = True
                 task.save()
-                issue.status = IssueStatus.objects.get(slug=settings.SOLVED_ISSUE_STATUS_SLUG)
-                issue.closing_date = date.today()
-                issue.save()
                 print(_("Task {} completed successfully.".format(task.id)))

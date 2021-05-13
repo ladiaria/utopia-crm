@@ -99,6 +99,7 @@
                     <th>{% trans "Subcategory" %}</th>
                     <th>{% trans "Status" %}</th>
                     <th>{% trans "Activities" %}</th>
+                    <th>{% trans "Next action date" %}</th>
                     <th>{% trans "Assigned to" %}</th>
                   </tr>
               </thead>
@@ -112,6 +113,7 @@
                     <td>{{issue.get_subcategory}}</td>
                     <td>{{issue.status}}</td>
                     <td>{{issue.activity_count}}</td>
+                    <td>{{issue.next_action_date}}</td>
                     <td>{{issue.assigned_to|default_if_none:"-"}}</td>
                 </tr>
                 {% endfor %}

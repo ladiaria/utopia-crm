@@ -4,6 +4,18 @@ from django.utils.translation import gettext as _
 from .models import Contact, Subscription, Address
 
 
+no_email_validation_msg = _('email must be left blank if the contact has no email')
+
+
+def validate_no_email(form, no_email, email):
+    """
+    If no_email is checked, the the email should be None.
+    If no_email is not checked, then no assertions should be made because the contact's email is yet uknown.
+    """
+    if no_email and email:
+        form.add_error('no_email', forms.ValidationError(no_email_validation_msg))
+
+
 class ContactAdminForm(forms.ModelForm):
     class Meta:
         model = Contact
@@ -12,10 +24,15 @@ class ContactAdminForm(forms.ModelForm):
     def clean(self):
         protected = self.cleaned_data.get("protected")
         protection_reason = self.cleaned_data.get("protection_reason")
+        email = self.cleaned_data.get("email")
+        no_email = self.cleaned_data.get("no_email")
 
         if protected and not protection_reason:
             msg = _("This field must be provided if the contact is protected")
             self.add_error("protection_reason", forms.ValidationError(msg))
+
+        # no_email validation:
+        validate_no_email(self, no_email, email)
 
         return self.cleaned_data
 

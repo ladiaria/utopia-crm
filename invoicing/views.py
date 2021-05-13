@@ -8,7 +8,7 @@ from django.urls import reverse
 from django.conf import settings
 from django.contrib.admin.views.decorators import staff_member_required
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-from django.db.models import Q
+from django.db.models import Q, Sum
 from django.shortcuts import get_object_or_404, render
 from django.http import HttpResponseServerError, HttpResponseRedirect, HttpResponse
 from django.utils.translation import ugettext_lazy as _
@@ -82,29 +82,33 @@ def bill_subscription(subscription_id, billing_date=date.today(), dpp=10, check_
     # this will be controlled here too. A bypass can be programmed to ignore this
     active = subscription.active
     subscription_type_is_normal = subscription.type == 'N'
-    next_billing_lte_billing_date = subscription.next_billing <= billing_date
-    if not (active and subscription_type_is_normal and next_billing_lte_billing_date):
-        return
 
-    # TODO: SOMETHING HAS TO BE DONE TO NOT BILL SUBSCRIPTIONS IN CERTAIN
-    # ROUTES.
+    if not (active and subscription_type_is_normal):
+        raise Exception(_('This subscription is not normal and should not be billed.'))
+
+    if subscription.next_billing > billing_date + timedelta(getattr(settings, 'BILLING_EXTRA_DAYS', 0)):
+        raise Exception(_('This subscription should not be billed yet.'))
 
     # We need to get all the subscription data. The priority is defined on the settings.
     billing_data = subscription.get_billing_data_by_priority()
-
-    if subscription.next_billing > billing_date + timedelta(1):
-        raise Exception(('Next billing date is {}'.format(subscription.next_billing)))
 
     invoice_items = []
     # We only take the normal subscriptions, not promo or free
     try:
         # First we're going to form all the invoiceitems from the processed products the subscription has.
         # This gives a dictionary with product_id and copies so we need to call the items of said dictionary
+        percentage_discount_product = None
+        subtotal = 0
         product_summary = subscription.product_summary()
+
         for product_id, copies in product_summary.items():
-            # For each item we're going to make an invoiceitem. These are common for both discounts and subscriptions
-            item = InvoiceItem()
+            # For each product we're making an invoiceitem. These are common for both discounts and subscriptions
             product = Product.objects.get(pk=int(product_id))
+            if product.type == 'P':
+                # If it's a percentage discount we'll save it for last, after the entire price has been calculated
+                percentage_discount_product = product
+                continue
+            item = InvoiceItem()
             frequency_extra = _(' {} months'.format(subscription.frequency)) if subscription.frequency > 1 else ''
             item.description = format_lazy('{} {}', product.name, frequency_extra)
             item.price = product.price * subscription.frequency
@@ -113,17 +117,33 @@ def bill_subscription(subscription_id, billing_date=date.today(), dpp=10, check_
                 # If the product is a subscription
                 copies = int(copies)
                 item.type = 'I'  # This means this is a regular item on the invoice
+                subtotal += item.price
             elif product.type == 'D':
-                # If the product is a discount, the copies are 1
-                copies = 1
+                copies = 1  # If the product is a discount, the copies are always 1
                 item.type = 'D'  # This means this is a discount item
-                # For a discount, we'll use the type of discount/surcharge of 1, that uses the value
-                # instead of a percentage.
+                # We'll use the type of discount/surcharge of 1, that uses the numeric value instead of a percentage.
                 item.type_dr = 1
+                subtotal -= item.price
             item.amount = item.price * item.copies
             # save all the package
             item.save()
             invoice_items.append(item)
+
+        if percentage_discount_product:
+            # Then if we have the percentage discount, we'll calculate how much it is. We do this last to make sure
+            # the price is calculated with the entire sum of the subscription
+            item = InvoiceItem()
+            frequency_extra = _(' {} months'.format(subscription.frequency)) if subscription.frequency > 1 else ''
+            item.description = format_lazy('{} {}', percentage_discount_product.name, frequency_extra)
+            item.price = round((subtotal * percentage_discount_product.price) / 100)  # This is to calculate the $
+            item.type = 'D'
+            item.type_dr = 1
+            item.product = percentage_discount_product
+            item.copies = 1
+            item.amount = item.price  # Copies is 1 so this is also the amount
+            item.save()
+            invoice_items.append(item)
+
         # After adding all of the invoiceitems, we need to check if the subscription has an envelope. In future reviews
         # this should be deprecated and envelopes should be its own product, because here you'd end up adding envelopes
         # to digital products potentially. Fancy digital envelopes huh?
@@ -188,7 +208,6 @@ def bill_subscription(subscription_id, billing_date=date.today(), dpp=10, check_
             invoice_items.append(balance_item)
             subscription.balance = None
     except Exception as e:
-        raise
         raise Exception(e.message)
 
     if invoice_items:
@@ -288,7 +307,7 @@ def bill_subscriptions_for_one_contact(request, contact_id):
         creation_date = request.POST.get('creation_date', date.today())
         creation_date = datetime.strptime(creation_date, "%Y-%m-%d").date()
         dpp = request.POST.get('dpp', 10)
-        for subscription in contact.subscriptions.filter(active=True, next_billing__lte=date.today()):
+        for subscription in contact.subscriptions.filter(active=True, next_billing__lte=creation_date):
             try:
                 bill_subscription(subscription.id, creation_date, dpp)
             except Exception as e:
@@ -338,17 +357,23 @@ def billing_invoices(request, billing_id):
 @staff_member_required
 def cancel_invoice(request, invoice_id):
     """
-    Marks the invoice as canceled with today's date.
-    Generates a credit note.
+    Marks the invoice as canceled with today's date and creaates a credit note.
     """
-    i = Invoice.objects.get(pk=invoice_id)
-    if i.canceled:
-        return HttpResponseServerError(_('Invoice already canceled'))
-    n = CreditNote(invoice_id=invoice_id)
-    return render(request, 'cancel_invoice.html', {
-        'invoice_id': invoice_id,
-        'credit_note': n
-    })
+    i = get_object_or_404(Invoice, pk=invoice_id)
+    error = _('The invoice is already canceled') if i.canceled else False
+    n, notes = None, []
+    if not error:
+        # search for a matching credit note already created
+        notes = CreditNote.objects.filter(invoice=i)
+        if notes:
+            error = _('The following credit notes already exist for this invoice')
+        else:
+            n = CreditNote.objects.create(invoice=i)
+            i.canceled, i.cancelation_date = True, date.today()
+            i.save()
+    return render(
+        request, 'cancel_invoice.html', {'invoice_id': invoice_id, 'credit_note': n, 'error': error, 'notes': notes}
+    )
 
 
 @staff_member_required
@@ -461,14 +486,32 @@ def invoice_filter(request):
                 invoice.numero,
             ])
         return response
+
+    invoices_sum = invoice_filter.qs.aggregate(Sum('amount'))['amount__sum']
     invoices_count = invoice_filter.qs.count()
-    pending_count = invoice_filter.qs.filter(
-        canceled=False, uncollectible=False, paid=False, debited=False, expiration_date__gt=date.today()).count()
-    overdue_count = invoice_filter.qs.filter(
-        canceled=False, uncollectible=False, paid=False, debited=False, expiration_date__lte=date.today()).count()
-    paid_count = invoice_filter.qs.filter(Q(paid=True) | Q(debited=True)).count()
-    canceled_count = invoice_filter.qs.filter(canceled=True).count()
-    uncollectible_count = invoice_filter.qs.filter(uncollectible=True).count()
+
+    pending = invoice_filter.qs.filter(
+        canceled=False, uncollectible=False, paid=False, debited=False, expiration_date__gt=date.today())
+    pending_sum = pending.aggregate(Sum('amount'))['amount__sum']
+    pending_count = pending.count()
+
+    overdue = invoice_filter.qs.filter(
+        canceled=False, uncollectible=False, paid=False, debited=False, expiration_date__lte=date.today())
+    overdue_sum = overdue.aggregate(Sum('amount'))['amount__sum']
+    overdue_count = overdue.count()
+
+    paid = invoice_filter.qs.filter(Q(paid=True) | Q(debited=True))
+    paid_sum = paid.aggregate(Sum('amount'))['amount__sum']
+    paid_count = paid.count()
+
+    canceled = invoice_filter.qs.filter(canceled=True)
+    canceled_sum = canceled.aggregate(Sum('amount'))['amount__sum']
+    canceled_count = canceled.count()
+
+    uncollectible = invoice_filter.qs.filter(uncollectible=True)
+    uncollectible_sum = uncollectible.aggregate(Sum('amount'))['amount__sum']
+    uncollectible_count = uncollectible.count()
+
     return render(
         request, 'invoice_filter.html', {
             'invoices': invoices,
@@ -480,5 +523,11 @@ def invoice_filter(request):
             'overdue_count': overdue_count,
             'paid_count': paid_count,
             'canceled_count': canceled_count,
+            'invoices_sum': invoices_sum,
+            'paid_sum': paid_sum,
+            'pending_sum': pending_sum,
+            'overdue_sum': overdue_sum,
+            'canceled_sum': canceled_sum,
+            'uncollectible_sum': uncollectible_sum,
             'uncollectible_count': uncollectible_count,
         })

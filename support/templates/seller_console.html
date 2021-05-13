@@ -1,5 +1,5 @@
 {% extends 'adminlte/base.html' %}
-{% load sip static i18n %}
+{% load sip static i18n core_tags %}
 {% block no_heading %}
 <h1>{% trans 'Support' %}</h1>
 <p>{% trans 'Manage campaign' %}: {{campaign.name}} <a href='{% url "seller_console_list_campaigns" %}'>({% trans "Go back to console" %})</a></p>
@@ -40,31 +40,12 @@
 {% endblock %}
 {% block content %}
     <div class="row">
-      <div class="col-sm-12">
-        <div class="card collapsed-card">
-          <div class="card-header">
-            <h3 class="card-title"><i class="fas fa-address-book"></i> <b>{% trans "Contacts" %}</b></h3>
-            <div class="card-tools">
-              <button type="button" class="btn btn-tool" data-card-widget="collapse"><i class="fas fa-plus"></i>
-              </button>
-            </div>
-          </div>
-          <div class="card-body">
-            {% for instance in console_instances %}
-            <a class="btn btn-sm {% if instance.contact == contact %}btn-primary{% else %}btn-secondary{% endif %}" href="{% url 'seller_console' category campaign.id %}?offset={{forloop.counter}}">{{ instance.contact }}</a>
-            {% endfor %}
-          </div>
-        </div>
-        </div>
-      </div>
-    <div class="row">
-
-
-
     <div class="col-sm-9">
       <div class="card">
         <div class="card-header">
-          <h3><a href="{% url 'contact_detail' contact.id %}" target="_blank">{{contact.name}}</a></h3>
+          <h3><a href="{% url 'contact_detail' contact.id %}" target="_blank">{{contact.name}} ({{offset}} {% trans "of" %} {{count}})</a></h3>
+          {% if contact.has_active_subscription %}<h3 class="text-danger">{% trans "WARNING: THE CONTACT HAS ACTIVE SUBSCRIPTIONS" %}</h3>{% endif %}
+          {% if contact.is_debtor %}<h3 class="text-danger">{% trans "WARNING: THE CONTACT IS A DEBTOR" %}</h3>{% endif %}
           <p>{% trans "Times contacted in this campaign:" %} {{times_contacted}}</p>
         </div>
         <div class="card-body">
@@ -94,6 +75,12 @@
                   <td>{{ contact.email }}</td>
                 </tr>
                 {% endif %}
+                {% if contact.notes %}
+                <tr>
+                  <td><i class="fas fa-sticky-note"></i> {% trans "Notes" %}:</td>
+                  <td>{{ contact.notes|linebreaks }}</td>
+                </tr>
+                {% endif %}
                 <tr>
                   <td><i class="fas fa-map-marker-alt"></i> {% trans "Addresses" %}:</td>
                   <td>
@@ -118,7 +105,7 @@
         <form method="post">
             {% csrf_token %}
             <input type="hidden" name="offset" value="{{ offset }}"/>
-            <input type="hidden" name="instance_type" value="{{ category }}"/>
+            <input type="hidden" name="category" value="{{ category }}"/>
             <input type="hidden" name="instance_id" value="{{ console_instance.id }}"/>
             <input type="hidden" name="campaign_id" value="{{ campaign.id }}"/>
             <input type="hidden" name="seller_id" value="{{ seller.id }}"/>
@@ -161,8 +148,9 @@
               </div>
 
               <div class="col-sm-3">
-                <input type="submit" id="promo_button" name="result" value="{% trans 'Send promo' %}" class="btn btn-block bg-gradient-success btn-sm"/>
-                <input type="submit" id="sell_button" name="result" value="{% trans 'Sell' %}" class="btn btn-block bg-gradient-success btn-sm" />
+                <a href="{% url 'send_promo' contact.id %}?url={{url}}&offset={{offset}}&{{category}}={{console_instance.id}}" class="btn btn-block bg-gradient-success btn-sm">{% trans "Send promo" %}</a>
+                <a href="{% url 'new_subscription' contact.id %}?url={{url}}&offset={{offset}}&{{category}}={{console_instance.id}}" class="btn btn-block bg-gradient-success btn-sm">{% trans "Sell" %}</a>
+                <a href="{{url}}?offset={{position}}" class="btn btn-block bg-gradient-secondary btn-sm">{% trans "Next (Don't take actions)" %}</a>
               </div>
 
               <div class="col-sm-3">
@@ -200,17 +188,25 @@
             <dl>
             {% for s in all_subscriptions %}
             <dt {% if forloop.counter != 1 %}class="border-top mt-4 pt-3"{% endif %}>{% trans "Type:" %} {{s.get_type}}</dt>
-            {% if s.type == 'P' %}<dd><i>{{s.campaign.name}}</i></dd>{% endif %}
             <dd><b>{% trans 'Active'%}:</b> {{s.active}}</dd>
-            {% autoescape  off %}<dd>{{s.show_products_html}}</dd>{% endautoescape %}
-            <dd><b>{% trans 'Start'%}</b>: {{s.start_date|date:"SHORT_DATE_FORMAT"}}</dd>
-            {% if s.end_date %}
-            <dd><b>{% trans 'End'%}</b>: {{s.end_date|date:"SHORT_DATE_FORMAT"}}</dd>
+            {% if s.active == False %}
+            <button class="btn btn-primary btn-sm" type="button" data-toggle="collapse" data-target="#collapse-{{s.id}}" aria-expanded="false" aria-controls="collapseExample">+ {% trans "Expand" %}</button>
             {% endif %}
-            {% ifequal s.type 'N' %}
-                <dd><b>{% trans 'Payment type'%}:</b> {{s.get_payment_type}}</dd>
-            {% endifequal %}
-            {% if s.unsubscription_reason %}<dt>{% trans 'Unsubscription reason'%}:</dt> <dd>{{s.get_unsubscription_reason}}</dd>{% endif %}
+            <div class="{% if s.active == False %}collapse{% endif %}" id="collapse-{{s.id}}">
+              {% if s.type == 'P' %}<dd><i>{{s.campaign.name}}</i></dd>{% endif %}
+              {% autoescape  off %}<dd>{{s.show_products_html}}</dd>{% endautoescape %}
+              <dd><b>{% trans 'Start'%}</b>: {{s.start_date|date:"SHORT_DATE_FORMAT"}}</dd>
+              {% if s.end_date %}
+              <dd><b>{% trans 'End'%}</b>: {{s.end_date|date:"SHORT_DATE_FORMAT"}}</dd>
+              {% endif %}
+              {% ifequal s.type 'N' %}
+                  <dd><b>{% trans 'Payment type'%}:</b> {{s.get_payment_type}}</dd>
+              {% endifequal %}
+              {% if s.unsubscription_reason %}<dt>{% trans 'Unsubscription reason'%}:</dt> <dd>{{s.get_unsubscription_reason}}</dd>{% endif %}
+              {% if s.active and s.type == 'N' and request.user|in_group:"AdvancedSellers" %}
+                <a href="{% url 'new_subscription' contact.id %}?upgrade_subscription={{s.id}}&url={{url}}&offset={{offset}}&{{category}}={{console_instance.id}}" class="btn  btn-success">{% trans "Upgrade" %}</a>
+              {% endif %}
+            </div>
             {% endfor %}
             </dl>
           </div>

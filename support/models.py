@@ -27,7 +27,7 @@ class Seller(models.Model):
 
     name = models.CharField(max_length=40, verbose_name=_("Name"))
     internal = models.BooleanField(default=False, verbose_name=_("Is internal?"))
-    user = models.ForeignKey(User, blank=True, null=True)
+    user = models.ForeignKey(User, blank=True, null=True, on_delete=models.SET_NULL)
     old_pk = models.PositiveIntegerField(blank=True, null=True, db_index=True)
 
     def __unicode__(self):
@@ -73,24 +73,34 @@ class Issue(models.Model):
     inside = models.BooleanField(default=True)
     notes = models.TextField(blank=True, null=True)
     manager = models.ForeignKey(
-        "auth.User", blank=True, null=True, related_name="issue_manager"
+        "auth.User",
+        blank=True,
+        null=True,
+        related_name="issue_manager",
+        on_delete=models.SET_NULL,
     )  # User who created the issue. Non-editable
     assigned_to = models.ForeignKey(
-        "auth.User", blank=True, null=True, related_name="issue_assigned"
+        "auth.User",
+        blank=True,
+        null=True,
+        related_name="issue_assigned",
+        on_delete=models.SET_NULL,
     )  # Editable, assigned to which user
     progress = models.TextField(blank=True, null=True)
     answer_1 = models.CharField(
         max_length=2, blank=True, null=True, choices=ISSUE_ANSWERS
     )
     answer_2 = models.TextField(blank=True, null=True)
-    status = models.ForeignKey('support.IssueStatus', blank=True, null=True, on_delete=models.SET_NULL)
+    status = models.ForeignKey(
+        "support.IssueStatus", blank=True, null=True, on_delete=models.SET_NULL
+    )
     end_date = models.DateField(blank=True, null=True)
     next_action_date = models.DateField(blank=True, null=True)
     closing_date = models.DateField(blank=True, null=True)
     copies = models.PositiveSmallIntegerField(default=0)
     # Optional attributes
     subscription_product = models.ForeignKey(
-        "core.SubscriptionProduct", null=True, blank=True
+        "core.SubscriptionProduct", null=True, blank=True, on_delete=models.SET_NULL
     )
     subscription = models.ForeignKey("core.Subscription", null=True, blank=True)
     product = models.ForeignKey("core.Product", null=True, blank=True)
@@ -174,7 +184,9 @@ class ScheduledTask(models.Model):
     modification_date = models.DateField(
         auto_now=True, verbose_name=_("Modification date"), blank=True, null=True
     )
-    ends = models.ForeignKey("support.ScheduledTask", blank=True, null=True, on_delete=models.SET_NULL)
+    ends = models.ForeignKey(
+        "support.ScheduledTask", blank=True, null=True, on_delete=models.SET_NULL
+    )
 
     def get_category(self):
         categories = dict(SCHEDULED_TASK_CATEGORIES)
@@ -186,8 +198,12 @@ class ScheduledTask(models.Model):
 
 class IssueStatus(models.Model):
     name = models.CharField(max_length=60)
-    slug = AutoSlugField(populate_from='name', always_update=True, null=True, blank=True)
-    category = models.CharField(max_length=2, blank=True, null=True, choices=ISSUE_CATEGORIES)
+    slug = AutoSlugField(
+        populate_from="name", always_update=True, null=True, blank=True
+    )
+    category = models.CharField(
+        max_length=2, blank=True, null=True, choices=ISSUE_CATEGORIES
+    )
 
     def __unicode__(self):
         return self.name
