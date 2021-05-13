@@ -31,4 +31,6 @@ urlpatterns = [
     url(r'^export_dcf_emails/(\d+)/$', export_dcf_emails, name="export_dcf_emails"),
     url(r'^sync_with_mailtrain/(\d+)/$', sync_with_mailtrain, name="sync_with_mailtrain"),
     url(r'^register_activity/$', register_activity, name="register_activity"),
+    url(r'^contacts/(\d+)/edit/$', edit_contact, name='edit_contact'),
+    url(r'^edit_newsletters/(\d+)/$', edit_newsletters, name='edit_newsletters'),
 ]
