@@ -426,7 +426,10 @@ class Contact(models.Model):
             newsletter = Product.objects.get(id=newsletter_id, type="N")
         except Exception:
             raise _("Invalid product id")
-        SubscriptionNewsletter.objects.get(contact=self, product=newsletter).delete()
+        try:
+            SubscriptionNewsletter.objects.get(contact=self, product=newsletter).delete()
+        except SubscriptionNewsletter.DoesNotExist:
+            pass
 
     def has_newsletter(self, newsletter_id):
         return SubscriptionNewsletter.objects.filter(contact=self, product_id=newsletter_id, active=True).exists()
