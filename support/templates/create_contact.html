@@ -3,7 +3,17 @@
 
 {% block stylesheets %}
     {{block.super}}
-    <link rel="stylesheet" href="{% static '/admin-lte/plugins/jquery-ui/jquery-ui.min.css' %}" />
+    <link rel="stylesheet" href="{% static 'css/jquery-ui.css' %}" />
+{% endblock %}
+{% block extra_head %}
+<script type="text/javascript" src="{% static 'js/jquery-3.3.1.min.js' %}"></script>
+<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+<script type="text/javascript" src="{% static 'js/datepicker-es.js' %}"></script>
+<script type="text/javascript">
+    $( function() {
+        $(".datepicker").datepicker({ dateFormat: 'yy-mm-dd' });
+      });
+</script>
 {% endblock %}
 
 {% block content %}
@@ -11,7 +21,11 @@
   <div class="container-fluid">
     <div class="row mb-2">
       <div class="col-sm-12">
-        <h1>{% trans "Contacts" %} &raquo;  {% trans "Create new contact" %}</h1>
+        {% if contact %}
+        <h1>{% trans "Contacts" %} &raquo;  {% trans "Edit contact" %} {{contact.name}}</h1>
+        {% else %}
+        <h1>{% trans "Contacts" %} &raquo;  {% trans "New contact" %}</h1>
+        {% endif %}
       </div>
     </div>
   </div>
@@ -28,125 +42,104 @@
             </ul>
           </div>
           <div class="card-body">
+            {% if form.errors %}
+              {% for field in form %}
+                {% for error in field.errors %}
+                  <div class="alert alert-danger">
+                    <strong>{{ error|escape }}</strong>
+                  </div>
+                {% endfor %}
+              {% endfor %}
+              {% for error in form.non_field_errors %}
+                <div class="alert alert-danger">
+                  <strong>{{ error|escape }}</strong>
+                </div>
+              {% endfor %}
+            {% endif %}
             <div class="tab-content">
               <div class="active tab-pane" id="datos">
                 <div class="row">
-                  <div class="col-md-8">
-                    <form>
+                  <div class="col-md-10">
+                    <form method="post">
+                      {% csrf_token %}
                       <div class="card">
                         <div class="card-header">
-                          <h2 class="card-title">Datos generales</h2>
+                          <h2 class="card-title">{% trans "Contact data" %}</h2>
                         </div>
                         <div class="card-body">
                             <div class="row">
-                              <div class="form-group col-6">
-                                <label for="">Nombre completo</label>
-                                <input type="text" name="" class="form-control">
+                              <div class="form-group col-12">
+                                <label for="">{% trans "Full name" %}</label>
+                                {% render_field form.name class="form-control" %}
                               </div>
-                              <div class="form-group col-6">
-                                <label for="">Correo electrónico</label>
-                                <input type="email" name="" class="form-control">
+                            </div>
+                            <div class="row">
+                              <div class="form-group col-5">
+                                <label for="">{% trans "Tags" %}</label>
+                                {% render_field form.tags class="form-control" %}
+                              </div>
+                              <div class="form-group col-5">
+                                <label for="">{% trans "Email" %}</label>
+                                {% render_field form.email class="form-control" %}
+                              </div>
+                              <div class="form-group col-2">
+                                <label for="">{% trans "No email" %}</label>
+                                {% render_field form.no_email class="form-control" %}
+                              </div>
+                            </div>
+                            <div class="row">
+                              <div class="form-group col-4">
+                                <label for="">{% trans "Phone" %}</label>
+                                {% render_field form.phone class="form-control" %}
+                              </div>
+                              <div class="form-group col-4">
+                                <label for="">{% trans "Mobile" %}</label>
+                                {% render_field form.mobile class="form-control" %}
+                              </div>
+                              <div class="form-group col-4">
+                                <label for="">{% trans "Work phone" %}</label>
+                                {% render_field form.work_phone class="form-control" %}
                               </div>
                             </div>
                             <div class="row">
                               <div class="form-group col-6">
-                                <label for="">Teléfono</label>
-                                <input type="text" name="" class="form-control">
-                              </div>
-                              <div class="form-group col-6">
-                                <label for="">Celular</label>
-                                <input type="text" name="" class="form-control">
-                              </div>
-                            </div>
-                            <div class="row">
-                              <div class="form-group col-6">
-                                <label for="">Documento de identidad</label>
-                                <input type="text" name="" class="form-control">
+                                <label for="">{% trans "Id document" %}</label>
+                                {% render_field form.id_document class="form-control" %}
                               </div>
 
                               <div class="form-group col-6">
-                                <label for="">Fecha de nacimiento</label>
-                                <input type="text" name="" class="form-control">
+                                <label for="">{% trans "Birthdate" %}</label>
+                                {% render_field form.birthdate class="form-control datepicker" %}
                               </div>
                             </div>
                             <div class="row">
                               <div class="form-group col-6">
-                                <label for="">Sexo </label>
-                                <select class="form-control">
-                                  <option>Femenino</option>
-                                  <option>Masculino</option>
-                                  <option>Otro</option>
-                                </select>
+                                <label for="">{% trans "Gender" %}</label>
+                                {% render_field form.gender class="form-control" %}
                               </div>
                               <div class="form-group col-6">
-                                <label for="">Educacion</label>
-                                <select class="form-control">
-                                  <option>Primaria</option>
-                                  <option>Secundaria incompleta</option>
-                                  <option>Secundaria completa</option>
-                                </select>
-                              </div>
-                            </div>
-                            <div class="row">
-                              <div class="form-group col-6">
-                                <label for="">Etiquetas</label>
-                                <input type="text" name="" class="form-control">
-                              </div>
-                              <div class="form-group col-6">
-                                <label for="">Subtipo</label>
-                                <input type="text" name="" class="form-control">
+                                <label for="">{% trans "Education" %}</label>
+                                {% render_field form.education class="form-control" %}
                               </div>
                             </div>
                             <div class="form-group">
-                              <label for="">Observaciones</label>
-                              <textarea class="form-control"></textarea>
+                              <label for="">{% trans "Notes" %}</label>
+                              {% render_field form.notes class="form-control" %}
                             </div>
-
-                        </div>
-                      </div>
-                      <div class="card">
-                        <div class="card-header">
-                          <h2 class="card-title">Direcciones</h2>
-                        </div>
-                        <div class="card-body">
-                          <div class="row">
-                            <div class="form-group col-6">
-                              <label for="">Nombre</label>
-                              <input type="text" name="" class="form-control">
+                            <div class="row">
+                              <div class="form-group col-6">
+                                <label for="">{% trans "Allow polls" %}</label>
+                                {% render_field form.allow_polls class="form-control" %}
+                              </div>
+                              <div class="form-group col-6">
+                                <label for="">{% trans "Allow promotions" %}</label>
+                                {% render_field form.allow_promotions class="form-control" %}
+                              </div>
                             </div>
-                            <div class="form-group col-6">
-                              <label for="">Calle</label>
-                              <input type="text" name="" class="form-control">
-                            </div>
-                          </div>
-                          <div class="row">
-                            <div class="form-group col-6">
-                              <label for="">Numero de puerta</label>
-                              <input type="text" name="" class="form-control">
-                            </div>
-                            <div class="form-group col-6">
-                              <label for="">Apartamento</label>
-                              <input type="text" name="" class="form-control">
-                            </div>
-                          </div>
-                          <div class="row">
-                            <div class="form-group col-6">
-                              <label for="">Localidad</label>
-                              <input type="text" name="" class="form-control">
-                            </div>
-                            <div class="form-group col-6">
-                              <label for="">Departamento</label>
-                              <input type="text" name="" class="form-control">
-                            </div>
-                          </div>
-                          <div class="form-group">
-                            <label for="">Observaciones</label>
-                            <textarea class="form-control"></textarea>
-                          </div>
                         </div>
                       </div>
                       <div class="text-right">
-                        <button class="btn btn-primary" type="submit">Crear contacto</button>
+                        <button class="btn btn-primary" type="submit">{% trans "Save" %}</button>
                       </div>
                       </form>
                     </div>
@@ -155,51 +148,25 @@
               <div class="tab-pane" id="newsletters">
                 <div class="row">
                   <div class="col-md-8">
-                    <form>
+                    <form method="post" action="{% url 'edit_newsletters' contact.id %}">
+                      {% csrf_token %}
                       <div class="card">
                         <div class="card-header">
-                          <h2 class="card-title">Newsletters</h2>
+                          <h2 class="card-title">{% trans "Newsletters" %}</h2>
                         </div>
                         <div class="card-body">
                           <div class="form-group">
+                            {% for newsletter in all_newsletters %}
                             <div class="form-check">
-                              <input class="form-check-input" type="checkbox">
-                              <label class="form-check-label">6 AM</label>
+                              <input id="id-{{newsletter.id}}" class="form-check-input" type="checkbox" name="{{newsletter.id}}" {% if newsletter in contact_newsletters %}checked{% endif %}>
+                              <label class="form-check-label" for="id-{{newsletter.id}}">{{newsletter.name}}</label>
                             </div>
-                            <div class="form-check">
-                              <input class="form-check-input" type="checkbox" checked="">
-                              <label class="form-check-label">Fin de semana</label>
-                            </div>
-                            <div class="form-check">
-                              <input class="form-check-input" type="checkbox">
-                              <label class="form-check-label">Newsletter</label>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <div class="card">
-                        <div class="card-header">
-                          <h2 class="card-title">Comunicaciones</h2>
-                        </div>
-                        <div class="card-body">
-                          <div class="form-group">
-                            <div class="form-check">
-                              <input class="form-check-input" type="checkbox">
-                              <label class="form-check-label">6 AM</label>
-                            </div>
-                            <div class="form-check">
-                              <input class="form-check-input" type="checkbox" checked="">
-                              <label class="form-check-label">Fin de semana</label>
-                            </div>
-                            <div class="form-check">
-                              <input class="form-check-input" type="checkbox">
-                              <label class="form-check-label">Newsletter</label>
-                            </div>
+                            {% endfor %}
                           </div>
                         </div>
                       </div>
                       <div class="text-right">
-                        <button class="btn btn-primary" type="submit">Crear contacto</button>
+                        <button class="btn btn-primary" type="submit">{% trans "Save" %}</button>
                       </div>
                     </form>
                   </div>

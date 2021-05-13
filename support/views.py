@@ -19,6 +19,7 @@ from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_POST
 
 from core.filters import ContactFilter
 from core.forms import AddressForm
@@ -39,6 +40,7 @@ from .filters import IssueFilter
 from .forms import *
 from .models import Seller, ScheduledTask, IssueStatus
 from core.utils import calc_price_from_products, process_products
+from core.forms import ContactAdminForm
 from util.dates import add_business_days
 
 
@@ -1644,3 +1646,36 @@ def register_activity(request):
         return HttpResponseRedirect(
             reverse("contact_detail", args=[form.cleaned_data['contact'].id])
         )
+
+
+@staff_member_required
+def edit_contact(request, contact_id):
+    contact = get_object_or_404(Contact, pk=contact_id)
+    form = ContactAdminForm(instance=contact)
+    all_newsletters = Product.objects.filter(type='N', active=True)
+    contact_newsletters = contact.get_newsletter_products()
+    if request.POST:
+        form = ContactAdminForm(request.POST, instance=contact)
+        if form.is_valid():
+            form.save()
+            return HttpResponseRedirect(reverse('edit_contact', args=[contact_id]))
+    return render(request, 'create_contact.html', {
+        'form': form, 'contact': contact, 'all_newsletters': all_newsletters,
+        'contact_newsletters': contact_newsletters
+    })
+
+
+@require_POST
+@staff_member_required
+def edit_newsletters(request, contact_id):
+    contact = get_object_or_404(Contact, pk=contact_id)
+    if request.POST:
+        all_newsletters = Product.objects.filter(type='N', active=True)
+        for newsletter in all_newsletters:
+            if request.POST.get(str(newsletter.id)):
+                if not contact.has_newsletter(newsletter.id):
+                    contact.add_newsletter(newsletter.id)
+            else:
+                if contact.has_newsletter(newsletter.id):
+                    contact.remove_newsletter(newsletter.id)
+        return HttpResponseRedirect(reverse('edit_contact', args=[contact_id]))

@@ -77,8 +77,8 @@
                                 </dd>
                               {% endif %}
                             </dl>
-
                           </div>
+                          <a href="{% url 'edit_contact' contact.id %}" class="btn btn-success" target="_blank">{% trans "Edit info and newsletters" %}</a>
                         </div>
                       </div>
                       <div class="col-md-4">
@@ -244,6 +244,7 @@
                               {% endif %}
                             </dl>
                           </div>
+                          <a href="{% url 'edit_contact' contact.id %}" class="btn btn-success" target="_blank">{% trans "Edit info and newsletters" %}</a>
                         </div>
                       </div>
                       <div class="row">

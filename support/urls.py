@@ -2,7 +2,6 @@
 from support.views import *
 
 from django.conf.urls import url
-from django.views.generic import TemplateView
 
 
 urlpatterns = [
@@ -32,5 +31,6 @@ urlpatterns = [
     url(r'^export_dcf_emails/(\d+)/$', export_dcf_emails, name="export_dcf_emails"),
     url(r'^sync_with_mailtrain/(\d+)/$', sync_with_mailtrain, name="sync_with_mailtrain"),
     url(r'^register_activity/$', register_activity, name="register_activity"),
-    url(r'^create_contact/$', login_required(TemplateView.as_view(template_name="create_contact.html")), name='create_contact'),
+    url(r'^contacts/(\d+)/edit/$', edit_contact, name='edit_contact'),
+    url(r'^edit_newsletters/(\d+)/$', edit_newsletters, name='edit_newsletters'),
 ]
