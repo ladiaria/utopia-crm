@@ -1679,3 +1679,17 @@ def edit_newsletters(request, contact_id):
                 if contact.has_newsletter(newsletter.id):
                     contact.remove_newsletter(newsletter.id)
         return HttpResponseRedirect(reverse('edit_contact', args=[contact_id]))
+
+
+def scheduled_activities(request):
+    user = User.objects.get(username=request.user.username)
+    try:
+        seller = Seller.objects.get(user=user)
+    except Seller.DoesNotExist:
+        seller = None
+    activities = Activity.objects.filter(seller=seller, status__in='PD').order_by('datetime')
+    return render(
+        request,
+        'scheduled_activities.html', {
+            'activities': activities, 'seller': seller
+        })

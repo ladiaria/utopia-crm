@@ -1,0 +1,87 @@
+{% extends 'adminlte/base.html' %}
+{% load static i18n widget_tweaks core_tags %}
+{% block stylesheets %}
+    {{block.super}}
+    <link rel="stylesheet" href="{% static '/admin-lte/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css' %}" />
+{% endblock %}
+{% block extra_head %}
+<script type="text/javascript" src="{% static 'js/jquery-3.3.1.min.js' %}"></script>
+<script type="text/javascript" src="{% static '/admin-lte/plugins/datatables/jquery.dataTables.min.js' %}"></script>
+<script src="{% static '/admin-lte/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js' %}"></script>
+<script>
+  $(function() {
+    $("#table1").DataTable();
+  });
+</script>
+
+{% endblock %}
+{% block no_heading %}
+<h1>{% trans 'Activities' %}</h1>
+<p>{% trans 'All your upcoming and scheduled activities.' %}</p>
+{% endblock %}
+{% block breadcrumbs %}
+<ol class="breadcrumb">
+    <li class="breadcrumb-item active">{% trans 'Activities' %}</li>
+</ol>
+{% endblock %}
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+      <div class="card card-outline card-primary">
+        <div class="card-header">
+          <h3 class="card-title">{% trans 'Filter' %}</h3>
+          <div class="card-tools">
+              <button type="button" class="btn btn-tool" data-card-widget="collapse"><i class="fas fa-minus"></i>
+              </button>
+            </div>
+        </div>
+        <div class="card-body">
+          <form method="GET" id="form">
+            <div class="row">
+              <div class="form-group row col">
+                <label for="phone" class="col-sm-3 col-form-label">{% trans 'Status' %}</label>
+                <div class="col-sm-9">
+                  {% render_field filter.form.filter_multiple class="form-control" %}
+                </div>
+              </div>
+              <div class="form-group row col">
+                <label for="state" class="col-sm-3 col-form-label">{% trans 'Campaign' %}</label>
+                <div class="col-sm-9">
+                  {% render_field filter.form.state class="form-control" %}
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-12">
+        <div class="card">
+          <div class="card-body">
+            <table id="table1" class="table table-bordered table-striped">
+              <thead>
+                  <tr role="row">
+                    <th>{% trans "Contact name" %}</th>
+                    <th>{% trans "Campaign" %}</th>
+                    <th>{% trans "Status" %}</th>
+                    <th>{% trans "Date and time" %}</th>
+                    <th>Go</th>
+                  </tr>
+              </thead>
+              <tbody>
+                {% for activity in activities %}
+                <tr role="row">
+                    <td>{{activity.contact.name}}</td>
+                    <td>{{activity.campaign.name}}</td>
+                    <td>{{activity.get_status}}</td>
+                    <td>{{activity.datetime}}</td>
+                    <td><a href='/'>GO</a></td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+  </div>
+{% endblock %}
