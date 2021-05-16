@@ -300,6 +300,10 @@ class PriceRuleAdmin(admin.ModelAdmin):
     ordering = ('priority',)
 
 
+class SubscriptionProductAdmin(admin.ModelAdmin):
+    raw_id_fields = ('subscription', 'address', 'label_contact')
+
+
 admin.site.register(Subscription, SubscriptionAdmin)
 admin.site.register(Contact, ContactAdmin)
 admin.site.register(Product, ProductAdmin)
@@ -313,5 +317,5 @@ admin.site.register(Activity, ActivityAdmin)
 admin.site.register(ContactProductHistory, ContactProductHistoryAdmin)
 admin.site.register(ContactCampaignStatus, ContactCampaignStatusAdmin)
 admin.site.register(PriceRule, PriceRuleAdmin)
-admin.site.register(SubscriptionProduct)
+admin.site.register(SubscriptionProduct, SubscriptionProductAdmin)
 admin.site.register(DynamicContactFilter)
