@@ -286,6 +286,7 @@ class ActivityAdmin(admin.ModelAdmin):
 class ContactProductHistoryAdmin(admin.ModelAdmin):
     list_display = ('contact', 'product', 'date', 'status')
     search_fields = ('contact__name', )
+    raw_id_fields = ('contact', 'subscription')
 
 
 class ContactCampaignStatusAdmin(admin.ModelAdmin):
