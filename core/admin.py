@@ -140,8 +140,9 @@ class SubscriptionAdmin(admin.ModelAdmin):
     model = Subscription
     inlines = [SubscriptionProductInline]
     fieldsets = (('Contact data', {'fields': ('contact', )}), )
-    list_display = ('contact', 'campaign', 'product_summary')
-    list_filter = ('campaign', )
+    list_display = ('contact', 'active', 'payment_type', 'campaign', 'product_summary')
+    list_editable = ('active', 'payment_type')
+    list_filter = ('campaign', 'active', 'payment_type')
     readonly_fields = ('contact', 'edit_products_field', 'campaign', 'seller')
 
     class Media:
@@ -286,6 +287,7 @@ class ActivityAdmin(admin.ModelAdmin):
 class ContactProductHistoryAdmin(admin.ModelAdmin):
     list_display = ('contact', 'product', 'date', 'status')
     search_fields = ('contact__name', )
+    raw_id_fields = ('contact', 'subscription')
 
 
 class ContactCampaignStatusAdmin(admin.ModelAdmin):
@@ -298,6 +300,10 @@ class PriceRuleAdmin(admin.ModelAdmin):
     list_display = ('id', 'active', 'priority', 'amount_to_pick', 'mode', 'resulting_product')
     list_editable = ('active', 'priority')
     ordering = ('priority',)
+
+
+class SubscriptionProductAdmin(admin.ModelAdmin):
+    raw_id_fields = ('subscription', 'address', 'label_contact')
 
 
 admin.site.register(Subscription, SubscriptionAdmin)
@@ -313,5 +319,5 @@ admin.site.register(Activity, ActivityAdmin)
 admin.site.register(ContactProductHistory, ContactProductHistoryAdmin)
 admin.site.register(ContactCampaignStatus, ContactCampaignStatusAdmin)
 admin.site.register(PriceRule, PriceRuleAdmin)
-admin.site.register(SubscriptionProduct)
+admin.site.register(SubscriptionProduct, SubscriptionProductAdmin)
 admin.site.register(DynamicContactFilter)
