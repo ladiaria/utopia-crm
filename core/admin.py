@@ -140,8 +140,9 @@ class SubscriptionAdmin(admin.ModelAdmin):
     model = Subscription
     inlines = [SubscriptionProductInline]
     fieldsets = (('Contact data', {'fields': ('contact', )}), )
-    list_display = ('contact', 'campaign', 'product_summary')
-    list_filter = ('campaign', )
+    list_display = ('contact', 'active', 'payment_type', 'campaign', 'product_summary')
+    list_editable = ('active', 'payment_type')
+    list_filter = ('campaign', 'active', 'payment_type')
     readonly_fields = ('contact', 'edit_products_field', 'campaign', 'seller')
 
     class Media:
