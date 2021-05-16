@@ -109,8 +109,8 @@ def bill_subscription(subscription_id, billing_date=date.today(), dpp=10, check_
             percentage_discount_product = product
             continue
         item = InvoiceItem()
-        frequency_extra = _(' {} months'.format(subscription.frequency)) if subscription.frequency > 1 else ''
-        item.description = format_lazy('{} {}', product.name, frequency_extra)
+        frequency_extra = _(u' {} months'.format(subscription.frequency)) if subscription.frequency > 1 else u''
+        item.description = format_lazy(u'{} {}', product.name, frequency_extra)
         item.price = product.price * subscription.frequency
         item.product = product
         if product.type == 'S':
