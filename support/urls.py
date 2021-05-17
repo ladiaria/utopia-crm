@@ -10,6 +10,7 @@ urlpatterns = [
     url(r'^assign_sellers/(\d+)/$', assign_seller, name="assign_sellers"),
     url(r'^seller_console/$', seller_console_list_campaigns, name="seller_console_list_campaigns"),
     url(r'^seller_console/(\w+)/(\d+)/$', seller_console, name="seller_console"),
+    url(r'^scheduled_activities/$', scheduled_activities, name="scheduled_activities"),
     url(r'^edit_address/(\d+)/$', edit_address),
     url(r'^edit_address/(\d+)/(\d+)/$', edit_address),
     url(r'^import/$', import_contacts, name="import_contacts"),
