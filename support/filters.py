@@ -5,6 +5,7 @@ from django import forms
 from django.utils.translation import ugettext_lazy as _
 from django.db.models import Q
 
+from core.models import Activity
 from .models import Issue
 
 
@@ -50,3 +51,9 @@ class IssueFilter(django_filters.FilterSet):
             return queryset.filter(date__month=month, date__year=year)
         else:
             return queryset
+
+
+class ScheduledActivityFilter(django_filters.FilterSet):
+    class Meta:
+        model = Activity
+        fields = ['status', 'campaign']

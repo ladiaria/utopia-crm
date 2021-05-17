@@ -1451,7 +1451,7 @@ class Campaign(models.Model):
         Returns all the activities on this campaign, for a specific seller. Activities on a campaign imply that the
         contact has been scheduled to be called in the future.
         """
-        acts = Activity.objects.filter(campaign=self, seller=seller)
+        acts = Activity.objects.filter(campaign=self, seller=seller).order_by('datetime')
         if status:
             acts = acts.filter(status__in=status)
         if type:
@@ -1486,6 +1486,11 @@ class Campaign(models.Model):
         (status=2, 3)
         """
         return self.get_already_contacted(seller_id).count()
+
+    def get_successful_count(self, seller_id):
+        return self.contactcampaignstatus_set.filter(
+            seller_id=seller_id, campaign_resolution__in=['S1', 'S2']
+        ).count()
 
     class Meta:
         verbose_name = _("campaign")
