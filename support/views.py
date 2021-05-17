@@ -36,7 +36,7 @@ from core.models import (
     Subtype,
 )
 
-from .filters import IssueFilter
+from .filters import IssueFilter, ScheduledActivityFilter
 from .forms import *
 from .models import Seller, ScheduledTask, IssueStatus
 from core.utils import calc_price_from_products, process_products
@@ -220,16 +220,22 @@ def seller_console_list_campaigns(request):
 
     not_contacted_campaigns = seller.get_campaigns_by_status([1])
     all_campaigns = seller.get_unfinished_campaigns()
+    total_pending_activities = 0
     for campaign in not_contacted_campaigns:
         campaign.count = campaign.get_not_contacted_count(seller.id)
+        campaign.successful = campaign.get_successful_count(seller.id)
         campaigns_with_not_contacted.append(campaign)
     for campaign in all_campaigns:
         campaign.pending = campaign.get_activities_by_seller(
             seller=seller, status="P", type="C", datetime=datetime.now()).count()
         campaign.delayed = campaign.get_activities_by_seller(
             seller=seller, status="D", type="C", datetime=datetime.now()).count()
+        campaign.successful = campaign.get_successful_count(seller.id)
         if campaign.pending or campaign.delayed:
+            total_pending_activities += campaign.pending + campaign.delayed
             campaigns_with_activities_to_do.append(campaign)
+    upcoming_activity = Activity.objects.filter(
+        seller=seller, status__in='PD', activity_type='C').order_by('datetime').first()
     return render(
         request,
         "seller_console_list_campaigns.html",
@@ -237,6 +243,8 @@ def seller_console_list_campaigns(request):
             "campaigns_with_not_contacted": campaigns_with_not_contacted,
             "campaigns_with_activities_to_do": campaigns_with_activities_to_do,
             "seller": seller,
+            "total_pending_activities": total_pending_activities,
+            "upcoming_activity": upcoming_activity,
         },
     )
 
@@ -1679,3 +1687,29 @@ def edit_newsletters(request, contact_id):
                 if contact.has_newsletter(newsletter.id):
                     contact.remove_newsletter(newsletter.id)
         return HttpResponseRedirect(reverse('edit_contact', args=[contact_id]))
+
+
+def scheduled_activities(request):
+    user = User.objects.get(username=request.user.username)
+    try:
+        seller = Seller.objects.get(user=user)
+    except Seller.DoesNotExist:
+        seller = None
+    activity_queryset = Activity.objects.filter(seller=seller).order_by('datetime')
+    activity_filter = ScheduledActivityFilter(request.GET, activity_queryset)
+    page_number = request.GET.get("p")
+    paginator = Paginator(activity_filter.qs, 100)
+    try:
+        activities = paginator.page(page_number)
+    except PageNotAnInteger:
+        # If page is not an integer, deliver first page.
+        activities = paginator.page(1)
+    except EmptyPage:
+        # If page is out of range (e.g. 9999), deliver last page of results.
+        activities = paginator.page(paginator.num_pages)
+    return render(
+        request,
+        'scheduled_activities.html', {
+            'filter': activity_filter, 'activities': activities, 'seller': seller,
+            "page": page_number, "total_pages": paginator.num_pages, "count": activity_filter.qs.count()
+        })

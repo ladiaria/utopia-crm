@@ -34,7 +34,7 @@
           <td>{{campaign.name}}</td>
           <td>{{campaign.count}}</td>
           <td>{{campaign.end_date|date:"SHORT_DATE_FORMAT"}}</td>
-          <td>0</td>
+          <td>{{campaign.successful}}</td>
           <td><a class="btn btn-primary btn-sm" href="/support/seller_console/new/{{campaign.id}}/"><i class="fas fa-eye"></i> {% trans 'View' %}</a></td>
         </tr>
         {% endfor %}
@@ -60,6 +60,7 @@
             <th>{% trans 'Campaign end date' %}</th>
             <th>{% trans 'Successful' %}</th>
             <th></th>
+            <th></th>
           </tr>
       </thead>
       <tbody>
@@ -69,8 +70,9 @@
             <td>{{campaign.pending}}</td>
             <td>{{campaign.delayed}}</td>
             <td>{{campaign.end_date|date:"SHORT_DATE_FORMAT"}}</td>
-            <td>0</td>
-            <td><a class="btn btn-primary btn-sm" href="/support/seller_console/act/{{campaign.id}}/"><i class="fas fa-eye"></i> {% trans 'View' %}</a></td>
+            <td>{{campaign.successful}}</td>
+            <td><a class="btn btn-primary btn-sm" href='{% url "scheduled_activities" %}?status=P&campaign={{campaign.id}}'><i class="fas fa-eye"></i> {% trans 'List activities' %}</a></td>
+            <td><a class="btn btn-primary btn-sm" href='{% url "seller_console" "act" campaign.id %}'><i class="fas fa-eye"></i> {% trans 'View' %}</a></td>
           </tr>
           {% endfor %}
         </tbody>
@@ -78,6 +80,9 @@
     {% else %}
     <p>{% trans "Congratulations! Everything seems to be done." %}</p>
     {% endif %}
+    <div class="m-2 p-2">
+    {% trans "Next upcoming activity" %}: {{upcoming_activity.datetime}} - {% trans "Campaign" %}: {{upcoming_activity.campaign}} - <a class="btn-primary btn-sm" href='{% url "scheduled_activities" %}?status=P'><i class="fas fa-eye"></i> {% trans 'List all pending activities' %} ({{total_pending_activities}})</a>
+    </div>
   </div>
 </div>
 
