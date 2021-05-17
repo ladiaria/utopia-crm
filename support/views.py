@@ -220,7 +220,6 @@ def seller_console_list_campaigns(request):
 
     not_contacted_campaigns = seller.get_campaigns_by_status([1])
     all_campaigns = seller.get_unfinished_campaigns()
-    total_pending_activities = 0
     for campaign in not_contacted_campaigns:
         campaign.count = campaign.get_not_contacted_count(seller.id)
         campaign.successful = campaign.get_successful_count(seller.id)
@@ -232,10 +231,11 @@ def seller_console_list_campaigns(request):
             seller=seller, status="D", type="C", datetime=datetime.now()).count()
         campaign.successful = campaign.get_successful_count(seller.id)
         if campaign.pending or campaign.delayed:
-            total_pending_activities += campaign.pending + campaign.delayed
             campaigns_with_activities_to_do.append(campaign)
     upcoming_activity = Activity.objects.filter(
         seller=seller, status__in='PD', activity_type='C').order_by('datetime').first()
+    total_pending_activities = Activity.objects.filter(
+        seller=seller, status__in='PD', activity_type='C').count()
     return render(
         request,
         "seller_console_list_campaigns.html",
