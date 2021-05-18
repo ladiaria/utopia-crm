@@ -225,17 +225,14 @@ def seller_console_list_campaigns(request):
         campaign.successful = campaign.get_successful_count(seller.id)
         campaigns_with_not_contacted.append(campaign)
     for campaign in all_campaigns:
-        campaign.pending = campaign.get_activities_by_seller(
-            seller=seller, status="P", type="C", datetime=datetime.now()).count()
-        campaign.delayed = campaign.get_activities_by_seller(
-            seller=seller, status="D", type="C", datetime=datetime.now()).count()
+        campaign.pending = campaign.activity_set.filter(
+            seller=seller, status="P", activity_type="C", datetime__lte=datetime.now()).count()
         campaign.successful = campaign.get_successful_count(seller.id)
-        if campaign.pending or campaign.delayed:
+        if campaign.pending:
             campaigns_with_activities_to_do.append(campaign)
     upcoming_activity = Activity.objects.filter(
-        seller=seller, status__in='PD', activity_type='C').order_by('datetime').first()
-    total_pending_activities = Activity.objects.filter(
-        seller=seller, status__in='PD', activity_type='C').count()
+        seller=seller, status='P', activity_type='C').order_by('datetime').first()
+    total_pending_activities = Activity.objects.filter(seller=seller, status='P', activity_type='C').count()
     return render(
         request,
         "seller_console_list_campaigns.html",
@@ -377,17 +374,12 @@ def seller_console(request, category, campaign_id):
             console_instances = campaign.get_not_contacted(seller.id)
         elif category == "act":
             # We make sure to show the seller only the activities that are for today.
-            pending = campaign.get_activities_by_seller(
+            console_instances = campaign.activity_set.filter(
+                activity_type='C',
                 seller=seller,
                 status="P",
-                datetime=datetime.now()
-            )
-            delayed = campaign.get_activities_by_seller(
-                seller=seller,
-                status="D",
-                datetime=datetime.now()
-            )
-            console_instances = pending | delayed
+                datetime__lte=datetime.now()
+            ).order_by('datetime')
 
         count = console_instances.count()
         if count == 0:
