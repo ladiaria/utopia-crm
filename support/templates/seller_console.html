@@ -39,6 +39,33 @@
     </script>
 {% endblock %}
 {% block content %}
+    {% if pending_activities_count > 0 %}
+    <div class="alert alert-warning" role="alert">
+      {% blocktrans %}
+          You have {{pending_activities_count}} pending activities -
+      {% endblocktrans %}
+      {% trans "Next activity:" %} {{upcoming_activity.datetime}} -
+      <a href='{% url "scheduled_activities" %}?status=P'>{% trans "Go to list" %}</a>
+    </div>
+    {% endif %}
+    <div class="row">
+      <div class="col-sm-12">
+        <div class="card collapsed-card">
+          <div class="card-header">
+            <h3 class="card-title"><i class="fas fa-address-book"></i> <b>{% trans "Contacts" %}</b></h3>
+            <div class="card-tools">
+              <button type="button" class="btn btn-tool" data-card-widget="collapse"><i class="fas fa-plus"></i>
+              </button>
+            </div>
+          </div>
+          <div class="card-body">
+            {% for instance in console_instances %}
+            <a class="btn btn-sm {% if instance.contact == contact %}btn-primary{% else %}btn-secondary{% endif %}" href="{% url 'seller_console' category campaign.id %}?offset={{forloop.counter}}">{{ instance.contact }}</a>
+            {% endfor %}
+          </div>
+        </div>
+        </div>
+    </div>
     <div class="row">
     <div class="col-sm-9">
       <div class="card">
@@ -98,10 +125,6 @@
 
             </tbody>
           </table>
-
-
-
-
         <form method="post">
             {% csrf_token %}
             <input type="hidden" name="offset" value="{{ offset }}"/>

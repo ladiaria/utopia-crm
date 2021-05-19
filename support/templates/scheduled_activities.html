@@ -68,7 +68,7 @@
                     <th>{% trans "Campaign" %}</th>
                     <th>{% trans "Status" %}</th>
                     <th>{% trans "Date and time" %}</th>
-                    <th>Go</th>
+                    <th></th>
                   </tr>
               </thead>
               <tbody>
@@ -78,7 +78,7 @@
                     <td>{{activity.campaign.name}}</td>
                     <td>{{activity.get_status}}</td>
                     <td>{{activity.datetime}}</td>
-                    <td><a class="btn bg-gradient-primary" href='{% url "seller_console" "act" activity.campaign.id %}'>{% trans "Go to campaign" %}</a></td>
+                    <td>{% if activity.datetime <= now %}<a class="btn bg-gradient-primary" href='{% url "seller_console" "act" activity.campaign.id %}?a={{activity.id}}'>{% trans "See in console" %}</a>{% endif %}</td>
                 </tr>
                 {% endfor %}
               </tbody>
