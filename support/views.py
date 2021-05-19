@@ -231,7 +231,7 @@ def seller_console_list_campaigns(request):
         if campaign.pending:
             campaigns_with_activities_to_do.append(campaign)
     upcoming_activity = Activity.objects.filter(
-        seller=seller, status='P', activity_type='C').order_by('datetime').first()
+        seller=seller, status='P', activity_type='C').order_by('datetime', 'id').first()
     total_pending_activities = Activity.objects.filter(seller=seller, status='P', activity_type='C').count()
     return render(
         request,
@@ -362,8 +362,11 @@ def seller_console(request, category, campaign_id):
         except Seller.DoesNotExist:
             return HttpResponse(_("User has no seller selected. Please contact your manager."))
 
+        offset, activity_id = None, None
         if request.GET.get("offset"):
             offset = request.GET.get("offset")
+        elif request.GET.get("a"):
+            activity_id = request.GET.get("a")
         else:
             offset = request.POST.get("offset")
 
@@ -379,13 +382,15 @@ def seller_console(request, category, campaign_id):
                 seller=seller,
                 status="P",
                 datetime__lte=datetime.now()
-            ).order_by('datetime')
+            ).order_by('datetime', 'id')
 
         count = console_instances.count()
         if count == 0:
             return HttpResponseRedirect(reverse('seller_console_list_campaigns'))
         if offset - 1 >= count:
             return HttpResponseRedirect(reverse('seller_console_list_campaigns'))
+        elif activity_id:
+            console_instance = console_instances.get(pk=activity_id)
         elif offset - 1 > 0:
             console_instance = console_instances[int(offset) - 1]
         else:
@@ -395,13 +400,18 @@ def seller_console(request, category, campaign_id):
         times_contacted = contact.activity_set.filter(
             activity_type="C", status="C", campaign=campaign
         ).count()
-        all_activities = Activity.objects.filter(contact=contact).order_by('-datetime')
+        all_activities = Activity.objects.filter(contact=contact).order_by('-datetime', 'id')
         if category == "act":
             # If what we're watching is an activity, let's please not show it here
             all_activities = all_activities.exclude(pk=console_instance.id)
-        all_subscriptions = Subscription.objects.filter(contact=contact).order_by('-active')
+        all_subscriptions = Subscription.objects.filter(contact=contact).order_by('-active', 'id')
         url = request.META["PATH_INFO"]
         addresses = Address.objects.filter(contact=contact).order_by("address_1")
+
+        pending_activities_count = Activity.objects.filter(
+            seller=seller, status='P', activity_type='C', datetime__lte=datetime.now()).count()
+        upcoming_activity = Activity.objects.filter(
+            seller=seller, status='P', activity_type='C').order_by('datetime', 'id').first()
 
         return render(
             request,
@@ -421,7 +431,10 @@ def seller_console(request, category, campaign_id):
                 "all_activities": all_activities,
                 "all_subscriptions": all_subscriptions,
                 "console_instance": console_instance,
+                "console_instances": console_instances,
                 "url": url,
+                "pending_activities_count": pending_activities_count,
+                "upcoming_activity": upcoming_activity,
             },
         )
 
@@ -1242,7 +1255,7 @@ def view_issue(request, issue_id):
     else:
         form = IssueChangeForm(instance=issue)
 
-    activities = issue.activity_set.all().order_by('-datetime')
+    activities = issue.activity_set.all().order_by('-datetime', 'id')
     activity_form = NewActivityForm(
         initial={
             "contact": issue.contact,
@@ -1258,7 +1271,7 @@ def view_issue(request, issue_id):
             "issue": issue,
             "activities": activities,
             "activity_form": activity_form,
-            "invoice_list": issue.contact.invoice_set.all().order_by('-creation_date')
+            "invoice_list": issue.contact.invoice_set.all().order_by('-creation_date', 'id')
         },
     )
 
@@ -1357,9 +1370,9 @@ def contact_detail(request, contact_id):
     newsletters = contact.get_newsletters()
     last_paid_invoice = contact.get_last_paid_invoice()
     inactive_subscriptions = contact.subscriptions.filter(active=False)
-    all_activities = contact.activity_set.all().order_by('-datetime')
-    all_issues = contact.issue_set.all().order_by('-date')
-    all_scheduled_tasks = contact.scheduledtask_set.all().order_by('-creation_date')
+    all_activities = contact.activity_set.all().order_by('-datetime', 'id')
+    all_issues = contact.issue_set.all().order_by('-date', 'id')
+    all_scheduled_tasks = contact.scheduledtask_set.all().order_by('-creation_date', 'id')
 
     return render(
         request,
@@ -1687,7 +1700,7 @@ def scheduled_activities(request):
         seller = Seller.objects.get(user=user)
     except Seller.DoesNotExist:
         seller = None
-    activity_queryset = Activity.objects.filter(seller=seller).order_by('datetime')
+    activity_queryset = Activity.objects.filter(seller=seller).order_by('datetime', 'id')
     activity_filter = ScheduledActivityFilter(request.GET, activity_queryset)
     page_number = request.GET.get("p")
     paginator = Paginator(activity_filter.qs, 100)
@@ -1702,6 +1715,11 @@ def scheduled_activities(request):
     return render(
         request,
         'scheduled_activities.html', {
-            'filter': activity_filter, 'activities': activities, 'seller': seller,
-            "page": page_number, "total_pages": paginator.num_pages, "count": activity_filter.qs.count()
+            'filter': activity_filter,
+            'activities': activities,
+            'seller': seller,
+            "page": page_number,
+            "total_pages": paginator.num_pages,
+            "count": activity_filter.qs.count(),
+            "now": datetime.now(),
         })
