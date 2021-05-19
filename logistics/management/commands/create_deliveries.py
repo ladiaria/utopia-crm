@@ -18,6 +18,7 @@ class Command(BaseCommand):
         sp_queryset = SubscriptionProduct.objects.filter(
             product__weekday=isoweekday, subscription__active=True, subscription__start_date__lte=today)
 
+        print("Creating deliveries for the day {}")
         for route in sp_queryset.values('route_id').distinct():
             route_id = route['route_id']
             if route_id is None:
@@ -26,6 +27,14 @@ class Command(BaseCommand):
             nd, created = Delivery.objects.get_or_create(
                 date=today,
                 route=route['route_id'],
-                copies=copies,
             )
-            print("New delivery for route {} ({}): {}".format(route_id, today, copies))
+            if nd.copies:
+                nd.copies = nd.copies + copies
+            else:
+                nd.copies = copies
+            nd.save()
+            if created:
+                print("New delivery for route {} ({}): {}".format(route_id, copies))
+            else:
+                print("Added {} copies to delivery for route {}".format(copies, route_id))
+        print("Ended process")
