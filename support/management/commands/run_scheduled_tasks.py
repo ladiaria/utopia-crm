@@ -69,6 +69,7 @@ class Command(BaseCommand):
                         subscription=subscription,
                         product=sp.product,
                         status='A',
+                        date=date.today(),
                     )
                 # The status of the subscription is going to be OK again
                 subscription.status = 'OK'
