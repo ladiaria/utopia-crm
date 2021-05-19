@@ -239,7 +239,7 @@ class Delivery(models.Model):
     route = models.IntegerField(
         verbose_name=_('Route'))
     copies = models.IntegerField(
-        verbose_name=_('Copies'))
+        verbose_name=_('Copies'), null=True, blank=True)
 
     class Meta:
         verbose_name = _('delivery')
