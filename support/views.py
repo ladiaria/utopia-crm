@@ -3,6 +3,7 @@ import unicodecsv
 from datetime import date, timedelta, datetime
 
 from django import forms
+from django.contrib import messages
 from django.contrib.auth.models import User
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Q, Count
@@ -84,7 +85,8 @@ def import_contacts(request):
             # consume header
             reader.next()
         except unicodecsv.Error:
-            return HttpResponse(_("No delimiters found in csv file. Please check the delimiters for csv files."))
+            messages.error(request, _("No delimiters found in csv file. Please check the delimiters for csv files."))
+            return HttpResponseRedirect(reverse("import_contacts"))
 
         for row_number, row in enumerate(reader, start=1):
             try:
@@ -106,9 +108,11 @@ def import_contacts(request):
                 if work_phone and work_phone.startswith("9"):
                     work_phone = "0{}".format(work_phone)
             except IndexError:
-                return HttpResponse(
+                messages.error(
+                    request,
                     _("The column count is wrong, please check that the header has at least 10 columns")
                 )
+                return HttpResponseRedirect(reverse("import_contacts"))
             cpx = Q()
             # We're going to look for all the fields with possible coincidences
             if email:
@@ -211,9 +215,11 @@ def seller_console_list_campaigns(request):
     try:
         seller = Seller.objects.get(user=user)
     except Seller.DoesNotExist:
-        return HttpResponse(_("User has no seller selected. Please contact your manager."))
-    except Seller.MultipleObjectsReturned as e:
-        return HttpResponse(e.message)
+        messages.error(request, _("User has no seller selected. Please contact your manager."))
+        return HttpResponseRedirect(reverse("main_menu"))
+    except Seller.MultipleObjectsReturned:
+        messages.error(request, _("This seller is set in more than one user. Please contact your manager."))
+        return HttpResponseRedirect(reverse("main_menu"))
 
     # We'll make these lists so we can append the sub count to each campaign
     campaigns_with_not_contacted, campaigns_with_activities_to_do = [], []
@@ -360,7 +366,8 @@ def seller_console(request, category, campaign_id):
         try:
             seller = Seller.objects.get(user=user)
         except Seller.DoesNotExist:
-            return HttpResponse(_("User has no seller selected. Please contact your manager."))
+            messages.error(request, _("User has no seller selected. Please contact your manager."))
+            return HttpResponseRedirect(reverse("main_menu"))
 
         offset, activity_id = None, None
         if request.GET.get("offset"):
@@ -904,13 +911,16 @@ def assign_campaigns(request):
                 },
             )
         except unicodecsv.Error:
-            return HttpResponse(
+            messages.error(
+                request,
                 u"Error: No se encuentran delimitadores en el archivo "
                 u"ingresado, deben usarse ',' (comas) <br/><a href="
                 u"'.'>Volver</a>"
             )
+            return HttpResponseRedirect(reverse("assign_campaigns"))
         except Exception as e:
-            return HttpResponse(u"Error: %s" % e.message)
+            messages.error(request, u"Error: %s" % e.message)
+            return HttpResponseRedirect(reverse("assign_campaigns"))
     elif request.POST and request.POST.get("tags"):
         errors, count = [], 0
         campaign = request.POST.get("campaign")
@@ -974,7 +984,8 @@ def assign_seller(request, campaign_id):
         for seller, amount in seller_list:
             total += int(amount)
         if total > campaign.count:
-            return HttpResponse(u"Cantidad de clientes superior a la que hay.")
+            messages.error(request, u"Cantidad de clientes superior a la que hay.")
+            return HttpResponseRedirect(reverse("assign_sellers"))
         for seller, amount in seller_list:
             if amount:
                 for status in ContactCampaignStatus.objects.filter(
@@ -984,7 +995,8 @@ def assign_seller(request, campaign_id):
                     try:
                         status.save()
                     except Exception as e:
-                        return HttpResponse(e.message)
+                        messages.error(request, e.message)
+                        return HttpResponseRedirect(reverse("assign_sellers"))
         return HttpResponseRedirect(reverse("assign_sellers", args=[campaign_id]))
 
     sellers = Seller.objects.filter(internal=True)
@@ -1627,11 +1639,13 @@ def sync_with_mailtrain(request, dcf_id):
     dcf = get_object_or_404(DynamicContactFilter, pk=dcf_id)
     dcf.sync_with_mailtrain_list()
     if dcf.mailtrain_id is None:
-        return HttpResponse(_("Error: This filter has no mailtrain id"))
+        messages.error(request, _("Error: This filter has no mailtrain id"))
+        return HttpResponseRedirect(reverse("sync_with_mailtrain"))
     try:
         dcf.sync_with_mailtrain_list()
     except Exception as e:
-        return HttpResponse(_("Error: {}".format(e.message)))
+        messages.error(request, _("Error: {}".format(e.message)))
+        return HttpResponseRedirect(revesre("sync_with_mailtrain"))
     else:
         return HttpResponseRedirect(
             reverse("dynamic_contact_filter_edit", args=[dcf.id])
