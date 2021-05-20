@@ -6,6 +6,7 @@ from dateutil.relativedelta import relativedelta
 
 from django.urls import reverse
 from django.conf import settings
+from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Q, Sum
@@ -307,10 +308,11 @@ def bill_subscriptions_for_one_contact(request, contact_id):
         dpp = request.POST.get('dpp', 10)
         for subscription in contact.subscriptions.filter(active=True, next_billing__lte=creation_date):
             try:
-                bill_subscription(subscription.id, creation_date, dpp)
+                invoice = bill_subscription(subscription.id, creation_date, dpp)
             except Exception as e:
-                # TODO: Use a fancier error page
-                return HttpResponse(e.message)
+                messages.error(request, e.message)
+            else:
+                messages.success(request, _("Invoice {} has been created successfully".format(invoice.id)))
         return HttpResponseRedirect(
             reverse("contact_invoices", args=(contact_id,)))
     else:
