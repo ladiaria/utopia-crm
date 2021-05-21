@@ -166,7 +166,7 @@ class InvoiceItem(models.Model):
     )
 
     def __unicode__(self):
-        return self.description
+        return unicode(self.description)
 
     class Meta:
         verbose_name = "invoice item"

@@ -59,8 +59,8 @@ transition: border-color .15s ease-in-out,box-shadow .15s ease-in-out;
 }
 
 .inline-group .tabular tr.has_original td {
-    padding-top: 0;
-    vertical-align: middle;
+    padding-top: 10px;
+    vertical-align: top;
 }
 
 .related-widget-wrapper-link {

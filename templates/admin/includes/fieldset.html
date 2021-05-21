@@ -1,11 +1,16 @@
-<div class="card card-info">
+<div class="card card-info {% if 'collapse' in fieldset.classes %}collapsed-card{% endif %}">
     <div class="card-header bg-secondary">
         <h3 class="card-title">{% if fieldset.name %}{{ fieldset.name }}{% endif %}</h3>
         {% if fieldset.description %}
         <div class="description">{{ fieldset.description|safe }}</div>
         {% endif %}
         <div class="card-tools">
-            <button type="button" class="btn btn-tool" data-card-widget="collapse"><i class="fas fa-minus"></i>
+            <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                {% if 'collapse' in fieldset.classes %}
+                    <i class="fas fa-plus"></i>
+                {% else %}
+                    <i class="fas fa-minus"></i>
+                {% endif %}
             </button>
           </div>
     </div>
@@ -16,7 +21,7 @@
             {% for field in line %}
             <label for="{{field.field.name}}" class="col-sm-2 col-form-label">{{ field.label_tag }}</label>
 
-            <div class="col-sm-10">
+            <div class="col-sm">
                 {% if field.is_checkbox %}
                 {{ field.field }}
                 {% else %}
