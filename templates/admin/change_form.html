@@ -44,6 +44,7 @@
 <div id="content-main" class="container-fluid">
     {% block object-tools %}
     {% if change %}{% if not is_popup %}
+    <div>
     <ul class="object-tools clearfix">
         {% block object-tools-items %}
         <li>
@@ -55,9 +56,10 @@
         </li>{% endif %}
         {% endblock %}
     </ul>
+    </div>
     {% endif %}{% endif %}
     {% endblock %}
-    <div class="row">
+    <div class="row col-md-12">
         <div class="col-md-12">
             <form {% if has_file_field %}enctype="multipart/form-data" {% endif %}action="{{ form_url }}" method="post"
                 id="{{ opts.model_name }}_form" novalidate>{% csrf_token %}{% block form_top %}{% endblock %}

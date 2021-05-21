@@ -1,6 +1,7 @@
 # coding=utf-8
 from __future__ import unicode_literals
 
+from django.forms import forms
 from django.contrib.admin import SimpleListFilter
 from django.utils.translation import ugettext_lazy as _
 from django.contrib import admin
@@ -86,11 +87,12 @@ class SubscriptionInline(admin.StackedInline):
     fieldsets = (
         (None, {
             'fields': (
-                ('id', 'active', 'frequency', 'status'),
+                ('id', 'active'),
+                ('frequency', 'status'),
                 ('campaign', 'seller'),
-                ('type', 'edit_products_field'),
+                ('type', 'next_billing',),
+                ('edit_products_field',),
                 ('start_date', 'end_date'),
-                ('next_billing', ),
             )
         }),
         (None, {
@@ -99,9 +101,10 @@ class SubscriptionInline(admin.StackedInline):
         (_('Billing data'), {
             'fields': (
                 ('payment_type'),
-                ('billing_address'),
-                ('billing_name', 'billing_id_doc'),
-                ('rut', 'billing_phone', 'billing_email'),
+                ('billing_address', 'billing_name'),
+                ('billing_id_doc',),
+                ('rut',),
+                ('billing_phone', 'billing_email'),
                 ('balance', 'send_bill_copy_by_email'))}),
         (_('Unsubscription'), {
             'classes': ('collapse', ),
@@ -136,10 +139,40 @@ class SubscriptionInline(admin.StackedInline):
         return field
 
 
+class SubscriptionAdminForm(forms.ModelForm):
+    class Meta:
+        model = Subscription
+        fields = "__all__"
+
+    def __init__(self, *args, **kwargs):
+        super(SubscriptionAdminForm, self).__init__(*args, **kwargs)
+        if 'instance' in kwargs:
+            self.fields['billing_address'].queryset = Address.objects.filter(
+                contact=kwargs['instance'].contact)
+
+
 class SubscriptionAdmin(admin.ModelAdmin):
     model = Subscription
     inlines = [SubscriptionProductInline]
-    fieldsets = (('Contact data', {'fields': ('contact', )}), )
+    form = SubscriptionAdminForm
+    fieldsets = (
+        ('Contact data', {'fields': ('contact', )}),
+        ('Subscription data', {'fields': (
+            ('active', 'status'),
+            ('start_date', 'end_date'),
+            ('next_billing', 'payment_type'),
+            ('balance', 'frequency'),
+            ('send_bill_copy_by_email'),
+        )}),
+        ('Billing data', {
+            'classes': ('collapse',),
+            'fields': (
+                ('billing_name', 'billing_address',),
+                ('billing_phone', 'billing_email'),
+                ('billing_id_doc',),
+                ('rut',),
+            )}),
+    )
     list_display = ('contact', 'active', 'payment_type', 'campaign', 'product_summary')
     list_editable = ('active', 'payment_type')
     list_filter = ('campaign', 'active', 'payment_type')
