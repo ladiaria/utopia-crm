@@ -393,11 +393,17 @@ def seller_console(request, category, campaign_id):
 
         count = console_instances.count()
         if count == 0:
+            messages.success(request, _("You've reached the end of this list"))
             return HttpResponseRedirect(reverse('seller_console_list_campaigns'))
         if offset - 1 >= count:
+            messages.success(request, _("You've reached the end of this list"))
             return HttpResponseRedirect(reverse('seller_console_list_campaigns'))
         elif activity_id:
-            console_instance = console_instances.get(pk=activity_id)
+            try:
+                console_instance = console_instances.get(pk=activity_id)
+            except Activity.DoesNotExist:
+                messages.error(request, _("An error has occurred with activity number {}".format(activity_id)))
+                return HttpResponseRedirect(reverse('seller_console_list_campaigns'))
         elif offset - 1 > 0:
             console_instance = console_instances[int(offset) - 1]
         else:
