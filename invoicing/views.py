@@ -127,7 +127,6 @@ def bill_subscription(subscription_id, billing_date=date.today(), dpp=10, check_
             subtotal -= item.price
         item.amount = item.price * item.copies
         # save all the package
-        item.save()
         invoice_items.append(item)
 
     if percentage_discount_product:
@@ -142,7 +141,6 @@ def bill_subscription(subscription_id, billing_date=date.today(), dpp=10, check_
         item.product = percentage_discount_product
         item.copies = 1
         item.amount = item.price  # Copies is 1 so this is also the amount
-        item.save()
         invoice_items.append(item)
 
     # After adding all of the invoiceitems, we need to check if the subscription has an envelope. In future reviews
@@ -188,27 +186,6 @@ def bill_subscription(subscription_id, billing_date=date.today(), dpp=10, check_
         frequency_discount_item.type = 'D'
         invoice_items.append(frequency_discount_item)
 
-    # Then we add or subtract the balance if it exists
-    if subscription.balance and subscription.balance != 0:
-        balance_item = InvoiceItem()
-        if subscription.balance > 0:
-            balance_item.description = _('Balance')
-            # This means the item is a discount.
-            balance_item.type = 'D'
-            balance_item.amount = float(subscription.balance)
-            # 1 means it's a plain value
-            balance_item.type_dr = 1
-        elif subscription.balance < 0:
-            balance_item.description = _('Balance owed')
-            # 1 means it's a plain value
-            balance_item.type_dr = 1
-            # This means the item is a surcharge
-            balance_item.type = 'R'
-        # We don't want any negative shenanigans so we'll use the absolute.
-        balance_item.amount = abs(float(subscription.balance))
-        invoice_items.append(balance_item)
-        subscription.balance = None
-
     if invoice_items:
         try:
             # Make the sum of all InvoiceItems of the type 'I' and 'R'
@@ -231,6 +208,41 @@ def bill_subscription(subscription_id, billing_date=date.today(), dpp=10, check_
                 amount = round(amount)
                 invoice_items.append(round_item)
 
+            # After we did the rounding and calculated the invoice amount, we'll make sure the balance item isn't
+            # greater than the invoice, we don't want a negative value invoice!
+            if subscription.balance and subscription.balance != 0:
+                balance_item = InvoiceItem()
+                if subscription.balance > 0:
+                    # If the balance is positive, it means this invoice will have a discount.
+                    balance_item.description = _('Balance')
+                    balance_item.type = 'D'  # This means the item is a discount.
+                    if subscription.balance > amount:
+                        balance_item.amount = amount
+                    else:
+                        balance_item.amount = subscription.balance
+                    balance_item.type_dr = 1  # 1 means it's a plain value
+                    subscription.balance -= balance_item.amount  # Then subtract the balance from the subscription
+                    amount -= balance_item.amount  # And then we subtract that value from the invoice
+                elif subscription.balance < 0:
+                    # If the balance is negative, it means the person owes us money, we'll make a surcharge.
+                    balance_item.description = _('Balance owed')
+                    balance_item.type_dr = 1  # 1 means it's a plain value
+                    balance_item.type = 'R'  # This means the item is a surcharge
+                    balance_item.amount = abs(subscription.balance)  # The entire balance is applied to the item
+                    subscription.balance = None  # After that, we can deplete it from the subscription
+                    amount += balance_item.amount  # And then we add that value to the invoice
+                # We don't want any negative shenanigans so we'll use the absolute.
+                balance_item.amount = abs(balance_item.amount)
+                invoice_items.append(balance_item)
+
+            # We need to move the next billing even if the subscription is not billed
+            subscription.next_billing = (subscription.next_billing or subscription.start_date) + relativedelta(
+                months=subscription.frequency)
+            subscription.save()
+
+            # Move the next billing to how many months it's necessary.
+            # If the subscription doesn't have next_billing, we'll create one using the start_date of the subscription.
+
             assert amount, _("This subscription won't be billed since amount is 0")
 
             payment_method = subscription.payment_type
@@ -251,27 +263,14 @@ def bill_subscription(subscription_id, billing_date=date.today(), dpp=10, check_
                 order=billing_data['order'],
                 expiration_date=expiration_date,
                 billing_document=subscription.rut,
-                subscription=subscription
+                subscription=subscription,
+                amount=amount,
             )
 
             # We add all invoice items to the invoice.
             for item in invoice_items:
-                item.invoice = invoice
                 item.save()
-
-            # Finally we add the amount to the invoice, so we make sure everything is correct when you try to send them
-            # to your preferred electronic invoicing provider.
-            invoice.amount = amount
-            invoice.save()
-
-            # Move the next billing to how many months it's necessary.
-            # If the subscription doesn't have next_billing, we'll create one using the start_date of the subscription.
-            # TODO: this collides with the assert at the beginning of this view, is that ok?
-
-            # TODO: Add or remove discounts to the invoice, maybe
-            subscription.next_billing = (subscription.next_billing or subscription.start_date) + relativedelta(
-                months=subscription.frequency)
-            subscription.save()
+                invoice.invoiceitem_set.add(item)
 
             # When the invoice has finally been created and every date has been moved where it should have been, we're
             # going to check if there's any temporary discounts, and remove them if it applies.
@@ -284,8 +283,6 @@ def bill_subscription(subscription_id, billing_date=date.today(), dpp=10, check_
                     ):
                         invoice.subscription.remove_product(Product.objects.get(slug=discount_slug))
 
-            # TODO:
-            # - Notes
         except Exception as e:
             raise Exception("Contact {} Subscription {}: {}".format(
                 subscription.contact.id, subscription.id, e.message))
