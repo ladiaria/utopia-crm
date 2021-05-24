@@ -56,36 +56,38 @@
 
     <form action="" method="post" >
       {% csrf_token %}
-      <table class="table table-hover table-head-fixed">
-        <thead>
-          <tr>
-              <th>{% trans 'Name' %}</th>
-              <th>{% trans 'Producto' %}</th>
-              <th>{% trans 'Address' %}</th>
-              <th>{% trans 'Complement' %}</th>
-              <th>{% trans 'City' %}</th>
-              <th>{% trans 'Department' %}</th>
-              <th>{% trans 'Message' %}</th>
-              <th>{% trans 'Instructions' %}</th>
-              <th>{% trans 'Route' %}</th>
-          </tr>
-        </thead>
-        <tbody>
-        {% for sp in subscription_products %}
-          <tr class="{% cycle 'row1' 'row2' %}">
-            <td><a href="{% url 'contact_detail' sp.subscription.contact.id %}">{{ sp.subscription.contact.name }}</a></td>
-              <td>{{ sp.product.name }}</td>
-              <td>{{ sp.address.address_1|default_if_none:'' }}</td>
-              <td>{{ sp.address.address_2|default_if_none:'' }}</td>
-              <td>{{ sp.address.city }}</td>
-              <td>{{ sp.address.state }}</td>
-              <td><input maxlength="40" type="text" name="message-{{ sp.id }}" value="{{ sp.label_message|default_if_none:'' }}" /></td>
-              <td><input type="text" name="instructions-{{ sp.id }}" value="{{ sp.special_instructions|default_if_none:'' }}" /></td>
-              <td><input type="text" name="sp-{{ sp.id }}" value="{{sp.route|default_if_none:''}}" size="2" tabindex="{{ forloop.counter }}"/></td>
-          </tr>
-        {% endfor %}
-        </tbody>
-      </table>
+      <div class="">
+        <table class="table table-hover table-head-fixed">
+          <thead>
+            <tr>
+                <th>{% trans 'Name' %}</th>
+                <th>{% trans 'Producto' %}</th>
+                <th>{% trans 'Address' %}</th>
+                <th>{% trans 'Complement' %}</th>
+                <th>{% trans 'City' %}</th>
+                <th>{% trans 'Department' %}</th>
+                <th>{% trans 'Message' %}</th>
+                <th>{% trans 'Instructions' %}</th>
+                <th>{% trans 'Route' %}</th>
+            </tr>
+          </thead>
+          <tbody>
+          {% for sp in subscription_products %}
+            <tr class="{% cycle 'row1' 'row2' %}">
+              <td><a href="{% url 'contact_detail' sp.subscription.contact.id %}">{{ sp.subscription.contact.name }}</a></td>
+                <td>{{ sp.product.name }}</td>
+                <td>{{ sp.address.address_1|default_if_none:'' }}</td>
+                <td>{{ sp.address.address_2|default_if_none:'' }}</td>
+                <td>{{ sp.address.city }}</td>
+                <td>{{ sp.address.state }}</td>
+                <td><input class="form-control" maxlength="40" type="text" name="message-{{ sp.id }}" value="{{ sp.label_message|default_if_none:'' }}" /></td>
+                <td><input class="form-control" type="text" name="instructions-{{ sp.id }}" value="{{ sp.special_instructions|default_if_none:'' }}" /></td>
+                <td><input type="number" name="sp-{{ sp.id }}" value="{{sp.route|default_if_none:''}}" size="4" tabindex="{{ forloop.counter }}"/></td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
       <div class="text-right">
         <input type="submit" value="{% trans 'Send' %}" class="btn btn-gradient btn-primary"/>
       </div>
