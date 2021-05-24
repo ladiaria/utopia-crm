@@ -143,8 +143,11 @@ def change_route(request, route=1):
             subscription_products = subscription_products.exclude(product_id=exclude)
     return render(
         request, 'change_route.html', {
-            'subscription_products': subscription_products, 'route': route, 'product_list': product_list,
-            'product_id': product_id})
+            'subscription_products': subscription_products,
+            'route': route,
+            'product_list': product_list,
+            'product_id': product_id
+        })
 
 
 @login_required

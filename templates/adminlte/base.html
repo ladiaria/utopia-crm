@@ -25,6 +25,10 @@
 {% block body %}
     <div class="wrapper">
 
+        {% block nav_header %}
+            {% include 'adminlte/lib/_main_header.html' %}
+        {% endblock %}
+
         {% block nav_sidebar %}
             {% include 'adminlte/lib/_main_sidebar.html' %}
         {% endblock %}
