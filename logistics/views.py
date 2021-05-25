@@ -259,13 +259,8 @@ def print_labels(request, page='Roll', list_type='', route_list='', product_id=N
                 label.has_invoice = has_invoice and sp.subscription.get_first_day_of_the_week() + 1 == \
                     tomorrow_isoweekday
 
-            # Here we determine if the subscription needs an envelope. We might need to move those words to a setting
-            if sp.subscription.envelope or sp.subscription.free_envelope or (
-                    sp.subscription.start_date >= next_business_day() -
-                    timedelta(days) and sp.address and (
-                    sp.address.address_1.find(' ap ') != -1 or
-                    sp.address.address_1.find(' of ') != -1 or
-                    sp.address.address_1.find(' esc ') != -1)):
+            # Here we determine if the subscription needs an envelope.
+            if sp.envelope or sp.free_envelope:
                 label.envelope = True
 
             if sp.subscription.start_date == next_business_day():
@@ -322,15 +317,14 @@ def print_labels_for_product(request, page='Roll', product_id=None, list_type=''
                 # Then for each route, we add to that empty queryset all those values
                 subscription_products = subscription_products | SubscriptionProduct.objects.filter(
                     product=product, subscription__active=True, route__number=route_number,
-                    subscription__start_date__lte=today + timedelta(5)).exclude(
-                    route__print_labels=False).order_by(
+                    subscription__start_date__lte=today + timedelta(5)).order_by(
                         'route', F('order').asc(nulls_first=True), 'address__address_1')
     else:
         # If not, all the queryset gets rendered into the labels
         subscription_products = SubscriptionProduct.objects.filter(
             product=product, subscription__active=True,
-            subscription__start_date__lte=today + timedelta(5)).exclude(
-            route__print_labels=False).order_by('route', F('order').asc(nulls_first=True), 'address__address_1')
+            subscription__start_date__lte=today + timedelta(5)).order_by(
+                'route', F('order').asc(nulls_first=True), 'address__address_1')
 
     old_route = 0
 
@@ -349,15 +343,7 @@ def print_labels_for_product(request, page='Roll', product_id=None, list_type=''
 
             label = iterator.next()
 
-            # Aqui se determina cuando el cliente recibe con sobre, puede
-            # ser en base a los flags sobre[_gratis] o los 2 primeros dias
-            # en base a las palabras ' ap ', ' of ', ' esc ' en la
-            # direccion de entrega
-            if sp.subscription.envelope or sp.subscription.free_envelope or (
-                    sp.subscription.start_date >= today and sp.address and (
-                    sp.address.address_1.find(' ap ') != -1 or
-                    sp.address.address_1.find(' of ') != -1 or
-                    sp.address.address_1.find(' esc ') != -1)):
+            if sp.subscription.envelope or sp.subscription.free_envelope:
                 label.envelope = True
 
             if sp.subscription.start_date == next_business_day():

@@ -24,7 +24,7 @@ from reportlab.platypus import Table, TableStyle
 
 from .filters import InvoiceFilter
 from invoicing.models import Invoice, InvoiceItem, Billing, CreditNote
-from core.models import Contact, Subscription, Product
+from core.models import Contact, Subscription, Product, SubscriptionProduct
 
 
 reportlab.rl_config.TTFSearchPath.append(str(settings.STATIC_ROOT) + '/fonts')
@@ -146,13 +146,15 @@ def bill_subscription(subscription_id, billing_date=date.today(), dpp=10, check_
     # After adding all of the invoiceitems, we need to check if the subscription has an envelope. In future reviews
     # this should be deprecated and envelopes should be its own product, because here you'd end up adding envelopes
     # to digital products potentially. Fancy digital envelopes huh?
-    if subscription.envelope and getattr(settings, 'ENVELOPE_PRICE'):
+    if SubscriptionProduct.objects.filter(
+            subscription=subscription, envelope=True).exists() and getattr(settings, 'ENVELOPE_PRICE', None):
         envelope_price = settings.ENVELOPE_PRICE
         # Get the amount of days per week the subscription gets the paper
-        products_count = subscription.get_product_count()
+        products_with_envelope_count = SubscriptionProduct.objects.filter(
+            subscription=subscription, envelope=True).count()
         # Then we multiply the amount of days by 4.25 (average of weeks per
         # month) and that amount by the price of the envelope
-        amount = 4.25 * products_count * envelope_price * subscription.frequency
+        amount = products_with_envelope_count * envelope_price * subscription.frequency
         # We now pack the value into an InvoiceItem and add it to the list
         envelope_item = InvoiceItem()
         envelope_item.description = _('Envelope')
