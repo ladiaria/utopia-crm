@@ -82,7 +82,7 @@
                 <td>{{ sp.address.state }}</td>
                 <td><input class="form-control" maxlength="40" type="text" name="message-{{ sp.id }}" value="{{ sp.label_message|default_if_none:'' }}" /></td>
                 <td><input class="form-control" type="text" name="instructions-{{ sp.id }}" value="{{ sp.special_instructions|default_if_none:'' }}" /></td>
-                <td><input type="number" name="sp-{{ sp.id }}" value="{{sp.route|default_if_none:''}}" size="4" tabindex="{{ forloop.counter }}"/></td>
+                <td><input type="number" class="form-control" name="sp-{{ sp.id }}" value="{{sp.route|default_if_none:''}}" tabindex="{{ forloop.counter }}" style="min-width:65px"/></td>
             </tr>
           {% endfor %}
           </tbody>
