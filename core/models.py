@@ -1406,6 +1406,12 @@ class Subscription(models.Model):
             months += m
         return months
 
+    def get_subscriptionproducts(self, without_discounts=False):
+        qs = SubscriptionProduct.objects.filter(subscription=self).select_related('product')
+        if without_discounts:
+            qs = qs.exclude(product__type='D')
+        return qs
+
     class Meta:
         verbose_name = _("subscription")
         verbose_name_plural = _("subscriptions")

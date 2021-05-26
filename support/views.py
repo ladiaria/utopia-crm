@@ -1714,6 +1714,7 @@ def edit_newsletters(request, contact_id):
         return HttpResponseRedirect(reverse('edit_contact', args=[contact_id]))
 
 
+@staff_member_required
 def scheduled_activities(request):
     user = User.objects.get(username=request.user.username)
     try:
@@ -1742,4 +1743,35 @@ def scheduled_activities(request):
             "total_pages": paginator.num_pages,
             "count": activity_filter.qs.count(),
             "now": datetime.now(),
+        })
+
+
+@staff_member_required
+def edit_envelopes(request, subscription_id):
+    subscription = get_object_or_404(Subscription, pk=subscription_id)
+    if request.POST:
+        try:
+            for name, value in request.POST.items():
+                if name.startswith("env-"):
+                    sp_id = name.replace("env-", "")
+                    sp = SubscriptionProduct.objects.get(pk=sp_id)
+                    if sp.subscription != subscription:
+                        raise(_("Incorrect data"))
+                    if value == "-":
+                        sp.has_envelope = None
+                    else:
+                        sp.has_envelope = value
+                    sp.save()
+        except Exception as e:
+            messages.error(request, e.message)
+            return HttpResponseRedirect(reverse("contact_detail", args=[subscription.contact_id]))
+
+        messages.success(request, _("Envelope data has been saved."))
+        return HttpResponseRedirect(reverse("contact_detail", args=[subscription.contact_id]))
+
+    return render(
+        request,
+        'edit_envelopes.html', {
+            'subscription': subscription,
+            'subscription_products': subscription.get_subscriptionproducts(without_discounts=True)
         })

@@ -34,4 +34,5 @@ urlpatterns = [
     url(r'^register_activity/$', register_activity, name="register_activity"),
     url(r'^contacts/(\d+)/edit/$', edit_contact, name='edit_contact'),
     url(r'^edit_newsletters/(\d+)/$', edit_newsletters, name='edit_newsletters'),
+    url(r'^edit_envelopes/(\d+)/$', edit_envelopes, name='edit_envelopes'),
 ]

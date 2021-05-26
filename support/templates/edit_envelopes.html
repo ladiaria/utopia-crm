@@ -1,0 +1,82 @@
+{% extends 'adminlte/base.html' %}
+{% load static i18n widget_tweaks %}
+
+{% block stylesheets %}
+    {{block.super}}
+    <link rel="stylesheet" href="{% static 'css/jquery-ui.css' %}" />
+{% endblock %}
+{% block extra_head %}
+<script type="text/javascript" src="{% static 'js/jquery-3.3.1.min.js' %}"></script>
+<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+<script type="text/javascript" src="{% static 'js/datepicker-es.js' %}"></script>
+<script type="text/javascript">
+    $( function() {
+        $(".datepicker").datepicker({ dateFormat: 'yy-mm-dd' });
+      });
+</script>
+{% endblock %}
+
+{% block content %}
+
+
+<section class="content-header">
+  <div class="container-fluid">
+    <div class="row mb-2">
+      <div class="col-sm-12">
+        <h2>
+        {% blocktrans with subscription_id=subscription.id name=subscription.contact.name %}
+            Edit envelopes for subscription id {{subscription_id}} for contact {{name}}
+        {% endblocktrans %}
+        </h2>
+      </div>
+    </div>
+  </div>
+</section>
+<section class="content">
+  <div class="container-fluid">
+    <div class="row">
+      <div class="col-md-12">
+        <div class="card">
+          <div class="card-body">
+            <div class="tab-pane" id="newsletters">
+                <div class="row">
+                  <div class="col-md-8">
+                    <form method="post">
+                      {% csrf_token %}
+                      <div class="card">
+                        <div class="card-header">
+                          <h2 class="card-title">{% trans "Subscription products" %}</h2>
+                        </div>
+                        <div class="card-body">
+                          <div class="form-group">
+                            {% for sp in subscription_products %}
+                              <div class="row {% if forloop.counter > 1 %}border-top{% endif %}">
+                                <div class="col-5 m-2">
+                                  {{sp.product.name}}
+                                </div>
+                                <div class="col-5 m-2">
+                                  <select name="env-{{sp.id}}" class="form-control">
+                                    <option {% if not sp.has_envelope %}selected{% endif %}>-</option>
+                                    <option {% if sp.has_envelope == 1 %}selected{% endif %} value="1">{% trans "Paid envelope" %}</option>
+                                    <option {% if sp.has_envelope == 2 %}selected{% endif %} value="2">{% trans "Free envelope" %}</option>
+                                  </select>
+                                </div>
+                              </div>
+                            {% endfor %}
+                          </div>
+                        </div>
+                      </div>
+                      <div class="text-right">
+                        <button class="btn btn-primary" type="submit">{% trans "Save" %}</button>
+                      </div>
+                    </form>
+                  </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
