@@ -625,6 +625,8 @@ class SubscriptionProduct(models.Model):
     seller = models.ForeignKey(
         "support.Seller", blank=True, null=True, on_delete=models.SET_NULL
     )
+    has_envelope = models.PositiveSmallIntegerField(
+        blank=True, null=True, verbose_name=_("Envelope"), choices=ENVELOPE_CHOICES)
 
     def __unicode__(self):
         if self.address:
@@ -1131,22 +1133,6 @@ class Subscription(models.Model):
             discount_item.subscription = self
             invoiceitem_list.append(discount_item)
 
-        # If the subscription has an envelope, we make sure to add the price of the envelope as well.
-        # For this to work, an ENVELOPE_PRICE must be set in settings. Not necessary if not used
-        if self.envelope and getattr(settings, "ENVELOPE_PRICE"):
-            envelope_price = settings.ENVELOPE_PRICE
-            # Get the amount of days per week the subscription gets the paper
-            products_per_week = self.get_product_count()
-            # Then we multiply the amount of days by 4.25 (average of weeks per
-            # month) and that amount by the price of the envelope
-            amount = 4.25 * products_per_week * envelope_price * self.frequency
-            # We now pack the value into an InvoiceItem and add it to the list
-            envelope_item = InvoiceItem()
-            envelope_item.description = _("Envelope")
-            envelope_item.amount = amount
-            envelope_item.subscription = self
-            invoiceitem_list.append(envelope_item)
-
         return invoiceitem_list
 
     def product_summary(self):
@@ -1527,6 +1513,9 @@ class Activity(models.Model):
     direction = models.CharField(
         choices=ACTIVITY_DIRECTION_CHOICES, default="O", max_length=1
     )
+
+    def __unicode__(self):
+        return _("Activity {} for contact {}".format(self.id, self.contact.id))
 
     def get_contact_seller(self):
         """
