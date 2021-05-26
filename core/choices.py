@@ -170,3 +170,8 @@ DYNAMIC_CONTACT_FILTER_MODES = [
     (2, _('All products')),
     (3, 'Newsletters'),
 ]
+
+ENVELOPE_CHOICES = (
+    (1, _("Paid envelope")),
+    (2, _("Free envelope")),
+)
