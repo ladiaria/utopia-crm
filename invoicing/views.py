@@ -147,11 +147,11 @@ def bill_subscription(subscription_id, billing_date=date.today(), dpp=10, check_
     # this should be deprecated and envelopes should be its own product, because here you'd end up adding envelopes
     # to digital products potentially. Fancy digital envelopes huh?
     if SubscriptionProduct.objects.filter(
-            subscription=subscription, envelope=True).exists() and getattr(settings, 'ENVELOPE_PRICE', None):
+            subscription=subscription, has_envelope=1).exists() and getattr(settings, 'ENVELOPE_PRICE', None):
         envelope_price = settings.ENVELOPE_PRICE
         # Get the amount of days per week the subscription gets the paper
         products_with_envelope_count = SubscriptionProduct.objects.filter(
-            subscription=subscription, envelope=True).count()
+            subscription=subscription, has_envelope=1).count()
         # Then we multiply the amount of days by 4.25 (average of weeks per
         # month) and that amount by the price of the envelope
         amount = products_with_envelope_count * envelope_price * subscription.frequency

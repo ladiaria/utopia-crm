@@ -625,10 +625,8 @@ class SubscriptionProduct(models.Model):
     seller = models.ForeignKey(
         "support.Seller", blank=True, null=True, on_delete=models.SET_NULL
     )
-    envelope = models.NullBooleanField(default=False, verbose_name=_("Envelope"))
-    free_envelope = models.NullBooleanField(
-        default=False, verbose_name=_("Free envelope")
-    )
+    has_envelope = models.PositiveSmallIntegerField(
+        blank=True, null=True, verbose_name=_("Envelope"), choices=ENVELOPE_CHOICES)
 
     def __unicode__(self):
         if self.address:

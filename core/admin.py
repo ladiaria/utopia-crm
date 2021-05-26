@@ -53,7 +53,7 @@ class SubscriptionProductInline(admin.TabularInline):
     fields = (
         ('product', 'copies', 'address'),
         ('route', 'order', 'label_contact', 'seller'),
-        ('envelope', 'free_envelope'),
+        ('has_envelope',),
     )
     raw_id_fields = ['route', 'label_contact', 'seller']
     extra = 1

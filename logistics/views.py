@@ -260,7 +260,7 @@ def print_labels(request, page='Roll', list_type='', route_list='', product_id=N
                     tomorrow_isoweekday
 
             # Here we determine if the subscription needs an envelope.
-            if sp.envelope or sp.free_envelope:
+            if sp.has_envelope:
                 label.envelope = True
 
             if sp.subscription.start_date == next_business_day():
