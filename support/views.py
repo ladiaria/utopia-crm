@@ -1775,3 +1775,57 @@ def edit_envelopes(request, subscription_id):
             'subscription': subscription,
             'subscription_products': subscription.get_subscriptionproducts(without_discounts=True)
         })
+
+
+@login_required
+def invoicing_issues(request):
+    """
+    Shows a very basic list of issues.
+    """
+    issues_queryset = Issue.objects.filter(category="I", subcategory="I06")
+    issues_filter = IssueFilter(request.GET, queryset=issues_queryset)
+    page_number = request.GET.get("p")
+    paginator = Paginator(issues_filter.qs, 100)
+    if request.GET.get('export'):
+        response = HttpResponse(content_type="text/csv")
+        response["Content-Disposition"] = 'attachment; filename="issues_export.csv"'
+        writer = unicodecsv.writer(response)
+        header = [
+            _("Start date"),
+            _("Contact name"),
+            _("Category"),
+            _("Subcategory"),
+            _("Activities count"),
+            _("Status"),
+            _("Assigned to")
+        ]
+        writer.writerow(header)
+        for issue in issues_filter.qs.all():
+            writer.writerow([
+                issue.date,
+                issue.contact.name,
+                issue.get_category(),
+                issue.get_subcategory(),
+                issue.activity_count(),
+                issue.get_status(),
+                issue.get_assigned_to()
+            ])
+        return response
+    try:
+        page = paginator.page(page_number)
+    except PageNotAnInteger:
+        # If page is not an integer, deliver first page.
+        page = paginator.page(1)
+    except EmptyPage:
+        # If page is out of range (e.g. 9999), deliver last page of results.
+        page = paginator.page(paginator.num_pages)
+    return render(
+        request,
+        "invoicing_issues.html",
+        {
+            "page": page,
+            "paginator": paginator,
+            "issues_filter": issues_filter,
+            "count": issues_filter.qs.count()
+        },
+    )
