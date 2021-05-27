@@ -30,6 +30,8 @@
 {% url "edition_time" direction="departure" as edition_time_departure %}
 {% url "edition_time" direction="arrival" as edition_time_arrival %}
 {% url "dynamic_contact_filter_list" as dynamic_contact_filter_list %}
+{% url "invoicing issues" as collection_issues %}
+{% url "debtor_contacts" as debtor_contacts %}
 
 <li class="nav-item">
   <a href="{{contact_list}}" class="nav-link {% ifequal request.path contact_list  %}active{% endifequal %}">{% trans "Contacts" %}</a>
@@ -44,6 +46,7 @@
   </a>
   <ul class="nav nav-treeview">
     <li class="nav-item"><a href="{{list_issues}}" class="nav-link {% ifequal request.path list_issues %}active{% endifequal %}">{% trans 'List issues' %}</a></li>
+    <li class="nav-item"><a href="{{collection_issues}}" class="nav-link {% ifequal request.path collection_issues %}active{% endifequal %}">{% trans 'Collection issues' %}</a></li>
     <li class="nav-item"><a href="{{dynamic_contact_filter_list}}" class="nav-link {% ifequal request.path dynamic_contact_filter_list %}active{% endifequal %}">{% trans 'Dynamic contact filter list' %}</a></li>
   </ul>
 </li>
@@ -76,6 +79,7 @@
   </a>
   <ul class="nav nav-treeview">
     <li class="nav-item"><a href="{{print_invoices}}" class="nav-link {% ifequal request.path print_invoices %}active{% endifequal %}">{% trans 'Print invoices' %}</a></li>
+    <li class="nav-item"><a href="{{debtor_contacts}}" class="nav-link {% ifequal request.path debtor_contacts %}active{% endifequal %}">{% trans 'Debtor contacts' %}</a></li>
     <li class="nav-item"><a href="{{invoice_filter}}" class="nav-link {% ifequal request.path invoice_filter %}active{% endifequal %}">{% trans 'Invoice filter' %}</a></li>
   </ul>
 </li>
