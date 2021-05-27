@@ -76,7 +76,7 @@
             <tr class="{% cycle 'row1' 'row2' %}">
               <td><a href="{% url 'contact_detail' sp.subscription.contact.id %}">{{ sp.subscription.contact.name }}</a></td>
                 <td>{{ sp.product.name }}</td>
-                <td>{{ sp.address.address_1|default_if_none:'' }}</td>
+                <td style="max-width:130px">{{ sp.address.address_1|default_if_none:'' }}</td>
                 <td>{{ sp.address.address_2|default_if_none:'' }}</td>
                 <td>{{ sp.address.city }}</td>
                 <td>{{ sp.address.state }}</td>
