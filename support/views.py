@@ -6,7 +6,7 @@ from django import forms
 from django.contrib import messages
 from django.contrib.auth.models import User
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-from django.db.models import Q, Count
+from django.db.models import Q, Count, Sum, Min
 from django.http import (
     HttpResponseServerError,
     HttpResponseNotFound,
@@ -1775,3 +1775,149 @@ def edit_envelopes(request, subscription_id):
             'subscription': subscription,
             'subscription_products': subscription.get_subscriptionproducts(without_discounts=True)
         })
+
+
+@login_required
+def invoicing_issues(request):
+    """
+    Shows a more comprehensive list of issues for debtors.
+    """
+    issues_queryset = Issue.objects.filter(
+        category="I", subcategory="I06", contact__invoice__paid=False, contact__invoice__debited=False,
+        contact__invoice__canceled=False, contact__invoice__uncollectible=False,
+        contact__invoice__expiration_date__lte=date.today()).exclude(
+        status__slug__in=settings.FINISHED_ISSUE_STATUS_SLUG_LIST).annotate(
+        owed_invoices=Count('contact__invoice')).annotate(
+        debt=Sum('contact__invoice__amount')).annotate(
+        oldest_invoice=Min('contact__invoice__creation_date'))
+    sort_by = request.GET.get("sort_by", "owed_invoices")
+    order = request.GET.get("order", "desc")
+    if sort_by:
+        if order == "desc":
+            issues_queryset = issues_queryset.order_by('-{}'.format(sort_by))
+        else:
+            issues_queryset = issues_queryset.order_by(sort_by)
+    issues_filter = IssueFilter(request.GET, queryset=issues_queryset)
+    page_number = request.GET.get("p")
+    paginator = Paginator(issues_filter.qs, 100)
+    if request.GET.get('export'):
+        response = HttpResponse(content_type="text/csv")
+        response["Content-Disposition"] = 'attachment; filename="invoicing_issues_{}.csv"'.format(date.today())
+        writer = unicodecsv.writer(response)
+        header = [
+            _("Start date"),
+            _("Contact name"),
+            _("Activities count"),
+            _("Status"),
+            _("Next action date"),
+            _("Owed invoices"),
+            _("Debt amount"),
+            _("Oldest invoice"),
+            _("Assigned to")
+        ]
+        writer.writerow(header)
+        for issue in issues_filter.qs.all():
+            writer.writerow([
+                issue.date,
+                issue.contact.name,
+                issue.activity_count(),
+                issue.get_status(),
+                issue.owed_invoices,
+                issue.debt,
+                issue.oldest_invoice,
+                issue.get_assigned_to(),
+            ])
+        return response
+    try:
+        page = paginator.page(page_number)
+    except PageNotAnInteger:
+        # If page is not an integer, deliver first page.
+        page = paginator.page(1)
+    except EmptyPage:
+        # If page is out of range (e.g. 9999), deliver last page of results.
+        page = paginator.page(paginator.num_pages)
+    return render(
+        request,
+        "invoicing_issues.html",
+        {
+            "page": page,
+            "paginator": paginator,
+            "issues_filter": issues_filter,
+            "count": issues_filter.qs.count(),
+            "sort_by": sort_by,
+            "order": order,
+        },
+    )
+
+
+@login_required
+def debtor_contacts(request):
+    """
+    Shows a comprehensive list of contacts that are debtors.
+    """
+    debtor_queryset = Contact.objects.filter(
+        invoice__paid=False, invoice__debited=False,
+        invoice__canceled=False, invoice__uncollectible=False,
+        invoice__expiration_date__lte=date.today()).annotate(
+        owed_invoices=Count('invoice')).annotate(
+        debt=Sum('invoice__amount')).annotate(
+        oldest_invoice=Min('invoice__creation_date'))
+    sort_by = request.GET.get("sort_by", "owed_invoices")
+    order = request.GET.get("order", "desc")
+    if sort_by:
+        if order == "desc":
+            debtor_queryset = debtor_queryset.order_by('-{}'.format(sort_by))
+        else:
+            debtor_queryset = debtor_queryset.order_by(sort_by)
+    # issues_filter = IssueFilter(request.GET, queryset=issues_queryset)
+    page_number = request.GET.get("p")
+    paginator = Paginator(debtor_queryset, 100)
+    if request.GET.get('export'):
+        response = HttpResponse(content_type="text/csv")
+        response["Content-Disposition"] = 'attachment; filename="debtors_{}.csv"'.format(date.today())
+        writer = unicodecsv.writer(response)
+        header = [
+            _("Contact ID"),
+            _("Contact name"),
+            _("Owed invoices"),
+            _("Unfinished invoicing issues"),
+            _("Finished invoicing issues"),
+            _("Owed invoices"),
+            _("Debt amount"),
+            _("Oldest invoice"),
+        ]
+        writer.writerow(header)
+        for contact in debtor_queryset.all():
+            writer.writerow([
+                contact.id,
+                contact.name,
+                contact.owed_invoices,
+                contact.get_open_issues_by_subcategory_count("I06"),
+                contact.get_finished_issues_by_subcategory_count("I06"),
+                contact.owed_invoices,
+                contact.debt,
+                contact.oldest_invoice,
+            ])
+        return response
+    try:
+        page = paginator.page(page_number)
+    except PageNotAnInteger:
+        # If page is not an integer, deliver first page.
+        page = paginator.page(1)
+    except EmptyPage:
+        # If page is out of range (e.g. 9999), deliver last page of results.
+        page = paginator.page(paginator.num_pages)
+    return render(
+        request,
+        "debtor_contacts.html",
+        {
+            "page": page,
+            "paginator": paginator,
+            "debtor_filter": debtor_queryset,
+            # "count": debtor_filter.qs.count(),
+            "count": debtor_queryset.count(),
+            "sum": debtor_queryset.aggregate(total_sum=Sum("invoice__amount"))["total_sum"],
+            "sort_by": sort_by,
+            "order": order,
+        },
+    )

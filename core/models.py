@@ -511,6 +511,14 @@ class Contact(models.Model):
     def get_open_issues_count(self):
         return self.get_total_issues_count() - self.get_finished_issues_count()
 
+    def get_open_issues_by_subcategory_count(self, subcategory):
+        return self.issue_set.filter(subcategory=subcategory).exclude(
+            status__slug__in=settings.FINISHED_ISSUE_STATUS_SLUG_LIST).count()
+
+    def get_finished_issues_by_subcategory_count(self, subcategory):
+        return self.issue_set.filter(subcategory=subcategory).exclude(
+            status__slug__in=settings.FINISHED_ISSUE_STATUS_SLUG_LIST).count()
+
     def get_total_scheduledtask_count(self):
         return self.scheduledtask_set.count()
 
