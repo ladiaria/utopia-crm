@@ -1,5 +1,5 @@
 {% extends 'adminlte/base.html' %}
-{% load static i18n widget_tweaks %}
+{% load static i18n widget_tweaks core_tags %}
 {% block stylesheets %}
     {{block.super}}
     <link rel="stylesheet" href="{% static '/admin-lte/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css' %}" />
@@ -29,13 +29,13 @@
 
 {% endblock %}
 {% block no_heading %}
-<h1>{% trans 'Support' %}</h1>
-<p>{% trans 'List collection issues' %}</p>
+<h1>{% trans 'Finances' %}</h1>
+<p>{% trans 'Debtor contacts' %}</p>
 {% endblock %}
 {% block breadcrumbs %}
 <ol class="breadcrumb">
-    <li class="breadcrumb-item"><a href="/support/">{% trans 'Support' %}</a></li>
-    <li class="breadcrumb-item active">{% trans 'List collection issues' %}</li>
+    <li class="breadcrumb-item"><a href="/support/">{% trans 'Finances' %}</a></li>
+    <li class="breadcrumb-item active">{% trans 'Debtor contacts' %}</li>
 </ol>
 {% endblock %}
 {% block content %}
@@ -45,18 +45,6 @@
         <div class="card-body">
           <form method="GET" id="form">
             <div class="row">
-                <div class="form-group col">
-                    <label for="status">{% trans "Status" %}</label>
-                    {% render_field issues_filter.form.status class="form-control" %}
-                </div>
-                <div class="form-group col">
-                    <label for="assigned_to">{% trans "Assigned to" %}</label>
-                    {% render_field issues_filter.form.assigned_to class="form-control" %}
-                </div>
-                <div class="form-group col">
-                    <label for="date">{% trans "Date" %}</label>
-                    {% render_field issues_filter.form.date class="form-control " %}
-                </div>
                 <div class="form-group col">
                     <label for="sort_by">{% trans "Sort by" %}</label>
                     <select name="sort_by" class="form-control">
@@ -73,21 +61,10 @@
                         <option value="asc">{% trans "Asc." %}</option>
                     </select>
                 </div>
-              <div class="creation-range hidden d-none col-4">
-                <div class="row">
-                  <div class="form-group col">
-                    <label for="creation_date_gte">{% trans "Creation date (from)" %}</label>
-                      {% render_field issues_filter.form.date_gte class="form-control" %}
-                  </div>
-                  <div class="form-group col">
-                    <label for="creation_date_lte">{% trans "Creation date (to)" %}</label>
-                      {% render_field issues_filter.form.date_lte class="form-control" %}
-                  </div>
-                </div>
-              </div>
             </div>
             <div class="text-right">
-              {{count}} {% trans "issues" %}
+              {{sum}} {% trans "owed" %} /
+              {{count}} {% trans "contacts" %}
               <input type="submit" class="btn bg-gradient-primary ml-3" value="{% trans 'Export to CSV' %}" name="export" />
               <input type="submit" class="btn bg-gradient-primary ml-3" value="{% trans 'Search' %}" />
             </div>
@@ -99,14 +76,13 @@
             <table id="table1" class="table table-bordered table-striped">
               <thead>
                   <tr role="row">
-                    <th>{% trans "Id" %}</th>
-                    <th>{% trans "Start date" %}</th>
-                    <th>{% trans "Contact" %}</th>
-                    <th>{% trans "Status" %}</th>
-                    <th>{% trans "Activities" %}</th>
-                    <th>{% trans "Next action date" %}</th>
+                    <th>{% trans "ID" %}</th>
+                    <th>{% trans "Name" %}</th>
                     <th>
                         {% trans "Owed invoices" %}
+                    </th>
+                    <th>
+                        {% trans "Open issues" %}
                     </th>
                     <th>
                         {% trans "Debt amount" %}
@@ -114,22 +90,22 @@
                     <th>
                         {% trans "Oldest invoice" %}
                     </th>
-                    <th>{% trans "Assigned to" %}</th>
+                    <th></th>
                   </tr>
               </thead>
               <tbody>
-                {% for issue in page %}
+                {% for contact in page %}
                 <tr  role="row">
-                    <td><a href='{% url "view_issue" issue.id %}'>{{issue.id}}</a></td>
-                    <td>{{issue.date}}</td>
-                    <td>{{issue.contact}}</td>
-                    <td>{{issue.status}}</td>
-                    <td>{{issue.activity_count}}</td>
-                    <td>{{issue.next_action_date}}</td>
-                    <td>{{issue.owed_invoices}}</td>
-                    <td>{{issue.debt}}</td>
-                    <td>{{issue.oldest_invoice}}</td>
-                    <td>{{issue.assigned_to|default_if_none:"-"}}</td>
+                    <td>{{contact.id}}</td>
+                    <td>{{contact.name}}</td>
+                    <td>{{contact.owed_invoices}}</td>
+                    <td>{% call_method contact 'get_open_issues_by_subcategory_count' 'I06' %}</td>
+                    <td>{{contact.debt}}</td>
+                    <td>{{contact.oldest_invoice}}</td>
+                    <td>
+                        <a href="{% url 'contact_detail' contact.id %}" target="_blank" class="btn btn-primary btn-sm">{% trans "Go to contact" %}</a>
+                        <a href="{% url 'contact_invoices' contact.id %}" target="_blank" class="btn btn-success btn-sm">{% trans "Invoices" %}</a>
+                    </td>
                 </tr>
                 {% endfor %}
               </tbody>
