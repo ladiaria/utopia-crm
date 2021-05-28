@@ -1,5 +1,35 @@
 {% extends 'adminlte/base.html' %}
 {% load static i18n %}
+{% block extra_head %}
+<script type="text/javascript" src="{% static 'js/jquery-3.3.1.min.js' %}"></script>
+<script type="text/javascript">
+    $( function() {
+      function categoryVal(select){
+        if((select).val() == 'L'){
+          $('.id_subscription').hide();
+          $('.id_product').hide();
+          $('.id_subscription_product').show();
+          $('#id_status').prop('required',false);
+        }else if ((select).val() == 'I'){
+          $('.id_product').hide();
+          $('.id_subscription').show();
+          $('.id_subscription_product').hide();
+          $('#id_status').prop('required',true);
+        }else {
+          $('.id_subscription').show();
+          $('.id_subscription_product').show();
+          $('.id_product').show();
+          $('#id_status').prop('required',false);
+        }
+      }
+      categoryVal($("#id_category"));
+      $("#id_category").change(function(){
+        categoryVal($(this));
+      });
+    });
+
+</script>
+{% endblock %}
 {% block no_heading %}
 <h1>{% trans 'Support' %}</h1>
 <p>{% trans 'Register an issue' %}</p>
@@ -63,17 +93,17 @@
               <label>{% trans "Assigned to" %}</label>
               {{form.assigned_to}}
             </div>
-            <div class="form-group">
+            <div class="form-group id_subscription_product">
               <label for="id_subscription_product">{{form.subscription_product.label}}</label>
               {{form.subscription_product}}
               <span class="error invalid-feedback">{{form.subscription_product.errors}}</span>
             </div>
-            <div class="form-group">
+            <div class="form-group id_subscription">
               <label for="id_subscription">{{form.subscription.label}}</label>
               {{form.subscription}}
               <span class="error invalid-feedback">{{form.subscription_product.errors}}</span>
             </div>
-            <div class="form-group">
+            <div class="form-group id_product">
               <label for="id_product">{{form.product.label}}</label>
               {{form.product}}
               <span class="error invalid-feedback">{{form.product.errors}}</span>
