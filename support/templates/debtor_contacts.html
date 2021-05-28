@@ -46,6 +46,12 @@
           <form method="GET" id="form">
             <div class="row">
                 <div class="form-group col">
+                    <label for="active_subscriptions">{% trans 'Active subscriptions' %}</label>
+                    <div class="col-sm-9">
+                      {% render_field debtor_filter.form.active_subscriptions class="form-control" %}
+                    </div>
+                  </div>
+                <div class="form-group col">
                     <label for="sort_by">{% trans "Sort by" %}</label>
                     <select name="sort_by" class="form-control">
                         <option value="" {% if not sort_by %}selected{% endif %}>---------</option>
@@ -78,6 +84,7 @@
                   <tr role="row">
                     <th>{% trans "ID" %}</th>
                     <th>{% trans "Name" %}</th>
+                    <th>{% trans "Active" %}</th>
                     <th>
                         {% trans "Owed invoices" %}
                     </th>
@@ -98,6 +105,7 @@
                 <tr  role="row">
                     <td>{{contact.id}}</td>
                     <td>{{contact.name}}</td>
+                    <td>{% if contact.has_active_subscription %}{% trans "Yes" %}{% else %}{% trans "No" %}{% endif %}</td>
                     <td>{{contact.owed_invoices}}</td>
                     <td>{% call_method contact 'get_open_issues_by_subcategory_count' 'I06' %}</td>
                     <td>{{contact.debt}}</td>
