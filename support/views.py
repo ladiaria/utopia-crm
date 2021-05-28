@@ -1869,9 +1869,9 @@ def debtor_contacts(request):
             debtor_queryset = debtor_queryset.order_by('-{}'.format(sort_by))
         else:
             debtor_queryset = debtor_queryset.order_by(sort_by)
-    # issues_filter = IssueFilter(request.GET, queryset=issues_queryset)
+    debtor_filter = ContactFilter(request.GET, queryset=debtor_queryset)
     page_number = request.GET.get("p")
-    paginator = Paginator(debtor_queryset, 100)
+    paginator = Paginator(debtor_filter.qs, 100)
     if request.GET.get('export'):
         response = HttpResponse(content_type="text/csv")
         response["Content-Disposition"] = 'attachment; filename="debtors_{}.csv"'.format(date.today())
@@ -1879,6 +1879,7 @@ def debtor_contacts(request):
         header = [
             _("Contact ID"),
             _("Contact name"),
+            _("Has active subscriptions"),
             _("Owed invoices"),
             _("Unfinished invoicing issues"),
             _("Finished invoicing issues"),
@@ -1891,6 +1892,7 @@ def debtor_contacts(request):
             writer.writerow([
                 contact.id,
                 contact.name,
+                contact.has_active_subscription(),
                 contact.owed_invoices,
                 contact.get_open_issues_by_subcategory_count("I06"),
                 contact.get_finished_issues_by_subcategory_count("I06"),
@@ -1913,10 +1915,10 @@ def debtor_contacts(request):
         {
             "page": page,
             "paginator": paginator,
-            "debtor_filter": debtor_queryset,
+            "debtor_filter": debtor_filter,
             # "count": debtor_filter.qs.count(),
-            "count": debtor_queryset.count(),
-            "sum": debtor_queryset.aggregate(total_sum=Sum("invoice__amount"))["total_sum"],
+            "count": debtor_filter.qs.count(),
+            "sum": debtor_filter.qs.aggregate(total_sum=Sum("invoice__amount"))["total_sum"],
             "sort_by": sort_by,
             "order": order,
         },
