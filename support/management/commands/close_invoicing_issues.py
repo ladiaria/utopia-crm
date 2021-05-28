@@ -21,21 +21,36 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         # TODO: Generate a queryset to look for debtors, or a method to check for it while iterating through all
         # The first part would be faster probably
-        issues = Issue.objects.filter(subcategory='I06').exclude(status__slug=settings.SOLVED_ISSUE_STATUS_SLUG)
+        issues = Issue.objects.filter(category="I", subcategory="I06").exclude(
+            status__slug__in=settings.FINISHED_ISSUE_STATUS_SLUG_LIST
+        )
         print(_("Started process"))
         for issue in issues.iterator():
             try:
                 contact = issue.contact
                 if contact.is_debtor() is False:  # No open issues with category I
-                    print(_("Closing issue {} for contact {}. All their invoices are paid".format(
-                        issue.id, contact.id)))
+                    print(
+                        _(
+                            "Closing issue {} for contact {}. All their invoices are paid".format(
+                                issue.id, contact.id
+                            )
+                        )
+                    )
                     if not issue.progress:
                         issue.progress = ""
-                    issue.progress = issue.progress + u"\nIncidencia cerrada automáticamente el {}".format(
-                        date.today())
+                    issue.progress = (
+                        issue.progress
+                        + u"\nIncidencia cerrada automáticamente el {}".format(
+                            date.today()
+                        )
+                    )
                     issue.closing_date = date.today()
                     issue.mark_solved()
                     issue.save()
             except Exception as e:
-                print("Error issue {}, contact {}: {}".format(issue.id, contact.id, e.message))
+                print(
+                    "Error issue {}, contact {}: {}".format(
+                        issue.id, contact.id, e.message
+                    )
+                )
         print(_("Ended process"))
