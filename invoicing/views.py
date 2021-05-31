@@ -78,6 +78,11 @@ def bill_subscription(subscription_id, billing_date=date.today(), dpp=10, check_
     # Check that the subscription has a payment type
     assert subscription.payment_type, (_("The subscription has no payment type, it can't be billed"))
 
+    # Check that the subscription's next billing is smaller than end date if it has it
+    if subscription.end_date:
+        error_msg = _("This subscription has an end date greater than its next billing")
+        assert subscription.next_billing < subscription.end_date, (error_msg)
+
     # First we need to check if the subscription has the Normal type, is active, and next billing is less than the
     # selected billing date. This probably has to be filtered in the function that calls this one. But just in case
     # this will be controlled here too. A bypass can be programmed to ignore this
