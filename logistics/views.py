@@ -48,8 +48,9 @@ def assign_routes(request):
         return HttpResponseRedirect(reverse('assign_routes'))
 
     subscription_products = SubscriptionProduct.objects.filter(
-        subscription__active=True, route__isnull=True).exclude(
-            product__name__contains='digital').order_by('subscription__contact')
+        subscription__active=True, route__isnull=True, product__type='S', product__offerable=True).exclude(
+            product__name__contains='digital').select_related(
+            'subscription__contact', 'address').order_by('subscription__contact')
     if request.GET:
         product_id = request.GET.get('product_id', 'all')
         if product_id != 'all':
@@ -65,7 +66,7 @@ def assign_routes(request):
 
 
 @login_required
-def order_route(request, route=1):
+def order_route(request, route_id=1):
     """
     Orders contacts inside of a route by SubscriptionProduct. Takes to route 1 by default.
 
@@ -73,7 +74,7 @@ def order_route(request, route=1):
     """
     product_list = Product.objects.filter(type='S', offerable=True)
     product_id = 'all'
-    route_object = get_object_or_404(Route, pk=route)
+    route_object = get_object_or_404(Route, pk=route_id)
     if request.POST:
         for name, value in request.POST.items():
             if name.startswith('sp-order') and value:
@@ -82,15 +83,17 @@ def order_route(request, route=1):
                 # Next we get the SubscriptionProject object from the DB
                 sp = SubscriptionProduct.objects.get(pk=sp_id)
                 # Finally we set the value of whatever route we set, and then save the sp
-                order = value
-                sp.order = order
-                sp.special_instructions = request.POST.get('instructions-{}'.format(sp_id), None)
-                sp.label_message = request.POST.get('message-{}'.format(sp_id), None)
-                sp.save()
+                if sp.order != value:
+                    sp.order = value
+                    sp.special_instructions = request.POST.get('instructions-{}'.format(sp_id), None)
+                    sp.label_message = request.POST.get('message-{}'.format(sp_id), None)
+                    sp.save()
+        return HttpResponseRedirect(reverse('order_route', args=[route_id]))
 
     subscription_products = SubscriptionProduct.objects.filter(
-        route=route_object, subscription__active=True).exclude(
-            product__name__contains='digital').order_by('order', 'address__address_1')
+        route=route_object, subscription__active=True, product__type='S', product__offerable=True).exclude(
+            product__name__contains='digital').select_related(
+            'subscription__contact', 'address').order_by('order', 'address__address_1')
     if request.GET:
         product_id = request.GET.get('product_id', 'all')
         if product_id != 'all':
@@ -101,13 +104,13 @@ def order_route(request, route=1):
     return render(
         request, 'order_route.html', {
             'subscription_products': subscription_products,
-            'route': route,
+            'route': route_id,
             'product_list': product_list,
             'product_id': product_id})
 
 
 @login_required
-def change_route(request, route=1):
+def change_route(request, route_id=1):
     """
     Changes route to a contact on a particular route.
 
@@ -115,12 +118,12 @@ def change_route(request, route=1):
     """
     product_list = Product.objects.filter(type='S', offerable=True)
     product_id = 'all'
-    route_object = get_object_or_404(Route, pk=route)
+    route_object = get_object_or_404(Route, pk=route_id)
     if request.POST:
         for name, value in request.POST.items():
-            if name.startswith('sp-routechange') and value:
+            if name.startswith('sp-') and value and value != route_object.number:
                 # We get the id of the subscription id here, removing the prefix 'sp-' from the name of the item
-                sp_id = name.replace('sp-routechange-', '')
+                sp_id = name.replace('sp-', '')
                 # Next we get the SubscriptionProject object from the DB
                 sp = SubscriptionProduct.objects.get(pk=sp_id)
                 # Finally we set the value of whatever route we set, and then save the sp
@@ -130,10 +133,12 @@ def change_route(request, route=1):
                 sp.special_instructions = request.POST.get('instructions-{}'.format(sp_id), None)
                 sp.label_message = request.POST.get('message-{}'.format(sp_id), None)
                 sp.save()
+        return HttpResponseRedirect(reverse('change_route', args=[route_id]))
 
     subscription_products = SubscriptionProduct.objects.filter(
-        route=route_object, subscription__active=True).exclude(
-            product__name__contains='digital').order_by('address__address_1')
+        route=route_object, subscription__active=True, product__type='S', product__offerable=True).exclude(
+            product__name__contains='digital').select_related(
+            'subscription__contact', 'address').order_by('address__address_1')
     if request.GET:
         product_id = request.GET.get('product_id', 'all')
         if product_id != 'all':
@@ -144,7 +149,7 @@ def change_route(request, route=1):
     return render(
         request, 'change_route.html', {
             'subscription_products': subscription_products,
-            'route': route,
+            'route': route_id,
             'product_list': product_list,
             'product_id': product_id
         })
