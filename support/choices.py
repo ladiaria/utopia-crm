@@ -3,8 +3,8 @@ from django.utils.translation import ugettext_lazy as _
 
 SCHEDULED_TASK_CATEGORIES = (
     ('AC', _('Address change')),
-    ('PD', _('Deactivation (Pause)')),
-    ('PA', _('Activation (Pause)')),
+    ('PD', _('Start of pause')),
+    ('PA', _('End of pause')),
 )
 
 

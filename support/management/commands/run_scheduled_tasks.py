@@ -1,5 +1,5 @@
 # coding=utf-8
-from datetime import date
+from datetime import date, timedelta
 
 from django.utils.translation import ugettext_lazy as _
 from django.core.management import BaseCommand
@@ -23,16 +23,16 @@ class Command(BaseCommand):
     #    # parser.add_argument('payment_type', type=str)
 
     def handle(self, *args, **options):
-        # We'll get all the Scheduled Tasks that are supposed to be executed today
-        tasks = ScheduledTask.objects.filter(execution_date__lte=date.today(), completed=False)
+        # We'll get all the Scheduled Tasks that are supposed to be executed until tomorrow
+        tasks = ScheduledTask.objects.filter(execution_date__lte=date.today() + timedelta(1), completed=False)
         for task in tasks:
             # For each task we'll check what we need to do with it
-            if task.category == 'PD':
+            if task.category == 'PD':  # Start of pause
                 contact = task.contact
                 subscription = task.subscription
                 print(
                     _(
-                        "Started deactivation (start of pause) scheduled task for {}'s subscription {}".format(
+                        "Executing start of pause scheduled task for {}'s subscription {}".format(
                             contact.id, subscription.id
                         )
                     )
@@ -51,12 +51,12 @@ class Command(BaseCommand):
                 task.save()
                 print(_("Task {} completed successfully.".format(task.id)))
 
-            elif task.category == 'PA':
+            elif task.category == 'PA':  # End of pause
                 contact = task.contact
                 subscription = task.subscription
                 print(
                     _(
-                        "Started activation (end of pause) scheduled task for {} subscription {}".format(
+                        "Executing end of pause scheduled task for {} subscription {}".format(
                             contact.id, subscription.id
                         )
                     )
@@ -83,7 +83,7 @@ class Command(BaseCommand):
                 contact = task.contact
                 subscription = task.subscription
                 address = task.address
-                print(_("Started address change scheduled task for contact {}".format(contact.id)))
+                print(_("Executing address change scheduled task for contact {}".format(contact.id)))
                 for sp in task.subscription_products.all():
                     # We need to change the address for said subscription_product
                     if sp.route:
