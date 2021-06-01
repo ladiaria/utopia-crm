@@ -22,10 +22,30 @@
           $('#id_status').prop('required',false);
         }
       }
+      // load subcats according to cats
+      function updateSubcats(){
+        var cat = $('#id_category').val();
+        $('#id_subcategory').val('N/A');
+        $('#id_subcategory option').each(function(){
+          if($(this).val() == 'N/A') {
+            $(this).show();
+          }else if ($(this).val().charAt(0) != cat) {
+            $(this).hide();
+          }else {
+            $(this).show();
+          }
+        })
+      }
+
+
       categoryVal($("#id_category"));
+      updateSubcats();
       $("#id_category").change(function(){
         categoryVal($(this));
+        updateSubcats();
       });
+
+
     });
 
 </script>
