@@ -130,9 +130,14 @@ class Issue(models.Model):
         else:
             return None
 
-    def mark_solved(self):
+    def mark_solved(self, answer_2):
         self.status = IssueStatus.objects.get(slug=settings.SOLVED_ISSUE_STATUS_SLUG)
         self.closing_date = date.today()
+        if answer_2:
+            if self.answer_2:
+                self.answer_2 = u"{}\n\n{}".format(self.answer_2, answer_2)
+            else:
+                self.answer_2 = answer_2
         self.save()
 
     def set_status(self, slug):
