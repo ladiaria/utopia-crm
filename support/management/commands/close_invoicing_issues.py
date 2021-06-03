@@ -36,25 +36,8 @@ class Command(BaseCommand):
                             )
                         )
                     )
-                    if not issue.progress:
-                        issue.progress = ""
-                    issue.progress = (
-                        issue.progress
-                        + u"\nIncidencia cerrada automáticamente el por pago de facturas el {}".format(datetime.now())
-                    )
                     msg = u"Incidencia cerrada automáticamente por pago de facturas el {}".format(datetime.now())
-                    if issue.answer_2:
-                        issue.answer_2 = u"{}\n\n{}".format(issue.answer_2, msg)
-                    else:
-                        issue.answer_2 = msg
-                    issue.answer_2 = issue.answer_2
-                    issue.closing_date = date.today()
-                    issue.mark_solved()
-                    issue.save()
+                    issue.mark_solved(msg)
             except Exception as e:
-                print(
-                    "Error issue {}, contact {}: {}".format(
-                        issue.id, contact.id, e.message
-                    )
-                )
+                print("Error issue {}, contact {}: {}".format(issue.id, contact.id, e.message))
         print(_("Ended process"))
