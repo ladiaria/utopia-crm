@@ -1,5 +1,5 @@
 # coding=utf-8
-from datetime import date
+from datetime import date, datetime
 
 from django.utils.translation import ugettext_lazy as _
 from django.core.management import BaseCommand
@@ -36,21 +36,8 @@ class Command(BaseCommand):
                             )
                         )
                     )
-                    if not issue.progress:
-                        issue.progress = ""
-                    issue.progress = (
-                        issue.progress
-                        + u"\nIncidencia cerrada automáticamente el {}".format(
-                            date.today()
-                        )
-                    )
-                    issue.closing_date = date.today()
-                    issue.mark_solved()
-                    issue.save()
+                    msg = u"Incidencia cerrada automáticamente por pago de facturas el {}".format(datetime.now())
+                    issue.mark_solved(msg)
             except Exception as e:
-                print(
-                    "Error issue {}, contact {}: {}".format(
-                        issue.id, contact.id, e.message
-                    )
-                )
+                print("Error issue {}, contact {}: {}".format(issue.id, contact.id, e.message))
         print(_("Ended process"))
