@@ -1,5 +1,5 @@
 # coding=utf-8
-from datetime import date
+from datetime import date, datetime
 
 from django.utils.translation import ugettext_lazy as _
 from django.core.management import BaseCommand
@@ -40,10 +40,14 @@ class Command(BaseCommand):
                         issue.progress = ""
                     issue.progress = (
                         issue.progress
-                        + u"\nIncidencia cerrada automáticamente el {}".format(
-                            date.today()
-                        )
+                        + u"\nIncidencia cerrada automáticamente el por pago de facturas el {}".format(datetime.now())
                     )
+                    msg = u"Incidencia cerrada automáticamente por pago de facturas el {}".format(datetime.now())
+                    if issue.answer_2:
+                        issue.answer_2 = u"{}\n\n{}".format(issue.answer_2, msg)
+                    else:
+                        issue.answer_2 = msg
+                    issue.answer_2 = issue.answer_2
                     issue.closing_date = date.today()
                     issue.mark_solved()
                     issue.save()
