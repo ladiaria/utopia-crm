@@ -39,7 +39,7 @@ def assign_routes(request):
                 # Next we get the SubscriptionProject object from the DB
                 sp = SubscriptionProduct.objects.get(pk=sp_id)
                 # Finally we set the value of whatever route we set, and then save the sp
-                route = Route.objects.get(number=value)
+                route = Route.objects.get(number=int(value))
                 sp.route = route
                 sp.order = None
                 sp.special_instructions = request.POST.get('instructions-{}'.format(sp_id), None)
@@ -83,8 +83,8 @@ def order_route(request, route_id=1):
                 # Next we get the SubscriptionProject object from the DB
                 sp = SubscriptionProduct.objects.get(pk=sp_id)
                 # Finally we set the value of whatever route we set, and then save the sp
-                if sp.order != value:
-                    sp.order = value
+                if sp.order != int(value):
+                    sp.order = int(value)
                     sp.special_instructions = request.POST.get('instructions-{}'.format(sp_id), None)
                     sp.label_message = request.POST.get('message-{}'.format(sp_id), None)
                     sp.save()
@@ -121,7 +121,7 @@ def change_route(request, route_id=1):
     route_object = get_object_or_404(Route, pk=route_id)
     if request.POST:
         for name, value in request.POST.items():
-            if name.startswith('sp-') and value and value != route_object.number:
+            if name.startswith('sp-') and value and int(value) != route_object.number:
                 # We get the id of the subscription id here, removing the prefix 'sp-' from the name of the item
                 sp_id = name.replace('sp-', '')
                 # Next we get the SubscriptionProject object from the DB
