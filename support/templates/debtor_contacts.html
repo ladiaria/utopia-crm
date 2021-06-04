@@ -108,7 +108,7 @@
                     <td>{% if contact.has_active_subscription %}{% trans "Yes" %}{% else %}{% trans "No" %}{% endif %}</td>
                     <td>{{contact.owed_invoices}}</td>
                     <td>{% call_method contact 'get_open_issues_by_subcategory_count' 'I06' %}</td>
-                    <td>{{contact.debt}}</td>
+                    <td>{{contact.get_debt}}</td>
                     <td>{{contact.oldest_invoice}}</td>
                     <td>
                         <a href="{% url 'contact_detail' contact.id %}" target="_blank" class="btn btn-primary btn-sm">{% trans "Go to contact" %}</a>
