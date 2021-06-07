@@ -1859,7 +1859,7 @@ def debtor_contacts(request):
         invoice__paid=False, invoice__debited=False,
         invoice__canceled=False, invoice__uncollectible=False,
         invoice__expiration_date__lte=date.today()).annotate(
-        owed_invoices=Count('invoice')).annotate(
+        owed_invoices=Count('invoice', distinct=True)).annotate(
         debt=Sum('invoice__amount')).annotate(
         oldest_invoice=Min('invoice__creation_date'))
     sort_by = request.GET.get("sort_by", "owed_invoices")
@@ -1883,7 +1883,6 @@ def debtor_contacts(request):
             _("Owed invoices"),
             _("Unfinished invoicing issues"),
             _("Finished invoicing issues"),
-            _("Owed invoices"),
             _("Debt amount"),
             _("Oldest invoice"),
         ]
@@ -1896,8 +1895,7 @@ def debtor_contacts(request):
                 contact.owed_invoices,
                 contact.get_open_issues_by_subcategory_count("I06"),
                 contact.get_finished_issues_by_subcategory_count("I06"),
-                contact.owed_invoices,
-                contact.debt,
+                contact.get_debt(),
                 contact.oldest_invoice,
             ])
         return response

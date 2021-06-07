@@ -40,7 +40,7 @@ class ContactFilter(django_filters.FilterSet):
 
     def with_active_subscription(self, queryset, name, value):
         if value == "0":
-            return queryset.filter(subscriptions__active=False).distinct()
+            return queryset.exclude(subscriptions__active=True).distinct()
         elif value == "1":
             return queryset.filter(subscriptions__active=True).distinct()
 
