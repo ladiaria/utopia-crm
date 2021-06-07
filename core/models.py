@@ -9,6 +9,7 @@ from django.core.validators import RegexValidator, MinValueValidator, MaxValueVa
 from django.db import models
 from django.db.models import Q, Sum, Count
 from django.forms import ValidationError
+from django.utils.text import format_lazy
 from django.utils.translation import ugettext_lazy as _
 from django_extensions.db.fields import AutoSlugField
 from django.utils.html import mark_safe
@@ -807,11 +808,11 @@ class Subscription(models.Model):
     customer_id = models.CharField(max_length=24, blank=True, null=True)
 
     def __unicode__(self):
-        return _("{} subscription for the contact {} ({})").format(
+        return unicode(_("{} subscription for the contact {} {}").format(
             _("Active") if self.active else _("Inactive"),
             self.contact.name,
-            self.get_price_for_full_period(),
-        )
+            "({})".format(self.get_price_for_full_period()) if self.type == 'N' else "",
+        ))
 
     def get_product_count(self):
         """
@@ -1529,7 +1530,7 @@ class Activity(models.Model):
     )
 
     def __unicode__(self):
-        return _("Activity {} for contact {}".format(self.id, self.contact.id))
+        return unicode(_("Activity {} for contact {}".format(self.id, self.contact.id)))
 
     def get_contact_seller(self):
         """

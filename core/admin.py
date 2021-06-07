@@ -159,11 +159,11 @@ class SubscriptionAdmin(admin.ModelAdmin):
     fieldsets = (
         ('Contact data', {'fields': ('contact', )}),
         ('Subscription data', {'fields': (
-            ('active', 'status'),
+            ('active', 'type'),
             ('start_date', 'end_date'),
             ('next_billing', 'payment_type'),
             ('balance', 'frequency'),
-            ('send_bill_copy_by_email'),
+            ('status', 'send_bill_copy_by_email'),
         )}),
         ('Billing data', {
             'classes': ('collapse',),
