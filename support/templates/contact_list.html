@@ -13,8 +13,10 @@
     $("#table1").DataTable();
   });
 </script>
-
 {% endblock %}
+{% block title %}
+    {% trans "Contacts" %}
+{% endblock title %}
 {% block no_heading %}
 <h1>{% trans 'Contacts' %}</h1>
 <p>{% trans 'Manage all contacts in the database.' %}</p>
@@ -107,7 +109,15 @@
                     <td>{{contact.name}}</td>
                     <td>{{contact.email|default_if_none:""}}</td>
                     <td>{{contact.phone}}</td>
-                    <td>{% autoescape off %}{{contact.get_first_active_subscription.show_products_html}}{% endautoescape %}</td>
+                    <td>
+                      {% for sp in contact.get_active_subscriptionproducts %}
+                        {% if sp.has_envelope == 1 %}
+                        <i class="fas fa-envelope" title="{% trans 'Paid envelope' %}" data-toggle="tooltip"></i>
+                        {% elif sp.has_envelope == 2 %}
+                        <i class="far fa-envelope" title="{% trans 'Free envelope' %}" data-toggle="tooltip"></i>
+                        {% endif %} {{sp.product.name}} {% if sp.label_contact %}({{sp.label_contact.name}}){% endif %}<br>
+                      {% endfor %}
+                    </td>
                     <td>{{contact.last_activity.datetime|date:"SHORT_DATE_FORMAT"}} {% if contact.last_activity.activity_type %}/ {{contact.last_activity.get_type}}{% endif %}</td>
                 </tr>
                 {% endfor %}

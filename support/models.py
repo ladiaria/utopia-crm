@@ -162,9 +162,9 @@ class Issue(models.Model):
         return answers.get(self.answer_1, "N/A")
 
     def __unicode__(self):
-        return "Issue of category {} for {} with status {}".format(
+        return unicode(_("Issue of category {} for {} with status {}".format(
             self.get_category(), self.contact.name, self.get_status()
-        )
+        )))
 
 
 class ScheduledTask(models.Model):
