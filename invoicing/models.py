@@ -35,6 +35,7 @@ class Invoice(models.Model):
     cancelation_date = models.DateField(_("Cancelation date"), blank=True, editable=False, null=True)
     uncollectible = models.BooleanField(_("Uncollectible"), default=False)
     subscription = models.ForeignKey("core.Subscription", blank=True, null=True, on_delete=models.SET_NULL)
+    print_date = models.DateField(null=True, blank=True)
 
     uuid = models.CharField(max_length=36, editable=False, blank=True, null=True)
     serie = models.CharField(max_length=1, editable=False, blank=True, null=True)

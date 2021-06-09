@@ -2,6 +2,7 @@
 from __future__ import unicode_literals
 
 from django.contrib import admin
+from django.utils.translation import ugettext_lazy as _
 
 from .models import *
 
@@ -24,14 +25,29 @@ class InvoiceItemInline(admin.StackedInline):
 class InvoiceAdmin(admin.ModelAdmin):
     search_fields = ('contact__id', 'contact__name')
     list_display = ('id', 'contact', 'amount', 'paid', 'debited', 'canceled', 'uncollectible', 'serie', 'numero')
-    fields = [
-        'contact', 'creation_date', 'expiration_date', 'service_from',
-        'service_to', 'balance', 'amount', 'payment_type', 'debited', 'paid',
-        'payment_date', 'payment_reference', 'notes', 'canceled',
-        'cancelation_date', 'uncollectible', 'uuid', 'serie', 'numero',
-        'pdf', 'subscription',
-        'billing_name', 'billing_address', 'billing_state', 'billing_city',
-        'billing_document', 'route', 'order']
+    fieldsets = (
+        ("", {"fields": (
+            'contact', 'subscription',
+            ('creation_date', 'expiration_date'),
+            ('service_from', 'service_to'),
+            ('amount', 'payment_type'),
+            ('debited', 'paid'),
+            ('payment_date', 'payment_reference'),
+            'notes',
+            ('canceled', 'cancelation_date'),
+            'uncollectible',
+            ('uuid', 'serie', 'numero'),
+            ('pdf', 'balance'),
+            ('route', 'order'),
+            'print_date'
+        )}),
+        (_('Billing data'), {
+            'fields': (
+                ('billing_name', 'billing_address'),
+                ('billing_state', 'billing_city'),
+                'billing_document',
+            )}),
+    )
     raw_id_fields = ['contact', 'subscription']
     inlines = (InvoiceItemInline,)
     readonly_fields = ['canceled', 'cancelation_date', 'uuid', 'serie', 'numero', 'pdf']
