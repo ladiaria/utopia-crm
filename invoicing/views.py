@@ -246,8 +246,8 @@ def bill_subscription(subscription_id, billing_date=date.today(), dpp=10, check_
                     else:
                         balance_item.amount = subscription.balance
                     balance_item.type_dr = 1  # 1 means it's a plain value
-                    subscription.balance -= balance_item.amount  # Then subtract the balance from the subscription
-                    amount -= balance_item.amount  # And then we subtract that value from the invoice
+                    subscription.balance -= balance_item.amount  # Then subtract the balance
+                    amount -= float(balance_item.amount)  # And then we subtract that value from the invoice
                 elif subscription.balance < 0:
                     # If the balance is negative, it means the person owes us money, we'll make a surcharge.
                     balance_item.description = _('Balance owed')
@@ -255,7 +255,7 @@ def bill_subscription(subscription_id, billing_date=date.today(), dpp=10, check_
                     balance_item.type = 'R'  # This means the item is a surcharge
                     balance_item.amount = abs(subscription.balance)  # The entire balance is applied to the item
                     subscription.balance = None  # After that, we can deplete it from the subscription
-                    amount += balance_item.amount  # And then we add that value to the invoice
+                    amount += float(balance_item.amount)  # And then we add that value to the invoice
                 # We don't want any negative shenanigans so we'll use the absolute.
                 balance_item.amount = abs(balance_item.amount)
                 invoice_items.append(balance_item)
