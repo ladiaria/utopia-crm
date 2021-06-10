@@ -76,6 +76,21 @@ class ContactAdminForm(forms.ModelForm):
             raise forms.ValidationError(_("Only numbers and slashes are accepted"))
         return mobile
 
+    def clean_email(self):
+        email = self.cleaned_data.get("email")
+
+        if email and self.instance:
+            s = Contact.objects.filter(email=email).exclude(
+                pk=self.instance.pk
+            )
+            if s:
+                msg = _(
+                    "Error: Contact {} already has this email".format(s[0].id)
+                )
+                raise forms.ValidationError(msg)
+
+        return email
+
 
 class SubscriptionAdminForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
