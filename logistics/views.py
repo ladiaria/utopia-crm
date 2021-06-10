@@ -217,8 +217,6 @@ def print_labels(request, page='Roll', list_type='', route_list='', product_id=N
             subscription__start_date__lte=tomorrow).exclude(
             route__print_labels=False).order_by('route', F('order').asc(nulls_first=True), 'address__address_1')
 
-    days = 2 if today.isoweekday() == 6 else 1
-
     old_route = 0
 
     for sp in subscription_products:
@@ -237,11 +235,13 @@ def print_labels(request, page='Roll', list_type='', route_list='', product_id=N
             label.separador()
             old_route = sp.route
 
-        # Here we'll show a label if the contact has one of the payment types marked on settings.
-        label_invoice_payment_types = getattr(settings, 'LABEL_INVOICE_PAYMENT_TYPES')
-        has_invoice = label_invoice_payment_types and sp.subscription.payment_type and \
-            sp.subscription.payment_type in label_invoice_payment_types and not sp.subscription.billing_address and \
-            sp.subscription.contact.invoice_set.filter(creation_date__gt=date.today() - timedelta(6))
+        # Here we'll show an icon if the contact has one of the payment types marked on settings.
+        label_invoice_payment_types = getattr(settings, 'LABEL_INVOICE_PAYMENT_TYPES', [])
+        has_invoice = (
+            label_invoice_payment_types and sp.subscription.payment_type
+            and sp.subscription.payment_type in label_invoice_payment_types and not sp.subscription.billing_address
+            and sp.subscription.contact.invoice_set.filter(print_date__gte=date.today() - timedelta(6)).exists()
+        )
 
         for copy in range(sp.copies):
 
@@ -261,8 +261,11 @@ def print_labels(request, page='Roll', list_type='', route_list='', product_id=N
                     route_suffix = _('FRIDAY')
                 label.route_suffix = route_suffix
 
-                label.has_invoice = has_invoice and sp.subscription.get_first_day_of_the_week() + 1 == \
-                    tomorrow_isoweekday
+                label.has_invoice = (
+                    has_invoice
+                    and sp.subscription.get_first_product_by_priority().weekday
+                    and sp.subscription.get_first_product_by_priority().weekday == tomorrow_isoweekday
+                )
 
             # Here we determine if the subscription needs an envelope.
             if sp.has_envelope:
@@ -344,6 +347,15 @@ def print_labels_for_product(request, page='Roll', product_id=None, list_type=''
             label.separador()
             old_route = sp.route
 
+        # Here we'll show an icon if the contact has one of the payment types marked on settings.
+        label_invoice_payment_types = getattr(settings, 'LABEL_INVOICE_PAYMENT_TYPES', [])
+
+        has_invoice = (
+            label_invoice_payment_types and sp.subscription.payment_type
+            and sp.subscription.payment_type in label_invoice_payment_types and not sp.subscription.billing_address
+            and sp.subscription.contact.invoice_set.filter(print_date__gte=date.today() - timedelta(30)).exists()
+        )
+
         for copy in range(sp.copies):
 
             label = iterator.next()
@@ -381,6 +393,13 @@ def print_labels_for_product(request, page='Roll', product_id=None, list_type=''
             else:
                 label.route = None
                 label.route_order = None
+
+            label.has_invoice = (
+                has_invoice
+                and sp.subscription.get_first_product_by_priority()
+                and sp.subscription.get_first_product_by_priority() == product
+            )
+
             label.draw()
     sheet.flush()
     canvas.save()

@@ -986,6 +986,16 @@ class Subscription(models.Model):
             else:
                 return ""
 
+    def get_first_product_by_priority(self):
+        """
+        Returns the first product by priority
+        """
+        products = self.products.filter(type="S").order_by("billing_priority")
+        if products.exists():
+            return products.first()
+        else:
+            return None
+
     def get_billing_data_by_priority(self):
         """
         This will order products by their billing_priority attribute, and billing data included in the first
@@ -995,36 +1005,21 @@ class Subscription(models.Model):
         Used primarily in invoicing.
         """
         result = {}
-        for product in Product.objects.filter(type="S").order_by("billing_priority"):
-            # TODO: check if subscription=self param is redundant
-            if self.subscriptionproduct_set.filter(subscription=self, product=product).exists():
-                sp = self.subscriptionproduct_set.filter(subscription=self, product=product).first()
-                if sp.address:
-                    result = {
-                        "route": sp.route_id,
-                        "order": sp.order,
-                        "address": sp.address.address_1 or sp.subscription.contact.email,
-                        "state": sp.address.state,
-                        "city": sp.address.city,
-                        "name": self.get_billing_name(),
-                    }
-                    break
+        product = self.get_first_product_by_priority()
+        if product:
+            sp = self.subscriptionproduct_set.filter(product=product).first()
+            if sp.address:
+                result = {
+                    "route": sp.route_id,
+                    "order": sp.order,
+                    "address": sp.address.address_1 or sp.subscription.contact.email,
+                    "state": sp.address.state,
+                    "city": sp.address.city,
+                    "name": self.get_billing_name(),
+                }
         if not result:
             if getattr(settings, "FORCE_DUMMY_MISSING_BILLING_DATA", False):
                 result = {}
-            else:
-                raise Exception(
-                    "Subscription {} for contact {} requires an address to be billed.".format(
-                        self.id, self.contact.id
-                    )
-                )
-        if getattr(settings, "REQUIRE_ROUTE_FOR_BILLING", False):
-            if result["route"] is None:
-                raise Exception(
-                    "Subscription {} for contact {} requires a route to be billed.".format(
-                        self.id, self.contact.id
-                    )
-                )
         return result
 
     def get_full_address_by_priority(self):
