@@ -69,10 +69,14 @@
                   <tr role="row">
                     <td>
                       <a href="/admin/invoicing/invoice/{{ invoice.id }}/">{{ invoice.id }}</a>
-                      {% if request.user|in_group:"Finances" or request.user|in_group:"Managers" or request.user|in_group:"Logistics" or request.user|in_group:"Support" %}
-                      <a href="/invoicing/download_invoice/{{ invoice.id }}/" title="{% trans 'Download invoice' %}">
-                          <img src="{% static 'img/pdficon_small.png' %}" alt="PDF"/>
-                      </a>
+                      {% if invoice.pdf %}
+                        {% if request.user|in_group:"Finances" or request.user|in_group:"Managers" or request.user|in_group:"Logistics" or request.user|in_group:"Support" %}
+                          <a href="/invoicing/download_invoice/{{ invoice.id }}/" title="{% trans 'Download invoice' %}">
+                            <img src="{% static 'img/pdficon_small.png' %}" alt="PDF"/>
+                          </a>
+                        {% endif %}
+                      {% else %}
+                          <i class="fas fa-exclamation-triangle text-warning" title="{% trans 'No pdf' %}"></i>
                       {% endif %}
                     </td>
                     <td>{{ invoice.subscription_id }}</td>
