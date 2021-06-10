@@ -86,18 +86,36 @@ def bill_subscription(subscription_id, billing_date=date.today(), dpp=10, check_
     # First we need to check if the subscription has the Normal type, is active, and next billing is less than the
     # selected billing date. This probably has to be filtered in the function that calls this one. But just in case
     # this will be controlled here too. A bypass can be programmed to ignore this
-    active = subscription.active
-    subscription_type_is_normal = subscription.type == 'N'
-
-    if not (active and subscription_type_is_normal):
-        # We only take the normal subscriptions, not promo or free
+    if not (subscription.active and subscription.type == 'N'):
         raise Exception(_('This subscription is not normal and should not be billed.'))
 
     if subscription.next_billing > billing_date + timedelta(getattr(settings, 'BILLING_EXTRA_DAYS', 0)):
         raise Exception(_('This subscription should not be billed yet.'))
 
-    # We need to get all the subscription data. The priority is defined on the settings.
+    # We need to get all the subscription data. The priority is defined in the billing_priority column of the product.
+    # If this first product doesn't have the required data, then we can't bill the subscription.
     billing_data = subscription.get_billing_data_by_priority()
+
+    if not billing_data and not getattr(settings, "FORCE_DUMMY_MISSING_BILLING_DATA", False):
+        raise Exception(
+            "Subscription {} for contact {} contains no billing data.".format(
+                subscription.id, subscription.contact.id
+            )
+        )
+
+    if billing_data and billing_data["address"] is None:
+        raise Exception(
+            "Subscription {} for contact {} requires an address to be billed.".format(
+                subscription.id, subscription.contact.id
+            )
+        )
+
+    if billing_data and getattr(settings, "REQUIRE_ROUTE_FOR_BILLING", False) and billing_data["route"] is None:
+        raise Exception(
+            "Subscription {} for contact {} requires a route to be billed.".format(
+                subscription.id, subscription.contact.id
+            )
+        )
 
     invoice_items = []
 
