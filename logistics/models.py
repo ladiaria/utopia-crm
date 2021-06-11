@@ -98,9 +98,28 @@ class Route(models.Model):
         """
         from invoicing.models import Invoice
         invoices = Invoice.objects.filter(
-            route=self.number, creation_date__range=(date.today() - timedelta(6), date.today()),
+            route=self.number, print_date__range=(date.today() - timedelta(6), date.today()),
             canceled=False).count()
         return invoices
+
+    def get_subscriptionproducts(self, product_id=None, isoweekday=None):
+        queryset = self.subscriptionproduct_set.filter(subscription__active=True)
+        if product_id:
+            queryset = queryset.filter(product_id=product_id)
+        if isoweekday:
+            queryset = queryset.filter(product__weekday=isoweekday)
+        return queryset
+
+    def get_subscriptionproducts_count(self):
+        return self.get_subscriptionproducts().count()
+
+    def get_subscriptionproducts_today_count(self):
+        today_isoweekday = date.today().isoweekday()
+        return self.get_subscriptionproducts(isoweekday=today_isoweekday).count()
+
+    def get_subscriptionproducts_tomorrow_count(self):
+        tomorrow_isoweekday = (date.today() + timedelta(1)).isoweekday()
+        return self.get_subscriptionproducts(isoweekday=tomorrow_isoweekday).count()
 
 
 class GeorefAddress(models.Model):

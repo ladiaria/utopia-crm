@@ -1,9 +1,11 @@
 {% extends 'adminlte/base.html' %}
 {% load static i18n widget_tweaks %}
+
 {% block stylesheets %}
     {{block.super}}
     <link rel="stylesheet" href="{% static '/admin-lte/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css' %}" />
 {% endblock %}
+
 {% block extra_head %}
 <script type="text/javascript" src="{% static 'js/jquery-3.3.1.min.js' %}"></script>
 <script type="text/javascript" src="{% static '/admin-lte/plugins/datatables/jquery.dataTables.min.js' %}"></script>
@@ -13,17 +15,17 @@
     $("#table1").DataTable();
   });
 </script>
-
 {% endblock %}
+
 {% block no_heading %}
 <h1>{% trans 'Issues route list' %}</h1>
 <p>{% trans 'Showing statistics for issues in routes for the period' %} {{start_date}} - {{end_date}} ({{days}} {% trans "days" %})</p>
 {% endblock %}
-{% block breadcrumbs %}
-<ol class="breadcrumb">
-    <li class="breadcrumb-item active">{% trans 'Contacts' %}</li>
-</ol>
-{% endblock %}
+
+{% block title %}
+    {% trans "Issues route list" %}
+{% endblock title %}
+
 {% block content %}
 <div class="row">
     <div class="col-md-12">

@@ -1,9 +1,9 @@
 {% extends "adminlte/base.html" %}
 {% load static i18n %}
-
 {% block stylesheets %}
     {{block.super}}
     <link rel="stylesheet" href="{% static 'css/jquery-ui.css' %}" />
+    <link rel="stylesheet" media="print" href="{% static 'css/print.css' %}" />
 {% endblock %}
 
 {% block extra_head %}
@@ -19,22 +19,25 @@
   });
 </script>
 {% endblock %}
-
 {% block no_heading %}
-<h1>{% trans 'Logistics' %}</h1>
+<span onclick="window.print()" class="btn btn-primary float-right"><i class="fas fa-print"></i>  {% trans 'Print' %}</span>
+<h1>{% trans 'Route(s)' %}
+{% for route in route_list %}{% if forloop.counter > 1 %},&nbsp;{% endif %}{{route}}{% endfor %}
+{% if product_name %}
+    ({{product_name}})
+{% endif %}
+</h1>
 {% endblock %}
 
 {% block title %}
-    {% trans "Order route" %} {{route.number}}
+    {% trans "Print routes" %}
+    {% for route in route_list %}{% if forloop.counter > 1 %},&nbsp;{% endif %}{{route}}{% endfor %}
 {% endblock title %}
 
 {% block content %}
 <div class="card">
-  <div class="card-header">
-    <h1 class="card-title">{% trans 'Order subscription products on route' %} {{route}}</h1>
-  </div>
   <div class="card-body">
-      <div class="card card-outline card-primary">
+      <div class="card card-outline card-primary noprint">
         <div class="card-header">
           <h3 class="card-title">{% trans 'Filter by product' %}</h3>
           <div class="card-tools">
@@ -53,17 +56,16 @@
           </div>
         </div>
       </div>
-
-
-
-     <form action="" method="post">
-        {% csrf_token %}
+      {% for route, subscription_products in route_dict %}
+        <h2 class="{% if not forloop.first %}page-break{% endif%}">{% trans "Route" %} {{route}} {% if product_name %}({{product_name}}){% endif %}</h2>
         <div class="table-responsive">
           <table class="table table-hover table-head-fixed">
             <thead>
               <tr>
                   <th>{% trans 'Name' %}</th>
-                  <th>{% trans 'Product' %}</th>
+                  {% if not product_name %}
+                      <th>{% trans 'Product' %}</th>
+                  {% endif %}
                   <th>{% trans 'Address' %}</th>
                   <th>{% trans 'Complement' %}</th>
                   <th>{% trans 'Message' %}</th>
@@ -73,23 +75,22 @@
             </thead>
             <tbody>
             {% for sp in subscription_products %}
-              <tr class="{% cycle 'row1' 'row2' %}">
-                <td><a href="{% url 'contact_detail' sp.subscription.contact.id %}">{{ sp.subscription.contact.name }}</a></td>
-                  <td>{{ sp.product.name }}</td>
+              <tr>
+                  <td>{{ sp.subscription.contact.name }}</td>
+                  {% if not product_name %}
+                    <td>{{ sp.product.name }}</td>
+                  {% endif %}
                   <td>{{ sp.address.address_1|default_if_none:'' }}</td>
                   <td>{{ sp.address.address_2|default_if_none:'' }}</td>
-                  <td><input class="form-control" maxlength="40" type="text" name="message-{{ sp.id }}" value="{{ sp.label_message|default_if_none:'' }}" /></td>
-                  <td><input class="form-control" type="number" name="instructions-{{ sp.id }}" value="{{ sp.special_instructions|default_if_none:'' }}" /></td>
-                  <td><input class="form-control" type="number" name="sp-order-{{ sp.id }}" value="{{sp.order|default_if_none:''}}" size="2" tabindex="{{ forloop.counter }}" class="form-control"/></td>
+                  <td>{{ sp.label_message|default_if_none:'' }}</td>
+                  <td>{{ sp.special_instructions|default_if_none:'' }}</td>
+                  <td>{{sp.order|default_if_none:''}}</td>
               </tr>
             {% endfor %}
             </tbody>
           </table>
         </div>
-        <div class="text-right">
-          <input type="submit" value="{% trans 'Send' %}" class="btn btn-primary btn-gradient"/>
-        </div>
-      </form>
+      {% endfor %}
     </div>
 </div>
 {% endblock %}
