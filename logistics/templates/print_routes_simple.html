@@ -1,0 +1,94 @@
+{% extends "adminlte/base.html" %}
+{% load static i18n %}
+{% block stylesheets %}
+    {{block.super}}
+    <link rel="stylesheet" href="{% static 'css/jquery-ui.css' %}" />
+{% endblock %}
+
+{% block extra_head %}
+<script type="text/javascript" src="{% static 'js/jquery-3.3.1.min.js' %}"></script>
+<script src="{% static 'js/1.12.1/jquery-ui.js' %}"></script>
+<script type="text/javascript">
+  $(function(){
+    $("#product_select").change(function() {
+      var optionValue = $(this).val();
+      var url = window.location.href.split("?")[0];
+      window.location = url + "?product_id=" + optionValue;
+    });
+  });
+</script>
+{% endblock %}
+{% block no_heading %}
+<h1>{% trans 'Route(s)' %}
+{% for route in route_list %}{% if forloop.counter > 1 %},&nbsp;{% endif %}{{route}}{% endfor %}
+{% if product_name %}
+    ({{product_name}})
+{% endif %}
+</h1>
+{% endblock %}
+
+{% block title %}
+    {% trans "Print routes" %}
+    {% for route in route_list %}{% if forloop.counter > 1 %},&nbsp;{% endif %}{{route}}{% endfor %}
+{% endblock title %}
+
+{% block content %}
+<div class="card">
+  <div class="card-body">
+      <div class="card card-outline card-primary noprint">
+        <div class="card-header">
+          <h3 class="card-title">{% trans 'Filter by product' %}</h3>
+          <div class="card-tools">
+            <button type="button" class="btn btn-tool" data-card-widget="collapse"><i class="fas fa-minus"></i>
+            </button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="form-group">
+            <select id="product_select" class="form-control">
+             <option value="all">{% trans 'All' %}</option>
+            {% for product in product_list %}
+             <option value="{{product.id}}" {% if product_id == product.id|slugify %}selected{% endif %}>{{product.name}}</option>
+            {% endfor %}
+           </select>
+          </div>
+        </div>
+      </div>
+      {% for route, subscription_products in route_dict.items %}
+        <h2>{% trans "Route" %} {{route}} {% if product_name %}({{product_name}}){% endif %}</h2>
+        <div class="table-responsive">
+          <table class="table table-hover table-head-fixed">
+            <thead>
+              <tr>
+                  <th>{% trans 'Name' %}</th>
+                  {% if not product_name %}
+                      <th>{% trans 'Product' %}</th>
+                  {% endif %}
+                  <th>{% trans 'Address' %}</th>
+                  <th>{% trans 'Complement' %}</th>
+                  <th>{% trans 'Message' %}</th>
+                  <th>{% trans 'Instructions' %}</th>
+                  <th>{% trans 'Order' %}</th>
+              </tr>
+            </thead>
+            <tbody>
+            {% for sp in subscription_products %}
+              <tr>
+                  <td>{{ sp.subscription.contact.name }}</td>
+                  {% if not product_name %}
+                    <td>{{ sp.product.name }}</td>
+                  {% endif %}
+                  <td>{{ sp.address.address_1|default_if_none:'' }}</td>
+                  <td>{{ sp.address.address_2|default_if_none:'' }}</td>
+                  <td>{{ sp.label_message|default_if_none:'' }}</td>
+                  <td>{{ sp.special_instructions|default_if_none:'' }}</td>
+                  <td>{{sp.order|default_if_none:''}}</td>
+              </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% endfor %}
+    </div>
+</div>
+{% endblock %}

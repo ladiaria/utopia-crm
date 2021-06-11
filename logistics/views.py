@@ -6,12 +6,13 @@ from dateutil.relativedelta import relativedelta
 
 from django.shortcuts import render, reverse, get_object_or_404
 from django.http import (
-    HttpResponseRedirect, HttpResponse)
+    HttpResponseRedirect, HttpResponse, HttpResponseNotFound)
 from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 from django.db.models import Sum
 from django.contrib.auth.decorators import login_required
 from django.db.models import F
+from django.contrib import messages
 
 from reportlab.pdfgen.canvas import Canvas
 
@@ -185,7 +186,6 @@ def list_routes(request):
 
 @login_required
 def print_labels(request, page='Roll', list_type='', route_list='', product_id=None):
-    today = date.today()
     tomorrow = date.today() + timedelta(1)
     if datetime.now().hour in range(0, 3):
         next_day = date.today()
@@ -756,3 +756,45 @@ def issues_route_list(request, start_date, end_date):
             'days': days
         }
     )
+
+
+@login_required
+def print_routes_simple(request, route_list):
+    product_list = Product.objects.filter(type='S', offerable=True)
+    product_id = 'all'
+    route_list = route_list.split(',')
+    route_list = [r for r in route_list if r.isdigit()]
+    routes = Route.objects.filter(number__in=route_list)
+    if not routes:
+        return HttpResponseNotFound()
+    route_dict = {}
+
+    for route_number in route_list:
+        try:
+            route_object = Route.objects.get(pk=route_number)
+        except Route.DoesNotExist:
+            messages.error(request, _("Route {} does not exist"))
+            return HttpResponseRedirect(reverse("main_menu"))
+
+        subscription_products = SubscriptionProduct.objects.filter(
+            route=route_object, subscription__active=True, product__type='S').exclude(
+                product__name__contains='digital').select_related(
+                'subscription__contact', 'address').order_by('order', 'address__address_1')
+
+        if request.GET:
+            product_id = request.GET.get('product_id', 'all')
+            if product_id != 'all':
+                subscription_products = subscription_products.filter(product_id=product_id)
+            exclude = request.GET.get('exclude', None)
+            if exclude:
+                subscription_products = subscription_products.exclude(product_id=exclude)
+
+        route_dict[route_number] = subscription_products
+
+    return render(request, 'print_routes_simple.html', {
+        'route_dict': route_dict,
+        'route_list': route_list,
+        'product_list': product_list,
+        'product_id': product_id,
+        'product_name': Product.objects.get(pk=product_id).name if product_id != 'all' else None,
+    })
