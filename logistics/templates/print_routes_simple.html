@@ -57,9 +57,9 @@
         </div>
       </div>
       {% for route, subscription_products in route_dict %}
-        <h2>{% trans "Route" %} {{route}} {% if product_name %}({{product_name}}){% endif %}</h2>
+        <h2 class="{% if not forloop.first %}page-break{% endif%}">{% trans "Route" %} {{route}} {% if product_name %}({{product_name}}){% endif %}</h2>
         <div class="table-responsive">
-          <table class="table table-hover table-head-fixed {% if not forloop.last %}page-break{% endif%}">
+          <table class="table table-hover table-head-fixed">
             <thead>
               <tr>
                   <th>{% trans 'Name' %}</th>
