@@ -56,11 +56,11 @@
               <td data-toggle="tooltip" title='{% trans "Amount of contacts for tomorrow" %}'>{{ route.get_subscriptionproducts_tomorrow_count }}</td>
               <td>
                 {% if request.user|in_group:"Support" or request.user|in_group:"Logistics" %}
-                  <a href='{% url "print_routes_simple" route.number %}' class="btn btn-primary">{% trans "Print" %}</a>
+                  <a target="_blank" href='{% url "print_routes_simple" route.number %}' class="btn btn-primary">{% trans "Print" %}</a>
                 {% endif %}
                 {% if request.user|in_group:"Logistics" %}
-                  <a href='{% url "order_route" route.number %}' class="btn btn-primary">{% trans "Order" %}</a>
-                  <a href='{% url "change_route" route.number %}' class="btn btn-primary">{% trans "Reroute" %}</a>
+                  <a target="_blank" href='{% url "order_route" route.number %}' class="btn btn-primary">{% trans "Order" %}</a>
+                  <a target="_blank" href='{% url "change_route" route.number %}' class="btn btn-primary">{% trans "Reroute" %}</a>
                 {% endif %}
               </td>
           </tr>
