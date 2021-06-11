@@ -20,6 +20,7 @@
 </script>
 {% endblock %}
 {% block no_heading %}
+<span onclick="window.print()" class="btn btn-primary float-right"><i class="fas fa-print"></i>  {% trans 'Print' %}</span>
 <h1>{% trans 'Route(s)' %}
 {% for route in route_list %}{% if forloop.counter > 1 %},&nbsp;{% endif %}{{route}}{% endfor %}
 {% if product_name %}
@@ -58,7 +59,7 @@
       {% for route, subscription_products in route_dict %}
         <h2>{% trans "Route" %} {{route}} {% if product_name %}({{product_name}}){% endif %}</h2>
         <div class="table-responsive">
-          <table class="table table-hover table-head-fixed">
+          <table class="table table-hover table-head-fixed {% if not forloop.last %}page-break{% endif%}">
             <thead>
               <tr>
                   <th>{% trans 'Name' %}</th>

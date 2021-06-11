@@ -6,8 +6,9 @@ body {
     font-size: 12pt;
   }
 
-table.table {
-   page-break-after:always;
+table.page-break {
+  page-break-inside:avoid;
+  page-break-after:always;
 }
 
 .noprint,
