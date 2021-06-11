@@ -1,5 +1,5 @@
 {% extends "adminlte/base.html" %}
-{% load static i18n %}
+{% load static i18n core_tags %}
 {% block stylesheets %}
     {{block.super}}
     <link rel="stylesheet" href="{% static 'css/jquery-ui.css' %}" />
@@ -15,19 +15,19 @@
       var url = window.location.href.split("?")[0];
       window.location = url + "?product_id=" + optionValue;
     });
+    $('[data-toggle="tooltip"]').tooltip();
   });
 </script>
 {% endblock %}
+
 {% block no_heading %}
 <h1>{% trans 'Logistics' %}</h1>
 <p>{% trans "View all logistics routes" %}</p>
 {% endblock %}
-{% block breadcrumbs %}
-<ol class="breadcrumb">
-    <li class="breadcrumb-item"><a href="/logistics/">{% trans 'Logistics' %}</a></li>
-    <li class="breadcrumb-item active">{% trans "All routes" %}</li>
-</ol>
-{% endblock %}
+
+{% block title %}
+    {% trans "All routes" %}
+{% endblock title %}
 
 {% block content %}
 <div class="card">
@@ -35,45 +35,38 @@
     <h1 class="card-title">{% trans "All routes" %}</h1>
   </div>
   <div class="card-body">
-    <form action="" method="post">
-
-    <h3>{% trans 'Weekday' %}: {{day}} | {% trans 'Product' %}: {{tomorrow_product}}</h3>
-      {% csrf_token %}
       <table class="table table-hover table-head-fixed">
         <thead>
           <tr>
               <th>#</th>
-              <th>C</th>
-              <th>I</th>
-              <th>P</th>
-              <th>N</th>
-              <th>{% trans "Total" %}</th>
-              <th>{% trans "Actions" %}</th>
               <th>{% trans "Name" %}</th>
-              <th>{% trans "Description" %}</th>
+              <th data-toggle="tooltip" title='{% trans "Amount of contacts in this route" %}'>{% trans "Total" %}</th>
+              <th data-toggle="tooltip" title='{% trans "Amount of contacts today" %}'>{% trans "Today" %}</th>
+              <th data-toggle="tooltip" title='{% trans "Amount of contacts tomorrow" %}'>{% trans "Tomorrow" %}</th>
+              <th>{% trans "Actions" %}</th>
           </tr>
         </thead>
         <tbody>
         {% for route in route_list %}
-          <tr class="{% cycle 'row1' 'row2' %}">
+          <tr>
               <td>{{ route.number }}</td>
-              <td>{{ route.copies|default_if_none:0 }}</td>
-              <td>{{ route.invoices|default_if_none:0 }}</td>
-              <td>{{ route.promotions|default_if_none:0 }}</td>
-              <td>{{ route.new|default_if_none:0 }}</td>
-              <td>{{ route.contacts|default_if_none:0 }}</td>
+              <td data-toggle="tooltip" title='{{ route.description }}'>{{ route.name }}</td>
+              <td data-toggle="tooltip" title='{% trans "Amount of contacts in this route" %}'>{{ route.get_subscriptionproducts_count }}</td>
+              <td data-toggle="tooltip" title='{% trans "Amount of contacts for today" %}'>{{ route.get_subscriptionproducts_today_count }}</td>
+              <td data-toggle="tooltip" title='{% trans "Amount of contacts for tomorrow" %}'>{{ route.get_subscriptionproducts_tomorrow_count }}</td>
               <td>
-                <a href="{% url 'route_details' route.number %}">{% trans "Details" %}</a>
-                <a href="{% url 'order_route' route.number %}">{% trans "Order" %}</a>
-                <a href="{% url 'change_route' route.number %}">{% trans "Re-route" %}</a>
+                {% if request.user|in_group:"Support" or request.user|in_group:"Logistics" %}
+                  <a href='{% url "print_routes_simple" route.number %}' class="btn btn-primary">{% trans "Print" %}</a>
+                {% endif %}
+                {% if request.user|in_group:"Logistics" %}
+                  <a href='{% url "order_route" route.number %}' class="btn btn-primary">{% trans "Order" %}</a>
+                  <a href='{% url "change_route" route.number %}' class="btn btn-primary">{% trans "Reroute" %}</a>
+                {% endif %}
               </td>
-              <td>{{route.name}}</td>
-              <td>{{route.description}}</td>
           </tr>
         {% endfor %}
         </tbody>
       </table>
-    </form>
     </div>
 </div>
 {% endblock %}

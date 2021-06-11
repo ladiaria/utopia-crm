@@ -1,8 +1,14 @@
 {% extends 'adminlte/base.html' %}
 {% load static i18n %}
+
 {% block no_heading %}
 <h1>{% trans "Issues statistics" %}</h1>
 {% endblock %}
+
+{% block title %}
+    {% trans "Issues statistics" %}
+{% endblock title %}
+
 {% block content %}
 <div class="row">
   <div class="col-12">

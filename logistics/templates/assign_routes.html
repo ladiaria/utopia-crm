@@ -1,5 +1,6 @@
 {% extends "adminlte/base.html" %}
 {% load static i18n %}
+
 {% block stylesheets %}
     {{block.super}}
     <link rel="stylesheet" href="{% static 'css/jquery-ui.css' %}" />
@@ -18,15 +19,14 @@
   });
 </script>
 {% endblock %}
+
 {% block no_heading %}
 <h1>{% trans 'Logistics' %}</h1>
 {% endblock %}
-{% block breadcrumbs %}
-<ol class="breadcrumb">
-    <li class="breadcrumb-item"><a href="/logistics/">{% trans 'Logistics' %}</a></li>
-    <li class="breadcrumb-item active">{% trans 'Assign route to subscription products' %}</li>
-</ol>
-{% endblock %}
+
+{% block title %}
+    {% trans "Assign routes" %}
+{% endblock title %}
 
 {% block content %}
 <div class="card">

@@ -620,7 +620,6 @@ class SubscriptionProduct(models.Model):
         blank=True,
         null=True,
         verbose_name=_("Route"),
-        related_name="route",
         on_delete=models.SET_NULL,
     )
     order = models.PositiveSmallIntegerField(

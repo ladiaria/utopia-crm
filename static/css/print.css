@@ -1,0 +1,17 @@
+/* print styles */
+
+body {
+    background: #fff !important;
+    color: #000;
+    font-size: 12pt;
+  }
+
+table.page-break {
+  page-break-inside:avoid;
+  page-break-after:always;
+}
+
+.noprint,
+.main-footer {
+  display: none;
+}

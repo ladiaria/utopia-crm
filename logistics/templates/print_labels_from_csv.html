@@ -1,14 +1,14 @@
 {% extends "adminlte/base.html" %}
 {% load i18n %}
+
 {% block no_heading %}
 <h1>{% trans 'Logistics' %}</h1>
 {% endblock %}
-{% block breadcrumbs %}
-<ol class="breadcrumb">
-    <li class="breadcrumb-item"><a href="/logistics/">{% trans 'Logistics' %}</a></li>
-    <li class="breadcrumb-item active">{% trans 'Print labels from CSV file' %}</li>
-</ol>
-{% endblock %}
+
+{% block title %}
+    {% trans "Print labels from CSV file" %}
+{% endblock title %}
+
 {% block content %}
 <div class="card">
   <div class="card-header">
