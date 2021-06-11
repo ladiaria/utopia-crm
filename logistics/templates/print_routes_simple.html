@@ -3,6 +3,7 @@
 {% block stylesheets %}
     {{block.super}}
     <link rel="stylesheet" href="{% static 'css/jquery-ui.css' %}" />
+    <link rel="stylesheet" media="print" href="{% static 'css/print.css' %}" />
 {% endblock %}
 
 {% block extra_head %}
