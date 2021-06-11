@@ -654,8 +654,11 @@ def logistics_issues_statistics(request, category='L'):
         if week['issues']:
             count = Subscription.objects.filter(
                 active=True).exclude(products__slug__contains='digital').count()
-            week['pct'] = float(week['issues']) * 100 / (count * 6)
-            week['pct'] = '%.2f' % week['pct']
+            if count > 0:
+                week['pct'] = float(week['issues']) * 100 / (count * 6)
+                week['pct'] = '%.2f' % week['pct']
+            else:
+                week['pct'] = 'N/A'
 
         week['start'] = control_date.strftime('%Y-%m-%d')
         week['end'] = (control_date + timedelta(6)).strftime('%Y-%m-%d')
@@ -678,8 +681,11 @@ def logistics_issues_statistics(request, category='L'):
 
         if month['issues']:
             count = Subscription.objects.filter(active=True).exclude(products__slug__contains='digital').count()
-            month['pct'] = float(month['issues']) * 100 / (count * 24)
-            month['pct'] = '%.2f' % month['pct']
+            if count > 0:
+                month['pct'] = float(month['issues']) * 100 / (count * 24)
+                month['pct'] = '%.2f' % month['pct']
+            else:
+                month['pct'] = 'N/A'
 
         month['start'] = control_date.strftime('%Y-%m-%d')
         month['end'] = (control_date + relativedelta(months=+1) - timedelta(1)).strftime('%Y-%m-%d')
@@ -738,6 +744,8 @@ def issues_route_list(request, start_date, end_date):
         if route_dict['issues_count'] > 0:
             route_dict['pct'] = float(route_dict['issues_count']) * 100 / (route_dict['subscriptions_count'] * days)
             route_dict['pct'] = '%.2f%%' % route_dict['pct']
+        else:
+            route_dict['pct'] = 'N/A'
         routes_list.append(route_dict)
     return render(
         request,
