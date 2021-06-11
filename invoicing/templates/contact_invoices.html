@@ -4,6 +4,7 @@
 {% block no_heading %}
 <h1>{% trans "Invoices for contact:" %} <a href="{% url 'contact_detail' contact.id %}">{{ contact.name }}</a></h1>
 {% endblock %}
+
 {% block stylesheets %}
     {{block.super}}
     <link rel="stylesheet" href="{% static '/admin-lte/plugins/jquery-ui/jquery-ui.min.css' %}" />
@@ -16,8 +17,11 @@
     </style>
 {% endblock %}
 
-{% block content %}
+{% block title %}
+    {% trans "Invoices" %} - {{contact.name}}
+{% endblock title %}
 
+{% block content %}
 <div class="row">
     {% if contact.protected %}
         <div class="col-md-12">
@@ -55,9 +59,9 @@
                   <tr role="row">
                     <th>{% trans "Invoice" %}</th>
                     <th>{% trans "Subscription" %}</th>
-                    <th>{% trans "From" %}</th>
-                    <th>{% trans "To" %}</th>
-                    <th>{% trans "Issue" %}</th>
+                    <th>{% trans "Service from" %}</th>
+                    <th>{% trans "Service to" %}</th>
+                    <th>{% trans "Created" %}</th>
                     <th>{% trans "Due" %}</th>
                     <th>{% trans "Amount" %}</th>
                     <th>{% trans "Payment method" %}</th>
