@@ -185,6 +185,34 @@ def list_routes(request):
 
 
 @login_required
+def list_routes_detailed(request):
+    """
+    List all the routes and gives options for all of them.
+
+    TODO: Allow changing
+    """
+    route_list = []
+    routes = Route.objects.all()
+    weekdays = dict(PRODUCT_WEEKDAYS)
+    if datetime.now().hour in range(0, 3):
+        show_day = date.today().isoweekday()
+    else:
+        show_day = next_business_day().isoweekday()
+    tomorrow_product = Product.objects.get(weekday=show_day)
+    for route in routes:
+        route.copies = route.sum_copies_per_product(tomorrow_product)
+        route.contacts = route.contacts_in_route_count()
+        route.promotions = route.sum_promos_per_product(tomorrow_product)
+        route.new = route.sum_copies_per_product(tomorrow_product, new=True)
+        route.invoices = route.invoices_in_route()
+        route_list.append(route)
+    return render(
+        request, 'list_routes.html', {
+            'route_list': route_list, 'day': weekdays[show_day], 'tomorrow_product': tomorrow_product
+        })
+
+
+@login_required
 def print_labels(request, page='Roll', list_type='', route_list='', product_id=None):
     tomorrow = date.today() + timedelta(1)
     if datetime.now().hour in range(0, 3):
@@ -790,6 +818,8 @@ def print_routes_simple(request, route_list):
                 subscription_products = subscription_products.exclude(product_id=exclude)
 
         route_dict[route_number] = subscription_products
+
+    route_dict = sorted(route_dict.items())
 
     return render(request, 'print_routes_simple.html', {
         'route_dict': route_dict,
