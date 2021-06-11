@@ -623,13 +623,16 @@ def logistics_issues_statistics(request, category='L'):
         day['issues'] = Issue.objects.filter(
             date=control_date,
             category=category).count()
+        day['start'] = control_date.strftime('%Y-%m-%d')
         if day['issues']:
             count = SubscriptionProduct.objects.filter(
                 subscription__active=True,
                 product__weekday=isoweekday).exclude(product__slug__contains='digital').count()
-            day['pct'] = float(day['issues']) * 100 / count
-            day['pct'] = '%.2f' % day['pct']
-        day['start'] = control_date.strftime('%Y-%m-%d')
+            if count > 0:
+                day['pct'] = float(day['issues']) * 100 / count
+                day['pct'] = '%.2f' % day['pct']
+            else:
+                day['pct'] = 'N/A'
         days.append(day)
 
         control_date += timedelta(1)
@@ -649,7 +652,6 @@ def logistics_issues_statistics(request, category='L'):
             date__lte=control_date + timedelta(6)).count()
 
         if week['issues']:
-            isoweekday = next_business_day().isoweekday()
             count = Subscription.objects.filter(
                 active=True).exclude(products__slug__contains='digital').count()
             week['pct'] = float(week['issues']) * 100 / (count * 6)
