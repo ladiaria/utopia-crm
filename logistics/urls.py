@@ -3,7 +3,7 @@
 from logistics.views import (
     assign_routes, order_route, change_route, list_routes, route_details, issues_labels, print_labels_for_product,
     print_labels_from_csv, edition_time, print_labels, logistics_issues_statistics, issues_per_route,
-    issues_route_list, print_routes_simple)
+    issues_route_list, print_routes_simple, list_routes_detailed)
 
 from django.conf.urls import url
 
@@ -15,6 +15,7 @@ urlpatterns = [
     url(r'^order_route/(\d+)/$', order_route, name='order_route'),
     url(r'^change_route/(\d+)/$', change_route, name='change_route'),
     url(r'^routes/$', list_routes, name='list_routes'),
+    url(r'^routes_detailed/$', list_routes_detailed, name='list_routes_detailed'),
     url(r'^routes/(?P<route_list>\d+(,\d+)*)/$', route_details, name='route_details'),
     url(r'^print_routes/(?P<route_list>\d+(,\d+)*)/$', print_routes_simple, name='print_routes_simple'),
     url(r'^issues_labels/$', issues_labels, name='issues_labels'),

@@ -49,7 +49,7 @@
     <li class="nav-item"><a href="{{list_issues}}" class="nav-link {% ifequal request.path list_issues %}active{% endifequal %}">{% trans 'List issues' %}</a></li>
     <li class="nav-item"><a href="{{collection_issues}}" class="nav-link {% ifequal request.path collection_issues %}active{% endifequal %}">{% trans 'Collection issues' %}</a></li>
     <li class="nav-item"><a href="{{dynamic_contact_filter_list}}" class="nav-link {% ifequal request.path dynamic_contact_filter_list %}active{% endifequal %}">{% trans 'Dynamic contact filter list' %}</a></li>
-    <li class="nav-item"><a href="{{list_routes}}" class="nav-link {% ifequal request.path list_routes %}active{% endifequal %}">{% trans 'List routes' %}</a></li>
+    <li class="nav-item"><a href="{{list_routes}}" class="nav-link {% ifequal request.path list_routes %}active{% endifequal %}">{% trans 'List all routes' %}</a></li>
   </ul>
 </li>
 {% endif %}
@@ -98,12 +98,13 @@
     <li class="nav-item"><a href='{{assign_routes}}' class="nav-link {% ifequal request.path assign_routes %}active{% endifequal %}">{% trans 'Assign subscriptions to routes' %}</a></li>
     <li class="nav-item"><a href='{{order_route_default}}' class="nav-link {% ifequal request.path order_route_default %}active{% endifequal %}">{% trans 'Order subscriptions in route' %}</a></li>
     <li class="nav-item"><a href='{{change_route_default}}' class="nav-link {% ifequal request.path change_route_default %}active{% endifequal %}">{% blocktrans %}Change route of subscriptions<br/> on routes{% endblocktrans %}</a></li>
-    <li class="nav-item"><a href='{{list_routes_detailed}}' class="nav-link {% ifequal request.path list_routes_detailed %}active{% endifequal %}">{% trans 'List all routes' %}</a></li>
     <li class="nav-item"><a href='{{print_labels_page_roll}}' class="nav-link {% ifequal request.path print_labels_page_roll %}active{% endifequal %}">{% trans 'Print all labels for tomorrow' %}</a></li>
     <li class="nav-item"><a href='{{print_labels_from_csv}}' class="nav-link {% ifequal request.path print_labels_from_csv %}active{% endifequal %}">{% trans 'Print labels from CSV file' %}</a></li>
     <li class="nav-item"><a href='{{issues_labels}}' class="nav-link {% ifequal request.path issues_labels %}active{% endifequal %}">{% trans 'Issues labels' %}</a></li>
     <li class="nav-item"><a href='{{edition_time_departure}}' class="nav-link {% ifequal request.path edition_time_departure %}active{% endifequal %}">{% trans 'Edition departure time' %}</a></li>
     <li class="nav-item"><a href='{{edition_time_arrival}}' class="nav-link {% ifequal request.path edition_time_arrival %}active{% endifequal %}">{% trans 'Edition arrival time' %}</a></li>
+    <li class="nav-item"><a href="{{list_routes}}" class="nav-link">{% trans 'List all routes' %} ({% trans "Simple" %})</a></li>
+    <li class="nav-item"><a href='{{list_routes_detailed}}' class="nav-link {% ifequal request.path list_routes_detailed %}active{% endifequal %}">{% trans 'List all routes' %} ({% trans "Detailed" %})</a></li>
   </ul>
 </li>
 {% endif %}
