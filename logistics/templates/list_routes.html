@@ -48,7 +48,7 @@
         </thead>
         <tbody>
         {% for route in route_list %}
-          <tr>
+          <tr style='{% if not route.active %}color: red;{% endif %}'>
               <td>{{ route.number }}</td>
               <td data-toggle="tooltip" title='{{ route.description }}'>{{ route.name }}</td>
               <td data-toggle="tooltip" title='{% trans "Amount of contacts in this route" %}'>{{ route.get_subscriptionproducts_count }}</td>
