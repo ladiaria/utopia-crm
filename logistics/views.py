@@ -163,24 +163,10 @@ def list_routes(request):
 
     TODO: Allow changing
     """
-    route_list = []
-    routes = Route.objects.all()
-    weekdays = dict(PRODUCT_WEEKDAYS)
-    if datetime.now().hour in range(0, 3):
-        show_day = date.today().isoweekday()
-    else:
-        show_day = next_business_day().isoweekday()
-    tomorrow_product = Product.objects.get(weekday=show_day)
-    for route in routes:
-        route.copies = route.sum_copies_per_product(tomorrow_product)
-        route.contacts = route.contacts_in_route_count()
-        route.promotions = route.sum_promos_per_product(tomorrow_product)
-        route.new = route.sum_copies_per_product(tomorrow_product, new=True)
-        route.invoices = route.invoices_in_route()
-        route_list.append(route)
+    route_list = Route.objects.all()
     return render(
         request, 'list_routes.html', {
-            'route_list': route_list, 'day': weekdays[show_day], 'tomorrow_product': tomorrow_product
+            'route_list': route_list,
         })
 
 
@@ -207,7 +193,7 @@ def list_routes_detailed(request):
         route.invoices = route.invoices_in_route()
         route_list.append(route)
     return render(
-        request, 'list_routes.html', {
+        request, 'list_routes_detailed.html', {
             'route_list': route_list, 'day': weekdays[show_day], 'tomorrow_product': tomorrow_product
         })
 
