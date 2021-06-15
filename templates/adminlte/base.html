@@ -15,6 +15,7 @@
 
     {% block stylesheets %}
         {% include 'adminlte/lib/_styles.html' %}
+        <link href="{% static 'css/extra.css' %}" type="text/css" rel="stylesheet" />
     {% endblock %}
 
     <link rel="shortcut icon" type="image/png" href="{% static 'img/favicon_ssng.ico' %}"/>
@@ -69,7 +70,7 @@
 
         </div>
         {% endblock content_wrapper %}
-        
+
         {% block nav_footer %}
             {% include 'adminlte/lib/_main_footer.html' %}
         {% endblock %}

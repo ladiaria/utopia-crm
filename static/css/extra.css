@@ -1,0 +1,10 @@
+.nav-item > .nav-treeview {
+  background: rgba(255, 255, 255, .1) !important;
+  border-radius: 3px;
+}
+[class*="sidebar-dark-"] .nav-sidebar > .nav-item.menu-open > .nav-link, [class*="sidebar-dark-"] .nav-sidebar > .nav-item:hover > .nav-link, [class*="sidebar-dark-"] .nav-sidebar > .nav-item > .nav-link:focus {
+  background-color: rgba(255, 255, 255, .2);
+}
+.sidebar-mini .nav-sidebar, .sidebar-mini .nav-sidebar .nav-link, .sidebar-mini .nav-sidebar>.nav-header {
+  white-space: normal;
+}
