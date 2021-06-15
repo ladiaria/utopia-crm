@@ -24,6 +24,8 @@ class Command(BaseCommand):
         issues = Issue.objects.filter(category="I", subcategory="I06").exclude(
             status__slug__in=settings.FINISHED_ISSUE_STATUS_SLUG_LIST
         )
+        if getattr(settings, 'ISSUE_STATUS_AUTO_CLOSE_SLUGS', None):
+            issues = issues.filter(status__slug__in=settings.ISSUE_STATUS_AUTO_CLSOSE_SLUGS)
         print(_("Started process"))
         for issue in issues.iterator():
             try:
