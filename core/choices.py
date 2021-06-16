@@ -19,6 +19,7 @@ EDUCATION_CHOICES = (
 INACTIVITY_REASONS = (
     (1, _('Normal end')),
     (2, _('Paused')),
+    (3, _('Upgraded')),
     (9, _('Lost the route')),
     (10, _('We don\'t reach this address')),
     (11, _('Bad addition to the database')),
