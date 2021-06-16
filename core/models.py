@@ -802,6 +802,13 @@ class Subscription(models.Model):
         verbose_name=_("Payment type"),
     )
 
+    updated_from = models.OneToOneField(
+        'core.Subscription',
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True
+    )
+
     # Mercadopago tokens, and others
     card_id = models.CharField(max_length=13, blank=True, null=True)
     customer_id = models.CharField(max_length=24, blank=True, null=True)
