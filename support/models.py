@@ -192,6 +192,8 @@ class ScheduledTask(models.Model):
     ends = models.ForeignKey(
         "support.ScheduledTask", blank=True, null=True, on_delete=models.SET_NULL
     )
+    label_message = models.CharField(max_length=40, blank=True, null=True)
+    special_instructions = models.TextField(blank=True, null=True)
 
     def get_category(self):
         categories = dict(SCHEDULED_TASK_CATEGORIES)
