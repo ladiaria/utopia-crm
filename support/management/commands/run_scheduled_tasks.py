@@ -101,7 +101,7 @@ class Command(BaseCommand):
                     sp.route = None
                     sp.order = None
                     sp.label_message = task.label_message
-                    sp.special_instructions = task.speciak_instructions
+                    sp.special_instructions = task.special_instructions
                     sp.save()
                 task.completed = True
                 task.save()
