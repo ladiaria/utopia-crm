@@ -19,15 +19,11 @@
         });
 
         function activateSend() {
-          var disable = false;
-          console.log("hola");
-
           if ($(".sp-checkbox:checked").length == 0) {
             $("#send_form").attr("disabled", "disabled");
           }else{
             $("#send_form").removeAttr("disabled");
           }
-          console.log(disable)
         };
         activateSend();
 
