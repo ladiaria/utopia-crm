@@ -74,7 +74,7 @@ class NewAddressChangeScheduledTaskForm(forms.Form):
         widget=forms.Select(attrs={"class": "form-control"}),
     )
     new_address = forms.BooleanField(
-        required=False, widget=forms.CheckboxInput(attrs={"class": "form-check-input"})
+        label=_("New address"), required=False, widget=forms.CheckboxInput(attrs={"class": "form-check-input"})
     )
     new_address_1 = forms.CharField(
         required=False, widget=forms.TextInput(attrs={"class": "form-control"})
@@ -101,6 +101,12 @@ class NewAddressChangeScheduledTaskForm(forms.Form):
     activity_type = forms.ChoiceField(
         widget=forms.Select(attrs={"class": "form-control"}),
         choices=ACTIVITY_TYPES,
+    )
+    new_label_message = forms.CharField(
+        max_length=40, required=False, widget=forms.TextInput(attrs={"class": "form-control"})
+    )
+    new_special_instructions = forms.CharField(
+        required=False, widget=forms.TextInput(attrs={"class": "form-control"})
     )
 
     def clean(self):

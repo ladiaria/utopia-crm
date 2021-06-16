@@ -17,8 +17,24 @@
         $('#id_new_address').click(function(){
           $('.newaddress-group').toggleClass('d-none');
         });
-  });
 
+        function activateSend() {
+          var disable = false;
+          console.log("hola");
+
+          if ($(".sp-checkbox:checked").length == 0) {
+            $("#send_form").attr("disabled", "disabled");
+          }else{
+            $("#send_form").removeAttr("disabled");
+          }
+          console.log(disable)
+        };
+        activateSend();
+
+        $("input:checkbox, select").change(function(){
+          activateSend();
+        });
+  });
 </script>
 {% endblock %}
 {% block no_heading %}
@@ -155,6 +171,20 @@
                   </div>
              </div>
           </div>
+          <div class="row">
+              <div class="col-md-6 col-s-12">
+                <div class="form-group">
+                  <label for="id_new_address_city">{{form.new_label_message.label}}</label>
+                  {{form.new_label_message}}
+                </div>
+              </div>
+              <div class="col-md-6 col-s-12">
+                  <div class="form-group">
+                    <label for="id_new_address_state">{{form.new_special_instructions.label}}</label>
+                    {{form.new_special_instructions}}
+                  </div>
+             </div>
+          </div>
           <div class="form-group">
             <label for="id_new_address_type">{{form.new_address_type.label}}</label>
             {{form.new_address_type}}
@@ -172,9 +202,9 @@
               {% for subscription_product in subscription_products %}
               <div class="form-check">
                   <input type="checkbox"
-                   class="form-check-input" name="sp{{subscription_product.id}}" value="sp{{subscription_product.id}}" id="sp{{subscription_product.id}}">
+                   class="sp-checkbox form-check-input" name="sp{{subscription_product.id}}" value="sp{{subscription_product.id}}" id="sp{{subscription_product.id}}">
                   <label
-                   class="form-check-label" for="sp{{subscription_product.id}}">{{subscription_product.product}} x{{subscription_product.copies}} {% trans "currently on address" %} {{subscription_product.address}} {% if subscription_product.route %}(R: {{subscription_product.route}} {%if subscription_product.order%}O: {{subscription_product.order}} {% endif %}){% endif %}</label>
+                   class="form-check-label" for="sp{{subscription_product.id}}">{{subscription_product.product}} {% if subscription_product.label_contact %}({{subscription_product.label_contact.name}}) {% endif %} x{{subscription_product.copies}} {% trans "currently on address" %} {{subscription_product.address}} {% if subscription_product.route %}(R: {{subscription_product.route}} {%if subscription_product.order%}O: {{subscription_product.order}} {% endif %}){% endif %}</label>
               </div>
               {% endfor %}
 
@@ -182,7 +212,7 @@
         </div>
         {% endif %}
         <div class="form-group text-right">
-          <input type="submit" class="btn bg-gradient-primary" name="submit" value='{% trans "Send" %}'>
+          <input type="submit" id="send_form" class="btn bg-gradient-primary" name="submit" value='{% trans "Send" %}'>
       </div>
     </form>
   </div>
