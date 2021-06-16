@@ -1217,6 +1217,8 @@ def new_scheduled_task(request, contact_id, subcategory):
                     execution_date=date1,
                     category="AC",
                     address=address,
+                    special_instructions=form.cleaned_data.get("new_special_instructions"),
+                    label_message=form.cleaned_data.get("new_label_message"),
                 )
                 Activity.objects.create(
                     datetime=datetime.now(),
