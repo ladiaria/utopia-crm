@@ -739,6 +739,7 @@ def new_subscription(request, contact_id):
                 # We will end the old subscription here.
                 form_subscription.end_date = form.cleaned_data["start_date"]
                 form_subscription.active = False
+                form_subscription.inactivity_reason = 3  # Upgraded
                 form_subscription.save()
 
             if edit_subscription:
@@ -775,6 +776,7 @@ def new_subscription(request, contact_id):
                 # Then, the amount that was already paid in the period but was not used due to closing the
                 # old subscription will be added as a discount.
                 subscription.balance = form_subscription.amount_already_paid_in_period()
+                subscription.updated_from = form_subscription
 
             # We need to decide what we do with the status of the subscription, for now it will be normal
             subscription.status = "OK"

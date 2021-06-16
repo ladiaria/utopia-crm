@@ -164,6 +164,7 @@ class SubscriptionAdmin(admin.ModelAdmin):
             ('next_billing', 'payment_type'),
             ('balance', 'frequency'),
             ('status', 'send_bill_copy_by_email'),
+            ('updated_from'),
         )}),
         ('Billing data', {
             'classes': ('collapse',),
@@ -173,11 +174,18 @@ class SubscriptionAdmin(admin.ModelAdmin):
                 ('billing_id_doc',),
                 ('rut',),
             )}),
+        ('Inactivity', {
+            'classes': ('collapse',),
+            'fields': (
+                ('inactivity_reason',),
+                'unsubscription_reason', 'unsubscription_addendum',
+                ('unsubscription_date', 'unsubscription_manager'),
+            )}),
     )
     list_display = ('contact', 'active', 'payment_type', 'campaign', 'product_summary')
     list_editable = ('active', 'payment_type')
     list_filter = ('campaign', 'active', 'payment_type')
-    readonly_fields = ('contact', 'edit_products_field', 'campaign', 'seller')
+    readonly_fields = ('contact', 'edit_products_field', 'campaign', 'seller', 'updated_from')
 
     class Media:
         pass
