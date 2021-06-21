@@ -485,12 +485,15 @@ def issues_labels(request):
                 continue
             for copy in range(issue.copies):
                 label = iterator.next()
-                label.nombre = issue.contact.name.upper()
-                label.direccion = (
+                if issue.subscription_product.label_contact:
+                    label.name = issue.subscription_product.label_contact.name.upper()
+                else:
+                    label.name = issue.subscription_product.contact.name.upper()
+                label.addresss = (
                     issue.subscription_product.address.address_1 or '') + '\n' + (
                     issue.subscription_product.address.address_2 or '')
-                label.ruta = issue.subscription_product.route.number
-                label.ruta_orden = issue.subscription_product.order
+                label.route = issue.subscription_product.route.number
+                label.route_order = issue.subscription_product.order
                 # Add the day of the product to the labels.
                 if issue.subscription_product.product.weekday == 1:  # Monday
                     route_suffix = _('MONDAY')
@@ -510,7 +513,7 @@ def issues_labels(request):
                     route_suffix = _('WEEKEND')
                 else:
                     route_suffix = issue.subscription_product.product.name
-                label.ruta_sufijo = route_suffix
+                label.route_suffix = route_suffix
                 label.draw()
         hoja.flush()
         canvas.save()
