@@ -219,4 +219,4 @@ class IssueStatus(models.Model):
         return (self.name, self.slug)
 
     class Meta:
-        pass
+        ordering = ["name"]
