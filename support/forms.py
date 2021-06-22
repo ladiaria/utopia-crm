@@ -3,6 +3,7 @@ from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 from django import forms
 from django.core.exceptions import ValidationError
+from django.contrib.auth.models import User
 
 from .models import Issue, IssueStatus
 from .choices import ISSUE_SUBCATEGORIES
@@ -233,30 +234,6 @@ class NewSubscriptionForm(forms.Form):
             raise ValidationError(_("This id document already exists in a different contact"))
 
 
-class GestionStartForm(forms.ModelForm):
-    """
-    Used when you want to start an issue to track debtors, what used to be a 'CollectionIssue'
-    """
-
-    class Meta:
-        model = Issue
-        fields = (
-            "contact",
-            "date",
-            "category",
-            "subcategory",
-            "notes",
-            "assigned_to",
-            "progress",
-            "answer_1",
-            "answer_2",
-            "end_date",
-            "next_action_date",
-            "closing_date",
-            "subscription",
-        )
-
-
 class IssueStartForm(forms.ModelForm):
     """
     Used when you want to start an issue to track logistics, what used to be 'Claims
@@ -299,6 +276,11 @@ class IssueStartForm(forms.ModelForm):
 
     status = forms.ModelChoiceField(
         queryset=IssueStatus.objects.all(),
+        widget=forms.Select(attrs={"class": "form-control"})
+    )
+
+    assigned_to = forms.ModelChoiceField(
+        queryset=User.objects.filter(is_staff=True).order_by('username'),
         widget=forms.Select(attrs={"class": "form-control"})
     )
 

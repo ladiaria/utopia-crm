@@ -3,7 +3,7 @@ from datetime import date, timedelta
 import django_filters
 from django import forms
 from django.utils.translation import ugettext_lazy as _
-from django.db.models import Q
+from django.contrib.auth.models import User
 
 from core.models import Activity
 from .models import Issue
@@ -26,6 +26,10 @@ class IssueFilter(django_filters.FilterSet):
         field_name='date', lookup_expr='gte', widget=forms.TextInput(attrs={'autocomplete': 'off'}))
     date_lte = django_filters.DateFilter(
         field_name='date', lookup_expr='lte', widget=forms.TextInput(attrs={'autocomplete': 'off'}))
+    assigned_to = django_filters.ModelChoiceFilter(
+        queryset=User.objects.filter(is_staff=True).order_by('username'),
+        widget=forms.Select(attrs={"class": "form-control"})
+    )
 
     class Meta:
         model = Issue

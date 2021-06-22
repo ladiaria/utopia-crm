@@ -1112,7 +1112,9 @@ def new_issue(request, contact_id):
     if request.POST:
         form = IssueStartForm(request.POST)
         if form.is_valid():
-            if form.cleaned_data["assigned_to"]:
+            if form.cleaned_data["status"]:
+                status = form.cleaned_data["status"]
+            elif form.cleaned_data["assigned_to"]:
                 status = IssueStatus.objects.get(slug=settings.ASSIGNED_ISSUE_STATUS_SLUG)
             else:
                 status = IssueStatus.objects.get(slug=settings.UNASSIGNED_ISSUE_STATUS_SLUG)
