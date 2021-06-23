@@ -348,8 +348,7 @@ class SubscriptionProductAdmin(admin.ModelAdmin):
     raw_id_fields = ('subscription', 'address', 'label_contact')
 
 
-if getattr(settings, 'USE_CUSTOM_SUBSCRIPTION_ADMIN', False) is False:
-    admin.site.register(Subscription, SubscriptionAdmin)
+admin.site.register(Subscription, SubscriptionAdmin)
 admin.site.register(Contact, ContactAdmin)
 admin.site.register(Product, ProductAdmin)
 admin.site.register(Address, AddressAdmin)
