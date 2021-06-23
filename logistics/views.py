@@ -515,6 +515,19 @@ def issues_labels(request):
                     route_suffix = issue.subscription_product.product.name
                 label.route_suffix = route_suffix
                 label.draw()
+            # After this, we need to add a courtesy copy. This might get moved to a setting.
+            label = iterator.next()
+            if issue.subscription_product.label_contact:
+                label.name = issue.subscription_product.label_contact.name.upper()
+            else:
+                label.name = issue.subscription_product.contact.name.upper()
+            label.addresss = (
+                issue.subscription_product.address.address_1 or '') + '\n' + (
+                issue.subscription_product.address.address_2 or '')
+            label.route = issue.subscription_product.route.number
+            label.route_order = issue.subscription_product.order
+            label.message_for_contact = "Ejemplar de cortesía"  # This will be changed to english soon.
+            label.draw()
         hoja.flush()
         canvas.save()
         return response
