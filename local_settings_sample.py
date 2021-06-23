@@ -173,3 +173,7 @@ TEMPORARY_DISCOUNT = {
 
 # How many days into the future are we going to bill contacts
 BILLING_EXTRA_DAYS = 2
+
+# If for whatever reason you need to use a different class for your admin state it here and define it elsewhere
+USE_CUSTOM_SUBSCRIPTION_ADMIN = True
+USE_CUSTOM_INVOICE_ADMIN = True

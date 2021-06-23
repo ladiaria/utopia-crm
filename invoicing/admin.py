@@ -75,7 +75,8 @@ class BillingAdmin(admin.ModelAdmin):
                 return [f.name for f in self.model._meta.fields]
 
 
-admin.site.register(Invoice, InvoiceAdmin)
+if getattr(settings, 'USE_CUSTOM_INVOICE_ADMIN', False) is False:
+    admin.site.register(Invoice, InvoiceAdmin)
 admin.site.register(Billing, BillingAdmin)
 admin.site.register(InvoiceItem, InvoiceItemAdmin)
 admin.site.register(CreditNote, CreditNoteAdmin)
