@@ -488,7 +488,7 @@ def issues_labels(request):
                 if issue.subscription_product.label_contact:
                     label.name = issue.subscription_product.label_contact.name.upper()
                 else:
-                    label.name = issue.subscription_product.contact.name.upper()
+                    label.name = issue.contact.name.upper()
                 label.addresss = (
                     issue.subscription_product.address.address_1 or '') + '\n' + (
                     issue.subscription_product.address.address_2 or '')
@@ -520,7 +520,7 @@ def issues_labels(request):
             if issue.subscription_product.label_contact:
                 label.name = issue.subscription_product.label_contact.name.upper()
             else:
-                label.name = issue.subscription_product.contact.name.upper()
+                label.name = issue.contact.name.upper()
             label.addresss = (
                 issue.subscription_product.address.address_1 or '') + '\n' + (
                 issue.subscription_product.address.address_2 or '')
