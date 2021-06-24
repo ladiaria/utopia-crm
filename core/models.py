@@ -1623,6 +1623,9 @@ class ContactCampaignStatus(models.Model):
     last_action_date = models.DateField(auto_now=True)
     times_contacted = models.SmallIntegerField(default=0)
 
+    class Meta:
+        unique_together = ['contact', 'campaign']
+
     def get_last_activity(self):
         """
         Returns the last activity for the contact, on this exact campaign.
@@ -1635,7 +1638,7 @@ class ContactCampaignStatus(models.Model):
         """
         Returns a description of the status for this campaign on this contact.
         """
-        statuses = dict(CONTACT_CAMPAIGN_STATUS_CHOICES)
+        statuses = dict(CAMPAIGN_STATUS_CHOICES)
         return statuses.get(self.status, "N/A")
 
     def get_campaign_resolution(self):
