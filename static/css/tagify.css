@@ -1,0 +1,145 @@
+tags {
+  display: inline-block;
+  border: 1px solid #DDD;
+  padding-right: 0.3em 0.5em;
+  overflow: hidden;
+  cursor: text;
+}
+
+tags:hover {
+  border-color: #CCC;
+}
+
+@keyframes tags--bump {
+  30% {
+    box-shadow: 0 0 0 4px #E5E5E5;
+  }
+
+}
+
+tags tag {
+  display: inline-block;
+  vertical-align: top;
+  margin: 5px 0 5px 5px;
+  position: relative;
+  cursor: default;
+  white-space: nowrap;
+  transition: .13s ease-out;
+  animation: .3s tags--bump 1 ease-out;
+}
+
+tags tag > span {
+  display: inline-block;
+  padding: 0.3em 0.5em;
+  padding-right: 1.5em;
+  border-radius: 3px;
+  color: black;
+  background: #E5E5E5;
+  transition: .13s ease-out;
+}
+
+tags tag:hover span {
+  box-shadow: 0 0 0 2px #7AC3FF inset;
+  transition: 50ms;
+}
+
+tags tag.tagify--noAnim {
+  animation: none;
+}
+
+tags tag.tagify--hide {
+  pointer-events: none;
+  width: 0 !important;
+  padding-left: 0;
+  padding-right: 0;
+  margin-left: 0;
+  margin-right: 0;
+  opacity: 0;
+  transform: scale(0);
+  transition: .3s;
+}
+
+@keyframes tagify--pulse {
+  50% {
+    box-shadow: 0 0 0 2px #7AC3FF inset;
+  }
+
+}
+
+tags tag.tagify--mark span {
+  animation: .4s tagify--pulse 3 ease-out;
+}
+
+tags tag x {
+  font: 14px/15px Serif;
+  width: 14px;
+  height: 14px;
+  text-align: center;
+  border-radius: 50px;
+  position: absolute;
+  right: calc(0.5em - 2px);
+  top: 50%;
+  cursor: pointer;
+  transform: translateY(-50%);
+  transition: .2s;
+}
+
+tags tag x::after {
+  content: "\00D7";
+}
+
+tags tag x:hover {
+  color: white;
+  background: #cc8282;
+}
+
+tags tag x:hover + span {
+  box-shadow: 0 0 0 2px #D39494 inset;
+  transition: .2s;
+}
+
+tags input,
+tags textarea {
+  border: 0;
+  display: none;
+}
+
+tags div {
+  display: inline-block;
+  min-width: 10px;
+  margin: 5px;
+  padding: 0.3em 0.5em;
+}
+
+tags .input {
+  display: block;
+  position: relative;
+  white-space: nowrap;
+}
+
+tags .input.placeholder {
+  color: #999;
+}
+
+tags .input.placeholder::after {
+  opacity: 1;
+  transform: none;
+  max-width: 200px;
+}
+
+tags .input::after {
+  content: attr(data-placeholder);
+  display: inline-block;
+  opacity: 0;
+  max-width: 0;
+  transform: translatex(6px);
+  transition: .15s ease-out;
+}
+
+tags .input::before {
+  content: '\200B';
+}
+
+tags .input:focus {
+  outline: none;
+}
