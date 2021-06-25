@@ -16,6 +16,24 @@
       var url = window.location.href.split("?")[0];
       window.location = url + "?product_id=" + optionValue;
     });
+
+    $("#convert").click(function(){
+        $( "#dialog-confirm" ).dialog({
+          resizable: false,
+          height: "auto",
+          width: 400,
+          modal: true,
+          buttons: {
+            "{% trans 'Accept' %}": function() {
+              window.location = "{% url 'convert_orders_to_tens' route %}";
+              $( this ).dialog( "close" );
+            },
+            Cancel: function() {
+              $( this ).dialog( "close" );
+            }
+          }
+        });
+    });
   });
 </script>
 {% endblock %}
@@ -53,9 +71,6 @@
           </div>
         </div>
       </div>
-
-
-
      <form action="" method="post">
         {% csrf_token %}
         <div class="table-responsive">
@@ -87,9 +102,14 @@
           </table>
         </div>
         <div class="text-right">
+          <input id="convert" type="button" value="{% trans 'Convert to tens' %}" class="btn btn-primary btn-gradient"/>
           <input type="submit" value="{% trans 'Send' %}" class="btn btn-primary btn-gradient"/>
         </div>
       </form>
     </div>
+</div>
+
+<div id="dialog-confirm" title='{% trans "Confirm action" %}'>
+  <p><span class="ui-icon ui-icon-alert" style="float:left; margin:12px 12px 20px 0;"></span>{% blocktrans with route as route_number %}Convert all orders of route {{ route_number }} to tens?{% endblocktrans %}</p>
 </div>
 {% endblock %}
