@@ -10,7 +10,7 @@ from django.http import (
 from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 from django.db.models import Sum
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, permission_required
 from django.db.models import F
 from django.contrib import messages
 
@@ -830,3 +830,17 @@ def print_routes_simple(request, route_list):
         'product_id': product_id,
         'product_name': Product.objects.get(pk=product_id).name if product_id != 'all' else None,
     })
+
+
+@permission_required('logistics.change_route')
+def convert_orders_to_tens(request, route_id):
+    route = get_object_or_404(Route, pk=route_id)
+    for product in Product.objects.filter(offerable=True, type="S"):
+        order_i = 10
+        for sp in SubscriptionProduct.objects.filter(
+                product=product, route=route, order__isnull=False).order_by('order'):
+            sp.order = order_i
+            sp.save()
+            order_i += 10
+    messages.success(request, _("All orders have been converted to tens."))
+    return HttpResponseRedirect(reverse("order_route", args=[route.number]))
