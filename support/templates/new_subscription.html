@@ -1,9 +1,11 @@
 {% extends 'adminlte/base.html' %}
 {% load i18n static core_tags %}
 
-{% trans "New subscription" %}
+{% block title %}
+    {% trans "New subscription" %}
+{% endblock %}
 
-{% block extra_head %}
+{% block extra_js %}
 <script type="text/javascript" src="{% static 'js/datepicker-es.js' %}"></script>
 <script type="text/javascript" src="{% static 'js/product_dynamic_prices.js' %}"></script>
 <script type="text/javascript">
@@ -46,6 +48,7 @@
         });
     });
 </script>
+{% block extra_scripts %}{% endblock %}
 {% endblock %}
 
 {% block no_heading %}
