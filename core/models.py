@@ -350,7 +350,7 @@ class Contact(models.Model):
                     status__slug__in=settings.FINISHED_ISSUE_STATUS_SLUG_LIST,
                     category=category,
                 ).count()
-                == self.issue_set.all().count()
+                == self.issue_set.filter(category=category).count()
             )
         else:
             return (
