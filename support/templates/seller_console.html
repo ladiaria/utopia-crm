@@ -1,21 +1,21 @@
 {% extends 'adminlte/base.html' %}
 {% load sip static i18n core_tags %}
+
+{% block title %}
+    {% trans "Seller console" %}
+{% endblock %}
+
 {% block no_heading %}
 <h1>{% trans 'Support' %}</h1>
 <p>{% trans 'Manage campaign' %}: {{campaign.name}} <a href='{% url "seller_console_list_campaigns" %}'>({% trans "Go back to console" %})</a></p>
 {% endblock %}
-{% block breadcrumbs %}
-<ol class="breadcrumb">
-    <li class="breadcrumb-item"><a href="/support/">{% trans 'Support' %}</a></li>
-    <li class="breadcrumb-item"><a href="/support/seller_console/">{% trans 'Sales and promotions' %}</a></li>
-    <li class="breadcrumb-item active">{{seller.name}} - {% trans 'Campaign' %}: {{campaign.name}}</li>
-</ol>
-{% endblock %}
+
 {% block stylesheets %}
 {{block.super}}
 <link rel="stylesheet" href="http://code.jquery.com/ui/1.10.3/themes/smoothness/jquery-ui.css" />
 {% endblock %}
-{% block extra_head %}
+
+{% block extra_js %}
     {{block.super}}
     <script type="text/javascript" src="{% static 'js/jquery-3.3.1.min.js' %}"></script>
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
@@ -28,7 +28,7 @@
                 if ($.trim(this.value)){
                     $(".reject").removeAttr("disabled");
                 } else {
-                    $(".reject").attr("disabled", "disabled");        
+                    $(".reject").attr("disabled", "disabled");
                 }
             };
 
@@ -38,6 +38,7 @@
         });
     </script>
 {% endblock %}
+
 {% block content %}
     {% if pending_activities_count > 0 %}
     <div class="alert alert-warning" role="alert">

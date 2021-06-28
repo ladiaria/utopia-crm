@@ -1,12 +1,11 @@
 {% extends 'adminlte/base.html' %}
 {% load static i18n %}
-{% block stylesheets %}
-    {{block.super}}
-    <link rel="stylesheet" href="{% static 'css/jquery-ui.css' %}" />
+
+{% block title %}
+    {% trans "New scheduled task" %}
 {% endblock %}
-{% block extra_head %}
-<script type="text/javascript" src="{% static 'js/jquery-3.3.1.min.js' %}"></script>
-<script src="{% static 'js/1.12.1/jquery-ui.js' %}"></script>
+
+{% block extra_js %}
 <script type="text/javascript">
   $(function(){
         $(".datepicker").datepicker(
@@ -33,16 +32,12 @@
   });
 </script>
 {% endblock %}
+
 {% block no_heading %}
 <h1>{% trans 'Support' %}</h1>
 <p>{% if subcategory == 'S05' %}{% trans 'Change address' %}{% else %}{% trans 'Pause subscription' %}{% endif %}</p>
 {% endblock %}
-{% block breadcrumbs %}
-<ol class="breadcrumb">
-    <li class="breadcrumb-item"><a href="/support/">{% trans 'Support' %}</a></li>
-    <li class="breadcrumb-item active">{% if subcategory == 'S05' %}{% trans 'Change address' %}{% else %}{% trans 'Pause subscription' %}{% endif %}</li>
-</ol>
-{% endblock %}
+
 {% block content %}
 <div class="row">
   <div class="col-md-9">

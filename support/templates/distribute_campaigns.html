@@ -1,17 +1,13 @@
 {% extends 'adminlte/base.html' %}
 {% load i18n %}
+
+{% block title %}{% trans "Distribute campaigns" %}{% endblock title %}
+
 {% block no_heading %}
 <h1>{% trans 'Support' %}</h1>
 {% endblock %}
-{% block breadcrumbs %}
-<ol class="breadcrumb">
-    <li class="breadcrumb-item"><a href="/support/">{% trans 'Support' %}</a></li>
-    <li class="breadcrumb-item active">{% trans 'Assign contacts to sellers' %}</li>
-</ol>
-{% endblock %}
 
 {% block content %}
-
 <div class="card">
   <div class="card-header">
     <h2 class="card-title">{% trans 'Assign contacts to sellers' %}</h2>

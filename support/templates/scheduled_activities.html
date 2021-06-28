@@ -1,10 +1,16 @@
 {% extends 'adminlte/base.html' %}
 {% load static i18n widget_tweaks core_tags %}
+
+{% block title %}
+    {% trans "Scheduled activities" %}
+{% endblock %}
+
 {% block stylesheets %}
     {{block.super}}
     <link rel="stylesheet" href="{% static '/admin-lte/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css' %}" />
 {% endblock %}
-{% block extra_head %}
+
+{% block extra_js %}
 <script type="text/javascript" src="{% static 'js/jquery-3.3.1.min.js' %}"></script>
 <script type="text/javascript" src="{% static '/admin-lte/plugins/datatables/jquery.dataTables.min.js' %}"></script>
 <script src="{% static '/admin-lte/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js' %}"></script>
@@ -13,17 +19,13 @@
     $("#table1").DataTable();
   });
 </script>
-
 {% endblock %}
+
 {% block no_heading %}
 <h1>{% trans 'Activities' %}</h1>
 <p>{% trans 'All your upcoming and scheduled activities.' %}</p>
 {% endblock %}
-{% block breadcrumbs %}
-<ol class="breadcrumb">
-    <li class="breadcrumb-item active">{% trans 'Activities' %}</li>
-</ol>
-{% endblock %}
+
 {% block content %}
 <div class="row">
     <div class="col-md-12">

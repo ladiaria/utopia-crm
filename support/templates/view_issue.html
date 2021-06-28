@@ -1,30 +1,24 @@
 {% extends 'adminlte/base.html' %}
 {% load static i18n sip core_tags %}
+
+{% block title %}
+    {% trans "View issue" %}
+{% endblock %}
+
 {% block no_heading %}
 <h1>{% trans 'Support' %}</h1>
 <p>{% trans "View and update issue details" %}</p>
 {% endblock %}
-{% block stylesheets %}
-    {{block.super}}
-    <link rel="stylesheet" href="{% static 'css/jquery-ui.css' %}" />
-{% endblock %}
-{% block breadcrumbs %}
-<ol class="breadcrumb">
-    <li class="breadcrumb-item"><a href="/support/">{% trans 'Support' %}</a></li>
-    <li class="breadcrumb-item active">{% trans "View and update issue details" %}</li>
-</ol>
-{% endblock %}
-{% block extra_head %}
-<script type="text/javascript" src="{% static 'js/jquery-3.3.1.min.js' %}"></script>
-<script src="{% static 'js/1.12.1/jquery-ui.js' %}"></script>
+
+{% block extra_js %}
 <script type="text/javascript">
   $(function(){
         $(".datepicker").datepicker(
         { dateFormat: 'yy-mm-dd' });
   });
-
 </script>
 {% endblock %}
+
 {% block content %}
 <section class="content">
       <div class="container-fluid">

@@ -1,12 +1,14 @@
 {% extends 'adminlte/base.html' %}
 {% load static i18n widget_tweaks %}
+
+{% block title %}{% trans "Invoicing issues" %}{% endblock title %}
+
 {% block stylesheets %}
     {{block.super}}
     <link rel="stylesheet" href="{% static '/admin-lte/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css' %}" />
-    <link rel="stylesheet" href="{% static '/admin-lte/plugins/jquery-ui/jquery-ui.min.css' %}" />
 {% endblock %}
-{% block extra_head %}
-<script type="text/javascript" src="{% static 'js/jquery-3.3.1.min.js' %}"></script>
+
+{% block extra_js %}
 <script type="text/javascript" src="{% static '/admin-lte/plugins/datatables/jquery.dataTables.min.js' %}"></script>
 <script src="{% static '/admin-lte/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js' %}"></script>
 <script>
@@ -26,18 +28,13 @@
     $('#id_date_lte').datepicker({ dateFormat: 'yy-mm-dd' });
   });
 </script>
-
 {% endblock %}
+
 {% block no_heading %}
 <h1>{% trans 'Support' %}</h1>
 <p>{% trans 'List collection issues' %}</p>
 {% endblock %}
-{% block breadcrumbs %}
-<ol class="breadcrumb">
-    <li class="breadcrumb-item"><a href="/support/">{% trans 'Support' %}</a></li>
-    <li class="breadcrumb-item active">{% trans 'List collection issues' %}</li>
-</ol>
-{% endblock %}
+
 {% block content %}
 <div class="row">
     <div class="col-md-12">
