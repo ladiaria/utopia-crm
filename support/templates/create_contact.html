@@ -14,8 +14,8 @@
 <script type="text/javascript">
     $( function() {
         $(".datepicker").datepicker({ dateFormat: 'yy-mm-dd' });
+        $('input[name=tags]').tagify({duplicates :false});
       });
-    $('[name=tags]').tagify({duplicates :false});
 </script>
 {% endblock %}
 
