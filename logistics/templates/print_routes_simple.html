@@ -1,14 +1,12 @@
 {% extends "adminlte/base.html" %}
 {% load static i18n %}
+
 {% block stylesheets %}
     {{block.super}}
-    <link rel="stylesheet" href="{% static 'css/jquery-ui.css' %}" />
     <link rel="stylesheet" media="print" href="{% static 'css/print.css' %}" />
 {% endblock %}
 
-{% block extra_head %}
-<script type="text/javascript" src="{% static 'js/jquery-3.3.1.min.js' %}"></script>
-<script src="{% static 'js/1.12.1/jquery-ui.js' %}"></script>
+{% block extra_js %}
 <script type="text/javascript">
   $(function(){
     $("#product_select").change(function() {
@@ -19,6 +17,7 @@
   });
 </script>
 {% endblock %}
+
 {% block no_heading %}
 <span onclick="window.print()" class="btn btn-primary float-right"><i class="fas fa-print"></i>  {% trans 'Print' %}</span>
 <h1>{% trans 'Route(s)' %}

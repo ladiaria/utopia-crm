@@ -1,9 +1,14 @@
 {% extends 'adminlte/base.html' %}
-
 {% load static %}
+
+{% block title %}
+    {% trans "Billings" %}
+{% endblock %}
+
 {% block page_name %}
 <a href="/admin/invoicing/billing/{{ billing.id }}">Facturación #{{ billing.id }}</a>
 {% endblock %}
+
 {% block stylesheets %}
 {{block.super}}
 <style type="text/css" media="all">
@@ -53,6 +58,7 @@ td {
 }
 </style>
 {% endblock %}
+
 {% block content %}
   <div style="font-size: 1.2em; margin-bottom: 20px;">
   <table>

@@ -4,7 +4,6 @@
 {% block stylesheets %}
     {{block.super}}
     <link href="{% static 'css/stylish-tables.css' %}" type="text/css" rel="stylesheet" />
-    <link rel="stylesheet" href="{% static 'css/jquery-ui.css' %}" />
 {% endblock %}
 
 {% block title %}
@@ -68,7 +67,7 @@
                 <td>{{sp.subscription.contact.phone|default_if_none:""}}</td>
                 <td>{{sp.subscription.contact.mobile|default_if_none:""}}</td>
                 <td>
-                  {{ sp.address.address_1 }} {{ sp.address.address_2|default_if_none:"" }} 
+                  {{ sp.address.address_1 }} {{ sp.address.address_2|default_if_none:"" }}
                 {% if sp.special_instructions %}
                   <br/>
                   {% if sp.subscription.highlight_in_listing %}
@@ -143,10 +142,10 @@
                     <th>Id</th>
                     <th>{% trans "Name" %}</th>
                     <th>{% trans "Address" %}</th>
-                    <th>{% trans "Phone" %}</th> 
-                    <th>{% trans "City" %}</th> 
+                    <th>{% trans "Phone" %}</th>
+                    <th>{% trans "City" %}</th>
                     <th>{% trans "State" %}</th>
-                    <th>{% trans "End date" %}</th> 
+                    <th>{% trans "End date" %}</th>
                   </tr>
               </thead>
               <tbody>
@@ -164,12 +163,12 @@
               </tbody>
           </table>
       </div>
-          
-      
+
+
       {% endif %}
 
 
     {% endif %}
-<div style="page-break-after: always"></div> 
+<div style="page-break-after: always"></div>
 {% endfor %}
 {% endblock %}

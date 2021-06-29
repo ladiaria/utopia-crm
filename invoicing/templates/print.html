@@ -1,20 +1,18 @@
 {% extends 'adminlte/base.html' %}
 {% load i18n static %}
 
-{% block stylesheets %}
-    {{block.super}}
-    <link rel="stylesheet" href="{% static 'css/jquery-ui.css' %}" />
+{% block title %}
+    {% trans "Print invoices" %}
 {% endblock %}
 
-{% block extra_head %}
-    <script type="text/javascript" src="{% static 'js/jquery-3.3.1.min.js' %}"></script>
-    <script src="{% static 'js/1.12.1/jquery-ui.js' %}"></script>
+{% block extra_js %}
     <script type="text/javascript">
     $(function() {
         $(".a_datepicker").datepicker({ dateFormat: 'yy-mm-dd' }).datepicker("setDate", new Date());
     });
 </script>
 {% endblock %}
+
 {% block no_heading %}
 <h1>{% trans 'Billings' %}</h1>
 <p>{% trans 'Print Invoices' %}</p>
