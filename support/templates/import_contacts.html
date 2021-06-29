@@ -1,7 +1,9 @@
 {% extends 'adminlte/base.html' %}
 {% load static i18n %}
-{% block extra_head %}
-<script type="text/javascript" src="{% static 'js/jquery-3.3.1.min.js' %}"></script>
+
+{% block title %}{% trans "Import contacts" %}{% endblock title %}
+
+{% block extra_js %}
 <script type="text/javascript">
     $( function() {
         $("#default_option").change(function(){
@@ -12,6 +14,7 @@
     });
 </script>
 {% endblock %}
+
 {% block no_heading %}
 <h1>{% trans 'Support' %}</h1>
 <p>{% trans 'Import new contacts' %}</p>
@@ -22,6 +25,7 @@
      <li class="breadcrumb-item active">{% trans 'Import new contacts' %}</li>
 </ol>
 {% endblock %}
+
 {% block content %}
 <div class="card">
   <div class="card-header">
@@ -32,7 +36,7 @@
       {% if new_contacts_count %}
           <h4>{{new_contacts_count}} {% trans 'new contacts imported' %}:</h4>
       {% endif %}
-      
+
       {% if old_contacts_list %}
         <h4>{% trans 'Coincidences in contacts already in database found' %} ({% trans "By phones or emails" %}):</h4>
         <form method="post">
@@ -82,7 +86,7 @@
           {% endfor %}
         </ul>
       {% endif %}
-      
+
   {% elif changed_list or errors_in_changes %}
       {% if changed_list %}
         <p>{% trans 'These contacts have been updated' %}</p>

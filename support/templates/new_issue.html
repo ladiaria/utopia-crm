@@ -1,7 +1,9 @@
 {% extends 'adminlte/base.html' %}
 {% load static i18n %}
-{% block extra_head %}
-<script type="text/javascript" src="{% static 'js/jquery-3.3.1.min.js' %}"></script>
+
+{% block title %}{% trans "New issue" %}{% endblock title %}
+
+{% block extra_js %}
 <script type="text/javascript">
     $( function() {
       function categoryVal(select){
@@ -36,30 +38,21 @@
           }
         })
       }
-
-
       categoryVal($("#id_category"));
       updateSubcats();
       $("#id_category").change(function(){
         categoryVal($(this));
         updateSubcats();
       });
-
-
     });
-
 </script>
 {% endblock %}
+
 {% block no_heading %}
 <h1>{% trans 'Support' %}</h1>
 <p>{% trans 'Register an issue' %}</p>
 {% endblock %}
-{% block breadcrumbs %}
-<ol class="breadcrumb">
-    <li class="breadcrumb-item"><a href="/support/">{% trans 'Support' %}</a></li>
-    <li class="breadcrumb-item active">{% trans 'New issue' %}</li>
-</ol>
-{% endblock %}
+
 {% block content %}
 <div class="row">
   <div class="col-md-9">

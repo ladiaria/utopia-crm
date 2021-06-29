@@ -1,14 +1,11 @@
 {% extends 'adminlte/base.html' %}
 {% load sip i18n %}
+
+{% trans "Campaigns" %}
+
 {% block no_heading %}
 <h1>{% trans 'Support' %}</h1>
 <p>{% trans 'Manage promotions and sales' %}</p>
-{% endblock %}
-{% block breadcrumbs %}
-<ol class="breadcrumb">
-    <li class="breadcrumb-item"><a href="/support/">{% trans 'Support' %}</a></li>
-    <li class="breadcrumb-item active">{% trans 'Promotions and sales' %}</li>
-</ol>
 {% endblock %}
 
 {% block content %}

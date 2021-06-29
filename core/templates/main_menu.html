@@ -5,11 +5,11 @@
     {{block.super}}
     <link href="{% static 'css/stylish-tables.css' %}" type="text/css" rel="stylesheet" />
 {% endblock %}
+
 {% block no_heading %}
 <h1>{% trans 'Home' %}</h1>
 <p>{% trans 'Your starting point' %}</p>
 {% endblock %}
-
 
 {% block content %}
 <div class="card">
@@ -31,55 +31,6 @@
             </div>
           </div>
         </div>
-
-        {% if request.user|in_group:"Support" %}
-        <div class="col-lg-3 col-6">
-          <div class="card">
-            <div class="card-header">
-              <h3 class="card-title">{% trans 'Support' %}</h3>
-            </div>
-            <div class="card-body">
-              <p>{% trans 'Manage everything related to contacts, issues, and customer support.' %}</p>
-              <div class="text-right">
-                <a href="{{list_issues}}" class="btn btn-default">{% trans "Go to support" %}</a>
-              </div>
-            </div>
-          </div>
-        </div>
-        {% endif %}
-
-        {% if request.user|in_group:"Finances" %}
-        <div class="col-lg-3 col-6">
-          <div class="card">
-            <div class="card-header">
-              <h3 class="card-title">{% trans 'Finances' %}</h3>
-            </div>
-            <div class="card-body">
-              <p>{% trans 'Manage everything related to invoices and finances' %}</p>
-              <div class="text-right">
-                <a href="{{billings_control_panel}}" class="btn btn-default">{% trans "Go to finances" %}</a>
-              </div>
-            </div>
-          </div>
-        </div>
-        {% endif %}
-
-        {% if request.user|in_group:"Logistics" %}
-        <div class="col-lg-3 col-6">
-          <div class="card">
-            <div class="card-header">
-              <h3 class="card-title">{% trans 'Logistics' %}</h3>
-            </div>
-            <div class="card-body">
-              <p>{% trans 'Make sure your product gets anywhere you want it to go.' %}</p>
-              <div class="text-right">
-                <a href="{{list_routes}}" class="btn btn-default">{% trans "Go to logistics" %}</a>
-              </div>
-            </div>
-          </div>
-        </div>
-        {% endif %}
-
      </div>
   </div>
 </div>

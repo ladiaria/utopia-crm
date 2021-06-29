@@ -1,31 +1,33 @@
 {% extends 'adminlte/base.html' %}
 {% load static i18n widget_tweaks core_tags %}
+
 {% block stylesheets %}
     {{block.super}}
     <link rel="stylesheet" href="{% static '/admin-lte/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css' %}" />
 {% endblock %}
-{% block extra_head %}
-<script type="text/javascript" src="{% static 'js/jquery-3.3.1.min.js' %}"></script>
+
+{% block extra_js %}
 <script type="text/javascript" src="{% static '/admin-lte/plugins/datatables/jquery.dataTables.min.js' %}"></script>
 <script src="{% static '/admin-lte/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js' %}"></script>
 <script>
   $(function() {
-    $("#table1").DataTable();
+    $("#table1").DataTable({
+      "paging":   false,
+      "info":     false
+    });
   });
 </script>
 {% endblock %}
+
 {% block title %}
     {% trans "Contacts" %}
 {% endblock title %}
+
 {% block no_heading %}
 <h1>{% trans 'Contacts' %}</h1>
 <p>{% trans 'Manage all contacts in the database.' %}</p>
 {% endblock %}
-{% block breadcrumbs %}
-<ol class="breadcrumb">
-    <li class="breadcrumb-item active">{% trans 'Contacts' %}</li>
-</ol>
-{% endblock %}
+
 {% block content %}
 <div class="row">
     <div class="col-md-12">

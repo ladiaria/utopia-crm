@@ -1,5 +1,14 @@
 {% extends 'adminlte/base.html' %}
 {% load static i18n %}
+
+{% block extra_js %}
+<script type="text/javascript">
+    $( function() {
+        $('[data-toggle="tooltip"]').tooltip();
+      });
+</script>
+{% endblock %}
+
 {% block content %}
     <section class="content-header">
       <div class="container-fluid">

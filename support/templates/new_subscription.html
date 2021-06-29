@@ -1,12 +1,11 @@
 {% extends 'adminlte/base.html' %}
 {% load i18n static core_tags %}
-{% block stylesheets %}
-    {{block.super}}
-    <link rel="stylesheet" href="{% static 'css/jquery-ui.css' %}" />
+
+{% block title %}
+    {% trans "New subscription" %}
 {% endblock %}
-{% block extra_head %}
-<script type="text/javascript" src="{% static 'js/jquery-3.3.1.min.js' %}"></script>
-<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+
+{% block extra_js %}
 <script type="text/javascript" src="{% static 'js/datepicker-es.js' %}"></script>
 <script type="text/javascript" src="{% static 'js/product_dynamic_prices.js' %}"></script>
 <script type="text/javascript">
@@ -49,11 +48,13 @@
         });
     });
 </script>
-{% block extra_scripts %}{% endblock extra_scripts %}
+{% block extra_scripts %}{% endblock %}
 {% endblock %}
+
 {% block no_heading %}
 <h1>{% trans 'Support' %}</h1>
 {% endblock %}
+
 {% block content %}
 <div class="card">
   <div class="card-header">

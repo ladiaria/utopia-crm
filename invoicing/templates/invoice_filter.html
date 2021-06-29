@@ -1,9 +1,10 @@
 {% extends 'adminlte/base.html' %}
 {% load static i18n widget_tweaks %}
-{% block stylesheets %}
-    {{block.super}}
-    <link rel="stylesheet" href="{% static '/admin-lte/plugins/jquery-ui/jquery-ui.min.css' %}" />
+
+{% block title %}
+    {% trans "Invoice filter" %}
 {% endblock %}
+
 {% block javascript %}
 {{ block.super }}
 <script>
@@ -23,8 +24,8 @@
     $('#id_creation_lte').datepicker({ dateFormat: 'yy-mm-dd' });
   });
 </script>
-
 {% endblock %}
+
 {% block no_heading %}
 <h1>{% trans 'Invoice filter' %}</h1>
 <p>{% trans 'Manage invoices.' %}</p>
