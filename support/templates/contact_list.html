@@ -11,7 +11,10 @@
 <script src="{% static '/admin-lte/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js' %}"></script>
 <script>
   $(function() {
-    $("#table1").DataTable();
+    $("#table1").DataTable({
+      "paging":   false,
+      "info":     false
+    });
   });
 </script>
 {% endblock %}
