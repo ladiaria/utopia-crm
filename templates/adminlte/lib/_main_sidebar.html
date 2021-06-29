@@ -121,12 +121,4 @@
 <li class="nav-item">
   <a href="{% url 'logout' %}" class="nav-link">{% trans "Logout" %}</a>
 </li>
-
-<script type="text/javascript">
-      $(function(){
-        $('a.active').parent('li').parent('ul').parent('li').addClass('active');
-        $('a.active').parent('li').parent('ul').parent('li').addClass('menu-open');
-      });
-</script>
-
 {% endblock nav_links %}
