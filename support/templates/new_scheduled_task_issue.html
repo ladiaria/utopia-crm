@@ -16,19 +16,20 @@
         $('#id_new_address').click(function(){
           $('.newaddress-group').toggleClass('d-none');
         });
-
+        {% if subcategory == 'S05' %}
         function activateSend() {
-          if ($(".sp-checkbox:checked").length == 0) {
-            $("#send_form").attr("disabled", "disabled");
-          }else{
-            $("#send_form").removeAttr("disabled");
-          }
+            if ($(".sp-checkbox:checked").length == 0) {
+              $("#send_form").attr("disabled", "disabled");
+            }else{
+              $("#send_form").removeAttr("disabled");
+            }
         };
         activateSend();
 
         $("input:checkbox, select").change(function(){
           activateSend();
         });
+        {% endif %}
   });
 </script>
 {% endblock %}
