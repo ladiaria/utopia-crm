@@ -1064,6 +1064,7 @@ def list_issues(request):
         writer = unicodecsv.writer(response)
         header = [
             _("Start date"),
+            _("Contact ID"),
             _("Contact name"),
             _("Category"),
             _("Subcategory"),
@@ -1075,6 +1076,7 @@ def list_issues(request):
         for issue in issues_filter.qs.all():
             writer.writerow([
                 issue.date,
+                issue.contact.id,
                 issue.contact.name,
                 issue.get_category(),
                 issue.get_subcategory(),
@@ -1812,6 +1814,7 @@ def invoicing_issues(request):
         writer = unicodecsv.writer(response)
         header = [
             _("Start date"),
+            _("Contact ID"),
             _("Contact name"),
             _("Activities count"),
             _("Status"),
@@ -1825,6 +1828,7 @@ def invoicing_issues(request):
         for issue in issues_filter.qs.all():
             writer.writerow([
                 issue.date,
+                issue.contact.id,
                 issue.contact.name,
                 issue.activity_count(),
                 issue.get_status(),
