@@ -35,17 +35,21 @@ def assign_routes(request):
     if request.POST:
         for name, value in request.POST.items():
             if name.startswith('sp') and value:
-                # We get the id of the subscription id here, removing the prefix 'sp-' from the name of the item
-                sp_id = name.replace('sp-', '')
-                # Next we get the SubscriptionProject object from the DB
-                sp = SubscriptionProduct.objects.get(pk=sp_id)
-                # Finally we set the value of whatever route we set, and then save the sp
-                route = Route.objects.get(number=int(value))
-                sp.route = route
-                sp.order = None
-                sp.special_instructions = request.POST.get('instructions-{}'.format(sp_id), None)
-                sp.label_message = request.POST.get('message-{}'.format(sp_id), None)
-                sp.save()
+                try:
+                    # We get the id of the subscription id here, removing the prefix 'sp-' from the name of the item
+                    sp_id = name.replace('sp-', '')
+                    # Next we get the SubscriptionProject object from the DB
+                    sp = SubscriptionProduct.objects.get(pk=sp_id)
+                    # Finally we set the value of whatever route we set, and then save the sp
+                    route = Route.objects.get(number=int(value))
+                    sp.route = route
+                    sp.order = None
+                    sp.special_instructions = request.POST.get('instructions-{}'.format(sp_id), None)
+                    sp.label_message = request.POST.get('message-{}'.format(sp_id), None)
+                    sp.save()
+                except Route.DoesNotExist:
+                    messages.error(request, _("Contact {} - Product {}: Route {} does not exist".format(
+                        sp.subscription.contact.name, sp.product.name, value)))
         return HttpResponseRedirect(reverse('assign_routes'))
 
     subscription_products = SubscriptionProduct.objects.filter(
@@ -123,17 +127,21 @@ def change_route(request, route_id=1):
     if request.POST:
         for name, value in request.POST.items():
             if name.startswith('sp-') and value and int(value) != route_object.number:
-                # We get the id of the subscription id here, removing the prefix 'sp-' from the name of the item
-                sp_id = name.replace('sp-', '')
-                # Next we get the SubscriptionProject object from the DB
-                sp = SubscriptionProduct.objects.get(pk=sp_id)
-                # Finally we set the value of whatever route we set, and then save the sp
-                route = Route.objects.get(number=value)
-                sp.route = route
-                sp.order = None
-                sp.special_instructions = request.POST.get('instructions-{}'.format(sp_id), None)
-                sp.label_message = request.POST.get('message-{}'.format(sp_id), None)
-                sp.save()
+                try:
+                    # We get the id of the subscription id here, removing the prefix 'sp-' from the name of the item
+                    sp_id = name.replace('sp-', '')
+                    # Next we get the SubscriptionProject object from the DB
+                    sp = SubscriptionProduct.objects.get(pk=sp_id)
+                    # Finally we set the value of whatever route we set, and then save the sp
+                    route = Route.objects.get(number=value)
+                    sp.route = route
+                    sp.order = None
+                    sp.special_instructions = request.POST.get('instructions-{}'.format(sp_id), None)
+                    sp.label_message = request.POST.get('message-{}'.format(sp_id), None)
+                    sp.save()
+                except Route.DoesNotExist:
+                    messages.error(request, _("Contact {} - Product {}: Route {} does not exist".format(
+                        sp.subscription.contact.name, sp.product.name, value)))
         return HttpResponseRedirect(reverse('change_route', args=[route_id]))
 
     subscription_products = SubscriptionProduct.objects.filter(
@@ -803,7 +811,7 @@ def print_routes_simple(request, route_list):
         try:
             route_object = Route.objects.get(pk=route_number)
         except Route.DoesNotExist:
-            messages.error(request, _("Route {} does not exist"))
+            messages.error(request, _("Route {} does not exist".format(route_number)))
             return HttpResponseRedirect(reverse("main_menu"))
 
         subscription_products = SubscriptionProduct.objects.filter(
