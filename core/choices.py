@@ -41,7 +41,8 @@ FREQUENCY_CHOICES = (
 SUBSCRIPTION_TYPE_CHOICES = (
     ('P', _('Promotion')),
     ('N', _('Normal')),
-    ('F', _('Free')),
+    ('F', _('Gift')),
+    ('S', _('Staff')),
 )
 
 SUBSCRIPTION_STATUS_CHOICES = (
