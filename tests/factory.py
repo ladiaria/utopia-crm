@@ -10,7 +10,6 @@ quieran pasarse por arriba, como por ejemplo la fecha de creado.
 """
 
 
-# TODO: Review ???
 def create_contact(name, phone, email=None):
     contact = Contact(name=name, phone=phone, email=email)
     if not email:

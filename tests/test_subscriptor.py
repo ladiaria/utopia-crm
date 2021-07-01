@@ -7,12 +7,12 @@ from django.test import TestCase
 # from django.forms import ValidationError
 # from django.test import TestCase
 
+from core.utils import dnames
+
 from tests.factory import (
     create_contact, create_subscription, create_product, create_address
     # , create_simple_invoice, create_campaign,
 )
-
-from core.utils import dnames
 
 
 class TestContact(TestCase):
@@ -23,13 +23,7 @@ class TestContact(TestCase):
         self.assertTrue(subscription.active)
         self.assertFalse(contact.is_debtor())
 
-    # def test_2add_cliente_using_manipulator(self):
-        # contact = Contact('contact1', 21312)
-        # contact.fecha_creado = date.today()
-        # contact.save()
-        # self.assertEqual(Contact.objects.count(), 2)
-
-    def test_3cliente_activo_debe_tener_algun_dia_marcado(self):
+    def test_2cliente_activo_debe_tener_algun_dia_marcado(self):
         contact = create_contact('cliente1', 21312)
         subscription = create_subscription(contact)
 
@@ -41,7 +35,7 @@ class TestContact(TestCase):
         subscription.active = True
         # self.assertRaises(AssertionError, subscription.save)
 
-    def test_6cliente_que_no_tiene_email_debe_tener_email_en_blanco(self):
+    def test_3cliente_que_no_tiene_email_debe_tener_email_en_blanco(self):
         contact = create_contact('cliente1', 21312)
         contact.no_email, contact.email = True, 'cliente1@ladiaria.com.uy'
         # self.assertRaises(ValidationError, contact.save)
@@ -49,7 +43,7 @@ class TestContact(TestCase):
         contact.save()
 
     # hacer devuelta
-    def test_7cliente_activo_debe_tener_ejemplares(self):
+    def test_4cliente_activo_debe_tener_ejemplares(self):
 
         contact = create_contact(u'cliente2asd', 21312)
         contact.save()
@@ -67,7 +61,7 @@ class TestContact(TestCase):
         # subscription.copies = 1
         # subscription.save()
 
-    def test_8_metodos_simples(self):
+    def test_5_metodos_simples(self):
         # SUBSCRIPTION_PAYMENT_METHODS = (
         # ('O', 'Other'),
         # ('D', 'Debit'),
