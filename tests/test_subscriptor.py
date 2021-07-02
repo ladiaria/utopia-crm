@@ -1,5 +1,6 @@
 # coding=utf-8
 # TODO: All commented code should be explained or removed
+# TODO: These functions should be remade and re thought from scratch probably
 
 from django.test import TestCase
 # from django.utils.translation import ugettext_lazy as _
@@ -17,23 +18,11 @@ from tests.factory import (
 
 class TestContact(TestCase):
 
-    def test_1cliente_nuevo_es_activo_y_no_es_moroso(self):
+    def test_1_contact_is_active_and_is_not_debtor(self):
         contact = create_contact('cliente1', 21312)
         subscription = create_subscription(contact)
         self.assertTrue(subscription.active)
         self.assertFalse(contact.is_debtor())
-
-    def test_2cliente_activo_debe_tener_algun_dia_marcado(self):
-        contact = create_contact('cliente1', 21312)
-        subscription = create_subscription(contact)
-
-        for day in dnames:
-            setattr(subscription, day, False)
-        # self.assertRaises(AssertionError, subscription.save)
-        subscription.active = False
-        subscription.save()
-        subscription.active = True
-        # self.assertRaises(AssertionError, subscription.save)
 
     def test_3cliente_que_no_tiene_email_debe_tener_email_en_blanco(self):
         contact = create_contact('cliente1', 21312)
@@ -82,12 +71,12 @@ class TestContact(TestCase):
         prod_count = subscription.get_product_count()
         self.assertEqual(prod_count, 0)
 
-        product = create_product('newspaper', 500)
+        product1 = create_product('newspaper', 500)
         address = create_address('Araucho 1390', contact, address_type='physical')
 
-        subscription.add_product(product, address)
+        subscription.add_product(product1, address)
         status = 'A'
-        contact.add_product_history(subscription, product, status)
+        contact.add_product_history(subscription, product1, status)
 
         # default name
         billing_name = subscription.get_billing_name()
@@ -121,4 +110,4 @@ class TestContact(TestCase):
         product2.weekday = 1
         subscription.add_product(product2, address)
 
-        self.assertEqual(subscription.product_summary(), {1: '1', 2: '1'})
+        self.assertEqual(subscription.product_summary(), {product1.id: '1', product2.id: '1'})

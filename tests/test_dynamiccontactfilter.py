@@ -1,15 +1,13 @@
 # coding=utf-8
-from datetime import timedelta
-
 from django.test import TestCase
 
 from tests.factory import (
-    create_contact, create_product, create_address, create_subscription, create_dynamiccontactfilter
+    create_contact, create_product, create_address, create_subscription, create_dynamiccontactfilter, create_route
 )
 
 from core.models import Contact, Product, DynamicContactFilter
 from core.choices import DYNAMIC_CONTACT_FILTER_MODES
-from invoicing.models import Invoice
+
 
 class TestCoreDynamicContactFilter(TestCase):
 
@@ -35,6 +33,7 @@ class TestCoreDynamicContactFilter(TestCase):
         newsletter = create_product('amazing newsletter', 0)
         newsletter.type = 'N'
         newsletter.save()
+        create_route(56, "Digital")
 
         # Then we need to create subscriptions for these people
         s1 = create_subscription(c1)
