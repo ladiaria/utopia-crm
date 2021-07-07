@@ -67,6 +67,7 @@
     <li class="nav-item"><a href="{{assign_campaigns}}" class="nav-link {% ifequal request.path assign_campaigns %}active{% endifequal %}">{% trans 'Assign campaigns' %}</a></li>
     <li class="nav-item"><a href="{{assign_to_seller}}" class="nav-link {% ifequal request.path assign_to_seller %}active{% endifequal %}">{% trans 'Assign contacts to sellers' %}</a></li>
     <li class="nav-item"><a href="{{core_campaign_add}}" target="_blank" class="nav-link">{% trans "New campaign" %}</a></li>
+    {% include_if_exists "campaign_management_sidebar_extra.html" %}
   </ul>
 </li>
 {% endif %}
@@ -118,6 +119,7 @@
     <a href="{{seller_console_list_campaigns}}" class="nav-link {% ifequal request.path seller_console_list_campaigns %}active{% endifequal %}">{% trans 'Seller console' %}</a>
   </li>
 {% endif %}
+{% include_if_exists "sidebar_extra.html" %}
 <li class="nav-item">
   <a href="{% url 'logout' %}" class="nav-link">{% trans "Logout" %}</a>
 </li>
