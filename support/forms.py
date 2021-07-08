@@ -275,11 +275,13 @@ class IssueStartForm(forms.ModelForm):
     )
 
     status = forms.ModelChoiceField(
+        required=False,
         queryset=IssueStatus.objects.all(),
         widget=forms.Select(attrs={"class": "form-control"})
     )
 
     assigned_to = forms.ModelChoiceField(
+        required=False,
         queryset=User.objects.filter(is_staff=True).order_by('username'),
         widget=forms.Select(attrs={"class": "form-control"})
     )
