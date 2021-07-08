@@ -939,7 +939,7 @@ class Subscription(models.Model):
     def get_billing_address(self):
         """
         Gets the billing address for the contact. If there is none set, then it will return the first address.
-        It will raise an exception given the case there's no available address in any products of the subscription.
+        It will return None given the case there's no available address in any products of the subscription.
         Used primaily in invoicing.
         """
         if self.billing_address:
@@ -950,15 +950,9 @@ class Subscription(models.Model):
             )
             addresses = [sp.address for sp in subscription_products if sp.address]
             if not addresses:
-                raise Exception(_("No available address in products"))
-            elif addresses:
-                return addresses[0].address_1
+                return None
             else:
-                # TODO: this else will never be reached
-                if self.contact.addresses:
-                    return self.contact.addresses[0].address_1
-                else:
-                    raise Exception(_("No available address in products"))
+                return addresses[0].address_1
 
     def get_billing_state(self):
         """
