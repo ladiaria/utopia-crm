@@ -271,10 +271,17 @@ def seller_console(request, category, campaign_id):
         if category == "act":
             activity = Activity.objects.get(pk=instance_id)
             contact = activity.contact
-            ccs = ContactCampaignStatus.objects.get(
-                campaign=campaign,
-                contact=contact
-            )
+            try:
+                ccs = ContactCampaignStatus.objects.get(
+                    campaign=campaign,
+                    contact=contact
+                )
+            except ContactCampaignStatus.DoesNotExist:
+                messages.success(
+                    request, _(
+                        "Activity {}: Contact {} is not present in campaign {}. Please report this error!".format(
+                            activity.id, contact.id, campaign.id)))
+                return HttpResponseRedirect(reverse('seller_console_list_campaigns'))
         elif category == "new":
             ccs = ContactCampaignStatus.objects.get(pk=instance_id)
             contact = ccs.contact
@@ -1698,10 +1705,16 @@ def edit_contact(request, contact_id):
     if request.POST:
         form = ContactAdminForm(request.POST, instance=contact)
         if form.is_valid():
-            form.save()
-            return HttpResponseRedirect(reverse('edit_contact', args=[contact_id]))
+            try:
+                form.save()
+            except Exception as e:
+                messages.error(request, "Error: {}".format(e.message))
+            else:
+                return HttpResponseRedirect(reverse('edit_contact', args=[contact_id]))
     return render(request, 'create_contact.html', {
-        'form': form, 'contact': contact, 'all_newsletters': all_newsletters,
+        'form': form,
+        'contact': contact,
+        'all_newsletters': all_newsletters,
         'contact_newsletters': contact_newsletters
     })
 
