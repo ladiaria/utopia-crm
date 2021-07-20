@@ -94,15 +94,13 @@ ACTIVITY_DIRECTION_CHOICES = (
 
 CAMPAIGN_RESOLUTION_CHOICES = (
     ('SP', _('Started promotion')),
-    ('S1', _('Success with promotion')),
-    ('S2', _('Success with direct sale')),
-    ('CF', _('Cannot find contact')),
-    ('CA', _('Call Again')),
+    ('AS', _('Already a subscriber')),
     ('DN', _('Do not call anymore')),
     ('EP', _('Error in promotion')),
-    ('NI', _('Not interested')),
     ('LO', _('Logistics')),
-    ('AS', _('Already a subscriber')),
+    ('NI', _('Not interested')),
+    ('S1', _('Success with promotion')),
+    ('S2', _('Success with direct sale')),
 )
 
 CAMPAIGN_REJECT_REASONS_CHOICES = (
@@ -119,6 +117,22 @@ CAMPAIGN_REJECT_REASONS_CHOICES = (
     ('A', _('Does not accept call')),
     ('O', _('Accepts call but does not accept offer')),
     ('H', _('Accepts call, will think about it')),
+)
+
+CAMPAIGN_RESOLUTION_REASONS_CHOICES = (
+    (1, u'Acepta llamada / va a pensarlo'),
+    (2, u'Motivos económicos'),
+    (3, u'Fuera de zona'),
+    (4, u'Le interesa para más adelante'),
+    (5, u'Mala experiencia'),
+    (6, u'No aplica a la campaña'),
+    (7, u'No da motivos'),
+    (8, u'No lee / No tiene tiempo'),
+    (9, u'No llegó promoción'),
+    (10, u'No responde'),
+    (11, u'No sabía que se había registrado'),
+    (12, u'Número y email incorrectos'),
+    (13, u'Ya es suscriptor'),
 )
 
 ACTIVITY_TYPES = (

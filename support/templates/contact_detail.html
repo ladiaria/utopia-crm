@@ -60,7 +60,7 @@
                                 <dd>{{contact.id_document}}</dd>
                               {% endif %}
                               <dt>{% trans "Email" %}</dt>
-                              <dd>{{contact.email}}</dd>
+                              <dd>{{contact.email|default_if_none:"No email"}}</dd>
                               <dt>{% trans "Phone" %}</dt>
                               <dd>{{contact.phone}}</dd>
                               {% if contact.mobile %}

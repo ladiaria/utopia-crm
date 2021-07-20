@@ -241,7 +241,7 @@ class ContactAdmin(TabbedModelAdmin):
         ('Address', tab_addresses),
         ('Community', tab_community)
     ]
-    list_display = ('id', 'name', 'subtype', 'tag_list', 'seller')
+    list_display = ('id', 'name', 'id_document', 'subtype', 'tag_list', 'seller')
     list_filter = ('subtype', TaggitListFilter)
     ordering = ('id', )
     raw_id_fields = ('subtype', 'seller')
@@ -324,6 +324,7 @@ class ActivityAdmin(admin.ModelAdmin):
     list_display = (
         'id', 'contact', 'seller', 'activity_type',
         'campaign', 'get_contact_seller', 'status')
+    search_fields = ('contact__id', 'contact__name')
 
 
 class ContactProductHistoryAdmin(admin.ModelAdmin):
