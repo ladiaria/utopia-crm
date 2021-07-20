@@ -324,6 +324,7 @@ class ActivityAdmin(admin.ModelAdmin):
     list_display = (
         'id', 'contact', 'seller', 'activity_type',
         'campaign', 'get_contact_seller', 'status')
+    search_fields = ('contact__id', 'contact__name')
 
 
 class ContactProductHistoryAdmin(admin.ModelAdmin):

@@ -169,6 +169,11 @@ class NewSubscriptionForm(forms.Form):
     notes = forms.CharField(
         empty_value=None, required=False, widget=forms.Textarea(attrs={"class": "form-control"})
     )
+    register_activity = forms.CharField(
+        empty_value=None,
+        required=False,
+        widget=forms.Textarea(attrs={"class": "form-control", "rows": "4"}),
+    )
     email = forms.CharField(
         empty_value=None, required=False, widget=forms.TextInput(attrs={"class": "form-control"})
     )

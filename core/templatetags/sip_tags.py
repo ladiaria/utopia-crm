@@ -17,8 +17,8 @@ class Sip(template.Node):
 
     def render(self, context):
         number = getattr(context[self.obj], self.attr)
-        return '%s  <a class="btn btn-sm btn-primary" href="sip://%s%s">llamar</a>' % (number, getattr(
-          settings, 'SIP_DIALOUT', ''), number.split('/')[0]) if number else ''
+        return '%s <a class="button btn-sm btn-primary" href="sip://%s%s"><i class="fas fa-phone"></i> Llamar</a>' % (
+            number, getattr(settings, 'SIP_DIALOUT', ''), number.split('/')[0]) if number else ''
 
 
 @register.tag(name='sip')

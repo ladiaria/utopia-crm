@@ -1616,6 +1616,8 @@ class ContactCampaignStatus(models.Model):
     date_created = models.DateField(auto_now_add=True)
     last_action_date = models.DateField(auto_now=True)
     times_contacted = models.SmallIntegerField(default=0)
+    resolution_reason = models.SmallIntegerField(
+        choices=CAMPAIGN_RESOLUTION_REASONS_CHOICES, null=True, blank=True)
 
     class Meta:
         unique_together = ['contact', 'campaign']
@@ -1649,6 +1651,10 @@ class ContactCampaignStatus(models.Model):
         """
         campaign_reject_reasons = dict(CAMPAIGN_REJECT_REASONS_CHOICES)
         return campaign_reject_reasons.get(self.campaign_reject_reason, "N/A")
+
+    def get_resolution_reason(self):
+        campaign_resolution_reasons = dict(CAMPAIGN_RESOLUTION_REASONS_CHOICES)
+        return campaign_resolution_reasons.get(self.campaign_reject_reason, "N/A")
 
 
 class PriceRule(models.Model):
