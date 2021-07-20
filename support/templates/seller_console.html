@@ -1,13 +1,13 @@
 {% extends 'adminlte/base.html' %}
-{% load sip static i18n core_tags %}
+{% load sip_tags static i18n core_tags %}
 
 {% block title %}
-    {% trans "Seller console" %}
+{% trans "Seller console" %}
 {% endblock %}
 
 {% block no_heading %}
-<h1>{% trans 'Support' %}</h1>
-<p>{% trans 'Manage campaign' %}: {{campaign.name}} <a href='{% url "seller_console_list_campaigns" %}'>({% trans "Go back to console" %})</a></p>
+<h1>{% trans 'Campaigns' %}</h1>
+<p>{% trans "Contacts in campaign" %} {{campaign.name}}</p>
 {% endblock %}
 
 {% block stylesheets %}
@@ -16,255 +16,272 @@
 {% endblock %}
 
 {% block extra_js %}
-    {{block.super}}
-    <script type="text/javascript" src="{% static 'js/jquery-3.3.1.min.js' %}"></script>
-    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
-    <script type="text/javascript" src="{% static 'js/datepicker-es.js' %}"></script>
-    <script type="text/javascript">
-        $( function() {
-            $("#call_date").datepicker({ dateFormat: 'yy-mm-dd' });
+{{block.super}}
+<script type="text/javascript" src="{% static 'js/jquery-3.3.1.min.js' %}"></script>
+<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+<script type="text/javascript" src="{% static 'js/datepicker-es.js' %}"></script>
+<script type="text/javascript">
+$( function() {
+    $("#call_date").datepicker({ dateFormat: 'yy-mm-dd' });
 
-            var rejectHandler = function (e) {
-                if ($.trim(this.value)){
-                    $(".reject").removeAttr("disabled");
-                } else {
-                    $(".reject").attr("disabled", "disabled");
-                }
-            };
+    var rejectHandler = function (e) {
+        if ($.trim(this.value)){
+            $(".reject").removeAttr("disabled");
+        } else {
+            $(".reject").attr("disabled", "disabled");
+        }
+    };
 
-            rejectHandler();
+    rejectHandler();
 
-            $("#campaign_reject_reason").change(rejectHandler);
-        });
-    </script>
+    $("#campaign_reject_reason").change(rejectHandler);
+});
+</script>
 {% endblock %}
 
 {% block content %}
-    {% if pending_activities_count > 0 %}
-    <div class="alert alert-warning" role="alert">
-      {% blocktrans %}
-          You have {{pending_activities_count}} pending activities -
-      {% endblocktrans %}
-      {% trans "Next activity:" %} {{upcoming_activity.datetime}} -
-      <a href='{% url "scheduled_activities" %}?status=P'>{% trans "Go to list" %}</a>
-    </div>
-    {% endif %}
-    <div class="row">
-      <div class="col-sm-12">
+{% if pending_activities_count > 0 %}
+<div class="alert alert-warning" role="alert">
+    {% blocktrans %}
+    You have {{pending_activities_count}} pending activities -
+    {% endblocktrans %}
+    {% trans "Next activity:" %} {{upcoming_activity.datetime}} -
+    <a href='{% url "scheduled_activities" %}?status=P'>{% trans "Go to list" %}</a>
+</div>
+{% endif %}
+<div class="row">
+    <div class="col-sm-12">
         <div class="card collapsed-card">
-          <div class="card-header">
-            <h3 class="card-title"><i class="fas fa-address-book"></i> <b>{% trans "Contacts" %}</b></h3>
-            <div class="card-tools">
-              <button type="button" class="btn btn-tool" data-card-widget="collapse"><i class="fas fa-plus"></i>
-              </button>
+            <div class="card-header">
+                <h3 class="card-title"><i class="fas fa-address-book"></i> <b>{% trans "Contacts" %}</b></h3>
+                <div class="card-tools">
+                    <button type="button" class="btn btn-tool" data-card-widget="collapse"><i class="fas fa-plus"></i>
+                    </button>
+                </div>
             </div>
-          </div>
-          <div class="card-body">
-            {% for instance in console_instances %}
-            <a class="btn btn-sm {% if instance.contact == contact %}btn-primary{% else %}btn-secondary{% endif %}" href="{% url 'seller_console' category campaign.id %}?offset={{forloop.counter}}">{{ instance.contact }}</a>
-            {% endfor %}
-          </div>
-        </div>
+            <div class="card-body">
+                {% for instance in console_instances %}
+                <a class="btn btn-sm {% if instance.contact == contact %}btn-primary{% else %}btn-secondary{% endif %}" href="{% url 'seller_console' category campaign.id %}?offset={{forloop.counter}}">{{ instance.contact }}</a>
+                {% endfor %}
+            </div>
         </div>
     </div>
-    <div class="row">
+</div>
+<div class="row">
     <div class="col-sm-9">
-      <div class="card">
-        <div class="card-header">
-          <h3><a href="{% url 'contact_detail' contact.id %}" target="_blank">{{contact.name}} ({{offset}} {% trans "of" %} {{count}})</a></h3>
-          {% if contact.has_active_subscription %}<h3 class="text-danger">{% trans "WARNING: THE CONTACT HAS ACTIVE SUBSCRIPTIONS" %}</h3>{% endif %}
-          {% if contact.is_debtor %}<h3 class="text-danger">{% trans "WARNING: THE CONTACT IS A DEBTOR" %}</h3>{% endif %}
-          <p>{% trans "Times contacted in this campaign:" %} {{times_contacted}}</p>
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex justify-content-between">
+                    <h3><a href="{% url 'contact_detail' contact.id %}" target="_blank">{{contact.name}}</a></h3>
+                    <h3>{% trans "Contact " %}{{offset}} {% trans "of" %} {{count}}</h3>
+                </div>
+                <span>{% trans "Times contacted in this campaign:" %} {{times_contacted}}</span>
+                {% if contact.has_active_subscription or contact.is_debtor %}
+                <div class="alert alert-danger">
+                    {% if contact.has_active_subscription %}<h3>{% trans "WARNING: THE CONTACT HAS ACTIVE SUBSCRIPTIONS" %}</h3>{% endif %}
+                    {% if contact.is_debtor %}<h3>{% trans "WARNING: THE CONTACT IS A DEBTOR" %}</h3>{% endif %}
+                </div>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                <table class="table table-bordered mb-4">
+                    <tbody>
+                        {% if contact.phone %}
+                        <tr>
+                            <td><i class="fas fa-phone"></i> {% trans "Phone" %}:</td>
+                            <td>{% sip contact.phone %}</td>
+                        </tr>
+                        {% endif %}
+                        {% if contact.work_phone %}
+                        <tr>
+                            <td><i class="fas fa-phone"></i> {% trans "Work phone" %}:</td>
+                            <td>{% sip contact.work_phone %}</td>
+                        </tr>
+                        {% endif %}
+                        {% if contact.mobile %}
+                        <tr>
+                            <td><i class="fas fa-mobile-alt"></i> {% trans "Mobile" %}:</td>
+                            <td>{% sip contact.mobile %}</td>
+                        </tr>
+                        {% endif %}
+                        {% if contact.email %}
+                        <tr>
+                            <td><i class="fas fa-at"></i> {% trans "Email" %}:</td>
+                            <td>{{ contact.email }}</td>
+                        </tr>
+                        {% endif %}
+                        <tr>
+                            <td><i class="fas fa-map-marker-alt"></i> {% trans "Addresses" %}:</td>
+                            <td>
+                                {% if addresses %}
+                                <ul>
+                                    {% for address in addresses %}
+                                    <li>{{address}}</li>
+                                    {% endfor %}
+                                </ul>
+                                {% else %}
+                                <p>{% trans 'The contact has no registered addresses' %}</p>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                <table>
+                    <table class="table table-bordered mb-4">
+                        {% if contact.notes %}
+                        <tr class='d-flex'>
+                            <td class="col-3"><i class="fas fa-sticky-note"></i> {% trans "Contact notes" %}:</td>
+                            <td class="col-9">{{ contact.notes|linebreaks }}</td>
+                        </tr>
+                        {% endif %}
+                        {% for a in all_activities %}
+                        <tr class='d-flex'>
+                            <td class="col-3">
+                                <i class="fas fa-comment-alt"></i> {% trans "Activity" %} ({{a.get_status}})<br>
+                                {% trans "Date" %}: {{a.datetime|date:"SHORT_DATETIME_FORMAT"}}<br>
+                            </td>
+                            <td class="col-9">
+
+                                {% if a.campaign %}<b>{% trans "Campaign" %}</b>: <i>{{a.campaign.name}}</i><br>{% endif %}
+                                {{a.notes|default_if_none:""}}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="offset" value="{{ offset }}"/>
+                    <input type="hidden" name="category" value="{{ category }}"/>
+                    <input type="hidden" name="instance_id" value="{{ console_instance.id }}"/>
+                    <input type="hidden" name="campaign_id" value="{{ campaign.id }}"/>
+                    <input type="hidden" name="seller_id" value="{{ seller.id }}"/>
+                    <input type="hidden" name="url" value="{{ url }}"/>
+                    <div class="form-group">
+                        <label for="notes">{% trans "Register activity" %}</label><br>
+                        {% if category == "act" %}
+                        <textarea class="form-control" name="notes" rows="3" cols="50">{{ console_instance.notes }}</textarea>
+                        {% else %}
+                        <textarea class="form-control" name="notes" rows="3" cols="50"></textarea>
+                        {% endif %}
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <select class="form-control form-control-sm" id="campaign_reject_reason" name="campaign_reject_reason">
+                                <option value="">{% trans 'Select a reason before selecting one of these options' %}</option>
+                                {% for reason in resolution_reasons %}
+                                <option value="{{reason.0}}">{{reason.1}}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <br>
+                    <div class="row">
+                        <div class="col-sm-3">
+                            <input class="reject btn btn-block bg-gradient-danger btn-sm" type="submit" name="result" value="{% trans 'Not interested' %}"/>
+                            <input class="reject btn btn-block bg-gradient-danger btn-sm" type="submit" name="result" value="{% trans 'Error in promotion' %}"/>
+                            <input class="reject btn btn-block bg-gradient-danger btn-sm " type="submit" name="result" value="{% trans 'Do not  anymore' %}"/>
+                        </div>
+
+                        <div class="col-sm-3">
+                            <input class="reject btn btn-block bg-gradient-danger btn-sm" type="submit" name="result" value="{% trans 'Logistics' %}"/>
+                            <input class="reject btn btn-block bg-gradient-danger btn-sm" type="submit" name="result" value="{% trans 'Already a subscriber' %}"/>
+                            <input class="btn btn-block bg-gradient-warning btn-sm" type="submit" name="result" value="{% trans 'Call later' %}"/>
+                        </div>
+
+                        <div class="col-sm-3">
+                            <a href="{% url 'send_promo' contact.id %}?url={{url}}&offset={{offset}}&{{category}}={{console_instance.id}}" class="btn btn-block bg-gradient-success btn-sm">{% trans "Send promo" %}</a>
+                            <a href="{% url 'new_subscription' contact.id %}?url={{url}}&offset={{offset}}&{{category}}={{console_instance.id}}" class="btn btn-block bg-gradient-success btn-sm">{% trans "Sell" %}</a>
+                            <a href="{{url}}?offset={{position}}" class="btn btn-block bg-gradient-secondary btn-sm">{% trans "Next (Don't take actions)" %}</a>
+                        </div>
+
+                        <div class="col-sm-3">
+                            <div class="form-group row">
+                                <div class="col-sm-3">
+                                    <label for="call_date">{% trans 'Date' %}:</label>
+                                </div>
+                                <div class="col-sm-9">
+                                    <input id="call_date" type="text" name="call_date" class="form-control form-control-sm" value="{{ call_date }}"/>
+                                </div>
+                            </div>
+                            <div class="form-group row">
+                                <div class="col-sm-3">
+                                    <label for="call_time">{% trans 'Time' %}:</label>
+                                </div>
+                                <div class="col-sm-9">
+                                    <input type="text" name="call_time" class="form-control form-control-sm" value="9:00"/>
+                                </div>
+                            </div>
+                            <input type="submit" class="btn btn-sm btn-primary float-right"  name="result" value="{% trans 'Schedule' %}" />
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="card-body">
-          <table class="table table-bordered mb-4">
-            <tbody>
-              {% if contact.phone %}
-                <tr>
-                  <td><i class="fas fa-phone"></i> {% trans "Phone" %}:</td>
-                  <td>{% sip contact.phone %}</td>
-                </tr>
-                {% endif %}
-                {% if contact.work_phone %}
-                <tr>
-                  <td><i class="fas fa-phone"></i> {% trans "Work phone" %}:</td>
-                  <td>{% sip contact.work_phone %}</td>
-                </tr>
-                {% endif %}
-                {% if contact.mobile %}
-                <tr>
-                  <td><i class="fas fa-mobile-alt"></i> {% trans "Mobile" %}:</td>
-                  <td>{% sip contact.mobile %}</td>
-                </tr>
-                {% endif %}
-                {% if contact.email %}
-                <tr>
-                  <td><i class="fas fa-at"></i> {% trans "Email" %}:</td>
-                  <td>{{ contact.email }}</td>
-                </tr>
-                {% endif %}
-                {% if contact.notes %}
-                <tr>
-                  <td><i class="fas fa-sticky-note"></i> {% trans "Notes" %}:</td>
-                  <td>{{ contact.notes|linebreaks }}</td>
-                </tr>
-                {% endif %}
-                <tr>
-                  <td><i class="fas fa-map-marker-alt"></i> {% trans "Addresses" %}:</td>
-                  <td>
-                    {% if addresses %}
-                    <ul>
-                    {% for address in addresses %}
-                      <li>{{address}}</li>
+
+
+        {% if all_subscriptions or all_activities or other_campaigns %}
+        <div class="col-sm-3">
+            {% if other_campaigns %}
+            <div class="card card-primary card-outline">
+                <div class="card-header">
+                    <h3 class="card-title"><i class="fas fa-money-check-alt"></i> <b>{% trans 'Other campaigns' %}</b></h3>
+                </div>
+                <div class="card-body">
+                    {% for campaign_status in other_campaigns %}
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title"><b>{{campaign_status.campaign.name}}</b></h3>
+                        </div>
+                        <div class="card-body">
+                            {% trans "Status:" %} {{campaign_status.get_status}}<br>
+                            {% trans "Last action:" %} {{campaign_status.last_action_date}}<br>
+                            {% if campaign_status.seller %}{% trans "Seller:" %} {{campaign_status.seller.name}}{% endif %}
+                            {% if campaign_status.campaign_resolution %}{% trans "Resolution:" %} {{campaign_status.get_campaign_resolution}}<br>{% endif %}
+                            {% if campaign_status.resolution_reason %}{% trans "Reason:" %} {{campaign_status.get_resolution_reason}}{% endif %}
+                        </div>
+                    </div>
                     {% endfor %}
-                    </ul>
-                    {% else %}
-                    <p>{% trans 'The contact has no registered addresses' %}</p>
-                    {% endif %}
-                  </td>
-                </tr>
-
-            </tbody>
-          </table>
-        <form method="post">
-            {% csrf_token %}
-            <input type="hidden" name="offset" value="{{ offset }}"/>
-            <input type="hidden" name="category" value="{{ category }}"/>
-            <input type="hidden" name="instance_id" value="{{ console_instance.id }}"/>
-            <input type="hidden" name="campaign_id" value="{{ campaign.id }}"/>
-            <input type="hidden" name="seller_id" value="{{ seller.id }}"/>
-            <input type="hidden" name="url" value="{{ url }}"/>
-            <div class="form-group">
-              <label for="notes">{% trans "Register activity" %}</label><br>
-              <textarea class="form-control" name="notes" rows="3" cols="50">{{ activity.notes }}</textarea>
-            </div>
-
-            <div class="row">
-              <div class="col-sm-6">
-                <select class="form-control form-control-sm" id="campaign_reject_reason" name="campaign_reject_reason">
-                    <option value="">{% trans 'Select a reason before selecting one of these options' %}</option>
-                    <option value="F">{% trans 'Failed delivery' %}</option>
-                    <option value="E">{% trans 'Financial reasons' %}</option>
-                    <option value="D">{% trans 'Error in data' %}</option>
-                    <option value="N">{% trans 'Never signed in for promotion' %}</option>
-                    <option value="P">{% trans 'Did not like the product' %}</option>
-                    <option value="C">{% trans 'Did not like the content' %}</option>
-                    <option value="R">{% trans 'Cannot reach the contact location' %}</option>
-                    <option value="K">{% trans 'Did not know what they signed up for' %}</option>
-                    <option value="T">{% trans 'Does not read/Does not have time' %}</option>
-                    <option value="Z">{% trans 'Dangerous zone' %}</option>
-                    <option value="A">{% trans 'Does not accept call' %}</option>
-                    <option value="O">{% trans 'Accepts call, does not accept offer' %}</option>
-                    <option value="H">{% trans 'Accepts call, will think about it' %}</option>
-                </select>
-              </div>
-            </div>
-            <div class="row">
-              <div class="col-sm-3">
-                <input class="reject btn btn-block bg-gradient-secondary btn-sm" type="submit" name="result" value="{% trans 'Cannot find customer' %}"/>
-                <input class="reject btn btn-block bg-gradient-secondary btn-sm" type="submit" name="result" value="{% trans 'Logistics' %}"/>
-                <input class="reject btn btn-block bg-gradient-secondary btn-sm" type="submit" name="result" value="{% trans 'Already a subscriber' %}"/>
-              </div>
-              <div class="col-sm-3">
-                <input class="reject btn btn-block bg-gradient-warning btn-sm" type="submit" name="result" value="{% trans 'Not interested' %}"/>
-                <input class="reject btn btn-block bg-gradient-warning btn-sm" type="submit" name="result" value="{% trans 'Error in promotion' %}"/>
-                <input class="reject btn btn-block bg-gradient-warning btn-sm " type="submit" name="result" value="{% trans 'Do not call anymore' %}"/>
-              </div>
-
-              <div class="col-sm-3">
-                <a href="{% url 'send_promo' contact.id %}?url={{url}}&offset={{offset}}&{{category}}={{console_instance.id}}" class="btn btn-block bg-gradient-success btn-sm">{% trans "Send promo" %}</a>
-                <a href="{% url 'new_subscription' contact.id %}?url={{url}}&offset={{offset}}&{{category}}={{console_instance.id}}" class="btn btn-block bg-gradient-success btn-sm">{% trans "Sell" %}</a>
-                <a href="{{url}}?offset={{position}}" class="btn btn-block bg-gradient-secondary btn-sm">{% trans "Next (Don't take actions)" %}</a>
-              </div>
-
-              <div class="col-sm-3">
-                <div class="form-group row">
-                  <div class="col-sm-3">
-                  <label for="call_date">{% trans 'Date' %}:</label>
-                  </div>
-                  <div class="col-sm-9">
-                  <input id="call_date" type="text" name="call_date" class="form-control form-control-sm" value="{{ call_date }}"/>
-                  </div>
                 </div>
-                <div class="form-group row">
-                  <div class="col-sm-3">
-                    <label for="call_time">{% trans 'Time' %}:</label>
-                  </div>
-                  <div class="col-sm-9">
-                   <input type="text" name="call_time" class="form-control form-control-sm" value="9:00"/>
-                   </div>
+            </div>
+            {% endif %}
+
+            {% if all_subscriptions %}
+            <div class="card card-primary card-outline">
+                <div class="card-header">
+                    <h3 class="card-title"><i class="fas fa-money-check-alt"></i> <b>{% trans 'Other subscriptions' %}</b></h3>
                 </div>
-                <input type="submit" class="btn btn-sm btn-primary float-right"  name="result" value="{% trans 'Schedule' %}" />
-              </div>
+                <div class="card-body">
+                    <dl>
+                        {% for s in all_subscriptions %}
+                        <dt {% if forloop.counter != 1 %}class="border-top mt-4 pt-3"{% endif %}>{% trans "Type:" %} {{s.get_type}}</dt>
+                        <dd><b>{% trans 'Active'%}:</b> {{s.active}}</dd>
+                        {% if s.active == False %}
+                        <button class="btn btn-primary btn-sm" type="button" data-toggle="collapse" data-target="#collapse-{{s.id}}" aria-expanded="false" aria-controls="collapseExample">+ {% trans "Expand" %}</button>
+                        {% endif %}
+                        <div class="{% if s.active == False %}collapse{% endif %}" id="collapse-{{s.id}}">
+                            {% if s.type == 'P' %}<dd><i>{{s.campaign.name}}</i></dd>{% endif %}
+                            {% autoescape  off %}<dd>{{s.show_products_html}}</dd>{% endautoescape %}
+                            <dd><b>{% trans 'Start'%}</b>: {{s.start_date|date:"SHORT_DATE_FORMAT"}}</dd>
+                            {% if s.end_date %}
+                            <dd><b>{% trans 'End'%}</b>: {{s.end_date|date:"SHORT_DATE_FORMAT"}}</dd>
+                            {% endif %}
+                            {% ifequal s.type 'N' %}
+                            <dd><b>{% trans 'Payment type'%}:</b> {{s.get_payment_type}}</dd>
+                            {% endifequal %}
+                            {% if s.unsubscription_reason %}<dt>{% trans 'Unsubscription reason'%}:</dt> <dd>{{s.get_unsubscription_reason}}</dd>{% endif %}
+                            {% if s.active and s.type == 'N' and request.user|in_group:"AdvancedSellers" %}
+                            <a href="{% url 'new_subscription' contact.id %}?upgrade_subscription={{s.id}}&url={{url}}&offset={{offset}}&{{category}}={{console_instance.id}}" class="btn  btn-success">{% trans "Upgrade" %}</a>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </dl>
+                </div>
             </div>
-        </div>
-      </div>
-    </div>
-
-    {% if all_subscriptions or all_activities %}
-     <div class="col-sm-3">
-        {% if all_subscriptions %}
-        <div class="card card-primary card-outline">
-          <div class="card-header">
-            <h3 class="card-title"><i class="fas fa-money-check-alt"></i> <b>{% trans 'Other subscriptions' %}</b></h3>
-          </div>
-          <div class="card-body">
-            <dl>
-            {% for s in all_subscriptions %}
-            <dt {% if forloop.counter != 1 %}class="border-top mt-4 pt-3"{% endif %}>{% trans "Type:" %} {{s.get_type}}</dt>
-            <dd><b>{% trans 'Active'%}:</b> {{s.active}}</dd>
-            {% if s.active == False %}
-            <button class="btn btn-primary btn-sm" type="button" data-toggle="collapse" data-target="#collapse-{{s.id}}" aria-expanded="false" aria-controls="collapseExample">+ {% trans "Expand" %}</button>
             {% endif %}
-            <div class="{% if s.active == False %}collapse{% endif %}" id="collapse-{{s.id}}">
-              {% if s.type == 'P' %}<dd><i>{{s.campaign.name}}</i></dd>{% endif %}
-              {% autoescape  off %}<dd>{{s.show_products_html}}</dd>{% endautoescape %}
-              <dd><b>{% trans 'Start'%}</b>: {{s.start_date|date:"SHORT_DATE_FORMAT"}}</dd>
-              {% if s.end_date %}
-              <dd><b>{% trans 'End'%}</b>: {{s.end_date|date:"SHORT_DATE_FORMAT"}}</dd>
-              {% endif %}
-              {% ifequal s.type 'N' %}
-                  <dd><b>{% trans 'Payment type'%}:</b> {{s.get_payment_type}}</dd>
-              {% endifequal %}
-              {% if s.unsubscription_reason %}<dt>{% trans 'Unsubscription reason'%}:</dt> <dd>{{s.get_unsubscription_reason}}</dd>{% endif %}
-              {% if s.active and s.type == 'N' and request.user|in_group:"AdvancedSellers" %}
-                <a href="{% url 'new_subscription' contact.id %}?upgrade_subscription={{s.id}}&url={{url}}&offset={{offset}}&{{category}}={{console_instance.id}}" class="btn  btn-success">{% trans "Upgrade" %}</a>
-              {% endif %}
-            </div>
-            {% endfor %}
-            </dl>
-          </div>
-        </div>
-          {% endif %}
-
-        {% if all_activities %}
-        <div class="card card-primary card-outline">
-          <div class="card-header">
-            <h3 class="card-title"><i class="fas fa-route"></i> <b>{% trans 'Other activities' %}</b></h3>
-          </div>
-          <div class="card-body">
-            <dl>
-            {% for a in all_activities %}
-            <dt {% if forloop.counter != 1 %}class="border-top mt-4 pt-3"{% endif %}>{% trans "Type:" %} {{a.get_type}} ({{a.get_direction}})</dt>
-            {% if a.campaign %}<dd><b>{% trans "Campaign" %}</b>: <i>{{a.campaign.name}}</i></dd>{% endif %}
-            <dd><b>{% trans 'Status'%}:</b> {{a.get_status}}</dd>
-            {% if a.datetime %}
-            <dd><b>{% trans 'Start'%}</b>: {{a.datetime|date:"SHORT_DATETIME_FORMAT"}}</dd>
-            {% endif %}
-            {% if a.notes %}
-            <dd><b>{% trans 'Notes'%}</b>: {{a.notes|default_if_none:""}}</dd>
-            {% endif %}
-            {% endfor %}
-            </dl>
-          </div>
         </div>
         {% endif %}
-
-
-
-    </div>
-    {% endif %}
     </form>
 
 
-{% endblock %}
+    {% endblock %}
