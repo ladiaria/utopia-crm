@@ -298,6 +298,14 @@ def seller_console(request, category, campaign_id):
             activity.notes = new_activity_notes
             activity.status = 'C'
             activity.save()
+            if result == _("Call later"):
+                Activity.objects.create(
+                    contact=contact,
+                    activity_type="C",
+                    datetime=datetime.now(),
+                    campaign=campaign,
+                    seller=seller,
+                )
         elif category == "new":
             ccs = ContactCampaignStatus.objects.get(pk=instance_id)
             contact = ccs.contact
