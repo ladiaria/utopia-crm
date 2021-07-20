@@ -34,7 +34,7 @@ $( function() {
 
     rejectHandler();
 
-    $("#campaign_reject_reason").change(rejectHandler);
+    $("#campaign_resolution_reason").change(rejectHandler);
 });
 </script>
 {% endblock %}
@@ -143,7 +143,7 @@ $( function() {
                             <td class="col-9">
 
                                 {% if a.campaign %}<b>{% trans "Campaign" %}</b>: <i>{{a.campaign.name}}</i><br>{% endif %}
-                                {{a.notes|default_if_none:""}}
+                                {{a.notes|linebreaks|default_if_none:""}}
                             </td>
                         </tr>
                         {% endfor %}
@@ -167,7 +167,7 @@ $( function() {
                     </div>
                     <div class="row">
                         <div class="col-sm-6">
-                            <select class="form-control form-control-sm" id="campaign_reject_reason" name="campaign_reject_reason">
+                            <select class="form-control form-control-sm" id="campaign_resolution_reason" name="campaign_resolution_reason">
                                 <option value="">{% trans 'Select a reason before selecting one of these options' %}</option>
                                 {% for reason in resolution_reasons %}
                                 <option value="{{reason.0}}">{{reason.1}}</option>
