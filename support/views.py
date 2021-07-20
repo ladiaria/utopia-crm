@@ -269,6 +269,18 @@ def seller_console(request, category, campaign_id):
         seller_id = request.POST.get("seller_id")
         seller = Seller.objects.get(pk=seller_id)
 
+        dict_resolution_reasons = dict(CAMPAIGN_RESOLUTION_REASONS_CHOICES)
+        if request.POST.get("campaign_resolution_reason", None):
+            resolution_reason = int(request.POST.get("campaign_resolution_reason"))
+        else:
+            resolution_reason = None
+        chosen_resolution_reason = dict_resolution_reasons.get(resolution_reason, None)
+        new_activity_notes = result
+        if chosen_resolution_reason:
+            new_activity_notes += u" ({})".format(chosen_resolution_reason)
+        if request.POST.get("notes", None):
+            new_activity_notes += u"\n" + request.POST.get("notes")
+
         if category == "act":
             activity = Activity.objects.get(pk=instance_id)
             contact = activity.contact
@@ -283,10 +295,17 @@ def seller_console(request, category, campaign_id):
                         "Activity {}: Contact {} is not present in campaign {}. Please report this error!".format(
                             activity.id, contact.id, campaign.id)))
                 return HttpResponseRedirect(reverse('seller_console_list_campaigns'))
-            if activity.notes != request.POST.get("notes", None):
-                activity.notes = request.POST.get("notes", None)
+            activity.notes = new_activity_notes
             activity.status = 'C'
             activity.save()
+            if result == _("Call later"):
+                Activity.objects.create(
+                    contact=contact,
+                    activity_type="C",
+                    datetime=datetime.now(),
+                    campaign=campaign,
+                    seller=seller,
+                )
         elif category == "new":
             ccs = ContactCampaignStatus.objects.get(pk=instance_id)
             contact = ccs.contact
@@ -297,7 +316,7 @@ def seller_console(request, category, campaign_id):
                 campaign=campaign,
                 seller=seller,
                 status="C",
-                notes=request.POST.get("notes", None)
+                notes=new_activity_notes
             )
         if result == _("Schedule"):
             # Schedule customers
@@ -318,16 +337,8 @@ def seller_console(request, category, campaign_id):
             )
 
         elif result == _("Call later"):
-            ccs.campaign_resolution = "UN"
-            ccs.status = 2
-            Activity.objects.create(
-                contact=contact,
-                activity_type="C",
-                datetime=datetime.now() + timedelta(hours=1),
-                campaign=campaign,
-                seller=seller,
-                notes=u"No se pudo encontrar al contacto a las {}, llamar más tarde.".format(datetime.now()),
-            )
+            # Don't do anything, just save the activity.
+            pass
 
         elif result == _("Not interested"):
             ccs.campaign_resolution = "NI"
