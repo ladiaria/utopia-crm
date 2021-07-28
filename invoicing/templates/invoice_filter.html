@@ -107,7 +107,13 @@
                 {% for invoice in invoices %}
                 <tr role="row">
                   <td>{{invoice.id}}</td>
-                  <td><a href='{% url "contact_detail" invoice.contact.id %}' target="_blank">{{invoice.contact.name}}</a></td>
+                  <td>
+                      {% if invoice.contact %}
+                      <a href='{% url "contact_detail" invoice.contact.id %}' target="_blank">{{invoice.contact.name}}</a>
+                      {% else %}
+                      {% trans "Invoice has no contact!" %}
+                      {% endif %}
+                  </td>
                   <td>{% autoescape off %}{{invoice.subscription.show_products_html}}{% endautoescape %}</td>
                   <td>{{invoice.amount}}</td>
                   <td>{{invoice.get_payment_type}}</td>
