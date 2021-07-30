@@ -126,12 +126,8 @@ class Product(models.Model):
     slug = AutoSlugField(populate_from="name", null=True, blank=True)
     active = models.BooleanField(default=False, verbose_name=_("Active"))
     price = models.IntegerField(default=0)
-    type = models.CharField(
-        max_length=1, default="O", choices=PRODUCT_TYPE_CHOICES, db_index=True
-    )
-    weekday = models.IntegerField(
-        default=None, choices=PRODUCT_WEEKDAYS, null=True, blank=True
-    )
+    type = models.CharField(max_length=1, default="O", choices=PRODUCT_TYPE_CHOICES, db_index=True)
+    weekday = models.IntegerField(default=None, choices=PRODUCT_WEEKDAYS, null=True, blank=True)
     offerable = models.BooleanField(default=False, verbose_name=_("Allow offer"))
     billing_priority = models.PositiveSmallIntegerField(null=True, blank=True)
     digital = models.BooleanField(default=False, verbose_name=_("Digital"))
@@ -190,26 +186,14 @@ class Contact(models.Model):
         verbose_name=_("Institution"),
         on_delete=models.SET_NULL,
     )
-    name = models.CharField(
-        max_length=100, validators=[alphanumeric], verbose_name=_("Name")
-    )
-    id_document = models.CharField(
-        max_length=20, blank=True, null=True, verbose_name=_("Identifcation Document")
-    )
+    name = models.CharField(max_length=100, validators=[alphanumeric], verbose_name=_("Name"))
+    id_document = models.CharField(max_length=20, blank=True, null=True, verbose_name=_("Identifcation Document"))
     phone = models.CharField(max_length=20, verbose_name=_("Phone"))
-    work_phone = models.CharField(
-        max_length=20, blank=True, null=True, verbose_name=_("Work phone")
-    )
-    mobile = models.CharField(
-        max_length=20, blank=True, null=True, verbose_name=_("Mobile")
-    )
-    email = models.CharField(
-        max_length=100, blank=True, null=True, unique=True, verbose_name=_("Email")
-    )
+    work_phone = models.CharField(max_length=20, blank=True, null=True, verbose_name=_("Work phone"))
+    mobile = models.CharField(max_length=20, blank=True, null=True, verbose_name=_("Mobile"))
+    email = models.EmailField(blank=True, null=True, unique=True, verbose_name=_("Email"))
     no_email = models.BooleanField(default=False, verbose_name=_("No email"))
-    gender = models.CharField(
-        max_length=1, choices=GENDERS, blank=True, null=True, verbose_name=_("Gender")
-    )
+    gender = models.CharField(max_length=1, choices=GENDERS, blank=True, null=True, verbose_name=_("Gender"))
     ocupation = models.ForeignKey(
         Ocupation,
         blank=True,
@@ -221,24 +205,14 @@ class Contact(models.Model):
         blank=True, null=True, choices=EDUCATION_CHOICES, verbose_name=_("Education")
     )
     birthdate = models.DateField(blank=True, null=True, verbose_name=_("Birthdate"))
-    private_birthdate = models.BooleanField(
-        default=False, verbose_name=_("Private birthdate")
-    )
-    protected = models.BooleanField(
-        default=False, blank=True, verbose_name=_("Protected")
-    )
-    protection_reason = models.TextField(
-        blank=True, null=True, verbose_name=_("Protection reason")
-    )
+    private_birthdate = models.BooleanField(default=False, verbose_name=_("Private birthdate"))
+    protected = models.BooleanField(default=False, blank=True, verbose_name=_("Protected"))
+    protection_reason = models.TextField(blank=True, null=True, verbose_name=_("Protection reason"))
     notes = models.TextField(blank=True, null=True, verbose_name=_("Notes"))
     tags = TaggableManager(blank=True)
-    seller = models.ForeignKey(
-        "support.Seller", null=True, blank=True, on_delete=models.SET_NULL
-    )
+    seller = models.ForeignKey("support.Seller", null=True, blank=True, on_delete=models.SET_NULL)
     allow_polls = models.BooleanField(default=True, verbose_name=_("Allows polls"))
-    allow_promotions = models.BooleanField(
-        default=True, verbose_name=_("Allows promotions")
-    )
+    allow_promotions = models.BooleanField(default=True, verbose_name=_("Allows promotions"))
 
     def __unicode__(self):
         return self.name
