@@ -586,9 +586,7 @@ class SubscriptionProduct(models.Model):
     product = models.ForeignKey("core.Product")
     subscription = models.ForeignKey("core.Subscription")
     copies = models.PositiveSmallIntegerField(default=1)
-    address = models.ForeignKey(
-        "core.Address", blank=True, null=True, on_delete=models.SET_NULL
-    )
+    address = models.ForeignKey("core.Address", blank=True, null=True, on_delete=models.SET_NULL)
     route = models.ForeignKey(
         "logistics.Route",
         blank=True,
@@ -596,27 +594,23 @@ class SubscriptionProduct(models.Model):
         verbose_name=_("Route"),
         on_delete=models.SET_NULL,
     )
-    order = models.PositiveSmallIntegerField(
-        verbose_name=_("Order"), blank=True, null=True
-    )
+    order = models.PositiveSmallIntegerField(verbose_name=_("Order"), blank=True, null=True)
     label_message = models.CharField(max_length=40, blank=True, null=True)
     special_instructions = models.TextField(blank=True, null=True)
-    label_contact = models.ForeignKey(
-        "core.contact", blank=True, null=True, on_delete=models.SET_NULL
-    )
-    seller = models.ForeignKey(
-        "support.Seller", blank=True, null=True, on_delete=models.SET_NULL
-    )
+    label_contact = models.ForeignKey("core.contact", blank=True, null=True, on_delete=models.SET_NULL)
+    seller = models.ForeignKey("support.Seller", blank=True, null=True, on_delete=models.SET_NULL)
     has_envelope = models.PositiveSmallIntegerField(
-        blank=True, null=True, verbose_name=_("Envelope"), choices=ENVELOPE_CHOICES)
+        blank=True, null=True, verbose_name=_("Envelope"), choices=ENVELOPE_CHOICES
+    )
 
     def __unicode__(self):
+        # TODO: result translation (i18n)
         if self.address:
             address = self.address.address_1
         else:
-            address = ""
+            address = u""
 
-        return "{}  - {} - (Suscripción de ${})".format(
+        return u"{} - {} - (Suscripción de ${})".format(
             self.product, address, self.subscription.get_price_for_full_period()
         )
 
