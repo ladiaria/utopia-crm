@@ -441,9 +441,7 @@ class Contact(models.Model):
         """
         # TODO: this method should be migrated to the Subscription model
 
-        history_of_this_product = subscription.contactproducthistory_set.filter(
-            product=product
-        )
+        history_of_this_product = subscription.contactproducthistory_set.filter(product=product)
 
         if history_of_this_product.exists():
             latest_history_of_this_product = history_of_this_product.latest("id")
@@ -1523,13 +1521,9 @@ class ContactProductHistory(models.Model):
     """
 
     contact = models.ForeignKey(Contact)
-    subscription = models.ForeignKey(
-        Subscription, null=True, blank=True, on_delete=models.SET_NULL
-    )
+    subscription = models.ForeignKey(Subscription, null=True, blank=True, on_delete=models.SET_NULL)
     product = models.ForeignKey(Product)
-    campaign = models.ForeignKey(
-        Campaign, null=True, blank=True, on_delete=models.SET_NULL
-    )
+    campaign = models.ForeignKey(Campaign, null=True, blank=True, on_delete=models.SET_NULL)
     status = models.CharField(max_length=1, choices=PRODUCTHISTORY_CHOICES)
     seller = models.ForeignKey(
         "support.seller",
