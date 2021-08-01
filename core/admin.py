@@ -346,6 +346,7 @@ class PriceRuleAdmin(admin.ModelAdmin):
 
 
 class SubscriptionProductAdmin(admin.ModelAdmin):
+    list_display = ('subscription_id', 'product', 'copies', 'address', 'route', 'order', 'seller')
     raw_id_fields = ('subscription', 'address', 'label_contact')
 
 
