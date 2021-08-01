@@ -53,7 +53,7 @@ class SubscriptionProductInline(admin.TabularInline):
     fields = (
         ('product', 'copies', 'address'),
         ('route', 'order', 'label_contact', 'seller'),
-        ('has_envelope',),
+        ('has_envelope', ),
     )
     raw_id_fields = ['route', 'label_contact', 'seller']
     extra = 1
@@ -90,7 +90,7 @@ class SubscriptionInline(admin.StackedInline):
             'fields': (
                 ('id', 'active'),
                 ('frequency', 'status'),
-                ('campaign', 'seller'),
+                ('campaign', ),
                 ('type', 'next_billing',),
                 ('edit_products_field',),
                 ('start_date', 'end_date'),
@@ -185,7 +185,7 @@ class SubscriptionAdmin(admin.ModelAdmin):
     list_display = ('contact', 'active', 'payment_type', 'campaign', 'product_summary')
     list_editable = ('active', 'payment_type')
     list_filter = ('campaign', 'active', 'payment_type')
-    readonly_fields = ('contact', 'edit_products_field', 'campaign', 'seller', 'updated_from')
+    readonly_fields = ('contact', 'edit_products_field', 'campaign', 'updated_from')
 
     class Media:
         pass
@@ -227,7 +227,6 @@ class ContactAdmin(TabbedModelAdmin):
             ('email', 'no_email'),
             ('phone', 'mobile'),
             ('gender', 'education'),
-            ('seller'),
             ('birthdate', 'private_birthdate'),
             ('protected',), 'protection_reason', 'notes')}),)
     tab_subscriptions = (SubscriptionInline, )
@@ -241,10 +240,10 @@ class ContactAdmin(TabbedModelAdmin):
         ('Address', tab_addresses),
         ('Community', tab_community)
     ]
-    list_display = ('id', 'name', 'id_document', 'subtype', 'tag_list', 'seller')
+    list_display = ('id', 'name', 'id_document', 'subtype', 'tag_list')
     list_filter = ('subtype', TaggitListFilter)
     ordering = ('id', )
-    raw_id_fields = ('subtype', 'seller')
+    raw_id_fields = ('subtype', )
     change_form_template = 'admin/core/contact/change_form.html'
 
     def get_queryset(self, request):
@@ -260,7 +259,7 @@ class ContactAdmin2(admin.ModelAdmin):
         (None, {'fields': (('name', 'referring', 'tags'), )}),
         (None, {'fields': (('subtype', 'id_document'), )}),
         (None, {'fields': (
-            ('phone', 'mobile', 'seller'),
+            ('phone', 'mobile'),
             ('gender', 'education', 'birthdate', 'private_birthdate'),
             ('ocupation'),
             ('protected',), 'protection_reason', 'notes')}))
@@ -321,9 +320,7 @@ class SubtypeAdmin(admin.ModelAdmin):
 
 class ActivityAdmin(admin.ModelAdmin):
     raw_id_fields = ['contact', 'issue']
-    list_display = (
-        'id', 'contact', 'seller', 'activity_type',
-        'campaign', 'get_contact_seller', 'status')
+    list_display = ('id', 'contact', 'seller', 'activity_type', 'campaign', 'get_contact_seller', 'status')
     search_fields = ('contact__id', 'contact__name')
 
 
