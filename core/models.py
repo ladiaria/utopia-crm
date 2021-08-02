@@ -210,7 +210,6 @@ class Contact(models.Model):
     protection_reason = models.TextField(blank=True, null=True, verbose_name=_("Protection reason"))
     notes = models.TextField(blank=True, null=True, verbose_name=_("Notes"))
     tags = TaggableManager(blank=True)
-    seller = models.ForeignKey("support.Seller", null=True, blank=True, on_delete=models.SET_NULL)
     allow_polls = models.BooleanField(default=True, verbose_name=_("Allows polls"))
     allow_promotions = models.BooleanField(default=True, verbose_name=_("Allows promotions"))
 
@@ -442,9 +441,7 @@ class Contact(models.Model):
         """
         # TODO: this method should be migrated to the Subscription model
 
-        history_of_this_product = subscription.contactproducthistory_set.filter(
-            product=product
-        )
+        history_of_this_product = subscription.contactproducthistory_set.filter(product=product)
 
         if history_of_this_product.exists():
             latest_history_of_this_product = history_of_this_product.latest("id")
@@ -710,14 +707,6 @@ class Subscription(models.Model):
     )
     resubscription_date = models.DateField(
         blank=True, null=True, verbose_name=_("Resubscription date")
-    )
-    seller = models.ForeignKey(
-        "support.Seller",
-        blank=True,
-        null=True,
-        verbose_name=_("Seller"),
-        limit_choices_to={"internal": True},
-        on_delete=models.SET_NULL,
     )
 
     highlight_in_listing = models.BooleanField(
@@ -1471,26 +1460,16 @@ class Activity(models.Model):
     contact = models.ForeignKey(Contact, null=True, blank=True)
     campaign = models.ForeignKey(Campaign, null=True, blank=True)
     product = models.ForeignKey(Product, null=True, blank=True)
-    seller = models.ForeignKey(
-        "support.Seller", blank=True, null=True, verbose_name=_("Seller")
-    )
-    issue = models.ForeignKey(
-        "support.Issue", blank=True, null=True, verbose_name=_("Issue")
-    )
+    seller = models.ForeignKey("support.Seller", blank=True, null=True, verbose_name=_("Seller"))
+    issue = models.ForeignKey("support.Issue", blank=True, null=True, verbose_name=_("Issue"))
     datetime = models.DateTimeField(blank=True, null=True)
     asap = models.BooleanField(default=False)
     notes = models.TextField(blank=True, null=True)
 
     priority = models.SmallIntegerField(choices=PRIORITY_CHOICES, default=3)
-    activity_type = models.CharField(
-        choices=ACTIVITY_TYPES, max_length=1, null=True, blank=True
-    )
-    status = models.CharField(
-        choices=ACTIVITY_STATUS_CHOICES, default="P", max_length=1
-    )
-    direction = models.CharField(
-        choices=ACTIVITY_DIRECTION_CHOICES, default="O", max_length=1
-    )
+    activity_type = models.CharField(choices=ACTIVITY_TYPES, max_length=1, null=True, blank=True)
+    status = models.CharField(choices=ACTIVITY_STATUS_CHOICES, default="P", max_length=1)
+    direction = models.CharField(choices=ACTIVITY_DIRECTION_CHOICES, default="O", max_length=1)
 
     def __unicode__(self):
         return unicode(_("Activity {} for contact {}".format(self.id, self.contact.id)))
@@ -1542,13 +1521,9 @@ class ContactProductHistory(models.Model):
     """
 
     contact = models.ForeignKey(Contact)
-    subscription = models.ForeignKey(
-        Subscription, null=True, blank=True, on_delete=models.SET_NULL
-    )
+    subscription = models.ForeignKey(Subscription, null=True, blank=True, on_delete=models.SET_NULL)
     product = models.ForeignKey(Product)
-    campaign = models.ForeignKey(
-        Campaign, null=True, blank=True, on_delete=models.SET_NULL
-    )
+    campaign = models.ForeignKey(Campaign, null=True, blank=True, on_delete=models.SET_NULL)
     status = models.CharField(max_length=1, choices=PRODUCTHISTORY_CHOICES)
     seller = models.ForeignKey(
         "support.seller",
@@ -1574,9 +1549,7 @@ class ContactCampaignStatus(models.Model):
     contact = models.ForeignKey(Contact)
     campaign = models.ForeignKey(Campaign)
     status = models.SmallIntegerField(choices=CAMPAIGN_STATUS_CHOICES, default=1)
-    campaign_resolution = models.CharField(
-        choices=CAMPAIGN_RESOLUTION_CHOICES, null=True, blank=True, max_length=2
-    )
+    campaign_resolution = models.CharField(choices=CAMPAIGN_RESOLUTION_CHOICES, null=True, blank=True, max_length=2)
     campaign_reject_reason = models.CharField(
         choices=CAMPAIGN_REJECT_REASONS_CHOICES, null=True, blank=True, max_length=1
     )
@@ -1594,16 +1567,13 @@ class ContactCampaignStatus(models.Model):
         """
         Returns the last activity for the contact, on this exact campaign.
         """
-        return Activity.objects.filter(
-            campaign=self.campaign, status="P", contact=self.contact
-        ).latest("id")
+        return Activity.objects.filter(campaign=self.campaign, status="P", contact=self.contact).latest("id")
 
     def get_status(self):
         """
         Returns a description of the status for this campaign on this contact.
         """
-        statuses = dict(CAMPAIGN_STATUS_CHOICES)
-        return statuses.get(self.status, "N/A")
+        return dict(CAMPAIGN_STATUS_CHOICES).get(self.status, "N/A")
 
     def get_campaign_resolution(self):
         """
