@@ -588,7 +588,7 @@ def route_details(request, route_list):
             directions_dict[str(route.number)] = route.directions
 
         issues = Issue.objects.filter(subscription_product__route=route, category='L').exclude(
-            status__slug__in=settings.FINISHED_ISSUE_STATUS_SLUG_LIST).distinct()
+            status__slug__in=settings.ISSUE_STATUS_FINISHED_LIST).distinct()
         issues_dict[str(route.number)] = issues
 
     return render(request, 'route_details.html', {

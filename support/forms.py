@@ -5,8 +5,7 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.contrib.auth.models import User
 
-from .models import Issue, IssueStatus
-from .choices import ISSUE_SUBCATEGORIES
+from .models import Issue, IssueStatus, IssueSubcategory
 
 from core.models import Contact, Product, Subscription, Address, DynamicContactFilter, SubscriptionProduct, Activity
 from core.choices import ADDRESS_TYPE_CHOICES, FREQUENCY_CHOICES, ACTIVITY_TYPES
@@ -269,9 +268,10 @@ class IssueStartForm(forms.ModelForm):
         required=False,
     )
 
-    subcategory = forms.ChoiceField(
-        choices=ISSUE_SUBCATEGORIES,
-        widget=forms.Select(attrs={"class": "form-control"}),
+    sub_category = forms.ModelChoiceField(
+        required=False,
+        queryset=IssueSubcategory.objects.all(),
+        widget=forms.Select(attrs={"class": "form-control"})
     )
 
     activity_type = forms.ChoiceField(
@@ -351,24 +351,6 @@ SELECT_CONTACT_FOR_ISSUE_TYPE_CHOICES = (
     ("S04", _("Pause")),
     ("S05", _("Change address")),
 )
-
-
-class SelectContactForIssue(forms.Form):
-    contact_id = forms.CharField(
-        widget=forms.TextInput(attrs={"class": "form-control"})
-    )
-    issue_type = forms.ChoiceField(
-        choices=SELECT_CONTACT_FOR_ISSUE_TYPE_CHOICES,
-        widget=forms.Select(attrs={"class": "form-control"}),
-    )
-
-    def clean_contact_id(self):
-        contact_id = self.cleaned_data.get("contact_id")
-        try:
-            Contact.objects.get(pk=contact_id)
-        except Contact.DoesNotExist:
-            raise forms.ValidationError(_("Contact does not exist"))
-        return contact_id
 
 
 class NewAddressForm(forms.Form):
