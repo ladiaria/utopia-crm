@@ -36,6 +36,7 @@ from core.models import (
     SubscriptionNewsletter,
     Subtype,
 )
+from core.choices import CAMPAIGN_RESOLUTION_REASONS_CHOICES
 
 from .filters import IssueFilter, ScheduledActivityFilter
 from .forms import *
@@ -268,13 +269,43 @@ def seller_console(request, category, campaign_id):
         seller_id = request.POST.get("seller_id")
         seller = Seller.objects.get(pk=seller_id)
 
+        dict_resolution_reasons = dict(CAMPAIGN_RESOLUTION_REASONS_CHOICES)
+        if request.POST.get("campaign_resolution_reason", None):
+            resolution_reason = int(request.POST.get("campaign_resolution_reason"))
+        else:
+            resolution_reason = None
+        chosen_resolution_reason = dict_resolution_reasons.get(resolution_reason, None)
+        new_activity_notes = result
+        if chosen_resolution_reason:
+            new_activity_notes += u" ({})".format(chosen_resolution_reason)
+        if request.POST.get("notes", None):
+            new_activity_notes += u"\n" + request.POST.get("notes")
+
         if category == "act":
             activity = Activity.objects.get(pk=instance_id)
             contact = activity.contact
-            ccs = ContactCampaignStatus.objects.get(
-                campaign=campaign,
-                contact=contact
-            )
+            try:
+                ccs = ContactCampaignStatus.objects.get(
+                    campaign=campaign,
+                    contact=contact
+                )
+            except ContactCampaignStatus.DoesNotExist:
+                messages.success(
+                    request, _(
+                        "Activity {}: Contact {} is not present in campaign {}. Please report this error!".format(
+                            activity.id, contact.id, campaign.id)))
+                return HttpResponseRedirect(reverse('seller_console_list_campaigns'))
+            activity.notes = new_activity_notes
+            activity.status = 'C'
+            activity.save()
+            if result == _("Call later"):
+                Activity.objects.create(
+                    contact=contact,
+                    activity_type="C",
+                    datetime=datetime.now(),
+                    campaign=campaign,
+                    seller=seller,
+                )
         elif category == "new":
             ccs = ContactCampaignStatus.objects.get(pk=instance_id)
             contact = ccs.contact
@@ -284,17 +315,11 @@ def seller_console(request, category, campaign_id):
                 datetime=datetime.now(),
                 campaign=campaign,
                 seller=seller,
-                status="C"
+                status="C",
+                notes=new_activity_notes
             )
-
-        # We save the notes before doing anything else to the subscription
-        if activity.notes != request.POST.get("notes"):
-            activity.notes = request.POST.get("notes")
-            activity.save()
-
         if result == _("Schedule"):
             # Schedule customers
-            activity.status = "C"  # The current activity has to be completed, since we called the person.
             ccs.campaign_resolution = "SC"
             ccs.status = 2
             call_date = request.POST.get("call_date")
@@ -311,52 +336,41 @@ def seller_console(request, category, campaign_id):
                 notes="{} {}".format(_("Scheduled for"), call_datetime),
             )
 
+        elif result == _("Call later"):
+            # Don't do anything, just save the activity.
+            pass
+
         elif result == _("Not interested"):
-            activity.status = "C"  # The activity was completed
             ccs.campaign_resolution = "NI"
             ccs.status = 4
 
-        elif result == _("Cannot find contact"):
-            activity.status = "C"  # The activity was completed
-            ccs.campaign_resolution = "UN"
-            ccs.status = 5
-
         elif result == _("Error in promotion"):
-            activity.status = "C"  # The activity was completed
             ccs.campaign_resolution = "EP"
             ccs.status = 4
 
         elif result == _("Do not call anymore"):
-            activity.status = "C"  # The activity was completed
             ccs.campaign_resolution = "DN"
             ccs.status = 4
 
         elif result == _("Logistics"):
-            activity.status = "C"  # The activity was completed
             ccs.campaign_resolution = "LO"
             ccs.status = 4
 
         elif result == _("Already a subscriber"):
-            activity.status = "C"  # The activity was completed
             ccs.campaign_resolution = "AS"
             ccs.status = 4
 
-        if ccs.campaign_resolution:
-            ccs.campaign_reject_reason = request.POST.get(
-                "campaign_reject_reason", None
-            )
-            ccs.save()
+        if request.POST.get("campaign_resolution_reason", None):
+            ccs.resolution_reason = request.POST.get("campaign_resolution_reason", None)
 
-        if activity:
-            activity.save()
+        ccs.save()
 
         return HttpResponseRedirect(
-            reverse("seller_console", args=[category, campaign.id]) +
-            "?offset={}".format(offset)
+            reverse("seller_console", args=[category, campaign.id])
+            + "?offset={}".format(offset)
             if offset
             else None
         )
-
     else:
         """
         This is if the user has not selected any option.
@@ -392,10 +406,7 @@ def seller_console(request, category, campaign_id):
             ).order_by('datetime', 'id')
 
         count = console_instances.count()
-        if count == 0:
-            messages.success(request, _("You've reached the end of this list"))
-            return HttpResponseRedirect(reverse('seller_console_list_campaigns'))
-        if offset - 1 >= count:
+        if count == 0 or offset - 1 >= count:
             messages.success(request, _("You've reached the end of this list"))
             return HttpResponseRedirect(reverse('seller_console_list_campaigns'))
         elif activity_id:
@@ -426,6 +437,10 @@ def seller_console(request, category, campaign_id):
         upcoming_activity = Activity.objects.filter(
             seller=seller, status='P', activity_type='C').order_by('datetime', 'id').first()
 
+        other_campaigns = ContactCampaignStatus.objects.filter(
+            contact=contact
+        ).exclude(campaign=campaign)
+
         return render(
             request,
             "seller_console.html",
@@ -448,6 +463,8 @@ def seller_console(request, category, campaign_id):
                 "url": url,
                 "pending_activities_count": pending_activities_count,
                 "upcoming_activity": upcoming_activity,
+                "resolution_reasons": CAMPAIGN_RESOLUTION_REASONS_CHOICES,
+                "other_campaigns": other_campaigns
             },
         )
 
@@ -838,6 +855,10 @@ def new_subscription(request, contact_id):
                 ccs.status = 4  # Ended with contact
                 ccs.save()
                 # We also need to register the activity as just started
+                activity_notes = "{}\n{}".format(
+                    _("Success with direct sale on {}").format(datetime.now().strftime("%Y-%m-%d %H:%M")),
+                    form.cleaned_data["register_activity"]
+                )
                 Activity.objects.create(
                     activity_type="C",
                     seller=ccs.seller,
@@ -846,7 +867,7 @@ def new_subscription(request, contact_id):
                     direction='O',
                     datetime=datetime.now(),
                     campaign=ccs.campaign,
-                    notes=_("Success with direct sale"),
+                    notes=activity_notes,
                 )
                 subscription.campaign = ccs.campaign
                 subscription.save()
@@ -854,21 +875,19 @@ def new_subscription(request, contact_id):
             elif request.GET.get('act', None):
                 # This means this is a sale from an activity
                 activity.status = 'C'
-                activity.save
+                activity_notes = "{}\n{}".format(
+                    _("Success with promotion on {}").format(datetime.now().strftime("%Y-%m-%d %H:%M")),
+                    form.cleaned_data["register_activity"]
+                )
+                if activity.notes:
+                    activity.notes = activity.notes + "\n" + activity_notes
+                else:
+                    activity.notes = activity_notes
+                activity.save()
                 ccs = ContactCampaignStatus.objects.get(campaign=campaign, contact=contact)
                 ccs.campaign_resolution = "S1"  # success after a promo
                 ccs.status = 4  # Ended with contact
                 ccs.save()
-                Activity.objects.create(
-                    activity_type="C",
-                    campaign=campaign,
-                    seller=ccs.seller,
-                    contact=contact,
-                    status='C',
-                    direction='O',
-                    datetime=datetime.now(),
-                    notes=_("Success with promotion"),
-                )
                 subscription.campaign = campaign
                 subscription.save()
                 return HttpResponseRedirect("{}?offset={}".format(url, offset))
@@ -1698,10 +1717,16 @@ def edit_contact(request, contact_id):
     if request.POST:
         form = ContactAdminForm(request.POST, instance=contact)
         if form.is_valid():
-            form.save()
-            return HttpResponseRedirect(reverse('edit_contact', args=[contact_id]))
+            try:
+                form.save()
+            except Exception as e:
+                messages.error(request, "Error: {}".format(e.message))
+            else:
+                return HttpResponseRedirect(reverse('edit_contact', args=[contact_id]))
     return render(request, 'create_contact.html', {
-        'form': form, 'contact': contact, 'all_newsletters': all_newsletters,
+        'form': form,
+        'contact': contact,
+        'all_newsletters': all_newsletters,
         'contact_newsletters': contact_newsletters
     })
 

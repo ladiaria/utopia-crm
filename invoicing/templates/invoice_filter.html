@@ -97,7 +97,8 @@
                     <th>{% trans "Amount" %}</th>
                     <th>{% trans "Payment type" %}</th>
                     <th>{% trans "Date" %}</th>
-                    <th>{% trans "Due" %}</th>
+                    <th>{% trans "Service from" %}</th>
+                    <th>{% trans "Service to" %}</th>
                     <th>{% trans "Status" %}</th>
                     <th>{% trans "Details" %}</th>
                   </tr>
@@ -106,12 +107,19 @@
                 {% for invoice in invoices %}
                 <tr role="row">
                   <td>{{invoice.id}}</td>
-                  <td><a href='{% url "contact_detail" invoice.contact.id %}' target="_blank">{{invoice.contact.name}}</a></td>
+                  <td>
+                      {% if invoice.contact %}
+                      <a href='{% url "contact_detail" invoice.contact.id %}' target="_blank">{{invoice.contact.name}}</a>
+                      {% else %}
+                      {% trans "Invoice has no contact!" %}
+                      {% endif %}
+                  </td>
                   <td>{% autoescape off %}{{invoice.subscription.show_products_html}}{% endautoescape %}</td>
                   <td>{{invoice.amount}}</td>
                   <td>{{invoice.get_payment_type}}</td>
                   <td>{{invoice.creation_date}}</td>
-                  <td>{{invoice.expiration_date}}</td>
+                  <td>{{invoice.service_from}}</td>
+                  <td>{{invoice.service_to}}</td>
                   <td>{{invoice.get_status}}</td>
                   <td><a href='{% url "admin:invoicing_invoice_change" invoice.id %}' target="_blank" class="btn-sm btn-primary">{% trans "Details" %}</a></td>
                 </tr>
