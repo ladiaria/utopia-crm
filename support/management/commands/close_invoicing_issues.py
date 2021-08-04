@@ -22,7 +22,7 @@ class Command(BaseCommand):
         # TODO: Generate a queryset to look for debtors, or a method to check for it while iterating through all
         # The first part would be faster probably
         issues = Issue.objects.filter(category="I", subcategory="I06").exclude(
-            status__slug__in=settings.FINISHED_ISSUE_STATUS_SLUG_LIST
+            status__slug__in=settings.ISSUE_STATUS_FINISHED_LIST
         )
         if getattr(settings, 'ISSUE_STATUS_AUTO_CLOSE_SLUGS', None):
             issues = issues.filter(status__slug__in=settings.ISSUE_STATUS_AUTO_CLSOSE_SLUGS)

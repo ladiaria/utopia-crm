@@ -6,7 +6,7 @@ from django.utils.translation import ugettext_lazy as _
 from django.contrib.auth.models import User
 
 from core.models import Activity
-from .models import Issue
+from .models import Issue, IssueSubcategory
 
 
 CREATION_CHOICES = (
@@ -33,7 +33,7 @@ class IssueFilter(django_filters.FilterSet):
 
     class Meta:
         model = Issue
-        fields = ['category', 'subcategory', 'status', 'assigned_to']
+        fields = ['category', 'sub_category', 'status', 'assigned_to']
 
     def filter_by_date(self, queryset, name, value):
         if value == 'today':
@@ -55,6 +55,13 @@ class IssueFilter(django_filters.FilterSet):
             return queryset.filter(date__month=month, date__year=year)
         else:
             return queryset
+
+
+class InvoicingIssueFilter(IssueFilter):
+    sub_category = django_filters.ModelChoiceFilter(
+        queryset=IssueSubcategory.objects.filter(category='I'),
+        widget=forms.Select(attrs={"class": "form-control"})
+    )
 
 
 class ScheduledActivityFilter(django_filters.FilterSet):

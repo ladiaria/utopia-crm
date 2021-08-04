@@ -38,7 +38,7 @@ from core.models import (
 )
 from core.choices import CAMPAIGN_RESOLUTION_REASONS_CHOICES
 
-from .filters import IssueFilter, ScheduledActivityFilter
+from .filters import IssueFilter, InvoicingIssueFilter, ScheduledActivityFilter
 from .forms import *
 from .models import Seller, ScheduledTask, IssueStatus
 from core.utils import calc_price_from_products, process_products
@@ -1816,10 +1816,13 @@ def invoicing_issues(request):
     Shows a more comprehensive list of issues for debtors.
     """
     issues_queryset = Issue.objects.filter(
-        category="I", subcategory="I06", contact__invoice__paid=False, contact__invoice__debited=False,
-        contact__invoice__canceled=False, contact__invoice__uncollectible=False,
+        category="I",
+        contact__invoice__paid=False,
+        contact__invoice__debited=False,
+        contact__invoice__canceled=False,
+        contact__invoice__uncollectible=False,
         contact__invoice__expiration_date__lte=date.today()).exclude(
-        status__slug__in=settings.FINISHED_ISSUE_STATUS_SLUG_LIST).annotate(
+        status__slug__in=settings.ISSUE_STATUS_FINISHED_LIST).annotate(
         owed_invoices=Count('contact__invoice')).annotate(
         debt=Sum('contact__invoice__amount')).annotate(
         oldest_invoice=Min('contact__invoice__creation_date'))
@@ -1830,7 +1833,7 @@ def invoicing_issues(request):
             issues_queryset = issues_queryset.order_by('-{}'.format(sort_by))
         else:
             issues_queryset = issues_queryset.order_by(sort_by)
-    issues_filter = IssueFilter(request.GET, queryset=issues_queryset)
+    issues_filter = InvoicingIssueFilter(request.GET, queryset=issues_queryset)
     page_number = request.GET.get("p")
     paginator = Paginator(issues_filter.qs, 100)
     if request.GET.get('export'):
