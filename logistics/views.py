@@ -268,6 +268,12 @@ def print_labels(request, page='Roll', list_type='', route_list='', product_id=N
         for copy in range(sp.copies):
 
             label, route_suffix = iterator.next(), ''
+
+            # TODO: take in account also here the time of execution from 0:00 to 2:59 (after midnight)
+            #       maybe next_day.isoweekday() instead of tomorrow.isoweekday() is the solution, make tests cases.
+            #       Another improvement (for performance) is to make the route_suffix assignment before the first loop.
+            #       And yet another: it's also possible to obtain locale and get the day name localized,
+            #                        google this: "django get locale", "python get day name localized".
             tomorrow_isoweekday = tomorrow.isoweekday()
 
             if sp.product:
@@ -303,10 +309,9 @@ def print_labels(request, page='Roll', list_type='', route_list='', product_id=N
                 label.message_for_contact = sp.label_message
             else:
                 if sp.subscription.type == 'P':
-                    if sp.subscription.seller:
-                        ref = sp.subscription.seller.name
-                    else:
-                        ref = _('a friend')
+                    # TODO: the seller name can be obtained here to use it instead of "a friend"
+                    #       (also check the use case of this label, isn't the "referer" a better option?)
+                    ref = _('a friend')
                     label.message_for_contact = "{}\n{}".format(_('Subscription suggested by\n'), ref)
                 # When we have a 2x1 plan we should put it here
                 # elif getattr(sp.subscription.product, 'id', None) == 6:
@@ -500,7 +505,7 @@ def issues_labels(request):
                 label.addresss = (
                     issue.subscription_product.address.address_1 or '') + '\n' + (
                     issue.subscription_product.address.address_2 or '')
-                label.route = issue.subscription_product.route.number
+                label.route = getattr(issue.subscription_product.route, 'number', None)
                 label.route_order = issue.subscription_product.order
                 # Add the day of the product to the labels.
                 if issue.subscription_product.product.weekday == 1:  # Monday
