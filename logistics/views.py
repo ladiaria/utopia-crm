@@ -303,10 +303,9 @@ def print_labels(request, page='Roll', list_type='', route_list='', product_id=N
                 label.message_for_contact = sp.label_message
             else:
                 if sp.subscription.type == 'P':
-                    if sp.subscription.seller:
-                        ref = sp.subscription.seller.name
-                    else:
-                        ref = _('a friend')
+                    # TODO: the seller name can be obtained here to use it instead of "a friend"
+                    #       (also check the use case of this label, isn't the "referer" a better opyion?)
+                    ref = _('a friend')
                     label.message_for_contact = "{}\n{}".format(_('Subscription suggested by\n'), ref)
                 # When we have a 2x1 plan we should put it here
                 # elif getattr(sp.subscription.product, 'id', None) == 6:
@@ -500,7 +499,7 @@ def issues_labels(request):
                 label.addresss = (
                     issue.subscription_product.address.address_1 or '') + '\n' + (
                     issue.subscription_product.address.address_2 or '')
-                label.route = issue.subscription_product.route.number
+                label.route = getattr(issue.subscription_product.route, 'number', None)
                 label.route_order = issue.subscription_product.order
                 # Add the day of the product to the labels.
                 if issue.subscription_product.product.weekday == 1:  # Monday
