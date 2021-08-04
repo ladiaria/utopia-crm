@@ -347,7 +347,7 @@ class Contact(models.Model):
         if category:
             return (
                 self.issue_set.filter(
-                    status__slug__in=settings.FINISHED_ISSUE_STATUS_SLUG_LIST,
+                    status__slug__in=settings.ISSUE_STATUS_FINISHED_LIST,
                     category=category,
                 ).count()
                 == self.issue_set.filter(category=category).count()
@@ -355,7 +355,7 @@ class Contact(models.Model):
         else:
             return (
                 self.issue_set.filter(
-                    status__slug__in=settings.FINISHED_ISSUE_STATUS_SLUG_LIST
+                    status__slug__in=settings.ISSUE_STATUS_FINISHED_LIST
                 ).count()
                 == self.issue_set.all().count()
             )
@@ -506,7 +506,7 @@ class Contact(models.Model):
 
     def get_finished_issues_count(self):
         return self.issue_set.filter(
-            status__slug__in=settings.FINISHED_ISSUE_STATUS_SLUG_LIST
+            status__slug__in=settings.ISSUE_STATUS_FINISHED_LIST
         ).count()
 
     def get_open_issues_count(self):
@@ -514,11 +514,11 @@ class Contact(models.Model):
 
     def get_open_issues_by_subcategory_count(self, subcategory):
         return self.issue_set.filter(subcategory=subcategory).exclude(
-            status__slug__in=settings.FINISHED_ISSUE_STATUS_SLUG_LIST).count()
+            status__slug__in=settings.ISSUE_STATUS_FINISHED_LIST).count()
 
     def get_finished_issues_by_subcategory_count(self, subcategory):
         return self.issue_set.filter(subcategory=subcategory).exclude(
-            status__slug__in=settings.FINISHED_ISSUE_STATUS_SLUG_LIST).count()
+            status__slug__in=settings.ISSUE_STATUS_FINISHED_LIST).count()
 
     def get_total_scheduledtask_count(self):
         return self.scheduledtask_set.count()
@@ -1291,14 +1291,14 @@ class Subscription(models.Model):
         if category:
             return (
                 self.issue_set.exclude(
-                    status__slug__in=FINISHED_ISSUE_STATUS_SLUG_LIST, category=category
+                    status__slug__in=ISSUE_STATUS_FINISHED_LIST, category=category
                 ).count()
                 == self.issue_set.all().count()
             )
         else:
             return (
                 self.issue_set.exclude(
-                    status__slug__in=FINISHED_ISSUE_STATUS_SLUG_LIST
+                    status__slug__in=ISSUE_STATUS_FINISHED_LIST
                 ).count()
                 == self.issue_set.all().count()
             )

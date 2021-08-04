@@ -51,6 +51,10 @@
                     {% render_field issues_filter.form.assigned_to class="form-control" %}
                 </div>
                 <div class="form-group col">
+                    <label for="sub_category">{% trans "Subcategory" %}</label>
+                    {% render_field issues_filter.form.sub_category class="form-control" %}
+                </div>
+                <div class="form-group col">
                     <label for="date">{% trans "Date" %}</label>
                     {% render_field issues_filter.form.date class="form-control " %}
                 </div>

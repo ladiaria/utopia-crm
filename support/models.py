@@ -94,6 +94,9 @@ class Issue(models.Model):
     status = models.ForeignKey(
         "support.IssueStatus", blank=True, null=True, on_delete=models.SET_NULL
     )
+    sub_category = models.ForeignKey(
+        "support.IssueSubcategory", blank=True, null=True, on_delete=models.SET_NULL
+    )
     end_date = models.DateField(blank=True, null=True)
     next_action_date = models.DateField(blank=True, null=True)
     closing_date = models.DateField(blank=True, null=True)
@@ -219,4 +222,23 @@ class IssueStatus(models.Model):
         return (self.name, self.slug)
 
     class Meta:
-        ordering = ["name"]
+        ordering = ["category", "name"]
+
+
+class IssueSubcategory(models.Model):
+    name = models.CharField(max_length=60)
+    slug = AutoSlugField(
+        populate_from="name", always_update=True, null=True, blank=True
+    )
+    category = models.CharField(
+        max_length=2, blank=True, null=True, choices=ISSUE_CATEGORIES
+    )
+
+    def __unicode__(self):
+        return self.name
+
+    def natural_key(self):
+        return (self.name, self.slug)
+
+    class Meta:
+        ordering = ["category", "name"]

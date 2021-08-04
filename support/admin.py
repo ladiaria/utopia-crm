@@ -4,7 +4,7 @@ from __future__ import unicode_literals
 from django.contrib import admin
 
 from .forms import SellerForm
-from .models import ScheduledTask, Issue, Seller, IssueStatus
+from .models import ScheduledTask, Issue, Seller, IssueStatus, IssueSubcategory
 
 
 class SellerAdmin(admin.ModelAdmin):
@@ -35,7 +35,14 @@ class IssueStatusAdmin(admin.ModelAdmin):
     readonly_fields = ["slug"]
 
 
+class IssueSubcategoryAdmin(admin.ModelAdmin):
+    list_editable = ["category"]
+    list_display = ["name", "slug", "category"]
+    readonly_fields = ["slug"]
+
+
 admin.site.register(ScheduledTask, ScheduledTaskAdmin)
 admin.site.register(Issue, IssueAdmin)
 admin.site.register(Seller, SellerAdmin)
 admin.site.register(IssueStatus, IssueStatusAdmin)
+admin.site.register(IssueSubcategory, IssueSubcategoryAdmin)
