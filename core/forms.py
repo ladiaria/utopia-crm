@@ -80,13 +80,10 @@ class ContactAdminForm(forms.ModelForm):
         email = self.cleaned_data.get("email")
 
         if email and self.instance:
-            s = Contact.objects.filter(email=email).exclude(
-                pk=self.instance.pk
-            )
+            email = email.lower()
+            s = Contact.objects.filter(email=email).exclude(pk=self.instance.pk)
             if s:
-                msg = _(
-                    "Error: Contact {} already has this email".format(s[0].id)
-                )
+                msg = _("Error: Contact {} already has this email".format(s[0].id))
                 raise forms.ValidationError(msg)
 
         return email
