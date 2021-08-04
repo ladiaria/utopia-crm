@@ -268,6 +268,9 @@ def print_labels(request, page='Roll', list_type='', route_list='', product_id=N
         for copy in range(sp.copies):
 
             label, route_suffix = iterator.next(), ''
+
+            # TODO: take in account also here the time of execution from 0:00 to 2:59 (after midnight)
+            #       maybe next_day.isoweekday() instead of tomorrow.isoweekday() is the solution, make tests cases.
             tomorrow_isoweekday = tomorrow.isoweekday()
 
             if sp.product:
@@ -304,7 +307,7 @@ def print_labels(request, page='Roll', list_type='', route_list='', product_id=N
             else:
                 if sp.subscription.type == 'P':
                     # TODO: the seller name can be obtained here to use it instead of "a friend"
-                    #       (also check the use case of this label, isn't the "referer" a better opyion?)
+                    #       (also check the use case of this label, isn't the "referer" a better option?)
                     ref = _('a friend')
                     label.message_for_contact = "{}\n{}".format(_('Subscription suggested by\n'), ref)
                 # When we have a 2x1 plan we should put it here
