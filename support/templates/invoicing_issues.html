@@ -104,6 +104,7 @@
                     <th>{% trans "Start date" %}</th>
                     <th>{% trans "Contact" %}</th>
                     <th>{% trans "Status" %}</th>
+                    <th>{% trans "Subcategory" %}</th>
                     <th>{% trans "Activities" %}</th>
                     <th>{% trans "Next action date" %}</th>
                     <th>
@@ -125,6 +126,7 @@
                     <td>{{issue.date}}</td>
                     <td>{{issue.contact}}</td>
                     <td>{{issue.status}}</td>
+                    <td>{{issue.get_subcategory}}</td>
                     <td>{{issue.activity_count}}</td>
                     <td>{{issue.next_action_date}}</td>
                     <td>{{issue.owed_invoices}}</td>

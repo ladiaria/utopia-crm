@@ -116,8 +116,7 @@ class Issue(models.Model):
         return categories.get(self.category, "N/A")
 
     def get_subcategory(self):
-        subcategories = dict(ISSUE_SUBCATEGORIES)
-        return subcategories.get(self.subcategory, "N/A")
+        return self.sub_category or ""
 
     def get_status(self):
         if self.status:
