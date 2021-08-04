@@ -271,6 +271,7 @@ def print_labels(request, page='Roll', list_type='', route_list='', product_id=N
 
             # TODO: take in account also here the time of execution from 0:00 to 2:59 (after midnight)
             #       maybe next_day.isoweekday() instead of tomorrow.isoweekday() is the solution, make tests cases.
+            #       Another improvement (for performance) is to make the route_suffix assignment before the first loop.
             tomorrow_isoweekday = tomorrow.isoweekday()
 
             if sp.product:
