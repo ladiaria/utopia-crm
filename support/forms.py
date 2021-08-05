@@ -37,12 +37,12 @@ class NewPauseScheduledTaskForm(forms.Form):
     )
     date_1 = forms.DateField(
         widget=forms.DateTimeInput(
-            attrs={"class": "datepicker form-control float-right"}
+            attrs={"class": "datepicker form-control float-right", "autocomplete": "off"}
         )
     )
     date_2 = forms.DateField(
         widget=forms.DateTimeInput(
-            attrs={"class": "datepicker form-control float-right"}
+            attrs={"class": "datepicker form-control float-right", "autocomplete": "off"}
         )
     )
     activity_type = forms.ChoiceField(
@@ -65,7 +65,7 @@ class NewPauseScheduledTaskForm(forms.Form):
 class NewAddressChangeScheduledTaskForm(forms.Form):
     date_1 = forms.DateField(
         widget=forms.DateTimeInput(
-            attrs={"class": "datepicker form-control float-right"}
+            attrs={"class": "datepicker form-control float-right", "autocomplete": "off"}
         )
     )
     contact_address = forms.ModelChoiceField(
@@ -141,12 +141,12 @@ class NewPromoForm(forms.Form):
     )
     start_date = forms.DateField(
         widget=forms.DateInput(
-            format="%Y-%m-%d", attrs={"class": "datepicker form-control"}
+            format="%Y-%m-%d", attrs={"class": "datepicker form-control", "autocomplete": "off"}
         )
     )
     end_date = forms.DateField(
         widget=forms.DateInput(
-            format="%Y-%m-%d", attrs={"class": "datepicker form-control"}
+            format="%Y-%m-%d", attrs={"class": "datepicker form-control", "autocomplete": "off"}
         )
     )
     default_address = forms.ModelChoiceField(
@@ -319,10 +319,15 @@ class IssueChangeForm(forms.ModelForm):
     """
     Used when you want to start an issue to track logistics, what used to be 'Claims'
     """
-
+    sub_category = forms.ModelChoiceField(
+        required=False,
+        queryset=IssueSubcategory.objects.all(),
+        widget=forms.Select(attrs={"class": "form-control"})
+    )
     contact = forms.ModelChoiceField(queryset=Contact.objects, widget=forms.TextInput)
     next_action_date = forms.DateField(
-        required=False, widget=forms.DateInput(format="%Y-%m-%d", attrs={"class": "datepicker form-control"}),
+        required=False, widget=forms.DateInput(format="%Y-%m-%d", attrs={
+            "class": "datepicker form-control", "autocomplete": "off"}),
     )
 
     class Meta:
@@ -337,6 +342,44 @@ class IssueChangeForm(forms.ModelForm):
         }
         fields = (
             "contact",
+            "sub_category",
+            "status",
+            "progress",
+            "answer_1",
+            "answer_2",
+            "next_action_date",
+            "assigned_to",
+        )
+
+
+class InvoicingIssueChangeForm(forms.ModelForm):
+    """
+    Used when you want to start an issue to track logistics, what used to be 'Claims'
+    """
+    sub_category = forms.ModelChoiceField(
+        required=False,
+        queryset=IssueSubcategory.objects.filter(category='I'),
+        widget=forms.Select(attrs={"class": "form-control"})
+    )
+    contact = forms.ModelChoiceField(queryset=Contact.objects, widget=forms.TextInput)
+    next_action_date = forms.DateField(
+        required=False, widget=forms.DateInput(format="%Y-%m-%d", attrs={
+            "class": "datepicker form-control", "autocomplete": "off"}),
+    )
+
+    class Meta:
+        model = Issue
+        widgets = {
+            "contact": forms.Textarea(attrs={"class": "form-control"}),
+            "progress": forms.Textarea(attrs={"class": "form-control"}),
+            "assigned_to": forms.Select(attrs={"class": "form-control"}),
+            "answer_1": forms.Select(attrs={"class": "form-control"}),
+            "answer_2": forms.Textarea(attrs={"class": "form-control"}),
+            "status": forms.Select(attrs={"class": "form-control"}),
+        }
+        fields = (
+            "contact",
+            "sub_category",
             "status",
             "progress",
             "answer_1",

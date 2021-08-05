@@ -1292,13 +1292,22 @@ def view_issue(request, issue_id):
     Shows a logistics type issue.
     """
     issue = get_object_or_404(Issue, pk=issue_id)
+    invoicing = False
+    has_active_subscription = issue.contact.has_active_subscription()
     if request.POST:
-        form = IssueChangeForm(request.POST, instance=issue)
+        if issue.category == 'I':
+            form = IssueChangeForm(request.POST, instance=issue)
+            invoicing = True
+        else:
+            form = IssueChangeForm(request.POST, instance=issue)
         if form.is_valid():
             form.save()
             return HttpResponseRedirect(reverse("view_issue", args=(issue_id,)))
     else:
-        form = IssueChangeForm(instance=issue)
+        if issue.category == 'I':
+            form = InvoicingIssueChangeForm(instance=issue)
+        else:
+            form = IssueChangeForm(instance=issue)
 
     activities = issue.activity_set.all().order_by('-datetime', 'id')
     activity_form = NewActivityForm(
@@ -1312,6 +1321,8 @@ def view_issue(request, issue_id):
         request,
         "view_issue.html",
         {
+            "has_active_subscription": has_active_subscription,
+            "invoicing": invoicing,
             "form": form,
             "issue": issue,
             "activities": activities,
