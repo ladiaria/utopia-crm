@@ -41,13 +41,11 @@
                       <dd><a href="sip://{{issue.contact.mobile}}">{{issue.contact.mobile}}</a></dd>
                     {% endif %}
                     <dt>{% trans "Category" %}</dt>
-                    <dd>{{issue.get_category}}</dd>
-                    <dt>{% trans "Subcategory" %}</dt>
-                    <dd>{{issue.get_subcategory}}</dd>
+                    <dd>{{issue.get_category}} - {{issue.get_subcategory}}</dd>
                     <dt>{% trans "Created by" %}</dt>
                     <dd>{{issue.manager|default_if_none:"-"}}</dd>
                     <dt>{% trans "Notes" %}</dt>
-                    <dd>{{issue.notes|linebreaks}}</dd>
+                    <dd>{{issue.notes|linebreaks|default_if_none:"-"}}</dd>
                     {% if issue.subscription_product %}
                       <dt>{% trans "Subscription product" %}</dt>
                       <dd>{{issue.subscription_product.product}}</dd>
@@ -79,6 +77,10 @@
                     <div class="form-group d-none">
                       <label for="id_progress">{{form.contact.label}}</label>
                       {{form.contact}}
+                    </div>
+                    <div class="form-group">
+                      <label id="id_sub_category">{{form.sub_category.label}}</label>
+                      {{form.sub_category}}
                     </div>
                     <div class="form-group">
                       <label id="id_status">{{form.status.label}}</label>
