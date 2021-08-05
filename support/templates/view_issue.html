@@ -31,7 +31,7 @@
               <div class="card-body">
                 <dl>
                     <dt>{% trans "Contact" %}</dt>
-                    <dd><a href="{% url 'contact_detail' issue.contact.id %}" target="_blank">{{issue.contact}}</a></dd>
+                    <dd><a href="{% url 'contact_detail' issue.contact.id %}" target="_blank">{{issue.contact}} {% if not has_active_subscription %}({% trans "Inactive" %}){% endif %}</a></dd>
                     <dt>{% trans "Start date" %}</dt>
                     <dd>{{issue.date_created}}</dd>
                     <dt>{% trans "Contact phone" %}</dt>
@@ -45,7 +45,7 @@
                     <dt>{% trans "Created by" %}</dt>
                     <dd>{{issue.manager|default_if_none:"-"}}</dd>
                     <dt>{% trans "Notes" %}</dt>
-                    <dd>{{issue.notes|linebreaks|default_if_none:"-"}}</dd>
+                    <dd>{{issue.notes|default_if_none:"-"|linebreaks}}</dd>
                     {% if issue.subscription_product %}
                       <dt>{% trans "Subscription product" %}</dt>
                       <dd>{{issue.subscription_product.product}}</dd>

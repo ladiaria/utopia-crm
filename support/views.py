@@ -1293,6 +1293,7 @@ def view_issue(request, issue_id):
     """
     issue = get_object_or_404(Issue, pk=issue_id)
     invoicing = False
+    has_active_subscription = issue.contact.has_active_subscription()
     if request.POST:
         if issue.category == 'I':
             form = IssueChangeForm(request.POST, instance=issue)
@@ -1320,6 +1321,7 @@ def view_issue(request, issue_id):
         request,
         "view_issue.html",
         {
+            "has_active_subscription": has_active_subscription,
             "invoicing": invoicing,
             "form": form,
             "issue": issue,
