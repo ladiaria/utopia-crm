@@ -907,7 +907,10 @@ class Subscription(models.Model):
             )
             addresses = [sp.address for sp in subscription_products if sp.address]
             if not addresses:
-                return None
+                if self.contact.email:
+                    return self.contact.email
+                else:
+                    return None
             else:
                 return addresses[0].address_1
 
