@@ -110,7 +110,7 @@
                     <td>{{issue.get_subcategory}}</td>
                     <td>{{issue.status}}</td>
                     <td>{{issue.activity_count}}</td>
-                    <td>{{issue.next_action_date}}</td>
+                    <td>{{issue.next_action_date|default_if_none:"-"}}</td>
                     <td>{{issue.assigned_to|default_if_none:"-"}}</td>
                 </tr>
                 {% endfor %}
