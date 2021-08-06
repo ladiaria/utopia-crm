@@ -2,7 +2,12 @@
 {% load static i18n sip core_tags %}
 
 {% block title %}
-    {% trans "View issue" %}
+{% trans "View issue" %}
+{% endblock %}
+
+{% block stylesheets %}
+{{block.super}}
+<link rel="stylesheet" href="{% static 'css/choices.min.css' %}"/>
 {% endblock %}
 
 {% block no_heading %}
@@ -11,207 +16,210 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="{% static 'js/choices.min.js' %}"></script>
 <script type="text/javascript">
-  $(function(){
-        $(".datepicker").datepicker(
+$(function(){
+    const sub_category = new Choices($('#id_sub_category')[0]);
+    const assigned_to = new Choices($('#id_assigned_to')[0]);
+    $(".datepicker").datepicker(
         { dateFormat: 'yy-mm-dd' });
-  });
+    });
 </script>
 {% endblock %}
 
 {% block content %}
 <section class="content">
-      <div class="container-fluid">
+    <div class="container-fluid">
         <div class="row">
-          <div class="col-md-9">
-            <div class="card">
-              <div class="card-header p-2">
-                <h3>{% trans "Issue details" %}</h3>
-              </div>
-              <div class="card-body">
-                <dl>
-                    <dt>{% trans "Contact" %}</dt>
-                    <dd><a href="{% url 'contact_detail' issue.contact.id %}" target="_blank">{{issue.contact}} {% if not has_active_subscription %}({% trans "Inactive" %}){% endif %}</a></dd>
-                    <dt>{% trans "Start date" %}</dt>
-                    <dd>{{issue.date_created}}</dd>
-                    <dt>{% trans "Contact phone" %}</dt>
-                    <dd><a href="sip://{{issue.contact.phone}}">{{issue.contact.phone}}</a></dd>
-                    {% if issue.contact.mobile %}
-                      <dt>{% trans "Contact mobile phone" %}</dt>
-                      <dd><a href="sip://{{issue.contact.mobile}}">{{issue.contact.mobile}}</a></dd>
-                    {% endif %}
-                    <dt>{% trans "Category" %}</dt>
-                    <dd>{{issue.get_category}} - {{issue.get_subcategory}}</dd>
-                    <dt>{% trans "Created by" %}</dt>
-                    <dd>{{issue.manager|default_if_none:"-"}}</dd>
-                    <dt>{% trans "Notes" %}</dt>
-                    <dd>{{issue.notes|default_if_none:"-"|linebreaks}}</dd>
-                    {% if issue.subscription_product %}
-                      <dt>{% trans "Subscription product" %}</dt>
-                      <dd>{{issue.subscription_product.product}}</dd>
-                      <dd>{{issue.subscription_product.address}}</dd>
-                      <dd>{{issue.subscription_product.route}}</dd>
-                    {% endif %}
-                    {% if issue.prodouct %}
-                      <dd>{% trans "Product" %}: {{issue.product}}</dd>
-                    {% endif %}
-                    {% if issue.subscription %}
-                      <dd>{% trans "Subscription" %}: {{issue.subscription}}</dd>
-                    {% endif %}
-                    {% ifequal issue.category "I" %}
-                      {% if issue.contact.get_debt %}
-                        <dt>{% trans "Debt" %}</dt>
-                        <dd>${{ issue.contact.get_debt }} ({{issue.contact.expired_invoices_count}} {% trans "overdue invoices" %})<i class="fas fa-exclamation-triangle text-danger"></i><a href="#" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#invoices_modal">{% trans "View" %}</a></dd>
-                      {% endif %}
-                    {% endifequal %}
-                  </dl>
-              </div><!-- /.card-body -->
-          </div>
-          <div class="card">
-              <div class="card-header p-2">
-                <h3>{% trans "Progress" %}</h3>
-              </div><!-- /.card-header -->
-              <div class="card-body">
-                <form method="post">
-                    {%csrf_token%}
-                    <div class="form-group d-none">
-                      <label for="id_progress">{{form.contact.label}}</label>
-                      {{form.contact}}
+            <div class="col-md-9">
+                <div class="card">
+                    <div class="card-header p-2">
+                        <h3>{% trans "Issue details" %}</h3>
                     </div>
-                    <div class="form-group">
-                      <label id="id_sub_category">{{form.sub_category.label}}</label>
-                      {{form.sub_category}}
+                    <div class="card-body">
+                        <dl>
+                            <dt>{% trans "Contact" %}</dt>
+                            <dd><a href="{% url 'contact_detail' issue.contact.id %}" target="_blank">{{issue.contact}} {% if not has_active_subscription %}({% trans "Inactive" %}){% endif %}</a></dd>
+                            <dt>{% trans "Start date" %}</dt>
+                            <dd>{{issue.date_created}}</dd>
+                            <dt>{% trans "Contact phone" %}</dt>
+                            <dd><a href="sip://{{issue.contact.phone}}">{{issue.contact.phone}}</a></dd>
+                            {% if issue.contact.mobile %}
+                            <dt>{% trans "Contact mobile phone" %}</dt>
+                            <dd><a href="sip://{{issue.contact.mobile}}">{{issue.contact.mobile}}</a></dd>
+                            {% endif %}
+                            <dt>{% trans "Category" %}</dt>
+                            <dd>{{issue.get_category}} - {{issue.get_subcategory}}</dd>
+                            <dt>{% trans "Created by" %}</dt>
+                            <dd>{{issue.manager|default_if_none:"-"}}</dd>
+                            <dt>{% trans "Notes" %}</dt>
+                            <dd>{{issue.notes|default_if_none:"-"|linebreaks}}</dd>
+                            {% if issue.subscription_product %}
+                            <dt>{% trans "Subscription product" %}</dt>
+                            <dd>{{issue.subscription_product.product}}</dd>
+                            <dd>{{issue.subscription_product.address}}</dd>
+                            <dd>{{issue.subscription_product.route}}</dd>
+                            {% endif %}
+                            {% if issue.prodouct %}
+                            <dd>{% trans "Product" %}: {{issue.product}}</dd>
+                            {% endif %}
+                            {% if issue.subscription %}
+                            <dd>{% trans "Subscription" %}: {{issue.subscription}}</dd>
+                            {% endif %}
+                            {% ifequal issue.category "I" %}
+                            {% if issue.contact.get_debt %}
+                            <dt>{% trans "Debt" %}</dt>
+                            <dd>${{ issue.contact.get_debt }} ({{issue.contact.expired_invoices_count}} {% trans "overdue invoices" %})<i class="fas fa-exclamation-triangle text-danger"></i><a href="#" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#invoices_modal">{% trans "View" %}</a></dd>
+                            {% endif %}
+                            {% endifequal %}
+                        </dl>
+                    </div><!-- /.card-body -->
+                </div>
+                <div class="card">
+                    <div class="card-header p-2">
+                        <h3>{% trans "Progress" %}</h3>
+                    </div><!-- /.card-header -->
+                    <div class="card-body">
+                        <form method="post">
+                            {%csrf_token%}
+                            <div class="form-group d-none">
+                                <label for="id_progress">{{form.contact.label}}</label>
+                                {{form.contact}}
+                            </div>
+                            <div class="form-group">
+                                <label for="id_sub_category">{{form.sub_category.label}}</label>
+                                {{form.sub_category}}
+                            </div>
+                            <div class="form-group">
+                                <label for="id_status">{{form.status.label}}</label>
+                                {{form.status}}
+                            </div>
+                            <div class="form-group">
+                                <label for="id_assigned_to">{{form.next_action_date.label}}</label>
+                                {{form.next_action_date}}
+                            </div>
+                            <div class="form-group">
+                                <label for="id_progress">{{form.progress.label}}</label>
+                                {{form.progress}}
+                            </div>
+                            <div class="form-group">
+                                <label id="id_answer_1">{{form.answer_1.label}}</label>
+                                {{form.answer_1}}
+                            </div>
+                            <div class="form-group">
+                                <label for="id_answer_2">{{form.answer_2.label}}</label>
+                                {{form.answer_2}}
+                            </div>
+                            <div class="form-group">
+                                <label for="id_assigned_to">{{form.assigned_to.label}}</label>
+                                {{form.assigned_to}}
+                            </div>
+                            <div class="form-group text-right">
+                                <button type="submit"  name="submit" class="btn bg-gradient-primary">{% trans 'Update' %}</button>
+                            </div>
+                        </form>
                     </div>
-                    <div class="form-group">
-                      <label id="id_status">{{form.status.label}}</label>
-                      {{form.status}}
-                    </div>
-                    <div class="form-group">
-                      <label for="id_assigned_to">{{form.next_action_date.label}}</label>
-                      {{form.next_action_date}}
-                    </div>
-                    <div class="form-group">
-                      <label for="id_progress">{{form.progress.label}}</label>
-                      {{form.progress}}
-                    </div>
-                    <div class="form-group">
-                      <label id="id_answer_1">{{form.answer_1.label}}</label>
-                      {{form.answer_1}}
-                    </div>
-                    <div class="form-group">
-                      <label for="id_answer_2">{{form.answer_2.label}}</label>
-                      {{form.answer_2}}
-                    </div>
-                    <div class="form-group">
-                      <label for="id_assigned_to">{{form.assigned_to.label}}</label>
-                      {{form.assigned_to}}
-                    </div>
-                    <div class="form-group text-right">
-                      <button type="submit"  name="submit" class="btn bg-gradient-primary">{% trans 'Update' %}</button>
-                    </div>
-                </form>
-              </div>
-          </div>
-        </div>
-        <div class="col-md-3">
-          <h5>{% trans "Activities" %}</h5>
-          <a href="#activity_modal" id="add_address" data-toggle="modal" data-target="#activity_modal" class="btn bg-gradient-success mb-3"><i class="fas fa-plus"></i>{% trans "Register activity" %}</a>
-          {% for a in activities %}
-          <div class="card card-primary card-outline">
-            <div class="card-header">
-              <h3 class="card-title"><i class="fas fa-route"></i> <b>{% trans "Activity:" %} {{a.get_type}} ({{a.get_direction}})</b></h3>
+                </div>
             </div>
-            <div class="card-body">
-              <dl>
-              <dt ></dt>
-              <dd><b>{% trans 'Status'%}:</b> {{a.get_status}}</dd>
-              {% if a.datetime %}
-              <dd><b>{% trans 'Date'%}</b>: {{a.datetime|date:"SHORT_DATETIME_FORMAT"}}</dd>
-              {% endif %}
-              {% if a.notes %}
-              <dd><b>{% trans 'Notes'%}</b>: {{a.notes|default_if_none:""}}</dd>
-              {% endif %}
-              </dl>
+            <div class="col-md-3">
+                <h5>{% trans "Activities" %}</h5>
+                <a href="#activity_modal" id="add_address" data-toggle="modal" data-target="#activity_modal" class="btn bg-gradient-success mb-3"><i class="fas fa-plus"></i>{% trans "Register activity" %}</a>
+                {% for a in activities %}
+                <div class="card card-primary card-outline">
+                    <div class="card-header">
+                        <h3 class="card-title"><i class="fas fa-route"></i> <b>{% trans "Activity:" %} {{a.get_type}} ({{a.get_direction}})</b></h3>
+                    </div>
+                    <div class="card-body">
+                        <dl>
+                            <dt ></dt>
+                            <dd><b>{% trans 'Status'%}:</b> {{a.get_status}}</dd>
+                            {% if a.datetime %}
+                            <dd><b>{% trans 'Date'%}</b>: {{a.datetime|date:"SHORT_DATETIME_FORMAT"}}</dd>
+                            {% endif %}
+                            {% if a.notes %}
+                            <dd><b>{% trans 'Notes'%}</b>: {{a.notes|default_if_none:""}}</dd>
+                            {% endif %}
+                        </dl>
+                    </div>
+                </div>
+                {% endfor %}
             </div>
-          </div>
-          {% endfor %}
         </div>
-      </div>
     </div>
 </section>
 
 <div id="activity_modal"  class="modal" tabindex="-1" role="dialog">
-  <div class="modal-dialog" role="document">
-    <div class="modal-content">
-        <div class="modal-header">
-         <h5 class="modal-title" id="exampleModalLabel">{% trans 'Register activity' %}</h5>
-         <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-           <span aria-hidden="true">&times;</span>
-         </button>
-       </div>
-       <div class="modal-body">
-        <form method="post" id="activity_form" action='{% url "register_activity" %}?issue_id={{issue.id}}'>
-            {% csrf_token %}
-            {{activity_form.as_p}}
-            {% if request.user|in_group:"Managers" or request.user|in_group:"Support" or request.user|in_group:"Logistics" or request.user|in_group:"Finances"  %}
-            <div class="form-group text-right">
-              <input id="submit_address" type="submit" value="{% trans 'Send' %}"  class="btn bg-gradient-primary">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exampleModalLabel">{% trans 'Register activity' %}</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
             </div>
-            {% endif %}
-        </form>
-      </div>
+            <div class="modal-body">
+                <form method="post" id="activity_form" action='{% url "register_activity" %}?issue_id={{issue.id}}'>
+                    {% csrf_token %}
+                    {{activity_form.as_p}}
+                    {% if request.user|in_group:"Managers" or request.user|in_group:"Support" or request.user|in_group:"Logistics" or request.user|in_group:"Finances"  %}
+                    <div class="form-group text-right">
+                        <input id="submit_address" type="submit" value="{% trans 'Send' %}"  class="btn bg-gradient-primary">
+                    </div>
+                    {% endif %}
+                </form>
+            </div>
+        </div>
     </div>
-  </div>
 </div>
 
 <div id="invoices_modal" class="modal" tabindex="-1" role="dialog">
-  <div class="modal-dialog" role="document" style="max-width:800px">
-    <div class="modal-content">
-        <div class="modal-header">
-         <h5 class="modal-title" id="exampleModalLabel">{% trans 'Contact invoices' %}</h5>
-         <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-           <span aria-hidden="true">&times;</span>
-         </button>
-       </div>
-       <div class="modal-body">
-        <div class="card-body">
-          <table class="table text-center">
-                <thead>
-                    <tr role="row">
-                        <th>{% trans "Invoice" %}</th>
-                        <th>{% trans "From" %}</th>
-                        <th>{% trans "To" %}</th>
-                        <th>{% trans "Issue" %}</th>
-                        <th>{% trans "Due" %}</th>
-                        <th>{% trans "Amount" %}</th>
-                        <th>{% trans "Payment method" %}</th>
-                        <th>{% trans "Status" %}</th>
-                    </tr>
-                </thead>
-                <tbody>
-                {% for invoice in invoice_list %}
-                   <tr role="row">
-                        <td>
-                            <a href="/admin/invoicing/invoice/{{ invoice.id }}/">{{ invoice.id }}</a>
-                            <a href="/invoicing/download_invoice/{{ invoice.id }}/" title="{% trans 'Download invoice' %}">
-                                <img src="{% static 'img/pdficon_small.png' %}" alt="PDF"/>
-                            </a>
-                        </td>
-                        <td>{{ invoice.service_from|date:"SHORT_DATE_FORMAT" }}</td>
-                        <td>{{ invoice.service_to|date:"SHORT_DATE_FORMAT" }}</td>
-                        <td>{{ invoice.creation_date|date:"SHORT_DATE_FORMAT" }}</td>
-                        <td>{{ invoice.expiration_date|date:"SHORT_DATE_FORMAT" }}</td>
-                        <td>{{ invoice.amount }}</td>
-                        <td>{{ invoice.payment_type }}</td>
-                        <td>{{ invoice.get_status }}</td>
-                    </tr>
-                {% endfor %}
-                </tbody>
-              </table>
-          </div>
-       </div>
+    <div class="modal-dialog" role="document" style="max-width:800px">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exampleModalLabel">{% trans 'Contact invoices' %}</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="card-body">
+                    <table class="table text-center">
+                        <thead>
+                            <tr role="row">
+                                <th>{% trans "Invoice" %}</th>
+                                <th>{% trans "From" %}</th>
+                                <th>{% trans "To" %}</th>
+                                <th>{% trans "Issue" %}</th>
+                                <th>{% trans "Due" %}</th>
+                                <th>{% trans "Amount" %}</th>
+                                <th>{% trans "Payment method" %}</th>
+                                <th>{% trans "Status" %}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for invoice in invoice_list %}
+                            <tr role="row">
+                                <td>
+                                    <a href="/admin/invoicing/invoice/{{ invoice.id }}/">{{ invoice.id }}</a>
+                                    <a href="/invoicing/download_invoice/{{ invoice.id }}/" title="{% trans 'Download invoice' %}">
+                                        <img src="{% static 'img/pdficon_small.png' %}" alt="PDF"/>
+                                    </a>
+                                </td>
+                                <td>{{ invoice.service_from|date:"SHORT_DATE_FORMAT" }}</td>
+                                <td>{{ invoice.service_to|date:"SHORT_DATE_FORMAT" }}</td>
+                                <td>{{ invoice.creation_date|date:"SHORT_DATE_FORMAT" }}</td>
+                                <td>{{ invoice.expiration_date|date:"SHORT_DATE_FORMAT" }}</td>
+                                <td>{{ invoice.amount }}</td>
+                                <td>{{ invoice.payment_type }}</td>
+                                <td>{{ invoice.get_status }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     </div>
-  </div>
 </div>
 
 {% endblock %}
