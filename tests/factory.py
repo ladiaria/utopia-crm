@@ -10,7 +10,6 @@ quieran pasarse por arriba, como por ejemplo la fecha de creado.
 """
 
 
-# TODO: Review ???
 def create_contact(name, phone, email=None):
     contact = Contact(name=name, phone=phone, email=email)
     if not email:
@@ -132,9 +131,10 @@ def create_issue(contact, date):
     return Issue.objects.get(pk=issue.id)
 
 
-def create_product(name, price):
+def create_product(name, price, type="S", billing_priority=1):
     from core.models import Product
-    product = Product.objects.create(name=name, price=price)
+    product = Product.objects.create(
+        name=name, price=price, type=type, billing_priority=billing_priority)
 
     return Product.objects.get(pk=product.pk)
 

@@ -1,5 +1,6 @@
 # coding=utf-8
 # TODO: All commented code should be explained or removed
+# TODO: These functions should be remade and re thought from scratch probably
 
 from django.test import TestCase
 # from django.utils.translation import ugettext_lazy as _
@@ -7,41 +8,23 @@ from django.test import TestCase
 # from django.forms import ValidationError
 # from django.test import TestCase
 
+from core.utils import dnames
+
 from tests.factory import (
     create_contact, create_subscription, create_product, create_address
     # , create_simple_invoice, create_campaign,
 )
 
-from core.utils import dnames
-
 
 class TestContact(TestCase):
 
-    def test_1cliente_nuevo_es_activo_y_no_es_moroso(self):
+    def test_1_contact_is_active_and_is_not_debtor(self):
         contact = create_contact('cliente1', 21312)
         subscription = create_subscription(contact)
         self.assertTrue(subscription.active)
         self.assertFalse(contact.is_debtor())
 
-    # def test_2add_cliente_using_manipulator(self):
-        # contact = Contact('contact1', 21312)
-        # contact.fecha_creado = date.today()
-        # contact.save()
-        # self.assertEqual(Contact.objects.count(), 2)
-
-    def test_3cliente_activo_debe_tener_algun_dia_marcado(self):
-        contact = create_contact('cliente1', 21312)
-        subscription = create_subscription(contact)
-
-        for day in dnames:
-            setattr(subscription, day, False)
-        # self.assertRaises(AssertionError, subscription.save)
-        subscription.active = False
-        subscription.save()
-        subscription.active = True
-        # self.assertRaises(AssertionError, subscription.save)
-
-    def test_6cliente_que_no_tiene_email_debe_tener_email_en_blanco(self):
+    def test_3cliente_que_no_tiene_email_debe_tener_email_en_blanco(self):
         contact = create_contact('cliente1', 21312)
         contact.no_email, contact.email = True, 'cliente1@ladiaria.com.uy'
         # self.assertRaises(ValidationError, contact.save)
@@ -49,7 +32,7 @@ class TestContact(TestCase):
         contact.save()
 
     # hacer devuelta
-    def test_7cliente_activo_debe_tener_ejemplares(self):
+    def test_4cliente_activo_debe_tener_ejemplares(self):
 
         contact = create_contact(u'cliente2asd', 21312)
         contact.save()
@@ -67,7 +50,7 @@ class TestContact(TestCase):
         # subscription.copies = 1
         # subscription.save()
 
-    def test_8_metodos_simples(self):
+    def test_5_metodos_simples(self):
         # SUBSCRIPTION_PAYMENT_METHODS = (
         # ('O', 'Other'),
         # ('D', 'Debit'),
@@ -88,12 +71,12 @@ class TestContact(TestCase):
         prod_count = subscription.get_product_count()
         self.assertEqual(prod_count, 0)
 
-        product = create_product('newspaper', 500)
+        product1 = create_product('newspaper', 500)
         address = create_address('Araucho 1390', contact, address_type='physical')
 
-        subscription.add_product(product, address)
+        subscription.add_product(product1, address)
         status = 'A'
-        contact.add_product_history(subscription, product, status)
+        contact.add_product_history(subscription, product1, status)
 
         # default name
         billing_name = subscription.get_billing_name()
@@ -127,4 +110,4 @@ class TestContact(TestCase):
         product2.weekday = 1
         subscription.add_product(product2, address)
 
-        self.assertEqual(subscription.product_summary(), {1: '1', 2: '1'})
+        self.assertEqual(subscription.product_summary(), {product1.id: '1', product2.id: '1'})

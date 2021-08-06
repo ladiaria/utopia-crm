@@ -835,6 +835,8 @@ class Subscription(models.Model):
             special_instructions=instructions or None,
             label_contact=label_contact,
             seller_id=seller_id,
+            route=route,
+            order=order,
         )
         self.contact.add_product_history(
             subscription=self,

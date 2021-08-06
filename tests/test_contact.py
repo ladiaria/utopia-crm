@@ -11,6 +11,7 @@ from tests.factory import (
 from core.models import Contact, Product, Campaign, ContactCampaignStatus
 from invoicing.models import Invoice
 
+
 class TestCoreContact(TestCase):
 
     def setUp(self):
@@ -111,9 +112,9 @@ class TestCoreContact(TestCase):
 
         product = create_product('news', 500)
         # test for default
-        self.assertEqual(product.get_type(), 'Other')
+        self.assertEqual(product.get_type(), _("Subscription"))
         product.type = 'N'
-        self.assertEqual(product.get_type(), 'Newsletter')
+        self.assertEqual(product.get_type(), _("Newsletter"))
         self.assertEqual(product.get_weekday(), 'N/A')
 
         basic_print = str(product)
@@ -144,7 +145,7 @@ class TestCoreContact(TestCase):
         self.assertEqual(address_str, 'Araucho 1390  Montevideo Montevideo')
 
         address_type = address.get_type()
-        self.assertEqual(address_type, 'Physical')
+        self.assertEqual(address_type, _('Physical'))
 
     def test10_basic_print(self):
         from core.models import Institution
