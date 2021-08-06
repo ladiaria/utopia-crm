@@ -1136,9 +1136,9 @@ def new_issue(request, contact_id):
             if form.cleaned_data["status"]:
                 status = form.cleaned_data["status"]
             elif form.cleaned_data["assigned_to"]:
-                status = IssueStatus.objects.get(slug=settings.ASSIGNED_ISSUE_STATUS_SLUG)
+                status = IssueStatus.objects.get(slug=settings.ISSUE_STATUS_ASSIGNED)
             else:
-                status = IssueStatus.objects.get(slug=settings.UNASSIGNED_ISSUE_STATUS_SLUG)
+                status = IssueStatus.objects.get(slug=settings.ISSUE_STATUS_UNASSIGNED)
             new_issue = Issue.objects.create(
                 contact=form.cleaned_data["contact"],
                 category=form.cleaned_data["category"],
