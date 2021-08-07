@@ -32,8 +32,7 @@ def create_subscription(contact, subscription_type='N', payment_type='C'):
     return Subscription.objects.get(pk=subscription.id)
 
 
-def create_empty_invoice(
-        contact, payment_type, amount=0, frequency_months=1):
+def create_empty_invoice(contact, payment_type, amount=0, frequency_months=1):
     """ creates an empty invoice with creation_date today, expiration_date
     today + 10 days and service_from today and service_to today +
     frequency_months
@@ -58,15 +57,14 @@ def create_empty_invoice(
     return Invoice.objects.get(pk=invoice.id)
 
 
-def create_invoiceitem(
-        invoice, product, copies=1):
+def create_invoiceitem(invoice, product, copies=1):
     from invoicing.models import InvoiceItem
     invoice_item = InvoiceItem.objects.create(
         invoice=invoice,
         product=product,
         price=product.price,
         amount=product.price * copies,
-        description='{} x {}UN'.format(product.name, copies)
+        description='{} x {}UN'.format(product.name, copies),
     )
 
     return InvoiceItem.objects.get(pk=invoice_item.id)
