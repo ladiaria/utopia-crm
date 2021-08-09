@@ -483,12 +483,20 @@ class Contact(models.Model):
     def get_open_issues_count(self):
         return self.get_total_issues_count() - self.get_finished_issues_count()
 
-    def get_open_issues_by_subcategory_count(self, subcategory):
-        return self.issue_set.filter(subcategory=subcategory).exclude(
+    def get_open_issues_by_subcategory_count(self, sub_category_slug):
+        return self.issue_set.filter(sub_category__slug=sub_category_slug).exclude(
             status__slug__in=settings.ISSUE_STATUS_FINISHED_LIST).count()
 
-    def get_finished_issues_by_subcategory_count(self, subcategory):
-        return self.issue_set.filter(subcategory=subcategory).exclude(
+    def get_finished_issues_by_subcategory_count(self, sub_category_slug):
+        return self.issue_set.filter(sub_category__slug=sub_category_slug).exclude(
+            status__slug__in=settings.ISSUE_STATUS_FINISHED_LIST).count()
+
+    def get_open_issues_by_category_count(self, category):
+        return self.issue_set.filter(category=category).exclude(
+            status__slug__in=settings.ISSUE_STATUS_FINISHED_LIST).count()
+
+    def get_finished_issues_by_category_count(self, category):
+        return self.issue_set.filter(category=category).exclude(
             status__slug__in=settings.ISSUE_STATUS_FINISHED_LIST).count()
 
     def get_total_scheduledtask_count(self):

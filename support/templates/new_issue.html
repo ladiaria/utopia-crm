@@ -17,13 +17,17 @@ $( function() {
     function categoryVal(select){
         if((select).val() == 'L'){
             $('.id_subscription').hide();
+            $('#id_subscription').prop('required',false);
             $('.id_product').hide();
             $('.id_subscription_product').show();
+            $('#id_subscription_product').prop('required',true);
             $('#id_status').prop('required',false);
         }else if ((select).val() == 'I'){
             $('.id_product').hide();
             $('.id_subscription').show();
+            $('#id_subscription').prop('required',true);
             $('.id_subscription_product').hide();
+            $('#id_subscription_product').prop('required',false);
             $('#id_status').prop('required',true);
         }else {
             $('.id_subscription').show();
