@@ -1142,7 +1142,7 @@ def new_issue(request, contact_id):
             new_issue = Issue.objects.create(
                 contact=form.cleaned_data["contact"],
                 category=form.cleaned_data["category"],
-                subcategory=form.cleaned_data["subcategory"],
+                sub_category=form.cleaned_data["sub_category"],
                 notes=form.cleaned_data["notes"],
                 copies=form.cleaned_data["copies"],
                 subscription=form.cleaned_data["subscription"],
@@ -1942,8 +1942,8 @@ def debtor_contacts(request):
                 contact.name,
                 contact.has_active_subscription(),
                 contact.owed_invoices,
-                contact.get_open_issues_by_subcategory_count("I06"),
-                contact.get_finished_issues_by_subcategory_count("I06"),
+                contact.get_open_issues_by_category_count("I"),
+                contact.get_finished_issues_by_category_count("I"),
                 contact.get_debt(),
                 contact.oldest_invoice,
             ])
