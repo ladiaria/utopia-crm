@@ -255,40 +255,34 @@ class IssueStartForm(forms.ModelForm):
         widget=forms.Select(attrs={"class": "form-control"}),
         required=False,
     )
-
     subscription_product = forms.ModelChoiceField(
         queryset=SubscriptionProduct.objects.all(),
         widget=forms.Select(attrs={"class": "form-control"}),
         required=False,
     )
-
     subscription = forms.ModelChoiceField(
         queryset=Subscription.objects.all(),
         widget=forms.Select(attrs={"class": "form-control"}),
         required=False,
     )
-
     sub_category = forms.ModelChoiceField(
-        required=False,
+        label=_("Sub Category (Required)"),
         queryset=IssueSubcategory.objects.all(),
-        widget=forms.Select(attrs={"class": "form-control"})
+        widget=forms.Select(attrs={"class": "form-control", "autocomplete": "off"})
     )
-
     activity_type = forms.ChoiceField(
         widget=forms.Select(attrs={"class": "form-control"}),
         choices=ACTIVITY_TYPES,
     )
-
     status = forms.ModelChoiceField(
         required=False,
         queryset=IssueStatus.objects.all(),
         widget=forms.Select(attrs={"class": "form-control"})
     )
-
     assigned_to = forms.ModelChoiceField(
         required=False,
         queryset=User.objects.filter(is_staff=True).order_by('username'),
-        widget=forms.Select(attrs={"class": "form-control"})
+        widget=forms.Select(attrs={"class": "form-control", "autocomplete": "off"})
     )
 
     class Meta:
@@ -299,7 +293,6 @@ class IssueStartForm(forms.ModelForm):
             "subscription": forms.Select(attrs={"class": "form-control"}),
             "category": forms.Select(attrs={"class": "form-control"}),
             "copies": forms.NumberInput(attrs={"class": "form-control"}),
-            "assigned_to": forms.Select(attrs={"class": "form-control"}),
         }
         fields = (
             "contact",
