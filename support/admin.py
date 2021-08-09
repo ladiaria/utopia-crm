@@ -15,6 +15,7 @@ class SellerAdmin(admin.ModelAdmin):
 
 
 class IssueAdmin(admin.ModelAdmin):
+    date_hierarchy = "date"
     list_display = ["id", "date", "contact", "status", "category", "sub_category"]
     raw_id_fields = [
         "contact",
@@ -25,6 +26,7 @@ class IssueAdmin(admin.ModelAdmin):
         "subscription_product"
     ]
     exclude = ["subcategory"]
+    list_filter = ["category", "subcategory", "status"]
 
 
 class ScheduledTaskAdmin(admin.ModelAdmin):

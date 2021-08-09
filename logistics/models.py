@@ -5,7 +5,7 @@ from datetime import date, timedelta
 from django.conf import settings
 from django.db import models
 from django.db.models import Sum
-from django.contrib.gis.db.models import PointField
+from django.contrib.gis.db.models import PointField, PolygonField
 from django.utils.translation import ugettext_lazy as _
 
 from logistics.choices import RESORT_STATUS_CHOICES, MESSAGE_PLACES
@@ -34,11 +34,11 @@ class Route(models.Model):
     beach = models.BooleanField(default=False, verbose_name=_('Beach'))
     active = models.BooleanField(default=True, verbose_name=_('Active'))
     print_labels = models.BooleanField(default=True, verbose_name=_('Print labels from this route'))
-
     price_per_copy = models.DecimalField(
         max_digits=10, decimal_places=2, blank=True, null=True, verbose_name=_('Price per copy'))
     parent_route = models.ForeignKey(
         'self', related_name='child_route', blank=True, null=True, verbose_name=_('Parent route'))
+    the_geom = PolygonField(blank=True, null=True, srid=32721)
 
     def __unicode__(self):
         return _('Route %d') % self.number
@@ -126,15 +126,10 @@ class GeorefAddress(models.Model):
     """
     Stores geo ref addresses.
     """
-    gid = models.IntegerField(
-        primary_key=True, verbose_name=_('gid'))
-    street_name = models.CharField(
-        max_length=36, verbose_name=_('Street name'))
-    street_number = models.IntegerField(
-        verbose_name=_('Street number'))
-    letter = models.CharField(
-        null=True, blank=True, max_length=5, verbose_name=_('Letter'))
-
+    gid = models.IntegerField(primary_key=True, verbose_name=_('gid'))
+    street_name = models.CharField(max_length=36, verbose_name=_('Street name'))
+    street_number = models.IntegerField(verbose_name=_('Street number'))
+    letter = models.CharField(null=True, blank=True, max_length=5, verbose_name=_('Letter'))
     the_geom = PointField(srid=32721)
 
     def __unicode__(self):
@@ -167,24 +162,16 @@ class Resort(models.Model):
     """
     Stores data for resorts, usually vacation places where we don't reach or usually deliver to.
     """
-    state = models.CharField(
-        max_length=20, verbose_name=_('State'))
+    state = models.CharField(max_length=20, verbose_name=_('State'))
     if getattr(settings, 'USE_STATES_CHOICE'):
         state.choices = settings.STATES
-    name = models.CharField(
-        max_length=50, verbose_name=_('Name'))
-    status = models.CharField(
-        max_length=2, choices=RESORT_STATUS_CHOICES, verbose_name=_('Status'))
-    confirmation_date = models.DateField(
-        blank=True, null=True, verbose_name=_('Confirmation date'))
-    notes = models.TextField(
-        blank=True, null=True, verbose_name=_('Notes'))
-    arrival_time = models.TimeField(
-        blank=True, null=True, verbose_name=_('Arrival time'))
-    route = models.ForeignKey(
-        Route, blank=True, null=True, verbose_name=_('Route'))
-    order = models.PositiveSmallIntegerField(
-        default=0, verbose_name=_('Order'))
+    name = models.CharField(max_length=50, verbose_name=_('Name'))
+    status = models.CharField(max_length=2, choices=RESORT_STATUS_CHOICES, verbose_name=_('Status'))
+    confirmation_date = models.DateField(blank=True, null=True, verbose_name=_('Confirmation date'))
+    notes = models.TextField(blank=True, null=True, verbose_name=_('Notes'))
+    arrival_time = models.TimeField(blank=True, null=True, verbose_name=_('Arrival time'))
+    route = models.ForeignKey(Route, blank=True, null=True, verbose_name=_('Route'))
+    order = models.PositiveSmallIntegerField(default=0, verbose_name=_('Order'))
 
     def __unicode__(self):
         return self.name
