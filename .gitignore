@@ -8,7 +8,7 @@ __pycache__
 htmlcov
 local_*_settings.py
 local_settings.py
-.local_rev
+.local_rev*
 locale/
 media
 other
