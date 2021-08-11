@@ -17,7 +17,7 @@ from invoicing.choices import (
 
 
 class Invoice(models.Model):
-    contact = models.ForeignKey("core.Contact", blank=True, null=True)
+    contact = models.ForeignKey("core.Contact")
     creation_date = models.DateField()
     expiration_date = models.DateField()
     service_from = models.DateField()
