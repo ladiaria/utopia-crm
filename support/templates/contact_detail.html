@@ -3,596 +3,693 @@
 
 {% block extra_js %}
 <script type="text/javascript">
-    $( function() {
-        $('[data-toggle="tooltip"]').tooltip();
-      });
+$( function() {
+    $('[data-toggle="tooltip"]').tooltip();
+});
 </script>
 {% endblock %}
 
 {% block content %}
-    <section class="content-header">
-      <div class="container-fluid">
+<section class="content-header">
+    <div class="container-fluid">
         <div class="row mb-2">
-          <div class="col-sm-8">
-            <h1><a href="#">{% trans "Contacts" %}</a> &raquo; {{contact.id}} - {{contact.name}} {% if request.user|in_group:"Managers" or request.user|in_group:"Support" or request.user|in_group:"Finances" %}<a href='{% url "admin:core_contact_change" contact.id %}' class="btn btn-primary">{% trans "See in Admin" %}</a>{% endif %}</h1>
-          </div>
-          {% if request.user|in_group:"Support" or request.user|in_group:"Managers" %}
-          <div class="text-right col-sm-4">
-            <a href="{% url 'new_issue' contact.id %}" target="_blank" class="btn btn-primary">{% trans "New issue" %}</a>
-            <a href="{% url 'new_scheduled_task' contact.id 'S04' %}" target="_blank" class="btn btn-primary">{% trans "Schedule pause" %}</a>
-            <a href="{% url 'new_scheduled_task' contact.id 'S05' %}" target="_blank" class="btn btn-primary">{% trans "Schedule address change" %}</a>
-          </div>
-          {% endif %}
-        </div>
-      </div><!-- /.container-fluid -->
-    </section>
-    <section class="content">
-      <div class="container-fluid">
-        <div class="row">
-          <div class="col-md-12">
-            <div class="card">
-              <div class="card-header p-2">
-                <ul class="nav nav-pills">
-                  <li class="nav-item"><a class="nav-link active" href="#resumen" data-toggle="tab">{% trans "Overview" %}</a></li>
-                  <li class="nav-item"><a class="nav-link" href="#datos" data-toggle="tab">{% trans "Contact information" %}</a></li>
-                  <li class="nav-item"><a class="nav-link" href="#suscripciones" data-toggle="tab">{% trans "Subscriptions" %}</a></li>
-                  <li class="nav-item"><a class="nav-link" href="#issues" data-toggle="tab">{% trans "Issues" %} ({{contact.get_total_issues_count}}{% if contact.get_open_issues_count > 0 %} / {{contact.get_open_issues_count}}{% endif %})</a></li>
-                  <li class="nav-item"><a class="nav-link" href="#tasks" data-toggle="tab">{% trans "Tasks" %} ({{contact.get_total_scheduledtask_count}})</a></li>
-                  <li class="nav-item"><a class="nav-link" href="#activities" data-toggle="tab">{% trans "Activities" %} ({{contact.get_total_activities_count}})</a></li>
-                  <li class="nav-item"><a class="{% if contact.expired_invoices_count > 0 %}btn-danger{% else %}btn-success{% endif %} btn" href="{% url 'contact_invoices' contact.id %}" target="_blank">{% trans "Go to Invoices" %} ({{contact.get_total_invoices_count}}{% if contact.expired_invoices_count > 0 %} / {{contact.expired_invoices_count}}{% endif %})</a></li>
-                </ul>
-              </div>
-              <div class="card-body">
-                <div class="tab-content">
-                  <div class="active tab-pane" id="resumen">
-                    <div class="row">
-                    <div class="col-md-4">
-                        <div class="card">
-                          <div class="card-header">
-                            <h3 class="card-title">{% trans "Contact information" %}</h3>
-                          </div>
-                          <div class="card-body">
-                            <dl>
-                              <dt>{% trans "Name" %}</dt>
-                              <dd>{{contact.name}}</dd>
-                              {% if contact.id_document %}
-                                <dt>{% trans "Documento" %}</dt>
-                                <dd>{{contact.id_document}}</dd>
-                              {% endif %}
-                              <dt>{% trans "Email" %}</dt>
-                              <dd>{{contact.email|default_if_none:"No email"}}</dd>
-                              <dt>{% trans "Phone" %}</dt>
-                              <dd>{{contact.phone}}</dd>
-                              {% if contact.mobile %}
-                                <dt>{% trans "Mobile" %}</dt>
-                                <dd>{{contact.mobile}}</dd>
-                              {% endif %}
-                              {% if contact.work_phone %}
-                                <dt>{% trans "Work phone" %}</dt>
-                                <dd>{{contact.work_phone}}</dd>
-                              {% endif %}
-                              {% if addresses %}
-                                <dt>{% trans "Addresses" %}</dt>
-                                {% for address in addresses %}
-                                  <dd>{{address}}</dd>
-                                {% endfor %}
-                              {% endif %}
-                              {% if contact.tags.all %}
-                                <dt>{% trans "Tags" %}</dt>
-                                <dd>
-                                {% for tag in contact.tags.all %}
-                                  <span class="btn btn-default btn-sm">{{tag}}</span>
-                                {% endfor %}
-                                </dd>
-                              {% endif %}
-                            </dl>
-                          </div>
-                          <a href="{% url 'edit_contact' contact.id %}" class="btn btn-success" target="_blank">{% trans "Edit info and newsletters" %}</a>
-                        </div>
-                      </div>
-                      <div class="col-md-4">
-                        <div class="card">
-                          <div class="card-header">
-                            <h3 class="card-title">
-                              {% trans "Active subscriptions" %}{% if subscriptions %} ({{ subscriptions|length }}){% endif %}
-                            </h3>
-                          </div>
-                          <div class="card-body">
-                            {% if subscriptions %}
-                              {% for subscription in subscriptions %}
-                                <dt {% if forloop.counter != 1 %}class="border-top mt-4 pt-3"{% endif %}></dt>
-                                <dd>{% autoescape off %}{{ subscription.show_products_html }}{% endautoescape %}</dd>
-                                <dd><b>{% trans "Frequency" %}:</b> {{ subscription.get_frequency }}</dd>
-                                <dd><b>{% trans "Price" %}:</b> {{ subscription.get_price_for_full_period }}</dd>
-                                <dd><b>{% trans "Type" %}:</b> {{ subscription.get_type }}</dd>
-                                <dd><b>{% trans "Payment type" %}:</b> {{ subscription.get_payment_type }}</dd>
-                                {% if subscription.balance %}<dd><b>{% trans "Balance" %}:</b> {{ subscription.balance }}</dd>{% endif %}
-                                {% if request.user|in_group:"Support" or request.user|in_group:"Managers" %}
-                                <a href="{% url 'new_subscription' contact.id %}?upgrade_subscription={{ subscription.id }}" class="btn btn-success">{% trans "Upgrade" %}</a>
-                                <a href="{% url 'new_subscription' contact.id %}?edit_subscription={{ subscription.id }}" class="btn btn-success">{% trans "Edit" %}</a>
-                                {% endif %}
-                              {% endfor %}
-                            {% else %}
-                              {% trans "This contact has no active subscriptions" %}
-                            {% endif %}
-                          </div>
-                          {% if request.user|in_group:"Support" or request.user|in_group:"Managers" %}
-                          <div class="card-footer">
-                            <a href="{% url  'new_subscription' contact.id %}" class="btn btn-primary float-right">{% trans "Add subscription" %}</a>
-                          </div>
-                          {% endif %}
-                        </div>
-                        <div class="card">
-                          <div class="card-header">
-                            <h3 class="card-title">{% trans "Payments" %}</h3>
-                          </div>
-                          {% if last_paid_invoice or contact.get_debt %}
-                          <div class="card-body">
-                            <dl>
-                              <dt>{% trans "Latest payment" %}</dt>
-                              {% if last_paid_invoice %}
-                                <dd>{{last_paid_invoice.payment_date}} (${{last_paid_invoice.amount}})</dd>
-                                <dt>{% trans "Total invoices paid" %}</dt>
-                                <dd>{{contact.get_paid_invoices_count}}</dd>
-                              {% else %}
-                                <dd>N/A</dd>
-                              {% endif %}
-                              <dt>{% trans "Payment type of last invoice" %}</dt>
-                              <dd>{{ contact.get_latest_invoice.get_payment_type }}</dd>
-                              {% if contact.get_debt %}
-                              <dt>{% trans "Debt" %}</dt>
-                              <dd>${{ contact.get_debt }} ({{contact.expired_invoices_count}} {% trans "overdue invoices" %})<i class="fas fa-exclamation-triangle text-danger"></i></dd>
-                              {% endif %}
-                            </dl>
-                          </div>
-                          {% else %}
-                          <div class="card-body">
-                            <dl>
-                              <dd>{% trans "This contact has no payment data" %}</dd>
-                            </dl>
-                          </div>
-                          {% endif %}
-                        </div>
-                      </div>
-                      <div class="col-md-4">
-                        <div class="card">
-                          <div class="card-header">
-                            <h3 class="card-title">{% trans "Latest issues" %}</h3>
-                          </div>
-                          <div class="card-body">
-                            {% if issues %}
-                              <dl>
-                                {% for issue in issues %}
-                                  <dt {% if forloop.counter != 1 %}class="border-top mt-4 pt-3"{% endif %}>
-                                    {{issue.get_category}} - {{issue.get_subcategory}} - <a href="{% url 'view_issue' issue.id %}" target="_blank" class="btn btn-primary btn-sm">{% trans "View" %}</a>
-                                  </dt>
-                                  <dd>{{issue.get_status}} {{issue.assigned_to|default_if_none:""}}</dd>
-                                  <dd>{{issue.date_created}}</dd>
-                                  <dd>{{issue.notes|default_if_none:""|linebreaks}}</dd>
-                                {% endfor %}
-                              </dl>
-                            {% else %}
-                              <dl><dd>{% trans "This contact has no issues" %}</dd></dl>
-                            {% endif %}
-                          </div>
-                        </div>
-                        <div class="card">
-                          <div class="card-header">
-                            <h3 class="card-title">{% trans "Latest activities" %}</h3>
-                          </div>
-                          <div class="card-body">
-                            {% if activities %}
-                              <dl>
-                                {% for a in activities %}
-                                <dt {% if forloop.counter != 1 %}class="border-top mt-4 pt-3"{% endif %}>{{a.get_type}}
-                                {% if a.campaign %}<i>{{a.campaign.name}}</i>{% endif %}</dt>
-                                <dd><b>{% trans 'Status'%}:</b> {{a.get_status}}</dd>
-                                {% if a.datetime %}
-                                <dd><b>{% trans 'Date'%}</b>: {{a.datetime|date:"SHORT_DATETIME_FORMAT"}}</dd>
-                                {% endif %}
-                                {% if a.notes %}
-                                <dd><b>{% trans 'Notes'%}</b>: {{a.notes|default_if_none:""}}</dd>
-                                {% endif %}
-                                {% endfor %}
-                              </dl>
-                            {% else %}
-                              <dl><dd>{% trans "This contact has no activities" %}</dd></dl>
-                            {% endif %}
-                          </div>
-                        </div>
-                        <div class="card">
-                          <div class="card-header">
-                            <h3 class="card-title">{% trans "Newsletters" %}</h3>
-                          </div>
-                          <div class="card-body">
-                            {% if newsletters %}
-                            <ul class="pl-3">
-                            {% for newsletter in newsletters %}
-                              <li>{{newsletter.product}}</li>
-                            {% endfor %}
-                            </ul>
-                            {% else %}
-                            {% trans "This contact has no active newsletters" %}
-                            {% endif %}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    </div>
-                    <!-- Tab datos -->
-                    <div class="tab-pane" id="datos">
-                      <div class="row">
-                        <div class="card col-sm-9">
-                          <div class="card-header">
-                            <h3 class="card-title">{% trans "General information" %}</h3>
-                          </div>
-                          <div class="card-body">
-                            <dl>
-                              <dt>{% trans "Name" %}</dt>
-                              <dd>{{contact.name}}</dd>
-                              <dt>{% trans "Documento" %}</dt>
-                              <dd>{{contact.id_document}}</dd>
-                              <dt>{% trans "Email" %}</dt>
-                              <dd>{{contact.email}}</dd>
-                              <dt>{% trans "Phone" %}</dt>
-                              <dd>{{contact.phone}}</dd>
-                              {% if contact.mobile %}
-                                <dt>{% trans "Mobile" %}</dt>
-                                <dd>{{contact.mobile}}</dd>
-                              {% endif %}
-                              {% if contact.work_phone %}
-                                <dt>{% trans "Work phone" %}</dt>
-                                <dd>{{contact.work_phone}}</dd>
-                              {% endif %}
-                              {% if contact.tags.all %}
-                                <dt>{% trans "Tags" %}</dt>
-                                <dd>
-                                {% for tag in contact.tags.all %}
-                                  <span class="btn btn-default btn-sm">{{tag}}</span>
-                                {% endfor %}
-                                </dd>
-                              {% endif %}
-                            </dl>
-                          </div>
-                          <a href="{% url 'edit_contact' contact.id %}" class="btn btn-success" target="_blank">{% trans "Edit info and newsletters" %}</a>
-                        </div>
-                      </div>
-                      <div class="row">
-                        <div class="card col-sm-9">
-                          <div class="card-header">
-                            <h3 class="card-title">{% trans 'Addresses' %}</h3>
-                          </div>
-                          <div class="card-body">
-                            {% for address in addresses %}
-                            <div class="card collapsed-card">
-                              <div class="card-header">
-                                <h4 class="card-title">{{address}}</h4>
-                                <div class="card-tools">
-                                  <button type="button" class="btn btn-tool" data-card-widget="collapse"><i class="fas fa-plus"></i>
-                                  </button>
-                                </div>
-                              </div>
-                              <div class="card-body">
-                                <dl>
-                                  <dt>{% trans "Address 1" %}</dt>
-                                  <dd>{{address.address_1}}</dd>
-                                  {% if address.address_2 %}
-                                  <dt>{% trans "Address 2" %}</dt>
-                                  <dd>{{address.address_2}}</dd>
-                                  {% endif %}
-                                  <dt>{% trans "Address city" %}</dt>
-                                  {% if not address.city %}<i class="fas fa-exclamation-triangle text-danger"></i>{% endif %}
-                                  <dd>{{address.city}}</dd>
-                                  <dt>{% trans "Address state" %}</dt>
-                                  {% if not address.state %}<i class="fas fa-exclamation-triangle text-danger"></i>{% endif %}
-                                  <dd>{{address.state}}</dd>
-                                  {% if address.notes %}
-                                  <dt>{% trans "Address notes" %}</dt>
-                                  <dd>{{address.notes}}</dd>
-                                  {% endif %}
-                                </dl>
-                                  <div class="text-right">
-                                    <a href="{% url 'admin:core_address_delete' address.id %}" class="btn btn-gradient btn-danger">{% trans ' Delete address' %}</a>
-                                    <a href="{% url 'admin:core_address_change' address.id %}" class="btn btn-gradient btn-primary">{% trans ' Edit address' %}</a>
-                                  </div>
-                              </div>
-                            </div>
-                            {% endfor %}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    <!-- Tab Suscripciones -->
-                    <div class="tab-pane" id="suscripciones">
-                      <div class="row">
-                        <div class="card col-sm-9">
-                          <div class="card-header">
-                            <h3 class="card-title">
-                              {% trans 'Active subscriptions' %}{% if subscriptions %} ({{ subscriptions|length }}){% endif %}
-                            </h3>
-                          </div>
-                          <div class="card-body">
-                            {% if subscriptions %}
-
-                              {% for subscription in subscriptions %}
-                              <dl {% if forloop.counter != 1 %}class="border-bottom pb-3"{% endif %}>
-                                <dt {% if forloop.counter != 1 %}class="border-top mt-4 pt-3"{% endif %}>{% trans "Products" %}:</dt>
-                                <dd>{% autoescape off %}{{ subscription.show_products_html }}{% endautoescape %}</dd>
-                                <dt>{% trans "Frequency" %}:</dt> <dd>{{ subscription.get_frequency }}</dd>
-                                <dt>{% trans "Price" %}:</dt> <dd>{{ subscription.get_price_for_full_period }}</dd>
-                                <dt>{% trans "Type" %}:</dt> <dd>{{ subscription.get_type }}</dd>
-                                <dt>{% trans "Start date" %}:</dt> <dd>{{ subscription.start_date }}</dd>
-                                {% if subscription.end_date %}
-                                  <dt>{% trans "End date" %}:</dt> <dd>{{ subscription.end_date }}</dd>
-                                {% endif %}
-                                {% if subscription.type == 'N' %}
-                                  <dt>{% trans "Next billing" %}:</dt> <dd>{{ subscription.next_billing }}</dd>
-                                {% endif %}
-                                {% if subscription.balance %}
-                                  <dt>{% trans "Balance" %}:</dt> <dd>{{ subscription.balance }}</dd>
-                                {% endif %}
-                              </dl>
-                            <div class="card">
-                              <div class="card-header">
-                                <h4 class="card-title">{% trans "Billing information" %}</h4>
-                              </div>
-                              <div class="card-body">
-                              <dl {% if forloop.counter != 1 %}class="border-bottom pb-3"{% endif %}>
-                                <dt>{% trans "Payment type" %}:</dt>
-                                <dd class="border-bottom pb-2">{{subscription.get_payment_type}}</dd>
-
-                                {% if subscription.billing_address %}
-                                  <dt>{% trans "Billing address" %}:</dt>
-                                  <dd class="border-bottom pb-2">{{subscription.billing_address}}</dd>
-                                {% endif %}
-
-                                {% if subscription.billing_name %}
-                                  <dt>{% trans "Billing name" %}:</dt>
-                                  <dd>{{subscription.billing_name}}</dd>
-                                {% endif %}
-
-                                {% if subscription.billing_id_doc %}
-                                  <dt>{% trans "Billing ID" %}:</dt>
-                                  <dd class="border-bottom pb-2">{{subscription.billing_id_doc}}</dd>
-                                {% endif %}
-
-                                {% if subscription.rut %}
-                                  <dt>{% trans "RUT" %}:</dt>
-                                  <dd>{{subscription.rut}}</dd>
-                                {% endif %}
-
-                                {% if subscription.billing_phone %}
-                                  <dt>{% trans "Billing phone" %}:</dt>
-                                  <dd>{{subscription.billing_phone}}</dd>
-                                {% endif %}
-
-                                {% if subscription.billing_email %}
-                                  <dt>{% trans "Billing email" %}:</dt>
-                                  <dd class="border-bottom pb-2">{{subscription.billing_email}}</dd>
-                                {% endif %}
-                                {% if subscription.balance %}
-                                  <dt>{% trans "Balance" %}:</dt>
-                                  <dd>{{subscription.balance}}</dd>
-                                {% endif %}
-                              </dl>
-
-                              </div>
-                            </div>
-                              <div class="text-right">
-                                <a href="{% url 'new_subscription' contact.id %}?upgrade_subscription={{subscription.id}}" class="btn  btn-success">{% trans "Upgrade" %}</a>
-                                <a href="{% url 'new_subscription' contact.id %}?edit_subscription={{subscription.id}}" class="btn  btn-success">{% trans "Edit" %}</a>
-                              </div>
-                            {% endfor %}
-                            {% else %}
-                              <b>{% trans "This contact has no active subscriptions" %}</b>
-                              <div class="text-right">
-                                <a href="{% url  'new_subscription' contact.id %}" class="btn btn-primary float-right">{% trans "Add subscription" %}</a>
-                              </div>
-                            {% endif %}
-                          </div>
-                        </div>
-                      </div>
-                      {% if inactive_subscriptions %}
-                      <div class="row">
-                        <div class="card col-sm-9 collapsed-card">
-                          <div class="card-header">
-                            <h3 class="card-title">{% trans 'Old subscriptions' %}</h3>
-                            <div class="card-tools">
-                              <button type="button" class="btn btn-tool" data-card-widget="collapse"><i class="fas fa-plus"></i>
-                              </button>
-                            </div>
-                          </div>
-                          <div class="card-body">
-                              {% for subscription in inactive_subscriptions %}
-                              <dl {% if forloop.counter != 1 %}class="border-bottom pb-3"{% endif %}>
-                                <dt {% if forloop.counter != 1 %}class="border-top mt-4 pt-3"{% endif %}>{% trans "Products" %}:</dt>
-                                <dd>{% autoescape off %}{{subscription.show_products_html}}{% endautoescape %}</dd>
-                                <dt>{% trans "Frequency" %}:</dt> <dd>{{subscription.get_frequency}}</dd>
-                                <dt>{% trans "Price" %}:</dt> <dd>{{subscription.get_price_for_full_period}}</dd>
-                                <dt>{% trans "Type" %}:</dt> <dd>{{subscription.get_type}}</dd>
-                                <dt>{% trans "Payment type" %}:</dt>
-                                <dd>{{subscription.get_payment_type}}</dd>
-                                <dt>{% trans "Start date" %}:</dt> <dd>{{subscription.start_date}}</dd>
-                                {% if subscription.end_date %}
-                                <dt>{% trans "End date" %}:</dt> <dd>{{subscription.end_date}}</dd>
-                                {% endif %}
-                                {% if subscription.balance %}
-                                <dt>{% trans "Balance" %}:</dt> <dd>{{subscription.balance}}</dd>
-                                {% endif %}
-                                </dl>
-                              {% endfor %}
-                          </div>
-                        </div>
-                      </div>
-                      {% endif %}
-                    </div>
-                    <!-- Tab Issues -->
-                    <div class="tab-pane" id="issues">
-                      <div class="row">
-                        <div class="card col-sm-12">
-                          <div class="card-header">
-                            <h3 class="card-title">{% trans 'Latest issues' %}</h3>
-                          </div>
-                          <div class="card-body">
-                            <table class="table">
-                              <thead>
-                                <tr role="row">
-                                  <th>{% trans 'ID' %}</th>
-                                  <th>{% trans 'Date' %}</th>
-                                  <th>{% trans 'Category' %}</th>
-                                  <th>{% trans 'Subcategory' %}</th>
-                                  <th>{% trans 'Status' %}</th>
-                                  <th>{% trans 'Assigned to' %}</th>
-                                  <th></th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {% for issue in all_issues %}
-                                <tr role="row">
-                                  <td>{{issue.id}}</td>
-                                  <td>{{issue.date}}</td>
-                                  <td>{{issue.get_category}}</td>
-                                  <td>{{issue.get_subcategory}}</td>
-                                  <td>{{issue.get_status}}</td>
-                                  <td>{{issue.assigned_to}}</td>
-                                  <td><a href="{% url 'view_issue' issue.id %}" target="_blank" class="btn btn-primary btn-sm">{% trans "View" %}</a></td>
-                                </tr>
-                                {% endfor %}
-                              </tbody>
-                            </table>
-
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <!-- Tab scheduled tasks -->
-                    <div class="tab-pane" id="tasks">
-                      <div class="row">
-                        <div class="card col-sm-12">
-                          <div class="card-header">
-                            <h3 class="card-title">{% trans 'Scheduled Tasks' %}</h3>
-                          </div>
-                          <div class="card-body">
-                            <table class="table">
-                              <thead>
-                                <tr role="row">
-                                  <th>{% trans 'Category' %}</th>
-                                  <th>{% trans 'Creation date' %}</th>
-                                  <th>{% trans 'Execution date' %}</th>
-                                  <th>{% trans 'Completed' %}</th>
-                                  <th>{% trans 'Linked task' %}</th>
-                                  <th></th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {% for task in all_scheduled_tasks %}
-                                  <tr role="row">
-                                    <td>{{task.get_category}}</td>
-                                    <td>{{task.creation_date}}</td>
-                                    <td>{{task.execution_date}}</td>
-                                    <td>{{task.completed}}</td>
-                                    <td>{% if task.ends %}
-                                        <a href='{% url "admin:support_scheduledtask_change" task.ends.id %}' class="btn btn-primary btn-sm">{% trans "View" %}</a>
-                                        {% else %}-
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                      <a href='{% url "admin:support_scheduledtask_change" task.id %}' class="btn btn-primary btn-sm">{% trans "View" %}</a>
-                                    </td>
-                                  </tr>
-                                {% endfor %}
-                              </tbody>
-                            </table>
-
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <!-- Tab activities -->
-                    <div class="tab-pane" id="activities">
-                      <div class="row">
-                        <div class="card col-sm-12">
-                          <div class="card-header">
-                            <h3 class="card-title">{% trans 'Latest activities' %}</h3>
-                          </div>
-                          <div class="card-body">
-                            <table class="table">
-                              <thead>
-                                <tr role="row">
-                                  <th>{% trans 'Date' %}</th>
-                                  <th>{% trans 'Activity type' %}</th>
-                                  <th>{% trans 'Direction' %}</th>
-                                  <th>{% trans 'Campaign' %}</th>
-                                  <th>{% trans 'Product' %}</th>
-                                  <th>{% trans 'Issue' %}</th>
-                                  <th>{% trans 'Status' %}</th>
-                                  <th></th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {% for activity in all_activities %}
-                                <tr role="row">
-                                  <td>{{activity.datetime}}</td>
-                                  <td>{{activity.get_type}}</td>
-                                  <td>{{activity.get_direction}}</td>
-                                  <td>{{activity.campaign|default_if_none:"-"}}</td>
-                                  <td>{{activity.product|default_if_none:"-"}}</td>
-                                  <td>{% if activity.issue %}
-                                      <a href="{% url 'view_issue' activity.issue.id %}" class="btn btn-primary btn-sm">View</a>
-                                      {% else %}-
-                                      {% endif %}
-                                  </td>
-                                  <td>{{activity.get_status}}</td>
-                                  <td><a href="#" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#activityView-{{activity.id}}">{% trans "View" %}</a></td>
-                                </tr>
-                                {% endfor %}
-                              </tbody>
-                            </table>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-              </div>
+            <div class="col-sm-8">
+                <h1><a href="#">{% trans "Contacts" %}</a> &raquo; {{contact.id}} - {{contact.name}} {% if request.user|in_group:"Managers" or request.user|in_group:"Support" or request.user|in_group:"Finances" %}<a href='{% url "admin:core_contact_change" contact.id %}' class="btn btn-primary">{% trans "See in Admin" %}</a>{% endif %}</h1>
             </div>
-          </div>
+            {% if request.user|in_group:"Support" or request.user|in_group:"Managers" %}
+            <div class="text-right col-sm-4">
+                <a href="{% url 'new_issue' contact.id %}" target="_blank" class="btn btn-primary">{% trans "New issue" %}</a>
+                <a href="{% url 'new_scheduled_task' contact.id 'S04' %}" target="_blank" class="btn btn-primary">{% trans "Schedule pause" %}</a>
+                <a href="{% url 'new_scheduled_task' contact.id 'S05' %}" target="_blank" class="btn btn-primary">{% trans "Schedule address change" %}</a>
+            </div>
+            {% endif %}
         </div>
-      </div>
+    </div><!-- /.container-fluid -->
+</section>
+<section class="content">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header p-2">
+                        <ul class="nav nav-pills">
+                            <li class="nav-item"><a class="nav-link active" href="#resumen" data-toggle="tab">{% trans "Overview" %}</a></li>
+                            <li class="nav-item"><a class="nav-link" href="#datos" data-toggle="tab">{% trans "Contact information" %}</a></li>
+                            <li class="nav-item"><a class="nav-link" href="#suscripciones" data-toggle="tab">{% trans "Subscriptions" %}</a></li>
+                            <li class="nav-item"><a class="nav-link" href="#issues" data-toggle="tab">{% trans "Issues" %} ({{contact.get_total_issues_count}}{% if contact.get_open_issues_count > 0 %} / {{contact.get_open_issues_count}}{% endif %})</a></li>
+                            <li class="nav-item"><a class="nav-link" href="#tasks" data-toggle="tab">{% trans "Tasks" %} ({{contact.get_total_scheduledtask_count}})</a></li>
+                            <li class="nav-item"><a class="nav-link" href="#activities" data-toggle="tab">{% trans "Activities" %} ({{contact.get_total_activities_count}})</a></li>
+                            <li class="nav-item"><a class="{% if contact.expired_invoices_count > 0 %}btn-danger{% else %}btn-success{% endif %} btn" href="{% url 'contact_invoices' contact.id %}" target="_blank">{% trans "Go to Invoices" %} ({{contact.get_total_invoices_count}}{% if contact.expired_invoices_count > 0 %} / {{contact.expired_invoices_count}}{% endif %})</a></li>
+                        </ul>
+                    </div>
+                    <div class="card-body">
+                        <div class="tab-content">
+                            <div class="active tab-pane" id="resumen">
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="card">
+                                            <div class="card-header">
+                                                <h3 class="card-title">{% trans "Contact information" %}</h3>
+                                            </div>
+                                            <div class="card-body">
+                                                <dl>
+                                                    <dt>{% trans "Name" %}</dt>
+                                                    <dd>{{contact.name}}</dd>
+                                                    {% if contact.id_document %}
+                                                    <dt>{% trans "Documento" %}</dt>
+                                                    <dd>{{contact.id_document}}</dd>
+                                                    {% endif %}
+                                                    <dt>{% trans "Email" %}</dt>
+                                                    <dd>{{contact.email|default_if_none:"No email"}}</dd>
+                                                    <dt>{% trans "Phone" %}</dt>
+                                                    <dd>{{contact.phone}}</dd>
+                                                    {% if contact.mobile %}
+                                                    <dt>{% trans "Mobile" %}</dt>
+                                                    <dd>{{contact.mobile}}</dd>
+                                                    {% endif %}
+                                                    {% if contact.work_phone %}
+                                                    <dt>{% trans "Work phone" %}</dt>
+                                                    <dd>{{contact.work_phone}}</dd>
+                                                    {% endif %}
+                                                    {% if addresses %}
+                                                    <dt>{% trans "Addresses" %}</dt>
+                                                    {% for address in addresses %}
+                                                    <dd>{{address}}</dd>
+                                                    {% endfor %}
+                                                    {% endif %}
+                                                    {% if contact.tags.all %}
+                                                    <dt>{% trans "Tags" %}</dt>
+                                                    <dd>
+                                                        {% for tag in contact.tags.all %}
+                                                        <span class="btn btn-default btn-sm">{{tag}}</span>
+                                                        {% endfor %}
+                                                    </dd>
+                                                    {% endif %}
+                                                </dl>
+                                            </div>
+                                            <a href="{% url 'edit_contact' contact.id %}" class="btn btn-success" target="_blank">{% trans "Edit info and newsletters" %}</a>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="card">
+                                            <div class="card-header">
+                                                <h3 class="card-title">
+                                                    {% trans "Active subscriptions" %}{% if subscriptions %} ({{ subscriptions|length }}){% endif %}
+                                                </h3>
+                                            </div>
+                                            <div class="card-body">
+                                                {% if subscriptions %}
+                                                {% for subscription in subscriptions %}
+                                                <dt {% if forloop.counter != 1 %}class="border-top mt-4 pt-3"{% endif %}></dt>
+                                                <dd>{% autoescape off %}{{ subscription.show_products_html }}{% endautoescape %}</dd>
+                                                <dd><b>{% trans "Frequency" %}:</b> {{ subscription.get_frequency }}</dd>
+                                                <dd><b>{% trans "Price" %}:</b> {{ subscription.get_price_for_full_period }}</dd>
+                                                <dd><b>{% trans "Type" %}:</b> {{ subscription.get_type }}</dd>
+                                                <dd><b>{% trans "Payment type" %}:</b> {{ subscription.get_payment_type }}</dd>
+                                                {% if subscription.balance %}<dd><b>{% trans "Balance" %}:</b> {{ subscription.balance }}</dd>{% endif %}
+                                                {% if request.user|in_group:"Support" or request.user|in_group:"Managers" %}
+                                                <a href="{% url 'new_subscription' contact.id %}?upgrade_subscription={{ subscription.id }}" class="btn btn-success">{% trans "Upgrade" %}</a>
+                                                <a href="{% url 'new_subscription' contact.id %}?edit_subscription={{ subscription.id }}" class="btn btn-success">{% trans "Edit" %}</a>
+                                                {% endif %}
+                                                {% endfor %}
+                                                {% else %}
+                                                {% trans "This contact has no active subscriptions" %}
+                                                {% endif %}
+                                            </div>
+                                            {% if request.user|in_group:"Support" or request.user|in_group:"Managers" %}
+                                            <div class="card-footer">
+                                                <a href="{% url  'new_subscription' contact.id %}" class="btn btn-primary float-right">{% trans "Add subscription" %}</a>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                        <div class="card">
+                                            <div class="card-header">
+                                                <h3 class="card-title">{% trans "Payments" %}</h3>
+                                            </div>
+                                            {% if last_paid_invoice or contact.get_debt %}
+                                            <div class="card-body">
+                                                <dl>
+                                                    <dt>{% trans "Latest payment" %}</dt>
+                                                    {% if last_paid_invoice %}
+                                                    <dd>{{last_paid_invoice.payment_date}} (${{last_paid_invoice.amount}})</dd>
+                                                    <dt>{% trans "Total invoices paid" %}</dt>
+                                                    <dd>{{contact.get_paid_invoices_count}}</dd>
+                                                    {% else %}
+                                                    <dd>N/A</dd>
+                                                    {% endif %}
+                                                    <dt>{% trans "Payment type of last invoice" %}</dt>
+                                                    <dd>{{ contact.get_latest_invoice.get_payment_type }}</dd>
+                                                    {% if contact.get_debt %}
+                                                    <dt>{% trans "Debt" %}</dt>
+                                                    <dd>${{ contact.get_debt }} ({{contact.expired_invoices_count}} {% trans "overdue invoices" %})<i class="fas fa-exclamation-triangle text-danger"></i></dd>
+                                                    {% endif %}
+                                                </dl>
+                                            </div>
+                                            {% else %}
+                                            <div class="card-body">
+                                                <dl>
+                                                    <dd>{% trans "This contact has no payment data" %}</dd>
+                                                </dl>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="card">
+                                            <div class="card-header">
+                                                <h3 class="card-title">{% trans "Latest issues" %}</h3>
+                                            </div>
+                                            <div class="card-body">
+                                                {% if issues %}
+                                                <dl>
+                                                    {% for issue in issues %}
+                                                    <dt {% if forloop.counter != 1 %}class="border-top mt-4 pt-3"{% endif %}>
+                                                        {{issue.get_category}} - {{issue.get_subcategory}} - <a href="{% url 'view_issue' issue.id %}" target="_blank" class="btn btn-primary btn-sm">{% trans "View" %}</a>
+                                                    </dt>
+                                                    <dd>{{issue.get_status}} {{issue.assigned_to|default_if_none:""}}</dd>
+                                                    <dd>{{issue.date_created}}</dd>
+                                                    <dd>{{issue.notes|default_if_none:""|linebreaks}}</dd>
+                                                    {% endfor %}
+                                                </dl>
+                                                {% else %}
+                                                <dl><dd>{% trans "This contact has no issues" %}</dd></dl>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        <div class="card">
+                                            <div class="card-header">
+                                                <h3 class="card-title">{% trans "Latest activities" %}</h3>
+                                            </div>
+                                            <div class="card-body">
+                                                {% if activities %}
+                                                <dl>
+                                                    {% for a in activities %}
+                                                    <dt {% if forloop.counter != 1 %}class="border-top mt-4 pt-3"{% endif %}>{{a.get_type}}
+                                                        {% if a.campaign %}<i>{{a.campaign.name}}</i>{% endif %}</dt>
+                                                        <dd><b>{% trans 'Status'%}:</b> {{a.get_status}}</dd>
+                                                        {% if a.datetime %}
+                                                        <dd><b>{% trans 'Date'%}</b>: {{a.datetime|date:"SHORT_DATETIME_FORMAT"}}</dd>
+                                                        {% endif %}
+                                                        {% if a.notes %}
+                                                        <dd><b>{% trans 'Notes'%}</b>: {{a.notes|default_if_none:""}}</dd>
+                                                        {% endif %}
+                                                        {% endfor %}
+                                                    </dl>
+                                                    {% else %}
+                                                    <dl><dd>{% trans "This contact has no activities" %}</dd></dl>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                            <div class="card">
+                                                <div class="card-header">
+                                                    <h3 class="card-title">{% trans "Newsletters" %}</h3>
+                                                </div>
+                                                <div class="card-body">
+                                                    {% if newsletters %}
+                                                    <ul class="pl-3">
+                                                        {% for newsletter in newsletters %}
+                                                        <li>{{newsletter.product}}</li>
+                                                        {% endfor %}
+                                                    </ul>
+                                                    {% else %}
+                                                    {% trans "This contact has no active newsletters" %}
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Tab datos -->
+                                <div class="tab-pane" id="datos">
+                                    <div class="row">
+                                        <div class="card col-sm-9">
+                                            <div class="card-header">
+                                                <h3 class="card-title">{% trans "General information" %}</h3>
+                                            </div>
+                                            <div class="card-body">
+                                                <dl>
+                                                    <dt>{% trans "Name" %}</dt>
+                                                    <dd>{{contact.name}}</dd>
+                                                    <dt>{% trans "Documento" %}</dt>
+                                                    <dd>{{contact.id_document}}</dd>
+                                                    <dt>{% trans "Email" %}</dt>
+                                                    <dd>{{contact.email}}</dd>
+                                                    <dt>{% trans "Phone" %}</dt>
+                                                    <dd>{{contact.phone}}</dd>
+                                                    {% if contact.mobile %}
+                                                    <dt>{% trans "Mobile" %}</dt>
+                                                    <dd>{{contact.mobile}}</dd>
+                                                    {% endif %}
+                                                    {% if contact.work_phone %}
+                                                    <dt>{% trans "Work phone" %}</dt>
+                                                    <dd>{{contact.work_phone}}</dd>
+                                                    {% endif %}
+                                                    {% if contact.tags.all %}
+                                                    <dt>{% trans "Tags" %}</dt>
+                                                    <dd>
+                                                        {% for tag in contact.tags.all %}
+                                                        <span class="btn btn-default btn-sm">{{tag}}</span>
+                                                        {% endfor %}
+                                                    </dd>
+                                                    {% endif %}
+                                                </dl>
+                                            </div>
+                                            <a href="{% url 'edit_contact' contact.id %}" class="btn btn-success" target="_blank">{% trans "Edit info and newsletters" %}</a>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="card col-sm-9">
+                                            <div class="card-header">
+                                                <h3 class="card-title">{% trans 'Addresses' %}</h3>
+                                            </div>
+                                            <div class="card-body">
+                                                {% for address in addresses %}
+                                                <div class="card collapsed-card">
+                                                    <div class="card-header">
+                                                        <h4 class="card-title">{{address}}</h4>
+                                                        <div class="card-tools">
+                                                            <button type="button" class="btn btn-tool" data-card-widget="collapse"><i class="fas fa-plus"></i>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                    <div class="card-body">
+                                                        <dl>
+                                                            <dt>{% trans "Address 1" %}</dt>
+                                                            <dd>{{address.address_1}}</dd>
+                                                            {% if address.address_2 %}
+                                                            <dt>{% trans "Address 2" %}</dt>
+                                                            <dd>{{address.address_2}}</dd>
+                                                            {% endif %}
+                                                            <dt>{% trans "Address city" %}</dt>
+                                                            {% if not address.city %}<i class="fas fa-exclamation-triangle text-danger"></i>{% endif %}
+                                                            <dd>{{address.city}}</dd>
+                                                            <dt>{% trans "Address state" %}</dt>
+                                                            {% if not address.state %}<i class="fas fa-exclamation-triangle text-danger"></i>{% endif %}
+                                                            <dd>{{address.state}}</dd>
+                                                            {% if address.notes %}
+                                                            <dt>{% trans "Address notes" %}</dt>
+                                                            <dd>{{address.notes}}</dd>
+                                                            {% endif %}
+                                                        </dl>
+                                                        <div class="text-right">
+                                                            <a href="{% url 'admin:core_address_delete' address.id %}" class="btn btn-gradient btn-danger">{% trans ' Delete address' %}</a>
+                                                            <a href="{% url 'admin:core_address_change' address.id %}" class="btn btn-gradient btn-primary">{% trans ' Edit address' %}</a>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Tab Suscripciones -->
+                                <div class="tab-pane" id="suscripciones">
+                                    <div class="row">
+                                        <div class="card col-sm-9">
+                                            <div class="card-header">
+                                                <h3 class="card-title">
+                                                    {% trans 'Active subscriptions' %}{% if subscriptions %} ({{ subscriptions|length }}){% endif %}
+                                                </h3>
+                                            </div>
+                                            <div class="card-body">
+                                                {% if subscriptions %}
+
+                                                {% for subscription in subscriptions %}
+                                                <dl {% if forloop.counter != 1 %}class="border-bottom pb-3"{% endif %}>
+                                                    <dt {% if forloop.counter != 1 %}class="border-top mt-4 pt-3"{% endif %}>{% trans "Products" %}:</dt>
+                                                    <dd>{% autoescape off %}{{ subscription.show_products_html }}{% endautoescape %}</dd>
+                                                    <dt>{% trans "Frequency" %}:</dt> <dd>{{ subscription.get_frequency }}</dd>
+                                                    <dt>{% trans "Price" %}:</dt> <dd>{{ subscription.get_price_for_full_period }}</dd>
+                                                    <dt>{% trans "Type" %}:</dt> <dd>{{ subscription.get_type }}</dd>
+                                                    <dt>{% trans "Start date" %}:</dt> <dd>{{ subscription.start_date }}</dd>
+                                                    {% if subscription.end_date %}
+                                                    <dt>{% trans "End date" %}:</dt> <dd>{{ subscription.end_date }}</dd>
+                                                    {% endif %}
+                                                    {% if subscription.type == 'N' %}
+                                                    <dt>{% trans "Next billing" %}:</dt> <dd>{{ subscription.next_billing }}</dd>
+                                                    {% endif %}
+                                                    {% if subscription.balance %}
+                                                    <dt>{% trans "Balance" %}:</dt> <dd>{{ subscription.balance }}</dd>
+                                                    {% endif %}
+                                                </dl>
+                                                <div class="card">
+                                                    <div class="card-header">
+                                                        <h4 class="card-title">{% trans "Billing information" %}</h4>
+                                                    </div>
+                                                    <div class="card-body">
+                                                        <dl {% if forloop.counter != 1 %}class="border-bottom pb-3"{% endif %}>
+                                                            <dt>{% trans "Payment type" %}:</dt>
+                                                            <dd class="border-bottom pb-2">{{subscription.get_payment_type}}</dd>
+
+                                                            {% if subscription.billing_address %}
+                                                            <dt>{% trans "Billing address" %}:</dt>
+                                                            <dd class="border-bottom pb-2">{{subscription.billing_address}}</dd>
+                                                            {% endif %}
+
+                                                            {% if subscription.billing_name %}
+                                                            <dt>{% trans "Billing name" %}:</dt>
+                                                            <dd>{{subscription.billing_name}}</dd>
+                                                            {% endif %}
+
+                                                            {% if subscription.billing_id_doc %}
+                                                            <dt>{% trans "Billing ID" %}:</dt>
+                                                            <dd class="border-bottom pb-2">{{subscription.billing_id_doc}}</dd>
+                                                            {% endif %}
+
+                                                            {% if subscription.rut %}
+                                                            <dt>{% trans "RUT" %}:</dt>
+                                                            <dd>{{subscription.rut}}</dd>
+                                                            {% endif %}
+
+                                                            {% if subscription.billing_phone %}
+                                                            <dt>{% trans "Billing phone" %}:</dt>
+                                                            <dd>{{subscription.billing_phone}}</dd>
+                                                            {% endif %}
+
+                                                            {% if subscription.billing_email %}
+                                                            <dt>{% trans "Billing email" %}:</dt>
+                                                            <dd class="border-bottom pb-2">{{subscription.billing_email}}</dd>
+                                                            {% endif %}
+                                                            {% if subscription.balance %}
+                                                            <dt>{% trans "Balance" %}:</dt>
+                                                            <dd>{{subscription.balance}}</dd>
+                                                            {% endif %}
+                                                        </dl>
+
+                                                    </div>
+                                                </div>
+                                                <div class="text-right">
+                                                    <a href="{% url 'new_subscription' contact.id %}?upgrade_subscription={{subscription.id}}" class="btn  btn-success">{% trans "Upgrade" %}</a>
+                                                    <a href="{% url 'new_subscription' contact.id %}?edit_subscription={{subscription.id}}" class="btn  btn-success">{% trans "Edit" %}</a>
+                                                </div>
+                                                {% endfor %}
+                                                {% else %}
+                                                <b>{% trans "This contact has no active subscriptions" %}</b>
+                                                <div class="text-right">
+                                                    <a href="{% url  'new_subscription' contact.id %}" class="btn btn-primary float-right">{% trans "Add subscription" %}</a>
+                                                </div>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% if awaiting_payment_subscriptions %}
+                                    <div class="row">
+                                        <div class="card col-sm-9">
+                                            <div class="card-header">
+                                                <h3 class="card-title">{% trans 'Subscriptions awaiting payment' %}</h3>
+                                                <div class="card-tools">
+                                                    <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                                        <i class="fas fa-plus"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div class="card-body">
+                                                {% for subscription in awaiting_payment_subscriptions %}
+                                                <dl {% if forloop.counter != 1 %}class="border-bottom pb-3"{% endif %}>
+                                                    <dt {% if forloop.counter != 1 %}class="border-top mt-4 pt-3"{% endif %}>{% trans "Products" %}:</dt>
+                                                    <dd>
+                                                        {% for sp in subscription.get_subscriptionproducts %}
+                                                        {% if sp.has_envelope == 1 %}
+                                                        <i class="fas fa-envelope" title="{% trans 'Paid envelope' %}" data-toggle="tooltip"></i>
+                                                        {% elif sp.has_envelope == 2 %}
+                                                        <i class="far fa-envelope" title="{% trans 'Free envelope' %}" data-toggle="tooltip"></i>
+                                                        {% endif %} {{sp.product.name}}<br>
+                                                        {% endfor %}
+                                                    </dd>
+                                                    <dt>{% trans "Frequency" %}:</dt> <dd>{{subscription.get_frequency}}</dd>
+                                                    <dt>{% trans "Price" %}:</dt> <dd>{{subscription.get_price_for_full_period}}</dd>
+                                                    <dt>{% trans "Type" %}:</dt> <dd>{{subscription.get_type}}</dd>
+                                                    <dt>{% trans "Payment type" %}:</dt>
+                                                    <dd>{{subscription.get_payment_type}}
+                                                        {% if subscription.payment_type == 'T' %}
+                                                        ({% get_card_type_from_subscription_id subscription.id %} - {% get_last_4_digits_from_card subscription.id %})
+                                                        {% endif %}
+                                                    </dd>
+                                                    <dt>{% trans "Start date" %}:</dt> <dd>{{subscription.start_date}}</dd>
+                                                    {% if subscription.end_date %}
+                                                    <dt>{% trans "End date" %}:</dt> <dd>{{subscription.end_date}}</dd>
+                                                    {% endif %}
+                                                    {% if subscription.balance %}
+                                                    <dt>{% trans "Balance" %}:</dt> <dd>{{subscription.balance}}</dd>
+                                                    {% endif %}
+                                                </dl>
+                                                {% endfor %}
+                                                {% if request.user|in_group:"Support" or request.user|in_group:"Managers" %}
+                                                <div class="text-right">
+                                                    <a href="{% url 'new_subscription' contact.id %}?edit_subscription={{subscription.id}}" class="btn  btn-success">{% trans "Edit" %}</a>
+                                                </div>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                    {% if paused_subscriptions %}
+                                    <div class="row">
+                                        <div class="card col-sm-9">
+                                            <div class="card-header">
+                                                <h3 class="card-title">{% trans 'Paused subscriptions' %}</h3>
+                                                <div class="card-tools">
+                                                    <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                                        <i class="fas fa-plus"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div class="card-body">
+                                                {% for subscription in paused_subscriptions %}
+                                                <dl {% if forloop.counter != 1 %}class="border-bottom pb-3"{% endif %}>
+                                                    <dt {% if forloop.counter != 1 %}class="border-top mt-4 pt-3"{% endif %}>{% trans "Products" %}:</dt>
+                                                    <dd>
+                                                        {% for sp in subscription.get_subscriptionproducts %}
+                                                        {% if sp.has_envelope == 1 %}
+                                                        <i class="fas fa-envelope" title="{% trans 'Paid envelope' %}" data-toggle="tooltip"></i>
+                                                        {% elif sp.has_envelope == 2 %}
+                                                        <i class="far fa-envelope" title="{% trans 'Free envelope' %}" data-toggle="tooltip"></i>
+                                                        {% endif %} {{sp.product.name}}<br>
+                                                        {% endfor %}
+                                                    </dd>
+                                                    <dt>{% trans "Frequency" %}:</dt> <dd>{{subscription.get_frequency}}</dd>
+                                                    <dt>{% trans "Price" %}:</dt> <dd>{{subscription.get_price_for_full_period}}</dd>
+                                                    <dt>{% trans "Type" %}:</dt> <dd>{{subscription.get_type}}</dd>
+                                                    <dt>{% trans "Payment type" %}:</dt>
+                                                    <dd>{{subscription.get_payment_type}}
+                                                        {% if subscription.payment_type == 'T' %}
+                                                        ({% get_card_type_from_subscription_id subscription.id %} - {% get_last_4_digits_from_card subscription.id %})
+                                                        {% endif %}
+                                                    </dd>
+                                                    <dt>{% trans "Start date" %}:</dt> <dd>{{subscription.start_date}}</dd>
+                                                    {% if subscription.end_date %}
+                                                    <dt>{% trans "End date" %}:</dt> <dd>{{subscription.end_date}}</dd>
+                                                    {% endif %}
+                                                    {% if subscription.balance %}
+                                                    <dt>{% trans "Balance" %}:</dt> <dd>{{subscription.balance}}</dd>
+                                                    {% endif %}
+                                                </dl>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                    {% if inactive_subscriptions %}
+                                    <div class="row">
+                                        <div class="card col-sm-9 collapsed-card">
+                                            <div class="card-header">
+                                                <h3 class="card-title">{% trans 'Old subscriptions' %}</h3>
+                                                <div class="card-tools">
+                                                    <button type="button" class="btn btn-tool" data-card-widget="collapse"><i class="fas fa-plus"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div class="card-body">
+                                                {% for subscription in inactive_subscriptions %}
+                                                <dl {% if forloop.counter != 1 %}class="border-bottom pb-3"{% endif %}>
+                                                    <dt {% if forloop.counter != 1 %}class="border-top mt-4 pt-3"{% endif %}>{% trans "Products" %}:</dt>
+                                                    <dd>{% autoescape off %}{{subscription.show_products_html}}{% endautoescape %}</dd>
+                                                    <dt>{% trans "Frequency" %}:</dt> <dd>{{subscription.get_frequency}}</dd>
+                                                    <dt>{% trans "Price" %}:</dt> <dd>{{subscription.get_price_for_full_period}}</dd>
+                                                    <dt>{% trans "Type" %}:</dt> <dd>{{subscription.get_type}}</dd>
+                                                    <dt>{% trans "Payment type" %}:</dt>
+                                                    <dd>{{subscription.get_payment_type}}</dd>
+                                                    <dt>{% trans "Start date" %}:</dt> <dd>{{subscription.start_date}}</dd>
+                                                    {% if subscription.end_date %}
+                                                    <dt>{% trans "End date" %}:</dt> <dd>{{subscription.end_date}}</dd>
+                                                    {% endif %}
+                                                    {% if subscription.balance %}
+                                                    <dt>{% trans "Balance" %}:</dt> <dd>{{subscription.balance}}</dd>
+                                                    {% endif %}
+                                                </dl>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                <!-- Tab Issues -->
+                                <div class="tab-pane" id="issues">
+                                    <div class="row">
+                                        <div class="card col-sm-12">
+                                            <div class="card-header">
+                                                <h3 class="card-title">{% trans 'Latest issues' %}</h3>
+                                            </div>
+                                            <div class="card-body">
+                                                <table class="table">
+                                                    <thead>
+                                                        <tr role="row">
+                                                            <th>{% trans 'ID' %}</th>
+                                                            <th>{% trans 'Date' %}</th>
+                                                            <th>{% trans 'Category' %}</th>
+                                                            <th>{% trans 'Subcategory' %}</th>
+                                                            <th>{% trans 'Status' %}</th>
+                                                            <th>{% trans 'Assigned to' %}</th>
+                                                            <th></th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {% for issue in all_issues %}
+                                                        <tr role="row">
+                                                            <td>{{issue.id}}</td>
+                                                            <td>{{issue.date}}</td>
+                                                            <td>{{issue.get_category}}</td>
+                                                            <td>{{issue.get_subcategory}}</td>
+                                                            <td>{{issue.get_status}}</td>
+                                                            <td>{{issue.assigned_to}}</td>
+                                                            <td><a href="{% url 'view_issue' issue.id %}" target="_blank" class="btn btn-primary btn-sm">{% trans "View" %}</a></td>
+                                                        </tr>
+                                                        {% endfor %}
+                                                    </tbody>
+                                                </table>
+
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Tab scheduled tasks -->
+                                <div class="tab-pane" id="tasks">
+                                    <div class="row">
+                                        <div class="card col-sm-12">
+                                            <div class="card-header">
+                                                <h3 class="card-title">{% trans 'Scheduled Tasks' %}</h3>
+                                            </div>
+                                            <div class="card-body">
+                                                <table class="table">
+                                                    <thead>
+                                                        <tr role="row">
+                                                            <th>{% trans 'Category' %}</th>
+                                                            <th>{% trans 'Creation date' %}</th>
+                                                            <th>{% trans 'Execution date' %}</th>
+                                                            <th>{% trans 'Completed' %}</th>
+                                                            <th>{% trans 'Linked task' %}</th>
+                                                            <th></th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {% for task in all_scheduled_tasks %}
+                                                        <tr role="row">
+                                                            <td>{{task.get_category}}</td>
+                                                            <td>{{task.creation_date}}</td>
+                                                            <td>{{task.execution_date}}</td>
+                                                            <td>{{task.completed}}</td>
+                                                            <td>{% if task.ends %}
+                                                                <a href='{% url "admin:support_scheduledtask_change" task.ends.id %}' class="btn btn-primary btn-sm">{% trans "View" %}</a>
+                                                                {% else %}-
+                                                                {% endif %}
+                                                            </td>
+                                                            <td>
+                                                                <a href='{% url "admin:support_scheduledtask_change" task.id %}' class="btn btn-primary btn-sm">{% trans "View" %}</a>
+                                                            </td>
+                                                        </tr>
+                                                        {% endfor %}
+                                                    </tbody>
+                                                </table>
+
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Tab activities -->
+                                <div class="tab-pane" id="activities">
+                                    <div class="row">
+                                        <div class="card col-sm-12">
+                                            <div class="card-header">
+                                                <h3 class="card-title">{% trans 'Latest activities' %}</h3>
+                                            </div>
+                                            <div class="card-body">
+                                                <table class="table">
+                                                    <thead>
+                                                        <tr role="row">
+                                                            <th>{% trans 'Date' %}</th>
+                                                            <th>{% trans 'Activity type' %}</th>
+                                                            <th>{% trans 'Direction' %}</th>
+                                                            <th>{% trans 'Campaign' %}</th>
+                                                            <th>{% trans 'Product' %}</th>
+                                                            <th>{% trans 'Issue' %}</th>
+                                                            <th>{% trans 'Status' %}</th>
+                                                            <th></th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {% for activity in all_activities %}
+                                                        <tr role="row">
+                                                            <td>{{activity.datetime}}</td>
+                                                            <td>{{activity.get_type}}</td>
+                                                            <td>{{activity.get_direction}}</td>
+                                                            <td>{{activity.campaign|default_if_none:"-"}}</td>
+                                                            <td>{{activity.product|default_if_none:"-"}}</td>
+                                                            <td>{% if activity.issue %}
+                                                                <a href="{% url 'view_issue' activity.issue.id %}" class="btn btn-primary btn-sm">View</a>
+                                                                {% else %}-
+                                                                {% endif %}
+                                                            </td>
+                                                            <td>{{activity.get_status}}</td>
+                                                            <td><a href="#" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#activityView-{{activity.id}}">{% trans "View" %}</a></td>
+                                                        </tr>
+                                                        {% endfor %}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </section>
 
     {% for activity in all_activities %}
     <div class="modal fade"  id="activityView-{{activity.id}}" tabindex="-1" role="dialog">
-      <div class="modal-dialog" role="document">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h4 class="modal-title">{% trans "Activity" %} {{activity.id}} ({{activity.get_type}} - {{activity.get_direction}})</h4>
-            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-          </div>
-          <div class="modal-body">
-            <dl>
-              <dd><b>{% trans "Date" %}</b></dd>
-              <dd>{{activity.datetime}}</dd>
-              {% if activity.notes %}
-                <dd><b>{% trans "Notes" %}</b></dd>
-                <dd>{{activity.notes}}</dd>
-              {% endif %}
-              {% if activity.seller %}
-                <dd><b>{% trans "Seller" %}</b></dd>
-                <dd>{{activity.seller}}</dd>
-              {% endif %}
-              {% if activity.campaign %}
-                <dd><b>{% trans "Campaign" %}</b></dd>
-                <dd>{{activity.campaign}}</dd>
-              {% endif %}
-              <dd><b>{% trans "Status" %}</b></dd>
-              <dd>{{ activity.get_status }}</dd>
-            </dl>
-          </div>
-       </div><!-- /.modal-content -->
-     </div><!-- /.modal-dialog -->
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title">{% trans "Activity" %} {{activity.id}} ({{activity.get_type}} - {{activity.get_direction}})</h4>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                </div>
+                <div class="modal-body">
+                    <dl>
+                        <dd><b>{% trans "Date" %}</b></dd>
+                        <dd>{{activity.datetime}}</dd>
+                        {% if activity.notes %}
+                        <dd><b>{% trans "Notes" %}</b></dd>
+                        <dd>{{activity.notes}}</dd>
+                        {% endif %}
+                        {% if activity.seller %}
+                        <dd><b>{% trans "Seller" %}</b></dd>
+                        <dd>{{activity.seller}}</dd>
+                        {% endif %}
+                        {% if activity.campaign %}
+                        <dd><b>{% trans "Campaign" %}</b></dd>
+                        <dd>{{activity.campaign}}</dd>
+                        {% endif %}
+                        <dd><b>{% trans "Status" %}</b></dd>
+                        <dd>{{ activity.get_status }}</dd>
+                    </dl>
+                </div>
+            </div><!-- /.modal-content -->
+        </div><!-- /.modal-dialog -->
     </div><!-- /.modal -->
     {% endfor %}
 
-{% endblock %}
+    {% endblock %}
