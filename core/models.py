@@ -680,7 +680,7 @@ class Subscription(models.Model):
         verbose_name=_("Balance"),
     )
     send_bill_copy_by_email = models.BooleanField(
-        default=False, verbose_name=_("Send bill copy by email")
+        default=True, verbose_name=_("Send bill copy by email")
     )
     billing_address = models.ForeignKey(
         Address,

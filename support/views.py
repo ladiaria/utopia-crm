@@ -694,6 +694,7 @@ def new_subscription(request, contact_id):
             "billing_phone": form_subscription.billing_phone,
             "billing_email": form_subscription.billing_email,
             "frequency": form_subscription.frequency,
+            "send_bill_copy_by_email": form_subscription.send_bill_copy_by_email,
         }
         form = NewSubscriptionForm(initial=initial_dict)
         form.fields['start_date'].widget.attrs['readonly'] = True
@@ -709,6 +710,7 @@ def new_subscription(request, contact_id):
                 "default_address": contact_addresses,
                 "start_date": date.today(),
                 "copies": 1,
+                "send_bill_copy_by_email": True,
             }
         )
 
@@ -772,6 +774,7 @@ def new_subscription(request, contact_id):
                 subscription.billing_email = form.cleaned_data['billing_email']
                 subscription.frequency = form.cleaned_data['frequency']
                 subscription.end_date = form.cleaned_data['end_date']
+                subscription.send_bill_copy_by_email = form.cleaned_data['send_bill_copy_by_email']
                 subscription.save()
             else:
                 subscription = Subscription.objects.create(
@@ -788,6 +791,7 @@ def new_subscription(request, contact_id):
                     billing_email=form.cleaned_data['billing_email'],
                     frequency=form.cleaned_data['frequency'],
                     end_date=form.cleaned_data['end_date'],
+                    send_bill_copy_by_email=form.cleaned_data['send_bill_copy_by_email'],
                 )
             if upgrade_subscription:
                 # Then, the amount that was already paid in the period but was not used due to closing the
