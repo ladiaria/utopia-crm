@@ -654,7 +654,7 @@ class Subscription(models.Model):
     rut = models.CharField(max_length=12, blank=True, null=True, verbose_name=_("R.U.T."))
     billing_phone = models.CharField(max_length=20, blank=True, null=True, verbose_name=_("Billing phone"))
     balance = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True, verbose_name=_("Balance"))
-    send_bill_copy_by_email = models.BooleanField(default=False, verbose_name=_("Send bill copy by email"))
+    send_bill_copy_by_email = models.BooleanField(default=True, verbose_name=_("Send bill copy by email"))
     billing_address = models.ForeignKey(
         Address,
         blank=True,

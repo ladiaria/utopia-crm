@@ -226,6 +226,10 @@ class NewSubscriptionForm(forms.Form):
         required=False,
         widget=forms.Select(attrs={"class": "form-control"}),
     )
+    send_bill_copy_by_email = forms.BooleanField(
+        label=_("Send invoice copy by email"),
+        required=False, widget=forms.CheckboxInput(attrs={"class": "form-check-input"})
+    )
 
     def clean(self):
         contact_id = self.cleaned_data['contact_id']

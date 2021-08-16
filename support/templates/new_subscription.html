@@ -2,51 +2,51 @@
 {% load i18n static core_tags %}
 
 {% block title %}
-    {% trans "New subscription" %}
+{% trans "New subscription" %}
 {% endblock %}
 
 {% block extra_js %}
 <script type="text/javascript" src="{% static 'js/datepicker-es.js' %}"></script>
 <script type="text/javascript" src="{% static 'js/product_dynamic_prices.js' %}"></script>
 <script type="text/javascript">
-    $( function() {
-        $('[data-toggle="tooltip"]').tooltip();
+$( function() {
+    $('[data-toggle="tooltip"]').tooltip();
 
-        $(".datepicker").datepicker({ dateFormat: 'yy-mm-dd' });
+    $(".datepicker").datepicker({ dateFormat: 'yy-mm-dd' });
 
-        $("#address_form").submit(function(event){
-            var formData = $(this).serialize();
-            event.preventDefault();
-            $.ajax({
-                method: "POST",
-                url: "/support/api_new_address/{{contact.id}}/",
-                data: formData,
-                success: handleFormSuccess,
-                error: handleFormError,
-            });
-        });
-
-        function handleFormError(){
-            console.log("error");
-        };
-
-        function handleFormSuccess(data){
-            $.each(data, function (key, entry) {
-                $(".address_selector").each(function(){
-                    $(this).append($('<option selected></option>').attr('value', key).text(entry));
-                });
-            $("#id_default_address").append($('<option selected></option>').attr('value', key).text(entry));
-            });
-            $("#address_form").trigger("reset");
-            $('#address_modal').modal('hide');
-        };
-
-        $("#id_default_address").change(function(){
-            $(".address_selector").each(function(){
-                $(this).val($("#id_default_address").val());
-            });
+    $("#address_form").submit(function(event){
+        var formData = $(this).serialize();
+        event.preventDefault();
+        $.ajax({
+            method: "POST",
+            url: "/support/api_new_address/{{contact.id}}/",
+            data: formData,
+            success: handleFormSuccess,
+            error: handleFormError,
         });
     });
+
+    function handleFormError(){
+        console.log("error");
+    };
+
+    function handleFormSuccess(data){
+        $.each(data, function (key, entry) {
+            $(".address_selector").each(function(){
+                $(this).append($('<option selected></option>').attr('value', key).text(entry));
+            });
+            $("#id_default_address").append($('<option selected></option>').attr('value', key).text(entry));
+        });
+        $("#address_form").trigger("reset");
+        $('#address_modal').modal('hide');
+    };
+
+    $("#id_default_address").change(function(){
+        $(".address_selector").each(function(){
+            $(this).val($("#id_default_address").val());
+        });
+    });
+});
 </script>
 {% block extra_scripts %}{% endblock %}
 {% endblock %}
@@ -57,214 +57,221 @@
 
 {% block content %}
 <div class="card">
-  <div class="card-header">
-    {% if upgrade_subscription %}
-    <h2 class="card-title">{% trans 'Upgrade subscription' %}</h2>
-    {% elif edit_subscription %}
-    <h2 class="card-title">{% trans 'Edit subscription' %}</h2>
-    {% else %}
-    <h2 class="card-title">{% trans 'New subscription' %}</h2>
-    {% endif %}
-  </div>
-  <div class="card-body">
-    {% block subscription_form %}
-    <form method="post" id="subscription_form">
-    {% csrf_token %}
-      {% if upgrade_subscription %}
-      <div class="alert alert-warning">
-      {% trans "Subscription with id" %} <b>{{form_subscription.id}}</b> {% trans "will be replaced and a balance of" %} <b>{{form_subscription.amount_already_paid_in_period}}</b> {% trans "will be discounted from the subscriber's new first invoice" %}
-      </div>
-      {% endif %}
+    <div class="card-header">
+        {% if upgrade_subscription %}
+        <h2 class="card-title">{% trans 'Upgrade subscription' %}</h2>
+        {% elif edit_subscription %}
+        <h2 class="card-title">{% trans 'Edit subscription' %}</h2>
+        {% else %}
+        <h2 class="card-title">{% trans 'New subscription' %}</h2>
+        {% endif %}
+    </div>
+    <div class="card-body">
+        {% block subscription_form %}
+        <form method="post" id="subscription_form">
+            {% csrf_token %}
+            {% if upgrade_subscription %}
+            <div class="alert alert-warning">
+                {% trans "Subscription with id" %} <b>{{form_subscription.id}}</b> {% trans "will be replaced and a balance of" %} <b>{{form_subscription.amount_already_paid_in_period}}</b> {% trans "will be discounted from the subscriber's new first invoice" %}
+            </div>
+            {% endif %}
 
-      {% if form.errors %}
-        {% for field in form %}
-          {% for error in field.errors %}
+            {% if form.errors %}
+            {% for field in form %}
+            {% for error in field.errors %}
             <div class="alert alert-danger">
-              <strong>{{ error|escape }}</strong>
+                <strong>{{ error|escape }}</strong>
             </div>
-          {% endfor %}
-        {% endfor %}
-        {% for error in form.non_field_errors %}
-          <div class="alert alert-danger">
-            <strong>{{ error|escape }}</strong>
-          </div>
-        {% endfor %}
-      {% endif %}
+            {% endfor %}
+            {% endfor %}
+            {% for error in form.non_field_errors %}
+            <div class="alert alert-danger">
+                <strong>{{ error|escape }}</strong>
+            </div>
+            {% endfor %}
+            {% endif %}
 
-      {% block contact_info %}
-        <div class="row">
-          <div class="form-group d-none">
-            <label for="id_contact_id">{{form.id.label}}</label>
-            {{form.contact_id}}
-          </div>
-          <div class="form-group col-sm-4">
-            <label for="id_name">{{form.name.label}}</label>
-            {{form.name}}
-          </div>
-          <div class="form-group col-sm-4">
-            <label for="id_email">{{form.email.label}}</label>
-            {{form.email}}
-          </div>
-          <div class="form-group col-sm-4">
-            <label for="id_id_document">{{form.id_document.label}}</label>
-            {{form.id_document}}
-          </div>
-        </div>
-
-        <div class="row">
-          <div class="form-group col-sm-6">
-            <label for="id_phone">{{form.phone.label}}</label>
-            {{form.phone}}
-          </div>
-          <div class="form-group col-sm-6">
-            <label for="id_mobile">{{form.mobile.label}}</label>
-            {{form.mobile}}
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label for="id_notes">{{form.register_activity.label}}</label>
-          {{form.register_activity}}
-        </div>
-
-        {% block payment_type %}
-        <div class="row">
-          <div class="form-group col-sm-6">
-            <label for="id_frequency">{{form.frequency.label}}</label>
-            {{form.frequency}}
-          </div>
-          <div class="form-group col-sm-6">
-            <label for="id_payment_type">{{form.payment_type.label}}</label>
-            {{form.payment_type}}
-          </div>
-        </div>
-        {% block extra_payment %}{% endblock extra_payment %}
-        {% endblock payment_type %}
-
-        <div class="row">
-          <div class="form-group col-sm-6">
-            <label for="id_start_date">{{form.start_date.label}}</label>
-            {{form.start_date}}
-          </div>
-          <div class="form-group col-sm-6">
-            <label for="id_end_date">{{form.end_date.label}}</label>
-            {{form.end_date}}
-          </div>
-        </div>
-
-        {% block billing_info %}
-          <button class="btn btn-primary btn-sm" type="button" data-toggle="collapse" data-target="#collapse-billing-information" aria-expanded="false" aria-controls="collapseExample"><i class="fas fa-plus"></i> {% trans "Show extra billing information" %}</button>
-          <div id="collapse-billing-information" class="collapse">
+            {% block contact_info %}
             <div class="row">
-              <div class="form-group col-sm-6">
-                <label for="id_billing_address">{{form.billing_address.label}}</label>
-                {{form.billing_address}}
-              </div>
-              <div class="form-group col-sm-6">
-                <label for="id_billing_name">{{form.billing_name.label}}</label>
-                {{form.billing_name}}
-              </div>
+                <div class="form-group d-none">
+                    <label for="id_contact_id">{{form.id.label}}</label>
+                    {{form.contact_id}}
+                </div>
+                <div class="form-group col-sm-4">
+                    <label for="id_name">{{form.name.label}}</label>
+                    {{form.name}}
+                </div>
+                <div class="form-group col-sm-4">
+                    <label for="id_email">{{form.email.label}}</label>
+                    {{form.email}}
+                </div>
+                <div class="form-group col-sm-4">
+                    <label for="id_id_document">{{form.id_document.label}}</label>
+                    {{form.id_document}}
+                </div>
             </div>
 
             <div class="row">
-              <div class="form-group col-sm-6">
-                <label for="id_billing_id_document">{{form.billing_id_document.label}}</label>
-                {{form.billing_id_document}}
-              </div>
-              <div class="form-group col-sm-6">
-                <label for="id_billing_rut">{{form.billing_rut.label}}</label>
-                {{form.billing_rut}}
-              </div>
+                <div class="form-group col-sm-6">
+                    <label for="id_phone">{{form.phone.label}}</label>
+                    {{form.phone}}
+                </div>
+                <div class="form-group col-sm-6">
+                    <label for="id_mobile">{{form.mobile.label}}</label>
+                    {{form.mobile}}
+                </div>
             </div>
+
+            <div class="form-group">
+                <label for="id_notes">{{form.register_activity.label}}</label>
+                {{form.register_activity}}
+            </div>
+
+            {% block payment_type %}
+            <div class="row">
+                <div class="form-group col-sm-4">
+                    <label for="id_frequency">{{form.frequency.label}}</label>
+                    {{form.frequency}}
+                </div>
+                <div class="form-group col-sm-4">
+                    <label for="id_payment_type">{{form.payment_type.label}}</label>
+                    {{form.payment_type}}
+                </div>
+                <div class="form-group col-sm-4">
+                    <label for="id_send_bill_copy_by_email">{{form.send_bill_copy_by_email.label}}</label>
+                    <div class="form-check">
+                        {{form.send_bill_copy_by_email}}
+                        <label class="form-check-label" for="id_send_bill_copy_by_email">Enviar</label>
+                    </div>
+                </div>
+            </div>
+            {% block extra_payment %}{% endblock extra_payment %}
+            {% endblock payment_type %}
 
             <div class="row">
-              <div class="form-group col-sm-6">
-                <label for="id_billing_phone">{{form.billing_phone.label}}</label>
-                {{form.billing_phone}}
-              </div>
-              <div class="form-group col-sm-6">
-                <label for="id_billing_email">{{form.billing_email.label}}</label>
-                {{form.billing_email}}
-              </div>
+                <div class="form-group col-sm-6">
+                    <label for="id_start_date">{{form.start_date.label}}</label>
+                    {{form.start_date}}
+                </div>
+                <div class="form-group col-sm-6">
+                    <label for="id_end_date">{{form.end_date.label}}</label>
+                    {{form.end_date}}
+                </div>
             </div>
-          </div>
-        {% endblock billing_info %}
 
-        <div class="form-group">
-          <label for="id_default_address">{{form.default_address.label}}</label>
-          {{ form.default_address }}
-        </div>
-      {% endblock contact_info %}
+            {% block billing_info %}
+            <button class="btn btn-primary btn-sm" type="button" data-toggle="collapse" data-target="#collapse-billing-information" aria-expanded="false" aria-controls="collapseExample"><i class="fas fa-plus"></i> {% trans "Show extra billing information" %}</button>
+            <div id="collapse-billing-information" class="collapse">
+                <div class="row">
+                    <div class="form-group col-sm-6">
+                        <label for="id_billing_address">{{form.billing_address.label}}</label>
+                        {{form.billing_address}}
+                    </div>
+                    <div class="form-group col-sm-6">
+                        <label for="id_billing_name">{{form.billing_name.label}}</label>
+                        {{form.billing_name}}
+                    </div>
+                </div>
 
-      <a href="#address_modal" id="add_address" data-toggle="modal" data-target="#address_modal" class="btn bg-gradient-success"><i class="fas fa-plus"></i> Add new address</a>
+                <div class="row">
+                    <div class="form-group col-sm-6">
+                        <label for="id_billing_id_document">{{form.billing_id_document.label}}</label>
+                        {{form.billing_id_document}}
+                    </div>
+                    <div class="form-group col-sm-6">
+                        <label for="id_billing_rut">{{form.billing_rut.label}}</label>
+                        {{form.billing_rut}}
+                    </div>
+                </div>
 
-      {% block form_products %}
-      <div class="mt-4">
-        {% for product in offerable_products %}
-        <div class='form-group border-bottom pb-2 {% if "lunes" in product.slug or "martes" in product.slug or "miercoles" in product.slug or "jueves" in product.slug or "viernes" in product.slug %}la_diaria_product_fg{% endif %}'>
-          <div class="row mt-2">
-            <div class="col-5">
-              <div class="form-check">
-                <input {% if product in form_subscription.products.all %}checked{% endif %} value="{{product.id}}" type='checkbox' name='check-{{product.id}}'  id="check-{{product.id}}" class='product_checkbox form-check-input {% if "lunes" in product.slug or "martes" in product.slug or "miercoles" in product.slug or "jueves" in product.slug or "viernes" in product.slug %}la_diaria_product{% endif %}{% if product.slug == "la-diaria-digital" %}la_diaria_digital{% endif %}' />
-                <label for="check-{{product.id}}">{{product.name}}</label>
-              </div>
-              <select name='address-{{product.id}}' class="address_selector form-control">
-                  {% for address in contact_addresses %}
-                      <option value="{{address.id}}" {% if form_subscription|get_address_id_from_subscription:product.slug == address.id %}selected{% endif %}>{{address.address_1}} {{address.city}} {{address.state}}</option>
-                  {% endfor %}
-              </select>
+                <div class="row">
+                    <div class="form-group col-sm-6">
+                        <label for="id_billing_phone">{{form.billing_phone.label}}</label>
+                        {{form.billing_phone}}
+                    </div>
+                    <div class="form-group col-sm-6">
+                        <label for="id_billing_email">{{form.billing_email.label}}</label>
+                        {{form.billing_email}}
+                    </div>
+                </div>
             </div>
-            <div class="col-1">
-              <label for="copies-{{product.id}}"><small>{% trans 'Copies' %}</small></label>
-              <input type="text" id="copies-{{product.id}}" name="copies-{{product.id}}" value="{% if form_subscription %}{% call_method form_subscription 'get_copies_for_product' product.id %}{% else %}1{% endif %}" class="form-control">
-            </div>
-            <div class="col-3">
-              <label for="message-{{product.id}}"><small>{% trans 'Label Message' %}</small></label>
-              <input maxlength="40" type="text" id="message-{{product.id}}" name="message-{{product.id}}" value="{% if form_subscription %}{% call_method form_subscription 'get_message_for_product' product.id %}{% else %}{% endif %}" class="form-control">
-            </div>
-            <div class="col-3">
-              <label for="instructions-{{product.id}}"><small>{% trans 'Special Instructions' %}</small></label>
-              <input type="text" id="instructions-{{product.id}}" name="instructions-{{product.id}}" value="{% if form_subscription %}{% call_method form_subscription 'get_instructions_for_product' product.id %}{% else %}{% endif %}" class="form-control">
-            </div>
-          </div>
-        </div>
-        {% endfor %}
-      </div>
-      {% endblock form_products %}
+            {% endblock billing_info %}
 
-      {% block form_send_controls %}
-      <div class="form-group text-right">
-        <h4 class="mb-4 mt-4">{% trans "Total price is" %}: <span class="text-success" id="price_amount">$0</span>
-          <span id="custom_error_message" class="text-danger"><small></small></span>
-        </h4>
-        <input type="submit" name='result' value="{% trans 'Cancel' %}" class="btn bg-gradient-secondary">
-        <input type="submit" name="result" id="send_form" value="{% trans 'Send' %}" class="btn bg-gradient-primary">
-      </div>
-      {% endblock form_send_controls %}
-    </form>
-    {% endblock subscription_form %}
-  </div>
+            <div class="form-group">
+                <label for="id_default_address">{{form.default_address.label}}</label>
+                {{ form.default_address }}
+            </div>
+            {% endblock contact_info %}
+
+            <a href="#address_modal" id="add_address" data-toggle="modal" data-target="#address_modal" class="btn bg-gradient-success"><i class="fas fa-plus"></i> Add new address</a>
+
+            {% block form_products %}
+            <div class="mt-4">
+                {% for product in offerable_products %}
+                <div class='form-group border-bottom pb-2 {% if "lunes" in product.slug or "martes" in product.slug or "miercoles" in product.slug or "jueves" in product.slug or "viernes" in product.slug %}la_diaria_product_fg{% endif %}'>
+                    <div class="row mt-2">
+                        <div class="col-5">
+                            <div class="form-check">
+                                <input {% if product in form_subscription.products.all %}checked{% endif %} value="{{product.id}}" type='checkbox' name='check-{{product.id}}'  id="check-{{product.id}}" class='product_checkbox form-check-input {% if "lunes" in product.slug or "martes" in product.slug or "miercoles" in product.slug or "jueves" in product.slug or "viernes" in product.slug %}la_diaria_product{% endif %}{% if product.slug == "la-diaria-digital" %}la_diaria_digital{% endif %}' />
+                                <label for="check-{{product.id}}">{{product.name}}</label>
+                            </div>
+                            <select name='address-{{product.id}}' class="address_selector form-control">
+                                {% for address in contact_addresses %}
+                                <option value="{{address.id}}" {% if form_subscription|get_address_id_from_subscription:product.slug == address.id %}selected{% endif %}>{{address.address_1}} {{address.city}} {{address.state}}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-1">
+                            <label for="copies-{{product.id}}"><small>{% trans 'Copies' %}</small></label>
+                            <input type="text" id="copies-{{product.id}}" name="copies-{{product.id}}" value="{% if form_subscription %}{% call_method form_subscription 'get_copies_for_product' product.id %}{% else %}1{% endif %}" class="form-control">
+                        </div>
+                        <div class="col-3">
+                            <label for="message-{{product.id}}"><small>{% trans 'Label Message' %}</small></label>
+                            <input maxlength="40" type="text" id="message-{{product.id}}" name="message-{{product.id}}" value="{% if form_subscription %}{% call_method form_subscription 'get_message_for_product' product.id %}{% else %}{% endif %}" class="form-control">
+                        </div>
+                        <div class="col-3">
+                            <label for="instructions-{{product.id}}"><small>{% trans 'Special Instructions' %}</small></label>
+                            <input type="text" id="instructions-{{product.id}}" name="instructions-{{product.id}}" value="{% if form_subscription %}{% call_method form_subscription 'get_instructions_for_product' product.id %}{% else %}{% endif %}" class="form-control">
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endblock form_products %}
+
+            {% block form_send_controls %}
+            <div class="form-group text-right">
+                <h4 class="mb-4 mt-4">{% trans "Total price is" %}: <span class="text-success" id="price_amount">$0</span>
+                    <span id="custom_error_message" class="text-danger"><small></small></span>
+                </h4>
+                <input type="submit" name='result' value="{% trans 'Cancel' %}" class="btn bg-gradient-secondary">
+                <input type="submit" name="result" id="send_form" value="{% trans 'Send' %}" class="btn bg-gradient-primary">
+            </div>
+            {% endblock form_send_controls %}
+        </form>
+        {% endblock subscription_form %}
+    </div>
 </div>
 
-    <div id="address_modal"  class="modal" tabindex="-1" role="dialog">
-      <div class="modal-dialog" role="document">
+<div id="address_modal"  class="modal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header">
-             <h5 class="modal-title" id="exampleModalLabel">{% trans 'Add new address' %}</h5>
-             <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-               <span aria-hidden="true">&times;</span>
-             </button>
-           </div>
-           <div class="modal-body">
-            <form method="post" id="address_form">
-                {% csrf_token %}
-                {{address_form.as_p}}
-                <div class="form-group text-right">
-                  <input id="submit_address" type="submit" value="{% trans 'Save address' %}"  class="btn bg-gradient-primary">
-                </div>
-            </form>
-          </div>
+                <h5 class="modal-title" id="exampleModalLabel">{% trans 'Add new address' %}</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form method="post" id="address_form">
+                    {% csrf_token %}
+                    {{address_form.as_p}}
+                    <div class="form-group text-right">
+                        <input id="submit_address" type="submit" value="{% trans 'Save address' %}"  class="btn bg-gradient-primary">
+                    </div>
+                </form>
+            </div>
         </div>
-      </div>
     </div>
+</div>
 {% endblock content %}
