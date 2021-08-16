@@ -133,7 +133,7 @@ class Issue(models.Model):
             return None
 
     def mark_solved(self, answer_2):
-        self.status = IssueStatus.objects.get(slug=settings.SOLVED_ISSUE_STATUS_SLUG)
+        self.status = IssueStatus.objects.get(slug=settings.ISSUE_STATUS_SOLVED)
         self.closing_date = date.today()
         if answer_2:
             if self.answer_2:
