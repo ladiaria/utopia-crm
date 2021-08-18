@@ -760,7 +760,7 @@ class Subscription(models.Model):
     products = models.ManyToManyField(Product, through="SubscriptionProduct")
     frequency = models.PositiveSmallIntegerField(default=1, choices=FREQUENCY_CHOICES)
     payment_type = models.CharField(
-        max_length=1,
+        max_length=2,
         choices=settings.SUBSCRIPTION_PAYMENT_METHODS,
         null=True,
         blank=True,
