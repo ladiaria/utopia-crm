@@ -20,12 +20,7 @@ INACTIVITY_REASONS = (
     (1, _('Normal end')),
     (2, _('Paused')),
     (3, _('Upgraded')),
-    (9, _('Lost the route')),
-    (10, _('We don\'t reach this address')),
-    (11, _('Bad addition to the database')),
-    (12, _('Duplicated address')),
     (13, _('Debtor')),
-    (15, _('Vacations')),
     (16, _('Debtor, automatic unsubscription')),
     (99, _('N/A')),
 )
@@ -180,7 +175,6 @@ PRICERULE_MODE_CHOICES = (
     (3, _('Add new')),
 )
 
-
 DYNAMIC_CONTACT_FILTER_MODES = [
     (1, _('At least one of the products')),
     (2, _('All products')),
@@ -190,4 +184,10 @@ DYNAMIC_CONTACT_FILTER_MODES = [
 ENVELOPE_CHOICES = (
     (1, _("Paid envelope")),
     (2, _("Free envelope")),
+)
+
+UNSUBSCRIPTION_TYPE_CHOICES = (
+    # While we look for better wording, this will be a placeholder
+    (1, _("Asked for unsubscription")),
+    (2, _("Did not ask for unsubscription")),
 )

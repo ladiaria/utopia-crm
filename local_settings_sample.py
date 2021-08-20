@@ -152,18 +152,32 @@ ISSUE_ANSWERS = (
     ('L1', 'Delivered again'),
 )
 
-# Used to generate new issues on the generate_invoicing_issues management command. Use a slug for your preferred status
-NEW_INVOICING_ISSUE_STATUS_SLUG = 'new'
+# Set a list of statsues slugs that will be used to allow an issue to be closed
+ISSUE_STATUS_AUTO_CLOSE_SLUGS = [
+    'new',
+    'uncollectible',
+]
+
+# Set a list of subcategories slugs that will be used to allow an issue to be closed
+ISSUE_SUBCATEGORY_AUTO_CLOSE_SLUGS = [
+    'inactive',
+    '1-invoice-debt',
+]
 
 # Set a list of statuses slugs that will be used to mark the issue as finished. Examples below.
-SOLVED_ISSUE_STATUS_SLUG = 'solved'
-ISSUE_STATUS_FINISHED_LIST = ['solved', 'not-solved']
+ISSUE_STATUS_SOLVED = 'resuelto'
+ISSUE_STATUS_FINISHED_LIST = [ISSUE_STATUS_SOLVED, 'no-resuelto', 'incobrable']
 
-# Used when a new issue is created, depending if it was assigned or not
-ASSIGNED_ISSUE_STATUS_SLUG = 'assigned'
-UNASSIGNED_ISSUE_STATUS_SLUG = 'unassigned'
-PENDING_ISSUE_STATUS_SLUG = 'pending'
-AUTO_ISSUE_STATUS_SLUG = 'automatic'  # for automatic tasks that have not been completed yet
+# Used when a new issue is created, depending if it was assigned or not. You must create the issue statuses beforehand
+ISSUE_STATUS_ASSIGNED = 'assigned'
+ISSUE_STATUS_UNASSIGNED = 'unassigned'
+ISSUE_STATUS_PENDING = 'pending'
+ISSUE_STATUS_NEW = 'new'
+
+# When using subcategories for debt, we use certain subcategories depending on how many overdue invoices the person has.
+ISSUE_SUBCATEGORY_1_INVOICE = 'deuda-1-factura'
+ISSUE_SUBCATEGORY_2_INVOICES = 'deuda-2-facturas'
+ISSUE_SUBCATEGORY_GENERIC_DEBT = 'deuda-generica'
 
 # Temporary discount: slug: months. Use this dictionary if you want certain products to disappear from the subscription
 # after a set amount of months.
@@ -173,3 +187,14 @@ TEMPORARY_DISCOUNT = {
 
 # How many days into the future are we going to bill contacts
 BILLING_EXTRA_DAYS = 2
+
+UNSUBSCRIPTION_REASON_CHOICES = (
+    (1, "Does not like content"),
+    (2, "Economical reasons"),
+    (3, "Other"),
+)
+
+UNSUBSCRIPTION_CHANNEL_CHOICES = (
+    (1, "E-Mail"),
+    (2, "Phone"),
+)
