@@ -747,10 +747,22 @@ class Subscription(models.Model):
         on_delete=models.SET_NULL,
     )
     unsubscription_reason = models.PositiveSmallIntegerField(
-        choices=settings.UNSUBSCRIPTION_REASONS,
+        choices=settings.UNSUBSCRIPTION_REASON_CHOICES,
         blank=True,
         null=True,
         verbose_name=_("Unsubscription reason"),
+    )
+    unsubscription_channel = models.PositiveSmallIntegerField(
+        choices=settings.UNSUBSCRIPTION_CHANNEL_CHOICES,
+        blank=True,
+        null=True,
+        verbose_name=_("Unsubscription channel"),
+    )
+    unsubscription_type = models.PositiveSmallIntegerField(
+        choices=UNSUBSCRIPTION_TYPE_CHOICES,
+        blank=True,
+        null=True,
+        verbose_name=_("Unsubscription type"),
     )
     unsubscription_addendum = models.TextField(
         blank=True, null=True, verbose_name=_("Unsubscription addendum")
