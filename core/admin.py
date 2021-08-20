@@ -178,7 +178,9 @@ class SubscriptionAdmin(admin.ModelAdmin):
             'classes': ('collapse',),
             'fields': (
                 ('inactivity_reason',),
-                'unsubscription_reason', 'unsubscription_addendum',
+                ('unsubscription_channel', 'unsubscription_type'),
+                'unsubscription_reason',
+                'unsubscription_addendum',
                 ('unsubscription_date', 'unsubscription_manager'),
             )}),
     )

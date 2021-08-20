@@ -20,6 +20,7 @@ urlpatterns = [
     url(r"^import/$", import_contacts, name="import_contacts"),
     url(r"^send_promo/(\d+)/$", send_promo, name="send_promo"),
     url(r"^new_subscription/(\d+)/$", new_subscription, name="new_subscription"),
+    url(r"^book_unsubscription/(\d+)/$", book_unsubscription, name="book_unsubscription"),
     url(r"^edit_products/(\d+)/$", edit_products, name="edit_products"),
     url(r"^contacts/$", contact_list, name="contact_list"),
     url(r"^contacts/(\d+)/$", contact_detail, name="contact_detail"),

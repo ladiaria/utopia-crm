@@ -1974,3 +1974,25 @@ def debtor_contacts(request):
             "order": order,
         },
     )
+
+
+@login_required
+def book_unsubscription(request, subscription_id):
+    subscription = get_object_or_404(Subscription, pk=subscription_id)
+    if request.POST:
+        form = UnsubscriptionForm(request.POST, instance=subscription)
+        if form.is_valid():
+            form.save()
+            messages.success(request, _("Unsubscription for contact {} booked for {}".format(
+                subscription.contact.name, subscription.end_date
+            )))
+            subscription.unsubscription_date = date.today()
+            subscription.unsubscription_manager = request.user
+            subscription.save()
+            return HttpResponseRedirect(reverse("contact_detail", args=[subscription.contact.id]))
+    else:
+        form = UnsubscriptionForm(instance=subscription)
+    return render(request, "book_unsubscription.html", {
+        "subscription": subscription,
+        "form": form,
+    })
