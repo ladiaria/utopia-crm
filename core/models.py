@@ -1254,7 +1254,7 @@ class Subscription(models.Model):
         """
         Returns the unsubscription reason.
         """
-        unsubscription_reasons = dict(settings.UNSUBSCRIPTION_REASONS)
+        unsubscription_reasons = dict(settings.UNSUBSCRIPTION_REASON_CHOICES)
         return unsubscription_reasons.get(self.unsubscription_reason, "N/A")
 
     def get_payment_type(self):
