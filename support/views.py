@@ -1985,7 +1985,7 @@ def book_unsubscription(request, subscription_id):
         if form.is_valid():
             form.save()
             success_text = format_lazy(
-                "Unsubscription for {name} booked for {end_date}",
+                u"Unsubscription for {name} booked for {end_date}",
                 name=subscription.contact.name, end_date=subscription.end_date)
             messages.success(request, success_text)
             subscription.unsubscription_date = date.today()
