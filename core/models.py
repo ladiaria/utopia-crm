@@ -1250,12 +1250,33 @@ class Subscription(models.Model):
             output += "</ul>"
         return output
 
+    def get_inactivity_reason(self):
+        """
+        Returns the unsubscription reason.
+        """
+        inactivity_reasons = dict(INACTIVITY_REASONS)
+        return inactivity_reasons.get(self.inactivity_reason, "N/A")
+
     def get_unsubscription_reason(self):
         """
         Returns the unsubscription reason.
         """
         unsubscription_reasons = dict(settings.UNSUBSCRIPTION_REASON_CHOICES)
         return unsubscription_reasons.get(self.unsubscription_reason, "N/A")
+
+    def get_unsubscription_channel(self):
+        """
+        Returns the unsubscription reason.
+        """
+        unsubscription_channels = dict(settings.UNSUBSCRIPTION_CHANNEL_CHOICES)
+        return unsubscription_channels.get(self.unsubscription_channel, "N/A")
+
+    def get_unsubscription_type(self):
+        """
+        Returns the unsubscription reason.
+        """
+        unsubscription_types = dict(UNSUBSCRIPTION_TYPE_CHOICES)
+        return unsubscription_types.get(self.unsubscription_type, "N/A")
 
     def get_payment_type(self):
         """
