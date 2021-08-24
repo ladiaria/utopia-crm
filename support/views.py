@@ -17,6 +17,7 @@ from django.http import (
 from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
+from django.utils.text import format_lazy
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
@@ -1983,9 +1984,10 @@ def book_unsubscription(request, subscription_id):
         form = UnsubscriptionForm(request.POST, instance=subscription)
         if form.is_valid():
             form.save()
-            messages.success(request, _("Unsubscription for contact {} booked for {}".format(
-                subscription.contact.name, subscription.end_date
-            )))
+            success_text = format_lazy(
+                "Unsubscription for {name} booked for {end_date}",
+                name=subscription.contact.name, end_date=subscription.end_date)
+            messages.success(request, success_text)
             subscription.unsubscription_date = date.today()
             subscription.unsubscription_manager = request.user
             subscription.save()
