@@ -88,27 +88,6 @@ DEFAULT_CITY = u"Montevideo"
 # This is just a placeholder text.
 IS_DEBTOR_INVOICE_MESSAGE = u"Call 867-5309 for more info"
 
-# Use this to pre define your states on the Address model. If you don't want to use a choice for the states,
-# set USE_STATES_CHOICE on False
-USE_STATES_CHOICE = True
-STATES = (("State 1", "State 1"), ("State 2", "State 2"))
-
-# Add your payment methods for subscriptions here. This is required for the program to work.
-SUBSCRIPTION_PAYMENT_METHODS = (
-    ("O", "Other"),
-    ("D", "Debit card"),
-    ("S", "Cash payment"),
-)
-
-# Here you can add a series of reasons to categorize why a contact was unsubscribed. The index must be a positive
-# number
-UNSUBSCRIPTION_REASONS = (
-    (1, "Economical reasons"),
-    (2, "Did not like the product"),
-    (3, "Problem with payment type"),
-    (4, "Did not receive the product"),
-)
-
 # Percentage of discount for when the frequency is more than 1
 DISCOUNT_3_MONTHS = 4.76
 DISCOUNT_6_MONTHS = 7.3
@@ -165,8 +144,8 @@ ISSUE_SUBCATEGORY_AUTO_CLOSE_SLUGS = [
 ]
 
 # Set a list of statuses slugs that will be used to mark the issue as finished. Examples below.
-ISSUE_STATUS_SOLVED = 'resuelto'
-ISSUE_STATUS_FINISHED_LIST = [ISSUE_STATUS_SOLVED, 'no-resuelto', 'incobrable']
+ISSUE_STATUS_SOLVED = 'solved'
+ISSUE_STATUS_FINISHED_LIST = [ISSUE_STATUS_SOLVED, 'not-solved']
 
 # Used when a new issue is created, depending if it was assigned or not. You must create the issue statuses beforehand
 ISSUE_STATUS_ASSIGNED = 'assigned'
@@ -175,9 +154,9 @@ ISSUE_STATUS_PENDING = 'pending'
 ISSUE_STATUS_NEW = 'new'
 
 # When using subcategories for debt, we use certain subcategories depending on how many overdue invoices the person has.
-ISSUE_SUBCATEGORY_1_INVOICE = 'deuda-1-factura'
-ISSUE_SUBCATEGORY_2_INVOICES = 'deuda-2-facturas'
-ISSUE_SUBCATEGORY_GENERIC_DEBT = 'deuda-generica'
+ISSUE_SUBCATEGORY_1_INVOICE = 'debt-1-invoice'
+ISSUE_SUBCATEGORY_2_INVOICES = 'debt-2-invoices'
+ISSUE_SUBCATEGORY_GENERIC_DEBT = 'generic-debt'
 
 # Temporary discount: slug: months. Use this dictionary if you want certain products to disappear from the subscription
 # after a set amount of months.
@@ -187,14 +166,3 @@ TEMPORARY_DISCOUNT = {
 
 # How many days into the future are we going to bill contacts
 BILLING_EXTRA_DAYS = 2
-
-UNSUBSCRIPTION_REASON_CHOICES = (
-    (1, "Does not like content"),
-    (2, "Economical reasons"),
-    (3, "Other"),
-)
-
-UNSUBSCRIPTION_CHANNEL_CHOICES = (
-    (1, "E-Mail"),
-    (2, "Phone"),
-)
