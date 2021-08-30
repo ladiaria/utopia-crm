@@ -17,6 +17,7 @@ from django.http import (
 from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
+from django.utils.text import format_lazy
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
@@ -694,6 +695,7 @@ def new_subscription(request, contact_id):
             "billing_phone": form_subscription.billing_phone,
             "billing_email": form_subscription.billing_email,
             "frequency": form_subscription.frequency,
+            "send_bill_copy_by_email": form_subscription.send_bill_copy_by_email,
         }
         form = NewSubscriptionForm(initial=initial_dict)
         form.fields['start_date'].widget.attrs['readonly'] = True
@@ -709,6 +711,7 @@ def new_subscription(request, contact_id):
                 "default_address": contact_addresses,
                 "start_date": date.today(),
                 "copies": 1,
+                "send_bill_copy_by_email": True,
             }
         )
 
@@ -772,6 +775,7 @@ def new_subscription(request, contact_id):
                 subscription.billing_email = form.cleaned_data['billing_email']
                 subscription.frequency = form.cleaned_data['frequency']
                 subscription.end_date = form.cleaned_data['end_date']
+                subscription.send_bill_copy_by_email = form.cleaned_data['send_bill_copy_by_email']
                 subscription.save()
             else:
                 subscription = Subscription.objects.create(
@@ -788,6 +792,7 @@ def new_subscription(request, contact_id):
                     billing_email=form.cleaned_data['billing_email'],
                     frequency=form.cleaned_data['frequency'],
                     end_date=form.cleaned_data['end_date'],
+                    send_bill_copy_by_email=form.cleaned_data['send_bill_copy_by_email'],
                 )
             if upgrade_subscription:
                 # Then, the amount that was already paid in the period but was not used due to closing the
@@ -1974,3 +1979,26 @@ def debtor_contacts(request):
             "order": order,
         },
     )
+
+
+@login_required
+def book_unsubscription(request, subscription_id):
+    subscription = get_object_or_404(Subscription, pk=subscription_id)
+    if request.POST:
+        form = UnsubscriptionForm(request.POST, instance=subscription)
+        if form.is_valid():
+            form.save()
+            success_text = format_lazy(
+                u"Unsubscription for {name} booked for {end_date}",
+                name=subscription.contact.name, end_date=subscription.end_date)
+            messages.success(request, success_text)
+            subscription.unsubscription_date = date.today()
+            subscription.unsubscription_manager = request.user
+            subscription.save()
+            return HttpResponseRedirect(reverse("contact_detail", args=[subscription.contact.id]))
+    else:
+        form = UnsubscriptionForm(instance=subscription)
+    return render(request, "book_unsubscription.html", {
+        "subscription": subscription,
+        "form": form,
+    })

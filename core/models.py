@@ -654,7 +654,7 @@ class Subscription(models.Model):
     rut = models.CharField(max_length=12, blank=True, null=True, verbose_name=_("R.U.T."))
     billing_phone = models.CharField(max_length=20, blank=True, null=True, verbose_name=_("Billing phone"))
     balance = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True, verbose_name=_("Balance"))
-    send_bill_copy_by_email = models.BooleanField(default=False, verbose_name=_("Send bill copy by email"))
+    send_bill_copy_by_email = models.BooleanField(default=True, verbose_name=_("Send bill copy by email"))
     billing_address = models.ForeignKey(
         Address,
         blank=True,
@@ -688,7 +688,19 @@ class Subscription(models.Model):
         User, verbose_name=_("Unsubscription manager"), null=True, blank=True, on_delete=models.SET_NULL
     )
     unsubscription_reason = models.PositiveSmallIntegerField(
-        choices=settings.UNSUBSCRIPTION_REASONS, blank=True, null=True, verbose_name=_("Unsubscription reason")
+        choices=settings.UNSUBSCRIPTION_REASON_CHOICES, blank=True, null=True, verbose_name=_("Unsubscription reason")
+    )
+    unsubscription_channel = models.PositiveSmallIntegerField(
+        choices=settings.UNSUBSCRIPTION_CHANNEL_CHOICES,
+        blank=True,
+        null=True,
+        verbose_name=_("Unsubscription channel"),
+    )
+    unsubscription_type = models.PositiveSmallIntegerField(
+        choices=UNSUBSCRIPTION_TYPE_CHOICES,
+        blank=True,
+        null=True,
+        verbose_name=_("Unsubscription type"),
     )
     unsubscription_addendum = models.TextField(blank=True, null=True, verbose_name=_("Unsubscription addendum"))
 
@@ -696,7 +708,7 @@ class Subscription(models.Model):
     products = models.ManyToManyField(Product, through="SubscriptionProduct")
     frequency = models.PositiveSmallIntegerField(default=1, choices=FREQUENCY_CHOICES)
     payment_type = models.CharField(
-        max_length=1,
+        max_length=2,
         choices=settings.SUBSCRIPTION_PAYMENT_METHODS,
         null=True,
         blank=True,
@@ -1233,12 +1245,33 @@ class Subscription(models.Model):
             output += "</ul>"
         return output
 
+    def get_inactivity_reason(self):
+        """
+        Returns the unsubscription reason.
+        """
+        inactivity_reasons = dict(INACTIVITY_REASONS)
+        return inactivity_reasons.get(self.inactivity_reason, "N/A")
+
     def get_unsubscription_reason(self):
         """
         Returns the unsubscription reason.
         """
-        unsubscription_reasons = dict(settings.UNSUBSCRIPTION_REASONS)
+        unsubscription_reasons = dict(settings.UNSUBSCRIPTION_REASON_CHOICES)
         return unsubscription_reasons.get(self.unsubscription_reason, "N/A")
+
+    def get_unsubscription_channel(self):
+        """
+        Returns the unsubscription reason.
+        """
+        unsubscription_channels = dict(settings.UNSUBSCRIPTION_CHANNEL_CHOICES)
+        return unsubscription_channels.get(self.unsubscription_channel, "N/A")
+
+    def get_unsubscription_type(self):
+        """
+        Returns the unsubscription reason.
+        """
+        unsubscription_types = dict(UNSUBSCRIPTION_TYPE_CHOICES)
+        return unsubscription_types.get(self.unsubscription_type, "N/A")
 
     def get_payment_type(self):
         """

@@ -400,8 +400,8 @@ def print_labels_for_product(request, page='Roll', product_id=None, list_type=''
                 label.message_for_contact = sp.label_message
             else:
                 if sp.subscription.type == 'P':
-                    if sp.subscription.seller:
-                        ref = sp.subscription.seller.name
+                    if sp.seller:
+                        ref = sp.seller.name
                     else:
                         ref = _('a friend')
                     label.message_for_contact = "{}\n{}".format(_('Subscription suggested by\n'), ref)
