@@ -144,6 +144,32 @@ GRAPH_MODELS = {
     'group_models': True,
 }
 
+# Use this to pre define your states on the Address model. If you don't want to use a choice for the states,
+# set USE_STATES_CHOICE on False
+USE_STATES_CHOICE = True
+STATES = (("State 1", "State 1"), ("State 2", "State 2"))
+
+# Here you can add a series of reasons to categorize why a contact was unsubscribed. The index must be a positive
+# number
+UNSUBSCRIPTION_REASON_CHOICES = (
+    (1, "Does not like content"),
+    (2, "Economical reasons"),
+    (3, "Other"),
+)
+
+# Same as the previous, but for where you received the unsubscription request.
+UNSUBSCRIPTION_CHANNEL_CHOICES = (
+    (1, "E-Mail"),
+    (2, "Phone"),
+)
+
+# Add your payment methods for subscriptions here. This is required for the program to work.
+SUBSCRIPTION_PAYMENT_METHODS = (
+    ("O", "Other"),
+    ("D", "Debit card"),
+    ("S", "Cash payment"),
+)
+
 # Import local settings if they exist
 # TODO: improve hardcoded load of community settings
 try:

@@ -9,14 +9,37 @@ from django.core.validators import RegexValidator, MinValueValidator, MaxValueVa
 from django.db import models
 from django.db.models import Q, Sum, Count
 from django.forms import ValidationError
-from django.utils.text import format_lazy
 from django.utils.translation import ugettext_lazy as _
 from django_extensions.db.fields import AutoSlugField
 from django.utils.html import mark_safe
 
 from taggit.managers import TaggableManager
 
-from .choices import *
+from .choices import (
+    ACTIVITY_DIRECTION_CHOICES,
+    ACTIVITY_STATUS_CHOICES,
+    ACTIVITY_TYPES,
+    ADDRESS_TYPE_CHOICES,
+    CAMPAIGN_REJECT_REASONS_CHOICES,
+    CAMPAIGN_RESOLUTION_CHOICES,
+    CAMPAIGN_RESOLUTION_REASONS_CHOICES,
+    CAMPAIGN_STATUS_CHOICES,
+    DYNAMIC_CONTACT_FILTER_MODES,
+    EDUCATION_CHOICES,
+    ENVELOPE_CHOICES,
+    FREQUENCY_CHOICES,
+    GENDERS,
+    INACTIVITY_REASONS,
+    PRICERULE_MODE_CHOICES,
+    PRIORITY_CHOICES,
+    PRODUCT_TYPE_CHOICES,
+    PRODUCT_WEEKDAYS,
+    PRODUCTHISTORY_CHOICES,
+    SUBSCRIPTION_STATUS_CHOICES,
+    SUBSCRIPTION_TYPE_CHOICES,
+    UNSUBSCRIPTION_TYPE_CHOICES,
+    VARIABLE_TYPES,
+)
 from utils import (
     delete_email_from_mailtrain_list,
     subscribe_email_to_mailtrain_list,
@@ -25,7 +48,7 @@ from utils import (
 from util.dates import get_default_next_billing, get_default_start_date, diff_month
 
 
-regex_alphanumeric = u"^[@A-Za-z0-9ñüáéíóúÑÜÁÉÍÓÚ _'.\-]*$"
+regex_alphanumeric = u"^[@A-Za-z0-9ñüáéíóúÑÜÁÉÍÓÚ _'.\-]*$"  # noqa
 regex_alphanumeric_msg = _(
     "This name only supports alphanumeric characters, at, apostrophes, spaces, hyphens, underscores, and periods."
 )
@@ -1204,14 +1227,14 @@ class Subscription(models.Model):
         if category:
             return (
                 self.issue_set.exclude(
-                    status__slug__in=ISSUE_STATUS_FINISHED_LIST, category=category
+                    status__slug__in=settings.ISSUE_STATUS_FINISHED_LIST, category=category
                 ).count()
                 == self.issue_set.all().count()
             )
         else:
             return (
                 self.issue_set.exclude(
-                    status__slug__in=ISSUE_STATUS_FINISHED_LIST
+                    status__slug__in=settings.ISSUE_STATUS_FINISHED_LIST
                 ).count()
                 == self.issue_set.all().count()
             )
