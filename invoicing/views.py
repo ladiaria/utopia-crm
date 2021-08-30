@@ -64,10 +64,11 @@ def contact_invoices(request, contact_id):
     })
 
 
-def bill_subscription(subscription_id, billing_date=date.today(), dpp=10, check_route=False, debug=False):
+def bill_subscription(subscription_id, billing_date=None, dpp=10, check_route=False, debug=False):
     """
     Bills a single subscription into an only invoice. Returns the created invoice.
     """
+    billing_date = billing_date or date.today()
     subscription = get_object_or_404(Subscription, pk=subscription_id)
     contact = subscription.contact
     invoice, invoice_items = None, None
