@@ -32,7 +32,6 @@ FREQUENCY_CHOICES = (
     (12, _('Annual'))
 )
 
-
 SUBSCRIPTION_TYPE_CHOICES = (
     ('P', _('Promotion')),
     ('N', _('Normal')),
@@ -159,7 +158,6 @@ PRODUCT_WEEKDAYS = (
     (9, _('Weekdays')),
     (10, _('Weekends')),
 )
-
 
 CAMPAIGN_STATUS_CHOICES = (
     (1, _('Not yet contacted')),
