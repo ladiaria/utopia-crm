@@ -51,10 +51,11 @@ def next_business_day(today=None, today_hour=None):
     return today
 
 
-def first_saturday_on_month(today_date=date.today()):
+def first_saturday_on_month(today_date=None):
     """
     Returns the first Saturday on the current month.
     """
+    today_date = today_date or date.today()
     first_day_of_month = date(today_date.year, today_date.month, 1)
     month_range = calendar.monthrange(today_date.year, today_date.month)
     delta = (calendar.SATURDAY - month_range[0]) % 7
