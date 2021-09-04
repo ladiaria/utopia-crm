@@ -1,3 +1,3 @@
-# export DJANGO_SETTINGS_MODULE="ci_test_settings"
-# set -e
-# python -W ignore manage.py test --noinput tests.test_blabla
+#!/bin/sh
+source ./runtests.sh
+python -W ignore manage.py test --settings=ci_test_settings -k ${TEST_MODULES}

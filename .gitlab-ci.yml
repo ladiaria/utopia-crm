@@ -6,5 +6,5 @@ test:
   variables:
     GIT_STRATEGY: clone
   script:
-  - source /opt/venv/utopia/bin/activate
+  - source /opt/venv/utopia-crm/bin/activate
   - bash ./runtests-ci.sh
