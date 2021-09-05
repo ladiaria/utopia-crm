@@ -99,8 +99,6 @@ ENVELOPE_PRICE = 4
 # Payment methods for invoicing
 INVOICE_PAYMENT_METHODS = (("M", "Mastercard"), ("V", "Visa"), ("C", "Cash"))
 
-INVOICES_PATH = "path/to/folder/in/media/"
-
 # Set the payment types that you want to track on labels here. They must be set by type on a string.
 LABEL_INVOICE_PAYMENT_TYPES = "RI"
 
