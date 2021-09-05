@@ -15,6 +15,8 @@ from django.utils.html import mark_safe
 
 from taggit.managers import TaggableManager
 
+from util import space_join
+from util.dates import get_default_next_billing, get_default_start_date, diff_month
 from .choices import (
     ACTIVITY_DIRECTION_CHOICES,
     ACTIVITY_STATUS_CHOICES,
@@ -45,7 +47,6 @@ from utils import (
     subscribe_email_to_mailtrain_list,
     get_emails_from_mailtrain_list,
 )
-from util.dates import get_default_next_billing, get_default_start_date, diff_month
 
 
 regex_alphanumeric = u"^[@A-Za-z0-9ñüáéíóúÑÜÁÉÍÓÚ _'.\-]*$"  # noqa
@@ -567,7 +568,7 @@ class Address(models.Model):
         default=getattr(settings, "DEFAULT_STATE", None),
         verbose_name=_("State"),
     )
-    if getattr(settings, "USE_STATES_CHOICE"):
+    if settings.USE_STATES_CHOICE:
         state.choices = settings.STATES
     email = models.EmailField(blank=True, null=True, verbose_name=_("Email"))
     address_type = models.CharField(
@@ -585,12 +586,7 @@ class Address(models.Model):
     # TODO: validate there is only one default address per contact
 
     def __unicode__(self):
-        return "%s %s %s %s" % (
-            self.address_1,
-            self.address_2 or "",
-            self.city or "",
-            self.state or "",
-        )
+        return space_join(space_join(self.address_1, self.address_2), space_join(self.city, self.state))
 
     def get_type(self):
         """
