@@ -170,6 +170,9 @@ SUBSCRIPTION_PAYMENT_METHODS = (
     ("S", "Cash payment"),
 )
 
+# Invoicing.Invoice model storage path relative to "MEDIA"
+INVOICES_PATH = "invoices"
+
 # Import local settings if they exist
 # TODO: improve hardcoded load of community settings
 try:
