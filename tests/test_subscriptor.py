@@ -2,13 +2,12 @@
 # TODO: All commented code should be explained or removed
 # TODO: These functions should be remade and re thought from scratch probably
 
+from django.conf import settings
 from django.test import TestCase
 # from django.utils.translation import ugettext_lazy as _
 
 # from django.forms import ValidationError
 # from django.test import TestCase
-
-from core.utils import dnames
 
 from tests.factory import (
     create_contact, create_subscription, create_product, create_address
@@ -92,15 +91,15 @@ class TestContact(TestCase):
         # check that definitions exists
         subscription.frequency = 3  # white box test
         freq3 = subscription.get_frequency_discount()
-        assert freq3
+        self.assertEqual(freq3, getattr(settings, "DISCOUNT_3_MONTHS", 0))
 
         subscription.frequency = 6  # white box test
         freq6 = subscription.get_frequency_discount()
-        assert freq6
+        self.assertEqual(freq6, getattr(settings, "DISCOUNT_6_MONTHS", 0))
 
         subscription.frequency = 12  # white box test
         freq12 = subscription.get_frequency_discount()
-        assert freq12
+        self.assertEqual(freq12, getattr(settings, "DISCOUNT_12_MONTHS", 0))
 
         first_day = subscription.get_first_day_of_the_week()
         # default value is 6 :: white box test
