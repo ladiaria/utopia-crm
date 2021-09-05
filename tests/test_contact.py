@@ -1,6 +1,7 @@
 # coding=utf-8
 from datetime import timedelta
 
+from django.conf import settings
 from django.test import TestCase
 from django.utils.translation import ugettext_lazy as _
 
@@ -8,6 +9,7 @@ from tests.factory import (
     create_contact, create_simple_invoice, create_product, create_campaign, create_address, create_subtype
 )
 
+from util import space_join
 from core.models import Contact, Product, Campaign, ContactCampaignStatus
 from invoicing.models import Invoice
 
@@ -141,8 +143,13 @@ class TestCoreContact(TestCase):
         # ('physical', _('Physical'))
         contact = create_contact(name='Contact 9', phone='12412455')
         address = create_address('Araucho 1390', contact, address_type='physical')
-        address_str = str(address)
-        self.assertEqual(address_str, 'Araucho 1390  Montevideo Montevideo')
+        self.assertEqual(
+            str(address),
+            space_join(
+                'Araucho 1390',
+                space_join(getattr(settings, 'DEFAULT_CITY', None), getattr(settings, 'DEFAULT_STATE', None)),
+            )
+        )
 
         address_type = address.get_type()
         self.assertEqual(address_type, _('Physical'))

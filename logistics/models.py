@@ -163,7 +163,7 @@ class Resort(models.Model):
     Stores data for resorts, usually vacation places where we don't reach or usually deliver to.
     """
     state = models.CharField(max_length=20, verbose_name=_('State'))
-    if getattr(settings, 'USE_STATES_CHOICE'):
+    if settings.USE_STATES_CHOICE:
         state.choices = settings.STATES
     name = models.CharField(max_length=50, verbose_name=_('Name'))
     status = models.CharField(max_length=2, choices=RESORT_STATUS_CHOICES, verbose_name=_('Status'))
@@ -205,7 +205,7 @@ class City(models.Model):
     """
     name = models.CharField(max_length=40, unique=True, verbose_name=_('Name'))
     state = models.CharField(max_length=20, verbose_name=_('City'))
-    if getattr(settings, 'USE_STATES_CHOICE'):
+    if settings.USE_STATES_CHOICE:
         state.choices = settings.STATES
 
     def __unicode__(self):
