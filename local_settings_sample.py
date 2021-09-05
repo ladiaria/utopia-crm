@@ -161,6 +161,3 @@ ISSUE_SUBCATEGORY_GENERIC_DEBT = 'generic-debt'
 TEMPORARY_DISCOUNT = {
     'product-slug': 3,
 }
-
-# How many days into the future are we going to bill contacts
-BILLING_EXTRA_DAYS = 2

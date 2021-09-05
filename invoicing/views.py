@@ -90,7 +90,7 @@ def bill_subscription(subscription_id, billing_date=None, dpp=10, check_route=Fa
         error_msg = _("This subscription has an end date greater than its next billing")
         assert subscription.next_billing < subscription.end_date, (error_msg)
 
-    if subscription.next_billing > billing_date + timedelta(getattr(settings, 'BILLING_EXTRA_DAYS', 0)):
+    if subscription.next_billing > billing_date + timedelta(settings.BILLING_EXTRA_DAYS):
         raise Exception(_('This subscription should not be billed yet.'))
 
     # We need to get all the subscription data. The priority is defined in the billing_priority column of the product.

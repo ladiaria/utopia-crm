@@ -173,6 +173,9 @@ SUBSCRIPTION_PAYMENT_METHODS = (
 # Invoicing.Invoice model storage path relative to "MEDIA"
 INVOICES_PATH = "invoices"
 
+# How many days into the future are we going to bill contacts
+BILLING_EXTRA_DAYS = 2
+
 # Import local settings if they exist
 # TODO: improve hardcoded load of community settings
 try:
