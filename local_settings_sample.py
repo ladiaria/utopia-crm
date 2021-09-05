@@ -141,10 +141,6 @@ ISSUE_SUBCATEGORY_AUTO_CLOSE_SLUGS = [
     '1-invoice-debt',
 ]
 
-# Set a list of statuses slugs that will be used to mark the issue as finished. Examples below.
-ISSUE_STATUS_SOLVED = 'solved'
-ISSUE_STATUS_FINISHED_LIST = [ISSUE_STATUS_SOLVED, 'not-solved']
-
 # Used when a new issue is created, depending if it was assigned or not. You must create the issue statuses beforehand
 ISSUE_STATUS_ASSIGNED = 'assigned'
 ISSUE_STATUS_UNASSIGNED = 'unassigned'
