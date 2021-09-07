@@ -735,9 +735,6 @@ def new_subscription(request, contact_id):
             mobile = form.cleaned_data["mobile"]
             if contact.mobile != mobile:
                 contact.mobile = mobile
-            notes = form.cleaned_data["notes"]
-            if contact.notes != notes:
-                contact.notes = notes
             id_document = form.cleaned_data["id_document"]
             if contact.id_document != id_document:
                 contact.id_document = id_document
