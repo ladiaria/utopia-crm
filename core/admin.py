@@ -323,7 +323,7 @@ class SubtypeAdmin(admin.ModelAdmin):
 class ActivityAdmin(admin.ModelAdmin):
     raw_id_fields = ['contact', 'issue', 'seller', 'campaign']
     date_hierarchy = "datetime"
-    list_display = ('id', 'contact', 'seller', 'activity_type', 'campaign', 'seller', 'status')
+    list_display = ('id', 'contact', 'seller', 'datetime', 'activity_type', 'campaign', 'seller', 'status')
     list_filter = ('seller', 'campaign', 'status')
     search_fields = ('contact__id', 'contact__name')
 
