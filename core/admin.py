@@ -336,7 +336,8 @@ class ContactProductHistoryAdmin(admin.ModelAdmin):
 
 class ContactCampaignStatusAdmin(admin.ModelAdmin):
     raw_id_fields = ['contact']
-    list_display = ('contact', 'campaign', 'status', 'times_contacted')
+    list_display = ('contact', 'campaign', 'status', 'seller', 'times_contacted')
+    list_filter = ('campaign', 'status', 'seller')
     search_fields = ('contact__name', )
 
 
