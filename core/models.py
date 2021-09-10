@@ -787,6 +787,10 @@ class Subscription(models.Model):
         null=True,
         verbose_name=_("Unsubscription type"),
     )
+    unsubscription_requested = models.BooleanField(
+        default=False,
+        verbose_name=_("Requested unsubscription"),
+    )
     unsubscription_addendum = models.TextField(
         blank=True, null=True, verbose_name=_("Unsubscription addendum")
     )

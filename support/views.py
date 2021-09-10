@@ -1995,3 +1995,9 @@ def book_unsubscription(request, subscription_id):
         "subscription": subscription,
         "form": form,
     })
+
+
+@login_required
+def partial_unsubscription(request, subscription_id):
+    # placeholder
+    return None
