@@ -470,6 +470,7 @@ class UnsubscriptionForm(forms.ModelForm):
         model = Subscription
         fields = (
             "end_date",
+            "unsubscription_requested",
             "unsubscription_type",
             "unsubscription_channel",
             "unsubscription_reason",
@@ -482,4 +483,5 @@ class UnsubscriptionForm(forms.ModelForm):
             "unsubscription_channel": forms.Select(attrs={"class": "form-control"}),
             "unsubscription_reason": forms.Select(attrs={"class": "form-control"}),
             "unsubscription_addendum": forms.Textarea(attrs={"class": "form-control"}),
+            "unsubscription_requested": forms.CheckboxInput(attrs={"class": "form-check-input"}),
         }
