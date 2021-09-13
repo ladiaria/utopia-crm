@@ -728,6 +728,10 @@ class Subscription(models.Model):
     unsubscription_addendum = models.TextField(
         blank=True, null=True, verbose_name=_("Unsubscription addendum")
     )
+    unsubscription_products = models.ManyToManyField(
+        Product,
+        related_name="unsubscriptions",
+    )
 
     # Product
     products = models.ManyToManyField(Product, through="SubscriptionProduct")

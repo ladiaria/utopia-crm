@@ -111,11 +111,13 @@ class SubscriptionInline(admin.StackedInline):
             'classes': ('collapse', ),
             'fields': (
                 ('inactivity_reason', 'unsubscription_date'),
+                ('unsubscription_type', 'unsubscription_requested'),
+                ('unsubscription_products', ),
                 ('unsubscription_reason', ),
                 ('unsubscription_addendum', )),
         }),
     )
-    readonly_fields = ('id', 'web_comments', 'edit_products_field')
+    readonly_fields = ('id', 'web_comments', 'edit_products_field', 'unsubscription_products')
     raw_id_fields = ['campaign']
 
     def get_parent_object_from_request(self, request):
@@ -179,6 +181,7 @@ class SubscriptionAdmin(admin.ModelAdmin):
             'fields': (
                 ('inactivity_reason',),
                 ('unsubscription_channel', 'unsubscription_type'),
+                'unsubscription_products',
                 'unsubscription_reason',
                 'unsubscription_addendum',
                 ('unsubscription_date', 'unsubscription_manager'),
@@ -187,7 +190,7 @@ class SubscriptionAdmin(admin.ModelAdmin):
     list_display = ('contact', 'active', 'payment_type', 'campaign', 'product_summary')
     list_editable = ('active', 'payment_type')
     list_filter = ('campaign', 'active', 'payment_type')
-    readonly_fields = ('contact', 'edit_products_field', 'campaign', 'updated_from')
+    readonly_fields = ('contact', 'edit_products_field', 'campaign', 'updated_from', 'unsubscription_products')
 
     class Media:
         pass
