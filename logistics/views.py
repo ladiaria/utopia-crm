@@ -8,6 +8,7 @@ from django.shortcuts import render, reverse, get_object_or_404
 from django.http import (
     HttpResponseRedirect, HttpResponse, HttpResponseNotFound)
 from django.conf import settings
+from django.utils.text import format_lazy
 from django.utils.translation import ugettext_lazy as _
 from django.db.models import Sum
 from django.contrib.auth.decorators import login_required, permission_required
@@ -311,8 +312,11 @@ def print_labels(request, page='Roll', list_type='', route_list='', product_id=N
                 if sp.subscription.type == 'P':
                     # TODO: the seller name can be obtained here to use it instead of "a friend"
                     #       (also check the use case of this label, isn't the "referer" a better option?)
-                    ref = _('a friend')
-                    label.message_for_contact = "{}\n{}".format(_('Subscription suggested by\n'), ref)
+                    if sp.seller:
+                        ref = sp.seller.name
+                    else:
+                        ref = "un amigo"  # TODO: i18n
+                    label.message_for_contact = u"Recomendado por {}".format(ref)  # TODO: i18n
                 # When we have a 2x1 plan we should put it here
                 # elif getattr(sp.subscription.product, 'id', None) == 6:
                 #     label.message_for_contact = "2x1"
@@ -403,8 +407,8 @@ def print_labels_for_product(request, page='Roll', product_id=None, list_type=''
                     if sp.seller:
                         ref = sp.seller.name
                     else:
-                        ref = _('a friend')
-                    label.message_for_contact = "{}\n{}".format(_('Subscription suggested by\n'), ref)
+                        ref = u"un amigo"  # TODO: i18n
+                    label.message_for_contact = u"Recomendado por {}".format(ref)  # TODO: i18n
                 # When we have a 2x1 plan we should put it here
                 # elif getattr(sp.subscription.product, 'id', None) == 6:
                 #     eti.comunicar_cliente = "2x1"
