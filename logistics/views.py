@@ -315,8 +315,8 @@ def print_labels(request, page='Roll', list_type='', route_list='', product_id=N
                     if sp.seller:
                         ref = sp.seller.name
                     else:
-                        ref = "un amigo"
-                    label.message_for_contact = u"Recomendado por {}".format(ref)
+                        ref = "un amigo"  # TODO: i18n
+                    label.message_for_contact = u"Recomendado por {}".format(ref)  # TODO: i18n
                 # When we have a 2x1 plan we should put it here
                 # elif getattr(sp.subscription.product, 'id', None) == 6:
                 #     label.message_for_contact = "2x1"
@@ -407,8 +407,8 @@ def print_labels_for_product(request, page='Roll', product_id=None, list_type=''
                     if sp.seller:
                         ref = sp.seller.name
                     else:
-                        ref = u"un amigo"
-                    label.message_for_contact = u"Recomendado por {}".format(ref)
+                        ref = u"un amigo"  # TODO: i18n
+                    label.message_for_contact = u"Recomendado por {}".format(ref)  # TODO: i18n
                 # When we have a 2x1 plan we should put it here
                 # elif getattr(sp.subscription.product, 'id', None) == 6:
                 #     eti.comunicar_cliente = "2x1"
