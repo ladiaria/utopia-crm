@@ -676,6 +676,7 @@ def new_subscription(request, contact_id):
 
     if form_subscription:
         # If there's an old subscription, get their billing_data if necessary
+        start_date_in_form = date.today() if upgrade_subscription else form_subscription.start_date
         initial_dict = {
             "contact_id": contact.id,
             "name": contact.name,
@@ -684,7 +685,7 @@ def new_subscription(request, contact_id):
             "email": contact.email,
             "id_document": contact.id_document,
             "default_address": contact_addresses,
-            "start_date": form_subscription.start_date,
+            "start_date": start_date_in_form,
             "end_date": form_subscription.end_date,
             "copies": 1,
             "payment_type": form_subscription.payment_type,
