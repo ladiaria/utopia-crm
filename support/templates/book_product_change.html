@@ -15,7 +15,7 @@ $( function() {
 {% block no_heading %}
 <h3>
   {% blocktrans with subscription.contact.name as contact_name %}
-  Partial unsubscription for {{contact_name}}
+  Product change for {{contact_name}}
   {% endblocktrans %}
 </h3>
 {% endblock %}
@@ -27,8 +27,8 @@ $( function() {
       <div class="card-header p-2">
         <ul class="nav nav-pills">
           <li class="new-item"><a class="nav-link" href="{% url 'book_unsubscription' subscription.id  %}">{% trans 'Unsubscription' %}</a></li>
-          <li class="new-item"><a class="nav-link active" href="{% url 'partial_unsubscription' subscription.id  %}">{% trans 'Partial unsubscription' %}</a></li>
-          <li class="new-item"><a class="nav-link" href="{% url 'product_change' subscription.id  %}">{% trans 'Product change' %}</a></li>        </ul>
+          <li class="new-item"><a class="nav-link" href="{% url 'partial_unsubscription' subscription.id  %}">{% trans 'Partial unsubscription' %}</a></li>
+          <li class="new-item"><a class="nav-link active" href="{% url 'product_change' subscription.id  %}">{% trans 'Product change' %}</a></li>        </ul>
       </div>
       <div class="card-body">
         <form method="post">
@@ -58,6 +58,15 @@ $( function() {
                   </div>
                 {% endfor %}
               </div>
+            </div>
+            <div class="col-6">
+              <label>Activar estos productos</label>
+              {% for product in offerable_products %}
+                <div class="form-check">
+                  <input id="activate-product-id-{{product.id}}" class="form-check-input" type="checkbox" name="activate-product-{{product.id}}">
+                  <label class="form-check-label" for="activate-product-id-{{product.id}}">{{product.name}}</label>
+                </div>
+              {% endfor %}
             </div>
           </div>
           <div class="row">
