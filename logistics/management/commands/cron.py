@@ -22,5 +22,12 @@ class Command(BaseCommand):
                 bar.next()
         if bar:
             bar.finish()
+        # Activate subscriptions that have not started yet
+        not_yet_started = Subscription.objects.filter(
+            active=False, start_date__lte=date.today(), status="OK"
+        )
+        for s in not_yet_started.iterator():
+            s.active = True
+            s.save()
 
         # TODO: something with the people that owes us money
