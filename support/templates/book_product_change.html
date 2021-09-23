@@ -63,8 +63,8 @@ $( function() {
               <label>Activar estos productos</label>
               {% for product in offerable_products %}
                 <div class="form-check">
-                  <input id="activate-product-id-{{product.id}}" class="form-check-input" type="checkbox" name="activate-product-{{product.id}}">
-                  <label class="form-check-label" for="activate-product-id-{{product.id}}">{{product.name}}</label>
+                  <input id="activateproduct-{{product.id}}" class="form-check-input" type="checkbox" name="activateproduct-{{product.id}}">
+                  <label class="form-check-label" for="activateproduct-{{product.id}}">{{product.name}}</label>
                 </div>
               {% endfor %}
             </div>
