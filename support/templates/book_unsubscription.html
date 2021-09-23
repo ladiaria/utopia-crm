@@ -28,6 +28,7 @@ $( function() {
         <ul class="nav nav-pills">
           <li class="new-item"><a class="nav-link active" href="{% url 'book_unsubscription' subscription.id  %}">{% trans 'Unsubscription' %}</a></li>
           <li class="new-item"><a class="nav-link" href="{% url 'partial_unsubscription' subscription.id  %}">{% trans 'Partial unsubscription' %}</a></li>
+          <li class="new-item"><a class="nav-link" href="{% url 'product_change' subscription.id  %}">{% trans 'Product change' %}</a></li>
         </ul>
       </div>
       <div class="card-body">
@@ -48,14 +49,14 @@ $( function() {
           {% endfor %}
           {% endif %}
           <div class="row">
-            <div class="col-4">
+            <div class="col-6">
               <div class="form-group">
                 <label for="id_end_date">{{form.end_date.label}}</label>
                 {{form.end_date}}
                 <span class="error invalid-feedback">{{form.end_date.errors}}</span>
               </div>
             </div>
-            <div class="col-4">
+            <div class="col-6">
               <div class="form-group">
                 <label for="id_unsubscription_requested">{{form.unsubscription_requested.label}}</label>
                 <div class="form-check">
@@ -63,13 +64,6 @@ $( function() {
                     <label class="form-check-label" for="id_unsubscription_requested">Baja a pedido del cliente</label>
                 </div>
                 <span class="error invalid-feedback">{{form.unsubscription_requested.errors}}</span>
-              </div>
-            </div>
-            <div class="col-4">
-              <div class="form-group">
-                <label for="id_unsubscription_type">{{form.unsubscription_type.label}}</label>
-                {{form.unsubscription_type}}
-                <span class="error invalid-feedback">{{form.unsubscription_type.errors}}</span>
               </div>
             </div>
           </div>

@@ -758,6 +758,7 @@ def new_subscription(request, contact_id):
                 form_subscription.end_date = form.cleaned_data["start_date"]
                 form_subscription.active = False
                 form_subscription.inactivity_reason = 3  # Upgraded
+                form_subscription.unsubscription_type = 4  # Upgraded
                 form_subscription.save()
 
             if edit_subscription:
@@ -1428,7 +1429,8 @@ def contact_detail(request, contact_id):
     issues = contact.issue_set.all().order_by("-id")[:3]
     newsletters = contact.get_newsletters()
     last_paid_invoice = contact.get_last_paid_invoice()
-    inactive_subscriptions = contact.subscriptions.filter(active=False)
+    inactive_subscriptions = contact.subscriptions.filter(active=False, start_date__lt=date.today())
+    future_subscriptions = contact.subscriptions.filter(active=False, start_date__gte=date.today())
     all_activities = contact.activity_set.all().order_by('-datetime', 'id')
     all_issues = contact.issue_set.all().order_by('-date', 'id')
     all_scheduled_tasks = contact.scheduledtask_set.all().order_by('-creation_date', 'id')
@@ -1444,6 +1446,7 @@ def contact_detail(request, contact_id):
             "newsletters": newsletters,
             "issues": issues,
             "inactive_subscriptions": inactive_subscriptions,
+            "future_subscriptions": future_subscriptions,
             "last_paid_invoice": last_paid_invoice,
             "all_activities": all_activities,
             "all_issues": all_issues,
@@ -1977,10 +1980,6 @@ def debtor_contacts(request):
 
 @login_required
 def book_unsubscription(request, subscription_id):
-    unsubscription_type_choices_alt = (
-        (1, _("Complete unsubscription")),
-        (3, _("Product change")),
-    )
     subscription = get_object_or_404(Subscription, pk=subscription_id)
     if request.POST:
         form = UnsubscriptionForm(request.POST, instance=subscription)
@@ -1990,6 +1989,7 @@ def book_unsubscription(request, subscription_id):
                 u"Unsubscription for {name} booked for {end_date}",
                 name=subscription.contact.name, end_date=subscription.end_date)
             messages.success(request, success_text)
+            subscription.unsubscription_type = 1  # Complete unsubscription
             subscription.unsubscription_date = date.today()
             subscription.unsubscription_manager = request.user
             subscription.unsubscription_products.add(*subscription.products.all())
@@ -1999,7 +1999,6 @@ def book_unsubscription(request, subscription_id):
         if subscription.end_date:
             messages.warning(request, _("WARNING: This subscription already has an end date"))
         form = UnsubscriptionForm(instance=subscription)
-        form.fields['unsubscription_type'].choices = unsubscription_type_choices_alt
     return render(request, "book_unsubscription.html", {
         "subscription": subscription,
         "form": form,
@@ -2008,12 +2007,7 @@ def book_unsubscription(request, subscription_id):
 
 @login_required
 def partial_unsubscription(request, subscription_id):
-    unsubscription_type_choices_alt = (
-        (2, _("Partial unsubscription")),
-        (3, _("Product change")),
-    )
     old_subscription = get_object_or_404(Subscription, pk=subscription_id)
-
     if request.POST:
         form = UnsubscriptionForm(request.POST, instance=old_subscription)
         if form.is_valid():
@@ -2066,6 +2060,7 @@ def partial_unsubscription(request, subscription_id):
                 name=old_subscription.contact.name, end_date=old_subscription.end_date)
             messages.success(request, success_text)
 
+            old_subscription.unsubscription_type = 2  # Partial unsubscription
             old_subscription.unsubscription_date = date.today()
             old_subscription.unsubscription_manager = request.user
             old_subscription.save()
@@ -2074,8 +2069,96 @@ def partial_unsubscription(request, subscription_id):
         if old_subscription.end_date:
             messages.warning(request, _("WARNING: This subscription already has an end date"))
         form = UnsubscriptionForm(instance=old_subscription)
-        form.fields['unsubscription_type'].choices = unsubscription_type_choices_alt
     return render(request, "book_partial_unsubscription.html", {
+        "subscription": old_subscription,
+        "form": form,
+    })
+
+
+@login_required
+def product_change(request, subscription_id):
+    old_subscription = get_object_or_404(Subscription, pk=subscription_id)
+    offerable_products = Product.objects.filter(offerable=True, type="S").exclude(
+        id__in=old_subscription.products.values_list('id')
+    )
+    new_products_ids_list = []
+    if request.POST:
+        form = UnsubscriptionForm(request.POST, instance=old_subscription)
+        if form.is_valid():
+            form.save()
+            new_subscription = Subscription.objects.create(
+                active=False,
+                status="OK",
+                contact=old_subscription.contact,
+                start_date=form.cleaned_data['end_date'],
+                payment_type=old_subscription.payment_type,
+                type=old_subscription.type,
+                status=old_subscription.status,
+                billing_name=old_subscription.billing_name,
+                billing_id_doc=old_subscription.billing_id_doc,
+                rut=old_subscription.rut,
+                billing_phone=old_subscription.billing_phone,
+                send_bill_copy_by_email=old_subscription.send_bill_copy_by_email,
+                billing_address=old_subscription.billing_address,
+                billing_email=old_subscription.billing_email,
+                next_billing=old_subscription.next_billing,
+                frequency=old_subscription.frequency,
+                updated_from=old_subscription,
+                card_id=old_subscription.card_id,
+                customer_id=old_subscription.customer_id,
+            )
+            for key, value in request.POST.items():
+                if key.startswith("sp"):
+                    subscription_product_id = key.split("-")[1]
+                    subscription_product = SubscriptionProduct.objects.get(pk=subscription_product_id)
+                    old_subscription.unsubscription_products.add(subscription_product.product)
+                if key.startswith("activateproduct"):
+                    product_id = key.split("-")[1]
+                    new_products_ids_list.append(product_id)
+
+            for sp in old_subscription.subscriptionproduct_set.all():
+                if sp.product not in old_subscription.unsubscription_products.all():
+                    new_sp = new_subscription.add_product(
+                        product=sp.product,
+                        address=sp.address,
+                        copies=sp.copies,
+                        message=sp.label_message,
+                        instructions=sp.special_instructions,
+                        seller_id=sp.seller_id,
+                    )
+                    if sp.route:
+                        new_sp.route = sp.route
+                    if sp.order:
+                        new_sp.order = sp.order
+                    new_sp.save()
+            # after this, we need to add the new products, that will have to be reviewed by an agent
+            for product_id in new_products_ids_list:
+                product = Product.objects.get(pk=product_id)
+                if product not in new_subscription.products.all():
+                    new_subscription.add_product(
+                        product=product,
+                        address=None,
+                    )
+            # After that, we'll set the unsubscription date to this new subscription
+            success_text = format_lazy(
+                u"Unsubscription for {name} booked for {end_date}",
+                name=old_subscription.contact.name, end_date=old_subscription.end_date)
+            messages.success(request, success_text)
+            old_subscription.unsubscription_type = 3  # Partial unsubscription
+            old_subscription.unsubscription_date = date.today()
+            old_subscription.unsubscription_manager = request.user
+            old_subscription.save()
+            return HttpResponseRedirect(
+                "{}?edit_subscription={}".format(
+                    reverse("new_subscription", args=[old_subscription.contact.id]),
+                    new_subscription.id)
+            )
+    else:
+        if old_subscription.end_date:
+            messages.warning(request, _("WARNING: This subscription already has an end date"))
+        form = UnsubscriptionForm(instance=old_subscription)
+    return render(request, "book_product_change.html", {
+        "offerable_products": offerable_products,
         "subscription": old_subscription,
         "form": form,
     })
