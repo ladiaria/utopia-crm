@@ -2013,7 +2013,7 @@ def partial_unsubscription(request, subscription_id):
         if form.is_valid():
             form.save()
             new_subscription = Subscription.objects.create(
-                # active=False,
+                active=False,
                 contact=old_subscription.contact,
                 start_date=form.cleaned_data['end_date'],
                 payment_type=old_subscription.payment_type,
@@ -2088,7 +2088,6 @@ def product_change(request, subscription_id):
             form.save()
             new_subscription = Subscription.objects.create(
                 active=False,
-                status="OK",
                 contact=old_subscription.contact,
                 start_date=form.cleaned_data['end_date'],
                 payment_type=old_subscription.payment_type,
