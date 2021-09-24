@@ -24,7 +24,7 @@ class Command(BaseCommand):
             bar.finish()
         # Activate subscriptions that have not started yet
         not_yet_started = Subscription.objects.filter(
-            active=False, start_date__lte=date.today(), status="OK"
+            active=False, start_date=date.today(), status="OK"
         )
         for s in not_yet_started.iterator():
             s.active = True
