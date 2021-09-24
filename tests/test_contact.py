@@ -11,6 +11,7 @@ from tests.factory import (
 from core.models import Contact, Product, Campaign, ContactCampaignStatus
 from invoicing.models import Invoice
 
+
 class TestCoreContact(TestCase):
 
     def setUp(self):
