@@ -185,7 +185,8 @@ ENVELOPE_CHOICES = (
 )
 
 UNSUBSCRIPTION_TYPE_CHOICES = (
-    # While we look for better wording, this will be a placeholder
-    (1, _("Asked for unsubscription")),
-    (2, _("Did not ask for unsubscription")),
+    (1, _("Complete unsubscription")),
+    (2, _("Partial unsubscription")),
+    (3, _("Product change")),
+    (4, _("Upgrade")),
 )

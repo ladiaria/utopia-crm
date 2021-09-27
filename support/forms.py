@@ -466,20 +466,27 @@ class NewActivityForm(forms.ModelForm):
 
 
 class UnsubscriptionForm(forms.ModelForm):
+    end_date = forms.DateField(
+        required=True,
+        widget=forms.DateInput(
+            format="%Y-%m-%d", attrs={"class": "datepicker form-control", "autocomplete": "off"}
+        )
+    )
+
     class Meta:
         model = Subscription
         fields = (
             "end_date",
+            "unsubscription_requested",
             "unsubscription_type",
             "unsubscription_channel",
             "unsubscription_reason",
             "unsubscription_addendum",
         )
         widgets = {
-            "end_date": forms.DateInput(format="%Y-%m-%d", attrs={
-                "class": "datepicker form-control", "autocomplete": "off"}),
             "unsubscription_type": forms.Select(attrs={"class": "form-control"}),
             "unsubscription_channel": forms.Select(attrs={"class": "form-control"}),
             "unsubscription_reason": forms.Select(attrs={"class": "form-control"}),
             "unsubscription_addendum": forms.Textarea(attrs={"class": "form-control"}),
+            "unsubscription_requested": forms.CheckboxInput(attrs={"class": "form-check-input"}),
         }

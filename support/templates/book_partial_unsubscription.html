@@ -15,7 +15,7 @@ $( function() {
 {% block no_heading %}
 <h3>
   {% blocktrans with subscription.contact.name as contact_name %}
-  Unsubscription for {{contact_name}}
+  Partial unsubscription for {{contact_name}}
   {% endblocktrans %}
 </h3>
 {% endblock %}
@@ -26,28 +26,40 @@ $( function() {
     <div class="card">
       <div class="card-header p-2">
         <ul class="nav nav-pills">
-          <li class="new-item"><a class="nav-link active" href="{% url 'book_unsubscription' subscription.id  %}">{% trans 'Unsubscription' %}</a></li>
-          <li class="new-item"><a class="nav-link" href="{% url 'partial_unsubscription' subscription.id  %}">{% trans 'Partial unsubscription' %}</a></li>
-          <li class="new-item"><a class="nav-link" href="{% url 'product_change' subscription.id  %}">{% trans 'Product change' %}</a></li>
-        </ul>
+          <li class="new-item"><a class="nav-link" href="{% url 'book_unsubscription' subscription.id  %}">{% trans 'Unsubscription' %}</a></li>
+          <li class="new-item"><a class="nav-link active" href="{% url 'partial_unsubscription' subscription.id  %}">{% trans 'Partial unsubscription' %}</a></li>
+          <li class="new-item"><a class="nav-link" href="{% url 'product_change' subscription.id  %}">{% trans 'Product change' %}</a></li>        </ul>
       </div>
       <div class="card-body">
         <form method="post">
           {% csrf_token %}
           {% if form.errors %}
-          {% for field in form %}
-          {% for error in field.errors %}
-          <div class="alert alert-danger">
-            <strong>{{ error|escape }}</strong>
-          </div>
-          {% endfor %}
-          {% endfor %}
-          {% for error in form.non_field_errors %}
-          <div class="alert alert-danger">
-            <strong>{{ error|escape }}</strong>
-          </div>
-          {% endfor %}
+            {% for field in form %}
+              {% for error in field.errors %}
+              <div class="alert alert-danger">
+                <strong>{{ error|escape }}</strong>
+              </div>
+              {% endfor %}
+            {% endfor %}
+            {% for error in form.non_field_errors %}
+              <div class="alert alert-danger">
+                <strong>{{ error|escape }}</strong>
+              </div>
+            {% endfor %}
           {% endif %}
+          <div class="row">
+            <div class="col-6">
+              <div class="form-group">
+                <label>Desactivar estos productos</label>
+                {% for subscriptionproduct in subscription.get_subscriptionproducts %}
+                  <div class="form-check">
+                    <input id="id-{{subscriptionproduct.id}}" class="form-check-input" type="checkbox" name="sp-{{subscriptionproduct.id}}">
+                    <label class="form-check-label" for="id-{{subscriptionproduct.id}}">{{subscriptionproduct.product.name}}</label>
+                  </div>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
           <div class="row">
             <div class="col-6">
               <div class="form-group">
@@ -96,5 +108,4 @@ $( function() {
     </div>
   </div>
 </div>
-
 {% endblock %}
