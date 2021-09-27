@@ -1,5 +1,5 @@
 # coding=utf-8
-from datetime import date
+from datetime import date, timedelta
 from progress.bar import Bar
 
 from django.core.management.base import BaseCommand
@@ -24,7 +24,11 @@ class Command(BaseCommand):
             bar.finish()
         # Activate subscriptions that have not started yet
         not_yet_started = Subscription.objects.filter(
-            active=False, start_date__lte=date.today(), status="OK"
+            active=False,
+            start_date__gt=date.today() - timedelta(1),
+            start_date__lte=date.today(),
+            status="OK",
+            end_date__isnull=False,
         )
         for s in not_yet_started.iterator():
             s.active = True
