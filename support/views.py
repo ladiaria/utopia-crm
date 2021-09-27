@@ -1429,9 +1429,12 @@ def contact_detail(request, contact_id):
     issues = contact.issue_set.all().order_by("-id")[:3]
     newsletters = contact.get_newsletters()
     last_paid_invoice = contact.get_last_paid_invoice()
-    inactive_subscriptions = contact.subscriptions.filter(active=False).exclude(status="AP")
-    inactive_subscriptions = contact.subscriptions.filter(active=False, start_date__lt=date.today())
-    future_subscriptions = contact.subscriptions.filter(active=False, start_date__gte=date.today())
+    inactive_subscriptions = contact.subscriptions.filter(
+        active=False, start_date__lt=date.today()
+    ).exclude(status="AP")
+    future_subscriptions = contact.subscriptions.filter(
+        active=False, start_date__gte=date.today()
+    ).exclude(status="AP")
     all_activities = contact.activity_set.all().order_by('-datetime', 'id')
     all_issues = contact.issue_set.all().order_by('-date', 'id')
     all_scheduled_tasks = contact.scheduledtask_set.all().order_by('-creation_date', 'id')
