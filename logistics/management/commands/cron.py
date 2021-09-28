@@ -28,7 +28,7 @@ class Command(BaseCommand):
             start_date__gt=date.today() - timedelta(1),
             start_date__lte=date.today(),
             status="OK",
-            end_date__isnull=False,
+            end_date__isnull=True,
         )
         for s in not_yet_started.iterator():
             s.active = True
