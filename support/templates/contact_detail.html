@@ -108,7 +108,9 @@ $( function() {
                                                 <dd><b>{% trans "Payment type" %}:</b> {{ subscription.get_payment_type }}</dd>
                                                 {% if subscription.balance %}<dd><b>{% trans "Balance" %}:</b> {{ subscription.balance }}</dd>{% endif %}
                                                 {% if request.user|in_group:"Support" or request.user|in_group:"Managers" %}
-                                                <a href="{% url 'new_subscription' contact.id %}?upgrade_subscription={{ subscription.id }}" class="btn btn-success">{% trans "Upgrade" %}</a>
+                                                {% if not subscription.has_been_upgraded %}
+                                                  <a href="{% url 'new_subscription' contact.id %}?upgrade_subscription={{ subscription.id }}" class="btn btn-success">{% trans "Upgrade" %}</a>
+                                                {% endif %}
                                                 <a href="{% url 'new_subscription' contact.id %}?edit_subscription={{ subscription.id }}" class="btn btn-success">{% trans "Edit" %}</a>
                                                 {% endif %}
                                                 {% endfor %}
@@ -420,7 +422,9 @@ $( function() {
                                                     </div>
                                                 </div>
                                                 <div class="text-right">
-                                                    <a href="{% url 'new_subscription' contact.id %}?upgrade_subscription={{subscription.id}}" class="btn  btn-success">{% trans "Upgrade" %}</a>
+                                                  {% if not subscription.has_been_upgraded %}
+                                                    <a href="{% url 'new_subscription' contact.id %}?upgrade_subscription={{ subscription.id }}" class="btn btn-success">{% trans "Upgrade" %}</a>
+                                                  {% endif %}
                                                     <a href="{% url 'new_subscription' contact.id %}?edit_subscription={{subscription.id}}" class="btn  btn-success">{% trans "Edit" %}</a>
                                                 </div>
                                                 {% endfor %}

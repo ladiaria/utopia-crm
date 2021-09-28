@@ -8,6 +8,15 @@
 <script type="text/javascript">
 $( function() {
   $(".datepicker").datepicker({ dateFormat: 'yy-mm-dd' });
+
+  $("#form").submit(function(event){
+    if ($(".disable-product:checked").length == 0){
+      alert("Selecciona productos para desactivar");
+    }else{
+      $("#form").submit();
+    }
+    return false;
+  });
 });
 </script>
 {% endblock %}
@@ -31,7 +40,7 @@ $( function() {
           <li class="new-item"><a class="nav-link" href="{% url 'product_change' subscription.id  %}">{% trans 'Product change' %}</a></li>        </ul>
       </div>
       <div class="card-body">
-        <form method="post">
+        <form method="post" id="form">
           {% csrf_token %}
           {% if form.errors %}
             {% for field in form %}
@@ -53,7 +62,7 @@ $( function() {
                 <label>Desactivar estos productos</label>
                 {% for subscriptionproduct in subscription.get_subscriptionproducts %}
                   <div class="form-check">
-                    <input id="id-{{subscriptionproduct.id}}" class="form-check-input" type="checkbox" name="sp-{{subscriptionproduct.id}}">
+                    <input id="id-{{subscriptionproduct.id}}" class="form-check-input disable-product" type="checkbox" name="sp-{{subscriptionproduct.id}}">
                     <label class="form-check-label" for="id-{{subscriptionproduct.id}}">{{subscriptionproduct.product.name}}</label>
                   </div>
                 {% endfor %}
