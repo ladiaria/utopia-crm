@@ -1448,6 +1448,9 @@ class Subscription(models.Model):
             qs = qs.exclude(product__type='D')
         return qs
 
+    def has_been_upgraded(self):
+        return Subscription.objects.filter(upgraded_from=self).exists()
+
     class Meta:
         verbose_name = _("subscription")
         verbose_name_plural = _("subscriptions")
