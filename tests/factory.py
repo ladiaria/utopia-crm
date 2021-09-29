@@ -156,3 +156,17 @@ def create_dynamiccontactfilter(description, mode=1):
     dcf = DynamicContactFilter.objects.create(description=description, mode=mode)
 
     return DynamicContactFilter.objects.get(pk=dcf.pk)
+
+
+def create_pricerule(products_pool, mode, add_wildcard, resulting_product=None, products_not_pool=[]):
+    from core.models import PriceRule
+    pr = PriceRule.objects.create(active=True, mode=mode, add_wildcard=add_wildcard)
+    for p in products_pool:
+        pr.products_pool.add(p)
+    for p in products_not_pool:
+        pr.products_not_pool.add(p)
+    if resulting_product:
+        pr.resulting_product = resulting_product
+    pr.save()
+
+    return PriceRule.objects.get(pk=pr.pk)
