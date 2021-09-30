@@ -129,10 +129,11 @@ def create_issue(contact, date):
     return Issue.objects.get(pk=issue.id)
 
 
-def create_product(name, price, type="S", billing_priority=1):
+def create_product(name, price, type="S", offerable=False, billing_priority=1):
     from core.models import Product
     product = Product.objects.create(
-        name=name, price=price, type=type, billing_priority=billing_priority)
+        name=name, active=True, price=price, type=type, offerable=offerable, billing_priority=billing_priority
+    )
 
     return Product.objects.get(pk=product.pk)
 
