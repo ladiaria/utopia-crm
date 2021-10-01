@@ -866,7 +866,7 @@ class Subscription(models.Model):
         copies=1,
         message=None,
         instructions=None,
-        route=None,
+        route_id=None,
         order=None,
         seller_id=None,
         override_date=None,
@@ -886,6 +886,8 @@ class Subscription(models.Model):
             special_instructions=instructions or None,
             label_contact=label_contact,
             seller_id=seller_id,
+            route_id=route_id,
+            order=order,
         )
         self.contact.add_product_history(
             subscription=self,
