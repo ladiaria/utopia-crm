@@ -141,7 +141,7 @@ $( function() {
                     <label for="id_send_bill_copy_by_email">{{form.send_bill_copy_by_email.label}}</label>
                     <div class="form-check">
                         {{form.send_bill_copy_by_email}}
-                        <label class="form-check-label" for="id_send_bill_copy_by_email">Enviar</label>
+                        <label class="form-check-label" for="id_send_bill_copy_by_email">{% trans "Send" %}</label>
                     </div>
                 </div>
             </div>
@@ -208,11 +208,11 @@ $( function() {
             {% block form_products %}
             <div class="mt-4">
                 {% for product in offerable_products %}
-                <div class='form-group border-bottom pb-2 {% if "lunes" in product.slug or "martes" in product.slug or "miercoles" in product.slug or "jueves" in product.slug or "viernes" in product.slug %}la_diaria_product_fg{% endif %}'>
+                <div class='form-group border-bottom pb-2'>
                     <div class="row mt-2">
                         <div class="col-5">
                             <div class="form-check">
-                                <input {% if product in form_subscription.products.all %}checked{% endif %} value="{{product.id}}" type='checkbox' name='check-{{product.id}}'  id="check-{{product.id}}" class='product_checkbox form-check-input {% if "lunes" in product.slug or "martes" in product.slug or "miercoles" in product.slug or "jueves" in product.slug or "viernes" in product.slug %}la_diaria_product{% endif %}{% if product.slug == "la-diaria-digital" %}la_diaria_digital{% endif %}' />
+                                <input {% if product in form_subscription.products.all %}checked{% endif %} value="{{product.id}}" type='checkbox' name='check-{{product.id}}'  id="check-{{product.id}}" class='product_checkbox form-check-input' />
                                 <label for="check-{{product.id}}">{{product.name}}</label>
                             </div>
                             <select name='address-{{product.id}}' class="address_selector form-control">
