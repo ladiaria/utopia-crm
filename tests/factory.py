@@ -129,10 +129,11 @@ def create_issue(contact, date):
     return Issue.objects.get(pk=issue.id)
 
 
-def create_product(name, price, type="S", billing_priority=1):
+def create_product(name, price, type="S", offerable=False, billing_priority=1):
     from core.models import Product
     product = Product.objects.create(
-        name=name, price=price, type=type, billing_priority=billing_priority)
+        name=name, active=True, price=price, type=type, offerable=offerable, billing_priority=billing_priority
+    )
 
     return Product.objects.get(pk=product.pk)
 
@@ -156,3 +157,19 @@ def create_dynamiccontactfilter(description, mode=1):
     dcf = DynamicContactFilter.objects.create(description=description, mode=mode)
 
     return DynamicContactFilter.objects.get(pk=dcf.pk)
+
+
+def create_pricerule(products_pool, mode, add_wildcard, resulting_product=None, products_not_pool=[], priority=None):
+    from core.models import PriceRule
+    pr = PriceRule.objects.create(
+        active=True, mode=mode, add_wildcard=add_wildcard, amount_to_pick=1, priority=priority
+    )
+    for p in products_pool:
+        pr.products_pool.add(p)
+    for p in products_not_pool:
+        pr.products_not_pool.add(p)
+    if resulting_product:
+        pr.resulting_product = resulting_product
+    pr.save()
+
+    return PriceRule.objects.get(pk=pr.pk)
