@@ -1,0 +1,141 @@
+{% extends 'adminlte/base.html' %}
+{% load i18n static %}
+
+{% block extra_js %}
+<script type="text/javascript">
+$( function() {
+    $('[data-toggle="tooltip"]').tooltip();
+});
+</script>
+{% endblock %}
+
+{% block no_heading %}
+<h1>{% trans "Campaign statistics" %}</h1>
+<p>{% trans "Statistics for" %} {{campaign.name}}</p>
+{% endblock %}
+
+{% block title %}
+{% trans "Campaign statistics" %}: {{campaign.name}}
+{% endblock title %}
+
+{% block content %}
+<div class="row">
+    <div class="col-6">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">{% trans "Campaign summary" %}</h3>
+          </div>
+          <div class="card-body">
+            <dl>
+              <dd><b>{% trans "Name" %}:</b> {{campaign.name}}</dd>
+              <dd><b>{% trans "Amount of contacts" %}:</b> {{total_count}}</dd>
+              <dt>{% trans "Description" %}:</dt>
+              <dd>{{campaign.description|default_if_none:"-"}}</dd>
+              <dd><b>{% trans "Start date" %}:</b> {{campaign.start_date|default_if_none:""}}</dd>
+              <dd><b>{% trans "End date" %}:</b> {{campaign.end_date|default_if_none:""}}</dd>
+            </dl>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">{% trans "Overview" %}</h3>
+          </div>
+          <div class="card-body">
+            <table class="table table-striped">
+              <thead>
+                <tr>
+                  <th></th>
+                  <th>{% trans "Contacts" %}</th>
+                  <th>%</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>{% trans "Not contacted yet" %}</td>
+                  <td>{{not_contacted_yet_count}}</td>
+                  <td>{{not_contacted_yet_pct}}%</td>
+                </tr>
+                <tr>
+                  <td>{% trans "Contacted" %}</td>
+                  <td>{{contacted_count}}</td>
+                  <td>{{contacted_pct}}%</td>
+                </tr>
+                <tr>
+                  <td>{% trans "Could not contact" %}</td>
+                  <td>{{could_not_contact_count}}</td>
+                  <td>{{could_not_contact_pct}}%</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">Contactados</h3>
+          </div>
+          <div class="card-body">
+            <table class="table table-striped">
+              <thead>
+                <tr>
+                  <th></th>
+                  <th>Contactos</th>
+                  <th>%</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Éxito con venta directa</td>
+                  <td></td>
+                  <td></td>
+                </tr>
+                <tr>
+                  <td>Éxito con promoción</td>
+                  <td></td>
+                  <td></td>
+                </tr>
+                <tr>
+                  <td>Rechazo</td>
+                  <td></td>
+                  <td></td>
+                </tr>
+                <tr>
+                  <td>Agendado</td>
+                  <td></td>
+                  <td></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">Razones de rechazo</h3>
+          </div>
+          <div class="card-body">
+            <table class="table table-striped">
+              <thead>
+                <tr>
+                  <th></th>
+                  <th>Cantidad</th>
+                  <th>%</th>
+                </tr>
+              </thead>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title"></h3>
+          </div>
+          <div class="card-body">
+          </div>
+        </div>
+
+
+    </div>
+</div>
+{% endblock %}

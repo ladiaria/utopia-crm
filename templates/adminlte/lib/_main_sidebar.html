@@ -33,6 +33,7 @@
 {% url "dynamic_contact_filter_list" as dynamic_contact_filter_list %}
 {% url "invoicing_issues" as collection_issues %}
 {% url "debtor_contacts" as debtor_contacts %}
+{% url "campaign_statistics_list" as campaign_statistics_list %}
 
 <li class="nav-item">
   <a href="{{contact_list}}" class="nav-link {% ifequal request.path contact_list  %}active{% endifequal %}">{% trans "Contacts" %}</a>
@@ -67,6 +68,7 @@
     <li class="nav-item"><a href="{{assign_campaigns}}" class="nav-link {% ifequal request.path assign_campaigns %}active{% endifequal %}">{% trans 'Assign campaigns' %}</a></li>
     <li class="nav-item"><a href="{{assign_to_seller}}" class="nav-link {% ifequal request.path assign_to_seller %}active{% endifequal %}">{% trans 'Assign contacts to sellers' %}</a></li>
     <li class="nav-item"><a href="{{core_campaign_add}}" target="_blank" class="nav-link">{% trans "New campaign" %}</a></li>
+    <li class="nav-item"><a href="{{campaign_statistics_list}}" class="nav-link">{% trans "Campaign statistics" %}</a></li>
     {% include_if_exists "campaign_management_sidebar_extra.html" %}
   </ul>
 </li>

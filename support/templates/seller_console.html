@@ -50,11 +50,9 @@ function validateHhMm(inputField) {
 {% block content %}
 {% if pending_activities_count > 0 %}
 <div class="alert alert-warning" role="alert">
-    {% blocktrans %}
-    You have {{pending_activities_count}} pending activities -
-    {% endblocktrans %}
-    {% trans "Next activity:" %} {{upcoming_activity.datetime}} -
-    <a href='{% url "scheduled_activities" %}?status=P'>{% trans "Go to list" %}</a>
+    Tenés {{pending_activities_count}} actividades pendientes -
+    Siguiente actividad: {{upcoming_activity.datetime}} -
+    <a class="text-danger" href='{% url "scheduled_activities" %}?status=P'>Ir a la lista</a>
 </div>
 {% endif %}
 <div class="row">
@@ -186,21 +184,22 @@ function validateHhMm(inputField) {
                     <br>
                     <div class="row">
                         <div class="col-sm-3">
-                            <input class="reject btn btn-block bg-gradient-danger btn-sm" type="submit" name="result" value="{% trans 'Not interested' %}"/>
-                            <input class="reject btn btn-block bg-gradient-danger btn-sm" type="submit" name="result" value="{% trans 'Error in promotion' %}"/>
-                            <input class="reject btn btn-block bg-gradient-danger btn-sm " type="submit" name="result" value="{% trans 'Do not  anymore' %}"/>
+                            <input class="btn btn-block bg-gradient-warning btn-sm " type="submit" name="result" value="No encontrado, llamar más tarde"/>
+                            <input class="btn btn-block bg-gradient-warning btn-sm" type="submit" name="result" value="{% trans 'Error in promotion' %}"/>
+                            <input class="btn btn-block bg-gradient-warning btn-sm " type="submit" name="result" value="Inubicable, retirar de campaña"/>
                         </div>
 
                         <div class="col-sm-3">
+                            <input class="reject btn btn-block bg-gradient-danger btn-sm " type="submit" name="result" value="No volver a llamar"/>
+                            <input class="reject btn btn-block bg-gradient-danger btn-sm" type="submit" name="result" value="{% trans 'Not interested' %}"/>
                             <input class="reject btn btn-block bg-gradient-danger btn-sm" type="submit" name="result" value="{% trans 'Logistics' %}"/>
                             <input class="reject btn btn-block bg-gradient-danger btn-sm" type="submit" name="result" value="{% trans 'Already a subscriber' %}"/>
-                            <input class="btn btn-block bg-gradient-warning btn-sm" type="submit" name="result" value="{% trans 'Call later' %}"/>
                         </div>
 
                         <div class="col-sm-3">
                             <a href="{% url 'send_promo' contact.id %}?url={{url}}&offset={{offset}}&{{category}}={{console_instance.id}}" class="btn btn-block bg-gradient-success btn-sm">{% trans "Send promo" %}</a>
                             <a href="{% url 'new_subscription' contact.id %}?url={{url}}&offset={{offset}}&{{category}}={{console_instance.id}}" class="btn btn-block bg-gradient-success btn-sm">{% trans "Sell" %}</a>
-                            <a href="{{url}}?offset={{position}}" class="btn btn-block bg-gradient-secondary btn-sm">{% trans "Next (Don't take actions)" %}</a>
+                            <a href="{{url}}?offset={{position}}" class="btn btn-block bg-gradient-secondary btn-sm">Siguiente (No hacer nada)</a>
                         </div>
 
                         <div class="col-sm-3">

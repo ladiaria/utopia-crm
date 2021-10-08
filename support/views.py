@@ -226,7 +226,7 @@ def seller_console_list_campaigns(request):
     # We'll make these lists so we can append the sub count to each campaign
     campaigns_with_not_contacted, campaigns_with_activities_to_do = [], []
 
-    not_contacted_campaigns = seller.get_campaigns_by_status([1])
+    not_contacted_campaigns = seller.get_campaigns_by_status([1, 3])
     all_campaigns = seller.get_unfinished_campaigns()
     for campaign in not_contacted_campaigns:
         campaign.count = campaign.get_not_contacted_count(seller.id)
@@ -337,19 +337,16 @@ def seller_console(request, category, campaign_id):
                 notes="{} {}".format(_("Scheduled for"), call_datetime),
             )
 
-        elif result == _("Call later"):
-            # Don't do anything, just save the activity.
-            pass
+        elif result == u"No encontrado, llamar más tarde":
+            ccs.campaign_resolution = "CL"
+            offset = int(offset) + 1
+            ccs.status = 3
 
         elif result == _("Not interested"):
             ccs.campaign_resolution = "NI"
             ccs.status = 4
 
-        elif result == _("Error in promotion"):
-            ccs.campaign_resolution = "EP"
-            ccs.status = 4
-
-        elif result == _("Do not call anymore"):
+        elif result == "No volver a llamar":
             ccs.campaign_resolution = "DN"
             ccs.status = 4
 
@@ -360,6 +357,14 @@ def seller_console(request, category, campaign_id):
         elif result == _("Already a subscriber"):
             ccs.campaign_resolution = "AS"
             ccs.status = 4
+
+        elif result == u"Inubicable, retirar de campaña":
+            ccs.campaign_resolution = "UN"
+            ccs.status = 5
+
+        elif result == _("Error in promotion"):
+            ccs.campaign_resolution = "EP"
+            ccs.status = 5
 
         if request.POST.get("campaign_resolution_reason", None):
             ccs.resolution_reason = request.POST.get("campaign_resolution_reason", None)
@@ -612,7 +617,7 @@ def send_promo(request, contact_id):
                 contact=contact,
                 campaign=campaign,
                 direction="O",
-                datetime=end_date,
+                datetime=end_date + timedelta(1),
                 activity_type="C",
                 status="P",
                 seller=seller,
@@ -1835,7 +1840,7 @@ def edit_envelopes(request, subscription_id):
         })
 
 
-@login_required
+@staff_member_required
 def invoicing_issues(request):
     """
     Shows a more comprehensive list of issues for debtors.
@@ -1913,7 +1918,7 @@ def invoicing_issues(request):
     )
 
 
-@login_required
+@staff_member_required
 def debtor_contacts(request):
     """
     Shows a comprehensive list of contacts that are debtors.
@@ -1986,7 +1991,7 @@ def debtor_contacts(request):
     )
 
 
-@login_required
+@staff_member_required
 def book_unsubscription(request, subscription_id):
     subscription = get_object_or_404(Subscription, pk=subscription_id)
     if request.POST:
@@ -2013,7 +2018,7 @@ def book_unsubscription(request, subscription_id):
     })
 
 
-@login_required
+@staff_member_required
 def partial_unsubscription(request, subscription_id):
     old_subscription = get_object_or_404(Subscription, pk=subscription_id)
     if request.POST:
@@ -2083,7 +2088,7 @@ def partial_unsubscription(request, subscription_id):
     })
 
 
-@login_required
+@staff_member_required
 def product_change(request, subscription_id):
     old_subscription = get_object_or_404(Subscription, pk=subscription_id)
     offerable_products = Product.objects.filter(offerable=True, type="S").exclude(
@@ -2168,4 +2173,60 @@ def product_change(request, subscription_id):
         "offerable_products": offerable_products,
         "subscription": old_subscription,
         "form": form,
+    })
+
+
+@staff_member_required
+def campaign_statistics_list(request):
+    campaigns = Campaign.objects.all()
+    return render(request, "campaign_statistics_list.html", {
+        "campaigns": campaigns,
+    })
+
+
+@staff_member_required
+def campaign_statistics_detail(request, campaign_id):
+    campaign = get_object_or_404(Campaign, pk=campaign_id)
+    total_count = campaign.contactcampaignstatus_set.count()
+    not_contacted_yet_count = campaign.contactcampaignstatus_set.filter(status=1).count()
+    contacted_count = campaign.contactcampaignstatus_set.filter(status__in=[4, 2]).count()
+    could_not_contact_count = campaign.contactcampaignstatus_set.filter(status__in=[3, 5]).count()
+
+    success_with_direct_sale = campaign.contactcampaignstatus_set.filter(
+        campaign_resolution="S2")
+    success_with_promotion = campaign.contactcampaignstatus_set.filter(
+        campaign_resolution="S1")
+    scheduled = campaign.contactcampaignstatus_set.filter(
+        campaign_resolution="SC"
+    )
+    call_later = campaign.contactcampaignstatus_set.filter(
+        campaign_resolution="CL"
+    )
+    unreachable = campaign.contactcampaignstatus_set.filter(
+        campaign_resolution="UN"
+    )
+    error_in_promotion = campaign.contactcampaignstatus_set.filter(
+        campaign_resolution="EP"
+    )
+    started_promotion = campaign.contactcampaignstatus_set.filter(
+        campaign_resolution="SP"
+    )
+    rejects = campaign.contactcampaignstatus_set.filter(campaign_resolution__in=(
+        "AS", "DN", "LO", "NI",
+    ))
+    rejects_by_reason = {}
+    for ccs in rejects.iterator():
+        item = rejects_by_reason.get(ccs.resolution_reason, 0)
+        item += 1
+        rejects_by_reason[ccs.resolution_]
+
+    return render(request, "campaign_statistics_detail.html", {
+        "campaign": campaign,
+        "total_count": total_count,
+        "not_contacted_yet_count": not_contacted_yet_count,
+        "not_contacted_yet_pct": (not_contacted_yet_count * 100) / total_count,
+        "contacted_count": contacted_count,
+        "contacted_pct": (contacted_count * 100) / total_count,
+        "could_not_contact_count": could_not_contact_count,
+        "could_not_contact_pct": (could_not_contact_count * 100) / total_count,
     })
