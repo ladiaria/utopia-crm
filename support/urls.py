@@ -1,5 +1,41 @@
 # coding=utf-8
-from support.views import *
+from support.views import (
+    assign_campaigns,
+    list_campaigns_with_no_seller,
+    assign_seller,
+    seller_console_list_campaigns,
+    seller_console,
+    scheduled_activities,
+    edit_address,
+    import_contacts,
+    send_promo,
+    new_subscription,
+    product_change,
+    partial_unsubscription,
+    book_unsubscription,
+    edit_products,
+    contact_list,
+    contact_detail,
+    api_new_address,
+    api_dynamic_prices,
+    list_issues,
+    invoicing_issues,
+    debtor_contacts,
+    new_issue,
+    new_scheduled_task,
+    view_issue,
+    dynamic_contact_filter_new,
+    dynamic_contact_filter_edit,
+    dynamic_contact_filter_list,
+    export_dcf_emails,
+    sync_with_mailtrain,
+    register_activity,
+    edit_contact,
+    edit_newsletters,
+    edit_envelopes,
+    campaign_statistics_list,
+    campaign_statistics_detail,
+)
 
 from django.conf.urls import url
 
@@ -62,4 +98,6 @@ urlpatterns = [
     url(r"^contacts/(\d+)/edit/$", edit_contact, name="edit_contact"),
     url(r"^edit_newsletters/(\d+)/$", edit_newsletters, name="edit_newsletters"),
     url(r"^edit_envelopes/(\d+)/$", edit_envelopes, name="edit_envelopes"),
+    url(r"^campaign_statistics/$", campaign_statistics_list, name="campaign_statistics_list"),
+    url(r"^campaign_statistics/(\d+)/$", campaign_statistics_detail, name="campaign_statistics_detail"),
 ]

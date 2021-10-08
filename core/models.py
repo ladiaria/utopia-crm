@@ -20,7 +20,6 @@ from .choices import (
     ACTIVITY_STATUS_CHOICES,
     ACTIVITY_TYPES,
     ADDRESS_TYPE_CHOICES,
-    CAMPAIGN_REJECT_REASONS_CHOICES,
     CAMPAIGN_RESOLUTION_CHOICES,
     CAMPAIGN_RESOLUTION_REASONS_CHOICES,
     CAMPAIGN_STATUS_CHOICES,
@@ -1497,7 +1496,7 @@ class Campaign(models.Model):
         """
         Returns the ContactCampaignStatus objects for all Contacts that have not been called yet (status=1)
         """
-        return self.contactcampaignstatus_set.filter(seller_id=seller_id, status=1)
+        return self.contactcampaignstatus_set.filter(seller_id=seller_id, status__in=[1, 3])
 
     def get_not_contacted_count(self, seller_id):
         """
@@ -1510,7 +1509,7 @@ class Campaign(models.Model):
         Returns the ContactCampaignStatus objects for all Contacts that have already been called yet (status=2, 3)
         """
         return self.contactcampaignstatus_set.filter(
-            seller_id=seller_id, status__in=[2, 3]
+            seller_id=seller_id, status=2
         )
 
     def get_already_contacted_count(self, seller_id):
@@ -1631,7 +1630,7 @@ class ContactCampaignStatus(models.Model):
     status = models.SmallIntegerField(choices=CAMPAIGN_STATUS_CHOICES, default=1)
     campaign_resolution = models.CharField(choices=CAMPAIGN_RESOLUTION_CHOICES, null=True, blank=True, max_length=2)
     campaign_reject_reason = models.CharField(
-        choices=CAMPAIGN_REJECT_REASONS_CHOICES, null=True, blank=True, max_length=1
+        null=True, blank=True, max_length=1
     )
     seller = models.ForeignKey("support.Seller", null=True, blank=True)
     date_created = models.DateField(auto_now_add=True)

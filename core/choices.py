@@ -86,6 +86,14 @@ ACTIVITY_DIRECTION_CHOICES = (
     ('O', _('Out')),
 )
 
+CAMPAIGN_STATUS_CHOICES = (
+    (1, _('Not yet contacted')),
+    (2, _('Contacted')),
+    (3, _('Called, could not contact')),
+    (4, _('Ended with contact')),
+    (5, _('Ended without contact')),
+)
+
 CAMPAIGN_RESOLUTION_CHOICES = (
     ('SP', _('Started promotion')),
     ('AS', _('Already a subscriber')),
@@ -95,22 +103,9 @@ CAMPAIGN_RESOLUTION_CHOICES = (
     ('NI', _('Not interested')),
     ('S1', _('Success with promotion')),
     ('S2', _('Success with direct sale')),
-)
-
-CAMPAIGN_REJECT_REASONS_CHOICES = (
-    ('F', _('Failed delivery')),
-    ('E', _('Financial reasons')),
-    ('D', _('Error in data')),
-    ('N', _('Never signed in for promotion')),
-    ('P', _('Did not like the product')),
-    ('C', _('Did not like the content')),
-    ('R', _('Cannot reach the contact\'s location')),
-    ('K', _('Did not know what they signed up for')),
-    ('T', _('Does not read/Does not have time')),
-    ('Z', _('Dangerous zone')),
-    ('A', _('Does not accept call')),
-    ('O', _('Accepts call but does not accept offer')),
-    ('H', _('Accepts call, will think about it')),
+    ('SC', _('Scheduled')),
+    ('CL', _('Call later')),
+    ('UN', _('Cannot find contact')),
 )
 
 CAMPAIGN_RESOLUTION_REASONS_CHOICES = (
@@ -157,14 +152,6 @@ PRODUCT_WEEKDAYS = (
     (8, _('All week')),
     (9, _('Weekdays')),
     (10, _('Weekends')),
-)
-
-CAMPAIGN_STATUS_CHOICES = (
-    (1, _('Not yet contacted')),
-    (2, _('Contacted')),
-    (3, _('Called, could not contact')),
-    (4, _('Ended with contact')),
-    (5, _('Ended without contact')),
 )
 
 PRICERULE_MODE_CHOICES = (
