@@ -57,12 +57,17 @@ $( function() {
                   <td>{{not_contacted_yet_pct}}%</td>
                 </tr>
                 <tr>
+                  <td>{% trans "Tried to contact and could not" %}</td>
+                  <td>{{tried_to_contact_count}}</td>
+                  <td>{{tried_to_contact_pct}}%</td>
+                </tr>
+                <tr>
                   <td>{% trans "Contacted" %}</td>
                   <td>{{contacted_count}}</td>
                   <td>{{contacted_pct}}%</td>
                 </tr>
                 <tr>
-                  <td>{% trans "Could not contact" %}</td>
+                  <td>{% trans "Ended without contact" %}</td>
                   <td>{{could_not_contact_count}}</td>
                   <td>{{could_not_contact_pct}}%</td>
                 </tr>
@@ -87,23 +92,43 @@ $( function() {
               <tbody>
                 <tr>
                   <td>Éxito con venta directa</td>
-                  <td></td>
-                  <td></td>
+                  <td>{{success_with_direct_sale_count}}</td>
+                  <td>{{success_with_direct_sale_pct}}%</td>
                 </tr>
                 <tr>
                   <td>Éxito con promoción</td>
-                  <td></td>
-                  <td></td>
+                  <td>{{success_with_promotion_count}}</td>
+                  <td>{{success_with_promotion_pct}}%</td>
                 </tr>
                 <tr>
                   <td>Rechazo</td>
-                  <td></td>
-                  <td></td>
+                  <td>{{total_rejects_count}}</td>
+                  <td>{{total_rejects_pct}}%</td>
                 </tr>
                 <tr>
                   <td>Agendado</td>
-                  <td></td>
-                  <td></td>
+                  <td>{{scheduled_count}}</td>
+                  <td>{{scheduled_pct}}%</td>
+                </tr>
+                <tr>
+                  <td>Llamar después</td>
+                  <td>{{call_later_count}}</td>
+                  <td>{{call_later_pct}}%</td>
+                </tr>
+                <tr>
+                  <td>Inubicable</td>
+                  <td>{{unreachable_count}}</td>
+                  <td>{{unreachable_pct}}%</td>
+                </tr>
+                <tr>
+                  <td>Promoción en curso</td>
+                  <td>{{started_promotion_count}}</td>
+                  <td>{{started_promotion_pct}}%</td>
+                </tr>
+                <tr>
+                  <td>Error en datos</td>
+                  <td>{{error_in_promotion_count}}</td>
+                  <td>{{error_in_promotion_pct}}%</td>
                 </tr>
               </tbody>
             </table>
@@ -123,7 +148,18 @@ $( function() {
                   <th>%</th>
                 </tr>
               </thead>
+              <tbody>
+                {% for index, reject in rejects_by_reason.items %}
+                <tr>
+                  <td>{{index}}</td>
+                  <td>{{reject.0}}</td>
+                  <td>{{reject.1}}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
             </table>
+            <br>
+            * Rechazos sin razón registrada: {{rejects_without_reason_count}}
           </div>
         </div>
 
