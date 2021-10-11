@@ -1,4 +1,5 @@
 # coding=utf-8
+from __future__ import division
 import unicodecsv
 from datetime import date, timedelta, datetime
 
@@ -39,7 +40,7 @@ from core.models import (
 )
 from core.choices import CAMPAIGN_RESOLUTION_REASONS_CHOICES
 
-from .filters import IssueFilter, InvoicingIssueFilter, ScheduledActivityFilter
+from .filters import IssueFilter, InvoicingIssueFilter, ScheduledActivityFilter, ContactCampaignStatusFilter
 from .forms import *
 from .models import Seller, ScheduledTask, IssueStatus
 from core.utils import calc_price_from_products, process_products
@@ -2187,46 +2188,74 @@ def campaign_statistics_list(request):
 @staff_member_required
 def campaign_statistics_detail(request, campaign_id):
     campaign = get_object_or_404(Campaign, pk=campaign_id)
+    ccs_queryset = campaign.contactcampaignstatus_set.all()
+    ccs_filter = ContactCampaignStatusFilter(request.GET, queryset=ccs_queryset)
+    assigned_count = campaign.contactcampaignstatus_set.filter(seller__isnull=False).count()
+    not_assigned_count = campaign.contactcampaignstatus_set.filter(seller__isnull=True).count()
+    filtered_count = ccs_filter.qs.count()
     total_count = campaign.contactcampaignstatus_set.count()
-    not_contacted_yet_count = campaign.contactcampaignstatus_set.filter(status=1).count()
-    contacted_count = campaign.contactcampaignstatus_set.filter(status__in=[4, 2]).count()
-    could_not_contact_count = campaign.contactcampaignstatus_set.filter(status__in=[3, 5]).count()
+    not_contacted_yet_count = ccs_filter.qs.filter(status=1).count()
+    tried_to_contact_count = ccs_filter.qs.filter(status=3).count()
+    contacted_count = ccs_filter.qs.filter(status__in=[4, 2]).count()
+    could_not_contact_count = ccs_filter.qs.filter(status__in=[5]).count()
 
-    success_with_direct_sale = campaign.contactcampaignstatus_set.filter(
-        campaign_resolution="S2")
-    success_with_promotion = campaign.contactcampaignstatus_set.filter(
-        campaign_resolution="S1")
-    scheduled = campaign.contactcampaignstatus_set.filter(
-        campaign_resolution="SC"
-    )
-    call_later = campaign.contactcampaignstatus_set.filter(
-        campaign_resolution="CL"
-    )
-    unreachable = campaign.contactcampaignstatus_set.filter(
-        campaign_resolution="UN"
-    )
-    error_in_promotion = campaign.contactcampaignstatus_set.filter(
-        campaign_resolution="EP"
-    )
-    started_promotion = campaign.contactcampaignstatus_set.filter(
-        campaign_resolution="SP"
-    )
-    rejects = campaign.contactcampaignstatus_set.filter(campaign_resolution__in=(
-        "AS", "DN", "LO", "NI",
-    ))
+    ccs_with_resolution = ccs_filter.qs.filter(campaign_resolution__isnull=False)
+    ccs_with_resolution_count = ccs_with_resolution.count()
+    success_with_direct_sale_count = ccs_with_resolution.filter(campaign_resolution="S2").count()
+    success_with_promotion_count = ccs_with_resolution.filter(campaign_resolution="S1").count()
+    scheduled_count = ccs_with_resolution.filter(campaign_resolution="SC").count()
+    call_later_count = ccs_with_resolution.filter(campaign_resolution="CL").count()
+    unreachable_count = ccs_with_resolution.filter(campaign_resolution="UN").count()
+    error_in_promotion_count = ccs_with_resolution.filter(campaign_resolution="EP").count()
+    started_promotion_count = ccs_with_resolution.filter(campaign_resolution="SP").count()
+
+    # Rejects section
+    total_rejects = ccs_with_resolution.filter(campaign_resolution__in=("AS", "DN", "LO", "NI"))
+    total_rejects_count = total_rejects.count()
+    rejects_with_reason = total_rejects.filter(resolution_reason__isnull=False)
+    rejects_with_reason_count = rejects_with_reason.count()
+    rejects_without_reason_count = total_rejects.filter(resolution_reason__isnull=True).count()
     rejects_by_reason = {}
-    for ccs in rejects.iterator():
-        item = rejects_by_reason.get(ccs.resolution_reason, 0)
+    for ccs in rejects_with_reason.iterator():
+        reason = ccs.get_resolution_reason_display()
+        item = rejects_by_reason.get(reason, 0)
         item += 1
-        rejects_by_reason[ccs.resolution_]
+        rejects_by_reason[reason] = item
+    for index, item in rejects_by_reason.items():
+        pct = (item * 100) / rejects_with_reason_count
+        rejects_by_reason[index] = (item, pct)
 
     return render(request, "campaign_statistics_detail.html", {
         "campaign": campaign,
+        "filter": ccs_filter,
+        "filtered_count": ccs_filter.qs.count(),
         "total_count": total_count,
+        "assigned_count": assigned_count,
+        "not_assigned_count": not_assigned_count,
         "not_contacted_yet_count": not_contacted_yet_count,
-        "not_contacted_yet_pct": (not_contacted_yet_count * 100) / total_count,
+        "not_contacted_yet_pct": float((not_contacted_yet_count * 100) / (filtered_count or 1)),
+        "tried_to_contact_count": tried_to_contact_count,
+        "tried_to_contact_pct": float((tried_to_contact_count * 100) / (filtered_count or 1)),
         "contacted_count": contacted_count,
-        "contacted_pct": (contacted_count * 100) / total_count,
+        "contacted_pct": (contacted_count * 100) / (filtered_count or 1),
         "could_not_contact_count": could_not_contact_count,
-        "could_not_contact_pct": (could_not_contact_count * 100) / total_count,
+        "could_not_contact_pct": (could_not_contact_count * 100) / (filtered_count or 1),
+        "total_rejects_count": total_rejects_count,
+        "total_rejects_pct": (total_rejects_count * 100) / (ccs_with_resolution_count or 1),
+        "rejects_by_reason": rejects_by_reason,
+        "rejects_without_reason_count": rejects_without_reason_count,
+        "success_with_promotion_count": success_with_promotion_count,
+        "success_with_promotion_pct": (success_with_promotion_count * 100) / (ccs_with_resolution_count or 1),
+        "success_with_direct_sale_count": success_with_direct_sale_count,
+        "success_with_direct_sale_pct": (success_with_direct_sale_count * 100) / (ccs_with_resolution_count or 1),
+        "scheduled_count": scheduled_count,
+        "scheduled_pct": (scheduled_count * 100) / (ccs_with_resolution_count or 1),
+        "call_later_count": call_later_count,
+        "call_later_pct": (call_later_count * 100) / (ccs_with_resolution_count or 1),
+        "unreachable_count": unreachable_count,
+        "unreachable_pct": (unreachable_count * 100) / (ccs_with_resolution_count or 1),
+        "started_promotion_count": started_promotion_count,
+        "started_promotion_pct": (started_promotion_count * 100) / (ccs_with_resolution_count or 1),
+        "error_in_promotion_count": error_in_promotion_count,
+        "error_in_promotion_pct": (error_in_promotion_count * 100) / (ccs_with_resolution_count or 1),
     })

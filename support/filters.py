@@ -5,8 +5,8 @@ from django import forms
 from django.utils.translation import ugettext_lazy as _
 from django.contrib.auth.models import User
 
-from core.models import Activity
-from .models import Issue, IssueSubcategory
+from core.models import Activity, ContactCampaignStatus
+from .models import Issue, IssueSubcategory, Seller
 
 
 CREATION_CHOICES = (
@@ -68,3 +68,13 @@ class ScheduledActivityFilter(django_filters.FilterSet):
     class Meta:
         model = Activity
         fields = ['status', 'campaign']
+
+
+class ContactCampaignStatusFilter(django_filters.FilterSet):
+    seller = django_filters.ModelChoiceFilter(
+        queryset=Seller.objects.filter(internal=True)
+    )
+
+    class Meta:
+        model = ContactCampaignStatus
+        fields = ["seller"]

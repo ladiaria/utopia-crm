@@ -1,10 +1,10 @@
 {% extends 'adminlte/base.html' %}
-{% load i18n static %}
+{% load i18n static widget_tweaks %}
 
 {% block extra_js %}
 <script type="text/javascript">
 $( function() {
-    $('[data-toggle="tooltip"]').tooltip();
+  $('[data-toggle="tooltip"]').tooltip();
 });
 </script>
 {% endblock %}
@@ -20,122 +20,177 @@ $( function() {
 
 {% block content %}
 <div class="row">
-    <div class="col-6">
-        <div class="card">
-          <div class="card-header">
-            <h3 class="card-title">{% trans "Campaign summary" %}</h3>
-          </div>
-          <div class="card-body">
-            <dl>
-              <dd><b>{% trans "Name" %}:</b> {{campaign.name}}</dd>
-              <dd><b>{% trans "Amount of contacts" %}:</b> {{total_count}}</dd>
-              <dt>{% trans "Description" %}:</dt>
-              <dd>{{campaign.description|default_if_none:"-"}}</dd>
-              <dd><b>{% trans "Start date" %}:</b> {{campaign.start_date|default_if_none:""}}</dd>
-              <dd><b>{% trans "End date" %}:</b> {{campaign.end_date|default_if_none:""}}</dd>
-            </dl>
-          </div>
-        </div>
+  <div class="col-6">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">{% trans "Campaign summary" %}</h3>
+      </div>
+      <div class="card-body">
+        <dl>
+          <dd><b>{% trans "Name" %}:</b> {{campaign.name}}</dd>
+          <dd><b>{% trans "Amount of contacts" %}:</b> {{total_count}}</dd>
+          <dd><b>{% trans "Assigned" %}:</b> {{assigned_count}}</dd>
+          <dd><b>{% trans "Not assigned" %}:</b> {{not_assigned_count}}</dd>
+          {% if campaign.description %}
+          <dt>{% trans "Description" %}:</dt>
+          <dd>{{campaign.description}}</dd>
+          {% endif %}
+          <dd><b>{% trans "Start date" %}:</b> {{campaign.start_date|default_if_none:""}}</dd>
+          <dd><b>{% trans "End date" %}:</b> {{campaign.end_date|default_if_none:""}}</dd>
+        </dl>
 
-        <div class="card">
-          <div class="card-header">
-            <h3 class="card-title">{% trans "Overview" %}</h3>
+        <form method="GET" id="form">
+          <div class="row">
+            <div class="form-group col">
+              <label for="status">{% trans "Filter by seller" %}</label>
+              {% render_field filter.form.seller class="form-control" %}
+            </div>
           </div>
-          <div class="card-body">
-            <table class="table table-striped">
-              <thead>
-                <tr>
-                  <th></th>
-                  <th>{% trans "Contacts" %}</th>
-                  <th>%</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>{% trans "Not contacted yet" %}</td>
-                  <td>{{not_contacted_yet_count}}</td>
-                  <td>{{not_contacted_yet_pct}}%</td>
-                </tr>
-                <tr>
-                  <td>{% trans "Contacted" %}</td>
-                  <td>{{contacted_count}}</td>
-                  <td>{{contacted_pct}}%</td>
-                </tr>
-                <tr>
-                  <td>{% trans "Could not contact" %}</td>
-                  <td>{{could_not_contact_count}}</td>
-                  <td>{{could_not_contact_pct}}%</td>
-                </tr>
-              </tbody>
-            </table>
+          <div class="row">
+            <div class="text-right">
+              {{filtered_count}} {% trans "contacts" %}
+              <input type="submit" class="btn bg-gradient-primary ml-3" value="Filtrar" />
+            </div>
           </div>
-        </div>
-
-        <div class="card">
-          <div class="card-header">
-            <h3 class="card-title">Contactados</h3>
-          </div>
-          <div class="card-body">
-            <table class="table table-striped">
-              <thead>
-                <tr>
-                  <th></th>
-                  <th>Contactos</th>
-                  <th>%</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>Éxito con venta directa</td>
-                  <td></td>
-                  <td></td>
-                </tr>
-                <tr>
-                  <td>Éxito con promoción</td>
-                  <td></td>
-                  <td></td>
-                </tr>
-                <tr>
-                  <td>Rechazo</td>
-                  <td></td>
-                  <td></td>
-                </tr>
-                <tr>
-                  <td>Agendado</td>
-                  <td></td>
-                  <td></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="card-header">
-            <h3 class="card-title">Razones de rechazo</h3>
-          </div>
-          <div class="card-body">
-            <table class="table table-striped">
-              <thead>
-                <tr>
-                  <th></th>
-                  <th>Cantidad</th>
-                  <th>%</th>
-                </tr>
-              </thead>
-            </table>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="card-header">
-            <h3 class="card-title"></h3>
-          </div>
-          <div class="card-body">
-          </div>
-        </div>
-
-
+        </form>
+      </div>
     </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">{% trans "Overview" %}</h3>
+      </div>
+      <div class="card-body">
+        <table class="table table-striped">
+          <thead>
+            <tr>
+              <th></th>
+              <th>{% trans "Contacts" %}</th>
+              <th>%</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>{% trans "Not contacted yet" %}</td>
+              <td>{{not_contacted_yet_count}}</td>
+              <td>{{not_contacted_yet_pct|floatformat:2}}%</td>
+            </tr>
+            <tr>
+              <td>{% trans "Tried to contact and could not" %}</td>
+              <td>{{tried_to_contact_count}}</td>
+              <td>{{tried_to_contact_pct|floatformat:2}}%</td>
+            </tr>
+            <tr>
+              <td>{% trans "Contacted" %}</td>
+              <td>{{contacted_count}}</td>
+              <td>{{contacted_pct|floatformat:2}}%</td>
+            </tr>
+            <tr>
+              <td>{% trans "Ended without contact" %}</td>
+              <td>{{could_not_contact_count}}</td>
+              <td>{{could_not_contact_pct|floatformat:2}}%</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Contactados</h3>
+      </div>
+      <div class="card-body">
+        <table class="table table-striped">
+          <thead>
+            <tr>
+              <th></th>
+              <th>Contactos</th>
+              <th>%</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Éxito con venta directa</td>
+              <td>{{success_with_direct_sale_count}}</td>
+              <td>{{success_with_direct_sale_pct|floatformat:2}}%</td>
+            </tr>
+            <tr>
+              <td>Éxito con promoción</td>
+              <td>{{success_with_promotion_count}}</td>
+              <td>{{success_with_promotion_pct|floatformat:2}}%</td>
+            </tr>
+            <tr>
+              <td>Rechazo</td>
+              <td>{{total_rejects_count}}</td>
+              <td>{{total_rejects_pct|floatformat:2}}%</td>
+            </tr>
+            <tr>
+              <td>Agendado</td>
+              <td>{{scheduled_count}}</td>
+              <td>{{scheduled_pct|floatformat:2}}%</td>
+            </tr>
+            <tr>
+              <td>Llamar después</td>
+              <td>{{call_later_count}}</td>
+              <td>{{call_later_pct|floatformat:2}}%</td>
+            </tr>
+            <tr>
+              <td>Inubicable</td>
+              <td>{{unreachable_count}}</td>
+              <td>{{unreachable_pct|floatformat:2}}%</td>
+            </tr>
+            <tr>
+              <td>Promoción en curso</td>
+              <td>{{started_promotion_count}}</td>
+              <td>{{started_promotion_pct|floatformat:2}}%</td>
+            </tr>
+            <tr>
+              <td>Error en datos</td>
+              <td>{{error_in_promotion_count}}</td>
+              <td>{{error_in_promotion_pct|floatformat:2}}%</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Razones de rechazo</h3>
+      </div>
+      <div class="card-body">
+        <table class="table table-striped">
+          <thead>
+            <tr>
+              <th></th>
+              <th>Cantidad</th>
+              <th>%</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for index, reject in rejects_by_reason.items %}
+            <tr>
+              <td>{{index}}</td>
+              <td>{{reject.0}}</td>
+              <td>{{reject.1|floatformat:2}}%</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        <br>
+        * Rechazos sin razón registrada: {{rejects_without_reason_count}}
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title"></h3>
+      </div>
+      <div class="card-body">
+      </div>
+    </div>
+
+
+  </div>
 </div>
 {% endblock %}
