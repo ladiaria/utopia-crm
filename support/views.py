@@ -1,4 +1,5 @@
 # coding=utf-8
+from __future__ import division
 import unicodecsv
 from datetime import date, timedelta, datetime
 
@@ -2183,6 +2184,7 @@ def campaign_statistics_detail(request, campaign_id):
     ccs_filter = ContactCampaignStatusFilter(request.GET, queryset=ccs_queryset)
     assigned_count = campaign.contactcampaignstatus_set.filter(seller__isnull=False).count()
     not_assigned_count = campaign.contactcampaignstatus_set.filter(seller__isnull=True).count()
+    filtered_count = ccs_filter.qs.count()
     total_count = campaign.contactcampaignstatus_set.count()
     not_contacted_yet_count = ccs_filter.qs.filter(status=1).count()
     tried_to_contact_count = ccs_filter.qs.filter(status=3).count()
@@ -2223,13 +2225,13 @@ def campaign_statistics_detail(request, campaign_id):
         "assigned_count": assigned_count,
         "not_assigned_count": not_assigned_count,
         "not_contacted_yet_count": not_contacted_yet_count,
-        "not_contacted_yet_pct": (not_contacted_yet_count * 100) / (total_count or 1),
+        "not_contacted_yet_pct": float((not_contacted_yet_count * 100) / (filtered_count or 1)),
         "tried_to_contact_count": tried_to_contact_count,
-        "tried_to_contact_pct": (tried_to_contact_count * 100) / (total_count or 1),
+        "tried_to_contact_pct": float((tried_to_contact_count * 100) / (filtered_count or 1)),
         "contacted_count": contacted_count,
-        "contacted_pct": (contacted_count * 100) / (total_count or 1),
+        "contacted_pct": (contacted_count * 100) / (filtered_count or 1),
         "could_not_contact_count": could_not_contact_count,
-        "could_not_contact_pct": (could_not_contact_count * 100) / (total_count or 1),
+        "could_not_contact_pct": (could_not_contact_count * 100) / (filtered_count or 1),
         "total_rejects_count": total_rejects_count,
         "total_rejects_pct": (total_rejects_count * 100) / (ccs_with_resolution_count or 1),
         "rejects_by_reason": rejects_by_reason,
