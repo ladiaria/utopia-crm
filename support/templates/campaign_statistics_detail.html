@@ -73,22 +73,22 @@ $( function() {
             <tr>
               <td>{% trans "Not contacted yet" %}</td>
               <td>{{not_contacted_yet_count}}</td>
-              <td>{{not_contacted_yet_pct}}%</td>
+              <td>{{not_contacted_yet_pct|floatformat:2}}%</td>
             </tr>
             <tr>
               <td>{% trans "Tried to contact and could not" %}</td>
               <td>{{tried_to_contact_count}}</td>
-              <td>{{tried_to_contact_pct}}%</td>
+              <td>{{tried_to_contact_pct|floatformat:2}}%</td>
             </tr>
             <tr>
               <td>{% trans "Contacted" %}</td>
               <td>{{contacted_count}}</td>
-              <td>{{contacted_pct}}%</td>
+              <td>{{contacted_pct|floatformat:2}}%</td>
             </tr>
             <tr>
               <td>{% trans "Ended without contact" %}</td>
               <td>{{could_not_contact_count}}</td>
-              <td>{{could_not_contact_pct}}%</td>
+              <td>{{could_not_contact_pct|floatformat:2}}%</td>
             </tr>
           </tbody>
         </table>
@@ -112,42 +112,42 @@ $( function() {
             <tr>
               <td>Éxito con venta directa</td>
               <td>{{success_with_direct_sale_count}}</td>
-              <td>{{success_with_direct_sale_pct}}%</td>
+              <td>{{success_with_direct_sale_pct|floatformat:2}}%</td>
             </tr>
             <tr>
               <td>Éxito con promoción</td>
               <td>{{success_with_promotion_count}}</td>
-              <td>{{success_with_promotion_pct}}%</td>
+              <td>{{success_with_promotion_pct|floatformat:2}}%</td>
             </tr>
             <tr>
               <td>Rechazo</td>
               <td>{{total_rejects_count}}</td>
-              <td>{{total_rejects_pct}}%</td>
+              <td>{{total_rejects_pct|floatformat:2}}%</td>
             </tr>
             <tr>
               <td>Agendado</td>
               <td>{{scheduled_count}}</td>
-              <td>{{scheduled_pct}}%</td>
+              <td>{{scheduled_pct|floatformat:2}}%</td>
             </tr>
             <tr>
               <td>Llamar después</td>
               <td>{{call_later_count}}</td>
-              <td>{{call_later_pct}}%</td>
+              <td>{{call_later_pct|floatformat:2}}%</td>
             </tr>
             <tr>
               <td>Inubicable</td>
               <td>{{unreachable_count}}</td>
-              <td>{{unreachable_pct}}%</td>
+              <td>{{unreachable_pct|floatformat:2}}%</td>
             </tr>
             <tr>
               <td>Promoción en curso</td>
               <td>{{started_promotion_count}}</td>
-              <td>{{started_promotion_pct}}%</td>
+              <td>{{started_promotion_pct|floatformat:2}}%</td>
             </tr>
             <tr>
               <td>Error en datos</td>
               <td>{{error_in_promotion_count}}</td>
-              <td>{{error_in_promotion_pct}}%</td>
+              <td>{{error_in_promotion_pct|floatformat:2}}%</td>
             </tr>
           </tbody>
         </table>
@@ -172,7 +172,7 @@ $( function() {
             <tr>
               <td>{{index}}</td>
               <td>{{reject.0}}</td>
-              <td>{{reject.1}}%</td>
+              <td>{{reject.1|floatformat:2}}%</td>
             </tr>
             {% endfor %}
           </tbody>
