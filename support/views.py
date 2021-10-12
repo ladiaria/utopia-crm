@@ -2189,10 +2189,13 @@ def campaign_statistics_detail(request, campaign_id):
     not_contacted_yet_count = ccs_filter.qs.filter(status=1).count()
     tried_to_contact_count = ccs_filter.qs.filter(status=3).count()
     contacted_count = ccs_filter.qs.filter(status__in=[4, 2]).count()
-    could_not_contact_count = ccs_filter.qs.filter(status__in=[5]).count()
+    could_not_contact_count = ccs_filter.qs.filter(status=5).count()
 
     ccs_with_resolution = ccs_filter.qs.filter(campaign_resolution__isnull=False)
+    ccs_with_resolution_contacted_count = ccs_with_resolution.filter(status__in=[4, 2]).count()
+    ccs_with_resolution_not_contacted_count = ccs_with_resolution.filter(status__in=[5, 3]).count()
     ccs_with_resolution_count = ccs_with_resolution.count()
+
     success_with_direct_sale_count = ccs_with_resolution.filter(campaign_resolution="S2").count()
     success_with_promotion_count = ccs_with_resolution.filter(campaign_resolution="S1").count()
     scheduled_count = ccs_with_resolution.filter(campaign_resolution="SC").count()
@@ -2217,6 +2220,9 @@ def campaign_statistics_detail(request, campaign_id):
         pct = (item * 100) / rejects_with_reason_count
         rejects_by_reason[index] = (item, pct)
 
+    success_rate_count = success_with_promotion_count + success_with_direct_sale_count
+    success_rate_pct = ((success_with_promotion_count + success_with_direct_sale_count) * 100) / filtered_count
+
     return render(request, "campaign_statistics_detail.html", {
         "campaign": campaign,
         "filter": ccs_filter,
@@ -2233,21 +2239,23 @@ def campaign_statistics_detail(request, campaign_id):
         "could_not_contact_count": could_not_contact_count,
         "could_not_contact_pct": (could_not_contact_count * 100) / (filtered_count or 1),
         "total_rejects_count": total_rejects_count,
-        "total_rejects_pct": (total_rejects_count * 100) / (ccs_with_resolution_count or 1),
+        "total_rejects_pct": (total_rejects_count * 100) / (ccs_with_resolution_contacted_count or 1),
         "rejects_by_reason": rejects_by_reason,
         "rejects_without_reason_count": rejects_without_reason_count,
         "success_with_promotion_count": success_with_promotion_count,
-        "success_with_promotion_pct": (success_with_promotion_count * 100) / (ccs_with_resolution_count or 1),
+        "success_with_promotion_pct": (success_with_promotion_count * 100) / (ccs_with_resolution_contacted_count or 1),
         "success_with_direct_sale_count": success_with_direct_sale_count,
-        "success_with_direct_sale_pct": (success_with_direct_sale_count * 100) / (ccs_with_resolution_count or 1),
+        "success_with_direct_sale_pct": (success_with_direct_sale_count * 100) / (ccs_with_resolution_contacted_count or 1),
         "scheduled_count": scheduled_count,
-        "scheduled_pct": (scheduled_count * 100) / (ccs_with_resolution_count or 1),
+        "scheduled_pct": (scheduled_count * 100) / (ccs_with_resolution_contacted_count or 1),
         "call_later_count": call_later_count,
-        "call_later_pct": (call_later_count * 100) / (ccs_with_resolution_count or 1),
-        "unreachable_count": unreachable_count,
-        "unreachable_pct": (unreachable_count * 100) / (ccs_with_resolution_count or 1),
+        "call_later_pct": (call_later_count * 100) / (ccs_with_resolution_contacted_count or 1),
         "started_promotion_count": started_promotion_count,
-        "started_promotion_pct": (started_promotion_count * 100) / (ccs_with_resolution_count or 1),
+        "started_promotion_pct": (started_promotion_count * 100) / (ccs_with_resolution_contacted_count or 1),
+        "unreachable_count": unreachable_count,
+        "unreachable_pct": (unreachable_count * 100) / (ccs_with_resolution_not_contacted_count or 1),
         "error_in_promotion_count": error_in_promotion_count,
-        "error_in_promotion_pct": (error_in_promotion_count * 100) / (ccs_with_resolution_count or 1),
+        "error_in_promotion_pct": (error_in_promotion_count * 100) / (ccs_with_resolution_not_contacted_count or 1),
+        "success_rate_count": success_rate_count,
+        "success_rate_pct": success_rate_pct,
     })

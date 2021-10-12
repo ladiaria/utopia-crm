@@ -20,7 +20,7 @@ $( function() {
 
 {% block content %}
 <div class="row">
-  <div class="col-6">
+  <div class="col-8">
     <div class="card">
       <div class="card-header">
         <h3 class="card-title">{% trans "Campaign summary" %}</h3>
@@ -130,7 +130,31 @@ $( function() {
               <td>{{scheduled_pct|floatformat:2}}%</td>
             </tr>
             <tr>
-              <td>Llamar después</td>
+              <td>Promoción en curso</td>
+              <td>{{started_promotion_count}}</td>
+              <td>{{started_promotion_pct|floatformat:2}}%</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Inubicables</h3>
+      </div>
+      <div class="card-body">
+        <table class="table table-striped">
+          <thead>
+            <tr>
+              <th></th>
+              <th>Contactos</th>
+              <th>%</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>No se encuentra contacto, llamar después</td>
               <td>{{call_later_count}}</td>
               <td>{{call_later_pct|floatformat:2}}%</td>
             </tr>
@@ -138,11 +162,6 @@ $( function() {
               <td>Inubicable</td>
               <td>{{unreachable_count}}</td>
               <td>{{unreachable_pct|floatformat:2}}%</td>
-            </tr>
-            <tr>
-              <td>Promoción en curso</td>
-              <td>{{started_promotion_count}}</td>
-              <td>{{started_promotion_pct|floatformat:2}}%</td>
             </tr>
             <tr>
               <td>Error en datos</td>
@@ -189,8 +208,19 @@ $( function() {
       <div class="card-body">
       </div>
     </div>
-
-
   </div>
+
+  <div class="col-4">
+    <div class="card">
+        <div class="card-header">
+            <h4 class="card-title">Conversión de la base</h4>
+        </div>
+        <div class="card-body">
+            <p class="h2">{{success_rate_count}} suscriptores ({{success_rate_pct|floatformat:2}}% del total)</p>
+        </div>
+    </div>
+  </div>
+
+
 </div>
 {% endblock %}
