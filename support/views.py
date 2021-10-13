@@ -1029,6 +1029,7 @@ def assign_seller(request, campaign_id):
                     seller=None, campaign=campaign
                 )[:amount]:
                     status.seller = Seller.objects.get(pk=seller)
+                    status.date_assigned = date.today()
                     try:
                         status.save()
                     except Exception as e:
@@ -2180,6 +2181,20 @@ def product_change(request, subscription_id):
 @staff_member_required
 def campaign_statistics_list(request):
     campaigns = Campaign.objects.all()
+    for campaign in campaigns:
+        contacts = campaign.contactcampaignstatus_set.count() or 1
+        campaign.called_count = campaign.contactcampaignstatus_set.filter(
+            status__gte=2
+        ).count()
+        campaign.called_pct = (campaign.called_count * 100) / contacts
+        campaign.contacted_count = campaign.contactcampaignstatus_set.filter(
+            status__in=(2, 4)
+        ).count()
+        campaign.contacted_pct = (campaign.contacted_count * 100) / contacts
+        campaign.success_count = campaign.contactcampaignstatus_set.filter(
+            campaign_resolution__in=("S1", "S2")
+        ).count()
+        campaign.success_pct = (campaign.success_count * 100) / contacts
     return render(request, "campaign_statistics_list.html", {
         "campaigns": campaigns,
     })
@@ -2196,12 +2211,12 @@ def campaign_statistics_detail(request, campaign_id):
     total_count = campaign.contactcampaignstatus_set.count()
     not_contacted_yet_count = ccs_filter.qs.filter(status=1).count()
     tried_to_contact_count = ccs_filter.qs.filter(status=3).count()
-    contacted_count = ccs_filter.qs.filter(status__in=[4, 2]).count()
+    contacted_count = ccs_filter.qs.filter(status__in=[2, 4]).count()
     could_not_contact_count = ccs_filter.qs.filter(status=5).count()
 
     ccs_with_resolution = ccs_filter.qs.filter(campaign_resolution__isnull=False)
-    ccs_with_resolution_contacted_count = ccs_with_resolution.filter(status__in=[4, 2]).count()
-    ccs_with_resolution_not_contacted_count = ccs_with_resolution.filter(status__in=[5, 3]).count()
+    ccs_with_resolution_contacted_count = ccs_with_resolution.filter(status__in=[2, 4]).count()
+    ccs_with_resolution_not_contacted_count = ccs_with_resolution.filter(status__in=[3, 5]).count()
     ccs_with_resolution_count = ccs_with_resolution.count()
 
     success_with_direct_sale_count = ccs_with_resolution.filter(campaign_resolution="S2").count()
@@ -2266,4 +2281,45 @@ def campaign_statistics_detail(request, campaign_id):
         "error_in_promotion_pct": (error_in_promotion_count * 100) / (ccs_with_resolution_not_contacted_count or 1),
         "success_rate_count": success_rate_count,
         "success_rate_pct": success_rate_pct,
+    })
+
+
+@staff_member_required
+def campaign_statistics_per_seller(request, campaign_id):
+    campaign = get_object_or_404(Campaign, pk=campaign_id)
+    sellers = Seller.objects.filter(internal=True).order_by("name")
+    assigned_count = campaign.contactcampaignstatus_set.filter(seller__isnull=False).count()
+    not_assigned_count = campaign.contactcampaignstatus_set.filter(seller__isnull=True).count()
+    for seller in sellers:
+        seller.assigned_count = seller.contactcampaignstatus_set.filter(campaign=campaign).count()
+        assigned = seller.assigned_count or 1
+        seller.not_contacted_yet_count = seller.contactcampaignstatus_set.filter(
+            campaign=campaign, status=1
+        ).count()
+        seller.not_contacted_yet_pct = (seller.not_contacted_yet_count * 100) / assigned
+        seller.called_count = seller.contactcampaignstatus_set.filter(
+            campaign=campaign, status__gte=2
+        ).count()
+        seller.called_pct = (seller.called_count * 100) / assigned
+        seller.contacted_count = seller.contactcampaignstatus_set.filter(
+            campaign=campaign, status__in=[2, 4]
+        ).count()
+        seller.contacted_pct = (seller.contacted_count * 100) / assigned
+        seller.success_count = seller.contactcampaignstatus_set.filter(
+            campaign=campaign, campaign_resolution__in=("S1", "S2")
+        ).count()
+        seller.success_pct = (seller.success_count * 100) / assigned
+        seller.rejected_count = seller.contactcampaignstatus_set.filter(
+            campaign=campaign, campaign_resolution__in=("AS", "DN", "LO", "NI")
+        ).count()
+        seller.rejected_pct = (seller.rejected_count * 100) / assigned
+        seller.unreachable_count = seller.contactcampaignstatus_set.filter(
+            campaign=campaign, status=5
+        ).count()
+        seller.unreachable_pct = (seller.unreachable_count * 100) / assigned
+    return render(request, "campaign_statistics_per_seller.html", {
+        "campaign": campaign,
+        "assigned_count": assigned_count,
+        "not_assigned_count": not_assigned_count,
+        "sellers": sellers,
     })

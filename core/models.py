@@ -1558,15 +1558,12 @@ class ContactCampaignStatus(models.Model):
     campaign = models.ForeignKey(Campaign)
     status = models.SmallIntegerField(choices=CAMPAIGN_STATUS_CHOICES, default=1)
     campaign_resolution = models.CharField(choices=CAMPAIGN_RESOLUTION_CHOICES, null=True, blank=True, max_length=2)
-    campaign_reject_reason = models.CharField(
-        null=True, blank=True, max_length=1
-    )
     seller = models.ForeignKey("support.Seller", null=True, blank=True)
     date_created = models.DateField(auto_now_add=True)
+    date_assigned = models.DateField(null=True, blank=True)
     last_action_date = models.DateField(auto_now=True)
     times_contacted = models.SmallIntegerField(default=0)
-    resolution_reason = models.SmallIntegerField(
-        choices=CAMPAIGN_RESOLUTION_REASONS_CHOICES, null=True, blank=True)
+    resolution_reason = models.SmallIntegerField(choices=CAMPAIGN_RESOLUTION_REASONS_CHOICES, null=True, blank=True)
 
     class Meta:
         unique_together = ['contact', 'campaign']

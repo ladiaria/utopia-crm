@@ -35,6 +35,7 @@ from support.views import (
     edit_envelopes,
     campaign_statistics_list,
     campaign_statistics_detail,
+    campaign_statistics_per_seller,
 )
 
 from django.conf.urls import url
@@ -100,4 +101,5 @@ urlpatterns = [
     url(r"^edit_envelopes/(\d+)/$", edit_envelopes, name="edit_envelopes"),
     url(r"^campaign_statistics/$", campaign_statistics_list, name="campaign_statistics_list"),
     url(r"^campaign_statistics/(\d+)/$", campaign_statistics_detail, name="campaign_statistics_detail"),
+    url(r"^campaign_statistics/by_seller/(\d+)/$", campaign_statistics_per_seller, name="campaign_statistics_per_seller"),
 ]
