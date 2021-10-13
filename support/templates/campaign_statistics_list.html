@@ -40,16 +40,24 @@
                     <th>{% trans "Name" %}</th>
                     <th>{% trans "End date" %}</th>
                     <th>{% trans "Contacts" %}</th>
+                    <th>{% trans "Called" %}</th>
+                    <th>{% trans "Contacted" %}</th>
+                    <th>{% trans "Success" %}</th>
                     <th>{% trans "View" %}</th>
+                    <th>{% trans "Per seller" %}</th>
                   </tr>
               </thead>
               <tbody>
                 {% for campaign in campaigns %}
                 <tr role="row">
                     <td><a href='{% url "campaign_statistics_detail" campaign.id %}'>{{campaign.name}}</a></td>
-                    <td>{{campaign.end_date|default_if_none:""}}</td>
+                    <td>{{campaign.end_date|date:"d-M-Y"|default_if_none:""}}</td>
                     <td>{{campaign.contactcampaignstatus_set.count}}</td>
-                    <td><a class="btn btn-primary" href='{% url "campaign_statistics_detail" campaign.id %}'>{% trans "View" %}</a></td>
+                    <td>{{campaign.called_pct|floatformat:1}}%</td>
+                    <td>{{campaign.contacted_pct|floatformat:1}}%</td>
+                    <td>{{campaign.success_pct|floatformat:1}}%</td>
+                    <td><a class="btn btn-primary" href='{% url "campaign_statistics_detail" campaign.id %}'>{% trans "Details" %}</a></td>
+                    <td><a class="btn btn-primary" href='{% url "campaign_statistics_per_seller" campaign.id %}'>{% trans "Sellers" %}</a></td>
                 </tr>
                 {% endfor %}
               </tbody>
