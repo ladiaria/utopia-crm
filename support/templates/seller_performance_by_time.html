@@ -1,0 +1,84 @@
+{% extends 'adminlte/base.html' %}
+{% load i18n static widget_tweaks %}
+
+{% block stylesheets %}
+{{block.super}}
+<link rel="stylesheet" href="{% static '/admin-lte/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css' %}" />
+{% endblock %}
+
+{% block extra_js %}
+<script type="text/javascript" src="{% static '/admin-lte/plugins/datatables/jquery.dataTables.min.js' %}"></script>
+<script src="{% static '/admin-lte/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js' %}"></script>
+<script>
+$(function() {
+  $('[data-toggle="tooltip"]').tooltip();
+  $("#table1").DataTable({
+    "paging":   false,
+    "info":     false,
+    "searching":   false,
+  });
+});
+</script>
+{% endblock %}
+
+{% block no_heading %}
+<h1>Rendimiento de vendedores por tiempo</h1>
+<p>{% trans "Statistics for" %} {{campaign.name}}</p>
+{% endblock %}
+
+{% block title %}
+Rendimiento de vendedores por tiempo
+{% endblock title %}
+
+{% block content %}
+<div class="row">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Rendimiento de vendedores desde el {{form.date_gte}} hasta {{form.date_lte}}</h3>
+      </div>
+      <div class="card-body">
+        <dl>
+          <dd><b>{% trans "Amount of worked contacts" %}:</b> {{assigned_contacts_count}}</dd>
+        </dl>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">{% trans "Overview" %}</h3>
+      </div>
+      <div class="card-body">
+        <table id="table1" class="table table-bordered table-striped">
+          <thead>
+            <tr>
+              <th>{% trans "Name" %}</th>
+              <th>Asignado</th>
+              <th>Llamado</th>
+              <th>Contactado</th>
+              <th>Suscrito</th>
+              <th>No contactado</th>
+              <th>Rechazo</th>
+              <th>Inubicable</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for seller in sellers  %}
+            <tr>
+              <td>{{seller.name}}</td>
+              <td>{{seller.assigned_count}}</td>
+              <td>{{seller.called_count}} ({{seller.called_pct|floatformat:0}}%)</td>
+              <td>{{seller.contacted_count}} ({{seller.contacted_pct|floatformat:0}}%)</td>
+              <td>{{seller.success_count}} ({{seller.success_pct|floatformat:0}}%)</td>
+              <td>{{seller.not_contacted_yet_count}} ({{seller.not_contacted_yet_pct|floatformat:0}}%)</td>
+              <td>{{seller.rejected_count}} ({{seller.rejected_pct|floatformat:0}}%)</td>
+              <td>{{seller.unreachable_count}} ({{seller.unreachable_pct|floatformat:0}}%)</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

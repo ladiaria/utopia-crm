@@ -34,6 +34,7 @@
 {% url "invoicing_issues" as collection_issues %}
 {% url "debtor_contacts" as debtor_contacts %}
 {% url "campaign_statistics_list" as campaign_statistics_list %}
+{% url "seller_performance_by_time" as seller_performance_by_time %}
 
 <li class="nav-item">
   <a href="{{contact_list}}" class="nav-link {% ifequal request.path contact_list  %}active{% endifequal %}">{% trans "Contacts" %}</a>
@@ -69,6 +70,7 @@
     <li class="nav-item"><a href="{{assign_to_seller}}" class="nav-link {% ifequal request.path assign_to_seller %}active{% endifequal %}">{% trans 'Assign contacts to sellers' %}</a></li>
     <li class="nav-item"><a href="{{core_campaign_add}}" target="_blank" class="nav-link">{% trans "New campaign" %}</a></li>
     <li class="nav-item"><a href="{{campaign_statistics_list}}" class="nav-link">{% trans "Campaign statistics" %}</a></li>
+    <li class="nav-item"><a href="{{seller_performance_by_time}}" class="nav-link">{% trans "Sellers performance" %}</a></li>
   </ul>
 </li>
 {% endif %}

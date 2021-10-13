@@ -490,3 +490,14 @@ class UnsubscriptionForm(forms.ModelForm):
             "unsubscription_addendum": forms.Textarea(attrs={"class": "form-control"}),
             "unsubscription_requested": forms.CheckboxInput(attrs={"class": "form-check-input"}),
         }
+
+
+class ContactCampaignStatusByDateForm(forms.Form):
+    date_gte = forms.DateField(
+        required=False, widget=forms.DateInput(format="%Y-%m-%d", attrs={
+            "class": "datepicker form-control", "autocomplete": "off"}),
+    )
+    date_lte = forms.DateField(
+        required=False, widget=forms.DateInput(format="%Y-%m-%d", attrs={
+            "class": "datepicker form-control", "autocomplete": "off"}),
+    )
