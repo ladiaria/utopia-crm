@@ -1658,17 +1658,9 @@ class ContactCampaignStatus(models.Model):
         campaign_resolutions = dict(CAMPAIGN_RESOLUTION_CHOICES)
         return campaign_resolutions.get(self.campaign_resolution, "N/A")
 
-    def get_campaign_reject_reason(self):
-        """
-        Returns a description of the reject reason for this campaign on this contact, this only exists in the case
-        the contact has rejected the campaign.
-        """
-        campaign_reject_reasons = dict(CAMPAIGN_REJECT_REASONS_CHOICES)
-        return campaign_reject_reasons.get(self.campaign_reject_reason, "N/A")
-
     def get_resolution_reason(self):
         campaign_resolution_reasons = dict(CAMPAIGN_RESOLUTION_REASONS_CHOICES)
-        return campaign_resolution_reasons.get(self.campaign_reject_reason, "N/A")
+        return campaign_resolution_reasons.get(self.campaign_resolution_reason, "N/A")
 
 
 class PriceRule(models.Model):
