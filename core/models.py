@@ -1589,7 +1589,7 @@ class ContactCampaignStatus(models.Model):
 
     def get_resolution_reason(self):
         campaign_resolution_reasons = dict(CAMPAIGN_RESOLUTION_REASONS_CHOICES)
-        return campaign_resolution_reasons.get(self.campaign_resolution_reason, "N/A")
+        return campaign_resolution_reasons.get(self.resolution_reason, "N/A")
 
 
 class PriceRule(models.Model):
