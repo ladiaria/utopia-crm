@@ -40,7 +40,9 @@ from core.models import (
 )
 from core.choices import CAMPAIGN_RESOLUTION_REASONS_CHOICES
 
-from .filters import IssueFilter, InvoicingIssueFilter, ScheduledActivityFilter, ContactCampaignStatusFilter
+from .filters import (
+    IssueFilter, InvoicingIssueFilter, ScheduledActivityFilter, ContactCampaignStatusFilter
+)
 from .forms import *
 from .models import Seller, ScheduledTask, IssueStatus
 from core.utils import calc_price_from_products, process_products
@@ -1380,7 +1382,7 @@ def contact_list(request):
             active_products, address_1, state, city = "", "", "", ""
             for index, sp in enumerate(contact.get_active_subscriptionproducts()):
                 if index > 0:
-                    active_products += "\n"
+                    active_products += ", "
                 active_products += sp.product.name
             first_subscription = contact.get_first_active_subscription()
             if first_subscription:
@@ -2322,4 +2324,64 @@ def campaign_statistics_per_seller(request, campaign_id):
         "assigned_count": assigned_count,
         "not_assigned_count": not_assigned_count,
         "sellers": sellers,
+    })
+
+
+@staff_member_required
+def seller_performance_by_time(request):
+    sellers = Seller.objects.filter(internal=True).order_by("name")
+    date_from = date(date.today().year, date.today().month, 1)
+    date_to = date(date.today().year, date.today().month + 1, 1) - timedelta(1)
+    if request.GET:
+        ccs_queryset = ContactCampaignStatus.objects.all()
+        form = ContactCampaignStatusByDateForm(request.GET)
+        if form.is_valid():
+            date_from = form.cleaned_data["date_from"]
+            date_to = form.cleaned_data["date_to"]
+    else:
+        form = ContactCampaignStatusByDateForm(initial={
+            "date_gte": date_from, "date_lte": date_to
+        })
+    ccs_queryset = ContactCampaignStatus.objects.filter(
+        last_action_date__gte=date_from,
+        last_action_date__lte=date_to,
+    )
+    assigned_contacts_count = ccs_queryset.filter(seller__isnull=False).count()
+    for seller in sellers:
+        pass
+        """
+        not_assigned_count = campaign.contactcampaignstatus_set.filter(seller__isnull=True).count()
+        seller.assigned_count = seller.contactcampaignstatus_set.filter(campaign=campaign).count()
+        assigned = seller.assigned_count or 1
+        seller.not_contacted_yet_count = seller.contactcampaignstatus_set.filter(
+            campaign=campaign, status=1
+        ).count()
+        seller.not_contacted_yet_pct = (seller.not_contacted_yet_count * 100) / assigned
+        seller.called_count = seller.contactcampaignstatus_set.filter(
+            campaign=campaign, status__gte=2
+        ).count()
+        seller.called_pct = (seller.called_count * 100) / assigned
+        seller.contacted_count = seller.contactcampaignstatus_set.filter(
+            campaign=campaign, status__in=[2, 4]
+        ).count()
+        seller.contacted_pct = (seller.contacted_count * 100) / assigned
+        seller.success_count = seller.contactcampaignstatus_set.filter(
+            campaign=campaign, campaign_resolution__in=("S1", "S2")
+        ).count()
+        seller.success_pct = (seller.success_count * 100) / assigned
+        seller.rejected_count = seller.contactcampaignstatus_set.filter(
+            campaign=campaign, campaign_resolution__in=("AS", "DN", "LO", "NI")
+        ).count()
+        seller.rejected_pct = (seller.rejected_count * 100) / assigned
+        seller.unreachable_count = seller.contactcampaignstatus_set.filter(
+            campaign=campaign, status=5
+        ).count()
+        seller.unreachable_pct = (seller.unreachable_count * 100) / assigned
+        """
+    return render(request, "seller_performance_by_time.html", {
+        "date_from": date_from,
+        "date_to": date_to,
+        "form": form,
+        "sellers": sellers,
+        "assigned_contacts_count": assigned_contacts_count,
     })

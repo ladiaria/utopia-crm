@@ -15,18 +15,19 @@ $(function() {
   $("#table1").DataTable({
     "paging":   false,
     "info":     false,
+    "searching":   false,
   });
 });
 </script>
 {% endblock %}
 
 {% block no_heading %}
-<h1>Rendimiento de vendedores por campaña</h1>
+<h1>Rendimiento de vendedores por tiempo</h1>
 <p>{% trans "Statistics for" %} {{campaign.name}}</p>
 {% endblock %}
 
 {% block title %}
-Rendimiento de vendedores en {{campaign.name}}
+Rendimiento de vendedores por tiempo
 {% endblock title %}
 
 {% block content %}
@@ -34,20 +35,11 @@ Rendimiento de vendedores en {{campaign.name}}
   <div class="col-12">
     <div class="card">
       <div class="card-header">
-        <h3 class="card-title">Rendimiento de vendedores en {{campaign.name}}</h3>
+        <h3 class="card-title">Rendimiento de vendedores desde el {{form.date_gte}} hasta {{form.date_lte}}</h3>
       </div>
       <div class="card-body">
         <dl>
-          <dd><b>{% trans "Name" %}:</b> {{campaign.name}}</dd>
-          <dd><b>{% trans "Amount of contacts" %}:</b> {{total_count}}</dd>
-          <dd><b>{% trans "Assigned" %}:</b> {{assigned_count}}</dd>
-          <dd><b>{% trans "Not assigned" %}:</b> {{not_assigned_count}}</dd>
-          {% if campaign.description %}
-          <dt>{% trans "Description" %}:</dt>
-          <dd>{{campaign.description}}</dd>
-          {% endif %}
-          <dd><b>{% trans "Start date" %}:</b> {{campaign.start_date|default_if_none:""}}</dd>
-          <dd><b>{% trans "End date" %}:</b> {{campaign.end_date|default_if_none:""}}</dd>
+          <dd><b>{% trans "Amount of worked contacts" %}:</b> {{assigned_contacts_count}}</dd>
         </dl>
       </div>
     </div>
