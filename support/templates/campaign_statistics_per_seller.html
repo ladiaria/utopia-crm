@@ -15,7 +15,6 @@ $(function() {
   $("#table1").DataTable({
     "paging":   false,
     "info":     false,
-    "searching":   false,
   });
 });
 </script>
@@ -62,13 +61,19 @@ Rendimiento de vendedores en {{campaign.name}}
           <thead>
             <tr>
               <th>{% trans "Name" %}</th>
-              <th>Asignado</th>
-              <th>Llamado</th>
-              <th>Contactado</th>
-              <th>Suscrito</th>
-              <th>No contactado</th>
-              <th>Rechazo</th>
-              <th>Inubicable</th>
+              <th title="Asignado" data-toggle="tooltip">Asig.</th>
+              <th title="Llamado" data-toggle="tooltip">Llam.</th>
+              <th title="Porcentaje llamado" data-toggle="tooltip">%</th>
+              <th title="Contactado" data-toggle="tooltip">C.</th>
+              <th title="Porcentaje contactado" data-toggle="tooltip">%</th>
+              <th title="Suscrito" data-toggle="tooltip">S.</th>
+              <th title="Porcentaje suscrito" data-toggle="tooltip">%</th>
+              <th title="No contactado" data-toggle="tooltip">NC.</th>
+              <th title="Porcentaje no contactado" data-toggle="tooltip">%</th>
+              <th title="Rechazado" data-toggle="tooltip">R.</th>
+              <th title="Porcentaje rechazado" data-toggle="tooltip">%</th>
+              <th title="Inubicable" data-toggle="tooltip">I.</th>
+              <th title="Porcentaje inubicable" data-toggle="tooltip">%</th>
             </tr>
           </thead>
           <tbody>
@@ -76,12 +81,18 @@ Rendimiento de vendedores en {{campaign.name}}
             <tr>
               <td>{{seller.name}}</td>
               <td>{{seller.assigned_count}}</td>
-              <td>{{seller.called_count}} ({{seller.called_pct|floatformat:0}}%)</td>
-              <td>{{seller.contacted_count}} ({{seller.contacted_pct|floatformat:0}}%)</td>
-              <td>{{seller.success_count}} ({{seller.success_pct|floatformat:0}}%)</td>
-              <td>{{seller.not_contacted_yet_count}} ({{seller.not_contacted_yet_pct|floatformat:0}}%)</td>
-              <td>{{seller.rejected_count}} ({{seller.rejected_pct|floatformat:0}}%)</td>
-              <td>{{seller.unreachable_count}} ({{seller.unreachable_pct|floatformat:0}}%)</td>
+              <td>{{seller.called_count}}</td>
+              <td>{{seller.called_pct|floatformat:0}}%</td>
+              <td>{{seller.contacted_count}}</td>
+              <td>{{seller.contacted_pct|floatformat:0}}%</td>
+              <td>{{seller.success_count}}</td>
+              <td>{{seller.success_pct|floatformat:0}}%</td>
+              <td>{{seller.not_contacted_yet_count}}</td>
+              <td>{{seller.not_contacted_yet_pct|floatformat:0}}%</td>
+              <td>{{seller.rejected_count}}</td>
+              <td>{{seller.rejected_pct|floatformat:0}}%</td>
+              <td>{{seller.unreachable_count}}</td>
+              <td>{{seller.unreachable_pct|floatformat:0}}%</td>
             </tr>
             {% endfor %}
           </tbody>

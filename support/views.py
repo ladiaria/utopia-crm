@@ -1382,7 +1382,7 @@ def contact_list(request):
             active_products, address_1, state, city = "", "", "", ""
             for index, sp in enumerate(contact.get_active_subscriptionproducts()):
                 if index > 0:
-                    active_products += "\n"
+                    active_products += ", "
                 active_products += sp.product.name
             first_subscription = contact.get_first_active_subscription()
             if first_subscription:
@@ -2322,25 +2322,22 @@ def campaign_statistics_per_seller(request, campaign_id):
 @staff_member_required
 def seller_performance_by_time(request):
     sellers = Seller.objects.filter(internal=True).order_by("name")
+    date_from = date(date.today().year, date.today().month, 1)
+    date_to = date(date.today().year, date.today().month + 1, 1) - timedelta(1)
     if request.GET:
         ccs_queryset = ContactCampaignStatus.objects.all()
         form = ContactCampaignStatusByDateForm(request.GET)
+        if form.is_valid():
+            date_from = form.cleaned_data["date_from"]
+            date_to = form.cleaned_data["date_to"]
     else:
-        default_date_from = date(date.today().year, date.today().month, 1)
-        default_date_to = date(date.today().year, date.today().month + 1, 1) - timedelta(1)
         form = ContactCampaignStatusByDateForm(initial={
-            "date_gte": default_date_from, "date_lte": default_date_to
+            "date_gte": date_from, "date_lte": date_to
         })
-    if form.is_valid():
-        ccs_queryset = ContactCampaignStatus.objects.filter(
-            last_action_date__gte=form.cleaned_data['date_gte'],
-            last_action_date__lte=form.cleaned_data['date_lte']
-        )
-    else:
-        ccs_queryset = ContactCampaignStatus.objects.filter(
-            last_action_date__gte=default_date_from,
-            last_action_date__lte=default_date_to,
-        )
+    ccs_queryset = ContactCampaignStatus.objects.filter(
+        last_action_date__gte=date_from,
+        last_action_date__lte=date_to,
+    )
     assigned_contacts_count = ccs_queryset.filter(seller__isnull=False).count()
     for seller in sellers:
         pass
@@ -2374,6 +2371,8 @@ def seller_performance_by_time(request):
         seller.unreachable_pct = (seller.unreachable_count * 100) / assigned
         """
     return render(request, "seller_performance_by_time.html", {
+        "date_from": date_from,
+        "date_to": date_to,
         "form": form,
         "sellers": sellers,
         "assigned_contacts_count": assigned_contacts_count,
