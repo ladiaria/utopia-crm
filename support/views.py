@@ -2328,8 +2328,8 @@ def seller_performance_by_time(request):
         ccs_queryset = ContactCampaignStatus.objects.all()
         form = ContactCampaignStatusByDateForm(request.GET)
         if form.is_valid():
-            date_from = form.cleaned_data["date_from"]
-            date_to = form.cleaned_data["date_to"]
+            date_from = form.cleaned_data["date_gte"]
+            date_to = form.cleaned_data["date_lte"]
     else:
         form = ContactCampaignStatusByDateForm(initial={
             "date_gte": date_from, "date_lte": date_to
@@ -2338,42 +2338,27 @@ def seller_performance_by_time(request):
         last_action_date__gte=date_from,
         last_action_date__lte=date_to,
     )
-    assigned_contacts_count = ccs_queryset.filter(seller__isnull=False).count()
+    assigned_count = ccs_queryset.filter(seller__isnull=False).count() or 1
     for seller in sellers:
-        pass
-        """
-        not_assigned_count = campaign.contactcampaignstatus_set.filter(seller__isnull=True).count()
-        seller.assigned_count = seller.contactcampaignstatus_set.filter(campaign=campaign).count()
-        assigned = seller.assigned_count or 1
-        seller.not_contacted_yet_count = seller.contactcampaignstatus_set.filter(
-            campaign=campaign, status=1
+        seller.assigned_count = ccs_queryset.filter(seller=seller).count()
+        seller.not_contacted_yet_count = ccs_queryset.filter(seller=seller, status=1).count()
+        seller.not_contacted_yet_pct = (seller.not_contacted_yet_count * 100) / assigned_count
+        seller.called_count = ccs_queryset.filter(seller=seller, status__gte=2).count()
+        seller.called_pct = (seller.called_count * 100) / assigned_count
+        seller.contacted_count = ccs_queryset.filter(seller=seller, status__in=[2, 4]).count()
+        seller.contacted_pct = (seller.contacted_count * 100) / assigned_count
+        seller.success_count = ccs_queryset.filter(seller=seller, campaign_resolution__in=("S1", "S2")).count()
+        seller.success_pct = (seller.success_count * 100) / assigned_count
+        seller.rejected_count = ccs_queryset.filter(
+            seller=seller, campaign_resolution__in=("AS", "DN", "LO", "NI")
         ).count()
-        seller.not_contacted_yet_pct = (seller.not_contacted_yet_count * 100) / assigned
-        seller.called_count = seller.contactcampaignstatus_set.filter(
-            campaign=campaign, status__gte=2
-        ).count()
-        seller.called_pct = (seller.called_count * 100) / assigned
-        seller.contacted_count = seller.contactcampaignstatus_set.filter(
-            campaign=campaign, status__in=[2, 4]
-        ).count()
-        seller.contacted_pct = (seller.contacted_count * 100) / assigned
-        seller.success_count = seller.contactcampaignstatus_set.filter(
-            campaign=campaign, campaign_resolution__in=("S1", "S2")
-        ).count()
-        seller.success_pct = (seller.success_count * 100) / assigned
-        seller.rejected_count = seller.contactcampaignstatus_set.filter(
-            campaign=campaign, campaign_resolution__in=("AS", "DN", "LO", "NI")
-        ).count()
-        seller.rejected_pct = (seller.rejected_count * 100) / assigned
-        seller.unreachable_count = seller.contactcampaignstatus_set.filter(
-            campaign=campaign, status=5
-        ).count()
-        seller.unreachable_pct = (seller.unreachable_count * 100) / assigned
-        """
+        seller.rejected_pct = (seller.rejected_count * 100) / assigned_count
+        seller.unreachable_count = ccs_queryset.filter(seller=seller, status=5).count()
+        seller.unreachable_pct = (seller.unreachable_count * 100) / assigned_count
     return render(request, "seller_performance_by_time.html", {
         "date_from": date_from,
         "date_to": date_to,
         "form": form,
         "sellers": sellers,
-        "assigned_contacts_count": assigned_contacts_count,
+        "assigned_count": assigned_count,
     })

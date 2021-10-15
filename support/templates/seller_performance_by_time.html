@@ -7,10 +7,12 @@
 {% endblock %}
 
 {% block extra_js %}
+<script type="text/javascript" src="{% static 'js/datepicker-es.js' %}"></script>
 <script type="text/javascript" src="{% static '/admin-lte/plugins/datatables/jquery.dataTables.min.js' %}"></script>
 <script src="{% static '/admin-lte/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js' %}"></script>
 <script>
 $(function() {
+  $(".datepicker").datepicker({ dateFormat: 'yy-mm-dd' });
   $('[data-toggle="tooltip"]').tooltip();
   $("#table1").DataTable({
     "paging":   false,
@@ -35,11 +37,11 @@ Rendimiento de vendedores por tiempo
   <div class="col-12">
     <div class="card">
       <div class="card-header">
-        <h3 class="card-title">Rendimiento de vendedores desde el {{form.date_gte}} hasta {{form.date_lte}}</h3>
+        <h3 class="card-title">Rendimiento de vendedores desde el {{date_from}} hasta {{date_to}}</h3>
       </div>
       <div class="card-body">
         <dl>
-          <dd><b>{% trans "Amount of worked contacts" %}:</b> {{assigned_contacts_count}}</dd>
+          <dd><b>{% trans "Amount of worked contacts" %}:</b> {{assigned_count}}</dd>
         </dl>
       </div>
     </div>
@@ -49,6 +51,25 @@ Rendimiento de vendedores por tiempo
         <h3 class="card-title">{% trans "Overview" %}</h3>
       </div>
       <div class="card-body">
+
+        <form method="GET">
+          <div class="row">
+            <div class="form-group col">
+              <label for="id_date_from">{% trans "Date from" %}</label>
+              {% render_field form.date_gte class="form-control datepicker" %}
+            </div>
+            <div class="form-group col">
+              <label for="id_date_to">{% trans "Date to" %}</label>
+              {% render_field form.date_lte class="form-control datepicker" %}
+            </div>
+          </div>
+          <div class="row">
+            <div class="text-right">
+              <input type="submit" class="btn bg-gradient-primary ml-3" value="Filtrar" />
+            </div>
+          </div>
+        </form>
+
         <table id="table1" class="table table-bordered table-striped">
           <thead>
             <tr>
