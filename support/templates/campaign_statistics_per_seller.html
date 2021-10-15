@@ -37,6 +37,7 @@ Rendimiento de vendedores en {{campaign.name}}
         <h3 class="card-title">Rendimiento de vendedores en {{campaign.name}}</h3>
       </div>
       <div class="card-body">
+        <p>Este reporte muestra contactos cuya última fecha de acción en la campaña está comprendida entre las fechas seleccionadas.</p>
         <dl>
           <dd><b>{% trans "Name" %}:</b> {{campaign.name}}</dd>
           <dd><b>{% trans "Amount of contacts" %}:</b> {{total_count}}</dd>
@@ -53,26 +54,23 @@ Rendimiento de vendedores en {{campaign.name}}
     </div>
 
     <div class="card">
-      <div class="card-header">
-        <h3 class="card-title">{% trans "Overview" %}</h3>
-      </div>
       <div class="card-body">
         <table id="table1" class="table table-bordered table-striped">
           <thead>
             <tr>
               <th>{% trans "Name" %}</th>
-              <th title="Asignado" data-toggle="tooltip">Asig.</th>
-              <th title="Llamado" data-toggle="tooltip">Llam.</th>
+              <th title="Asignado" data-toggle="tooltip">Asignado</th>
+              <th title="Llamado" data-toggle="tooltip">Llamado</th>
               <th title="Porcentaje llamado" data-toggle="tooltip">%</th>
-              <th title="Contactado" data-toggle="tooltip">C.</th>
+              <th title="Contactado" data-toggle="tooltip">Contactado</th>
               <th title="Porcentaje contactado" data-toggle="tooltip">%</th>
-              <th title="Suscrito" data-toggle="tooltip">S.</th>
+              <th title="Suscrito" data-toggle="tooltip">Suscrito</th>
               <th title="Porcentaje suscrito" data-toggle="tooltip">%</th>
-              <th title="No contactado" data-toggle="tooltip">NC.</th>
+              <th title="No contactado" data-toggle="tooltip">No Cont.</th>
               <th title="Porcentaje no contactado" data-toggle="tooltip">%</th>
-              <th title="Rechazado" data-toggle="tooltip">R.</th>
+              <th title="Rechazado" data-toggle="tooltip">Rechazo</th>
               <th title="Porcentaje rechazado" data-toggle="tooltip">%</th>
-              <th title="Inubicable" data-toggle="tooltip">I.</th>
+              <th title="Inubicable" data-toggle="tooltip">Inubic.</th>
               <th title="Porcentaje inubicable" data-toggle="tooltip">%</th>
             </tr>
           </thead>
