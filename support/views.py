@@ -2339,6 +2339,13 @@ def seller_performance_by_time(request):
         last_action_date__lte=date_to,
     )
     assigned_count = ccs_queryset.filter(seller__isnull=False).count() or 1
+    called_count = ccs_queryset.filter(seller__isnull=False, status__gte=2).count()
+    called_pct = (called_count * 100) / assigned_count
+    contacted_count = ccs_queryset.filter(seller__isnull=False, status__in=[2, 4]).count()
+    contacted_pct = (contacted_count * 100) / assigned_count
+    success_count = ccs_queryset.filter(seller__isnull=False, campaign_resolution__in=("S1", "S2")).count()
+    success_pct = (success_count * 100) / assigned_count
+
     for seller in sellers:
         seller.assigned_count = ccs_queryset.filter(seller=seller).count()
         seller.not_contacted_yet_count = ccs_queryset.filter(seller=seller, status=1).count()
@@ -2361,4 +2368,10 @@ def seller_performance_by_time(request):
         "form": form,
         "sellers": sellers,
         "assigned_count": assigned_count,
+        "called_count": called_count,
+        "called_pct": called_pct,
+        "contacted_count": contacted_count,
+        "contacted_pct": contacted_pct,
+        "success_count": success_count,
+        "success_pct": success_pct,
     })

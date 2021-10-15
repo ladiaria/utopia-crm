@@ -25,7 +25,6 @@ $(function() {
 
 {% block no_heading %}
 <h1>Rendimiento de vendedores por tiempo</h1>
-<p>{% trans "Statistics for" %} {{campaign.name}}</p>
 {% endblock %}
 
 {% block title %}
@@ -42,16 +41,15 @@ Rendimiento de vendedores por tiempo
       <div class="card-body">
         <dl>
           <dd><b>{% trans "Amount of worked contacts" %}:</b> {{assigned_count}}</dd>
+          <dd><b>{% trans "Called contacts" %}:</b> {{called_count}} ({{called_pct|floatformat:2}}%)</dd>
+          <dd><b>{% trans "Contacted contacts" %}:</b> {{contacted_count}} ({{contacted_pct|floatformat:2}}%)</dd>
+          <dd><b>{% trans "Subscriptions" %}:</b> {{success_count}} ({{success_pct|floatformat:2}}%)</dd>
         </dl>
       </div>
     </div>
 
     <div class="card">
-      <div class="card-header">
-        <h3 class="card-title">{% trans "Overview" %}</h3>
-      </div>
       <div class="card-body">
-
         <form method="GET">
           <div class="row">
             <div class="form-group col">
