@@ -2349,19 +2349,19 @@ def seller_performance_by_time(request):
     for seller in sellers:
         seller.assigned_count = ccs_queryset.filter(seller=seller).count()
         seller.not_contacted_yet_count = ccs_queryset.filter(seller=seller, status=1).count()
-        seller.not_contacted_yet_pct = (seller.not_contacted_yet_count * 100) / assigned_count
+        seller.not_contacted_yet_pct = (seller.not_contacted_yet_count * 100) / (seller.assigned_count or 1)
         seller.called_count = ccs_queryset.filter(seller=seller, status__gte=2).count()
-        seller.called_pct = (seller.called_count * 100) / assigned_count
+        seller.called_pct = (seller.called_count * 100) / (seller.assigned_count or 1)
         seller.contacted_count = ccs_queryset.filter(seller=seller, status__in=[2, 4]).count()
-        seller.contacted_pct = (seller.contacted_count * 100) / assigned_count
+        seller.contacted_pct = (seller.contacted_count * 100) / (seller.assigned_count or 1)
         seller.success_count = ccs_queryset.filter(seller=seller, campaign_resolution__in=("S1", "S2")).count()
-        seller.success_pct = (seller.success_count * 100) / assigned_count
+        seller.success_pct = (seller.success_count * 100) / (seller.assigned_count or 1)
         seller.rejected_count = ccs_queryset.filter(
             seller=seller, campaign_resolution__in=("AS", "DN", "LO", "NI")
         ).count()
-        seller.rejected_pct = (seller.rejected_count * 100) / assigned_count
+        seller.rejected_pct = (seller.rejected_count * 100) / (seller.assigned_count or 1)
         seller.unreachable_count = ccs_queryset.filter(seller=seller, status=5).count()
-        seller.unreachable_pct = (seller.unreachable_count * 100) / assigned_count
+        seller.unreachable_pct = (seller.unreachable_count * 100) / (seller.assigned_count or 1)
     return render(request, "seller_performance_by_time.html", {
         "date_from": date_from,
         "date_to": date_to,
