@@ -1,6 +1,7 @@
 # coding=utf-8
 from __future__ import division
 import unicodecsv
+import collections
 from datetime import date, timedelta, datetime
 
 from django import forms
@@ -23,6 +24,8 @@ from django.views.decorators.csrf import csrf_exempt
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
+from django.utils.encoding import force_text
+from django.conf import settings
 
 from core.filters import ContactFilter
 from core.forms import AddressForm
@@ -41,7 +44,8 @@ from core.models import (
 from core.choices import CAMPAIGN_RESOLUTION_REASONS_CHOICES
 
 from .filters import (
-    IssueFilter, InvoicingIssueFilter, ScheduledActivityFilter, ContactCampaignStatusFilter
+    IssueFilter, InvoicingIssueFilter, ScheduledActivityFilter, ContactCampaignStatusFilter,
+    UnsubscribedSubscriptionsByEndDateFilter
 )
 from .forms import *
 from .models import Seller, ScheduledTask, IssueStatus
@@ -2382,4 +2386,80 @@ def seller_performance_by_time(request):
         "contacted_pct": contacted_pct,
         "success_count": success_count,
         "success_pct": success_pct,
+    })
+
+
+def unsubscription_statistics(request):
+    unsubscriptions_queryset = Subscription.objects.filter(end_date__isnull=False, unsubscription_products__type="S")
+    unsubscriptions_filter = UnsubscribedSubscriptionsByEndDateFilter(request.GET, queryset=unsubscriptions_queryset)
+
+    executed_unsubscriptions_requested = unsubscriptions_filter.qs.filter(
+        end_date__lte=date.today(), unsubscription_requested=True
+    ).values("unsubscription_products__name").annotate(
+        total=Count("unsubscription_products")).order_by(
+            "unsubscription_products__billing_priority", "unsubscription_products__name")
+
+    executed_unsubscriptions_not_requested = unsubscriptions_filter.qs.filter(
+        end_date__lte=date.today(), unsubscription_requested=False
+    ).values("unsubscription_products__name").annotate(
+        total=Count("unsubscription_products")).order_by(
+            "unsubscription_products__billing_priority", "unsubscription_products__name")
+
+    programmed_unsubscriptions_requested = unsubscriptions_filter.qs.filter(
+        end_date__gt=date.today(), unsubscription_requested=True
+    ).values("unsubscription_products__name").annotate(
+        total=Count("unsubscription_products")).order_by(
+            "unsubscription_products__billing_priority", "unsubscription_products__name")
+
+    programmed_unsubscriptions_not_requested = unsubscriptions_filter.qs.filter(
+        end_date__gt=date.today(), unsubscription_requested=False
+    ).values("unsubscription_products__name").annotate(
+        total=Count("unsubscription_products")).order_by(
+            "unsubscription_products__billing_priority", "unsubscription_products__name")
+
+    total_unsubscriptions_requested = programmed_unsubscriptions_requested | executed_unsubscriptions_requested
+    total_unsubscriptions_not_requested = (
+        programmed_unsubscriptions_not_requested | executed_unsubscriptions_not_requested
+    )
+
+    individual_products_dict = collections.OrderedDict()
+    choices = dict(settings.UNSUBSCRIPTION_REASON_CHOICES)
+    for product_obj in Product.objects.filter(type="S", offerable=True).order_by("billing_priority"):
+        individual_products_dict[product_obj.name] = unsubscriptions_filter.qs.filter(
+            unsubscription_products=product_obj,
+            unsubscription_reason__isnull=False).values(
+            "unsubscription_reason").annotate(total=Count("unsubscription_reason"))
+    for individual_product in individual_products_dict.values():
+        # This dictionary will have unsubscription_reason as the index to be shown, this is not ideal for sure
+        for item in individual_product:
+            # Probably very bad solution to convert choices to displays, someone help me with a better way!
+            item['unsubscription_reason'] = choices.get(item["unsubscription_reason"], None)
+
+    total_unsubscriptions_by_reason = unsubscriptions_filter.qs.filter(
+        unsubscription_reason__isnull=False
+    ).values("unsubscription_reason").annotate(total=Count("unsubscription_reason"))
+    for item in total_unsubscriptions_by_reason:
+        # Probably very bad solution to convert choices to displays, someone help me with a better way!
+        item['unsubscription_reason'] = choices.get(item["unsubscription_reason"], None)
+
+    total_requested_unsubscriptions_count = unsubscriptions_filter.qs.filter(
+        unsubscription_requested=True).count()
+    total_not_requested_unsubscriptions_count = unsubscriptions_filter.qs.filter(
+        unsubscription_requested=False).count()
+    total_unsubscriptions_count = unsubscriptions_filter.qs.count()
+
+    return render(request, "unsubscription_statistics.html", {
+        "filter": unsubscriptions_filter,
+        "queryset": unsubscriptions_filter.qs,
+        "executed_unsubscriptions_requested": executed_unsubscriptions_requested,
+        "executed_unsubscriptions_not_requested": executed_unsubscriptions_not_requested,
+        "programmed_unsubscriptions_requested": programmed_unsubscriptions_requested,
+        "programmed_unsubscriptions_not_requested": programmed_unsubscriptions_not_requested,
+        "total_unsubscriptions_requested": total_unsubscriptions_requested,
+        "total_unsubscriptions_not_requested": total_unsubscriptions_not_requested,
+        "individual_products_dict": individual_products_dict,
+        "total_unsubscriptions_by_reason": total_unsubscriptions_by_reason,
+        "total_requested_unsubscriptions_count": total_requested_unsubscriptions_count,
+        "total_not_requested_unsubscriptions_count": total_not_requested_unsubscriptions_count,
+        "total_unsubscriptions_count": total_unsubscriptions_count,
     })
