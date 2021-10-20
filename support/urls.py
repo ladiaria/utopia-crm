@@ -37,6 +37,7 @@ from support.views import (
     campaign_statistics_detail,
     campaign_statistics_per_seller,
     seller_performance_by_time,
+    unsubscription_statistics,
 )
 
 from django.conf.urls import url
@@ -104,4 +105,5 @@ urlpatterns = [
     url(r"^campaign_statistics/(\d+)/$", campaign_statistics_detail, name="campaign_statistics_detail"),
     url(r"^campaign_statistics/by_seller/(\d+)/$", campaign_statistics_per_seller, name="campaign_statistics_per_seller"),
     url(r"^campaign_statistics/performance_by_time/$", seller_performance_by_time, name="seller_performance_by_time"),
+    url(r"^unsubscription_statistics/$", unsubscription_statistics, name="unsubscription_statistics"),
 ]

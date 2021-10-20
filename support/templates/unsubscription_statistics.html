@@ -1,0 +1,352 @@
+{% extends 'adminlte/base.html' %}
+{% load static i18n widget_tweaks %}
+
+{% block title %}{% trans "Unsubscription statistics" %}{% endblock title %}
+
+{% block stylesheets %}
+{{block.super}}
+<link rel="stylesheet" href="{% static '/admin-lte/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css' %}" />
+{% endblock %}
+
+{% block extra_js %}
+<script type="text/javascript" src="{% static '/admin-lte/plugins/datatables/jquery.dataTables.min.js' %}"></script>
+<script src="{% static '/admin-lte/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js' %}"></script>
+<script>
+$(function() {
+  $('#id_date').change(function(){
+    var option = $(this).val();
+    if(option == "custom") {
+      $('.creation-range').removeClass('d-none');
+    }else {
+      $('.creation-range').addClass('d-none');
+      $('#id_date_gte').attr('value', '');
+      $('#id_date_lte').attr('value', '');
+    }
+  });
+  $('#id_date').change();
+  $('#id_date_gte').datepicker({ dateFormat: 'yy-mm-dd' });
+  $('#id_date_lte').datepicker({ dateFormat: 'yy-mm-dd' });
+});
+</script>
+{% endblock %}
+
+{% block no_heading %}
+<h1>{% trans "Unsubscription statistics" %}</h1>
+<p>{% trans 'Statistics about unsubscriptions' %}</p>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    {% trans "Filter" %}
+  </div>
+  <div class="card-body">
+    <form method="GET" id="form">
+      <div class="row">
+        <div class="form-group col">
+          <label for="date">{% trans "Date" %}</label>
+          {% render_field filter.form.date class="form-control " %}
+        </div>
+        <div class="creation-range hidden d-none col-4">
+          <div class="row">
+            <div class="form-group col">
+              <label for="creation_date_gte">{% trans "Creation date (from)" %}</label>
+              {% render_field filter.form.date_gte class="form-control" %}
+            </div>
+            <div class="form-group col">
+              <label for="creation_date_lte">{% trans "Creation date (to)" %}</label>
+              {% render_field filter.form.date_lte class="form-control" %}
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="text-right">
+        {{count}} {% trans "unsubscriptions" %}
+        <input type="submit" class="btn bg-gradient-primary ml-3" value="{% trans 'Filter' %}" />
+      </div>
+    </form>
+  </div>
+</div>
+<div class="row">
+  <div class="col-8">
+    <div class="card">
+      <div class="card-header">
+        {% trans "Executed" %}
+      </div>
+      <div class="card-body">
+        {% if executed_unsubscriptions_requested or executed_unsubscriptions_not_requested %}
+        <div class="row">
+          <div class="col-6">
+            <div class="card">
+              <div class="card-header">
+                {% trans "Did not request (debtors)" %}
+              </div>
+              <div class="card-body">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>{% trans "Product" %}</th>
+                      <th>#</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for product in executed_unsubscriptions_not_requested %}
+                    <tr>
+                      <td>{{product.unsubscription_products__name}}</td>
+                      <td>{{product.total}}</td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="card">
+              <div class="card-header">
+                {% trans "Requested unsubscription" %}
+              </div>
+              <div class="card-body">
+                <table class="table">
+                  <thead>
+                    <th>{% trans "Product" %}</th>
+                    <th>#</th>
+                  </thead>
+                  <tbody>
+                    {% for product in executed_unsubscriptions_requested %}
+                    <tr>
+                      <td>{{product.unsubscription_products__name}}</td>
+                      <td>{{product.total}}</td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% else %}
+        {% trans "No data for this period" %}
+        {% endif %}
+      </div>
+    </div>
+
+
+    <div class="card">
+      <div class="card-header">
+        {% trans "Programmed (Future)" %}
+      </div>
+      <div class="card-body">
+        {% if programmed_unsubscriptions_not_requested %}
+        <div class="row">
+          <div class="col-6">
+            <div class="card">
+              <div class="card-header">
+                {% trans "Did not request (debtors)" %}
+              </div>
+              <div class="card-body">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>{% trans "Product" %}</th>
+                      <th>#</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for product in programmed_unsubscriptions_not_requested %}
+                    <tr>
+                      <td>{{product.unsubscription_products__name}}</td>
+                      <td>{{product.total}}</td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="card">
+              <div class="card-header">
+                {% trans "Requested unsubscription" %}
+              </div>
+              <div class="card-body">
+                <table class="table">
+                  <thead>
+                    <th>{% trans "Product" %}</th>
+                    <th>#</th>
+                  </thead>
+                  <tbody>
+                    {% for product in programmed_unsubscriptions_requested %}
+                    <tr>
+                      <td>{{product.unsubscription_products__name}}</td>
+                      <td>{{product.total}}</td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% else %}
+        {% trans "No data for this period" %}
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        {% trans "All unsubscriptions" %}
+      </div>
+      <div class="card-body">
+        {% if total_unsubscriptions_not_requested or total_unsubscriptions_requested %}
+        <div class="row">
+          <div class="col-6">
+            <div class="card">
+              <div class="card-header">
+                {% trans "Did not request (debtors)" %}
+              </div>
+              <div class="card-body">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>{% trans "Product" %}</th>
+                      <th>#</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for product in total_unsubscriptions_not_requested %}
+                    <tr>
+                      <td>{{product.unsubscription_products__name}}</td>
+                      <td>{{product.total}}</td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="card">
+              <div class="card-header">
+                {% trans "Requested unsubscription" %}
+              </div>
+              <div class="card-body">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>{% trans "Product" %}</th>
+                      <th>#</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for product in total_unsubscriptions_requested %}
+                    <tr>
+                      <td>{{product.unsubscription_products__name}}</td>
+                      <td>{{product.total}}</td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% else %}
+        {% trans "No data for this period" %}
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        {% trans "Unsubscription reasons per product" %}
+      </div>
+      <div class="card-body">
+        {% for product_name, product_data in individual_products_dict.items %}
+          {% if product_data %}
+          <div class="card">
+            <div class="card-header">
+              {{product_name}}
+            </div>
+            <div class="card-body">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>{% trans "Reason" %}</th>
+                    <th>#</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for row in product_data %}
+                  <tr>
+                    <td>{{row.unsubscription_reason}}</td>
+                    <td>{{row.total}}</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        {% trans "Unsubscription reasons per subscription" %}
+      </div>
+      <div class="card-body">
+        {% if total_unsubscriptions_by_reason %}
+        <table class="table">
+          <thead>
+            <tr>
+              <th>{% trans "Reason" %}</th>
+              <th>#</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in total_unsubscriptions_by_reason %}
+            <tr>
+              <td>{{row.unsubscription_reason}}</td>
+              <td>{{row.total}}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        {% trans "No data for this period" %}
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="col-4">
+    <div class="card">
+        <div class="card-header">
+            <h4 class="card-title">{% trans "Total requested unsubscriptions" %}</h4>
+        </div>
+        <div class="card-body">
+            <p class="h2">{{total_requested_unsubscriptions_count}}</p>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-header">
+            <h4 class="card-title">{% trans "Total not requested unsubscriptions" %}</h4>
+        </div>
+        <div class="card-body">
+            <p class="h2">{{total_not_requested_unsubscriptions_count}}</p>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-header">
+            <h4 class="card-title">{% trans "Total unsubscriptions" %}</h4>
+        </div>
+        <div class="card-body">
+            <p class="h2">{{total_unsubscriptions_count}}</p>
+        </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

@@ -5,7 +5,7 @@ from django import forms
 from django.utils.translation import ugettext_lazy as _
 from django.contrib.auth.models import User
 
-from core.models import Activity, ContactCampaignStatus
+from core.models import Activity, ContactCampaignStatus, Subscription
 from .models import Issue, IssueSubcategory, Seller
 
 
@@ -78,3 +78,36 @@ class ContactCampaignStatusFilter(django_filters.FilterSet):
     class Meta:
         model = ContactCampaignStatus
         fields = ["seller"]
+
+
+class UnsubscribedSubscriptionsByEndDateFilter(django_filters.FilterSet):
+    date = django_filters.ChoiceFilter(choices=CREATION_CHOICES, method='filter_by_date')
+    date_gte = django_filters.DateFilter(
+        field_name='end_date', lookup_expr='gte', widget=forms.TextInput(attrs={'autocomplete': 'off'}))
+    date_lte = django_filters.DateFilter(
+        field_name='end_date', lookup_expr='lte', widget=forms.TextInput(attrs={'autocomplete': 'off'}))
+
+    def filter_by_date(self, queryset, name, value):
+        if value == 'today':
+            return queryset.filter(end_date=date.today())
+        elif value == 'yesterday':
+            return queryset.filter(end_date=date.today() - timedelta(1))
+        elif value == 'last_7_days':
+            return queryset.filter(
+                end_date__gte=date.today() - timedelta(7), end_date__lte=date.today())
+        elif value == 'last_30_days':
+            return queryset.filter(
+                end_date__gte=date.today() - timedelta(30), end_date__lte=date.today())
+        elif value == 'this_month':
+            return queryset.filter(
+                end_date__month=date.today().month, end_date__year=date.today().year)
+        elif value == 'last_month':
+            month = date.today().month - 1 if date.today().month != 1 else 12
+            year = date.today().year if date.today().month != 1 else date.today().year - 1
+            return queryset.filter(end_date__month=month, end_date__year=year)
+        else:
+            return queryset
+
+    class Meta:
+        model = Subscription
+        fields = []
