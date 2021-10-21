@@ -817,8 +817,8 @@ class Subscription(models.Model):
     )
 
     # Mercadopago tokens, and others
-    card_id = models.CharField(max_length=13, blank=True, null=True)
-    customer_id = models.CharField(max_length=24, blank=True, null=True)
+    card_id = models.CharField(max_length=32, blank=True, null=True)
+    customer_id = models.CharField(max_length=32, blank=True, null=True)
 
     def __unicode__(self):
         return unicode(_("{} subscription for the contact {} {}").format(
