@@ -89,7 +89,7 @@ class NewAddressChangeScheduledTaskForm(forms.Form):
     new_address_state = forms.ChoiceField(
         required=False, widget=forms.Select(attrs={"class": "form-control"})
     )
-    if getattr(settings, "USE_STATES_CHOICE"):
+    if settings.USE_STATES_CHOICE:
         new_address_state.choices = settings.STATES
     new_address_notes = forms.CharField(
         required=False, widget=forms.TextInput(attrs={"class": "form-control"})
@@ -414,7 +414,7 @@ class NewAddressForm(forms.Form):
     address_state = forms.ChoiceField(
         required=False, widget=forms.Select(attrs={"class": "form-control"})
     )
-    if getattr(settings, "USE_STATES_CHOICE"):
+    if settings.USE_STATES_CHOICE:
         address_state.choices = settings.STATES
     address_notes = forms.CharField(
         required=False, widget=forms.TextInput(attrs={"class": "form-control"})

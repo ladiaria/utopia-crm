@@ -15,6 +15,8 @@ from django.utils.html import mark_safe
 
 from taggit.managers import TaggableManager
 
+from util import space_join
+from util.dates import get_default_next_billing, get_default_start_date, diff_month
 from .choices import (
     ACTIVITY_DIRECTION_CHOICES,
     ACTIVITY_STATUS_CHOICES,
@@ -44,7 +46,6 @@ from utils import (
     subscribe_email_to_mailtrain_list,
     get_emails_from_mailtrain_list,
 )
-from util.dates import get_default_next_billing, get_default_start_date, diff_month
 
 
 regex_alphanumeric = u"^[@A-Za-z0-9ñüáéíóúÑÜÁÉÍÓÚ _'.\-]*$"  # noqa
@@ -566,7 +567,7 @@ class Address(models.Model):
         default=getattr(settings, "DEFAULT_STATE", None),
         verbose_name=_("State"),
     )
-    if getattr(settings, "USE_STATES_CHOICE"):
+    if settings.USE_STATES_CHOICE:
         state.choices = settings.STATES
     email = models.EmailField(blank=True, null=True, verbose_name=_("Email"))
     address_type = models.CharField(
@@ -584,12 +585,7 @@ class Address(models.Model):
     # TODO: validate there is only one default address per contact
 
     def __unicode__(self):
-        return "%s %s %s %s" % (
-            self.address_1,
-            self.address_2 or "",
-            self.city or "",
-            self.state or "",
-        )
+        return space_join(space_join(self.address_1, self.address_2), space_join(self.city, self.state))
 
     def get_type(self):
         """
@@ -661,49 +657,22 @@ class Subscription(models.Model):
     """
 
     campaign = models.ForeignKey(
-        "core.Campaign",
-        blank=True,
-        null=True,
-        verbose_name=_("Campaign"),
-        on_delete=models.SET_NULL,
+        "core.Campaign", blank=True, null=True, verbose_name=_("Campaign"), on_delete=models.SET_NULL
     )
     active = models.BooleanField(default=True, verbose_name=_("Active"))
-    contact = models.ForeignKey(
-        Contact, verbose_name=_("Contact"), related_name="subscriptions"
-    )
-    type = models.CharField(
-        max_length=1, default="N", choices=SUBSCRIPTION_TYPE_CHOICES
-    )
-    status = models.CharField(
-        max_length=2, blank=True, null=True, choices=SUBSCRIPTION_STATUS_CHOICES
-    )
+    contact = models.ForeignKey(Contact, verbose_name=_("Contact"), related_name="subscriptions")
+    type = models.CharField(max_length=1, default="N", choices=SUBSCRIPTION_TYPE_CHOICES)
+    status = models.CharField(max_length=2, blank=True, null=True, choices=SUBSCRIPTION_STATUS_CHOICES)
 
     # Billing information. This is added in case it's necessary.
-    billing_name = models.CharField(
-        max_length=100, blank=True, null=True, verbose_name=_("Billing name")
-    )
+    billing_name = models.CharField(max_length=100, blank=True, null=True, verbose_name=_("Billing name"))
     billing_id_doc = models.CharField(
-        max_length=20,
-        blank=True,
-        null=True,
-        verbose_name=_("Billing Identification Document"),
+        max_length=20, blank=True, null=True, verbose_name=_("Billing Identification Document")
     )
-    rut = models.CharField(
-        max_length=12, blank=True, null=True, verbose_name=_("R.U.T.")
-    )
-    billing_phone = models.CharField(
-        max_length=20, blank=True, null=True, verbose_name=_("Billing phone")
-    )
-    balance = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        blank=True,
-        null=True,
-        verbose_name=_("Balance"),
-    )
-    send_bill_copy_by_email = models.BooleanField(
-        default=True, verbose_name=_("Send bill copy by email")
-    )
+    rut = models.CharField(max_length=12, blank=True, null=True, verbose_name=_("R.U.T."))
+    billing_phone = models.CharField(max_length=20, blank=True, null=True, verbose_name=_("Billing phone"))
+    balance = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True, verbose_name=_("Balance"))
+    send_bill_copy_by_email = models.BooleanField(default=True, verbose_name=_("Send bill copy by email"))
     billing_address = models.ForeignKey(
         Address,
         blank=True,
@@ -712,67 +681,32 @@ class Subscription(models.Model):
         related_name="billing_contacts",
         on_delete=models.SET_NULL,
     )
-    billing_email = models.EmailField(
-        blank=True, null=True, verbose_name=_("Billing email")
-    )
-
+    billing_email = models.EmailField(blank=True, null=True, verbose_name=_("Billing email"))
     envelope = models.NullBooleanField(default=False, verbose_name=_("Envelope"))
-    free_envelope = models.NullBooleanField(
-        default=False, verbose_name=_("Free envelope")
-    )
+    free_envelope = models.NullBooleanField(default=False, verbose_name=_("Free envelope"))
     re_routed = models.NullBooleanField(default=False, verbose_name=_("Rerouted"))
-
-    start_date = models.DateField(
-        blank=True,
-        null=True,
-        default=get_default_start_date,
-        verbose_name=_("Start date"),
-    )
+    start_date = models.DateField(blank=True, null=True, default=get_default_start_date, verbose_name=_("Start date"))
     end_date = models.DateField(blank=True, null=True, verbose_name=_("End date"))
     next_billing = models.DateField(
-        default=get_default_next_billing,
-        blank=True,
-        null=True,
-        verbose_name=_("Next billing"),
+        default=get_default_next_billing, blank=True, null=True, verbose_name=_("Next billing")
     )
-    resubscription_date = models.DateField(
-        blank=True, null=True, verbose_name=_("Resubscription date")
-    )
-
-    highlight_in_listing = models.BooleanField(
-        default=False, verbose_name=_("Highlight in listing")
-    )
+    resubscription_date = models.DateField(blank=True, null=True, verbose_name=_("Resubscription date"))
+    highlight_in_listing = models.BooleanField(default=False, verbose_name=_("Highlight in listing"))
     send_pdf = models.BooleanField(default=False, verbose_name=_("Send pdf"))
     directions = models.TextField(blank=True, null=True, verbose_name=_("Directions"))
     inactivity_reason = models.IntegerField(
-        choices=INACTIVITY_REASONS,
-        blank=True,
-        null=True,
-        verbose_name=_("Inactivity reason"),
+        choices=INACTIVITY_REASONS, blank=True, null=True, verbose_name=_("Inactivity reason")
     )
-    pickup_point = models.ForeignKey(
-        "logistics.PickupPoint", blank=True, null=True, verbose_name=_("Pickup point")
-    )
-    label_message = models.CharField(
-        max_length=40, blank=True, null=True, verbose_name=_("Label message")
-    )
+    pickup_point = models.ForeignKey("logistics.PickupPoint", blank=True, null=True, verbose_name=_("Pickup point"))
+    label_message = models.CharField(max_length=40, blank=True, null=True, verbose_name=_("Label message"))
 
     # Unsubscription
-    unsubscription_date = models.DateField(
-        blank=True, null=True, verbose_name=_("Unsubscription date")
-    )
+    unsubscription_date = models.DateField(blank=True, null=True, verbose_name=_("Unsubscription date"))
     unsubscription_manager = models.ForeignKey(
-        User,
-        verbose_name=_("Unsubscription manager"),
-        null=True,
-        blank=True,
-        on_delete=models.SET_NULL,
+        User, verbose_name=_("Unsubscription manager"), null=True, blank=True, on_delete=models.SET_NULL
     )
     unsubscription_reason = models.PositiveSmallIntegerField(
-        choices=settings.UNSUBSCRIPTION_REASON_CHOICES,
-        blank=True,
-        null=True,
-        verbose_name=_("Unsubscription reason"),
+        choices=settings.UNSUBSCRIPTION_REASON_CHOICES, blank=True, null=True, verbose_name=_("Unsubscription reason")
     )
     unsubscription_channel = models.PositiveSmallIntegerField(
         choices=settings.UNSUBSCRIPTION_CHANNEL_CHOICES,
@@ -809,12 +743,7 @@ class Subscription(models.Model):
         verbose_name=_("Payment type"),
     )
 
-    updated_from = models.OneToOneField(
-        'core.Subscription',
-        on_delete=models.SET_NULL,
-        blank=True,
-        null=True
-    )
+    updated_from = models.OneToOneField('core.Subscription', on_delete=models.SET_NULL, blank=True, null=True)
 
     # Mercadopago tokens, and others
     card_id = models.CharField(max_length=32, blank=True, null=True)
@@ -865,7 +794,7 @@ class Subscription(models.Model):
         copies=1,
         message=None,
         instructions=None,
-        route_id=None,
+        route=None,
         order=None,
         seller_id=None,
         override_date=None,
@@ -885,7 +814,7 @@ class Subscription(models.Model):
             special_instructions=instructions or None,
             label_contact=label_contact,
             seller_id=seller_id,
-            route_id=route_id,
+            route=route,
             order=order,
         )
         self.contact.add_product_history(

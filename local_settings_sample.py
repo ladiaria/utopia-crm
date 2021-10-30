@@ -99,8 +99,6 @@ ENVELOPE_PRICE = 4
 # Payment methods for invoicing
 INVOICE_PAYMENT_METHODS = (("M", "Mastercard"), ("V", "Visa"), ("C", "Cash"))
 
-INVOICES_PATH = "path/to/folder/in/media/"
-
 # Set the payment types that you want to track on labels here. They must be set by type on a string.
 LABEL_INVOICE_PAYMENT_TYPES = "RI"
 
@@ -143,10 +141,6 @@ ISSUE_SUBCATEGORY_AUTO_CLOSE_SLUGS = [
     '1-invoice-debt',
 ]
 
-# Set a list of statuses slugs that will be used to mark the issue as finished. Examples below.
-ISSUE_STATUS_SOLVED = 'solved'
-ISSUE_STATUS_FINISHED_LIST = [ISSUE_STATUS_SOLVED, 'not-solved']
-
 # Used when a new issue is created, depending if it was assigned or not. You must create the issue statuses beforehand
 ISSUE_STATUS_ASSIGNED = 'assigned'
 ISSUE_STATUS_UNASSIGNED = 'unassigned'
@@ -163,6 +157,3 @@ ISSUE_SUBCATEGORY_GENERIC_DEBT = 'generic-debt'
 TEMPORARY_DISCOUNT = {
     'product-slug': 3,
 }
-
-# How many days into the future are we going to bill contacts
-BILLING_EXTRA_DAYS = 2

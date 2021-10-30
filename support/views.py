@@ -1438,15 +1438,21 @@ def contact_detail(request, contact_id):
     contact = get_object_or_404(Contact, pk=contact_id)
     addresses = contact.addresses.all()
     activities = contact.activity_set.all().order_by("-id")[:3]
-    subscriptions = contact.subscriptions.filter(active=True)
+    subscriptions = contact.subscriptions.filter(active=True).exclude(status="AP")
     issues = contact.issue_set.all().order_by("-id")[:3]
     newsletters = contact.get_newsletters()
     last_paid_invoice = contact.get_last_paid_invoice()
-    inactive_subscriptions = contact.subscriptions.filter(active=False, start_date__lt=date.today())
-    future_subscriptions = contact.subscriptions.filter(active=False, start_date__gte=date.today())
+    inactive_subscriptions = contact.subscriptions.filter(
+        active=False, start_date__lt=date.today()
+    ).exclude(status="AP")
+    future_subscriptions = contact.subscriptions.filter(
+        active=False, start_date__gte=date.today()
+    ).exclude(status="AP")
     all_activities = contact.activity_set.all().order_by('-datetime', 'id')
     all_issues = contact.issue_set.all().order_by('-date', 'id')
     all_scheduled_tasks = contact.scheduledtask_set.all().order_by('-creation_date', 'id')
+    awaiting_payment_subscriptions = contact.subscriptions.filter(status="AP")
+    paused_subscriptions = contact.subscriptions.filter(status="PA")
 
     return render(
         request,
@@ -1459,6 +1465,8 @@ def contact_detail(request, contact_id):
             "newsletters": newsletters,
             "issues": issues,
             "inactive_subscriptions": inactive_subscriptions,
+            "awaiting_payment_subscriptions": awaiting_payment_subscriptions,
+            "paused_subscriptions": paused_subscriptions,
             "future_subscriptions": future_subscriptions,
             "last_paid_invoice": last_paid_invoice,
             "all_activities": all_activities,

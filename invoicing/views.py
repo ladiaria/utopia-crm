@@ -64,10 +64,11 @@ def contact_invoices(request, contact_id):
     })
 
 
-def bill_subscription(subscription_id, billing_date=date.today(), dpp=10, check_route=False, debug=False):
+def bill_subscription(subscription_id, billing_date=None, dpp=10, check_route=False, debug=False):
     """
     Bills a single subscription into an only invoice. Returns the created invoice.
     """
+    billing_date = billing_date or date.today()
     subscription = get_object_or_404(Subscription, pk=subscription_id)
     contact = subscription.contact
     invoice, invoice_items = None, None
@@ -89,7 +90,7 @@ def bill_subscription(subscription_id, billing_date=date.today(), dpp=10, check_
         error_msg = _("This subscription has an end date greater than its next billing")
         assert subscription.next_billing < subscription.end_date, (error_msg)
 
-    if subscription.next_billing > billing_date + timedelta(getattr(settings, 'BILLING_EXTRA_DAYS', 0)):
+    if subscription.next_billing > billing_date + timedelta(settings.BILLING_EXTRA_DAYS):
         raise Exception(_('This subscription should not be billed yet.'))
 
     # We need to get all the subscription data. The priority is defined in the billing_priority column of the product.

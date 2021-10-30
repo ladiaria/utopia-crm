@@ -1,6 +1,7 @@
 # coding=utf-8
 from datetime import timedelta
 
+from django.conf import settings
 from django.test import TestCase
 from django.utils.translation import ugettext_lazy as _
 
@@ -8,6 +9,7 @@ from tests.factory import (
     create_contact, create_simple_invoice, create_product, create_campaign, create_address, create_subtype
 )
 
+from util import space_join
 from core.models import Contact, Product, Campaign, ContactCampaignStatus
 from invoicing.models import Invoice
 
@@ -112,9 +114,9 @@ class TestCoreContact(TestCase):
 
         product = create_product('news', 500)
         # test for default
-        self.assertEqual(product.get_type(), 'Other')
+        self.assertEqual(product.get_type(), _("Subscription"))
         product.type = 'N'
-        self.assertEqual(product.get_type(), 'Newsletter')
+        self.assertEqual(product.get_type(), _("Newsletter"))
         self.assertEqual(product.get_weekday(), 'N/A')
 
         basic_print = str(product)
@@ -141,11 +143,16 @@ class TestCoreContact(TestCase):
         # ('physical', _('Physical'))
         contact = create_contact(name='Contact 9', phone='12412455')
         address = create_address('Araucho 1390', contact, address_type='physical')
-        address_str = str(address)
-        self.assertEqual(address_str, 'Araucho 1390  Montevideo Montevideo')
+        self.assertEqual(
+            str(address),
+            space_join(
+                'Araucho 1390',
+                space_join(getattr(settings, 'DEFAULT_CITY', None), getattr(settings, 'DEFAULT_STATE', None)),
+            )
+        )
 
         address_type = address.get_type()
-        self.assertEqual(address_type, 'Physical')
+        self.assertEqual(address_type, _('Physical'))
 
     def test10_basic_print(self):
         from core.models import Institution
