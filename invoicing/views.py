@@ -463,9 +463,9 @@ def download_invoice(request, invoice_id):
 @staff_member_required
 def invoice_filter(request):
     if not request.GET:
-        queryset = Invoice.objects.filter(creation_date=date.today())
+        queryset = Invoice.objects.select_related('contact').filter(creation_date=date.today())
     else:
-        queryset = Invoice.objects.all()
+        queryset = Invoice.objects.select_related('contact').all()
     page_number = request.GET.get("p")
     invoice_queryset = queryset.order_by("-id")
     invoice_filter = InvoiceFilter(request.GET, queryset=invoice_queryset)
@@ -493,15 +493,22 @@ def invoice_filter(request):
             _("Service from"),
             _("Service to"),
             _("Status"),
+            _("Payment date"),
             _("Serie"),
             _("Number"),
         ]
         writer.writerow(header)
-        for invoice in invoice_filter.qs.all():
+        for invoice in invoice_filter.qs.iterator():
+            products = u""
+            for index, invoiceitem in enumerate(invoice.invoiceitem_set.all()):
+                if index > 0 and len(products) > 1:
+                    products += ", "
+                if invoiceitem.product:
+                    products += invoiceitem.product.name
             writer.writerow([
                 invoice.id,
                 invoice.contact.name,
-                invoice.subscription.show_products_html(br=False) if invoice.subscription else None,
+                invoice.get_invoiceitem_description_list(html=False),
                 invoice.amount,
                 invoice.get_payment_type(),
                 invoice.creation_date,
@@ -509,6 +516,7 @@ def invoice_filter(request):
                 invoice.service_from,
                 invoice.service_to,
                 invoice.get_status(),
+                invoice.payment_date(),
                 invoice.serie,
                 invoice.numero,
             ])
