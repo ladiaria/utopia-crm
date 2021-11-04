@@ -42,7 +42,8 @@
                     <th>{% trans "Contacts" %}</th>
                     <th>{% trans "Called" %}</th>
                     <th>{% trans "Contacted" %}</th>
-                    <th>{% trans "Success" %}</th>
+                    <th>{% trans "Success (over contacted)" %}</th>
+                    <th>{% trans "Success (over total)" %}</th>
                     <th>{% trans "View" %}</th>
                     <th>{% trans "Per seller" %}</th>
                   </tr>
@@ -55,7 +56,8 @@
                     <td>{{campaign.contactcampaignstatus_set.count}}</td>
                     <td>{{campaign.called_pct|floatformat:1}}%</td>
                     <td>{{campaign.contacted_pct|floatformat:1}}%</td>
-                    <td>{{campaign.success_pct|floatformat:1}}%</td>
+                    <td>{{campaign.success_over_contacted_pct|floatformat:1}}%</td>
+                    <td>{{campaign.success_over_total_pct|floatformat:1}}%</td>
                     <td><a class="btn btn-primary" href='{% url "campaign_statistics_detail" campaign.id %}'>{% trans "Details" %}</a></td>
                     <td><a class="btn btn-primary" href='{% url "campaign_statistics_per_seller" campaign.id %}'>{% trans "Sellers" %}</a></td>
                 </tr>

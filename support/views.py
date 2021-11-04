@@ -2200,7 +2200,8 @@ def campaign_statistics_list(request):
         campaign.success_count = campaign.contactcampaignstatus_set.filter(
             campaign_resolution__in=("S1", "S2")
         ).count()
-        campaign.success_pct = (campaign.success_count * 100) / contacts
+        campaign.success_over_total_pct = (campaign.success_count * 100) / contacts
+        campaign.success_over_contacted_pct = (campaign.success_count * 100) / (campaign.contacted_count or 1)
     return render(request, "campaign_statistics_list.html", {
         "campaigns": campaigns,
     })
