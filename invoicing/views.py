@@ -515,8 +515,8 @@ def invoice_filter(request):
                 invoice.expiration_date,
                 invoice.service_from,
                 invoice.service_to,
-                invoice.get_status(),
-                invoice.payment_date(),
+                invoice.get_status(with_date=False),
+                invoice.payment_date,
                 invoice.serie,
                 invoice.numero,
             ])
