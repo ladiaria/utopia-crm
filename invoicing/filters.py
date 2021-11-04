@@ -39,10 +39,14 @@ class InvoiceFilter(django_filters.FilterSet):
     creation_lte = django_filters.DateFilter(
         field_name='creation_date', lookup_expr='lte', widget=forms.TextInput(attrs={'autocomplete': 'off'}))
     status = django_filters.ChoiceFilter(choices=STATUS_CHOICES, method='filter_by_status')
+    payment_gte = django_filters.DateFilter(
+        field_name='payment_date', lookup_expr='gte', widget=forms.TextInput(attrs={'autocomplete': 'off'}))
+    payment_lte = django_filters.DateFilter(
+        field_name='payment_date', lookup_expr='lte', widget=forms.TextInput(attrs={'autocomplete': 'off'}))
 
     class Meta:
         model = Invoice
-        fields = ['contact_name', 'payment_type']
+        fields = ['contact_name', 'payment_type', 'serie', 'numero']
 
     def filter_by_contact_name(self, queryset, name, value):
         return queryset.filter(contact__name__icontains=value)

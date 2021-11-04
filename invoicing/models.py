@@ -73,9 +73,12 @@ class Invoice(models.Model):
             amount = amount - i.amount if i.type == "D" else amount + i.amount
         return amount
 
-    def get_status(self):
+    def get_status(self, with_date=True):
         if self.paid or self.debited:
-            return _("Paid on {}".format(self.payment_date))
+            if with_date:
+                return _("Paid on {}".format(self.payment_date))
+            else:
+                return _("Paid")
         elif self.uncollectible:
             return _("Uncollectible")
         elif self.canceled:
@@ -110,13 +113,21 @@ class Invoice(models.Model):
         else:
             return self.invoiceitem_set.all().exclude(type=ignore_type).count()
 
-    def get_invoiceitem_description_list(self):
-        resp = ""
+    def get_invoiceitem_description_list(self, html=True):
+        if html:
+            resp = "<ul>"
+        else:
+            resp = ""
         if self.invoiceitem_set.exists():
             for index, item in enumerate(self.invoiceitem_set.all()):
-                if index > 0:
-                    resp += ", "
-                resp += unicode(item.description)
+                if html:
+                    resp += "<li>{}</li>".format(item.description)
+                else:
+                    if index > 0:
+                        resp += ", "
+                    resp += unicode(item.description)
+        if html:
+            resp += "</ul>"
         return resp
 
     def get_creditnote(self):

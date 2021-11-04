@@ -20,8 +20,7 @@
       }
     });
     $('#id_creation_date').change();
-    $('#id_creation_gte').datepicker({ dateFormat: 'yy-mm-dd' });
-    $('#id_creation_lte').datepicker({ dateFormat: 'yy-mm-dd' });
+    $('.datepicker').datepicker({ dateFormat: 'yy-mm-dd' });
   });
 </script>
 {% endblock %}
@@ -50,11 +49,11 @@
                 <div class="row">
                   <div class="form-group col">
                     <label for="creation_date_gte">{% trans "Creation date (from)" %}</label>
-                      {% render_field invoice_filter.form.creation_gte class="form-control" %}
+                      {% render_field invoice_filter.form.creation_gte class="form-control datepicker" %}
                   </div>
                   <div class="form-group col">
                     <label for="creation_date_lte">{% trans "Creation date (to)" %}</label>
-                      {% render_field invoice_filter.form.creation_lte class="form-control" %}
+                      {% render_field invoice_filter.form.creation_lte class="form-control datepicker" %}
                   </div>
                 </div>
               </div>
@@ -67,6 +66,22 @@
               <div class="form-group col">
                 <label for="status">{% trans "Payment type" %}</label>
                 {% render_field invoice_filter.form.payment_type class="form-control" %}
+              </div>
+              <div class="form-group col">
+                <label for="status">{% trans "Payment from" %}</label>
+                {% render_field invoice_filter.form.payment_gte class="form-control datepicker" %}
+              </div>
+              <div class="form-group col">
+                <label for="status">{% trans "Payment to" %}</label>
+                {% render_field invoice_filter.form.payment_lte class="form-control datepicker" %}
+              </div>
+              <div class="form-group col">
+                <label for="status">{% trans "Series" %}</label>
+                {% render_field invoice_filter.form.serie class="form-control" %}
+              </div>
+              <div class="form-group col">
+                <label for="status">{% trans "Number" %}</label>
+                {% render_field invoice_filter.form.numero class="form-control" %}
               </div>
             </div>
             <div class="text-right">
@@ -93,13 +108,14 @@
                   <tr role="row">
                     <th>{% trans "Id" %}</th>
                     <th>{% trans "Contact" %}</th>
-                    <th>{% trans "Subscriptions" %}</th>
+                    <th>{% trans "Items" %}</th>
                     <th>{% trans "Amount" %}</th>
                     <th>{% trans "Payment type" %}</th>
                     <th>{% trans "Date" %}</th>
                     <th>{% trans "Service from" %}</th>
                     <th>{% trans "Service to" %}</th>
                     <th>{% trans "Status" %}</th>
+                    <th>{% trans "S/N" %}</th>
                     <th>{% trans "Details" %}</th>
                   </tr>
               </thead>
@@ -114,13 +130,14 @@
                       {% trans "Invoice has no contact!" %}
                       {% endif %}
                   </td>
-                  <td>{% autoescape off %}{{invoice.subscription.show_products_html}}{% endautoescape %}</td>
+                  <td>{% autoescape off %}{{invoice.get_invoiceitem_description_list}}{% endautoescape %}</td>
                   <td>{{invoice.amount}}</td>
                   <td>{{invoice.get_payment_type}}</td>
-                  <td>{{invoice.creation_date}}</td>
-                  <td>{{invoice.service_from}}</td>
-                  <td>{{invoice.service_to}}</td>
+                  <td>{{invoice.creation_date|date:"d/m/Y"}}</td>
+                  <td>{{invoice.service_from|date:"d/m/Y"}}</td>
+                  <td>{{invoice.service_to|date:"d/m/Y"}}</td>
                   <td>{{invoice.get_status}}</td>
+                  <td>{{invoice.serie}} {{invoice.numero}}</td>
                   <td><a href='{% url "admin:invoicing_invoice_change" invoice.id %}' target="_blank" class="btn-sm btn-primary">{% trans "Details" %}</a></td>
                 </tr>
                 {% endfor %}
