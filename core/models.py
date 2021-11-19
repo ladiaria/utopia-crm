@@ -1710,7 +1710,7 @@ class DynamicContactFilter(models.Model):
                     contact__invoice__debited=False,
                     contact__invoice__canceled=False,
                     contact__invoice__uncollectible=False,
-                )
+                ).prefetch_related('contact__invoice_set')
             elif self.debtor_contacts == 2:
                 subscriptions = subscriptions.filter(
                     contact__invoice__expiration_date__lte=date.today(),
@@ -1718,9 +1718,9 @@ class DynamicContactFilter(models.Model):
                     contact__invoice__debited=False,
                     contact__invoice__canceled=False,
                     contact__invoice__uncollectible=False,
-                )
+                ).prefetch_related('contact__invoice_set')
 
-        subscriptions = subscriptions.filter(contact__email__isnull=False)
+        subscriptions = subscriptions.filter(contact__email__isnull=False).distinct('contact')
         return subscriptions
 
     def get_email_count(self):

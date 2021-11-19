@@ -1656,7 +1656,6 @@ def dynamic_contact_filter_edit(request, dcf_id):
                     contact__email__isnull=False
                 )
                 count = subscription_newsletters.count()
-                email_sample = subscription_newsletters.values("contact__email")[:50]
             else:
                 if mode == 1:  # At least one of the products
                     subscriptions = Subscription.objects.filter(active=True)
@@ -1678,7 +1677,7 @@ def dynamic_contact_filter_edit(request, dcf_id):
                             contact__invoice__debited=False,
                             contact__invoice__canceled=False,
                             contact__invoice__uncollectible=False,
-                        ).distinct('contact')
+                        ).prefetch_related('contact__invoice_set')
                     elif debtor_contacts == 2:
                         subscriptions = subscriptions.filter(
                             contact__invoice__expiration_date__lte=date.today(),
@@ -1686,9 +1685,9 @@ def dynamic_contact_filter_edit(request, dcf_id):
                             contact__invoice__debited=False,
                             contact__invoice__canceled=False,
                             contact__invoice__uncollectible=False,
-                        ).distinct('contact')
+                        ).prefetch_related('contact__invoice_set')
                 # Finally we remove the ones who don't have emails
-                subscriptions = subscriptions.filter(contact__email__isnull=False)
+                subscriptions = subscriptions.filter(contact__email__isnull=False).distinct('contact')
                 count = subscriptions.count()
 
             return render(
@@ -1741,7 +1740,7 @@ def advanced_export_dcf_list(request, dcf_id):
         _("Is debtor"),
         _("Overdue invoices"),
     ])
-    for sub in dcf.get_subscriptions().distinct('contact'):
+    for sub in dcf.get_subscriptions().prefetch_related('contact__invoice_set'):
         writer.writerow([
             sub.contact.id,
             sub.contact.name,
