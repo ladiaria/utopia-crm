@@ -1629,6 +1629,7 @@ def dynamic_contact_filter_edit(request, dcf_id):
             mode = form.cleaned_data["mode"]
             mailtrain_id = form.cleaned_data["mailtrain_id"]
             autosync = form.cleaned_data["autosync"]
+            debtor_contacts = form.cleaned_data["debtor_contacts"]
             if request.POST.get("confirm", None):
                 dcf.description = description
                 dcf.allow_promotions = allow_promotions
@@ -1638,6 +1639,7 @@ def dynamic_contact_filter_edit(request, dcf_id):
                 dcf.autosync = autosync
                 dcf.products = products
                 dcf.newsletters = newsletters
+                dcf.debtor_contacts = debtor_contacts
                 dcf.save()
                 return HttpResponseRedirect(
                     reverse("dynamic_contact_filter_edit", args=[dcf.id])
@@ -1654,7 +1656,6 @@ def dynamic_contact_filter_edit(request, dcf_id):
                     contact__email__isnull=False
                 )
                 count = subscription_newsletters.count()
-                email_sample = subscription_newsletters.values("contact__email")[:50]
             else:
                 if mode == 1:  # At least one of the products
                     subscriptions = Subscription.objects.filter(active=True)
@@ -1668,16 +1669,31 @@ def dynamic_contact_filter_edit(request, dcf_id):
                     subscriptions = subscriptions.filter(contact__allow_promotions=True)
                 if allow_polls:
                     subscriptions = subscriptions.filter(contact__allow_polls=True)
+                if debtor_contacts:
+                    if debtor_contacts == 1:
+                        subscriptions = subscriptions.exclude(
+                            contact__invoice__expiration_date__lte=date.today(),
+                            contact__invoice__paid=False,
+                            contact__invoice__debited=False,
+                            contact__invoice__canceled=False,
+                            contact__invoice__uncollectible=False,
+                        ).prefetch_related('contact__invoice_set')
+                    elif debtor_contacts == 2:
+                        subscriptions = subscriptions.filter(
+                            contact__invoice__expiration_date__lte=date.today(),
+                            contact__invoice__paid=False,
+                            contact__invoice__debited=False,
+                            contact__invoice__canceled=False,
+                            contact__invoice__uncollectible=False,
+                        ).prefetch_related('contact__invoice_set')
                 # Finally we remove the ones who don't have emails
-                subscriptions = subscriptions.filter(contact__email__isnull=False)
+                subscriptions = subscriptions.filter(contact__email__isnull=False).distinct('contact')
                 count = subscriptions.count()
-                email_sample = subscriptions.values("contact__email")[:50]
 
             return render(
                 request,
                 "dynamic_contact_filter_details.html",
                 {
-                    "email_sample": email_sample,
                     "dcf": dcf,
                     "form": form,
                     "confirm": True,
@@ -1701,6 +1717,40 @@ def export_dcf_emails(request, dcf_id):
     writer = unicodecsv.writer(response)
     for email in dcf.get_emails():
         writer.writerow([email])
+
+    return response
+
+
+@login_required
+def advanced_export_dcf_list(request, dcf_id):
+    dcf = get_object_or_404(DynamicContactFilter, pk=dcf_id)
+    response = HttpResponse(content_type="text/csv")
+    response["Content-Disposition"] = 'attachment; filename="dcf_advanced_list_{}.csv"'.format(
+        dcf.id
+    )
+
+    writer = unicodecsv.writer(response)
+    writer.writerow([
+        _("Contact ID"),
+        _("Name"),
+        _("Email"),
+        _("Phone"),
+        _("Mobile"),
+        _("Work phone"),
+        _("Is debtor"),
+        _("Overdue invoices"),
+    ])
+    for sub in dcf.get_subscriptions().prefetch_related('contact__invoice_set'):
+        writer.writerow([
+            sub.contact.id,
+            sub.contact.name,
+            sub.contact.email,
+            sub.contact.phone,
+            sub.contact.mobile,
+            sub.contact.work_phone,
+            sub.contact.is_debtor(),
+            sub.contact.get_expired_invoices().count(),
+        ])
 
     return response
 
