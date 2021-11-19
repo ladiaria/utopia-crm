@@ -177,3 +177,8 @@ UNSUBSCRIPTION_TYPE_CHOICES = (
     (3, _("Product change")),
     (4, _("Upgrade")),
 )
+
+DEBTOR_CONCACTS_CHOICES = (
+    (1, _("Exclude debtors")),
+    (2, _("Only debtors")),
+)

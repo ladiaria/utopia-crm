@@ -434,6 +434,7 @@ class NewDynamicContactFilterForm(forms.ModelForm):
             "products": forms.SelectMultiple(attrs={"class": "form-control"}),
             "newsletters": forms.SelectMultiple(attrs={"class": "form-control"}),
             "mode": forms.Select(attrs={"class": "form-control"}),
+            "debtor_contacts": forms.Select(attrs={"class": "form-control"}),
             "mailtrain_id": forms.TextInput(attrs={"class": "form-control"}),
         }
         fields = (
@@ -442,6 +443,7 @@ class NewDynamicContactFilterForm(forms.ModelForm):
             "newsletters",
             "allow_promotions",
             "allow_polls",
+            "debtor_contacts",
             "mode",
             "autosync",
             "mailtrain_id",

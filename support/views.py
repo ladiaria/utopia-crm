@@ -1721,6 +1721,8 @@ def advanced_export_dcf_list(request, dcf_id):
         _("Phone"),
         _("Mobile"),
         _("Work phone"),
+        _("Is debtor"),
+        _("Overdue invoices"),
     ])
     for sub in dcf.get_subscriptions().distinct('contact'):
         writer.writerow([
@@ -1730,6 +1732,8 @@ def advanced_export_dcf_list(request, dcf_id):
             sub.contact.phone,
             sub.contact.mobile,
             sub.contact.work_phone,
+            sub.contact.is_debtor(),
+            sub.contact.get_expired_invoices().count(),
         ])
 
     return response

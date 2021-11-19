@@ -25,6 +25,7 @@ from .choices import (
     CAMPAIGN_RESOLUTION_CHOICES,
     CAMPAIGN_RESOLUTION_REASONS_CHOICES,
     CAMPAIGN_STATUS_CHOICES,
+    DEBTOR_CONCACTS_CHOICES,
     DYNAMIC_CONTACT_FILTER_MODES,
     EDUCATION_CHOICES,
     ENVELOPE_CHOICES,
@@ -1675,6 +1676,7 @@ class DynamicContactFilter(models.Model):
     )
     mailtrain_id = models.CharField(max_length=9, blank=True)
     last_time_synced = models.DateTimeField(null=True, blank=True)
+    debtor_contacts = models.PositiveSmallIntegerField(null=True, blank=True, choices=DEBTOR_CONCACTS_CHOICES)
 
     def __unicode__(self):
         return self.description
@@ -1700,6 +1702,24 @@ class DynamicContactFilter(models.Model):
             subscriptions = subscriptions.filter(contact__allow_promotions=True)
         if self.allow_polls:
             subscriptions = subscriptions.filter(contact__allow_polls=True)
+        if self.debtor_contacts:
+            if self.debtor_contacts == 1:
+                subscriptions = subscriptions.exclude(
+                    contact__invoice__expiration_date__lte=date.today(),
+                    contact__invoice__paid=False,
+                    contact__invoice__debited=False,
+                    contact__invoice__canceled=False,
+                    contact__invoice__uncollectible=False,
+                )
+            elif self.debtor_contacts == 2:
+                subscriptions = subscriptions.filter(
+                    contact__invoice__expiration_date__lte=date.today(),
+                    contact__invoice__paid=False,
+                    contact__invoice__debited=False,
+                    contact__invoice__canceled=False,
+                    contact__invoice__uncollectible=False,
+                )
+
         subscriptions = subscriptions.filter(contact__email__isnull=False)
         return subscriptions
 
