@@ -1,0 +1,45 @@
+{% extends 'adminlte/base.html' %}
+{% load static i18n %}
+
+{% block title %}
+{% trans "New scheduled task" %}
+{% endblock %}
+
+{% block extra_js %}
+<script type="text/javascript">
+$(function(){
+  $(".datepicker").datepicker(
+    { dateFormat: 'yy-mm-dd' }).datepicker("setDate", new Date());
+    if ($('#id_new_address').is(":checked") ){
+      $('.newaddress-group').removeClass('d-none');
+    }
+    $('#id_new_address').click(function(){
+      $('.newaddress-group').toggleClass('d-none');
+    });
+  });
+</script>
+{% endblock %}
+
+{% block no_heading %}
+<h1>{% trans 'Support' %}</h1>
+<p>{% if subcategory == 'address_change' %}{% trans 'Change address' %}{% elif subcategory == "partial_pause"%}{% trans "Partial pause" %}{% else %}{% trans 'Pause subscription' %}{% endif %}</p>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col-md-9">
+    <div class="card">
+      <div class="card-header p-2">
+        <ul class="nav nav-pills">
+          <li class="new-item"><a class="nav-link" href="{% url 'new_issue' contact.id %}">{% trans 'Regular issues' %}</a></li>
+          <li class="new-item"><a class="nav-link" href="{% url 'new_scheduled_task' contact.id 'address_change'  %}">{% trans 'Change address' %}</a></li>
+          <li class="new-item"><a class="nav-link" href="{% url 'new_scheduled_task' contact.id 'total_pause'  %}">{% trans 'Pause subscription' %}</a></li>
+          <li class="new-item"><a class="nav-link active" href="{% url 'new_scheduled_task' contact.id 'partial_pause'  %}">{% trans 'Partial pause' %}</a></li>
+        </ul>
+      </div>
+      <div class="card-body">
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

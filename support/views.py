@@ -1195,7 +1195,7 @@ def new_issue(request, contact_id):
 @login_required
 def new_scheduled_task(request, contact_id, subcategory):
     contact = get_object_or_404(Contact, pk=contact_id)
-    if subcategory == "S04":
+    if subcategory == "total_pause":
         # Services / pause issue
         if request.POST:
             form = NewPauseScheduledTaskForm(request.POST)
@@ -1236,7 +1236,7 @@ def new_scheduled_task(request, contact_id, subcategory):
             {"contact": contact, "form": form, "subcategory": subcategory},
         )
 
-    elif subcategory == "S05":
+    elif subcategory == "address_change":
         # Services / address change issue
         if request.POST:
             form = NewAddressChangeScheduledTaskForm(request.POST)
@@ -1301,6 +1301,8 @@ def new_scheduled_task(request, contact_id, subcategory):
                 "subcategory": subcategory,
             },
         )
+    elif subcategory == "partial_pause":
+        pass
 
 
 @login_required
