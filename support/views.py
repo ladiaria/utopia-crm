@@ -1706,6 +1706,36 @@ def export_dcf_emails(request, dcf_id):
 
 
 @login_required
+def advanced_export_dcf_list(request, dcf_id):
+    dcf = get_object_or_404(DynamicContactFilter, pk=dcf_id)
+    response = HttpResponse(content_type="text/csv")
+    response["Content-Disposition"] = 'attachment; filename="dcf_advanced_list_{}.csv"'.format(
+        dcf.id
+    )
+
+    writer = unicodecsv.writer(response)
+    writer.writerow([
+        _("Contact ID"),
+        _("Name"),
+        _("Email"),
+        _("Phone"),
+        _("Mobile"),
+        _("Work phone"),
+    ])
+    for sub in dcf.get_subscriptions().distinct('contact'):
+        writer.writerow([
+            sub.contact.id,
+            sub.contact.name,
+            sub.contact.email,
+            sub.contact.phone,
+            sub.contact.mobile,
+            sub.contact.work_phone,
+        ])
+
+    return response
+
+
+@login_required
 def sync_with_mailtrain(request, dcf_id):
     dcf = get_object_or_404(DynamicContactFilter, pk=dcf_id)
     dcf.sync_with_mailtrain_list()

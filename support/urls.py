@@ -28,6 +28,7 @@ from support.views import (
     dynamic_contact_filter_edit,
     dynamic_contact_filter_list,
     export_dcf_emails,
+    advanced_export_dcf_list,
     sync_with_mailtrain,
     register_activity,
     edit_contact,
@@ -94,6 +95,7 @@ urlpatterns = [
         name="dynamic_contact_filter_edit",
     ),
     url(r"^export_dcf_emails/(\d+)/$", export_dcf_emails, name="export_dcf_emails"),
+    url(r"^export_dcf_contacts/(\d+)/$", advanced_export_dcf_list, name="advanced_export_dcf_list"),
     url(
         r"^sync_with_mailtrain/(\d+)/$", sync_with_mailtrain, name="sync_with_mailtrain"
     ),
