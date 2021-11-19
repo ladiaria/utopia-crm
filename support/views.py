@@ -1629,6 +1629,7 @@ def dynamic_contact_filter_edit(request, dcf_id):
             mode = form.cleaned_data["mode"]
             mailtrain_id = form.cleaned_data["mailtrain_id"]
             autosync = form.cleaned_data["autosync"]
+            debtor_contacts = form.cleaned_data["debtor_contacts"]
             if request.POST.get("confirm", None):
                 dcf.description = description
                 dcf.allow_promotions = allow_promotions
@@ -1638,6 +1639,7 @@ def dynamic_contact_filter_edit(request, dcf_id):
                 dcf.autosync = autosync
                 dcf.products = products
                 dcf.newsletters = newsletters
+                dcf.debtor_contacts = debtor_contacts
                 dcf.save()
                 return HttpResponseRedirect(
                     reverse("dynamic_contact_filter_edit", args=[dcf.id])
@@ -1668,16 +1670,31 @@ def dynamic_contact_filter_edit(request, dcf_id):
                     subscriptions = subscriptions.filter(contact__allow_promotions=True)
                 if allow_polls:
                     subscriptions = subscriptions.filter(contact__allow_polls=True)
+                if debtor_contacts:
+                    if debtor_contacts == 1:
+                        subscriptions = subscriptions.exclude(
+                            contact__invoice__expiration_date__lte=date.today(),
+                            contact__invoice__paid=False,
+                            contact__invoice__debited=False,
+                            contact__invoice__canceled=False,
+                            contact__invoice__uncollectible=False,
+                        ).distinct('contact')
+                    elif debtor_contacts == 2:
+                        subscriptions = subscriptions.filter(
+                            contact__invoice__expiration_date__lte=date.today(),
+                            contact__invoice__paid=False,
+                            contact__invoice__debited=False,
+                            contact__invoice__canceled=False,
+                            contact__invoice__uncollectible=False,
+                        ).distinct('contact')
                 # Finally we remove the ones who don't have emails
                 subscriptions = subscriptions.filter(contact__email__isnull=False)
                 count = subscriptions.count()
-                email_sample = subscriptions.values("contact__email")[:50]
 
             return render(
                 request,
                 "dynamic_contact_filter_details.html",
                 {
-                    "email_sample": email_sample,
                     "dcf": dcf,
                     "form": form,
                     "confirm": True,

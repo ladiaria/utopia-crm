@@ -22,31 +22,35 @@
 
   <div class="card-body">
 
-    <b>{% trans "Last time synced" %}:</b><br> {{dcf.last_time_synced}}<br>
-     <a href="{% url 'sync_with_mailtrain' dcf.id %}" class="btn btn-sm btn-success"><i class="fas fa-sync"></i> {% trans "Sync now" %}</a>
+    <div class="row">
+      <div class="col">
+        <b>{% trans "Last time synced" %}:</b><br> {{dcf.last_time_synced}}<br>
+        <a href="{% url 'sync_with_mailtrain' dcf.id %}" class="btn btn-sm btn-success"><i class="fas fa-sync"></i> {% trans "Sync now" %}</a>
+      </div>
+      <div class="col">
 
-    <br><br>
-    <form method="post">
-        {% csrf_token %}
-        {{form.as_p}}
-        {% if confirm %}
-          <p><b>{% trans "Amount of subscribers" %}:</b> {{count}}</p>
-          <b>{% trans "Email sample (50)" %}</b>
-          <ul>
-              {% for email in email_sample %}
-                  <li>{{email.contact__email}}</li>
-              {% endfor %}
-          </ul>
-        {% endif %}
-        <div class="text-right">
-          <input type="submit" name="submit" class="btn bg-gradient-primary" value="Preview">
+      </div>
+    </div>
 
-        {% if confirm %}
-          <input type="submit" name="confirm" value="Save list" class="btn bg-gradient-success">
-        {% endif %}
-        </div>
-    </form>
-
+    <div class="row mt-4">
+      <div class="col">
+        <form method="post">
+          {% csrf_token %}
+          {{form.as_p}}
+          {% if confirm %}
+          <p><b>{% trans "New amount of emails" %}:</b> {{count}}</p>
+          {% else %}
+          <p>{% trans "Amount of emails" %}: {{dcf.get_email_count}}</p>
+          {% endif %}
+          <div class="text-right">
+            <input type="submit" name="submit" class="btn bg-gradient-primary" value="Preview">
+            {% if confirm %}
+            <input type="submit" name="confirm" value="Save list" class="btn bg-gradient-success">
+            {% endif %}
+          </div>
+        </form>
+      </div>
+    </div>
   </div>
 </div>
 {% endblock %}
