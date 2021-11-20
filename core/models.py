@@ -240,7 +240,7 @@ class Contact(models.Model):
     def __unicode__(self):
         return self.name
 
-    def clean(self):
+    def clean(self, debug=False):
         if getattr(settings, "WEB_UPDATE_USER_ENABLED", False) and self.email and self.id:
             custom_module = getattr(settings, "WEB_UPDATE_USER_VALIDATION_MODULE", None)
             if custom_module:
@@ -249,7 +249,8 @@ class Contact(models.Model):
                 ).validateEmailOnWeb(self.id, self.email)
                 if msg in ("TIMEOUT", "ERROR"):
                     # TODO: Alert user about web timeout or error
-                    pass
+                    if debug:
+                        print("%s validating email on CMS for contact %d" % (msg, self.id))
                 elif msg != "OK":
                     raise ValidationError({"email": msg})
 
