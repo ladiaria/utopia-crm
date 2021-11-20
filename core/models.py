@@ -240,21 +240,17 @@ class Contact(models.Model):
     def __unicode__(self):
         return self.name
 
-    def clean(self):
-        if (
-            getattr(settings, "WEB_UPDATE_USER_ENABLED", False)
-            and self.email
-            and self.id
-        ):
+    def clean(self, debug=False):
+        if getattr(settings, "WEB_UPDATE_USER_ENABLED", False) and self.email and self.id:
             custom_module = getattr(settings, "WEB_UPDATE_USER_VALIDATION_MODULE", None)
             if custom_module:
-                validateEmailOnWeb_func = __import__(
+                msg = __import__(
                     custom_module, fromlist=["validateEmailOnWeb"]
-                ).validateEmailOnWeb
-                msg = validateEmailOnWeb_func(self.id, self.email)
-                if msg == "TIMEOUT":
-                    # TODO: Alert user about web timeout
-                    pass
+                ).validateEmailOnWeb(self.id, self.email)
+                if msg in ("TIMEOUT", "ERROR"):
+                    # TODO: Alert user about web timeout or error
+                    if debug:
+                        print("%s validating email on CMS for contact %d" % (msg, self.id))
                 elif msg != "OK":
                     raise ValidationError({"email": msg})
 
