@@ -1699,28 +1699,25 @@ class DynamicContactFilter(models.Model):
         if self.allow_polls:
             subscriptions = subscriptions.filter(contact__allow_polls=True)
         if self.debtor_contacts:
+            only_debtors = subscriptions.filter(
+                contact__invoice__expiration_date__lte=date.today(),
+                contact__invoice__paid=False,
+                contact__invoice__debited=False,
+                contact__invoice__canceled=False,
+                contact__invoice__uncollectible=False,
+            ).prefetch_related('contact__invoice_set')
             if self.debtor_contacts == 1:
-                subscriptions = subscriptions.exclude(
-                    contact__invoice__expiration_date__lte=date.today(),
-                    contact__invoice__paid=False,
-                    contact__invoice__debited=False,
-                    contact__invoice__canceled=False,
-                    contact__invoice__uncollectible=False,
-                ).prefetch_related('contact__invoice_set')
+                subscriptions = subscriptions.difference(only_debtors)
             elif self.debtor_contacts == 2:
-                subscriptions = subscriptions.filter(
-                    contact__invoice__expiration_date__lte=date.today(),
-                    contact__invoice__paid=False,
-                    contact__invoice__debited=False,
-                    contact__invoice__canceled=False,
-                    contact__invoice__uncollectible=False,
-                ).prefetch_related('contact__invoice_set')
-
+                subscriptions = only_debtors
         subscriptions = subscriptions.filter(contact__email__isnull=False).distinct('contact')
         return subscriptions
 
     def get_email_count(self):
         return self.get_subscriptions().count()
+
+    def get_contacts(self):
+        return Contact.objects.filter(subscriptions__in=self.get_subscriptions()).distinct()
 
     def get_emails(self):
         emails = []
