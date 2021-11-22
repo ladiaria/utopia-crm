@@ -1735,28 +1735,33 @@ def advanced_export_dcf_list(request, dcf_id):
     )
 
     writer = unicodecsv.writer(response)
-    writer.writerow([
+    header = [
         _("Contact ID"),
         _("Name"),
         _("Email"),
         _("Phone"),
         _("Mobile"),
         _("Work phone"),
-        _("Is debtor"),
-        _("Overdue invoices"),
-    ])
+    ]
+    print dcf.debtor_contacts
+    if dcf.debtor_contacts is None or dcf.debtor_contacts == 2:
+        header.extend([_("Is debtor"), _("Overdue invoices")])
+    writer.writerow(header)
     for contact in dcf.get_contacts():
-        writer.writerow([
+        row = [
             contact.id,
             contact.name,
             contact.email,
             contact.phone,
             contact.mobile,
             contact.work_phone,
-            contact.is_debtor(),
-            contact.get_expired_invoices().count(),
-        ])
-
+        ]
+        if dcf.debtor_contacts is None or dcf.debtor_contacts == 2:
+            row.extend([
+                contact.is_debtor(),
+                contact.get_expired_invoices().count(),
+            ])
+        writer.writerow(row)
     return response
 
 
