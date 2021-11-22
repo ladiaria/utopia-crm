@@ -1745,16 +1745,16 @@ def advanced_export_dcf_list(request, dcf_id):
         _("Is debtor"),
         _("Overdue invoices"),
     ])
-    for sub in dcf.get_subscriptions().prefetch_related('contact__invoice_set'):
+    for contact in dcf.get_contacts():
         writer.writerow([
-            sub.contact.id,
-            sub.contact.name,
-            sub.contact.email,
-            sub.contact.phone,
-            sub.contact.mobile,
-            sub.contact.work_phone,
-            sub.contact.is_debtor(),
-            sub.contact.get_expired_invoices().count(),
+            contact.id,
+            contact.name,
+            contact.email,
+            contact.phone,
+            contact.mobile,
+            contact.work_phone,
+            contact.is_debtor(),
+            contact.get_expired_invoices().count(),
         ])
 
     return response

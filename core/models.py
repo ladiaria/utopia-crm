@@ -690,7 +690,7 @@ class Subscription(models.Model):
     resubscription_date = models.DateField(blank=True, null=True, verbose_name=_("Resubscription date"))
     highlight_in_listing = models.BooleanField(default=False, verbose_name=_("Highlight in listing"))
     send_pdf = models.BooleanField(default=False, verbose_name=_("Send pdf"))
-    # directions = models.TextField(blank=True, null=True, verbose_name=_("Directions"))
+    directions = models.TextField(blank=True, null=True, verbose_name=_("Directions"))
     inactivity_reason = models.IntegerField(
         choices=INACTIVITY_REASONS, blank=True, null=True, verbose_name=_("Inactivity reason")
     )
@@ -1715,6 +1715,9 @@ class DynamicContactFilter(models.Model):
 
     def get_email_count(self):
         return self.get_subscriptions().count()
+
+    def get_contacts(self):
+        return Contact.objects.filter(subscriptions__in=self.get_subscriptions()).distinct()
 
     def get_emails(self):
         emails = []
