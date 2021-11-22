@@ -24,7 +24,6 @@ from django.views.decorators.csrf import csrf_exempt
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
-from django.utils.encoding import force_text
 from django.conf import settings
 
 from core.filters import ContactFilter
@@ -40,6 +39,7 @@ from core.models import (
     ContactCampaignStatus,
     SubscriptionNewsletter,
     Subtype,
+    DynamicContactFilter,
 )
 from core.choices import CAMPAIGN_RESOLUTION_REASONS_CHOICES
 
@@ -47,8 +47,21 @@ from .filters import (
     IssueFilter, InvoicingIssueFilter, ScheduledActivityFilter, ContactCampaignStatusFilter,
     UnsubscribedSubscriptionsByEndDateFilter
 )
-from .forms import *
-from .models import Seller, ScheduledTask, IssueStatus
+from .forms import (
+    NewPauseScheduledTaskForm,
+    NewAddressChangeScheduledTaskForm,
+    NewPromoForm,
+    NewSubscriptionForm,
+    IssueStartForm,
+    IssueChangeForm,
+    InvoicingIssueChangeForm,
+    NewAddressForm,
+    NewDynamicContactFilterForm,
+    NewActivityForm,
+    UnsubscriptionForm,
+    ContactCampaignStatusByDateForm,
+)
+from .models import Seller, ScheduledTask, IssueStatus, Issue
 from core.utils import calc_price_from_products, process_products
 from core.forms import ContactAdminForm
 from util.dates import add_business_days
@@ -1743,9 +1756,6 @@ def advanced_export_dcf_list(request, dcf_id):
         _("Mobile"),
         _("Work phone"),
     ]
-    print dcf.debtor_contacts
-    if dcf.debtor_contacts is None or dcf.debtor_contacts == 2:
-        header.extend([_("Is debtor"), _("Overdue invoices")])
     writer.writerow(header)
     for contact in dcf.get_contacts():
         row = [
@@ -1756,11 +1766,6 @@ def advanced_export_dcf_list(request, dcf_id):
             contact.mobile,
             contact.work_phone,
         ]
-        if dcf.debtor_contacts is None or dcf.debtor_contacts == 2:
-            row.extend([
-                contact.is_debtor(),
-                contact.get_expired_invoices().count(),
-            ])
         writer.writerow(row)
     return response
 
@@ -1776,7 +1781,7 @@ def sync_with_mailtrain(request, dcf_id):
         dcf.sync_with_mailtrain_list()
     except Exception as e:
         messages.error(request, _("Error: {}".format(e.message)))
-        return HttpResponseRedirect(revesre("sync_with_mailtrain"))
+        return HttpResponseRedirect(reverse("sync_with_mailtrain"))
     else:
         return HttpResponseRedirect(
             reverse("dynamic_contact_filter_edit", args=[dcf.id])
@@ -2284,7 +2289,8 @@ def campaign_statistics_detail(request, campaign_id):
     ccs_with_resolution = ccs_filter.qs.filter(campaign_resolution__isnull=False)
     ccs_with_resolution_contacted_count = ccs_with_resolution.filter(status__in=[2, 4]).count()
     ccs_with_resolution_not_contacted_count = ccs_with_resolution.filter(status__in=[3, 5]).count()
-    ccs_with_resolution_count = ccs_with_resolution.count()
+    # unused, see if we want to use this
+    # ccs_with_resolution_count = ccs_with_resolution.count()
 
     success_with_direct_sale_count = ccs_with_resolution.filter(campaign_resolution="S2").count()
     success_with_promotion_count = ccs_with_resolution.filter(campaign_resolution="S1").count()
