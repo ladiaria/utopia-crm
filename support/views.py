@@ -1526,7 +1526,6 @@ def api_dynamic_prices(request):
 
 @login_required
 def dynamic_contact_filter_new(request):
-
     if request.POST:
         form = NewDynamicContactFilterForm(request.POST)
         if form.is_valid():
@@ -1581,8 +1580,20 @@ def dynamic_contact_filter_new(request):
                     subscriptions = subscriptions.filter(contact__allow_promotions=True)
                 if allow_polls:
                     subscriptions = subscriptions.filter(contact__allow_polls=True)
-                # Finally we remove the ones who don't have emails
-                subscriptions = subscriptions.filter(contact__email__isnull=False)
+                if debtor_contacts:
+                    only_debtors = subscriptions.filter(
+                        contact__invoice__expiration_date__lte=date.today(),
+                        contact__invoice__paid=False,
+                        contact__invoice__debited=False,
+                        contact__invoice__canceled=False,
+                        contact__invoice__uncollectible=False,
+                    ).prefetch_related('contact__invoice_set')
+                    if debtor_contacts == 1:
+                        subscriptions = subscriptions.difference(only_debtors)
+                    elif debtor_contacts == 2:
+                        subscriptions = only_debtors
+                # Finally we remove the ones who don't have emails and apply distinct by contact
+                subscriptions = subscriptions.filter(contact__email__isnull=False).distinct('contact')
                 count = subscriptions.count()
                 email_sample = subscriptions.values("contact__email")[:50]
 
@@ -1670,23 +1681,18 @@ def dynamic_contact_filter_edit(request, dcf_id):
                 if allow_polls:
                     subscriptions = subscriptions.filter(contact__allow_polls=True)
                 if debtor_contacts:
+                    only_debtors = subscriptions.filter(
+                        contact__invoice__expiration_date__lte=date.today(),
+                        contact__invoice__paid=False,
+                        contact__invoice__debited=False,
+                        contact__invoice__canceled=False,
+                        contact__invoice__uncollectible=False,
+                    ).prefetch_related('contact__invoice_set')
                     if debtor_contacts == 1:
-                        subscriptions = subscriptions.exclude(
-                            contact__invoice__expiration_date__lte=date.today(),
-                            contact__invoice__paid=False,
-                            contact__invoice__debited=False,
-                            contact__invoice__canceled=False,
-                            contact__invoice__uncollectible=False,
-                        ).prefetch_related('contact__invoice_set')
+                        subscriptions = subscriptions.difference(only_debtors)
                     elif debtor_contacts == 2:
-                        subscriptions = subscriptions.filter(
-                            contact__invoice__expiration_date__lte=date.today(),
-                            contact__invoice__paid=False,
-                            contact__invoice__debited=False,
-                            contact__invoice__canceled=False,
-                            contact__invoice__uncollectible=False,
-                        ).prefetch_related('contact__invoice_set')
-                # Finally we remove the ones who don't have emails
+                        subscriptions = only_debtors
+                # Finally we remove the ones who don't have emails and apply distinct by contact
                 subscriptions = subscriptions.filter(contact__email__isnull=False).distinct('contact')
                 count = subscriptions.count()
 
@@ -1700,7 +1706,6 @@ def dynamic_contact_filter_edit(request, dcf_id):
                     "count": count,
                 },
             )
-
     return render(
         request, "dynamic_contact_filter_details.html", {"dcf": dcf, "form": form}
     )

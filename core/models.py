@@ -690,7 +690,7 @@ class Subscription(models.Model):
     resubscription_date = models.DateField(blank=True, null=True, verbose_name=_("Resubscription date"))
     highlight_in_listing = models.BooleanField(default=False, verbose_name=_("Highlight in listing"))
     send_pdf = models.BooleanField(default=False, verbose_name=_("Send pdf"))
-    directions = models.TextField(blank=True, null=True, verbose_name=_("Directions"))
+    # directions = models.TextField(blank=True, null=True, verbose_name=_("Directions"))
     inactivity_reason = models.IntegerField(
         choices=INACTIVITY_REASONS, blank=True, null=True, verbose_name=_("Inactivity reason")
     )
@@ -1699,23 +1699,17 @@ class DynamicContactFilter(models.Model):
         if self.allow_polls:
             subscriptions = subscriptions.filter(contact__allow_polls=True)
         if self.debtor_contacts:
+            only_debtors = subscriptions.filter(
+                contact__invoice__expiration_date__lte=date.today(),
+                contact__invoice__paid=False,
+                contact__invoice__debited=False,
+                contact__invoice__canceled=False,
+                contact__invoice__uncollectible=False,
+            ).prefetch_related('contact__invoice_set')
             if self.debtor_contacts == 1:
-                subscriptions = subscriptions.exclude(
-                    contact__invoice__expiration_date__lte=date.today(),
-                    contact__invoice__paid=False,
-                    contact__invoice__debited=False,
-                    contact__invoice__canceled=False,
-                    contact__invoice__uncollectible=False,
-                ).prefetch_related('contact__invoice_set')
+                subscriptions = subscriptions.difference(only_debtors)
             elif self.debtor_contacts == 2:
-                subscriptions = subscriptions.filter(
-                    contact__invoice__expiration_date__lte=date.today(),
-                    contact__invoice__paid=False,
-                    contact__invoice__debited=False,
-                    contact__invoice__canceled=False,
-                    contact__invoice__uncollectible=False,
-                ).prefetch_related('contact__invoice_set')
-
+                subscriptions = only_debtors
         subscriptions = subscriptions.filter(contact__email__isnull=False).distinct('contact')
         return subscriptions
 
