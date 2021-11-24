@@ -24,7 +24,6 @@ from django.views.decorators.csrf import csrf_exempt
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
-from django.utils.encoding import force_text
 from django.conf import settings
 
 from core.filters import ContactFilter
@@ -40,6 +39,7 @@ from core.models import (
     ContactCampaignStatus,
     SubscriptionNewsletter,
     Subtype,
+    DynamicContactFilter,
 )
 from core.choices import CAMPAIGN_RESOLUTION_REASONS_CHOICES
 
@@ -47,8 +47,21 @@ from .filters import (
     IssueFilter, InvoicingIssueFilter, ScheduledActivityFilter, ContactCampaignStatusFilter,
     UnsubscribedSubscriptionsByEndDateFilter
 )
-from .forms import *
-from .models import Seller, ScheduledTask, IssueStatus
+from .forms import (
+    NewPauseScheduledTaskForm,
+    NewAddressChangeScheduledTaskForm,
+    NewPromoForm,
+    NewSubscriptionForm,
+    IssueStartForm,
+    IssueChangeForm,
+    InvoicingIssueChangeForm,
+    NewAddressForm,
+    NewDynamicContactFilterForm,
+    NewActivityForm,
+    UnsubscriptionForm,
+    ContactCampaignStatusByDateForm,
+)
+from .models import Seller, ScheduledTask, IssueStatus, Issue
 from core.utils import calc_price_from_products, process_products
 from core.forms import ContactAdminForm
 from util.dates import add_business_days
@@ -1528,7 +1541,6 @@ def api_dynamic_prices(request):
 
 @login_required
 def dynamic_contact_filter_new(request):
-
     if request.POST:
         form = NewDynamicContactFilterForm(request.POST)
         if form.is_valid():
@@ -1583,8 +1595,20 @@ def dynamic_contact_filter_new(request):
                     subscriptions = subscriptions.filter(contact__allow_promotions=True)
                 if allow_polls:
                     subscriptions = subscriptions.filter(contact__allow_polls=True)
-                # Finally we remove the ones who don't have emails
-                subscriptions = subscriptions.filter(contact__email__isnull=False)
+                if debtor_contacts:
+                    only_debtors = subscriptions.filter(
+                        contact__invoice__expiration_date__lte=date.today(),
+                        contact__invoice__paid=False,
+                        contact__invoice__debited=False,
+                        contact__invoice__canceled=False,
+                        contact__invoice__uncollectible=False,
+                    ).prefetch_related('contact__invoice_set')
+                    if debtor_contacts == 1:
+                        subscriptions = subscriptions.difference(only_debtors)
+                    elif debtor_contacts == 2:
+                        subscriptions = only_debtors
+                # Finally we remove the ones who don't have emails and apply distinct by contact
+                subscriptions = subscriptions.filter(contact__email__isnull=False).distinct('contact')
                 count = subscriptions.count()
                 email_sample = subscriptions.values("contact__email")[:50]
 
@@ -1631,6 +1655,7 @@ def dynamic_contact_filter_edit(request, dcf_id):
             mode = form.cleaned_data["mode"]
             mailtrain_id = form.cleaned_data["mailtrain_id"]
             autosync = form.cleaned_data["autosync"]
+            debtor_contacts = form.cleaned_data["debtor_contacts"]
             if request.POST.get("confirm", None):
                 dcf.description = description
                 dcf.allow_promotions = allow_promotions
@@ -1640,6 +1665,7 @@ def dynamic_contact_filter_edit(request, dcf_id):
                 dcf.autosync = autosync
                 dcf.products = products
                 dcf.newsletters = newsletters
+                dcf.debtor_contacts = debtor_contacts
                 dcf.save()
                 return HttpResponseRedirect(
                     reverse("dynamic_contact_filter_edit", args=[dcf.id])
@@ -1656,7 +1682,6 @@ def dynamic_contact_filter_edit(request, dcf_id):
                     contact__email__isnull=False
                 )
                 count = subscription_newsletters.count()
-                email_sample = subscription_newsletters.values("contact__email")[:50]
             else:
                 if mode == 1:  # At least one of the products
                     subscriptions = Subscription.objects.filter(active=True)
@@ -1670,23 +1695,32 @@ def dynamic_contact_filter_edit(request, dcf_id):
                     subscriptions = subscriptions.filter(contact__allow_promotions=True)
                 if allow_polls:
                     subscriptions = subscriptions.filter(contact__allow_polls=True)
-                # Finally we remove the ones who don't have emails
-                subscriptions = subscriptions.filter(contact__email__isnull=False)
+                if debtor_contacts:
+                    only_debtors = subscriptions.filter(
+                        contact__invoice__expiration_date__lte=date.today(),
+                        contact__invoice__paid=False,
+                        contact__invoice__debited=False,
+                        contact__invoice__canceled=False,
+                        contact__invoice__uncollectible=False,
+                    ).prefetch_related('contact__invoice_set')
+                    if debtor_contacts == 1:
+                        subscriptions = subscriptions.difference(only_debtors)
+                    elif debtor_contacts == 2:
+                        subscriptions = only_debtors
+                # Finally we remove the ones who don't have emails and apply distinct by contact
+                subscriptions = subscriptions.filter(contact__email__isnull=False).distinct('contact')
                 count = subscriptions.count()
-                email_sample = subscriptions.values("contact__email")[:50]
 
             return render(
                 request,
                 "dynamic_contact_filter_details.html",
                 {
-                    "email_sample": email_sample,
                     "dcf": dcf,
                     "form": form,
                     "confirm": True,
                     "count": count,
                 },
             )
-
     return render(
         request, "dynamic_contact_filter_details.html", {"dcf": dcf, "form": form}
     )
@@ -1708,6 +1742,37 @@ def export_dcf_emails(request, dcf_id):
 
 
 @login_required
+def advanced_export_dcf_list(request, dcf_id):
+    dcf = get_object_or_404(DynamicContactFilter, pk=dcf_id)
+    response = HttpResponse(content_type="text/csv")
+    response["Content-Disposition"] = 'attachment; filename="dcf_advanced_list_{}.csv"'.format(
+        dcf.id
+    )
+
+    writer = unicodecsv.writer(response)
+    header = [
+        _("Contact ID"),
+        _("Name"),
+        _("Email"),
+        _("Phone"),
+        _("Mobile"),
+        _("Work phone"),
+    ]
+    writer.writerow(header)
+    for contact in dcf.get_contacts():
+        row = [
+            contact.id,
+            contact.name,
+            contact.email,
+            contact.phone,
+            contact.mobile,
+            contact.work_phone,
+        ]
+        writer.writerow(row)
+    return response
+
+
+@login_required
 def sync_with_mailtrain(request, dcf_id):
     dcf = get_object_or_404(DynamicContactFilter, pk=dcf_id)
     dcf.sync_with_mailtrain_list()
@@ -1718,7 +1783,7 @@ def sync_with_mailtrain(request, dcf_id):
         dcf.sync_with_mailtrain_list()
     except Exception as e:
         messages.error(request, _("Error: {}".format(e.message)))
-        return HttpResponseRedirect(revesre("sync_with_mailtrain"))
+        return HttpResponseRedirect(reverse("sync_with_mailtrain"))
     else:
         return HttpResponseRedirect(
             reverse("dynamic_contact_filter_edit", args=[dcf.id])
@@ -2226,7 +2291,8 @@ def campaign_statistics_detail(request, campaign_id):
     ccs_with_resolution = ccs_filter.qs.filter(campaign_resolution__isnull=False)
     ccs_with_resolution_contacted_count = ccs_with_resolution.filter(status__in=[2, 4]).count()
     ccs_with_resolution_not_contacted_count = ccs_with_resolution.filter(status__in=[3, 5]).count()
-    ccs_with_resolution_count = ccs_with_resolution.count()
+    # unused, see if we want to use this
+    # ccs_with_resolution_count = ccs_with_resolution.count()
 
     success_with_direct_sale_count = ccs_with_resolution.filter(campaign_resolution="S2").count()
     success_with_promotion_count = ccs_with_resolution.filter(campaign_resolution="S1").count()

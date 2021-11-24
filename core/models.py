@@ -25,6 +25,7 @@ from .choices import (
     CAMPAIGN_RESOLUTION_CHOICES,
     CAMPAIGN_RESOLUTION_REASONS_CHOICES,
     CAMPAIGN_STATUS_CHOICES,
+    DEBTOR_CONCACTS_CHOICES,
     DYNAMIC_CONTACT_FILTER_MODES,
     EDUCATION_CHOICES,
     ENVELOPE_CHOICES,
@@ -239,21 +240,17 @@ class Contact(models.Model):
     def __unicode__(self):
         return self.name
 
-    def clean(self):
-        if (
-            getattr(settings, "WEB_UPDATE_USER_ENABLED", False)
-            and self.email
-            and self.id
-        ):
+    def clean(self, debug=False):
+        if getattr(settings, "WEB_UPDATE_USER_ENABLED", False) and self.email and self.id:
             custom_module = getattr(settings, "WEB_UPDATE_USER_VALIDATION_MODULE", None)
             if custom_module:
-                validateEmailOnWeb_func = __import__(
+                msg = __import__(
                     custom_module, fromlist=["validateEmailOnWeb"]
-                ).validateEmailOnWeb
-                msg = validateEmailOnWeb_func(self.id, self.email)
-                if msg == "TIMEOUT":
-                    # TODO: Alert user about web timeout
-                    pass
+                ).validateEmailOnWeb(self.id, self.email)
+                if msg in ("TIMEOUT", "ERROR"):
+                    # TODO: Alert user about web timeout or error
+                    if debug:
+                        print("%s validating email on CMS for contact %d" % (msg, self.id))
                 elif msg != "OK":
                     raise ValidationError({"email": msg})
 
@@ -1672,6 +1669,7 @@ class DynamicContactFilter(models.Model):
     )
     mailtrain_id = models.CharField(max_length=9, blank=True)
     last_time_synced = models.DateTimeField(null=True, blank=True)
+    debtor_contacts = models.PositiveSmallIntegerField(null=True, blank=True, choices=DEBTOR_CONCACTS_CHOICES)
 
     def __unicode__(self):
         return self.description
@@ -1697,11 +1695,26 @@ class DynamicContactFilter(models.Model):
             subscriptions = subscriptions.filter(contact__allow_promotions=True)
         if self.allow_polls:
             subscriptions = subscriptions.filter(contact__allow_polls=True)
-        subscriptions = subscriptions.filter(contact__email__isnull=False)
+        if self.debtor_contacts:
+            only_debtors = subscriptions.filter(
+                contact__invoice__expiration_date__lte=date.today(),
+                contact__invoice__paid=False,
+                contact__invoice__debited=False,
+                contact__invoice__canceled=False,
+                contact__invoice__uncollectible=False,
+            ).prefetch_related('contact__invoice_set')
+            if self.debtor_contacts == 1:
+                subscriptions = subscriptions.difference(only_debtors)
+            elif self.debtor_contacts == 2:
+                subscriptions = only_debtors
+        subscriptions = subscriptions.filter(contact__email__isnull=False).distinct('contact')
         return subscriptions
 
     def get_email_count(self):
         return self.get_subscriptions().count()
+
+    def get_contacts(self):
+        return Contact.objects.filter(subscriptions__in=self.get_subscriptions()).distinct()
 
     def get_emails(self):
         emails = []
