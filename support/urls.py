@@ -23,6 +23,7 @@ from support.views import (
     debtor_contacts,
     new_issue,
     new_scheduled_task,
+    new_scheduled_task_partial_pause,
     view_issue,
     dynamic_contact_filter_new,
     dynamic_contact_filter_edit,
@@ -77,6 +78,11 @@ urlpatterns = [
         r"^new_scheduled_task/(\d+)/(\w+)/$",
         new_scheduled_task,
         name="new_scheduled_task",
+    ),
+    url(
+        r"^new_scheduled_task_partial_pause/(\d+)/$",
+        new_scheduled_task_partial_pause,
+        name="new_scheduled_task_partial_pause",
     ),
     url(r"^view_issue/(\d+)/$", view_issue, name="view_issue"),
     url(

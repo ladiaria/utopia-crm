@@ -46,11 +46,6 @@ class Command(BaseCommand):
                     # Next we need to sum that timedelta object
                     subscription.next_billing = subscription.next_billing + date_difference
                 subscription.save()
-                # Then we'll set the task as completed
-                task.completed = True
-                task.save()
-                print(_("Task {} completed successfully.".format(task.id)))
-
             elif task.category == 'PA':  # End of pause
                 contact = task.contact
                 subscription = task.subscription
@@ -73,15 +68,9 @@ class Command(BaseCommand):
                     )
                 # The status of the subscription is going to be OK again
                 subscription.status = 'OK'
-                # We don't need to change any next_billing since that has been done in the previous run
-                subscription.save()
-                task.completed = True
-                task.save()
-                print(_("Task {} completed successfully.".format(task.id)))
 
             elif task.category == 'AC':
                 contact = task.contact
-                subscription = task.subscription
                 address = task.address
                 print(_("Executing address change scheduled task for contact {}".format(contact.id)))
                 for sp in task.subscription_products.all():
@@ -103,6 +92,22 @@ class Command(BaseCommand):
                     sp.label_message = task.label_message
                     sp.special_instructions = task.special_instructions
                     sp.save()
-                task.completed = True
-                task.save()
-                print(_("Task {} completed successfully.".format(task.id)))
+            elif task.category == "PS":
+                # Start of partial pause
+                contact = task.contact
+                print(_("Executing start of partial pause for contact {}".format(contact.id)))
+                for sp in task.subscription_products.all():
+                    # We need to change the address for said subscription_product
+                    sp.active = False
+                    sp.save()
+            elif task.category == "PE":
+                # End of partial pause
+                contact = task.contact
+                print(_("Executing end of pause for contact {}".format(contact.id)))
+                for sp in task.subscription_products.all():
+                    # We need to change the address for said subscription_product
+                    sp.active = True
+                    sp.save()
+            task.completed = True
+            task.save()
+            print(_("Task {} completed successfully.".format(task.id)))
