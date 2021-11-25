@@ -63,6 +63,34 @@ class NewPauseScheduledTaskForm(forms.Form):
             )
 
 
+class PartialPauseTaskForm(forms.Form):
+    date_1 = forms.DateField(
+        widget=forms.DateTimeInput(
+            attrs={"class": "datepicker form-control float-right", "autocomplete": "off"}
+        )
+    )
+    date_2 = forms.DateField(
+        widget=forms.DateTimeInput(
+            attrs={"class": "datepicker form-control float-right", "autocomplete": "off"}
+        )
+    )
+    activity_type = forms.ChoiceField(
+        widget=forms.Select(attrs={"class": "form-control"}),
+        choices=ACTIVITY_TYPES,
+    )
+
+    def clean(self):
+        date_1 = self.cleaned_data.get("date_1")
+        date_2 = self.cleaned_data.get("date_2")
+
+        if not date_2 > date_1:
+            raise forms.ValidationError(
+                _(
+                    "There must be at least 1 day difference between date 2 and 1. Date 1 must be smaller than date 2"
+                )
+            )
+
+
 class NewAddressChangeScheduledTaskForm(forms.Form):
     date_1 = forms.DateField(
         widget=forms.DateTimeInput(

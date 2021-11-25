@@ -669,7 +669,9 @@ class Subscription(models.Model):
     )
     rut = models.CharField(max_length=12, blank=True, null=True, verbose_name=_("R.U.T."))
     billing_phone = models.CharField(max_length=20, blank=True, null=True, verbose_name=_("Billing phone"))
-    balance = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True, verbose_name=_("Balance"))
+    balance = models.DecimalField(
+        max_digits=10, decimal_places=2, blank=True, null=True, verbose_name=_("Balance"),
+        help_text=_("Positive for discount, negative for surcharge"))
     send_bill_copy_by_email = models.BooleanField(default=True, verbose_name=_("Send bill copy by email"))
     billing_address = models.ForeignKey(
         Address,
@@ -1374,6 +1376,9 @@ class Subscription(models.Model):
 
     def is_obsolete(self):
         return Subscription.objects.filter(updated_from=self).exists()
+
+    def balance_abs(self):
+        return abs(self.balance)
 
     class Meta:
         verbose_name = _("subscription")

@@ -49,6 +49,7 @@ from .filters import (
 )
 from .forms import (
     NewPauseScheduledTaskForm,
+    PartialPauseTaskForm,
     NewAddressChangeScheduledTaskForm,
     NewPromoForm,
     NewSubscriptionForm,
@@ -1314,7 +1315,7 @@ def new_scheduled_task(request, contact_id, subcategory):
 def new_scheduled_task_partial_pause(request, contact_id):
     contact = get_object_or_404(Contact, pk=contact_id)
     if request.POST:
-        form = NewPauseScheduledTaskForm(request.POST)
+        form = PartialPauseTaskForm(request.POST)
         if form.is_valid():
             # first we have to create an issue that will have this task
             date1 = form.cleaned_data.get("date_1")
@@ -1349,7 +1350,7 @@ def new_scheduled_task_partial_pause(request, contact_id):
             )
             return HttpResponseRedirect(reverse("contact_detail", args=[contact.id]))
     else:
-        form = NewPauseScheduledTaskForm(initial={'activity_type': 'C'})
+        form = PartialPauseTaskForm(initial={'activity_type': 'C'})
     form.fields["subscription"].queryset = contact.subscriptions.filter(active=True)
     return render(
         request,
