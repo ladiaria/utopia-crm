@@ -1210,15 +1210,12 @@ def new_issue(request, contact_id):
 def new_scheduled_task(request, contact_id, subcategory):
     contact = get_object_or_404(Contact, pk=contact_id)
     if subcategory == "total_pause":
-        # Services / pause issue
         if request.POST:
             form = NewPauseScheduledTaskForm(request.POST)
             if form.is_valid():
-                # first we have to create an issue that will have this task
                 date1 = form.cleaned_data.get("date_1")
                 date2 = form.cleaned_data.get("date_2")
                 subscription = form.cleaned_data.get("subscription")
-                # Then we create the deactivation and activation events
                 start_task = ScheduledTask.objects.create(
                     contact=contact,
                     subscription=subscription,
@@ -1251,7 +1248,6 @@ def new_scheduled_task(request, contact_id, subcategory):
         )
 
     elif subcategory == "address_change":
-        # Services / address change issue
         if request.POST:
             form = NewAddressChangeScheduledTaskForm(request.POST)
             if form.is_valid():
@@ -1267,7 +1263,6 @@ def new_scheduled_task(request, contact_id, subcategory):
                 else:
                     address = form.cleaned_data.get("contact_address")
                 date1 = form.cleaned_data.get("date_1")
-                # after this, we will create this scheduled task
                 scheduled_task = ScheduledTask.objects.create(
                     contact=contact,
                     execution_date=date1,
@@ -1317,19 +1312,17 @@ def new_scheduled_task_partial_pause(request, contact_id):
     if request.POST:
         form = PartialPauseTaskForm(request.POST)
         if form.is_valid():
-            # first we have to create an issue that will have this task
             date1 = form.cleaned_data.get("date_1")
             date2 = form.cleaned_data.get("date_2")
-            # Then we create the deactivation and activation events
             start_task = ScheduledTask.objects.create(
                 contact=contact,
                 execution_date=date1,
-                category="PD",  # Deactivation
+                category="PS",  # Deactivation
             )
             end_task = ScheduledTask.objects.create(
                 contact=contact,
                 execution_date=date2,
-                category="PA",  # Activation
+                category="PE",  # Activation
                 ends=start_task,
             )
             for key, value in request.POST.items():

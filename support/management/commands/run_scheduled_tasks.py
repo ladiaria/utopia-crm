@@ -97,7 +97,6 @@ class Command(BaseCommand):
                 contact = task.contact
                 print(_("Executing start of partial pause for contact {}".format(contact.id)))
                 for sp in task.subscription_products.all():
-                    # We need to change the address for said subscription_product
                     sp.active = False
                     sp.save()
             elif task.category == "PE":
@@ -105,7 +104,6 @@ class Command(BaseCommand):
                 contact = task.contact
                 print(_("Executing end of pause for contact {}".format(contact.id)))
                 for sp in task.subscription_products.all():
-                    # We need to change the address for said subscription_product
                     sp.active = True
                     sp.save()
             task.completed = True
