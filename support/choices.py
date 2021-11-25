@@ -5,6 +5,8 @@ SCHEDULED_TASK_CATEGORIES = (
     ('AC', _('Address change')),
     ('PD', _('Start of pause')),
     ('PA', _('End of pause')),
+    ('PS', _('Start of partial pause')),
+    ('PE', _('End of partial pause')),
 )
 
 

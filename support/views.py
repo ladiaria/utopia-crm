@@ -49,6 +49,7 @@ from .filters import (
 )
 from .forms import (
     NewPauseScheduledTaskForm,
+    PartialPauseTaskForm,
     NewAddressChangeScheduledTaskForm,
     NewPromoForm,
     NewSubscriptionForm,
@@ -1208,16 +1209,13 @@ def new_issue(request, contact_id):
 @login_required
 def new_scheduled_task(request, contact_id, subcategory):
     contact = get_object_or_404(Contact, pk=contact_id)
-    if subcategory == "S04":
-        # Services / pause issue
+    if subcategory == "total_pause":
         if request.POST:
             form = NewPauseScheduledTaskForm(request.POST)
             if form.is_valid():
-                # first we have to create an issue that will have this task
                 date1 = form.cleaned_data.get("date_1")
                 date2 = form.cleaned_data.get("date_2")
                 subscription = form.cleaned_data.get("subscription")
-                # Then we create the deactivation and activation events
                 start_task = ScheduledTask.objects.create(
                     contact=contact,
                     subscription=subscription,
@@ -1249,8 +1247,7 @@ def new_scheduled_task(request, contact_id, subcategory):
             {"contact": contact, "form": form, "subcategory": subcategory},
         )
 
-    elif subcategory == "S05":
-        # Services / address change issue
+    elif subcategory == "address_change":
         if request.POST:
             form = NewAddressChangeScheduledTaskForm(request.POST)
             if form.is_valid():
@@ -1266,7 +1263,6 @@ def new_scheduled_task(request, contact_id, subcategory):
                 else:
                     address = form.cleaned_data.get("contact_address")
                 date1 = form.cleaned_data.get("date_1")
-                # after this, we will create this scheduled task
                 scheduled_task = ScheduledTask.objects.create(
                     contact=contact,
                     execution_date=date1,
@@ -1297,12 +1293,6 @@ def new_scheduled_task(request, contact_id, subcategory):
                     "new_address_type": "physical",
                     "activity_type": 'C'}
             )
-        subscription_products = [
-            s
-            for s in SubscriptionProduct.objects.filter(
-                subscription__contact=contact, subscription__active=True
-            )
-        ]
         form.fields["contact_address"].queryset = contact.addresses.all()
         return render(
             request,
@@ -1310,10 +1300,60 @@ def new_scheduled_task(request, contact_id, subcategory):
             {
                 "contact": contact,
                 "form": form,
-                "subscription_products": subscription_products,
+                "subscriptions": contact.subscriptions.filter(active=True),
                 "subcategory": subcategory,
             },
         )
+
+
+@staff_member_required
+def new_scheduled_task_partial_pause(request, contact_id):
+    contact = get_object_or_404(Contact, pk=contact_id)
+    if request.POST:
+        form = PartialPauseTaskForm(request.POST)
+        if form.is_valid():
+            date1 = form.cleaned_data.get("date_1")
+            date2 = form.cleaned_data.get("date_2")
+            start_task = ScheduledTask.objects.create(
+                contact=contact,
+                execution_date=date1,
+                category="PS",  # Deactivation
+            )
+            end_task = ScheduledTask.objects.create(
+                contact=contact,
+                execution_date=date2,
+                category="PE",  # Activation
+                ends=start_task,
+            )
+            for key, value in request.POST.items():
+                if key.startswith("sp"):
+                    subscription_product_id = key[2:]
+                    subscription_product = SubscriptionProduct.objects.get(
+                        pk=subscription_product_id
+                    )
+                    start_task.subscription_products.add(subscription_product)
+                    end_task.subscription_products.add(subscription_product)
+            Activity.objects.create(
+                datetime=datetime.now(),
+                contact=contact,
+                notes=_("Scheduled task for pause"),
+                activity_type=form.cleaned_data["activity_type"],
+                status='C',  # completed
+                direction='I',
+            )
+            return HttpResponseRedirect(reverse("contact_detail", args=[contact.id]))
+    else:
+        form = PartialPauseTaskForm(initial={'activity_type': 'C'})
+    form.fields["subscription"].queryset = contact.subscriptions.filter(active=True)
+    return render(
+        request,
+        "new_scheduled_task_partial_pause.html",
+        {
+            "contact": contact,
+            "form": form,
+            "subscriptions": contact.subscriptions.filter(active=True),
+        },
+    )
 
 
 @login_required

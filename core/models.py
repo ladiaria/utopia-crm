@@ -622,6 +622,7 @@ class SubscriptionProduct(models.Model):
     has_envelope = models.PositiveSmallIntegerField(
         blank=True, null=True, verbose_name=_("Envelope"), choices=ENVELOPE_CHOICES
     )
+    active = models.BooleanField(default=True)
 
     def __unicode__(self):
         # TODO: result translation (i18n)
@@ -668,7 +669,9 @@ class Subscription(models.Model):
     )
     rut = models.CharField(max_length=12, blank=True, null=True, verbose_name=_("R.U.T."))
     billing_phone = models.CharField(max_length=20, blank=True, null=True, verbose_name=_("Billing phone"))
-    balance = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True, verbose_name=_("Balance"))
+    balance = models.DecimalField(
+        max_digits=10, decimal_places=2, blank=True, null=True, verbose_name=_("Balance"),
+        help_text=_("Positive for discount, negative for surcharge"))
     send_bill_copy_by_email = models.BooleanField(default=True, verbose_name=_("Send bill copy by email"))
     billing_address = models.ForeignKey(
         Address,
@@ -681,21 +684,17 @@ class Subscription(models.Model):
     billing_email = models.EmailField(blank=True, null=True, verbose_name=_("Billing email"))
     envelope = models.NullBooleanField(default=False, verbose_name=_("Envelope"))
     free_envelope = models.NullBooleanField(default=False, verbose_name=_("Free envelope"))
-    re_routed = models.NullBooleanField(default=False, verbose_name=_("Rerouted"))
     start_date = models.DateField(blank=True, null=True, default=get_default_start_date, verbose_name=_("Start date"))
     end_date = models.DateField(blank=True, null=True, verbose_name=_("End date"))
     next_billing = models.DateField(
         default=get_default_next_billing, blank=True, null=True, verbose_name=_("Next billing")
     )
-    resubscription_date = models.DateField(blank=True, null=True, verbose_name=_("Resubscription date"))
     highlight_in_listing = models.BooleanField(default=False, verbose_name=_("Highlight in listing"))
     send_pdf = models.BooleanField(default=False, verbose_name=_("Send pdf"))
-    directions = models.TextField(blank=True, null=True, verbose_name=_("Directions"))
     inactivity_reason = models.IntegerField(
         choices=INACTIVITY_REASONS, blank=True, null=True, verbose_name=_("Inactivity reason")
     )
     pickup_point = models.ForeignKey("logistics.PickupPoint", blank=True, null=True, verbose_name=_("Pickup point"))
-    label_message = models.CharField(max_length=40, blank=True, null=True, verbose_name=_("Label message"))
 
     # Unsubscription
     unsubscription_date = models.DateField(blank=True, null=True, verbose_name=_("Unsubscription date"))
@@ -1377,6 +1376,9 @@ class Subscription(models.Model):
 
     def is_obsolete(self):
         return Subscription.objects.filter(updated_from=self).exists()
+
+    def balance_abs(self):
+        return abs(self.balance)
 
     class Meta:
         verbose_name = _("subscription")

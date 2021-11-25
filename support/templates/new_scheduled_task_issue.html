@@ -16,7 +16,7 @@
         $('#id_new_address').click(function(){
           $('.newaddress-group').toggleClass('d-none');
         });
-        {% if subcategory == 'S05' %}
+        {% if subcategory == 'address_change' %}
         function activateSend() {
             if ($(".sp-checkbox:checked").length == 0) {
               $("#send_form").attr("disabled", "disabled");
@@ -36,7 +36,7 @@
 
 {% block no_heading %}
 <h1>{% trans 'Support' %}</h1>
-<p>{% if subcategory == 'S05' %}{% trans 'Change address' %}{% else %}{% trans 'Pause subscription' %}{% endif %}</p>
+<p>{% if subcategory == 'address_change' %}{% trans 'Change address' %}{% elif subcategory == "partial_pause"%}{% trans "Partial pause" %}{% else %}{% trans 'Pause subscription' %}{% endif %}</p>
 {% endblock %}
 
 {% block content %}
@@ -45,9 +45,10 @@
     <div class="card">
       <div class="card-header p-2">
         <ul class="nav nav-pills">
-          <li class="new-item"><a class="nav-link" href="{% url 'new_issue' contact.id %}">{% trans 'Common incidents' %}</a></li>
-          <li class="new-item"><a class="nav-link {% if subcategory == 'S05' %}active{% endif %}" href="{% url 'new_scheduled_task' contact.id 'S05'  %}">{% trans 'Change address' %}</a></li>
-          <li class="new-item"><a class="nav-link {% if subcategory == 'S04' %}active{% endif %}" href="{% url 'new_scheduled_task' contact.id 'S04'  %}">{% trans 'Pause subscription' %}</a></li>
+          <li class="new-item"><a class="nav-link" href="{% url 'new_issue' contact.id %}">{% trans 'Regular issues' %}</a></li>
+          <li class="new-item"><a class="nav-link {% if subcategory == 'address_change' %}active{% endif %}" href="{% url 'new_scheduled_task' contact.id 'address_change'  %}">{% trans 'Change address' %}</a></li>
+          <li class="new-item"><a class="nav-link {% if subcategory == 'total_pause' %}active{% endif %}" href="{% url 'new_scheduled_task' contact.id 'total_pause'  %}">{% trans 'Pause subscription' %}</a></li>
+          <li class="new-item"><a class="nav-link {% if subcategory == 'partial_pause' %}active{% endif %}" href="{% url 'new_scheduled_task_partial_pause' contact.id  %}">{% trans 'Partial pause' %}</a></li>
         </ul>
       </div>
       <div class="card-body">
@@ -186,21 +187,26 @@
         {% endif %}
 
 
-        {% if subscription_products %}
+        {% if subscriptions %}
         <div class="form-group">
-
             <h5>{% trans "Select products to apply address change to" %}</h5>
-
-              {% for subscription_product in subscription_products %}
-              <div class="form-check">
-                  <input type="checkbox"
-                   class="sp-checkbox form-check-input" name="sp{{subscription_product.id}}" value="sp{{subscription_product.id}}" id="sp{{subscription_product.id}}">
-                  <label
-                   class="form-check-label" for="sp{{subscription_product.id}}">{{subscription_product.product}} {% if subscription_product.label_contact %}({{subscription_product.label_contact.name}}) {% endif %} x{{subscription_product.copies}} {% trans "currently on address" %} {{subscription_product.address}} {% if subscription_product.route %}(R: {{subscription_product.route}} {%if subscription_product.order%}O: {{subscription_product.order}} {% endif %}){% endif %}</label>
+            {% for subscription in subscriptions %}
+            <div class="card">
+              <div class="card-header">
+                {% trans "Subscription" %} {{subscription.id}}
               </div>
-              {% endfor %}
-
-
+              <div class="card-body">
+                {% for subscription_product in subscription.subscriptionproduct_set.all %}
+                <div class="form-check">
+                    <input type="checkbox"
+                     class="sp-checkbox form-check-input" name="sp{{subscription_product.id}}" value="sp{{subscription_product.id}}" id="sp{{subscription_product.id}}">
+                    <label
+                     class="form-check-label" for="sp{{subscription_product.id}}">{{subscription_product.product}} {% if subscription_product.label_contact %}({{subscription_product.label_contact.name}}) {% endif %} x{{subscription_product.copies}} {% trans "currently on address" %} {{subscription_product.address}} {% if subscription_product.route %}(R: {{subscription_product.route}} {%if subscription_product.order%}O: {{subscription_product.order}} {% endif %}){% endif %}</label>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+            {% endfor %}
         </div>
         {% endif %}
         <div class="form-group text-right">
