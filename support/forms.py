@@ -67,12 +67,14 @@ class PartialPauseTaskForm(forms.Form):
     date_1 = forms.DateField(
         widget=forms.DateTimeInput(
             attrs={"class": "datepicker form-control float-right", "autocomplete": "off"}
-        )
+        ),
+        label=_("Date of deactivation"),
     )
     date_2 = forms.DateField(
         widget=forms.DateTimeInput(
             attrs={"class": "datepicker form-control float-right", "autocomplete": "off"}
-        )
+        ),
+        label=_("Date of activation (Products will be activated this exact day)"),
     )
     activity_type = forms.ChoiceField(
         widget=forms.Select(attrs={"class": "form-control"}),
