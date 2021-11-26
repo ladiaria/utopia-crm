@@ -1,7 +1,6 @@
 # coding=utf-8
 from __future__ import unicode_literals
 
-from django.forms import forms
 from django.contrib.admin import SimpleListFilter
 from django.utils.translation import ugettext_lazy as _
 from django.contrib import admin
@@ -11,8 +10,28 @@ from taggit.models import TaggedItem
 from tabbed_admin import TabbedModelAdmin
 
 from community.models import ProductParticipation, Supporter
-from .models import *
-from .forms import *
+from .models import (
+    Subscription,
+    Contact,
+    Product,
+    Address,
+    Variable,
+    Campaign,
+    Institution,
+    Ocupation,
+    Subtype,
+    Activity,
+    ContactProductHistory,
+    ContactCampaignStatus,
+    PriceRule,
+    SubscriptionProduct,
+    SubscriptionNewsletter,
+    DynamicContactFilter
+)
+from .forms import (
+    SubscriptionAdminForm,
+    ContactAdminForm,
+)
 
 
 class TaggitListFilter(SimpleListFilter):
@@ -96,9 +115,6 @@ class SubscriptionInline(admin.StackedInline):
                 ('start_date', 'end_date'),
             )
         }),
-        (None, {
-            'fields': ('directions', ),
-        }),
         (_('Billing data'), {
             'fields': (
                 ('payment_type'),
@@ -140,18 +156,6 @@ class SubscriptionInline(admin.StackedInline):
                 contact = self.get_parent_object_from_request(request)
                 field.queryset = field.queryset.filter(contact=contact)
         return field
-
-
-class SubscriptionAdminForm(forms.ModelForm):
-    class Meta:
-        model = Subscription
-        fields = "__all__"
-
-    def __init__(self, *args, **kwargs):
-        super(SubscriptionAdminForm, self).__init__(*args, **kwargs)
-        if 'instance' in kwargs:
-            self.fields['billing_address'].queryset = Address.objects.filter(
-                contact=kwargs['instance'].contact)
 
 
 class SubscriptionAdmin(admin.ModelAdmin):
