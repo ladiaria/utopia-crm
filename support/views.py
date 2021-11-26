@@ -1792,6 +1792,7 @@ def advanced_export_dcf_list(request, dcf_id):
         _("Contact ID"),
         _("Name"),
         _("Email"),
+        _("id document"),
         _("Phone"),
         _("Mobile"),
         _("Work phone"),
@@ -1801,6 +1802,7 @@ def advanced_export_dcf_list(request, dcf_id):
         row = [
             contact.id,
             contact.name,
+            contact.id_document,
             contact.email,
             contact.phone,
             contact.mobile,
