@@ -90,13 +90,15 @@ class ContactAdminForm(forms.ModelForm):
 
 
 class SubscriptionAdminForm(forms.ModelForm):
-    def __init__(self, *args, **kwargs):
-        super(SubscriptionAdminForm, self).__init__(*args, **kwargs)
-        self.fields["billing_address"].queryset = self.instance.contact.addresses.all()
-
     class Meta:
         model = Subscription
         fields = "__all__"
+
+    def __init__(self, *args, **kwargs):
+        super(SubscriptionAdminForm, self).__init__(*args, **kwargs)
+        if 'instance' in kwargs:
+            self.fields['billing_address'].queryset = Address.objects.filter(
+                contact=kwargs['instance'].contact)
 
 
 class AddressForm(forms.ModelForm):
