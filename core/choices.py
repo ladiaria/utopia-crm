@@ -46,6 +46,7 @@ SUBSCRIPTION_STATUS_CHOICES = (
     ('PA', _('Paused')),
     ('DE', _('End because of debt')),
     ('NE', _('Normal end')),
+    ('ER', _('Error')),
 )
 
 GENDERS = (
