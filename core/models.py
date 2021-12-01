@@ -265,6 +265,20 @@ class Contact(models.Model):
         """
         return bool(self.expired_invoices_count())
 
+    def get_pending_invoices(self):
+        """
+        Returns a queryset with the pending invoices for the contact.
+        """
+        return self.invoice_set.filter(
+            paid=False,
+            debited=False,
+            canceled=False,
+            uncollectible=False,
+        )
+
+    def pending_invoices_count(self):
+        return self.get_pending_invoices().count()
+
     def get_expired_invoices(self):
         """
         Returns a queryset with the expired invoices for the contact.

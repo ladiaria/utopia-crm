@@ -1506,6 +1506,7 @@ def contact_detail(request, contact_id):
     all_scheduled_tasks = contact.scheduledtask_set.all().order_by('-creation_date', 'id')
     awaiting_payment_subscriptions = contact.subscriptions.filter(status="AP")
     paused_subscriptions = contact.subscriptions.filter(status="PA")
+    subscriptions_with_error = contact.subscriptions.filter(status="ER")
 
     return render(
         request,
@@ -1520,6 +1521,7 @@ def contact_detail(request, contact_id):
             "inactive_subscriptions": inactive_subscriptions,
             "awaiting_payment_subscriptions": awaiting_payment_subscriptions,
             "paused_subscriptions": paused_subscriptions,
+            "subscriptions_with_error": subscriptions_with_error,
             "future_subscriptions": future_subscriptions,
             "last_paid_invoice": last_paid_invoice,
             "all_activities": all_activities,
