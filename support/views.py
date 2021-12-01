@@ -1646,7 +1646,10 @@ def dynamic_contact_filter_new(request):
                     elif debtor_contacts == 2:
                         subscriptions = only_debtors
                 # Finally we remove the ones who don't have emails and apply distinct by contact
-                subscriptions = subscriptions.filter(contact__email__isnull=False).distinct('contact')
+                if mode == 1:
+                    subscriptions = subscriptions.filter(contact__email__isnull=False).distinct('contact')
+                else:
+                    subscriptions = subscriptions.filter(contact__email__isnull=False)
                 count = subscriptions.count()
                 email_sample = subscriptions.values("contact__email")[:50]
 
@@ -1746,7 +1749,10 @@ def dynamic_contact_filter_edit(request, dcf_id):
                     elif debtor_contacts == 2:
                         subscriptions = only_debtors
                 # Finally we remove the ones who don't have emails and apply distinct by contact
-                subscriptions = subscriptions.filter(contact__email__isnull=False).distinct('contact')
+                if mode == 1:
+                    subscriptions = subscriptions.filter(contact__email__isnull=False).distinct('contact')
+                else:
+                    subscriptions = subscriptions.filter(contact__email__isnull=False)
                 count = subscriptions.count()
 
             return render(

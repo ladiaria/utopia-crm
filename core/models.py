@@ -1712,14 +1712,21 @@ class DynamicContactFilter(models.Model):
                 subscriptions = subscriptions.difference(only_debtors)
             elif self.debtor_contacts == 2:
                 subscriptions = only_debtors
-        subscriptions = subscriptions.filter(contact__email__isnull=False).distinct('contact')
+        if self.mode == 1:
+            subscriptions = subscriptions.filter(contact__email__isnull=False).distinct('contact')
+        else:
+            subscriptions = subscriptions.filter(contact__email__isnull=False)
+
         return subscriptions
 
     def get_email_count(self):
         return self.get_subscriptions().count()
 
     def get_contacts(self):
-        return Contact.objects.filter(subscriptions__in=self.get_subscriptions()).distinct()
+        if self.mode == 1:
+            return Contact.objects.filter(subscriptions__in=self.get_subscriptions()).distinct()
+        else:
+            return Contact.objects.filter(subscriptions__in=self.get_subscriptions())
 
     def get_emails(self):
         emails = []
