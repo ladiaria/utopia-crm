@@ -1622,13 +1622,13 @@ def dynamic_contact_filter_new(request):
                 email_sample = subscription_newsletters.values("contact__email")[:50]
             else:
                 if mode == 1:  # At least one of the products
-                    subscriptions = Subscription.objects.filter(active=True)
+                    subscriptions = Subscription.objects.filter(active=True, products__in=products)
                 elif mode == 2:  # All products must match
                     subscriptions = Subscription.objects.annotate(
                         count=Count("products")
                     ).filter(active=True, count=products.count())
-                for product in products:
-                    subscriptions = subscriptions.filter(products=product)
+                    for product in products:
+                        subscriptions = subscriptions.filter(products=product)
                 if allow_promotions:
                     subscriptions = subscriptions.filter(contact__allow_promotions=True)
                 if allow_polls:
@@ -1725,13 +1725,13 @@ def dynamic_contact_filter_edit(request, dcf_id):
                 count = subscription_newsletters.count()
             else:
                 if mode == 1:  # At least one of the products
-                    subscriptions = Subscription.objects.filter(active=True)
+                    subscriptions = Subscription.objects.filter(active=True, products__in=products)
                 elif mode == 2:  # All products must match
                     subscriptions = Subscription.objects.annotate(
                         count=Count("products")
                     ).filter(active=True, count=products.count())
-                for product in products:
-                    subscriptions = subscriptions.filter(products=product)
+                    for product in products:
+                        subscriptions = subscriptions.filter(products=product)
                 if allow_promotions:
                     subscriptions = subscriptions.filter(contact__allow_promotions=True)
                 if allow_polls:
