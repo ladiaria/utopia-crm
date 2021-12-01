@@ -68,6 +68,7 @@ class Command(BaseCommand):
                     )
                 # The status of the subscription is going to be OK again
                 subscription.status = 'OK'
+                subscription.save()
 
             elif task.category == 'AC':
                 contact = task.contact
