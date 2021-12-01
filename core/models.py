@@ -1682,9 +1682,7 @@ class DynamicContactFilter(models.Model):
     def get_subscriptions(self):
         if self.mode == 1:  # At least one product must match
             products = self.products.all()
-            subscriptions = Subscription.objects.filter(active=True)
-            for product in products:
-                subscriptions = subscriptions.filter(products=product)
+            subscriptions = Subscription.objects.filter(active=True, products__in=products)
         elif self.mode == 2:  # All products must match
             products = self.products.all()
             subscriptions = Subscription.objects.annotate(
