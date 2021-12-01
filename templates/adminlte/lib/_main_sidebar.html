@@ -52,6 +52,7 @@
     <li class="nav-item"><a href="{{collection_issues}}" class="nav-link {% ifequal request.path collection_issues %}active{% endifequal %}">{% trans 'Collection issues' %}</a></li>
     <li class="nav-item"><a href="{{dynamic_contact_filter_list}}" class="nav-link {% ifequal request.path dynamic_contact_filter_list %}active{% endifequal %}">{% trans 'Dynamic contact filter list' %}</a></li>
     <li class="nav-item"><a href="{{list_routes}}" class="nav-link {% ifequal request.path list_routes %}active{% endifequal %}">{% trans 'List all routes' %}</a></li>
+    {% include_if_exists "support_sidebar_extra.html" %}
   </ul>
 </li>
 {% endif %}
@@ -88,6 +89,7 @@
     <li class="nav-item"><a href="{{print_invoices}}" class="nav-link {% ifequal request.path print_invoices %}active{% endifequal %}">{% trans 'Print invoices' %}</a></li>
     <li class="nav-item"><a href="{{debtor_contacts}}" class="nav-link {% ifequal request.path debtor_contacts %}active{% endifequal %}">{% trans 'Debtor contacts' %}</a></li>
     <li class="nav-item"><a href="{{invoice_filter}}" class="nav-link {% ifequal request.path invoice_filter %}active{% endifequal %}">{% trans 'Invoice filter' %}</a></li>
+    {% include_if_exists "finances_sidebar_extra.html" %}
   </ul>
 </li>
 {% endif %}
@@ -110,6 +112,7 @@
     <li class="nav-item"><a href='{{edition_time_arrival}}' class="nav-link {% ifequal request.path edition_time_arrival %}active{% endifequal %}">{% trans 'Edition arrival time' %}</a></li>
     <li class="nav-item"><a href="{{list_routes}}" class="nav-link">{% trans 'List all routes' %} ({% trans "Simple" %})</a></li>
     <li class="nav-item"><a href='{{list_routes_detailed}}' class="nav-link {% ifequal request.path list_routes_detailed %}active{% endifequal %}">{% trans 'List all routes' %} ({% trans "Detailed" %})</a></li>
+    {% include_if_exists "logistics_sidebar_extra.html" %}
   </ul>
 </li>
 {% endif %}
