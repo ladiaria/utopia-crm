@@ -2444,7 +2444,11 @@ def campaign_statistics_per_seller(request, campaign_id):
 def seller_performance_by_time(request):
     sellers = Seller.objects.filter(internal=True).order_by("name")
     date_from = date(date.today().year, date.today().month, 1)
-    date_to = date(date.today().year, date.today().month + 1, 1) - timedelta(1)
+    if date.today().month == 12:
+        month = 1
+    else:
+        month = date.today().month + 1
+    date_to = date(date.today().year, month, 1) - timedelta(1)
     if request.GET:
         ccs_queryset = ContactCampaignStatus.objects.all()
         form = ContactCampaignStatusByDateForm(request.GET)
