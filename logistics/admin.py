@@ -48,6 +48,7 @@ class DeliveryAdmin(admin.ModelAdmin):
 
 class ResortAdmin(admin.ModelAdmin):
     list_display = ('name', 'state', 'status', 'route', 'order')
+    ordering = ('state', 'name')
 
 
 class CityAdmin(admin.ModelAdmin):
