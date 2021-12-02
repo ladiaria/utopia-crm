@@ -23,11 +23,11 @@ class RouteAdmin(admin.ModelAdmin):
 
 
 class PickupPlaceAdmin(admin.ModelAdmin):
-    pass
+    list_display = ('description', 'resort')
 
 
 class PickupPointAdmin(admin.ModelAdmin):
-    pass
+    list_display = ('name', 'address')
 
 
 class VacationAdmin(admin.ModelAdmin):
@@ -47,7 +47,7 @@ class DeliveryAdmin(admin.ModelAdmin):
 
 
 class ResortAdmin(admin.ModelAdmin):
-    pass
+    list_display = ('name', 'state', 'status', 'route', 'order')
 
 
 class CityAdmin(admin.ModelAdmin):
