@@ -24,7 +24,7 @@ class RouteAdmin(admin.ModelAdmin):
 
 class PickupPlaceAdmin(admin.ModelAdmin):
     list_display = ('resort', 'description')
-    ordering = ('resort', 'description')
+    ordering = ('resort__name', 'description')
 
 
 class PickupPointAdmin(admin.ModelAdmin):
