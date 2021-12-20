@@ -451,15 +451,25 @@ def print_labels_from_csv(request):
         if request.POST.get('96x30'):
             canvas = Canvas(response, pagesize=(Roll96x30.width, Roll96x30.height))
             hoja = Roll96x30(LogisticsLabel96x30, canvas)
+        use_separators = request.POST.get('separators', None)
 
         iterator = hoja.iterator()
         label_list = csv.reader(request.FILES.get('labels'))
         label_list.next()  # consumo header
 
+        old_route = 0
         for row in label_list:
+            if row[3] and old_route != row[3] and use_separators:
+                label = iterator.next()
+                label.separador()
+                old_route = row[3]
             label = iterator.next()
             label.name = row[0].upper()
-            label.address = '\n'.join(row[1:])
+            label.address = '{}\n{}'.format(row[1], row[2])
+            label.route = row[3] or ''
+            label.route_order = row[4] or ''
+            label.message = row[5] or ''
+            label.route_suffix = row[6] or ''
             label.draw()
 
         hoja.flush()
