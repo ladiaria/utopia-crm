@@ -17,6 +17,9 @@
   <div class="card-body">
         <form action="" method="post" enctype="multipart/form-data">
             {% csrf_token %}
+            <p>{% trans "Please upload a csv containing the following data" %}:</p>
+            <p>{% trans "name" %}, {% trans "address 1" %}, {% trans "address 2" %}, {% trans "route" %}, {% trans "order" %}, {% trans "message" %}, {% trans "route suffix" %}</p>
+            <p><b>{% trans "The header line will be ignored." %}</b> {% trans "Only name and address are mandatory" %}</p>
             <div class="form-group">
                 <label for="labels">{% trans 'Upload CSV with data' %}:</label>
                 <input id="labels" type="file" name="labels" class="form-control"/>
@@ -25,6 +28,9 @@
               <div class="form-check">
                 <input id="96x30" type="checkbox" name="96x30" class="form-check-input" />
                 <label for="96x30" class="form-check-label">{% trans '96x30 labels' %}</label>
+                <br>
+                <input id="separators" type="checkbox" name="separators" class="form-check-input" />
+                <label for="separators" class="form-check-label">{% trans 'Use separators' %}</label>
               </div>
             </div>
             <div class="form-group text-right">
