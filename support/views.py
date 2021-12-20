@@ -2117,6 +2117,9 @@ def debtor_contacts(request):
 @staff_member_required
 def book_unsubscription(request, subscription_id):
     subscription = get_object_or_404(Subscription, pk=subscription_id)
+    if subscription.end_date:
+        messages.warning(request, _("WARNING: This subscription already has an end date"))
+        return HttpResponseRedirect(reverse('contact_detail', args=[subscription.contact.id]))
     if request.POST:
         form = UnsubscriptionForm(request.POST, instance=subscription)
         if form.is_valid():
@@ -2132,8 +2135,6 @@ def book_unsubscription(request, subscription_id):
             subscription.save()
             return HttpResponseRedirect(reverse("contact_detail", args=[subscription.contact.id]))
     else:
-        if subscription.end_date:
-            messages.warning(request, _("WARNING: This subscription already has an end date"))
         form = UnsubscriptionForm(instance=subscription)
     return render(request, "book_unsubscription.html", {
         "subscription": subscription,
@@ -2144,6 +2145,9 @@ def book_unsubscription(request, subscription_id):
 @staff_member_required
 def partial_unsubscription(request, subscription_id):
     old_subscription = get_object_or_404(Subscription, pk=subscription_id)
+    if old_subscription.end_date:
+        messages.warning(request, _("WARNING: This subscription already has an end date"))
+        return HttpResponseRedirect(reverse('contact_detail', args=[old_subscription.contact.id]))
     if request.POST:
         form = UnsubscriptionForm(request.POST, instance=old_subscription)
         if form.is_valid():
@@ -2202,8 +2206,6 @@ def partial_unsubscription(request, subscription_id):
             old_subscription.save()
             return HttpResponseRedirect(reverse("contact_detail", args=[old_subscription.contact.id]))
     else:
-        if old_subscription.end_date:
-            messages.warning(request, _("WARNING: This subscription already has an end date"))
         form = UnsubscriptionForm(instance=old_subscription)
     return render(request, "book_partial_unsubscription.html", {
         "subscription": old_subscription,
@@ -2214,6 +2216,9 @@ def partial_unsubscription(request, subscription_id):
 @staff_member_required
 def product_change(request, subscription_id):
     old_subscription = get_object_or_404(Subscription, pk=subscription_id)
+    if old_subscription.end_date:
+        messages.warning(request, _("WARNING: This subscription already has an end date"))
+        return HttpResponseRedirect(reverse('contact_detail', args=[old_subscription.contact.id]))
     offerable_products = Product.objects.filter(offerable=True, type="S").exclude(
         id__in=old_subscription.products.values_list('id')
     )
@@ -2289,8 +2294,6 @@ def product_change(request, subscription_id):
                     new_subscription.id)
             )
     else:
-        if old_subscription.end_date:
-            messages.warning(request, _("WARNING: This subscription already has an end date"))
         form = UnsubscriptionForm(instance=old_subscription)
     return render(request, "book_product_change.html", {
         "offerable_products": offerable_products,
