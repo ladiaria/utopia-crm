@@ -209,11 +209,16 @@ def list_routes_detailed(request):
 
 @login_required
 def print_labels(request, page='Roll', list_type='', route_list='', product_id=None):
-    tomorrow = date.today() + timedelta(1)
-    if datetime.now().hour in range(0, 3):
-        next_day = date.today()
+    if request.GET.get('date', None):
+        date_string = request.GET.get('date')
+        next_day = datetime.strptime(date_string, '%Y-%m-%d')
+        tomorrow = next_day
     else:
-        next_day = next_business_day()
+        tomorrow = date.today() + timedelta(1)
+        if datetime.now().hour in range(0, 3):
+            next_day = date.today()
+        else:
+            next_day = next_business_day()
     isoweekday = next_day.isoweekday()
     response = HttpResponse(content_type='application/pdf')
     response['Content-Disposition'] = \
@@ -554,10 +559,14 @@ def route_details(request, route_list):
     """
     Shows details for a selected route.
     """
-    if datetime.now().hour in range(0, 3):
-        day = date.today()
+    if request.GET.get('date', None):
+        date_string = request.GET.get('date')
+        day = datetime.strptime(date_string, '%Y-%m-%d')
     else:
-        day = next_business_day()
+        if datetime.now().hour in range(0, 3):
+            day = date.today()
+        else:
+            day = next_business_day()
     one_month_ago = day - timedelta(30)
     isoweekday = day.isoweekday()
 
