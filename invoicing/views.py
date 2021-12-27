@@ -111,12 +111,20 @@ def bill_subscription(subscription_id, billing_date=None, dpp=10, check_route=Fa
             )
         )
 
-    if billing_data and getattr(settings, "REQUIRE_ROUTE_FOR_BILLING", False) and billing_data["route"] is None:
-        raise Exception(
-            "Subscription {} for contact {} requires a route to be billed.".format(
-                subscription.id, subscription.contact.id
+    if billing_data and getattr(settings, "REQUIRE_ROUTE_FOR_BILLING", False):
+        if billing_data["route"] is None:
+            raise Exception(
+                "Subscription {} for contact {} requires a route to be billed.".format(
+                    subscription.id, subscription.contact.id
+                )
             )
-        )
+
+        elif billing_data["route"] in getattr(settings, "EXCLUDE_ROUTES_FROM_BILLING_LIST", []):
+            raise Exception(
+                "Subscription {} for contact {} can't be billed since it's on route {}.".format(
+                    subscription.id, subscription.contact.id, billing_data["route"]
+                )
+            )
 
     invoice_items = []
 
