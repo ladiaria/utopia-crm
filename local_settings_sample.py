@@ -122,6 +122,10 @@ MAILTRAIN_API_KEY = "your_secret_key"
 # via logistics.
 REQUIRE_ROUTE_FOR_BILLING = False
 
+# Set this with a list with one or more routes if you want to ignore the billing of a subscription which main route is
+# included in the list.
+EXCLUDE_ROUTES_FROM_BILLING_LIST = [50, 51]
+
 # Use these to set your own answers to issues. Each answer must be a tuple with two characters on the first element,
 # and a string on the second element.
 ISSUE_ANSWERS = (
