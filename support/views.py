@@ -63,6 +63,7 @@ from .forms import (
     ContactCampaignStatusByDateForm,
 )
 from .models import Seller, ScheduledTask, IssueStatus, Issue
+from support.management.commands.run_scheduled_tasks import run_address_change
 from core.utils import calc_price_from_products, process_products
 from core.forms import ContactAdminForm
 from util.dates import add_business_days
@@ -1286,6 +1287,9 @@ def new_scheduled_task(request, contact_id, subcategory):
                             pk=subscription_product_id
                         )
                         scheduled_task.subscription_products.add(subscription_product)
+                if request.POST.get("apply_now", None):
+                    run_address_change(scheduled_task)
+                    messages.success(request, _("Address change has been executed."))
                 return HttpResponseRedirect(reverse("contact_detail", args=[contact.id]))
         else:
             form = NewAddressChangeScheduledTaskForm(
