@@ -12,50 +12,50 @@
 <script src="{% static 'js/choices.min.js' %}"></script>
 <script type="text/javascript">
 $( function() {
-    const sub_category = new Choices($('#id_sub_category')[0]);
-    const assigned_to = new Choices($('#id_assigned_to')[0]);
-    function categoryVal(select){
-        if((select).val() == 'L'){
-            $('.id_subscription').hide();
-            $('#id_subscription').prop('required',false);
-            $('.id_product').hide();
-            $('.id_subscription_product').show();
-            $('#id_subscription_product').prop('required',true);
-            $('#id_status').prop('required',false);
-        }else if ((select).val() == 'I'){
-            $('.id_product').hide();
-            $('.id_subscription').show();
-            $('#id_subscription').prop('required',true);
-            $('.id_subscription_product').hide();
-            $('#id_subscription_product').prop('required',false);
-            $('#id_status').prop('required',true);
-        }else {
-            $('.id_subscription').show();
-            $('.id_subscription_product').show();
-            $('.id_product').show();
-            $('#id_status').prop('required',false);
-        }
+  const sub_category = new Choices($('#id_sub_category')[0]);
+  const assigned_to = new Choices($('#id_assigned_to')[0]);
+  function categoryVal(select){
+    if((select).val() == 'L'){
+      $('.id_subscription').hide();
+      $('#id_subscription').prop('required',false);
+      $('.id_product').hide();
+      $('.id_subscription_product').show();
+      $('#id_subscription_product').prop('required',true);
+      $('#id_status').prop('required',false);
+    }else if ((select).val() == 'I'){
+      $('.id_product').hide();
+      $('.id_subscription').show();
+      $('#id_subscription').prop('required',true);
+      $('.id_subscription_product').hide();
+      $('#id_subscription_product').prop('required',false);
+      $('#id_status').prop('required',true);
+    }else {
+      $('.id_subscription').show();
+      $('.id_subscription_product').show();
+      $('.id_product').show();
+      $('#id_status').prop('required',false);
     }
-    // load subcats according to cats
-    function updateSubcats(){
-        var cat = $('#id_category').val();
-        $('#id_subcategory').val('N/A');
-        $('#id_subcategory option').each(function(){
-            if($(this).val() == 'N/A') {
-                $(this).show();
-            }else if ($(this).val().charAt(0) != cat) {
-                $(this).hide();
-            }else {
-                $(this).show();
-            }
-        })
-    }
-    categoryVal($("#id_category"));
+  }
+  // load subcats according to cats
+  function updateSubcats(){
+    var cat = $('#id_category').val();
+    $('#id_subcategory').val('N/A');
+    $('#id_subcategory option').each(function(){
+      if($(this).val() == 'N/A') {
+        $(this).show();
+      }else if ($(this).val().charAt(0) != cat) {
+        $(this).hide();
+      }else {
+        $(this).show();
+      }
+    })
+  }
+  categoryVal($("#id_category"));
+  updateSubcats();
+  $("#id_category").change(function(){
+    categoryVal($(this));
     updateSubcats();
-    $("#id_category").change(function(){
-        categoryVal($(this));
-        updateSubcats();
-    });
+  });
 });
 </script>
 {% endblock %}
@@ -67,101 +67,101 @@ $( function() {
 
 {% block content %}
 <div class="row">
-    <div class="col-md-9">
-        <div class="card">
-            <div class="card-header p-2">
-                <ul class="nav nav-pills">
-                  <li class="new-item"><a class="nav-link" href="{% url 'new_issue' contact.id %}">{% trans 'Regular issues' %}</a></li>
-                  <li class="new-item"><a class="nav-link {% if subcategory == 'address_change' %}active{% endif %}" href="{% url 'new_scheduled_task' contact.id 'address_change'  %}">{% trans 'Change address' %}</a></li>
-                  <li class="new-item"><a class="nav-link {% if subcategory == 'total_pause' %}active{% endif %}" href="{% url 'new_scheduled_task' contact.id 'total_pause'  %}">{% trans 'Pause subscription' %}</a></li>
-                  <li class="new-item"><a class="nav-link {% if subcategory == 'partial_pause' %}active{% endif %}" href="{% url 'new_scheduled_task' contact.id 'partial_pause'  %}">{% trans 'Partial pause' %}</a></li>
-                </ul>
+  <div class="col-md-9">
+    <div class="card">
+      <div class="card-header p-2">
+        <ul class="nav nav-pills">
+          <li class="new-item"><a class="nav-link active" href="{% url 'new_issue' contact.id %}">{% trans 'Regular issues' %}</a></li>
+          <li class="new-item"><a class="nav-link" href="{% url 'new_scheduled_task_address_change' contact.id %}">{% trans 'Change address' %}</a></li>
+          <li class="new-item"><a class="nav-link" href="{% url 'new_scheduled_task_total_pause' contact.id %}">{% trans 'Pause subscription' %}</a></li>
+          <li class="new-item"><a class="nav-link" href="{% url 'new_scheduled_task_partial_pause' contact.id  %}">{% trans 'Partial pause' %}</a></li>
+        </ul>
+      </div>
+      <div class="card-body">
+        <h3>{% trans "New issue" %}: {{contact.name}}</h3>
+        <form method="post">
+          {% if form.errors %}
+          {% for field in form %}
+          {% for error in field.errors %}
+          <div class="alert alert-danger">
+            <strong>{{ error|escape }}</strong>
+          </div>
+          {% endfor %}
+          {% endfor %}
+          {% for error in form.non_field_errors %}
+          <div class="alert alert-danger">
+            <strong>{{ error|escape }}</strong>
+          </div>
+          {% endfor %}
+          {% endif %}
+          {%csrf_token%}
+          <div class="form-group d-none">
+            <label for="id_contact">{{form.contact.label}}</label>
+            {{form.contact}}
+            <span class="error invalid-feedback">{{form.contact.errors}}</span>
+          </div>
+          <div class="row">
+            <div class="col-6">
+              <div class="form-group">
+                <label for="id_category">{{form.category.label}}</label>
+                {{form.category}}
+                <span class="error invalid-feedback">{{form.category.errors}}</span>
+              </div>
             </div>
-            <div class="card-body">
-                <h3>{% trans "New issue for contact" %} {{contact.name}}</h3>
-                <form method="post">
-                    {% if form.errors %}
-                    {% for field in form %}
-                    {% for error in field.errors %}
-                    <div class="alert alert-danger">
-                        <strong>{{ error|escape }}</strong>
-                    </div>
-                    {% endfor %}
-                    {% endfor %}
-                    {% for error in form.non_field_errors %}
-                    <div class="alert alert-danger">
-                        <strong>{{ error|escape }}</strong>
-                    </div>
-                    {% endfor %}
-                    {% endif %}
-                    {%csrf_token%}
-                    <div class="form-group d-none">
-                        <label for="id_contact">{{form.contact.label}}</label>
-                        {{form.contact}}
-                        <span class="error invalid-feedback">{{form.contact.errors}}</span>
-                    </div>
-                    <div class="row">
-                        <div class="col-6">
-                            <div class="form-group">
-                                <label for="id_category">{{form.category.label}}</label>
-                                {{form.category}}
-                                <span class="error invalid-feedback">{{form.category.errors}}</span>
-                            </div>
-                        </div>
-                        <div class="col-6">
-                            <div class="form-group">
-                                <label for="id_sub_category">{{form.sub_category.label}}</label>
-                                {{form.sub_category}}
-                                <span class="error invalid-feedback">{{form.subcategory.errors}}</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label for="id_copies">{{ form.copies.label }}</label>
-                        {{ form.copies }}
-                        <span class="error invalid-feedback">{{form.copies.errors}}</span>
-                    </div>
-                    <div class="form-group">
-                        <label>{% trans "Assigned to" %}</label>
-                        {{form.assigned_to}}
-                    </div>
-                    <div class="form-group id_subscription_product">
-                        <label for="id_subscription_product">{{form.subscription_product.label}}</label>
-                        {{form.subscription_product}}
-                        <span class="error invalid-feedback">{{form.subscription_product.errors}}</span>
-                    </div>
-                    <div class="form-group id_subscription">
-                        <label for="id_subscription">{{form.subscription.label}}</label>
-                        {{form.subscription}}
-                        <span class="error invalid-feedback">{{form.subscription_product.errors}}</span>
-                    </div>
-                    <div class="form-group id_product">
-                        <label for="id_product">{{form.product.label}}</label>
-                        {{form.product}}
-                        <span class="error invalid-feedback">{{form.product.errors}}</span>
-                    </div>
-                    <div class="form-group">
-                        <label for="id_activity_type">{{form.activity_type.label}}</label>
-                        {{form.activity_type}}
-                        <span class="error invalid-feedback">{{form.activity_type.errors}}</span>
-                    </div>
-                    <div class="form-group">
-                        <label for="id_status">{{form.status.label}}</label>
-                        {{form.status}}
-                        <span class="error invalid-feedback">{{form.status.errors}}</span>
-                    </div>
-                    <div class="form-group">
-                        <label for="id_notes">{{form.notes.label}}</label>
-                        {{form.notes}}
-                        <span class="error invalid-feedback">{{form.notes.errors}}</span>
-                    </div>
-                    <div class="form-group text-right">
-                        <input type="submit" name="submit" value='{% trans "Send" %}' class="btn bg-gradient-primary">
-                    </div>
-                </form>
+            <div class="col-6">
+              <div class="form-group">
+                <label for="id_sub_category">{{form.sub_category.label}}</label>
+                {{form.sub_category}}
+                <span class="error invalid-feedback">{{form.subcategory.errors}}</span>
+              </div>
             </div>
-        </div>
+          </div>
+          <div class="form-group">
+            <label for="id_copies">{{ form.copies.label }}</label>
+            {{ form.copies }}
+            <span class="error invalid-feedback">{{form.copies.errors}}</span>
+          </div>
+          <div class="form-group">
+            <label>{% trans "Assigned to" %}</label>
+            {{form.assigned_to}}
+          </div>
+          <div class="form-group id_subscription_product">
+            <label for="id_subscription_product">{{form.subscription_product.label}}</label>
+            {{form.subscription_product}}
+            <span class="error invalid-feedback">{{form.subscription_product.errors}}</span>
+          </div>
+          <div class="form-group id_subscription">
+            <label for="id_subscription">{{form.subscription.label}}</label>
+            {{form.subscription}}
+            <span class="error invalid-feedback">{{form.subscription_product.errors}}</span>
+          </div>
+          <div class="form-group id_product">
+            <label for="id_product">{{form.product.label}}</label>
+            {{form.product}}
+            <span class="error invalid-feedback">{{form.product.errors}}</span>
+          </div>
+          <div class="form-group">
+            <label for="id_activity_type">{{form.activity_type.label}}</label>
+            {{form.activity_type}}
+            <span class="error invalid-feedback">{{form.activity_type.errors}}</span>
+          </div>
+          <div class="form-group">
+            <label for="id_status">{{form.status.label}}</label>
+            {{form.status}}
+            <span class="error invalid-feedback">{{form.status.errors}}</span>
+          </div>
+          <div class="form-group">
+            <label for="id_notes">{{form.notes.label}}</label>
+            {{form.notes}}
+            <span class="error invalid-feedback">{{form.notes.errors}}</span>
+          </div>
+          <div class="form-group text-right">
+            <input type="submit" name="submit" value='{% trans "Send" %}' class="btn bg-gradient-primary">
+          </div>
+        </form>
+      </div>
     </div>
+  </div>
 </div>
 
 {% endblock %}
