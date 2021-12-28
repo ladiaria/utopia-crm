@@ -1,0 +1,111 @@
+{% extends 'adminlte/base.html' %}
+{% load static i18n %}
+
+{% block title %}
+{% trans "New scheduled task" %} - {% trans "Total pause" %}
+{% endblock %}
+
+{% block extra_js %}
+<script type="text/javascript">
+$(function(){
+  $(".datepicker").datepicker(
+    { dateFormat: 'yy-mm-dd' }).datepicker("setDate", new Date());
+  });
+</script>
+{% endblock %}
+
+{% block no_heading %}
+<h1>{% trans 'Support' %}</h1>
+<p>{% trans "Total pause" %}</p>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col-md-9">
+    <div class="card">
+      <div class="card-header p-2">
+        <ul class="nav nav-pills">
+          <li class="new-item"><a class="nav-link" href="{% url 'new_issue' contact.id %}">{% trans 'Regular issues' %}</a></li>
+          <li class="new-item"><a class="nav-link" href="{% url 'new_scheduled_task_address_change' contact.id %}">{% trans 'Change address' %}</a></li>
+          <li class="new-item"><a class="nav-link active" href="{% url 'new_scheduled_task_total_pause' contact.id %}">{% trans 'Pause subscription' %}</a></li>
+          <li class="new-item"><a class="nav-link" href="{% url 'new_scheduled_task_partial_pause' contact.id  %}">{% trans 'Partial pause' %}</a></li>
+        </ul>
+      </div>
+      <div class="card-body">
+        <h3>{% trans "Total pause" %}: {{contact.name}}</h3>
+        <form method="post">
+          {% if form.errors %}
+          {% for field in form %}
+          {% for error in field.errors %}
+          <div class="alert alert-danger">
+            <strong>{{ error|escape }}</strong>
+          </div>
+          {% endfor %}
+          {% endfor %}
+          {% for error in form.non_field_errors %}
+          <div class="alert alert-danger">
+            <strong>{{ error|escape }}</strong>
+          </div>
+          {% endfor %}
+          {% endif %}
+          {%csrf_token%}
+          <div class="row">
+            <div class="col-md-12 col-s-12">
+              <div class="form-group">
+                <label for="id_subscription">{{form.subscription.label}}</label>
+                {{form.subscription}}
+                <span class="error invalid-feedback">{{form.subscription.errors}}</span>
+              </div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-6 col-s-12">
+              <div class="form-group">
+                <label for="id_date_1">{{form.date_1.label}}</label>
+                <div class="input-group">
+                  <div class="input-group-prepend">
+                    <span class="input-group-text">
+                      <i class="far fa-calendar-alt"></i>
+                    </span>
+                  </div>
+                  {{form.date_1}}
+                  <span class="error invalid-feedback">{{form.date_1.errors}}</span>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6 col-s-12">
+              {% if form.date_2 %}
+              <div class="form-group">
+                <label for="id_date_2">{{form.date_2.label}}</label>
+                <div class="input-group">
+                  <div class="input-group-prepend">
+                    <span class="input-group-text">
+                      <i class="far fa-calendar-alt"></i>
+                    </span>
+                  </div>
+                  {{form.date_2}}
+                  <span class="error invalid-feedback">{{form.date_2.errors}}</span>
+                </div>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="id_activity_type">{{form.activity_type.label}}</label>
+            {{form.activity_type}}
+            <span class="error invalid-feedback">{{form.activity_type.errors}}</span>
+          </div>
+
+          <div class="form-groupScheduled text-right">
+            <div class="form-check">
+              <input type="checkbox"class="form-check-input" name="apply_now" id="id_apply_now">
+              <labelclass="form-check-label" for="id_apply_now">{% trans "Apply now" %}</label>
+            </div>
+            <input type="submit" id="send_form" class="btn bg-gradient-primary" name="submit" value='{% trans "Send" %}'>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

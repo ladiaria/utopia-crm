@@ -63,7 +63,7 @@ from .forms import (
     ContactCampaignStatusByDateForm,
 )
 from .models import Seller, ScheduledTask, IssueStatus, Issue
-from support.management.commands.run_scheduled_tasks import run_address_change
+from support.management.commands.run_scheduled_tasks import run_address_change, run_start_of_total_pause
 from core.utils import calc_price_from_products, process_products
 from core.forms import ContactAdminForm
 from util.dates import add_business_days
@@ -1208,106 +1208,108 @@ def new_issue(request, contact_id):
 
 
 @login_required
-def new_scheduled_task(request, contact_id, subcategory):
+def new_scheduled_task_total_pause(request, contact_id):
     contact = get_object_or_404(Contact, pk=contact_id)
-    if subcategory == "total_pause":
-        if request.POST:
-            form = NewPauseScheduledTaskForm(request.POST)
-            if form.is_valid():
-                date1 = form.cleaned_data.get("date_1")
-                date2 = form.cleaned_data.get("date_2")
-                subscription = form.cleaned_data.get("subscription")
-                start_task = ScheduledTask.objects.create(
-                    contact=contact,
-                    subscription=subscription,
-                    execution_date=date1,
-                    category="PD",  # Deactivation
-                )
-                ScheduledTask.objects.create(
-                    contact=contact,
-                    subscription=subscription,
-                    execution_date=date2,
-                    category="PA",  # Activation
-                    ends=start_task,
-                )
-                Activity.objects.create(
-                    datetime=datetime.now(),
-                    contact=contact,
-                    notes=_("Scheduled task for pause"),
-                    activity_type=form.cleaned_data["activity_type"],
-                    status='C',  # completed
-                    direction='I',
-                )
-                return HttpResponseRedirect(reverse("contact_detail", args=[contact.id]))
-        else:
-            form = NewPauseScheduledTaskForm(initial={'activity_type': 'C'})
-        form.fields["subscription"].queryset = contact.subscriptions.filter(active=True)
-        return render(
-            request,
-            "new_scheduled_task_issue.html",
-            {"contact": contact, "form": form, "subcategory": subcategory},
-        )
-
-    elif subcategory == "address_change":
-        if request.POST:
-            form = NewAddressChangeScheduledTaskForm(request.POST)
-            if form.is_valid():
-                if form.cleaned_data.get("new_address"):
-                    address = Address.objects.create(
-                        contact=contact,
-                        address_1=form.cleaned_data.get("new_address_1"),
-                        address_2=form.cleaned_data.get("new_address_2"),
-                        city=form.cleaned_data.get("new_address_city"),
-                        state=form.cleaned_data.get("new_address_state"),
-                        notes=form.cleaned_data.get("new_address_notes"),
-                    )
-                else:
-                    address = form.cleaned_data.get("contact_address")
-                date1 = form.cleaned_data.get("date_1")
-                scheduled_task = ScheduledTask.objects.create(
-                    contact=contact,
-                    execution_date=date1,
-                    category="AC",
-                    address=address,
-                    special_instructions=form.cleaned_data.get("new_special_instructions"),
-                    label_message=form.cleaned_data.get("new_label_message"),
-                )
-                Activity.objects.create(
-                    datetime=datetime.now(),
-                    contact=contact,
-                    notes=_("Scheduled task for address change"),
-                    activity_type=form.cleaned_data["activity_type"],
-                    status='C',  # completed
-                    direction='I',
-                )
-                for key, value in request.POST.items():
-                    if key.startswith("sp"):
-                        subscription_product_id = key[2:]
-                        subscription_product = SubscriptionProduct.objects.get(
-                            pk=subscription_product_id
-                        )
-                        scheduled_task.subscription_products.add(subscription_product)
-                if request.POST.get("apply_now", None):
-                    run_address_change(scheduled_task)
-                    messages.success(request, _("Address change has been executed."))
-                return HttpResponseRedirect(reverse("contact_detail", args=[contact.id]))
-        else:
-            form = NewAddressChangeScheduledTaskForm(
-                initial={
-                    "new_address_type": "physical",
-                    "activity_type": 'C'}
+    if request.POST:
+        form = NewPauseScheduledTaskForm(request.POST)
+        if form.is_valid():
+            date1 = form.cleaned_data.get("date_1")
+            date2 = form.cleaned_data.get("date_2")
+            subscription = form.cleaned_data.get("subscription")
+            start_task = ScheduledTask.objects.create(
+                contact=contact,
+                subscription=subscription,
+                execution_date=date1,
+                category="PD",  # Deactivation
             )
-        form.fields["contact_address"].queryset = contact.addresses.all()
-        return render(
-            request,
-            "new_scheduled_task_issue.html",
-            {
-                "contact": contact,
-                "form": form,
-                "subscriptions": contact.subscriptions.filter(active=True),
-                "subcategory": subcategory,
-            },
+            ScheduledTask.objects.create(
+                contact=contact,
+                subscription=subscription,
+                execution_date=date2,
+                category="PA",  # Activation
+                ends=start_task,
+            )
+            Activity.objects.create(
+                datetime=datetime.now(),
+                contact=contact,
+                notes=_("Scheduled task for pause"),
+                activity_type=form.cleaned_data["activity_type"],
+                status='C',  # completed
+                direction='I',
+            )
+            if request.POST.get("apply_now", None):
+                run_start_of_total_pause(start_task)
+                messages.success(request, _("Total pause has been executed."))
+            return HttpResponseRedirect(reverse("contact_detail", args=[contact.id]))
+    else:
+        form = NewPauseScheduledTaskForm(initial={'activity_type': 'C'})
+    form.fields["subscription"].queryset = contact.subscriptions.filter(active=True)
+    return render(
+        request, "new_scheduled_task_total_pause.html", {"contact": contact, "form": form},
+    )
+
+
+@login_required
+def new_scheduled_task_address_change(request, contact_id):
+    contact = get_object_or_404(Contact, pk=contact_id)
+    if request.POST:
+        form = NewAddressChangeScheduledTaskForm(request.POST)
+        if form.is_valid():
+            if form.cleaned_data.get("new_address"):
+                address = Address.objects.create(
+                    contact=contact,
+                    address_1=form.cleaned_data.get("new_address_1"),
+                    address_2=form.cleaned_data.get("new_address_2"),
+                    city=form.cleaned_data.get("new_address_city"),
+                    state=form.cleaned_data.get("new_address_state"),
+                    notes=form.cleaned_data.get("new_address_notes"),
+                )
+            else:
+                address = form.cleaned_data.get("contact_address")
+            date1 = form.cleaned_data.get("date_1")
+            scheduled_task = ScheduledTask.objects.create(
+                contact=contact,
+                execution_date=date1,
+                category="AC",
+                address=address,
+                special_instructions=form.cleaned_data.get("new_special_instructions"),
+                label_message=form.cleaned_data.get("new_label_message"),
+            )
+            Activity.objects.create(
+                datetime=datetime.now(),
+                contact=contact,
+                notes=_("Scheduled task for address change"),
+                activity_type=form.cleaned_data["activity_type"],
+                status='C',  # completed
+                direction='I',
+            )
+            for key, value in request.POST.items():
+                if key.startswith("sp"):
+                    subscription_product_id = key[2:]
+                    subscription_product = SubscriptionProduct.objects.get(
+                        pk=subscription_product_id
+                    )
+                    scheduled_task.subscription_products.add(subscription_product)
+            if request.POST.get("apply_now", None):
+                run_address_change(scheduled_task)
+                messages.success(request, _("Address change has been executed."))
+            return HttpResponseRedirect(reverse("contact_detail", args=[contact.id]))
+    else:
+        form = NewAddressChangeScheduledTaskForm(
+            initial={
+                "new_address_type": "physical",
+                "activity_type": 'C'}
         )
+    form.fields["contact_address"].queryset = contact.addresses.all()
+    return render(
+        request,
+        "new_scheduled_task_address_change.html",
+        {
+            "contact": contact,
+            "form": form,
+            "subscriptions": contact.subscriptions.filter(active=True),
+        },
+    )
 
 
 @staff_member_required
@@ -1348,7 +1350,6 @@ def new_scheduled_task_partial_pause(request, contact_id):
             return HttpResponseRedirect(reverse("contact_detail", args=[contact.id]))
     else:
         form = PartialPauseTaskForm(initial={'activity_type': 'C'})
-    form.fields["subscription"].queryset = contact.subscriptions.filter(active=True)
     return render(
         request,
         "new_scheduled_task_partial_pause.html",

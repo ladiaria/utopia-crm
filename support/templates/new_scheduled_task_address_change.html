@@ -2,7 +2,7 @@
 {% load static i18n %}
 
 {% block title %}
-{% trans "New scheduled task" %}
+{% trans "New scheduled task" %} - {% trans "Address change" %}
 {% endblock %}
 
 {% block extra_js %}
@@ -16,7 +16,6 @@ $(function(){
     $('#id_new_address').click(function(){
       $('.newaddress-group').toggleClass('d-none');
     });
-    {% if subcategory == 'address_change' %}
     function activateSend() {
       if ($(".sp-checkbox:checked").length == 0) {
         $("#send_form").attr("disabled", "disabled");
@@ -29,14 +28,13 @@ $(function(){
     $("input:checkbox, select").change(function(){
       activateSend();
     });
-    {% endif %}
   });
 </script>
 {% endblock %}
 
 {% block no_heading %}
 <h1>{% trans 'Support' %}</h1>
-<p>{% if subcategory == 'address_change' %}{% trans 'Change address' %}{% elif subcategory == "partial_pause"%}{% trans "Partial pause" %}{% else %}{% trans 'Pause subscription' %}{% endif %}</p>
+<p>{% trans "Address change" %}</p>
 {% endblock %}
 
 {% block content %}
@@ -46,14 +44,13 @@ $(function(){
       <div class="card-header p-2">
         <ul class="nav nav-pills">
           <li class="new-item"><a class="nav-link" href="{% url 'new_issue' contact.id %}">{% trans 'Regular issues' %}</a></li>
-          <li class="new-item"><a class="nav-link {% if subcategory == 'address_change' %}active{% endif %}" href="{% url 'new_scheduled_task' contact.id 'address_change'  %}">{% trans 'Change address' %}</a></li>
-          <li class="new-item"><a class="nav-link {% if subcategory == 'total_pause' %}active{% endif %}" href="{% url 'new_scheduled_task' contact.id 'total_pause'  %}">{% trans 'Pause subscription' %}</a></li>
-          <li class="new-item"><a class="nav-link {% if subcategory == 'partial_pause' %}active{% endif %}" href="{% url 'new_scheduled_task_partial_pause' contact.id  %}">{% trans 'Partial pause' %}</a></li>
+          <li class="new-item"><a class="nav-link active" href="{% url 'new_scheduled_task_address_change' contact.id %}">{% trans 'Change address' %}</a></li>
+          <li class="new-item"><a class="nav-link" href="{% url 'new_scheduled_task_total_pause' contact.id %}">{% trans 'Pause subscription' %}</a></li>
+          <li class="new-item"><a class="nav-link" href="{% url 'new_scheduled_task_partial_pause' contact.id  %}">{% trans 'Partial pause' %}</a></li>
         </ul>
       </div>
       <div class="card-body">
-        <h3>{% trans "New scheduled task issue (event)" %}</h3>
-        <h3>{% trans 'Contact' %}: {{contact.name}}</h3>
+        <h3>{% trans 'Address change' %}: {{contact.name}}</h3>
         <form method="post">
           {% if form.errors %}
           {% for field in form %}
@@ -69,18 +66,7 @@ $(function(){
           </div>
           {% endfor %}
           {% endif %}
-          {%csrf_token%}
-          {% if form.subscription %}
-          <div class="row">
-            <div class="col-md-12 col-s-12">
-              <div class="form-group">
-                <label for="id_subscription">{{form.subscription.label}}</label>
-                {{form.subscription}}
-                <span class="error invalid-feedback">{{form.subscription.errors}}</span>
-              </div>
-            </div>
-          </div>
-          {% endif %}
+          {% csrf_token %}
           <div class="row">
             <div class="col-md-6 col-s-12">
               <div class="form-group">
@@ -96,36 +82,17 @@ $(function(){
                 </div>
               </div>
             </div>
-            <div class="col-md-6 col-s-12">
-              {% if form.date_2 %}
-              <div class="form-group">
-                <label for="id_date_2">{{form.date_2.label}}</label>
-                <div class="input-group">
-                  <div class="input-group-prepend">
-                    <span class="input-group-text">
-                      <i class="far fa-calendar-alt"></i>
-                    </span>
-                  </div>
-                  {{form.date_2}}
-                  <span class="error invalid-feedback">{{form.date_2.errors}}</span>
-                </div>
-              </div>
-              {% endif %}
-            </div>
           </div>
           <div class="form-group">
             <label for="id_activity_type">{{form.activity_type.label}}</label>
             {{form.activity_type}}
             <span class="error invalid-feedback">{{form.activity_type.errors}}</span>
           </div>
-          {% if form.contact_address %}
           <div class="form-group">
             <label for="id_contact_address">{{form.contact_address.label}}</label>
             {{form.contact_address}}
             <span class="error invalid-feedback">{{form.contact_address.errors}}</span>
           </div>
-          {% endif %}
-          {% if form.new_address %}
           <div class="form-group">
             <div class="form-check">
               {{form.new_address}}
@@ -184,8 +151,6 @@ $(function(){
               <span class="error invalid-feedback">{{form.new_address_type.errors}}</span>
             </div>
           </div>
-          {% endif %}
-
 
           {% if subscriptions %}
           <div class="form-group">
