@@ -5,7 +5,8 @@
     <li><a href="/invoicing/download_invoice/{{ object_id }}/" class="historylink">{% trans "Download invoice" %}</a></li>
     <li>
     {% if not original.canceled %}
-        <a href="/invoicing/cancel_invoice/{{ object_id }}/" class="historylink" onclick="return confirm('Confirm cancellation of invoice');">Cancel</a></li>
+    <a href="{% url 'cancel_invoice' object_id %}" class="historylink" onclick="return confirm('Confirm cancellation of invoice');">{% trans 'Cancel' %}</a></li>
+    {% if original.creditnote_set.exists %}<li><a href="{% url 'force_cancel_invoice' object_id %}" class="historylink" onclick="return confirm('Confirm cancellation of invoice');">{% trans "Force cancel" %}</a></li>{% endif %}
     {% else %}
         <a href="/invoicing/print_cnote/{{ object_id }}" class="historylink">{% trans "Print credit note" %}</a>
     {% endif %}
