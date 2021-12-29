@@ -7,6 +7,7 @@ from dateutil.relativedelta import relativedelta
 from django.urls import reverse
 from django.conf import settings
 from django.contrib import messages
+from django.contrib.auth.decorators import permission_required
 from django.contrib.admin.views.decorators import staff_member_required
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Q, Sum
@@ -385,26 +386,27 @@ def billing_invoices(request, billing_id):
     })
 
 
-@staff_member_required
+@permission_required(('invoicing.change_invoice', 'invoicing.change_creditnote'), raise_exception=True)
 def cancel_invoice(request, invoice_id):
     """
     Marks the invoice as canceled with today's date and creaates a credit note.
     """
     i = get_object_or_404(Invoice, pk=invoice_id)
     error = _('The invoice is already canceled') if i.canceled else False
-    n, notes = None, []
+    notes = []
     if not error:
         # search for a matching credit note already created
         notes = CreditNote.objects.filter(invoice=i)
         if notes:
-            error = _('The following credit notes already exist for this invoice')
+            messages.error(request, _("This invoice already has credit notes."))
         else:
-            n = CreditNote.objects.create(invoice=i)
+            CreditNote.objects.create(invoice=i)
             i.canceled, i.cancelation_date = True, date.today()
             i.save()
-    return render(
-        request, 'cancel_invoice.html', {'invoice_id': invoice_id, 'credit_note': n, 'error': error, 'notes': notes}
-    )
+            messages.success(request, _("This invoice was successfully canceled"))
+    else:
+        messages.error(request, _("This invoice could not be canceled: {}".format(error)))
+    return HttpResponseRedirect(reverse("admin:invoicing_invoice_change", args=[invoice_id]))
 
 
 @staff_member_required
@@ -574,3 +576,18 @@ def invoice_filter(request):
             'uncollectible_sum': uncollectible_sum,
             'uncollectible_count': uncollectible_count,
         })
+
+
+@staff_member_required
+def force_cancel_invoice(request, invoice_id):
+    invoice = get_object_or_404(Invoice, pk=invoice_id)
+    if invoice.canceled:
+        messages.error(request, _("Invoice is already canceled"))
+    else:
+        if invoice.creditnote_set.exists() and invoice.canceled is False:
+            invoice.canceled, invoice.cancelation_date = True, date.today()
+            invoice.save()
+            messages.success(request, _("Invoice was canceled successfully"))
+        else:
+            messages.error(request, _("Invoice can't be canceled"))
+    return HttpResponseRedirect(reverse("admin:invoicing_invoice_change", args=[invoice_id]))
