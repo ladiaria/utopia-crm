@@ -62,6 +62,7 @@ from .forms import (
     UnsubscriptionForm,
     ContactCampaignStatusByDateForm,
 )
+from logistics.models import Route
 from .models import Seller, ScheduledTask, IssueStatus, Issue
 from support.management.commands.run_scheduled_tasks import run_address_change, run_start_of_total_pause
 from core.utils import calc_price_from_products, process_products
@@ -245,6 +246,20 @@ def seller_console_list_campaigns(request):
         messages.error(request, _("This seller is set in more than one user. Please contact your manager."))
         return HttpResponseRedirect(reverse("main_menu"))
 
+    special_routes = {}
+    if getattr(settings, 'SPECIAL_ROUTES_FOR_SELLERS_LIST', None):
+        route_ids = settings.SPECIAL_ROUTES_FOR_SELLERS_LIST
+        for route_id in route_ids:
+            route = Route.objects.get(pk=route_id)
+            special_routes[route_id] = (
+                route.name, SubscriptionProduct.objects.filter(
+                    seller=seller, route_id=route_id, subscription__active=True).count()
+            )
+    else:
+        special_routes = None
+    if special_routes and all(value == 0 for value in special_routes.values()):
+        special_routes = None
+
     # We'll make these lists so we can append the sub count to each campaign
     campaigns_with_not_contacted, campaigns_with_activities_to_do = [], []
 
@@ -272,6 +287,7 @@ def seller_console_list_campaigns(request):
             "seller": seller,
             "total_pending_activities": total_pending_activities,
             "upcoming_activity": upcoming_activity,
+            "special_routes": special_routes,
         },
     )
 
@@ -2594,4 +2610,35 @@ def unsubscription_statistics(request):
         "total_requested_unsubscriptions_count": total_requested_unsubscriptions_count,
         "total_not_requested_unsubscriptions_count": total_not_requested_unsubscriptions_count,
         "total_unsubscriptions_count": total_unsubscriptions_count,
+    })
+
+def seller_console_special_routes(request, route_id):
+    if not getattr(settings, 'SPECIAL_ROUTES_FOR_SELLERS_LIST', None):
+        messages.error(request, _("This function is not available."))
+        return HttpResponseRedirect("/")
+    if int(route_id) not in settings.SPECIAL_ROUTES_FOR_SELLERS_LIST:
+        messages.error(request, _("This is not a special route."))
+        return HttpResponseRedirect("/")
+    route = get_object_or_404(Route, pk=route_id)
+
+    user = User.objects.get(username=request.user.username)
+    try:
+        seller = Seller.objects.get(user=user)
+    except Seller.DoesNotExist:
+        messages.error(request, _("User has no seller selected. Please contact your manager."))
+        return HttpResponseRedirect(reverse("main_menu"))
+    except Seller.MultipleObjectsReturned:
+        messages.error(request, _("This seller is set in more than one user. Please contact your manager."))
+        return HttpResponseRedirect(reverse("main_menu"))
+
+    subprods = SubscriptionProduct.objects.filter(seller=seller, route=route, subscription__active=True).order_by(
+        'subscription__contact__id'
+    )
+    if subprods.count() == 0:
+        messages.error(request, _("There are no contacts in that route for this seller."))
+        return HttpResponseRedirect(reverse("seller_console_list_campaigns"))
+    return render(request, "seller_console_special_routes.html", {
+        "seller": seller,
+        "subprods": subprods,
+        "route": route,
     })
