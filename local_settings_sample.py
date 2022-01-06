@@ -126,6 +126,10 @@ REQUIRE_ROUTE_FOR_BILLING = False
 # included in the list.
 EXCLUDE_ROUTES_FROM_BILLING_LIST = [50, 51]
 
+# Set this with a list of routes if you want your sellers to have a list of contacts with products having these
+# particular routes. We usually use the same ones than we use at EXCLUDE_ROUTES_FROM_BILLING_LIST.
+SPECIAL_ROUTES_FOR_SELLERS_LIST = [50, 51]
+
 # Use these to set your own answers to issues. Each answer must be a tuple with two characters on the first element,
 # and a string on the second element.
 ISSUE_ANSWERS = (
