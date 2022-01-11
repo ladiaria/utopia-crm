@@ -22,6 +22,7 @@
 {% url 'invoice_filter' as invoice_filter %}
 {% url "assign_routes" as assign_routes %}
 {% url "order_route_default" as order_route_default %}
+{% url "print_unordered_subscriptions" as print_unordered_subscriptions %}
 {% url "change_route_default" as change_route_default %}
 {% url "list_routes" as list_routes %}
 {% url "list_routes_detailed" as list_routes_detailed %}
@@ -104,6 +105,7 @@
   <ul class="nav nav-treeview">
     <li class="nav-item"><a href='{{assign_routes}}' class="nav-link {% ifequal request.path assign_routes %}active{% endifequal %}">{% trans 'Assign subscriptions to routes' %}</a></li>
     <li class="nav-item"><a href='{{order_route_default}}' class="nav-link {% ifequal request.path order_route_default %}active{% endifequal %}">{% trans 'Order subscriptions in route' %}</a></li>
+    <li class="nav-item"><a href='{{print_unordered_subscriptions}}' class="nav-link {% ifequal request.path print_unordered_subscriptions %}active{% endifequal %}">{% trans 'Print unordered subscriptions' %}</a></li>
     <li class="nav-item"><a href='{{change_route_default}}' class="nav-link {% ifequal request.path change_route_default %}active{% endifequal %}">{% blocktrans %}Change route of subscriptions<br/> on routes{% endblocktrans %}</a></li>
     <li class="nav-item"><a href='{{print_labels_page_roll}}' class="nav-link {% ifequal request.path print_labels_page_roll %}active{% endifequal %}">{% trans 'Print all labels for tomorrow' %}</a></li>
     <li class="nav-item"><a href='{{print_labels_from_csv}}' class="nav-link {% ifequal request.path print_labels_from_csv %}active{% endifequal %}">{% trans 'Print labels from CSV file' %}</a></li>

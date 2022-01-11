@@ -2,6 +2,7 @@
 
 import csv
 from datetime import date, timedelta, datetime
+from collections import defaultdict, OrderedDict
 from dateutil.relativedelta import relativedelta
 
 from django.shortcuts import render, reverse, get_object_or_404
@@ -128,6 +129,50 @@ def order_route(request, route_id=1):
             'product_list': product_list,
             'product_id': product_id,
             'product': product,
+    })
+
+
+@login_required
+def print_unordered_subscriptions(request):
+    product_list = Product.objects.filter(type='S', offerable=True)
+    product_id, product, routes, dict_routes = 'all', None, [], defaultdict(list)
+    if request.POST:
+        subscription_products = SubscriptionProduct.objects.filter(
+            subscription__active=True,
+            product__type='S',
+            product__offerable=True).exclude(
+                product__name__contains='digital').select_related(
+                'subscription__contact', 'address').order_by('order', 'address__address_1')
+        product_id = request.POST.get('product_id',  'all')
+        if product_id != 'all':
+            product = Product.objects.get(pk=product_id)
+            subscription_products = subscription_products.filter(product=product)
+        if request.POST.get('only_unordered', None):
+            subscription_products = subscription_products.filter(order=None)
+        for sp in subscription_products:
+            if sp.route:
+                route_key = sp.route.number
+            else:
+                route_key = -1
+            dict_routes[route_key].append(sp)
+        route_list = dict_routes.keys()
+        route_list = sorted(route_list, reverse=True)
+        for route_number in route_list:
+            routes.append({
+                'number': route_number if route_number != -1 else None,
+                'subscription_products': dict_routes[route_number]
+            })
+
+        return render(
+            request, 'print_unordered_subscriptions_list.html', {
+                'product': product,
+                'routes': routes,
+            }
+        )
+
+    return render(
+        request, 'print_unordered_subscriptions_form.html', {
+            'product_list': product_list,
     })
 
 
