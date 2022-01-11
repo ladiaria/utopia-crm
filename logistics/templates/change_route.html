@@ -24,7 +24,7 @@
 {% block content %}
 <div class="card">
   <div class="card-header">
-    <h1 class="card-title">{% trans 'Change route to subscription products' %} {{route}}</h1>
+    <h1 class="card-title">{% trans 'Change route to subscription products' %} {{route.number}} - {{route.name}} {% if product %} - {% trans "Product" %}: {{product.name}}{% endif %}</h1>
   </div>
   <div class="card-body">
     <div class="card card-outline card-primary">
@@ -39,8 +39,8 @@
         <div class="form-group">
           <select id="product_select" class="form-control">
            <option value="all">{% trans 'All' %}</option>
-          {% for product in product_list %}
-           <option value="{{product.id}}" {% if product_id == product.id|slugify %}selected{% endif %}>{{product.name}}</option>
+          {% for p in product_list %}
+           <option value="{{p.id}}" {% if product.id == p.id %}selected{% endif %}>{{p.name}}</option>
           {% endfor %}
          </select>
         </div>
@@ -53,7 +53,7 @@
         <thead>
           <tr>
               <th>{% trans 'Name' %}</th>
-              <th>{% trans 'Product' %}</th>
+              {% if not product %}<th>{% trans 'Product' %}</th>{% endif %}
               <th>{% trans 'Address' %}</th>
               <th>{% trans 'Complement' %}</th>
               <th>{% trans 'Message' %}</th>
@@ -65,7 +65,7 @@
         {% for sp in subscription_products %}
           <tr class="{% cycle 'row1' 'row2' %}">
               <td><a href="{% url 'contact_detail' sp.subscription.contact.id %}">{{ sp.subscription.contact.name }}</a></td>
-              <td>{{ sp.product.name }}</td>
+              {% if not product %}<td>{{ sp.product.name }}</td>{% endif %}
               <td>{{ sp.address.address_1|default_if_none:'' }}</td>
               <td>{{ sp.address.address_2|default_if_none:'' }}</td>
               <td><input class="form-control" maxlength="40" type="text" name="message-{{ sp.id }}" value="{{ sp.label_message|default_if_none:'' }}" /></td>
