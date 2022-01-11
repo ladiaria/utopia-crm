@@ -1,0 +1,52 @@
+{% extends "adminlte/base.html" %}
+{% load static i18n %}
+
+{% block no_heading %}
+<h1>{% trans 'Logistics' %}</h1>
+{% endblock %}
+
+{% block title %}
+{% trans "Print unordered subscriptions" %}
+{% endblock title %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h3 class="card-title">{% trans "Print unordered subscription products on routes" %}</h3>
+  </div>
+  <div class="card-body">
+    <div class="card card-outline card-primary">
+      <div class="card-header">
+        <h3 class="card-title">{% trans 'Filter by product' %}</h3>
+        <div class="card-tools">
+          <button type="button" class="btn btn-tool" data-card-widget="collapse"><i class="fas fa-minus"></i>
+          </button>
+        </div>
+      </div>
+      <div class="card-body">
+        <form method="post">
+          {% csrf_token %}
+          <div class="form-group">
+            <div class="row">
+              <div class="col">
+                <select name="product_id" id="product_select" class="form-control">
+                  <option value="all">{% trans 'All' %}</option>
+                  {% for p in product_list %}
+                  <option value="{{p.id}}" {% if product.id == p.id %}selected{% endif %}>{{p.name}}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="col">
+                <input checked type="checkbox" name='only_unordered' value="{% trans 'Only unordered' %}"><label for="only_unordered"> {% trans "Only unordered subscription products" %}</label>
+              </div>
+            </div>
+
+          </div>
+          <input class="form-control" type="submit" name="submit" value="{% trans 'Go' %}">
+        </form>
+      </div>
+    </div>
+  </div>
+
+
+  {% endblock %}
