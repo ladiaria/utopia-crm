@@ -32,7 +32,7 @@ def assign_routes(request):
     Assigns routes to contacts that have no route. The assignation is per SubscriptionProduct.
     """
     product_list = Product.objects.filter(type='S', offerable=True)
-    product_id = 'all'
+    product_id, product = 'all', None
     if request.POST:
         for name, value in request.POST.items():
             if name.startswith('sp') and value:
@@ -60,14 +60,16 @@ def assign_routes(request):
     if request.GET:
         product_id = request.GET.get('product_id', 'all')
         if product_id != 'all':
-            subscription_products = subscription_products.filter(product_id=product_id)
+            product = Product.objects.get(pk=product_id)
+            subscription_products = subscription_products.filter(product=product)
         exclude = request.GET.get('exclude', None)
         if exclude:
             subscription_products = subscription_products.exclude(product_id=exclude)
     return render(
         request, 'assign_routes.html', {
             'subscription_products': subscription_products,
-            'product_list': product_list
+            'product_list': product_list,
+            'product': product,
         })
 
 
@@ -79,7 +81,7 @@ def order_route(request, route_id=1):
     TODO: Do something to quickly change route from the template itself.
     """
     product_list = Product.objects.filter(type='S', offerable=True)
-    product_id = 'all'
+    product_id, product = 'all', None
     route_object = get_object_or_404(Route, pk=route_id)
     if request.POST:
         for name, value in request.POST.items():
@@ -103,16 +105,30 @@ def order_route(request, route_id=1):
     if request.GET:
         product_id = request.GET.get('product_id', 'all')
         if product_id != 'all':
-            subscription_products = subscription_products.filter(product_id=product_id)
+            product = Product.objects.get(pk=product_id)
+            subscription_products = subscription_products.filter(product=product)
         exclude = request.GET.get('exclude', None)
         if exclude:
             subscription_products = subscription_products.exclude(product_id=exclude)
+        if request.GET.get('only_empty', None):
+            subscription_products = subscription_products.filter(order=None)
+        if request.GET.get('print', None):
+            return render(
+                request, 'order_route_print.html', {
+                    'subscription_products': subscription_products,
+                    'route': route_object,
+                    'product_list': product_list,
+                    'product_id': product_id,
+                    'product': product,
+                })
     return render(
         request, 'order_route.html', {
             'subscription_products': subscription_products,
-            'route': route_id,
+            'route': route_object,
             'product_list': product_list,
-            'product_id': product_id})
+            'product_id': product_id,
+            'product': product,
+    })
 
 
 @login_required
@@ -123,7 +139,7 @@ def change_route(request, route_id=1):
     TODO: Do something to quickly change route form the template itself.
     """
     product_list = Product.objects.filter(type='S', offerable=True)
-    product_id = 'all'
+    product_id, product = 'all', None
     route_object = get_object_or_404(Route, pk=route_id)
     if request.POST:
         for name, value in request.POST.items():
@@ -152,16 +168,18 @@ def change_route(request, route_id=1):
     if request.GET:
         product_id = request.GET.get('product_id', 'all')
         if product_id != 'all':
-            subscription_products = subscription_products.filter(product_id=product_id)
+            product = Product.objects.get(pk=product_id)
+            subscription_products = subscription_products.filter(product=product)
         exclude = request.GET.get('exclude', None)
         if exclude:
             subscription_products = subscription_products.exclude(product_id=exclude)
     return render(
         request, 'change_route.html', {
             'subscription_products': subscription_products,
-            'route': route_id,
+            'route': route_object,
             'product_list': product_list,
-            'product_id': product_id
+            'product_id': product_id,
+            'product': product,
         })
 
 

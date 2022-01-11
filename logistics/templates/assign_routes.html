@@ -3,13 +3,13 @@
 
 {% block extra_js %}
 <script type="text/javascript">
-  $(function(){
-    $("#product_select").change(function() {
-      var optionValue = $(this).val();
-      var url = window.location.href.split("?")[0];
-      window.location = url + "?product_id=" + optionValue;
-    });
+$(function(){
+  $("#product_select").change(function() {
+    var optionValue = $(this).val();
+    var url = window.location.href.split("?")[0];
+    window.location = url + "?product_id=" + optionValue;
   });
+});
 </script>
 {% endblock %}
 
@@ -18,13 +18,13 @@
 {% endblock %}
 
 {% block title %}
-    {% trans "Assign routes" %}
+{% trans "Assign routes" %}
 {% endblock title %}
 
 {% block content %}
 <div class="card">
   <div class="card-header">
-    <h1 class="card-title">{% trans 'Assign route to subscription products' %}</h1>
+    <h1 class="card-title">{% trans 'Assign route to subscription products' %} {% if product %} - {% trans "Product" %}: {{product.name}}{% endif %}</h1>
   </div>
   <div class="card-body">
     <div class="card card-outline card-primary">
@@ -38,11 +38,11 @@
       <div class="card-body">
         <div class="form-group">
           <select id="product_select" class="form-control">
-           <option value="all">{% trans 'All' %}</option>
-          {% for product in product_list %}
-           <option value="{{product.id}}" {% if product_id == product.id|slugify %}selected{% endif %}>{{product.name}}</option>
-          {% endfor %}
-         </select>
+            <option value="all">{% trans 'All' %}</option>
+            {% for p in product_list %}
+            <option value="{{p.id}}" {% if product.id == p.id %}selected{% endif %}>{{p.name}}</option>
+            {% endfor %}
+          </select>
         </div>
       </div>
     </div>
@@ -53,31 +53,31 @@
         <table class="table table-hover table-head-fixed">
           <thead>
             <tr>
-                <th>{% trans 'Name' %}</th>
-                <th>{% trans 'Producto' %}</th>
-                <th>{% trans 'Address' %}</th>
-                <th>{% trans 'Complement' %}</th>
-                <th>{% trans 'City' %}</th>
-                <th>{% trans 'Department' %}</th>
-                <th>{% trans 'Message' %}</th>
-                <th>{% trans 'Instructions' %}</th>
-                <th>{% trans 'Route' %}</th>
+              <th>{% trans 'Name' %}</th>
+              {% if not product %}<th>{% trans 'Product' %}</th>{% endif %}
+              <th>{% trans 'Address' %}</th>
+              <th>{% trans 'Complement' %}</th>
+              <th>{% trans 'City' %}</th>
+              <th>{% trans 'Department' %}</th>
+              <th>{% trans 'Message' %}</th>
+              <th>{% trans 'Instructions' %}</th>
+              <th>{% trans 'Route' %}</th>
             </tr>
           </thead>
           <tbody>
-          {% for sp in subscription_products %}
+            {% for sp in subscription_products %}
             <tr class="{% cycle 'row1' 'row2' %}">
               <td><a href="{% url 'contact_detail' sp.subscription.contact.id %}">{{ sp.subscription.contact.name }}</a></td>
-                <td>{{ sp.product.name }}</td>
-                <td style="max-width:130px">{{ sp.address.address_1|default_if_none:'' }}</td>
-                <td>{{ sp.address.address_2|default_if_none:'' }}</td>
-                <td>{{ sp.address.city }}</td>
-                <td>{{ sp.address.state }}</td>
-                <td><input class="form-control" maxlength="40" type="text" name="message-{{ sp.id }}" value="{{ sp.label_message|default_if_none:'' }}" /></td>
-                <td><input class="form-control" type="text" name="instructions-{{ sp.id }}" value="{{ sp.special_instructions|default_if_none:'' }}" /></td>
-                <td><input type="number" class="form-control" name="sp-{{ sp.id }}" value="{{sp.route|default_if_none:''}}" tabindex="{{ forloop.counter }}" style="min-width:65px"/></td>
+              {% if not product %}<td>{{ sp.product.name }}</td>{% endif %}
+              <td style="max-width:130px">{{ sp.address.address_1|default_if_none:'' }}</td>
+              <td>{{ sp.address.address_2|default_if_none:'' }}</td>
+              <td>{{ sp.address.city }}</td>
+              <td>{{ sp.address.state }}</td>
+              <td><input class="form-control" maxlength="40" type="text" name="message-{{ sp.id }}" value="{{ sp.label_message|default_if_none:'' }}" /></td>
+              <td><input class="form-control" type="text" name="instructions-{{ sp.id }}" value="{{ sp.special_instructions|default_if_none:'' }}" /></td>
+              <td><input type="number" class="form-control" name="sp-{{ sp.id }}" value="{{sp.route|default_if_none:''}}" tabindex="{{ forloop.counter }}" style="min-width:65px"/></td>
             </tr>
-          {% endfor %}
+            {% endfor %}
           </tbody>
         </table>
       </div>
