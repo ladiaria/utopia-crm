@@ -108,7 +108,7 @@ $(function(){
   </div>
 </div>
 
-<div id="dialog-confirm" title='{% trans "Confirm action" %}'>
+<div style="display: none" id="dialog-confirm" title='{% trans "Confirm action" %}'>
   <p><span class="ui-icon ui-icon-alert" style="float:left; margin:12px 12px 20px 0;"></span>{% blocktrans with route as route_number %}Convert all orders of route {{ route.number }} to tens?{% endblocktrans %}</p>
 </div>
 {% endblock %}
