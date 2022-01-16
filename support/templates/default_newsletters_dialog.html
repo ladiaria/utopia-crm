@@ -1,0 +1,40 @@
+{% extends "adminlte/base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Default newsletters option" %}{% endblock title %}
+
+{% block extra_head %}
+  <style>
+    div.wrapper {z-index: 1;}
+    .ui-dialog-titlebar-close { display: none; }
+  </style>
+{% endblock %}
+
+{% block body %}
+  {{ block.super }}
+  <div style="display: none" id="dialog-confirm" title='{% trans "Default newsletters" %}'>
+    <p><span class="ui-icon ui-icon-alert" style="float:left; margin:12px 12px 20px 0;"></span>
+      {% blocktrans %}Add default newsletters?{% endblocktrans %}
+    </p>
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="next_page" value="{{ next_page }}"/>
+      <button type="submit" name="answer" value="no">{% trans "no" %}</button>
+      <button type="submit" name="answer" value="yes">{% trans "yes" %}</button>
+    </form>
+  </div>
+{% endblock %}
+
+{% block extra_js %}
+  <script type="text/javascript">
+    $(function(){
+      $( "#dialog-confirm" ).dialog({
+        resizable: false,
+        height: "auto",
+        width: 400,
+        modal: true,
+        closeOnEscape: false
+      });
+    });
+  </script>
+{% endblock %}

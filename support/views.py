@@ -974,7 +974,7 @@ def new_subscription(request, contact_id):
 @login_required
 def default_newsletters_dialog(request, contact_id):
     if request.method == 'POST':
-        if request.POST.get('answer', False):
+        if request.POST.get('answer') == u'yes':
             # TODO: assign default NLs
             pass
         return HttpResponseRedirect(request.POST.get('next_page'))
