@@ -946,11 +946,11 @@ def new_subscription(request, contact_id):
             else:
                 redirect_to = reverse("contact_detail", args=[contact.id])
 
-            # TODO: if needed, redirect_to default_newsletters_dialog:
-            # if .... :
-            #     redirect_to = '%s?next_page=%s' % (
-            #         reverse("default_newsletters_dialog", kwargs={'contact_id': contact.id}), redirect_to
-            #     )
+            # if needed, redirect_to default_newsletters_dialog:
+            if contact.offer_default_newsletters_condition():
+                redirect_to = '%s?next_page=%s' % (
+                    reverse("default_newsletters_dialog", kwargs={'contact_id': contact.id}), redirect_to
+                )
 
             return HttpResponseRedirect(redirect_to)
 
@@ -975,8 +975,10 @@ def new_subscription(request, contact_id):
 def default_newsletters_dialog(request, contact_id):
     if request.method == 'POST':
         if request.POST.get('answer') == u'yes':
-            # TODO: assign default NLs
-            pass
+            try:
+                Contact.objects.get(id=contact_id).add_default_newsletters()
+            except Contact.DoesNotExist:
+                pass
         return HttpResponseRedirect(request.POST.get('next_page'))
     else:
         try:
@@ -2642,6 +2644,7 @@ def unsubscription_statistics(request):
         "total_not_requested_unsubscriptions_count": total_not_requested_unsubscriptions_count,
         "total_unsubscriptions_count": total_unsubscriptions_count,
     })
+
 
 def seller_console_special_routes(request, route_id):
     if not getattr(settings, 'SPECIAL_ROUTES_FOR_SELLERS_LIST', None):

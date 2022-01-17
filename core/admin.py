@@ -1,10 +1,11 @@
 # coding=utf-8
 from __future__ import unicode_literals
 
+from django.http import HttpResponseRedirect
 from django.contrib.admin import SimpleListFilter
 from django.utils.translation import ugettext_lazy as _
 from django.contrib import admin
-from django.urls import resolve
+from django.urls import resolve, reverse
 
 from taggit.models import TaggedItem
 from tabbed_admin import TabbedModelAdmin
@@ -196,6 +197,30 @@ class SubscriptionAdmin(admin.ModelAdmin):
     list_filter = ('campaign', 'active', 'payment_type')
     readonly_fields = ('contact', 'edit_products_field', 'campaign', 'updated_from', 'unsubscription_products')
 
+    def response_add(self, request, obj, post_url_continue=None):
+        if obj.contact.offer_default_newsletters_condition():
+            return HttpResponseRedirect(
+                '%s?next_page=%s' % (
+                    reverse("default_newsletters_dialog", kwargs={'contact_id': obj.contact_id}), post_url_continue
+                )
+            )
+        return super(SubscriptionAdmin, self).response_add(request, obj, post_url_continue)
+
+    def response_change(self, request, obj):
+        if obj.contact.offer_default_newsletters_condition():
+            if request.POST.get('_addanother'):
+                next_url = reverse('admin:core_subscription_add')
+            elif request.POST.get('_continue'):
+                next_url = reverse('admin:core_subscription_change', args=(obj.id, ))
+            else:
+                next_url = reverse('admin:core_subscription_changelist'),
+            return HttpResponseRedirect(
+                '%s?next_page=%s' % (
+                    reverse("default_newsletters_dialog", kwargs={'contact_id': obj.contact_id}), next_url
+                )
+            )
+        return super(SubscriptionAdmin, self).response_change(request, obj)
+
     class Media:
         pass
 
@@ -261,40 +286,34 @@ class ContactAdmin(TabbedModelAdmin):
     def tag_list(self, obj):
         return u", ".join(o.name for o in obj.tags.all())
 
+    def response_add(self, request, obj, post_url_continue=None):
+        if obj.offer_default_newsletters_condition():
+            return HttpResponseRedirect(
+                '%s?next_page=%s' % (
+                    reverse("default_newsletters_dialog", kwargs={'contact_id': obj.id}), post_url_continue
+                )
+            )
+        return super(ContactAdmin, self).response_add(request, obj, post_url_continue)
 
-class ContactAdmin2(admin.ModelAdmin):
-    form = ContactAdminForm
-    fieldsets = (
-        (None, {'fields': (('name', 'referring', 'tags'), )}),
-        (None, {'fields': (('subtype', 'id_document'), )}),
-        (None, {'fields': (
-            ('phone', 'mobile'),
-            ('gender', 'education', 'birthdate', 'private_birthdate'),
-            ('ocupation'),
-            ('protected',), 'protection_reason', 'notes')}))
-    inlines = (
-        SubscriptionInline,
-        AddressInline,
-        ProductParticipationInline,
-        SupporterInline,
-        SubscriptionNewsletterInline)
-    raw_id_fields = ('referring', )
-    list_display = ('id', 'name', 'subtype', 'tag_list')
-    list_filter = ('subtype', TaggitListFilter)
-    ordering = ('id',)
-
-    def get_queryset(self, request):
-        return super(
-            ContactAdmin, self).get_queryset(request).prefetch_related('tags')
-
-    def tag_list(self, obj):
-        return u", ".join(o.name for o in obj.tags.all())
+    def response_change(self, request, obj):
+        if obj.offer_default_newsletters_condition():
+            if request.POST.get('_addanother'):
+                next_url = reverse('admin:core_contact_add')
+            elif request.POST.get('_continue'):
+                next_url = reverse('admin:core_contact_change', args=(obj.id, ))
+            else:
+                next_url = reverse('admin:core_contact_changelist'),
+            return HttpResponseRedirect(
+                '%s?next_page=%s' % (reverse("default_newsletters_dialog", kwargs={'contact_id': obj.id}), next_url)
+            )
+        return super(ContactAdmin, self).response_change(request, obj)
 
 
 class ProductAdmin(admin.ModelAdmin):
     list_display = ('id', 'name', 'price', 'active', 'type', 'weekday', 'slug', 'offerable', 'billing_priority')
     list_editable = ['name', 'type', 'price', 'weekday', 'billing_priority', 'offerable']
     readonly_fields = ('slug',)
+    # TODO: explain or remove next commented line
     # prepopulated_fields = {'slug': ('name',)}
 
 
