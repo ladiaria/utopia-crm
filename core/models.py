@@ -542,7 +542,14 @@ class Contact(models.Model):
         return self.activity_set.count()
 
     def offer_default_newsletters_condition(self):
-        return bool(self.email and not self.get_newsletters() and self.get_active_subscriptions())
+        return all(
+            (
+                getattr(settings, 'CORE_DEFAULT_NEWSLETTERS', {}),
+                self.email,
+                not self.get_newsletters(),
+                self.get_active_subscriptions(),
+            )
+        )
 
     def add_default_newsletters(self):
         computed_slug_set = set()
