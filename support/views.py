@@ -2403,7 +2403,7 @@ def book_additional_product(request, subscription_id):
     else:
         if old_subscription.end_date:
             messages.warning(request, _("WARNING: This subscription already has an end date"))
-        form = UnsubscriptionForm(instance=old_subscription)
+        form = AdditionalProductForm(instance=old_subscription)
     return render(request, "book_additional_product.html", {
         "offerable_products": offerable_products,
         "subscription": old_subscription,
