@@ -959,10 +959,10 @@ class Subscription(models.Model):
         product = self.get_first_product_by_priority()
         if product:
             sp = self.subscriptionproduct_set.filter(product=product).first()
-            if sp.product.type == "digital" and self.contact.email:
+            if sp.address and sp.address.address_1:
+                address = sp.address.addres_1
+            elif sp.product.type == "digital" and self.contact.email:
                 address = self.contact.email
-            elif sp.address:
-                address = sp.address.address_1
             else:
                 address = None
             if address:
