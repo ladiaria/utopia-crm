@@ -2156,7 +2156,8 @@ def book_unsubscription(request, subscription_id):
             subscription.save()
             return HttpResponseRedirect(reverse("contact_detail", args=[subscription.contact.id]))
     else:
-        messages.warning(request, _("WARNING: This subscription already has an end date"))
+        if subscription.end_date:
+            messages.warning(request, _("WARNING: This subscription already has an end date"))
         form = UnsubscriptionForm(instance=subscription)
     return render(request, "book_unsubscription.html", {
         "subscription": subscription,
@@ -2391,6 +2392,7 @@ def book_additional_product(request, subscription_id):
                 u"New product(s) booked for {end_date}",
                 end_date=old_subscription.end_date)
             messages.success(request, success_text)
+            old_subscription.inactivity_reason = 3  # Upgrade
             old_subscription.unsubscription_type = 4  # Upgrade
             old_subscription.unsubscription_date = date.today()
             old_subscription.unsubscription_manager = request.user
