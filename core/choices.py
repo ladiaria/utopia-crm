@@ -156,6 +156,14 @@ PRODUCT_WEEKDAYS = (
     (10, _('Weekends')),
 )
 
+PRODUCT_EDITION_FREQUENCY = (
+    (1, _('Daily')),
+    (2, _('Weekly')),
+    (3, _('Monthly')),
+    (4, _('One-shot')),
+    (5, _('Others')),
+)
+
 PRICERULE_MODE_CHOICES = (
     (1, _('Replace all')),
     (2, _('Replace one')),

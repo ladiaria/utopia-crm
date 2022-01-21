@@ -1,0 +1,104 @@
+{% extends 'adminlte/base.html' %}
+{% load static i18n widget_tweaks %}
+
+{% block title %}{% trans "Book unsubscription" %}{% endblock title %}
+
+{% block extra_js %}
+<script type="text/javascript" src="{% static 'js/datepicker-es.js' %}"></script>
+<script type="text/javascript">
+$( function() {
+  $(".datepicker").datepicker({ dateFormat: 'yy-mm-dd' });
+
+  $("#form").submit(function(event){
+    if ($(".enable-product:checked").length == 0){
+      alert("Selecciona productos para agregar");
+    }else{
+      $("#form").submit();
+    }
+    return false;
+  });
+});
+</script>
+{% endblock %}
+
+{% block no_heading %}
+<h3>
+  {% blocktrans with subscription.contact.name as contact_name %}
+  Book additional product for {{contact_name}}
+  {% endblocktrans %}
+</h3>
+<p>{% trans "Currently only products with a monthly edition frequency can be added" %}</p>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col-9">
+    <div class="card">
+      <div class="card-header p-2">
+        <ul class="nav nav-pills">
+          <li class="new-item"><a class="nav-link" href="{% url 'book_unsubscription' subscription.id  %}">{% trans 'Unsubscription' %}</a></li>
+          <li class="new-item"><a class="nav-link" href="{% url 'partial_unsubscription' subscription.id  %}">{% trans 'Partial unsubscription' %}</a></li>
+          <li class="new-item"><a class="nav-link" href="{% url 'product_change' subscription.id  %}">{% trans 'Product change' %}</a></li>
+          <li class="new-item"><a class="nav-link active" href="{% url 'additional_product' subscription.id  %}">{% trans 'Add product' %}</a></li>
+        </ul>
+      </div>
+      <div class="card-body">
+        <form method="post" id="form">
+          {% csrf_token %}
+          {% if form.errors %}
+            {% for field in form %}
+              {% for error in field.errors %}
+              <div class="alert alert-danger">
+                <strong>{{ error|escape }}</strong>
+              </div>
+              {% endfor %}
+            {% endfor %}
+            {% for error in form.non_field_errors %}
+              <div class="alert alert-danger">
+                <strong>{{ error|escape }}</strong>
+              </div>
+            {% endfor %}
+          {% endif %}
+          <div class="row">
+            <div class="col-6">
+              <div class="form-group">
+                <label>Productos actuales</label>
+                <ul>
+                  {% for subscriptionproduct in subscription.get_subscriptionproducts %}
+                  <li>{{subscriptionproduct.product.name}}</li>
+                  {% endfor %}
+                </ul>
+              </div>
+              <div class="form-group">
+                <label>Agregar estos productos</label>
+                {% for product in offerable_products %}
+                  <div class="form-check">
+                    <input id="activateproduct-{{product.id}}" class="enable-product form-check-input" type="checkbox" name="activateproduct-{{product.id}}">
+                    <label class="form-check-label" for="activateproduct-{{product.id}}">{{product.name}}</label>
+                  </div>
+                {% endfor %}
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="form-group">
+                <label for="id_end_date">{% trans "Start date for new product" %}</label>
+                {{form.end_date}}
+                <span class="error invalid-feedback">{{form.end_date.errors}}</span>
+              </div>
+              <div class="form-group">
+                <label for="id_unsubscription_addendum">{{form.unsubscription_addendum.label}} ({% trans "For old subscription" %})</label>
+                {{form.unsubscription_addendum}}
+                <span class="error invalid-feedback">{{form.unsubscription_addendum.errors}}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group text-right">
+            <input type="submit" id="submit" name="submit" value='{% trans "Send" %}' class="btn bg-gradient-primary">
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
