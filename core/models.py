@@ -987,11 +987,17 @@ class Subscription(models.Model):
         product = self.get_first_product_by_priority()
         if product:
             sp = self.subscriptionproduct_set.filter(product=product).first()
-            if sp.address:
+            if sp.address and sp.address.address_1:
+                address = sp.address.addres_1
+            elif sp.product.type == "digital" and self.contact.email:
+                address = self.contact.email
+            else:
+                address = None
+            if address:
                 result = {
                     "route": sp.route_id,
                     "order": sp.order,
-                    "address": sp.address.address_1 or sp.subscription.contact.email,
+                    "address": address,
                     "state": sp.address.state,
                     "city": sp.address.city,
                     "name": self.get_billing_name(),

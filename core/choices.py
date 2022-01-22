@@ -130,6 +130,7 @@ ACTIVITY_TYPES = (
     ('C', _('Call')),
     ('M', _('E-mail')),
     ('L', _('Link hit')),
+    ('W', _('WhatsApp message or other apps')),
     ('E', _('Event participation')),
     ('I', _('In-place visit')),
 )
