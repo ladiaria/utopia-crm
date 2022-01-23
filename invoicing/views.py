@@ -60,9 +60,10 @@ def contact_invoices(request, contact_id):
 
     debt = contact.get_debt()
 
-    return render(request, 'contact_invoices.html', {
-        'contact': contact, 'invoice_list': invoice_list, 'debt': debt
-    })
+    return render(
+        request,
+        'contact_invoices.html', {'contact': contact, 'invoice_list': invoice_list, 'debt': debt}
+    )
 
 
 def bill_subscription(subscription_id, billing_date=None, dpp=10, check_route=False, debug=False):
@@ -313,14 +314,15 @@ def bill_subscription(subscription_id, billing_date=None, dpp=10, check_route=Fa
                 temporary_discount_list = getattr(settings, 'TEMPORARY_DISCOUNT').items()
                 for discount_slug, months in temporary_discount_list:
                     if (
-                        invoice.has_product(discount_slug) and
-                        invoice.subscription.months_in_invoices_with_product(discount_slug) >= months
+                        invoice.has_product(discount_slug)
+                        and invoice.subscription.months_in_invoices_with_product(discount_slug) >= months
                     ):
                         invoice.subscription.remove_product(Product.objects.get(slug=discount_slug))
 
         except Exception as e:
-            raise Exception("Contact {} Subscription {}: {}".format(
-                subscription.contact.id, subscription.id, e.message))
+            raise Exception(
+                "Contact {} Subscription {}: {}".format(subscription.contact.id, subscription.id, e.message)
+            )
     else:
         # If for whatever reasons there are no invoice items, we did something wrong, we'll have to return nothing.
         return None

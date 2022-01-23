@@ -988,8 +988,11 @@ class Subscription(models.Model):
         if product:
             sp = self.subscriptionproduct_set.filter(product=product).first()
             if sp.address and sp.address.address_1:
-                address = sp.address.addres_1
-            elif sp.product.type == "digital" and self.contact.email:
+                address = sp.address.address_1
+            elif "digital" in sp.product.slug and self.contact.email:
+                # TODO: This slug comparison is very weak, "digital" should be a new Product bool field or a choice in
+                #       a new Product field (category for example).
+                #       Such comparisons also appear in logistics.views (using also the product name).
                 address = self.contact.email
             else:
                 address = None
@@ -1002,9 +1005,12 @@ class Subscription(models.Model):
                     "city": sp.address.city,
                     "name": self.get_billing_name(),
                 }
-        if not result:
-            if getattr(settings, "FORCE_DUMMY_MISSING_BILLING_DATA", False):
-                result = {}
+            elif settings.DEBUG:
+                print('DEBUG: No address found in the billing data for subscription %d.' % self.id)
+        elif settings.DEBUG:
+            print('DEBUG: No product found in the billing data for subscription %d.' % self.id)
+        if not result and getattr(settings, "FORCE_DUMMY_MISSING_BILLING_DATA", False):
+            result = {}
         return result
 
     def get_full_address_by_priority(self):
