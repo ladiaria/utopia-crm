@@ -56,7 +56,7 @@ def assign_routes(request):
 
     subscription_products = SubscriptionProduct.objects.filter(
         subscription__active=True, route__isnull=True, product__type='S', product__offerable=True).exclude(
-            product__name__contains='digital').select_related(
+            product__digital=True).select_related(
             'subscription__contact', 'address').order_by('subscription__contact')
     if request.GET:
         product_id = request.GET.get('product_id', 'all')
@@ -101,7 +101,7 @@ def order_route(request, route_id=1):
 
     subscription_products = SubscriptionProduct.objects.filter(
         route=route_object, subscription__active=True, product__type='S', product__offerable=True).exclude(
-            product__name__contains='digital').select_related(
+            product__digital=True).select_related(
             'subscription__contact', 'address').order_by('order', 'address__address_1')
     if request.GET:
         product_id = request.GET.get('product_id', 'all')
@@ -140,8 +140,7 @@ def print_unordered_subscriptions(request):
         subscription_products = SubscriptionProduct.objects.filter(
             subscription__active=True,
             product__type='S',
-            product__offerable=True).exclude(
-                product__name__contains='digital').select_related(
+            product__offerable=True).exclude(product__digital=True).select_related(
                 'subscription__contact', 'address').order_by('order', 'address__address_1')
         product_id = request.POST.get('product_id',  'all')
         if product_id != 'all':
@@ -208,7 +207,7 @@ def change_route(request, route_id=1):
 
     subscription_products = SubscriptionProduct.objects.filter(
         route=route_object, subscription__active=True, product__type='S', product__offerable=True).exclude(
-            product__name__contains='digital').select_related(
+            product__digital=True).select_related(
             'subscription__contact', 'address').order_by('address__address_1')
     if request.GET:
         product_id = request.GET.get('product_id', 'all')
@@ -652,7 +651,7 @@ def route_details(request, route_list):
     for route in routes:
         subscription_products = SubscriptionProduct.objects.filter(
             route=route, active=True, subscription__active=True, product__weekday=isoweekday).exclude(
-                product__slug__contains='digital').order_by('order', 'address__address_1').select_related(
+                product__digital=True).order_by('order', 'address__address_1').select_related(
                 'subscription')
         if not subscription_products.exists():
             continue
@@ -672,7 +671,7 @@ def route_details(request, route_list):
         #     route=route, subscription__start_date__gte=date.today() - timedelta(2), product__weekday=isoweekday)
         closing_subscriptions = SubscriptionProduct.objects.filter(
             active=True, route=route, subscription__end_date__gte=date.today() - timedelta(3)).exclude(
-            product__slug__contains='digital').distinct('subscription')
+            product__digital=True).distinct('subscription')
         closing_subscriptions_dict[str(route.number)] = closing_subscriptions
 
         if route.directions:
@@ -743,7 +742,7 @@ def logistics_issues_statistics(request, category='L'):
         if day['issues']:
             count = SubscriptionProduct.objects.filter(
                 subscription__active=True,
-                product__weekday=isoweekday).exclude(product__slug__contains='digital').count()
+                product__weekday=isoweekday).exclude(product__digital=True).count()
             if count > 0:
                 day['pct'] = float(day['issues']) * 100 / count
                 day['pct'] = '%.2f' % day['pct']
@@ -769,7 +768,7 @@ def logistics_issues_statistics(request, category='L'):
 
         if week['issues']:
             count = Subscription.objects.filter(
-                active=True).exclude(products__slug__contains='digital').count()
+                active=True).exclude(products__digital=True).count()
             if count > 0:
                 week['pct'] = float(week['issues']) * 100 / (count * 6)
                 week['pct'] = '%.2f' % week['pct']
@@ -796,7 +795,7 @@ def logistics_issues_statistics(request, category='L'):
             date__lte=control_date + relativedelta(months=+1) - timedelta(1)).count()
 
         if month['issues']:
-            count = Subscription.objects.filter(active=True).exclude(products__slug__contains='digital').count()
+            count = Subscription.objects.filter(active=True).exclude(products__digital=True).count()
             if count > 0:
                 month['pct'] = float(month['issues']) * 100 / (count * 24)
                 month['pct'] = '%.2f' % month['pct']
@@ -856,7 +855,7 @@ def issues_route_list(request, start_date, end_date):
         route_dict['subscriptions_count'] = Subscription.objects.filter(
             active=True,
             subscriptionproduct__route=r,
-        ).exclude(products__slug__contains='digital').count()
+        ).exclude(products__digital=True).count()
         if route_dict['issues_count'] > 0:
             route_dict['pct'] = float(route_dict['issues_count']) * 100 / (route_dict['subscriptions_count'] * days)
             route_dict['pct'] = '%.2f%%' % route_dict['pct']
@@ -894,7 +893,7 @@ def print_routes_simple(request, route_list):
 
         subscription_products = SubscriptionProduct.objects.filter(
             route=route_object, subscription__active=True, product__type='S').exclude(
-                product__name__contains='digital').select_related(
+                product__digital=True).select_related(
                 'subscription__contact', 'address').order_by('order', 'address__address_1')
 
         if request.GET:
