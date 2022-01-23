@@ -961,10 +961,7 @@ class Subscription(models.Model):
             sp = self.subscriptionproduct_set.filter(product=product).first()
             if sp.address and sp.address.address_1:
                 address = sp.address.address_1
-            elif "digital" in sp.product.slug and self.contact.email:
-                # TODO: This slug comparison is very weak, "digital" should be a new Product bool field or a choice in
-                #       a new Product field (category for example).
-                #       Such comparisons also appear in logistics.views (using also the product name).
+            elif sp.product.digital and self.contact.email:
                 address = self.contact.email
             else:
                 address = None
