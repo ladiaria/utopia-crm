@@ -34,6 +34,7 @@ from .choices import (
     INACTIVITY_REASONS,
     PRICERULE_MODE_CHOICES,
     PRIORITY_CHOICES,
+    PRODUCT_EDITION_FREQUENCY,
     PRODUCT_TYPE_CHOICES,
     PRODUCT_WEEKDAYS,
     PRODUCTHISTORY_CHOICES,
@@ -155,6 +156,7 @@ class Product(models.Model):
     offerable = models.BooleanField(default=False, verbose_name=_("Allow offer"))
     billing_priority = models.PositiveSmallIntegerField(null=True, blank=True)
     digital = models.BooleanField(default=False, verbose_name=_("Digital"))
+    edition_frequency = models.IntegerField(default=None, choices=PRODUCT_EDITION_FREQUENCY, null=True, blank=True)
     old_pk = models.PositiveIntegerField(blank=True, null=True)
 
     def __unicode__(self):

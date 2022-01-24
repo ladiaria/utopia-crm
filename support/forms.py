@@ -524,6 +524,24 @@ class UnsubscriptionForm(forms.ModelForm):
         }
 
 
+class AdditionalProductForm(forms.ModelForm):
+    end_date = forms.DateField(
+        required=True,
+        widget=forms.DateInput(
+            format="%Y-%m-%d", attrs={"class": "datepicker form-control", "autocomplete": "off"}
+        )
+    )
+
+    class Meta:
+        model = Subscription
+        fields = (
+            "end_date",
+            "unsubscription_addendum",
+        )
+        widgets = {
+            "unsubscription_addendum": forms.Textarea(attrs={"class": "form-control"}),
+        }
+
 class ContactCampaignStatusByDateForm(forms.Form):
     date_gte = forms.DateField(
         required=False, widget=forms.DateInput(format="%Y-%m-%d", attrs={
