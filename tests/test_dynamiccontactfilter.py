@@ -140,7 +140,7 @@ class TestCoreDynamicContactFilter(TestCase):
         self.assertEqual(modes.get(dcf.mode), dcf.get_mode())
 
     def test4_filter_with_two_products(self):
-        # This one will feature mode 1 again,and will have both products
+        # This one will feature mode 1 again, and will have both products
         dcf = create_dynamiccontactfilter('Test description', 1)
         dcf.allow_promotions = True
         dcf.allow_polls = True
@@ -154,9 +154,9 @@ class TestCoreDynamicContactFilter(TestCase):
         # First we check if the dcf has two products
         self.assertEqual(dcf.products.all().count(), 2)
 
-        # Then we are going to check how many emails this one has, it should have two since two contacts have
-        # at least these two products (contact 1 and 4)
-        self.assertEqual(dcf.get_email_count(), 2)
+        # Then we are going to check how many emails this one has, it should have four since all the contacts
+        # have at least any of these products
+        self.assertEqual(dcf.get_email_count(), 4)
 
     def test5_newsletter_mode(self):
         dcf = create_dynamiccontactfilter('Test description', 3)
