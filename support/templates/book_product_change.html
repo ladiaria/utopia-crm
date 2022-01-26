@@ -37,7 +37,9 @@ $( function() {
         <ul class="nav nav-pills">
           <li class="new-item"><a class="nav-link" href="{% url 'book_unsubscription' subscription.id  %}">{% trans 'Unsubscription' %}</a></li>
           <li class="new-item"><a class="nav-link" href="{% url 'partial_unsubscription' subscription.id  %}">{% trans 'Partial unsubscription' %}</a></li>
-          <li class="new-item"><a class="nav-link active" href="{% url 'product_change' subscription.id  %}">{% trans 'Product change' %}</a></li>        </ul>
+          <li class="new-item"><a class="nav-link active" href="{% url 'product_change' subscription.id  %}">{% trans 'Product change' %}</a></li>
+          <li class="new-item"><a class="nav-link" href="{% url 'additional_product' subscription.id  %}">{% trans 'Add product' %}</a></li>
+        </ul>
       </div>
       <div class="card-body">
         <form method="post" id="form">

@@ -2189,7 +2189,8 @@ def book_unsubscription(request, subscription_id):
             subscription.save()
             return HttpResponseRedirect(reverse("contact_detail", args=[subscription.contact.id]))
     else:
-        messages.warning(request, _("WARNING: This subscription already has an end date"))
+        if subscription.end_date:
+            messages.warning(request, _("WARNING: This subscription already has an end date"))
         form = UnsubscriptionForm(instance=subscription)
     return render(request, "book_unsubscription.html", {
         "subscription": subscription,
@@ -2353,6 +2354,92 @@ def product_change(request, subscription_id):
         messages.warning(request, _("WARNING: This subscription already has an end date"))
         form = UnsubscriptionForm(instance=old_subscription)
     return render(request, "book_product_change.html", {
+        "offerable_products": offerable_products,
+        "subscription": old_subscription,
+        "form": form,
+    })
+
+
+@login_required
+def book_additional_product(request, subscription_id):
+    old_subscription = get_object_or_404(Subscription, pk=subscription_id)
+    offerable_products = Product.objects.filter(offerable=True, type="S", edition_frequency=3).exclude(
+        id__in=old_subscription.products.values_list('id')
+    )
+    new_products_ids_list = []
+    if request.POST:
+        form = AdditionalProductForm(request.POST, instance=old_subscription)
+        if form.is_valid():
+            form.save()
+            new_subscription = Subscription.objects.create(
+                active=False,
+                contact=old_subscription.contact,
+                start_date=form.cleaned_data['end_date'],
+                payment_type=old_subscription.payment_type,
+                type=old_subscription.type,
+                status="OK",
+                billing_name=old_subscription.billing_name,
+                billing_id_doc=old_subscription.billing_id_doc,
+                rut=old_subscription.rut,
+                billing_phone=old_subscription.billing_phone,
+                send_bill_copy_by_email=old_subscription.send_bill_copy_by_email,
+                billing_address=old_subscription.billing_address,
+                billing_email=old_subscription.billing_email,
+                next_billing=old_subscription.next_billing,
+                frequency=old_subscription.frequency,
+                updated_from=old_subscription,
+                card_id=old_subscription.card_id,
+                customer_id=old_subscription.customer_id,
+            )
+            for key, value in request.POST.items():
+                # These are the new products
+                if key.startswith("activateproduct"):
+                    product_id = key.split("-")[1]
+                    new_products_ids_list.append(product_id)
+
+            for sp in old_subscription.subscriptionproduct_set.all():
+                if sp.product not in old_subscription.unsubscription_products.all():
+                    new_sp = new_subscription.add_product(
+                        product=sp.product,
+                        address=sp.address,
+                        copies=sp.copies,
+                        message=sp.label_message,
+                        instructions=sp.special_instructions,
+                        seller_id=sp.seller_id,
+                    )
+                    if sp.route:
+                        new_sp.route = sp.route
+                    if sp.order:
+                        new_sp.order = sp.order
+                    new_sp.save()
+            # after this, we need to add the new products, that will have to be reviewed by an agent
+            for product_id in new_products_ids_list:
+                product = Product.objects.get(pk=product_id)
+                if product not in new_subscription.products.all():
+                    new_subscription.add_product(
+                        product=product,
+                        address=None,
+                    )
+            # After that, we'll set the unsubscription date to this new subscription
+            success_text = format_lazy(
+                u"New product(s) booked for {end_date}",
+                end_date=old_subscription.end_date)
+            messages.success(request, success_text)
+            old_subscription.inactivity_reason = 3  # Upgrade
+            old_subscription.unsubscription_type = 4  # Upgrade
+            old_subscription.unsubscription_date = date.today()
+            old_subscription.unsubscription_manager = request.user
+            old_subscription.save()
+            return HttpResponseRedirect(
+                "{}?edit_subscription={}".format(
+                    reverse("new_subscription", args=[old_subscription.contact.id]),
+                    new_subscription.id)
+            )
+    else:
+        if old_subscription.end_date:
+            messages.warning(request, _("WARNING: This subscription already has an end date"))
+        form = AdditionalProductForm(instance=old_subscription)
+    return render(request, "book_additional_product.html", {
         "offerable_products": offerable_products,
         "subscription": old_subscription,
         "form": form,

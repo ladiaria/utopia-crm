@@ -101,23 +101,35 @@ $( function() {
                                             </div>
                                             <div class="card-body">
                                                 {% if subscriptions %}
-                                                {% for subscription in subscriptions %}
-                                                <dt {% if forloop.counter != 1 %}class="border-top mt-4 pt-3"{% endif %}></dt>
-                                                <dd>{% autoescape off %}{{ subscription.show_products_html }}{% endautoescape %}</dd>
-                                                <dd><b>{% trans "Frequency" %}:</b> {{ subscription.get_frequency }}</dd>
-                                                <dd><b>{% trans "Price" %}:</b> {{ subscription.get_price_for_full_period }}</dd>
-                                                <dd><b>{% trans "Type" %}:</b> {{ subscription.get_type }}</dd>
-                                                <dd><b>{% trans "Payment type" %}:</b> {{ subscription.get_payment_type }}</dd>
-                                                {% if subscription.balance %}<dd><b>{% trans "Balance" %}:</b> {{ subscription.balance }}</dd>{% endif %}
-                                                {% if request.user|in_group:"Support" or request.user|in_group:"Managers" %}
-                                                {% if subscription.is_obsolete == False %}
-                                                  <a href="{% url 'new_subscription' contact.id %}?upgrade_subscription={{ subscription.id }}" class="btn btn-success">{% trans "Upgrade" %}</a>
-                                                {% endif %}
-                                                <a href="{% url 'new_subscription' contact.id %}?edit_subscription={{ subscription.id }}" class="btn btn-success">{% trans "Edit" %}</a>
-                                                {% endif %}
-                                                {% endfor %}
+                                                  {% for subscription in subscriptions %}
+                                                  <dt {% if forloop.counter != 1 %}class="border-top mt-4 pt-3"{% endif %}></dt>
+                                                  <dd>{% autoescape off %}{{ subscription.show_products_html }}{% endautoescape %}</dd>
+                                                  <dd><b>{% trans "Frequency" %}:</b> {{ subscription.get_frequency }}</dd>
+                                                  <dd><b>{% trans "Price" %}:</b> {{ subscription.get_price_for_full_period }}</dd>
+                                                  <dd><b>{% trans "Type" %}:</b> {{ subscription.get_type }}</dd>
+                                                  <dd><b>{% trans "Payment type" %}:</b> {{ subscription.get_payment_type }}</dd>
+                                                  {% if subscription.balance %}<dd><b>{% trans "Balance" %}:</b> {{ subscription.balance }}</dd>{% endif %}
+                                                  {% if request.user|in_group:"Support" or request.user|in_group:"Managers" %}
+                                                  <div class="row">
+                                                    {% if subscription.is_obsolete == False %}
+                                                    <a href="{% url 'new_subscription' contact.id %}?upgrade_subscription={{ subscription.id }}" class="btn btn-success">{% trans "Upgrade" %}</a>
+                                                    <a href="{% url 'additional_product' subscription.id %}" class="btn btn-success">{% trans "Add" %}</a>
+                                                    {% endif %}
+                                                    <a href="{% url 'new_subscription' contact.id %}?edit_subscription={{ subscription.id }}" class="btn btn-success">{% trans "Edit" %}</a>
+                                                    {% if not subscription.end_date %}
+                                                    <a href="{% url 'book_unsubscription' subscription.id %}" class="btn btn-danger">{% trans "Unsubscription" %}</a>
+                                                    {% endif %}
+                                                  </div>
+                                                  {% endif %}
+                                                  <div class="row">
+                                                    {% if request.user|in_group:"Managers" %}
+                                                    <a href="{% url 'admin:core_subscription_change' subscription.id %}" class="btn btn-info" target="_blank">{% trans "Advanced" %}</a>
+                                                    {% endif %}
+                                                    <a href="{% url 'edit_envelopes' subscription.id %}" class="btn btn-info"><i class="fas fa-envelope"></i></a>
+                                                  </div>
+                                                  {% endfor %}
                                                 {% else %}
-                                                {% trans "This contact has no active subscriptions" %}
+                                                  {% trans "This contact has no active subscriptions" %}
                                                 {% endif %}
                                             </div>
                                             {% if request.user|in_group:"Support" or request.user|in_group:"Managers" %}
