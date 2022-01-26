@@ -402,6 +402,124 @@ def print_labels(request, page='Roll', list_type='', route_list='', product_id=N
 
 
 @login_required
+def print_labels_for_day(request):
+    page = 'Roll'
+    if request.POST:
+        if request.FILES:
+            exclude_contacts = csv.reader(request.FILES.get('exclude_contacts'))
+            exclude_contacts_list = list(exclude_contacts)
+        else:
+            exclude_contacts = None
+        isoweekday = request.POST.get('isoweekday')
+        response = HttpResponse(content_type='application/pdf')
+        response['Content-Disposition'] = \
+            'attachment; filename=individual-labels-{}.pdf'.format(isoweekday)
+        Page = globals()[page]
+        if request.POST.get('96x30'):
+            canvas = Canvas(response, pagesize=(Roll96x30.width, Roll96x30.height))
+            sheet = Roll96x30(LogisticsLabel96x30, canvas)
+        else:
+            canvas = Canvas(response, pagesize=(Page.width, Page.height))
+            sheet = Page(LogisticsLabel, canvas)
+        iterator = sheet.iterator()
+
+        subscription_products = SubscriptionProduct.objects.filter(
+            active=True, product__weekday=isoweekday, subscription__active=True,
+            subscription__start_date__lte=date.today()).exclude(
+            route__print_labels=False).order_by('route', F('order').asc(nulls_first=True), 'address__address_1')
+
+        if exclude_contacts:
+            subscription_products = subscription_products.exclude(subscription__contact_id__in=exclude_contacts_list)
+        old_route = 0
+
+        for sp in subscription_products:
+
+            # If the subscription_product has no route, then we'll skip it.
+            if sp.route is None:
+                continue
+
+            # If the subscription_product has no address, continue. There should be a way to control this doesn't happen
+            if sp.address is None:
+                continue
+
+            # Separator label
+            if old_route != sp.route:
+                label = iterator.next()
+                label.separador()
+                old_route = sp.route
+
+            # Here we'll show an icon if the contact has one of the payment types marked on settings.
+            label_invoice_payment_types = getattr(settings, 'LABEL_INVOICE_PAYMENT_TYPES', [])
+            has_invoice = (
+                label_invoice_payment_types and sp.subscription.payment_type
+                and sp.subscription.payment_type in label_invoice_payment_types and not sp.subscription.billing_address
+                and sp.subscription.contact.invoice_set.filter(print_date__gte=date.today() - timedelta(6)).exists()
+            )
+
+            for copy in range(sp.copies):
+
+                label, route_suffix = iterator.next(), ''
+
+                if sp.product:
+                    if isoweekday == '1':
+                        route_suffix = _('MONDAY')
+                    elif isoweekday == '2':
+                        route_suffix = _('TUESDAY')
+                    elif isoweekday == '3':
+                        route_suffix = _('WEDNESDAY')
+                    elif isoweekday == '4':
+                        route_suffix = _('THURSDAY')
+                    elif isoweekday == '5':
+                        route_suffix = _('FRIDAY')
+                    label.route_suffix = route_suffix
+
+                    label.has_invoice = (
+                        has_invoice
+                        and sp.subscription.get_first_product_by_priority().weekday
+                        and sp.subscription.get_first_product_by_priority().weekday == isoweekday
+                    )
+
+                # Here we determine if the subscription needs an envelope.
+                if sp.has_envelope:
+                    label.envelope = True
+
+                if sp.subscription.start_date == next_business_day():
+                    label.new = True
+
+                if sp.special_instructions:
+                    label.special_instructions = True
+
+                if sp.label_message and sp.label_message.strip():
+                    label.message_for_contact = sp.label_message
+                else:
+                    if sp.subscription.type == 'P':
+                        # TODO: the seller name can be obtained here to use it instead of "a friend"
+                        #       (also check the use case of this label, isn't the "referer" a better option?)
+                        if sp.seller:
+                            ref = sp.seller.name
+                        else:
+                            ref = "un amigo"  # TODO: i18n
+                        label.message_for_contact = u"Recomendado por {}".format(ref)  # TODO: i18n
+                    # When we have a 2x1 plan we should put it here
+                    # elif getattr(sp.subscription.product, 'id', None) == 6:
+                    #     label.message_for_contact = "2x1"
+
+                if sp.label_contact:
+                    label.name = sp.label_contact.name.upper()
+                else:
+                    label.name = sp.subscription.contact.name.upper()
+                label.address = (sp.address.address_1 or '') + '\n' + (sp.address.address_2 or '')
+                label.route = sp.route.number
+                label.route_order = sp.order
+                label.draw()
+        sheet.flush()
+        canvas.save()
+        return response
+    else:
+        return render(request, "print_labels_for_day.html", {})
+
+
+@login_required
 def print_labels_for_product(request, page='Roll', product_id=None, list_type='', route_list=''):
     """
     Print labels for a specific product.
