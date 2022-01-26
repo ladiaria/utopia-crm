@@ -36,6 +36,7 @@
 {% url "debtor_contacts" as debtor_contacts %}
 {% url "campaign_statistics_list" as campaign_statistics_list %}
 {% url "seller_performance_by_time" as seller_performance_by_time %}
+{% url "print_labels_for_day" as print_labels_for_day %}
 
 <li class="nav-item">
   <a href="{{contact_list}}" class="nav-link {% ifequal request.path contact_list  %}active{% endifequal %}">{% trans "Contacts" %}</a>
@@ -108,6 +109,7 @@
     <li class="nav-item"><a href='{{print_unordered_subscriptions}}' class="nav-link {% ifequal request.path print_unordered_subscriptions %}active{% endifequal %}">{% trans 'Print unordered subscriptions' %}</a></li>
     <li class="nav-item"><a href='{{change_route_default}}' class="nav-link {% ifequal request.path change_route_default %}active{% endifequal %}">{% blocktrans %}Change route of subscriptions<br/> on routes{% endblocktrans %}</a></li>
     <li class="nav-item"><a href='{{print_labels_page_roll}}' class="nav-link {% ifequal request.path print_labels_page_roll %}active{% endifequal %}">{% trans 'Print all labels for tomorrow' %}</a></li>
+    <li class="nav-item"><a href='{{print_labels_for_day}}' class="nav-link {% ifequal request.path print_labels_for_day %}active{% endifequal %}">{% trans 'Print all labels for specific day' %}</a></li>
     <li class="nav-item"><a href='{{print_labels_from_csv}}' class="nav-link {% ifequal request.path print_labels_from_csv %}active{% endifequal %}">{% trans 'Print labels from CSV file' %}</a></li>
     <li class="nav-item"><a href='{{issues_labels}}' class="nav-link {% ifequal request.path issues_labels %}active{% endifequal %}">{% trans 'Issues labels' %}</a></li>
     <li class="nav-item"><a href='{{edition_time_departure}}' class="nav-link {% ifequal request.path edition_time_departure %}active{% endifequal %}">{% trans 'Edition departure time' %}</a></li>
