@@ -112,8 +112,11 @@ $( function() {
                                                   {% if request.user|in_group:"Support" or request.user|in_group:"Managers" %}
                                                   <div class="row">
                                                     {% if subscription.is_obsolete == False %}
-                                                    <a href="{% url 'new_subscription' contact.id %}?upgrade_subscription={{ subscription.id }}" class="btn btn-success">{% trans "Upgrade" %}</a>
-                                                    <a href="{% url 'additional_product' subscription.id %}" class="btn btn-success">{% trans "Add" %}</a>
+                                                      {% if subscription.frequency == 1 %}
+                                                        <a href="{% url 'additional_product' subscription.id %}" class="btn btn-success">{% trans "Add" %}</a>
+                                                      {% else %}
+                                                        <a href="{% url 'new_subscription' contact.id %}?upgrade_subscription={{ subscription.id }}" class="btn btn-success">{% trans "Upgrade" %}</a>
+                                                      {% endif %}
                                                     {% endif %}
                                                     <a href="{% url 'new_subscription' contact.id %}?edit_subscription={{ subscription.id }}" class="btn btn-success">{% trans "Edit" %}</a>
                                                     {% if not subscription.end_date %}

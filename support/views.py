@@ -2330,7 +2330,10 @@ def product_change(request, subscription_id):
 @login_required
 def book_additional_product(request, subscription_id):
     old_subscription = get_object_or_404(Subscription, pk=subscription_id)
-    offerable_products = Product.objects.filter(offerable=True, type="S", edition_frequency=3).exclude(
+    if old_subscription.frequency != 1:
+        messages.error(request, "La periodicidad de la suscripción debe ser mensual")
+        return HttpResponseRedirect(reverse("contact_detail", args=[old_subscription.contact_id]))
+    offerable_products = Product.objects.filter(offerable=True, type="S").exclude(
         id__in=old_subscription.products.values_list('id')
     )
     new_products_ids_list = []
