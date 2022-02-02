@@ -75,6 +75,54 @@ def assign_routes(request):
 
 
 @login_required
+def assign_routes_future(request):
+    """
+    Assigns routes to contacts that have no route. The assignation is per SubscriptionProduct.
+    """
+    product_list = Product.objects.filter(type='S', offerable=True)
+    product_id, product = 'all', None
+    if request.POST:
+        for name, value in request.POST.items():
+            if name.startswith('sp') and value:
+                try:
+                    # We get the id of the subscription id here, removing the prefix 'sp-' from the name of the item
+                    sp_id = name.replace('sp-', '')
+                    # Next we get the SubscriptionProject object from the DB
+                    sp = SubscriptionProduct.objects.get(pk=sp_id)
+                    # Finally we set the value of whatever route we set, and then save the sp
+                    route = Route.objects.get(number=int(value))
+                    sp.route = route
+                    sp.order = None
+                    sp.special_instructions = request.POST.get('instructions-{}'.format(sp_id), None)
+                    sp.label_message = request.POST.get('message-{}'.format(sp_id), None)
+                    sp.save()
+                except Route.DoesNotExist:
+                    messages.error(request, _("Contact {} - Product {}: Route {} does not exist".format(
+                        sp.subscription.contact.name, sp.product.name, value)))
+        return HttpResponseRedirect(reverse('assign_routes'))
+
+    subscription_products = SubscriptionProduct.objects.filter(
+        subscription__active=False, route__isnull=True, product__type='S', product__offerable=True,
+        subscription__start_date__gte=date.today()).exclude(
+            product__digital=True).select_related(
+            'subscription__contact', 'address').order_by('subscription__contact')
+    if request.GET:
+        product_id = request.GET.get('product_id', 'all')
+        if product_id != 'all':
+            product = Product.objects.get(pk=product_id)
+            subscription_products = subscription_products.filter(product=product)
+        exclude = request.GET.get('exclude', None)
+        if exclude:
+            subscription_products = subscription_products.exclude(product_id=exclude)
+    return render(
+        request, 'assign_routes.html', {
+            'subscription_products': subscription_products,
+            'product_list': product_list,
+            'product': product,
+        })
+
+
+@login_required
 def order_route(request, route_id=1):
     """
     Orders contacts inside of a route by SubscriptionProduct. Takes to route 1 by default.
