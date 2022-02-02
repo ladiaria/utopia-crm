@@ -4,13 +4,13 @@ from logistics.views import (
     assign_routes, order_route, change_route, list_routes, route_details, issues_labels, print_labels_for_product,
     print_labels_from_csv, edition_time, print_labels, logistics_issues_statistics, issues_per_route,
     issues_route_list, print_routes_simple, list_routes_detailed, convert_orders_to_tens, print_unordered_subscriptions,
-    print_labels_for_day)
+    print_labels_for_day, assign_routes_future)
 
 from django.conf.urls import url
 
 urlpatterns = [
     url(r'^assign_routes/$', assign_routes, name='assign_routes'),
-
+    url(r'^assign_routes_future/$', assign_routes_future, name='assign_routes_future'),
     url(r'^order_route/$', order_route, name='order_route_default'),
     url(r'^change_route/$', change_route, name='change_route_default'),
     url(r'^order_route/(\d+)/$', order_route, name='order_route'),
