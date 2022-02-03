@@ -556,7 +556,7 @@ class Contact(models.Model):
         )
 
     def add_default_newsletters(self):
-        computed_slug_set = set()
+        computed_slug_set, result = set(), []
         for func_path, nl_slugs in getattr(settings, 'CORE_DEFAULT_NEWSLETTERS', {}).items():
             func_module, func_name = func_path.rsplit('.', 1)
             func_def = getattr(import_module(func_module), func_name, None)
@@ -568,6 +568,9 @@ class Contact(models.Model):
             except Exception as e:
                 if settings.DEBUG:
                     print(e)
+            else:
+                result.append(product_slug)
+        return result
 
     class Meta:
         verbose_name = _("contact")
