@@ -29,10 +29,7 @@ from .models import (
     SubscriptionNewsletter,
     DynamicContactFilter
 )
-from .forms import (
-    SubscriptionAdminForm,
-    ContactAdminForm,
-)
+from .forms import SubscriptionAdminForm, ContactAdminForm
 
 
 class TaggitListFilter(SimpleListFilter):
@@ -159,6 +156,25 @@ class SubscriptionInline(admin.StackedInline):
         return field
 
 
+def response_add_or_change_next_url(request, obj):
+    """ Returns the next_url to be used in the response_add and response_change method redefinitions """
+    opts = obj._meta
+    reverse_begin = 'admin:%s_%s_' % (opts.app_label, opts.model_name)
+    if '_continue' in request.POST:
+        return reverse(reverse_begin + 'change', args=(obj.id, ))
+    return reverse(reverse_begin + ('add' if '_addanother' in request.POST else 'changelist'))
+
+
+def default_newsletters_dialog_redirect(request, obj, contact_id_attr_name):
+    """ Returns the redirect to be used for the default newsletters dialog page """
+    return HttpResponseRedirect(
+        '%s?next_page=%s' % (
+            reverse("default_newsletters_dialog", kwargs={'contact_id': getattr(obj, contact_id_attr_name)}),
+            response_add_or_change_next_url(request, obj),
+        )
+    )
+
+
 class SubscriptionAdmin(admin.ModelAdmin):
     model = Subscription
     inlines = [SubscriptionProductInline]
@@ -199,26 +215,12 @@ class SubscriptionAdmin(admin.ModelAdmin):
 
     def response_add(self, request, obj, post_url_continue=None):
         if obj.contact.offer_default_newsletters_condition():
-            return HttpResponseRedirect(
-                '%s?next_page=%s' % (
-                    reverse("default_newsletters_dialog", kwargs={'contact_id': obj.contact_id}), post_url_continue
-                )
-            )
+            return default_newsletters_dialog_redirect(request, obj, 'contact_id')
         return super(SubscriptionAdmin, self).response_add(request, obj, post_url_continue)
 
     def response_change(self, request, obj):
         if obj.contact.offer_default_newsletters_condition():
-            if request.POST.get('_addanother'):
-                next_url = reverse('admin:core_subscription_add')
-            elif request.POST.get('_continue'):
-                next_url = reverse('admin:core_subscription_change', args=(obj.id, ))
-            else:
-                next_url = reverse('admin:core_subscription_changelist'),
-            return HttpResponseRedirect(
-                '%s?next_page=%s' % (
-                    reverse("default_newsletters_dialog", kwargs={'contact_id': obj.contact_id}), next_url
-                )
-            )
+            return default_newsletters_dialog_redirect(request, obj, 'contact_id')
         return super(SubscriptionAdmin, self).response_change(request, obj)
 
     class Media:
@@ -288,24 +290,12 @@ class ContactAdmin(TabbedModelAdmin):
 
     def response_add(self, request, obj, post_url_continue=None):
         if obj.offer_default_newsletters_condition():
-            return HttpResponseRedirect(
-                '%s?next_page=%s' % (
-                    reverse("default_newsletters_dialog", kwargs={'contact_id': obj.id}), post_url_continue
-                )
-            )
+            return default_newsletters_dialog_redirect(request, obj, 'id')
         return super(ContactAdmin, self).response_add(request, obj, post_url_continue)
 
     def response_change(self, request, obj):
         if obj.offer_default_newsletters_condition():
-            if request.POST.get('_addanother'):
-                next_url = reverse('admin:core_contact_add')
-            elif request.POST.get('_continue'):
-                next_url = reverse('admin:core_contact_change', args=(obj.id, ))
-            else:
-                next_url = reverse('admin:core_contact_changelist'),
-            return HttpResponseRedirect(
-                '%s?next_page=%s' % (reverse("default_newsletters_dialog", kwargs={'contact_id': obj.id}), next_url)
-            )
+            return default_newsletters_dialog_redirect(request, obj, 'id')
         return super(ContactAdmin, self).response_change(request, obj)
 
 
