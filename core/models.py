@@ -427,19 +427,21 @@ class Contact(models.Model):
         )
 
     def add_newsletter_by_slug(self, newsletter_slug):
-        SubscriptionNewsletter.objects.get_or_create(
-            contact=self, product=Product.objects.get(slug=newsletter_slug, type="N"), active=True
-        )
+        # TODO: improve this using the "active" field
+        try:
+            SubscriptionNewsletter.objects.get_or_create(
+                contact=self, product=Product.objects.get(slug=newsletter_slug, type="N"), active=True
+            )
+        except Product.DoesNotExist:
+            pass
 
     def remove_newsletter(self, newsletter_id):
         try:
             newsletter = Product.objects.get(id=newsletter_id, type="N")
-        except Exception:
+        except Product.DoesNotExist:
             raise _("Invalid product id")
-        try:
-            SubscriptionNewsletter.objects.get(contact=self, product=newsletter).delete()
-        except SubscriptionNewsletter.DoesNotExist:
-            pass
+        else:
+            SubscriptionNewsletter.objects.filter(contact=self, product=newsletter, active=True).delete()
 
     def get_newsletters(self):
         """
