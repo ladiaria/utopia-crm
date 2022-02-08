@@ -221,17 +221,30 @@ $( function() {
                                             </div>
                                             <div class="card">
                                                 <div class="card-header">
-                                                    <h3 class="card-title">{% trans "Newsletters" %}</h3>
+                                                  <h3 class="card-title">
+                                                    {% trans "Newsletters" %}
+                                                    {% if newsletters %}
+                                                      {# show icon references #}
+                                                      <span style="font-size:85%;">
+                                                        ( <i class="fas fa-check-circle"></i> = {% trans "active" %},
+                                                        <i class="fas fa-times-circle"></i> = {% trans "inactive" %} )
+                                                      </span>
+                                                    {% endif %}
+                                                  </h3>
                                                 </div>
                                                 <div class="card-body">
                                                     {% if newsletters %}
-                                                    <ul class="pl-3">
-                                                        {% for newsletter in newsletters %}
-                                                        <li>{{newsletter.product}}</li>
-                                                        {% endfor %}
+                                                    <ul class="pl-3" style="list-style:none;">
+                                                      {% for newsletter in newsletters %}
+                                                        <li>
+                                                          <i class="fas fa-{% if newsletter.active %}check{% else %}times{% endif %}-circle">
+                                                          </i>
+                                                          {{ newsletter.product.name }}
+                                                        </li>
+                                                      {% endfor %}
                                                     </ul>
                                                     {% else %}
-                                                    {% trans "This contact has no active newsletters" %}
+                                                    {% trans "This contact has no newsletter subscriptions" %}
                                                     {% endif %}
                                                 </div>
                                             </div>

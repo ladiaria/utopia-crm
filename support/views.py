@@ -44,8 +44,11 @@ from core.models import (
 from core.choices import CAMPAIGN_RESOLUTION_REASONS_CHOICES
 
 from .filters import (
-    IssueFilter, InvoicingIssueFilter, ScheduledActivityFilter, ContactCampaignStatusFilter,
-    UnsubscribedSubscriptionsByEndDateFilter
+    IssueFilter,
+    InvoicingIssueFilter,
+    ScheduledActivityFilter,
+    ContactCampaignStatusFilter,
+    UnsubscribedSubscriptionsByEndDateFilter,
 )
 from .forms import (
     NewPauseScheduledTaskForm,
@@ -892,9 +895,11 @@ def new_subscription(request, contact_id):
                         sp.label_message = message
                         sp.special_instructions = instructions
                         sp.save()
+
             for subscriptionproduct in SubscriptionProduct.objects.filter(subscription=subscription):
                 if subscriptionproduct.product not in new_products_list:
                     subscription.remove_product(subscriptionproduct.product)
+
             if request.GET.get('new', None):
                 # This means this is a direct sale
                 offset = request.GET.get('offset')
@@ -918,7 +923,7 @@ def new_subscription(request, contact_id):
                 )
                 subscription.campaign = ccs.campaign
                 subscription.save()
-                return HttpResponseRedirect("{}?offset={}".format(url, offset))
+                redirect_to = "{}?offset={}".format(url, offset)
             elif request.GET.get('act', None):
                 # This means this is a sale from an activity
                 activity.status = 'C'
@@ -937,9 +942,17 @@ def new_subscription(request, contact_id):
                 ccs.save()
                 subscription.campaign = campaign
                 subscription.save()
-                return HttpResponseRedirect("{}?offset={}".format(url, offset))
+                redirect_to = "{}?offset={}".format(url, offset)
             else:
-                return HttpResponseRedirect(reverse("contact_detail", args=[contact.id]))
+                redirect_to = reverse("contact_detail", args=[contact.id])
+
+            # if needed, redirect_to default_newsletters_dialog:
+            if contact.offer_default_newsletters_condition():
+                redirect_to = '%s?next_page=%s' % (
+                    reverse("default_newsletters_dialog", kwargs={'contact_id': contact.id}), redirect_to
+                )
+
+            return HttpResponseRedirect(redirect_to)
 
     return render(
         request,
@@ -956,6 +969,26 @@ def new_subscription(request, contact_id):
             "other_active_normal_subscriptions": other_active_normal_subscriptions,
         }
     )
+
+
+@login_required
+def default_newsletters_dialog(request, contact_id):
+    if request.method == 'POST':
+        if request.POST.get('answer') == u'yes':
+            try:
+                Contact.objects.get(id=contact_id).add_default_newsletters()
+            except Contact.DoesNotExist:
+                pass
+        return HttpResponseRedirect(request.POST.get('next_page'))
+    else:
+        try:
+            next_page = request.GET['next_page']
+        except KeyError:
+            return HttpResponseNotFound()
+        else:
+            return render(
+                request, 'default_newsletters_dialog.html', {'contact_id': contact_id, 'next_page': next_page}
+            )
 
 
 @login_required
@@ -2701,6 +2734,7 @@ def unsubscription_statistics(request):
         "total_not_requested_unsubscriptions_count": total_not_requested_unsubscriptions_count,
         "total_unsubscriptions_count": total_unsubscriptions_count,
     })
+
 
 def seller_console_special_routes(request, route_id):
     if not getattr(settings, 'SPECIAL_ROUTES_FOR_SELLERS_LIST', None):

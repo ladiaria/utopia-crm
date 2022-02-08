@@ -1,5 +1,6 @@
 # coding=utf-8
 from __future__ import unicode_literals
+from importlib import import_module
 from datetime import date, datetime
 from dateutil.relativedelta import relativedelta
 
@@ -379,9 +380,7 @@ class Contact(models.Model):
         return self.subscriptions.filter(active=True)
 
     def get_active_subscriptionproducts(self):
-        return SubscriptionProduct.objects.filter(
-            subscription__active=True, subscription__contact=self
-        )
+        return SubscriptionProduct.objects.filter(subscription__active=True, subscription__contact=self)
 
     def get_subscriptions_with_expired_invoices(self):
         """
@@ -423,35 +422,40 @@ class Contact(models.Model):
         return genders.get(self.gender, "N/A")
 
     def add_newsletter(self, newsletter_id):
-        try:
-            newsletter = Product.objects.get(id=newsletter_id, type="N")
-        except Exception:
-            raise _("Invalid product id")
         SubscriptionNewsletter.objects.get_or_create(
-            contact=self, product=newsletter, active=True
+            contact=self, product=Product.objects.get(id=newsletter_id, type="N"), active=True
         )
+
+    def add_newsletter_by_slug(self, newsletter_slug):
+        # TODO: improve this using the "active" field
+        try:
+            SubscriptionNewsletter.objects.get_or_create(
+                contact=self, product=Product.objects.get(slug=newsletter_slug, type="N"), active=True
+            )
+        except (Product.DoesNotExist, SubscriptionNewsletter.MultipleObjectsReturned):
+            pass
 
     def remove_newsletter(self, newsletter_id):
         try:
             newsletter = Product.objects.get(id=newsletter_id, type="N")
-        except Exception:
+        except Product.DoesNotExist:
             raise _("Invalid product id")
-        try:
-            SubscriptionNewsletter.objects.get(contact=self, product=newsletter).delete()
-        except SubscriptionNewsletter.DoesNotExist:
-            pass
-
-    def has_newsletter(self, newsletter_id):
-        return SubscriptionNewsletter.objects.filter(contact=self, product_id=newsletter_id, active=True).exists()
+        else:
+            SubscriptionNewsletter.objects.filter(contact=self, product=newsletter, active=True).delete()
 
     def get_newsletters(self):
         """
-        Returns a queryset with all the newsletters that this contact has subscriptions in.
+        Returns a queryset with all the newsletters that this contact has subscriptions in (active or inactive).
         """
         return SubscriptionNewsletter.objects.filter(contact=self)
 
+    def has_newsletter(self, newsletter_id):
+        return self.get_newsletters().filter(product_id=newsletter_id, active=True).exists()
+
     def get_newsletter_products(self):
-        return Product.objects.filter(type='N', subscriptionnewsletter__contact=self)
+        return Product.objects.filter(
+            type='N', subscriptionnewsletter__contact=self, subscriptionnewsletter__active=True
+        )
 
     def get_last_paid_invoice(self):
         """
@@ -512,34 +516,63 @@ class Contact(models.Model):
         return self.issue_set.all().count()
 
     def get_finished_issues_count(self):
-        return self.issue_set.filter(
-            status__slug__in=settings.ISSUE_STATUS_FINISHED_LIST
-        ).count()
+        return self.issue_set.filter(status__slug__in=settings.ISSUE_STATUS_FINISHED_LIST).count()
 
     def get_open_issues_count(self):
         return self.get_total_issues_count() - self.get_finished_issues_count()
 
     def get_open_issues_by_subcategory_count(self, sub_category_slug):
-        return self.issue_set.filter(sub_category__slug=sub_category_slug).exclude(
-            status__slug__in=settings.ISSUE_STATUS_FINISHED_LIST).count()
+        return self.issue_set.filter(
+            sub_category__slug=sub_category_slug
+        ).exclude(status__slug__in=settings.ISSUE_STATUS_FINISHED_LIST).count()
 
     def get_finished_issues_by_subcategory_count(self, sub_category_slug):
-        return self.issue_set.filter(sub_category__slug=sub_category_slug).exclude(
-            status__slug__in=settings.ISSUE_STATUS_FINISHED_LIST).count()
+        return self.issue_set.filter(
+            sub_category__slug=sub_category_slug
+        ).exclude(status__slug__in=settings.ISSUE_STATUS_FINISHED_LIST).count()
 
     def get_open_issues_by_category_count(self, category):
-        return self.issue_set.filter(category=category).exclude(
-            status__slug__in=settings.ISSUE_STATUS_FINISHED_LIST).count()
+        return self.issue_set.filter(
+            category=category
+        ).exclude(status__slug__in=settings.ISSUE_STATUS_FINISHED_LIST).count()
 
     def get_finished_issues_by_category_count(self, category):
-        return self.issue_set.filter(category=category).exclude(
-            status__slug__in=settings.ISSUE_STATUS_FINISHED_LIST).count()
+        return self.issue_set.filter(
+            category=category
+        ).exclude(status__slug__in=settings.ISSUE_STATUS_FINISHED_LIST).count()
 
     def get_total_scheduledtask_count(self):
         return self.scheduledtask_set.count()
 
     def get_total_activities_count(self):
         return self.activity_set.count()
+
+    def offer_default_newsletters_condition(self):
+        return all(
+            (
+                getattr(settings, 'CORE_DEFAULT_NEWSLETTERS', {}),
+                self.email,
+                not self.get_newsletters(),
+                self.get_active_subscriptions(),
+            )
+        )
+
+    def add_default_newsletters(self):
+        computed_slug_set, result = set(), []
+        for func_path, nl_slugs in getattr(settings, 'CORE_DEFAULT_NEWSLETTERS', {}).items():
+            func_module, func_name = func_path.rsplit('.', 1)
+            func_def = getattr(import_module(func_module), func_name, None)
+            if func_def and func_def(self):
+                computed_slug_set = computed_slug_set.union(set(nl_slugs))
+        for product_slug in computed_slug_set:
+            try:
+                self.add_newsletter_by_slug(product_slug)
+            except Exception as e:
+                if settings.DEBUG:
+                    print(e)
+            else:
+                result.append(product_slug)
+        return result
 
     class Meta:
         verbose_name = _("contact")
