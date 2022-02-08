@@ -432,7 +432,7 @@ class Contact(models.Model):
             SubscriptionNewsletter.objects.get_or_create(
                 contact=self, product=Product.objects.get(slug=newsletter_slug, type="N"), active=True
             )
-        except Product.DoesNotExist:
+        except (Product.DoesNotExist, SubscriptionNewsletter.MultipleObjectsReturned):
             pass
 
     def remove_newsletter(self, newsletter_id):
