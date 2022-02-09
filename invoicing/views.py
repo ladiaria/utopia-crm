@@ -508,6 +508,7 @@ def invoice_filter(request):
             _("Payment date"),
             _("Serie"),
             _("Number"),
+            _("Payment reference"),
         ]
         writer.writerow(header)
         for invoice in invoice_filter.qs.iterator():
@@ -531,6 +532,7 @@ def invoice_filter(request):
                 invoice.payment_date,
                 invoice.serie,
                 invoice.numero,
+                invoice.payment_reference,
             ])
         return response
 
