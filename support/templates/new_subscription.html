@@ -72,7 +72,7 @@ $( function() {
             {% csrf_token %}
             {% if upgrade_subscription %}
             <div class="alert alert-warning">
-                {% trans "Subscription with id" %} <b>{{form_subscription.id}}</b> {% trans "will be replaced and a balance of" %} <b>{{form_subscription.amount_already_paid_in_period}}</b> {% trans "will be discounted from the subscriber's new first invoice" %}
+                {% trans "Subscription with id" %} <b>{{form_subscription.id}}</b> {% trans "will be replaced and a balance of" %} <b data-toggle="tooltip" title='{% trans "Period" %} [{{form_subscription.period_start|date:"Y-m-d"}} - {{form_subscription.period_end|date:"Y-m-d"}}]: {{form_subscription.days_remaining_in_period}} {% trans "days to period end" %} x ${{form_subscription.price_per_day|floatformat:"2"}} {% trans "per day" %}'>{{form_subscription.amount_to_pay_in_period}}</b> {% trans "will be discounted from the subscriber's new first invoice" %}<br>
             </div>
             {% endif %}
 

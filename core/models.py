@@ -1165,17 +1165,30 @@ class Subscription(models.Model):
         price = calc_price_from_products(summary_of_products, frequency)
         return price
 
+    def period_start(self):
+        if not self.next_billing:
+            return None
+        return self.next_billing - relativedelta(months=self.frequency)
+
+    def period_end(self):
+        return self.next_billing
+
     def get_current_period(self):
         """
         Returns two values, one for the start and one for the end of the period that's going to be paid on this
         subscription.
         """
-        if not self.next_billing:
-            return None
-        assert self.type == "N", _("Subscription must be normal to use this method")
-        start = self.next_billing - relativedelta(months=self.frequency)
-        end = self.next_billing
-        return start, end
+        return self.period_start(), self.period_end()
+
+
+    def price_per_day(self):
+        return self.get_price_for_full_period() / (self.period_end() - self.period_start()).days
+
+    def days_elapsed_since_period_start(self):
+        return (date.today() - self.period_start()).days
+
+    def days_remaining_in_period(self):
+        return (self.period_end() - date.today()).days
 
     def amount_already_paid_in_period(self):
         """
@@ -1187,12 +1200,9 @@ class Subscription(models.Model):
         the customer, in the case the new subscription price is greater than the old one.
         """
         assert self.type == "N", _("Subscription must be normal to use this method")
-        period_start, period_end = self.get_current_period()
-        price_per_day = (
-            self.get_price_for_full_period() / (period_end - period_start).days
-        )
+        period_start = self.period_start()
         days_already_used = (date.today() - period_start).days
-        amount = int(price_per_day * days_already_used)
+        amount = int(self.price_per_day() * days_already_used)
         if amount > self.get_price_for_full_period():
             amount = self.get_price_for_full_period()
         if amount < 0:
