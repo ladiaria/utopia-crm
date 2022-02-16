@@ -840,9 +840,9 @@ def new_subscription(request, contact_id):
                     send_bill_copy_by_email=form.cleaned_data['send_bill_copy_by_email'],
                 )
             if upgrade_subscription:
-                # Then, the amount that was already paid in the period but was not used due to closing the
+                # Then, the amount that was not paid in the period but was not used due to closing the
                 # old subscription will be added as a discount.
-                subscription.balance = form_subscription.amount_already_paid_in_period()
+                subscription.balance = form_subscription.amount_to_pay_in_period()
                 subscription.updated_from = form_subscription
 
             # We need to decide what we do with the status of the subscription, for now it will be normal
@@ -1264,7 +1264,10 @@ def new_scheduled_task_total_pause(request, contact_id):
         if form.is_valid():
             date1 = form.cleaned_data.get("date_1")
             date2 = form.cleaned_data.get("date_2")
+            days = (date2 - date1).days
             subscription = form.cleaned_data.get("subscription")
+            subscription.next_billing = subscription.next_billing + timedelta(days)
+            subscription.save()
             start_task = ScheduledTask.objects.create(
                 contact=contact,
                 subscription=subscription,
