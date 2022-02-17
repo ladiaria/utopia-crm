@@ -1123,6 +1123,25 @@ def assign_seller(request, campaign_id):
 
 
 @login_required
+def release_seller_contacts(request, seller_id=None):
+    """
+    Releases all the unworked contacts from a seller to allow them to be assigned to other sellers.
+    """
+    seller_list = []
+    seller_qs = Seller.objects.filter(contactcampaignstatus__status=1).annotate(
+        campaign_contacts=Count('contactcampaignstatus')).filter(campaign_contacts__gte=1)
+
+    if seller_id:
+        seller = get_object_or_404(Seller, pk=seller_id)
+        seller.contactcampaignstatus_set.filter(status=1).delete()
+        return HttpResponseRedirect(reverse("release_seller_contacts"))
+    else:
+        for seller in seller_qs:
+            seller.contacts_not_worked = seller.contactcampaignstatus_set.filter(status=1).count()
+        return render(request, "release_seller_contacts.html", {"seller_list": seller_qs})
+
+
+@login_required
 def edit_products(request, subscription_id):
     """
     Allows editing products in a subscription.
