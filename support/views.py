@@ -1128,8 +1128,8 @@ def release_seller_contacts(request, seller_id=None):
     Releases all the unworked contacts from a seller to allow them to be assigned to other sellers.
     """
     seller_list = []
-    seller_qs = Seller.objects.annotate(campaign_contacts=Count('contactcampaignstatus')).filter(
-        campaign_contacts__gte=1)
+    seller_qs = Seller.objects.filter(contactcampaignstatus__status=1).annotate(
+        campaign_contacts=Count('contactcampaignstatus')).filter(campaign_contacts__gte=1)
 
     if seller_id:
         seller = get_object_or_404(Seller, pk=seller_id)
