@@ -38,6 +38,7 @@
 {% url "campaign_statistics_list" as campaign_statistics_list %}
 {% url "seller_performance_by_time" as seller_performance_by_time %}
 {% url "print_labels_for_day" as print_labels_for_day %}
+{% url "release_seller_contacts" as release_seller_contacts %}
 
 <li class="nav-item">
   <a href="{{contact_list}}" class="nav-link {% ifequal request.path contact_list  %}active{% endifequal %}">{% trans "Contacts" %}</a>
@@ -75,6 +76,7 @@
     <li class="nav-item"><a href="{{core_campaign_add}}" target="_blank" class="nav-link">{% trans "New campaign" %}</a></li>
     <li class="nav-item"><a href="{{campaign_statistics_list}}" class="nav-link">{% trans "Campaign statistics" %}</a></li>
     <li class="nav-item"><a href="{{seller_performance_by_time}}" class="nav-link">{% trans "Sellers performance" %}</a></li>
+    <li class="nav-item"><a href="{{release_seller_contacts}}" class="nav-link">{% trans "Release seller contacts" %}</a></li>
     {% include_if_exists "campaign_management_sidebar_extra.html" %}
   </ul>
 </li>
