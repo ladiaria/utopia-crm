@@ -1,0 +1,32 @@
+{% extends 'adminlte/base.html' %}
+{% load  i18n %}
+
+{% block title %}{% trans "Release contacts from sellers" %}{% endblock %}
+
+{% block no_heading %}
+<h1>{% trans 'Campaign Management' %}</h1>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h2 class="card-title">{% trans "Release contacts that have not been worked from sellers to be available to other sellers on their respective campaigns" %}</h2>
+  </div>
+  <div class="card-body">
+    <table class="table table-bordered table-striped">
+      <tr>
+        <th width="auto">{% trans "Seller" %}</th>
+        <th width="20%"></th>
+      </tr>
+      {% for seller in seller_list %}
+        <tr class="{% cycle 'row1' 'row2' %}">
+          <td>{{ seller.name }}</td>
+          <td>
+            <a href="{% url 'release_seller_contacts' seller.id %}" onclick="return confirm('¿Liberar {{seller.contacts_not_worked}} contactos de {{seller.name}}? Esta acción no puede deshacerse.')" class="btn btn-primary">{% blocktrans with seller.contacts_not_worked as contacts_not_worked %}Release {{contacts_not_worked}} contacts{% endblocktrans %}</a>
+          </td>
+        </tr>
+      {% endfor %}
+    </table>
+  </div>
+</div>
+{% endblock %}
