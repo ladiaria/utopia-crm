@@ -318,10 +318,41 @@ class IssueStartForm(forms.ModelForm):
         queryset=User.objects.filter(is_staff=True).order_by('username'),
         widget=forms.Select(attrs={"class": "form-control", "autocomplete": "off"})
     )
+    contact_address = forms.ModelChoiceField(
+        Address.objects.all(),
+        required=False,
+        widget=forms.Select(attrs={"class": "form-control"}),
+    )
+    new_address = forms.BooleanField(
+        label=_("New address"), required=False, widget=forms.CheckboxInput(attrs={"class": "form-check-input"})
+    )
+    new_address_1 = forms.CharField(
+        required=False, widget=forms.TextInput(attrs={"class": "form-control"})
+    )
+    new_address_2 = forms.CharField(
+        required=False, widget=forms.TextInput(attrs={"class": "form-control"})
+    )
+    new_address_city = forms.CharField(
+        required=False, widget=forms.TextInput(attrs={"class": "form-control"})
+    )
+    new_address_state = forms.ChoiceField(
+        required=False, widget=forms.Select(attrs={"class": "form-control"})
+    )
+    if settings.USE_STATES_CHOICE:
+        new_address_state.choices = settings.STATES
+    new_address_notes = forms.CharField(
+        required=False, widget=forms.TextInput(attrs={"class": "form-control"})
+    )
+    new_address_type = forms.ChoiceField(
+        required=False,
+        choices=ADDRESS_TYPE_CHOICES,
+        widget=forms.Select(attrs={"class": "form-control"}),
+    )
 
     def clean(self):
         dict_categories = dict(ISSUE_CATEGORIES)
         category = self.cleaned_data.get("category")
+        print category
         sub_category = self.cleaned_data.get("sub_category")
         if sub_category.category and sub_category.category != category:
             msg = _("{} is not a subcategory of {}").format(sub_category, dict_categories[category])
@@ -335,7 +366,7 @@ class IssueStartForm(forms.ModelForm):
             "notes": forms.Textarea(attrs={"class": "form-control"}),
             "subscription_product": forms.Select(attrs={"class": "form-control"}),
             "subscription": forms.Select(attrs={"class": "form-control"}),
-            "category": forms.Select(attrs={"class": "form-control"}),
+            "category": forms.HiddenInput(attrs={"class": "form-control"}),
             "copies": forms.NumberInput(attrs={"class": "form-control"}),
         }
         fields = (

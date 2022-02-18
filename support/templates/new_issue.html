@@ -35,26 +35,12 @@ $( function() {
       $('.id_product').show();
       $('#id_status').prop('required',false);
     }
+  };
+  if ($('#id_new_address').is(":checked") ){
+    $('.newaddress-group').removeClass('d-none');
   }
-  // load subcats according to cats
-  function updateSubcats(){
-    var cat = $('#id_category').val();
-    $('#id_subcategory').val('N/A');
-    $('#id_subcategory option').each(function(){
-      if($(this).val() == 'N/A') {
-        $(this).show();
-      }else if ($(this).val().charAt(0) != cat) {
-        $(this).hide();
-      }else {
-        $(this).show();
-      }
-    })
-  }
-  categoryVal($("#id_category"));
-  updateSubcats();
-  $("#id_category").change(function(){
-    categoryVal($(this));
-    updateSubcats();
+  $('#id_new_address').click(function(){
+    $('.newaddress-group').toggleClass('d-none');
   });
 });
 </script>
@@ -71,15 +57,24 @@ $( function() {
     <div class="card">
       <div class="card-header p-2">
         <ul class="nav nav-pills">
-          <li class="new-item"><a class="nav-link active" href="{% url 'new_issue' contact.id %}">{% trans 'Regular issues' %}</a></li>
+          <li class="new-item"><a class="nav-link active" href="{% url 'new_issue' contact.id 'L' %}">{% trans 'Regular issues' %}</a></li>
           <li class="new-item"><a class="nav-link" href="{% url 'new_scheduled_task_address_change' contact.id %}">{% trans 'Change address' %}</a></li>
           <li class="new-item"><a class="nav-link" href="{% url 'new_scheduled_task_total_pause' contact.id %}">{% trans 'Pause subscription' %}</a></li>
           <li class="new-item"><a class="nav-link" href="{% url 'new_scheduled_task_partial_pause' contact.id  %}">{% trans 'Partial pause' %}</a></li>
         </ul>
+        <ul class="nav nav-pills">
+          <li class="new-item"><a class="nav-link {% if form.category.value == 'L'%}active{% endif %}" href="{% url 'new_issue' contact.id 'L' %}">{% trans 'Logistics' %}</a></li>
+          <li class="new-item"><a class="nav-link {% if form.category.value == 'I'%}active{% endif %}" href="{% url 'new_issue' contact.id 'I' %}">{% trans 'Invoicing' %}</a></li>
+          <li class="new-item"><a class="nav-link {% if form.category.value == 'C'%}active{% endif %}" href="{% url 'new_issue' contact.id 'C' %}">{% trans 'Contents' %}</a></li>
+          <li class="new-item"><a class="nav-link {% if form.category.value == 'W'%}active{% endif %}" href="{% url 'new_issue' contact.id 'W' %}">{% trans 'Web' %}</a></li>
+          <li class="new-item"><a class="nav-link {% if form.category.value == 'S'%}active{% endif %}" href="{% url 'new_issue' contact.id 'S' %}">{% trans 'Service' %}</a></li>
+          <li class="new-item"><a class="nav-link {% if form.category.value == 'O'%}active{% endif %}" href="{% url 'new_issue' contact.id 'O' %}">{% trans 'Community' %}</a></li>
+        </ul>
       </div>
       <div class="card-body">
-        <h3>{% trans "New issue" %}: {{contact.name}}</h3>
+        <h3>{% trans "New issue" %} ({{category_name}}): {{contact.name}}</h3>
         <form method="post">
+          {{form.category}}
           {% if form.errors %}
           {% for field in form %}
           {% for error in field.errors %}
@@ -101,14 +96,7 @@ $( function() {
             <span class="error invalid-feedback">{{form.contact.errors}}</span>
           </div>
           <div class="row">
-            <div class="col-6">
-              <div class="form-group">
-                <label for="id_category">{{form.category.label}}</label>
-                {{form.category}}
-                <span class="error invalid-feedback">{{form.category.errors}}</span>
-              </div>
-            </div>
-            <div class="col-6">
+            <div class="col-12">
               <div class="form-group">
                 <label for="id_sub_category">{{form.sub_category.label}}</label>
                 {{form.sub_category}}
@@ -154,6 +142,50 @@ $( function() {
             <label for="id_notes">{{form.notes.label}}</label>
             {{form.notes}}
             <span class="error invalid-feedback">{{form.notes.errors}}</span>
+          </div>
+          <div class="form-group">
+            <label for="id_contact_address">{{form.contact_address.label}}</label>
+            {{form.contact_address}}
+            <span class="error invalid-feedback">{{form.contact_address.errors}}</span>
+          </div>
+          <div class="form-group">
+            <div class="form-check">
+              {{form.new_address}}
+              <label for="id_new_address" class="form-check-label">{{form.new_address.label}}</label>
+            </div>
+          </div>
+          <div class="newaddress-group d-none">
+            <div class="row">
+              <div class="col-md-6 col-s-12">
+                <div class="form-group">
+                  <label for="id_new_address_1">{{form.new_address_1.label}}</label>
+                  {{form.new_address_1}}
+                  <span class="error invalid-feedback">{{form.new_address_1.errors}}</span>
+                </div>
+              </div>
+              <div class="col-md-6 col-s-12">
+                <div class="form-group">
+                  <label for="id_new_address_2">{{form.new_address_2.label}}</label>
+                  {{form.new_address_2}}
+                  <span class="error invalid-feedback">{{form.new_address_2.errors}}</span>
+                </div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 col-s-12">
+                <div class="form-group">
+                  <label for="id_new_address_city">{{form.new_address_city.label}}</label>
+                  {{form.new_address_city}}
+                  <span class="error invalid-feedback">{{form.new_address_city.errors}}</span>
+                </div>
+              </div>
+              <div class="col-md-6 col-s-12">
+                <div class="form-group">
+                  <label for="id_new_address_state">{{form.new_address_state.label}}</label>
+                  {{form.new_address_state}}
+                </div>
+              </div>
+            </div>
           </div>
           <div class="form-group text-right">
             <input type="submit" name="submit" value='{% trans "Send" %}' class="btn bg-gradient-primary">

@@ -204,7 +204,8 @@ class LogisticsLabel(Label):
 
         # Area de ruta
         p4 = PrintableArea(self.canvas, 0, self.height - barcode_h - 7 * self.octavio, self.width, 1 * self.octavio)
-        p4.putLine(">R_%s : O_%s %s" % (self.route, self.route_order or '?', self.route_suffix), bold=True)
+        if self.route:
+            p4.putLine(">R_%s : O_%s %s" % (self.route, self.route_order or '?', self.route_suffix), bold=True)
 
         # Area de iconos
         p5 = PrintableArea(self.canvas, self.width - 10 * mm, 1.7 * self.octavio, 10 * mm, 1.3 * self.octavio)
