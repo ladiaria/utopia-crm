@@ -1,4 +1,4 @@
-import requests
+import requests, collections
 from datetime import date, timedelta
 from django.conf import settings
 
@@ -58,6 +58,8 @@ def calc_price_from_products(products_with_copies, frequency):
     for product_id, copies in products_with_copies.items():
         product = Product.objects.get(pk=int(product_id))
         copies = int(copies)
+        if getattr(settings, 'DEBUG_PRODUCTS', False):
+            print("{} {} x{} = {}".format(product.name, copies, product.price, product.price * copies))
         if product.type == 'S':
             total_price += product.price * copies
         elif product.type == 'D':
@@ -84,6 +86,8 @@ def calc_price_from_products(products_with_copies, frequency):
     if discount_pct:
         frequency_discount_amount = round((total_price * discount_pct) / 100)
         total_price -= frequency_discount_amount
+    if getattr(settings, 'DEBUG_PRODUCTS', False):
+        print("Total: {}\n\n".format(total_price))
     return total_price
 
 
@@ -101,15 +105,25 @@ def process_products(input_product_dict):
     input_products_count = input_products.count()
     output_dict = {}
     for pricerule in PriceRule.objects.filter(active=True).order_by('priority'):
-        exit_rule = False
+        exit_loop = False
         products_in_list_and_pool = []
         pool = pricerule.products_pool.all()
         not_pool = pricerule.products_not_pool.all()
-        for product in not_pool:
-            if product in input_products or product.id in output_dict.keys():
-                # If any of the products is in the list of input products and on the not_pool, we skip the rule
-                exit_rule = True
-        if exit_rule:
+        ignore_product_bundle = pricerule.ignore_product_bundle.all()
+        if not_pool:
+            for product in not_pool:
+                if product in input_products or product.id in output_dict.keys():
+                    # If any of the products is in the list of input products and on the not_pool, we skip the rule
+                    exit_loop = True
+                    break
+        if exit_loop:
+            continue
+        if ignore_product_bundle:
+            for bundle in ignore_product_bundle:
+                if collections.Counter(list(input_products)) == collections.Counter(list(bundle.products.all())):
+                    exit_loop = True
+                    break
+        if exit_loop:
             continue
         for input_product in input_products:
             if input_product in pricerule.products_pool.all():

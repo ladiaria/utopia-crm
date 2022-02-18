@@ -9,7 +9,7 @@
 
 {% block object-tools-items %}
     <li><a href="/invoicing/contact_invoices/{{ object_id }}/" class="historylink">{% trans 'Invoices' %}</a></li>
-    <li><a href="{% url 'new_issue' object_id %}" class="historylink">{% trans 'New logistics issue' %}</a></li>
+    <li><a href="{% url 'new_issue' object_id 'L' %}" class="historylink">{% trans 'New logistics issue' %}</a></li>
     <li><a href="{% url 'new_scheduled_task_total_pause' object_id %}" class="historylink">{% trans 'Schedule total pause' %}</a></li>
     <li><a href="{% url 'new_scheduled_task_partial_pause' object_id %}" class="historylink">{% trans 'Schedule partial pause' %}</a></li>
     <li><a href="{% url 'new_scheduled_task_address_change' object_id %}" class="historylink">{% trans 'Schedule address change' %}</a></li>

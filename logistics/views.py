@@ -739,41 +739,51 @@ def issues_labels(request):
         iterator = hoja.iterator()
 
         for issue in issues:
-            if not issue.subscription_product:
-                continue
             if not issue.copies:
                 continue
             for copy in range(issue.copies):
                 label = iterator.next()
-                if issue.subscription_product.label_contact:
+                if issue.subscription_product and issue.subscription_product.label_contact:
                     label.name = issue.subscription_product.label_contact.name.upper()
                 else:
                     label.name = issue.contact.name.upper()
-                label.addresss = (
-                    issue.subscription_product.address.address_1 or '') + '\n' + (
-                    issue.subscription_product.address.address_2 or '')
-                label.route = getattr(issue.subscription_product.route, 'number', None)
-                label.route_order = issue.subscription_product.order
-                # Add the day of the product to the labels.
-                if issue.subscription_product.product.weekday == 1:  # Monday
-                    route_suffix = _('MONDAY')
-                elif issue.subscription_product.product.weekday == 2:  # Tuesday
-                    route_suffix = _('TUESDAY')
-                elif issue.subscription_product.product.weekday == 3:
-                    route_suffix = _('WEDENESDAY')
-                elif issue.subscription_product.product.weekday == 4:
-                    route_suffix = _('THURSDAY')
-                elif issue.subscription_product.product.weekday == 5:
-                    route_suffix = _('FRIDAY')
-                elif issue.subscription_product.product.weekday == 6:
-                    route_suffix = _('SATURDAY')
-                elif issue.subscription_product.product.weekday == 7:
-                    route_suffix = _('SUNDAY')
-                elif issue.subscription_product.product.weekday == 10:
-                    route_suffix = _('WEEKEND')
+                if issue.address:
+                    label.address = (
+                        issue.address.address_1 or '') + '\n' + (
+                        issue.address.address_2 or '')
+                    label.route = ""
+                    label.route_order = ""
                 else:
-                    route_suffix = issue.subscription_product.product.name
-                label.route_suffix = route_suffix
+                    label.address = (
+                        issue.subscription_product.address.address_1 or '') + '\n' + (
+                        issue.subscription_product.address.address_2 or '')
+                if issue.subscription_product and issue.subscription_product.route:
+                    label.route = issue.subscription_product.route.number
+                    label.route_order = issue.subscription_product.order
+                else:
+                    label.route, label.route_order = None, None
+                # Add the day of the product to the labels.
+                if issue.subscription_product:
+                    if issue.subscription_product.product.weekday == 1:  # Monday
+                        label.message_for_contact = _("MONDAY")
+                    elif issue.subscription_product.product.weekday == 2:  # Tuesday
+                        label.message_for_contact = _("TUESDAY")
+                    elif issue.subscription_product.product.weekday == 3:
+                        label.message_for_contact = _("WEDNESDAY")
+                    elif issue.subscription_product.product.weekday == 4:
+                        label.message_for_contact = _("THURSDAY")
+                    elif issue.subscription_product.product.weekday == 5:
+                        label.message_for_contact = _("FRIDAY")
+                    elif issue.subscription_product.product.weekday == 6:
+                        label.message_for_contact = _("SATURDAY")
+                    elif issue.subscription_product.product.weekday == 7:
+                        label.message_for_contact = _("SUNDAY")
+                    elif issue.subscription_product.product.weekday == 10:
+                        label.message_for_contact = _("WEEKEND")
+                    else:
+                        label.message_for_contact = issue.subscription_product.product.name
+                elif issue.product:
+                    label.message_for_contact = issue.product.name
                 label.draw()
         hoja.flush()
         canvas.save()

@@ -107,6 +107,7 @@ class Issue(models.Model):
     )
     subscription = models.ForeignKey("core.Subscription", null=True, blank=True)
     product = models.ForeignKey("core.Product", null=True, blank=True)
+    address = models.ForeignKey("core.Address", null=True, blank=True)
 
     class Meta:
         pass

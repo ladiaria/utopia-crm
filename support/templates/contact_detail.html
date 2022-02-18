@@ -19,7 +19,7 @@ $( function() {
             {% if request.user|in_group:"Support" or request.user|in_group:"Managers" %}
               <div class="text-right col-sm-7">
                 {% if request.user|in_group:"Managers" or request.user|in_group:"Support" or request.user|in_group:"Finances" %}<a href='{% url "admin:core_contact_change" contact.id %}' class="btn btn-sm btn-primary"><i class="fas fa-eye"></i> {% trans "See in Admin" %}</a>{% endif %}
-                <a href="{% url 'new_issue' contact.id %}" target="_blank" class="btn btn-sm btn-primary"><i class="fas fa-plus-circle"></i> Nueva incidencia</a>
+                <a href="{% url 'new_issue' contact.id 'L' %}" target="_blank" class="btn btn-sm btn-primary"><i class="fas fa-plus-circle"></i> Nueva incidencia</a>
                 <a href="{% url 'new_scheduled_task_total_pause' contact.id %}" target="_blank" class="btn btn-sm btn-primary"><i class="far fa-clock"></i> Pausa total</a>
                 <a href="{% url 'new_scheduled_task_partial_pause' contact.id %}" target="_blank" class="btn btn-sm btn-primary"><i class="far fa-clock"></i> Pausa parcial</a>
                 <a href="{% url 'new_scheduled_task_address_change' contact.id %}" target="_blank" class="btn btn-sm btn-primary"><i class="fas fa-address-book"></i> Cambio de dirección</a>
