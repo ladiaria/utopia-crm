@@ -83,7 +83,7 @@ urlpatterns = [
     url(r"^list_issues/$", list_issues, name="list_issues"),
     url(r"^invoicing_issues/$", invoicing_issues, name="invoicing_issues"),
     url(r"^debtor_contacts/$", debtor_contacts, name="debtor_contacts"),
-    url(r"^new_issue/(\d+)/$", new_issue, name="new_issue"),
+    url(r"^new_issue/(\d+)/(\w+)/$", new_issue, name="new_issue"),
     url(
         r"^new_scheduled_task/total_pause/(\d+)/$",
         new_scheduled_task_total_pause,

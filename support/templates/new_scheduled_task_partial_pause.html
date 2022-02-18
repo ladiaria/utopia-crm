@@ -39,7 +39,7 @@ $(function(){
     <div class="card">
       <div class="card-header p-2">
         <ul class="nav nav-pills">
-          <li class="new-item"><a class="nav-link" href="{% url 'new_issue' contact.id %}">{% trans 'Regular issues' %}</a></li>
+          <li class="new-item"><a class="nav-link" href="{% url 'new_issue' contact.id 'L' %}">{% trans 'Regular issues' %}</a></li>
           <li class="new-item"><a class="nav-link" href="{% url 'new_scheduled_task_address_change' contact.id %}">{% trans 'Change address' %}</a></li>
           <li class="new-item"><a class="nav-link" href="{% url 'new_scheduled_task_total_pause' contact.id %}">{% trans 'Pause subscription' %}</a></li>
           <li class="new-item"><a class="nav-link active" href="{% url 'new_scheduled_task_partial_pause' contact.id  %}">{% trans 'Partial pause' %}</a></li>

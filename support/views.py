@@ -66,7 +66,8 @@ from .forms import (
     ContactCampaignStatusByDateForm,
 )
 from logistics.models import Route
-from .models import Seller, ScheduledTask, IssueStatus, Issue
+from .models import Seller, ScheduledTask, IssueStatus, Issue, IssueSubcategory
+from .choices import ISSUE_CATEGORIES
 from support.management.commands.run_scheduled_tasks import run_address_change, run_start_of_total_pause
 from core.utils import calc_price_from_products, process_products
 from core.forms import ContactAdminForm
@@ -1225,7 +1226,7 @@ def list_issues(request):
 
 
 @login_required
-def new_issue(request, contact_id):
+def new_issue(request, contact_id, category="L"):
     """
     Creates an issue of a selected category and subcategory.
     """
@@ -1233,6 +1234,17 @@ def new_issue(request, contact_id):
     if request.POST:
         form = IssueStartForm(request.POST)
         if form.is_valid():
+            if form.cleaned_data.get("new_address"):
+                address = Address.objects.create(
+                contact=contact,
+                address_1=form.cleaned_data.get("new_address_1"),
+                address_2=form.cleaned_data.get("new_address_2"),
+                city=form.cleaned_data.get("new_address_city"),
+                state=form.cleaned_data.get("new_address_state"),
+                notes=form.cleaned_data.get("new_address_notes"),
+            )
+            else:
+                address = form.cleaned_data.get("contact_address")
             if form.cleaned_data["status"]:
                 status = form.cleaned_data["status"]
             elif form.cleaned_data["assigned_to"]:
@@ -1251,6 +1263,7 @@ def new_issue(request, contact_id):
                 inside=False,
                 manager=request.user,
                 assigned_to=form.cleaned_data["assigned_to"],
+                address=address,
                 status=status,
             )
             Activity.objects.create(
@@ -1267,12 +1280,16 @@ def new_issue(request, contact_id):
         form = IssueStartForm(initial={
             'copies': 1,
             'contact': contact,
-            'category': 'L',
+            'category': category,
             'activity_type': 'C',
         })
-    form.fields['subscription_product'].queryset = contact.get_active_subscriptionproducts()
-    form.fields['subscription'].queryset = contact.get_active_subscriptions()
-    return render(request, "new_issue.html", {"contact": contact, "form": form})
+    form.fields["subscription_product"].queryset = contact.get_active_subscriptionproducts()
+    form.fields["subscription"].queryset = contact.get_active_subscriptions()
+    form.fields["contact_address"].queryset = contact.addresses.all()
+    form.fields["sub_category"].queryset = IssueSubcategory.objects.filter(category=category)
+    dict_categories = dict(ISSUE_CATEGORIES)
+    category_name = dict_categories[category]
+    return render(request, "new_issue.html", {"contact": contact, "form": form, "category_name": category_name})
 
 
 @login_required

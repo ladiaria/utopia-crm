@@ -1713,6 +1713,7 @@ class PriceRule(models.Model):
     # This is the order in which every rule will be checked, from lower to higher. This will probably be renamed to
     # something like "order" in the future.
     priority = models.PositiveSmallIntegerField(null=True, blank=True)
+    ignore_product_bundle = models.ManyToManyField('core.ProductBundle', blank=True)
 
 
 class DynamicContactFilter(models.Model):
@@ -1834,3 +1835,16 @@ class DynamicContactFilter(models.Model):
 
     def get_autosync(self):
         return _("Active") if self.autosync else _("Inactive")
+
+
+class ProductBundle(models.Model):
+    products = models.ManyToManyField(Product)
+
+    def __unicode__(self):
+        return_str = u"Bundle: "
+        for index, product in enumerate(self.products.all()):
+            if index > 0:
+                return_str += u" + {}".format(product.name)
+            else:
+                return_str += u"{}".format(product.name)
+        return return_str

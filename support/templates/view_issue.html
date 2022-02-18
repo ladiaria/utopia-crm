@@ -1,5 +1,5 @@
 {% extends 'adminlte/base.html' %}
-{% load static i18n sip core_tags %}
+{% load static i18n sip_tags core_tags %}
 
 {% block title %}
 {% trans "View issue" %}
@@ -60,11 +60,17 @@ $(function(){
                             <dd>{{issue.subscription_product.address}}</dd>
                             <dd>{{issue.subscription_product.route}}</dd>
                             {% endif %}
-                            {% if issue.prodouct %}
-                            <dd>{% trans "Product" %}: {{issue.product}}</dd>
+                            {% if issue.product %}
+                            <dt>{% trans "Product" %}</dt>
+                            <dd>{{issue.product}}</dd>
+                            {% endif %}
+                            {% if issue.address %}
+                            <dt>{% trans "Address" %}</dt>
+                            <dd>{{issue.address}}</dd>
                             {% endif %}
                             {% if issue.subscription %}
-                            <dd>{% trans "Subscription" %}: {{issue.subscription}}</dd>
+                            <dt>{% trans "Subscription" %}</dt>
+                            <dd>{{issue.subscription}}</dd>
                             {% endif %}
                             {% ifequal issue.category "I" %}
                             {% if issue.contact.get_debt %}
