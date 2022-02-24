@@ -48,9 +48,9 @@
               <td data-toggle="tooltip" title='{% trans "Amount of contacts for tomorrow" %}'>{{ route.unordered_future }}</td>
               <td>
                 {% if request.user|in_group:"Logistics" %}
-                  <a target="_blank" href='{% url "order_route" route.number %}?subscriptions=active' class="btn btn-primary">{% trans "Order actives" %}</a>
-                  <a target="_blank" href='{% url "order_route" route.number %}?subscriptions=future' class="btn btn-primary">{% trans "Order future" %}</a>
-                  <a target="_blank" href='{% url "order_route" route.number %}?subscriptions=all' class="btn btn-primary">{% trans "Order all" %}</a>
+                  <a target="_blank" href='{% url "order_route" route.number %}?active_future=active' class="btn btn-primary">{% trans "Order actives" %}</a>
+                  <a target="_blank" href='{% url "order_route" route.number %}?active_future=future' class="btn btn-primary">{% trans "Order future" %}</a>
+                  <a target="_blank" href='{% url "order_route" route.number %}?active_future=both' class="btn btn-primary">{% trans "Order all" %}</a>
                 {% endif %}
               </td>
           </tr>
