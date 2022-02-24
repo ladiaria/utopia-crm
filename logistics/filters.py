@@ -60,7 +60,7 @@ class OrderRouteFilter(django_filters.FilterSet):
 
     def filter_by_active(self, queryset, name, value):
         active_qs = queryset.filter(subscription__active=True)
-        future_qs = queryset.filter(subscription__active=True, subscription__start_date__gte=date.today())
+        future_qs = queryset.filter(subscription__active=False, subscription__start_date__gte=date.today())
         if value == "active":
             return active_qs
         elif value == "future":
