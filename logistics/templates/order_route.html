@@ -1,5 +1,5 @@
 {% extends "adminlte/base.html" %}
-{% load static i18n %}
+{% load static i18n widget_tweaks core_tags %}
 
 {% block extra_js %}
 <script type="text/javascript">
@@ -49,27 +49,52 @@ $(function(){
     <h3 class="card-title">{% trans "Order susbscription products on route" %} {{route.number}} - {{route.name}}{% if product %} - {% trans "Product" %}: {{product.name}}{% endif %}</h3>
   </div>
   <div class="card-body">
-    <div class="card card-outline card-primary">
-      <div class="card-header">
-        <h3 class="card-title">{% trans 'Filter by product' %}</h3>
-        <div class="card-tools">
-          <button type="button" class="btn btn-tool" data-card-widget="collapse"><i class="fas fa-minus"></i>
-          </button>
+    <div class="col-md-12">
+      <div class="card card-outline card-primary">
+        <div class="card-header">
+          <h3 class="card-title">{% trans 'Filter' %}</h3>
+          <div class="card-tools">
+              <button type="button" class="btn btn-tool" data-card-widget="collapse"><i class="fas fa-minus"></i>
+              </button>
+            </div>
+        </div>
+        <div class="card-body">
+          <form method="GET" id="form">
+            <div class="row">
+              <div class="form-group row col">
+                <label for="tags" class="col-sm-3 col-form-label">{% trans 'Product' %}</label>
+                <div class="col-sm-3">
+                  {% render_field filter.form.product class="form-control" %}
+                </div>
+                <label for="tags" class="col-sm-3 col-form-label">{% trans 'Product weekday' %}</label>
+                <div class="col-sm-3">
+                  {% render_field filter.form.weekday class="form-control" %}
+                </div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="form-group row col">
+                <label for="tags" class="col-sm-3 col-form-label">{% trans 'Empty order' %}</label>
+                <div class="col-sm-3">
+                  {% render_field filter.form.empty_order class="form-control" %}
+                </div>
+                <label for="tags" class="col-sm-3 col-form-label">{% trans 'Active/Future' %}</label>
+                <div class="col-sm-3">
+                  {% render_field filter.form.active_future class="form-control" %}
+                </div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="form-group col-12 text-right">
+                <a href="javascript:addParam('print=True')" class="btn-primary btn">{% trans "Print view" %}</a>
+                <input type="submit" class="btn bg-gradient-primary" value="{% trans 'Search' %}" />
+              </div>
+            </div>
+          </form>
         </div>
       </div>
-      <div class="card-body">
-        <div class="form-group">
-          <select id="product_select" class="form-control">
-            <option value="all">{% trans 'All' %}</option>
-            {% for p in product_list %}
-            <option value="{{p.id}}" {% if product.id == p.id %}selected{% endif %}>{{p.name}}</option>
-            {% endfor %}
-          </select>
-        </div>
-      </div>
-      <a href="javascript:addParam('print=True')" class="btn-primary btn">{% trans "Print view" %}</a>
-      <a href="javascript:addParam('only_empty=True')" class="btn-primary btn">{% trans "Show only empty orders" %}</a>
     </div>
+
     <form action="" method="post">
       {% csrf_token %}
       <div class="table-responsive">
