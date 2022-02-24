@@ -88,6 +88,7 @@ $(function(){
               <div class="form-group col-12 text-right">
                 <a href="javascript:addParam('print=True')" class="btn-primary btn">{% trans "Print view" %}</a>
                 <input type="submit" class="btn bg-gradient-primary" value="{% trans 'Search' %}" />
+                {{subscription_products.count}} {% trans "products" %}
               </div>
             </div>
           </form>
