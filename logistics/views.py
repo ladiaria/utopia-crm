@@ -13,7 +13,7 @@ from django.utils.text import format_lazy
 from django.utils.translation import ugettext_lazy as _
 from django.db.models import Sum
 from django.contrib.auth.decorators import login_required, permission_required
-from django.db.models import F
+from django.db.models import F, Q
 from django.contrib import messages
 
 from reportlab.pdfgen.canvas import Canvas
@@ -25,6 +25,7 @@ from support.models import Issue
 
 from util.dates import next_business_day, format_date
 from .labels import LogisticsLabel, LogisticsLabel96x30, Roll, Roll96x30
+from .filters import OrderRouteFilter
 
 
 @login_required
@@ -123,6 +124,27 @@ def assign_routes_future(request):
 
 
 @login_required
+def order_route_list(request):
+    """
+    Shows a list of routes to be ordered.
+    """
+    orderable_routes = Route.objects.filter(active=True, print_labels=True).order_by('number')
+    for route in orderable_routes:
+        route.unordered_active = route.subscriptionproduct_set.filter(
+            order__isnull=True, subscription__active=True).count()
+        route.unordered_future = route.subscriptionproduct_set.filter(
+            order__isnull=True,
+            subscription__active=False,
+            subscription__start_date__gte=date.today()).count()
+    return render(
+        request, 'order_routes_list.html', {
+            'orderable_routes': orderable_routes,
+        }
+    )
+
+
+
+@login_required
 def order_route(request, route_id=1):
     """
     Orders contacts inside of a route by SubscriptionProduct. Takes to route 1 by default.
@@ -148,23 +170,13 @@ def order_route(request, route_id=1):
         return HttpResponseRedirect(reverse('order_route', args=[route_id]))
 
     subscription_products = SubscriptionProduct.objects.filter(
-        route=route_object, subscription__active=True, product__type='S', product__offerable=True).exclude(
-            product__digital=True).select_related(
-            'subscription__contact', 'address').order_by('order', 'address__address_1')
+        route=route_object).exclude(product__digital=True).order_by('order', 'address__address_1')
+    subscription_products_filter = OrderRouteFilter(request.GET, queryset=subscription_products)
     if request.GET:
-        product_id = request.GET.get('product_id', 'all')
-        if product_id != 'all':
-            product = Product.objects.get(pk=product_id)
-            subscription_products = subscription_products.filter(product=product)
-        exclude = request.GET.get('exclude', None)
-        if exclude:
-            subscription_products = subscription_products.exclude(product_id=exclude)
-        if request.GET.get('only_empty', None):
-            subscription_products = subscription_products.filter(order=None)
         if request.GET.get('print', None):
             return render(
                 request, 'order_route_print.html', {
-                    'subscription_products': subscription_products,
+                    'subscription_products': subscription_products_filter.qs,
                     'route': route_object,
                     'product_list': product_list,
                     'product_id': product_id,
@@ -172,7 +184,9 @@ def order_route(request, route_id=1):
                 })
     return render(
         request, 'order_route.html', {
-            'subscription_products': subscription_products,
+            "subscription_products": subscription_products_filter.qs,
+            "filter": subscription_products_filter,
+            "count": subscription_products_filter.qs.count(),
             'route': route_object,
             'product_list': product_list,
             'product_id': product_id,
