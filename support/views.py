@@ -2458,9 +2458,13 @@ def book_additional_product(request, subscription_id):
             for product_id in new_products_ids_list:
                 product = Product.objects.get(pk=product_id)
                 if product not in new_subscription.products.all():
+                    if old_subscription.contact.address_set.exists():
+                        default_address = old_Subscription.contact.address_set.first()
+                    else:
+                        default_address = None
                     new_subscription.add_product(
                         product=product,
-                        address=None,
+                        address=default_address,
                     )
             # After that, we'll set the unsubscription date to this new subscription
             success_text = format_lazy(
