@@ -33,9 +33,9 @@ $( function() {
     function handleFormSuccess(data){
         $.each(data, function (key, entry) {
             $(".address_selector").each(function(){
-                $(this).append($('<option selected></option>').attr('value', key).text(entry));
+                $(this).append($('<option></option>').attr('value', key).text(entry));
             });
-            $("#id_default_address").append($('<option selected></option>').attr('value', key).text(entry));
+            $("#id_default_address").append($('<option></option>').attr('value', key).text(entry));
         });
         $("#address_form").trigger("reset");
         $('#address_modal').modal('hide');
