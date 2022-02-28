@@ -1218,6 +1218,6 @@ def print_labels_for_product_date(request):
         return response
     else:
         products = Product.objects.filter(offerable=True, type='S')
-        return render(request, 'ladiaria_print_labels_for_product.html', {
+        return render(request, 'print_labels_for_product_date.html', {
             'products': products,
         })
