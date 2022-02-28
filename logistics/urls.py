@@ -4,7 +4,8 @@ from logistics.views import (
     assign_routes, order_route, change_route, list_routes, route_details, issues_labels, print_labels_for_product,
     print_labels_from_csv, edition_time, print_labels, logistics_issues_statistics, issues_per_route,
     issues_route_list, print_routes_simple, list_routes_detailed, convert_orders_to_tens, print_unordered_subscriptions,
-    print_labels_for_day, assign_routes_future, order_route_list)
+    print_labels_for_day, assign_routes_future, order_route_list, print_labels_for_product_date
+    )
 
 from django.conf.urls import url
 
@@ -35,6 +36,7 @@ urlpatterns = [
         print_labels, name='print_labels'),
     url(r'^print_labels_from_csv/$', print_labels_from_csv, name='print_labels_from_csv'),
     url(r'^print_labels_for_day/$', print_labels_for_day, name='print_labels_for_day'),
+    url(r'^print_labels_for_product_date/$', print_labels_for_product_date, name='print_labels_for_product_date'),
 
     url(r'^edition_time/(?P<direction>arrival|departure)/$', edition_time, name='edition_time'),
 ]
