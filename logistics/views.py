@@ -1119,3 +1119,105 @@ def convert_orders_to_tens(request, route_id):
             order_i += 10
     messages.success(request, _("All orders have been converted to tens."))
     return HttpResponseRedirect(reverse("order_route", args=[route.number]))
+
+
+@login_required
+def print_labels_for_product_date(request):
+    """
+    Print labels for a specific product on a specific date
+    """
+    if request.POST:
+        product = get_object_or_404(Product, pk=request.POST.get('product_id', None))
+        date_str = request.POST.get('date', None)
+        date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
+        response = HttpResponse(content_type='application/pdf')
+        response['Content-Disposition'] = \
+            'attachment; filename=labels-{}-{}.pdf'.format(product.name, date_str)
+        Page = globals()['Roll']  # It's always a roll for now. TODO: Change
+        canvas = Canvas(response, pagesize=(Page.width, Page.height))
+        sheet = Page(LogisticsLabel, canvas)
+        iterator = sheet.iterator()
+        # If not, all the queryset gets rendered into the labels
+        subscription_products = SubscriptionProduct.objects.filter(
+            Q(subscription__end_date__gte=date_obj) | Q(subscription__end_date__isnull=True),
+            active=True,
+            product=product,
+            subscription__status="OK",
+            subscription__start_date__lte=date_obj,
+            ).order_by(
+                'route', F('order').asc(nulls_first=True), 'address__address_1')
+
+        old_route = 0
+
+        for sp in subscription_products:
+
+            if sp.address is None:
+                continue
+
+            # Separator between routes
+            if sp.route and old_route != sp.route:
+                label = iterator.next()
+                label.separador()
+                old_route = sp.route
+
+            # Here we'll show an icon if the contact has one of the payment types marked on settings.
+            label_invoice_payment_types = getattr(settings, 'LABEL_INVOICE_PAYMENT_TYPES', [])
+
+            has_invoice = (
+                label_invoice_payment_types and sp.subscription.payment_type
+                and sp.subscription.payment_type in label_invoice_payment_types and not sp.subscription.billing_address
+                and sp.subscription.contact.invoice_set.filter(print_date__gte=date.today() - timedelta(30)).exists()
+            )
+
+            for copy in range(sp.copies):
+
+                label = iterator.next()
+
+                if sp.subscription.envelope or sp.subscription.free_envelope:
+                    label.envelope = True
+
+                if sp.subscription.start_date == next_business_day():
+                    label.new = True
+
+                if sp.special_instructions:
+                    label.special_instructions = True
+
+                if sp.label_message and sp.label_message.strip():
+                    label.message_for_contact = sp.label_message
+                else:
+                    if sp.subscription.type == 'P':
+                        if sp.seller:
+                            ref = sp.seller.name
+                        else:
+                            ref = u"un amigo"  # TODO: i18n
+                        label.message_for_contact = u"Recomendado por {}".format(ref)  # TODO: i18n
+                    # When we have a 2x1 plan we should put it here
+                    # elif getattr(sp.subscription.product, 'id', None) == 6:
+                    #     eti.comunicar_cliente = "2x1"
+
+                if sp.label_contact:
+                    label.name = sp.label_contact.name.upper()
+                else:
+                    label.name = sp.subscription.contact.name.upper()
+                label.address = (sp.address.address_1 or '') + '\n' + (sp.address.address_2 or '')
+                if sp.route:
+                    label.route = sp.route.number
+                    label.route_order = sp.order
+                else:
+                    label.route = None
+                    label.route_order = None
+
+                label.has_invoice = (
+                    has_invoice
+                    and sp.subscription.get_first_product_by_priority()
+                    and sp.subscription.get_first_product_by_priority() == product
+                )
+                label.draw()
+        sheet.flush()
+        canvas.save()
+        return response
+    else:
+        products = Product.objects.filter(offerable=True, type='S')
+        return render(request, 'ladiaria_print_labels_for_product.html', {
+            'products': products,
+        })
