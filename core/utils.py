@@ -77,16 +77,15 @@ def calc_price_from_products(products_with_copies, frequency):
         discounted_product_price = 0
         for product in advanced_discount.find_products.all():
             if product.id in products_with_copies.keys():
-                # TODO: REMOVE THIS, this is here for debug
-                print(product)  
                 if product.type == 'S':
                     discounted_product_price += int(products_with_copies[product.id]) * product.price
                 else:
                     discounted_product_price -= int(products_with_copies[product.id]) * product.price
-        if advanced_discount.products_mode == 1:
-            discounted_product_price -= advanced_discount.value
+        if advanced_discount.value_mode == 1:
+            discounted_product_price = advanced_discount.value
         else:
             discounted_product_price = round((discounted_product_price * advanced_discount.value) / 100)
+        total_price -= discounted_product_price
 
     # After calculating the prices of S and D products, we need to calculate the one for P.
     # It's important that we only put one percentage discount product.
@@ -108,7 +107,7 @@ def calc_price_from_products(products_with_copies, frequency):
         total_price -= frequency_discount_amount
     if getattr(settings, 'DEBUG_PRODUCTS', False):
         print("Total: {}\n\n".format(total_price))
-    return total_price
+    return int(round(total_price))
 
 
 def process_products(input_product_dict):
