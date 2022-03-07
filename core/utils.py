@@ -49,11 +49,12 @@ def calc_price_from_products(products_with_copies, frequency):
     """
     Returns the prices, we need the products already processed.
     """
-    from core.models import Product
+    from core.models import Product, AdvancedDiscount
 
     total_price, discount_pct, frequency_discount_amount, frequency = 0, 0, 0, int(frequency)
 
     percentage_discount = None
+    advanced_discount_list = []
 
     for product_id, copies in products_with_copies.items():
         product = Product.objects.get(pk=int(product_id))
@@ -67,6 +68,24 @@ def calc_price_from_products(products_with_copies, frequency):
             total_price -= product.price
         elif product.type == 'P':
             percentage_discount = product
+        elif product.type == 'A':
+            advanced_discount_list.append(product)
+
+    # After calculating the prices of the product, we check out every product in the advanced_discount_list
+    for discount_product in advanced_discount_list:
+        advanced_discount = AdvancedDiscount.objects.get(discount_product=discount_product)
+        discounted_product_price = 0
+        for product in advanced_discount.find_products.all():
+            if product.id in products_with_copies.keys():
+                if product.type == 'S':
+                    discounted_product_price += int(products_with_copies[product.id]) * product.price
+                else:
+                    discounted_product_price -= int(products_with_copies[product.id]) * product.price
+        if advanced_discount.value_mode == 1:
+            discounted_product_price = advanced_discount.value
+        else:
+            discounted_product_price = round((discounted_product_price * advanced_discount.value) / 100)
+        total_price -= discounted_product_price
 
     # After calculating the prices of S and D products, we need to calculate the one for P.
     # It's important that we only put one percentage discount product.
@@ -88,7 +107,7 @@ def calc_price_from_products(products_with_copies, frequency):
         total_price -= frequency_discount_amount
     if getattr(settings, 'DEBUG_PRODUCTS', False):
         print("Total: {}\n\n".format(total_price))
-    return total_price
+    return int(round(total_price))
 
 
 def process_products(input_product_dict):

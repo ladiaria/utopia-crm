@@ -29,6 +29,7 @@ from .models import (
     SubscriptionNewsletter,
     DynamicContactFilter,
     ProductBundle,
+    AdvancedDiscount,
 )
 from .forms import SubscriptionAdminForm, ContactAdminForm
 
@@ -391,3 +392,4 @@ admin.site.register(PriceRule, PriceRuleAdmin)
 admin.site.register(SubscriptionProduct, SubscriptionProductAdmin)
 admin.site.register(DynamicContactFilter)
 admin.site.register(ProductBundle)
+admin.site.register(AdvancedDiscount)
