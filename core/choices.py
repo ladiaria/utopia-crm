@@ -140,6 +140,7 @@ PRODUCT_TYPE_CHOICES = (
     ('N', _('Newsletter')),
     ('D', _('Discount')),
     ('P', _('Percentage discount')),
+    ('A', _('Advanced discount')),
     ('O', _('Other')),
 )
 
@@ -191,4 +192,14 @@ UNSUBSCRIPTION_TYPE_CHOICES = (
 DEBTOR_CONCACTS_CHOICES = (
     (1, _("Exclude debtors")),
     (2, _("Only debtors")),
+)
+
+DISCOUNT_VALUE_MODE_CHOICES = (
+    (1, _('Integer')),
+    (2, _('Percentage')),
+)
+
+DISCOUNT_PRODUCT_MODE_CHOICES = (
+    (1, _('Find at least one product')),
+    (2, _('Find all products')),
 )
