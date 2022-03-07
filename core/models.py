@@ -43,6 +43,8 @@ from .choices import (
     SUBSCRIPTION_TYPE_CHOICES,
     UNSUBSCRIPTION_TYPE_CHOICES,
     VARIABLE_TYPES,
+    DISCOUNT_PRODUCT_MODE_CHOICES,
+    DISCOUNT_VALUE_MODE_CHOICES,
 )
 from utils import (
     delete_email_from_mailtrain_list,
@@ -1675,7 +1677,7 @@ class PriceRule(models.Model):
     # that are still being checked for the rule are present, then the current check is discarded.
     products_not_pool = models.ManyToManyField(
         Product,
-        limit_choices_to={"type__in": "DS"},
+        limit_choices_to={"type__in": "DSA"},
         related_name="not_pool",
         blank=True,
     )
@@ -1848,3 +1850,18 @@ class ProductBundle(models.Model):
             else:
                 return_str += u"{}".format(product.name)
         return return_str
+
+
+class AdvancedDiscount(models.Model):
+    discount_product = models.ForeignKey(Product, related_name="discount")
+    find_products = models.ManyToManyField(Product, related_name="find_products_discount")
+    products_mode = models.PositiveSmallIntegerField(choices=DISCOUNT_PRODUCT_MODE_CHOICES)
+    value_mode = models.PositiveSmallIntegerField(choices=DISCOUNT_VALUE_MODE_CHOICES)
+    value = models.PositiveSmallIntegerField(default=0)
+
+    def __unicode__(self):
+        if self.value_mode == 2:
+            value = "{}%".format(self.value)
+        else:
+            value = "${}".format(self.value)
+        return "{} ({})".format(self.discount_product.name, value)
