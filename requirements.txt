@@ -21,7 +21,7 @@ mercadopago
 postgis
 progress
 psycopg2
-pyPdf
+PyPDF2
 python-dateutil
 python-memcached
 reportlab

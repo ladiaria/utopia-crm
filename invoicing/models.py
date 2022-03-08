@@ -1,5 +1,5 @@
 # coding=utf-8
-from __future__ import unicode_literals
+
 from datetime import date
 
 from django.db import models
@@ -61,7 +61,7 @@ class Invoice(models.Model):
     billing = models.ForeignKey("invoicing.Billing", blank=True, null=True, on_delete=models.SET_NULL)
 
     def __unicode__(self):
-        return u'%s %d' % (_('Invoice'), self.id)
+        return '%s %d' % (_('Invoice'), self.id)
 
     def calc_total_amount(self):
         """
@@ -125,7 +125,7 @@ class Invoice(models.Model):
                 else:
                     if index > 0:
                         resp += ", "
-                    resp += unicode(item.description)
+                    resp += str(item.description)
         if html:
             resp += "</ul>"
         return resp
@@ -178,7 +178,7 @@ class InvoiceItem(models.Model):
     )
 
     def __unicode__(self):
-        return unicode(self.description)
+        return str(self.description)
 
     class Meta:
         verbose_name = "invoice item"

@@ -8,7 +8,7 @@ os.environ['DJANGO_SETTINGS_MODULE'] = 'settings'
 UTOPIA_CRM_VIRTUALENV = '/opt/venv/utopiacrm'
 
 # Avctivate it and assign the application variable
-execfile(os.path.join(UTOPIA_CRM_VIRTUALENV, 'bin/activate_this.py'),
+exec(compile(open(os.path.join(UTOPIA_CRM_VIRTUALENV, 'bin/activate_this.py'), "rb").read(), os.path.join(UTOPIA_CRM_VIRTUALENV, 'bin/activate_this.py'), 'exec'),
     dict(__file__=os.path.join(UTOPIA_CRM_VIRTUALENV, 'bin/activate_this.py')))
 
 from django.core.wsgi import get_wsgi_application

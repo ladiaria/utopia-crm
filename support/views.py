@@ -1,5 +1,5 @@
 # coding=utf-8
-from __future__ import division
+
 import unicodecsv
 import collections
 from datetime import date, timedelta, datetime
@@ -112,7 +112,7 @@ def import_contacts(request):
         try:
             reader = csv_sreader(request.FILES["file"].read())
             # consume header
-            reader.next()
+            next(reader)
         except unicodecsv.Error:
             messages.error(request, _("No delimiters found in csv file. Please check the delimiters for csv files."))
             return HttpResponseRedirect(reverse("import_contacts"))
@@ -203,7 +203,7 @@ def import_contacts(request):
         errors_in_changes = []
         changed_list = []
         try:
-            for name, value in request.POST.items():
+            for name, value in list(request.POST.items()):
                 if name.startswith("move") and value == "M":
                     contact = Contact.objects.get(pk=name.replace("move-", ""))
                     contact.add_to_campaign(campaign_id)
@@ -220,7 +220,7 @@ def import_contacts(request):
                         contact.tags.add(tag)
                     changed_list.append(contact)
         except Exception as e:
-            errors_in_changes.append(u"{} - {}".format(contact.id, e.message))
+            errors_in_changes.append("{} - {}".format(contact.id, e.message))
         return render(
             request, "import_contacts.html", {
                 "changed_list": changed_list,
@@ -261,7 +261,7 @@ def seller_console_list_campaigns(request):
             )
     else:
         special_routes = None
-    if special_routes and all(value == 0 for value in special_routes.values()):
+    if special_routes and all(value == 0 for value in list(special_routes.values())):
         special_routes = None
 
     # We'll make these lists so we can append the sub count to each campaign
@@ -320,9 +320,9 @@ def seller_console(request, category, campaign_id):
         chosen_resolution_reason = dict_resolution_reasons.get(resolution_reason, None)
         new_activity_notes = result
         if chosen_resolution_reason:
-            new_activity_notes += u" ({})".format(chosen_resolution_reason)
+            new_activity_notes += " ({})".format(chosen_resolution_reason)
         if request.POST.get("notes", None):
-            new_activity_notes += u"\n" + request.POST.get("notes")
+            new_activity_notes += "\n" + request.POST.get("notes")
 
         if category == "act":
             activity = Activity.objects.get(pk=instance_id)
@@ -379,7 +379,7 @@ def seller_console(request, category, campaign_id):
                 notes="{} {}".format(_("Scheduled for"), call_datetime),
             )
 
-        elif result == u"No encontrado, llamar más tarde":
+        elif result == "No encontrado, llamar más tarde":
             ccs.campaign_resolution = "CL"
             offset = int(offset) + 1
             ccs.status = 3
@@ -400,7 +400,7 @@ def seller_console(request, category, campaign_id):
             ccs.campaign_resolution = "AS"
             ccs.status = 4
 
-        elif result == u"Inubicable, retirar de campaña":
+        elif result == "Inubicable, retirar de campaña":
             ccs.campaign_resolution = "UN"
             ccs.status = 5
 
@@ -627,7 +627,7 @@ def send_promo(request, contact_id):
                 end_date=end_date,
                 campaign=campaign,
             )
-            for key, value in request.POST.items():
+            for key, value in list(request.POST.items()):
                 if key.startswith("check"):
                     product_id = key.split("-")[1]
                     product = Product.objects.get(pk=product_id)
@@ -852,7 +852,7 @@ def new_subscription(request, contact_id):
 
             # After this, we set all the products we sold
             new_products_list = []
-            for key, value in request.POST.items():
+            for key, value in list(request.POST.items()):
                 if key.startswith("check"):
                     product_id = key.split("-")[1]
                     product = Product.objects.get(pk=product_id)
@@ -975,7 +975,7 @@ def new_subscription(request, contact_id):
 @login_required
 def default_newsletters_dialog(request, contact_id):
     if request.method == 'POST':
-        if request.POST.get('answer') == u'yes':
+        if request.POST.get('answer') == 'yes':
             try:
                 Contact.objects.get(id=contact_id).add_default_newsletters()
             except Contact.DoesNotExist:
@@ -1021,13 +1021,13 @@ def assign_campaigns(request):
         except unicodecsv.Error:
             messages.error(
                 request,
-                u"Error: No se encuentran delimitadores en el archivo "
-                u"ingresado, deben usarse ',' (comas) <br/><a href="
-                u"'.'>Volver</a>"
+                "Error: No se encuentran delimitadores en el archivo "
+                "ingresado, deben usarse ',' (comas) <br/><a href="
+                "'.'>Volver</a>"
             )
             return HttpResponseRedirect(reverse("assign_campaigns"))
         except Exception as e:
-            messages.error(request, u"Error: %s" % e.message)
+            messages.error(request, "Error: %s" % e.message)
             return HttpResponseRedirect(reverse("assign_campaigns"))
     elif request.POST and request.POST.get("tags"):
         errors, count = [], 0
@@ -1085,14 +1085,14 @@ def assign_seller(request, campaign_id):
 
     if request.POST:
         seller_list = []
-        for name, value in request.POST.items():
+        for name, value in list(request.POST.items()):
             if name.startswith("seller"):
                 seller_list.append([name.replace("seller-", ""), value or 0])
         total = 0
         for seller, amount in seller_list:
             total += int(amount)
         if total > campaign.count:
-            messages.error(request, u"Cantidad de clientes superior a la que hay.")
+            messages.error(request, "Cantidad de clientes superior a la que hay.")
             return HttpResponseRedirect(reverse("assign_sellers"))
         for seller, amount in seller_list:
             if amount:
@@ -1371,7 +1371,7 @@ def new_scheduled_task_address_change(request, contact_id):
                 status='C',  # completed
                 direction='I',
             )
-            for key, value in request.POST.items():
+            for key, value in list(request.POST.items()):
                 if key.startswith("sp"):
                     subscription_product_id = key[2:]
                     subscription_product = SubscriptionProduct.objects.get(
@@ -1419,7 +1419,7 @@ def new_scheduled_task_partial_pause(request, contact_id):
                 category="PE",  # Activation
                 ends=start_task,
             )
-            for key, value in request.POST.items():
+            for key, value in list(request.POST.items()):
                 if key.startswith("sp"):
                     subscription_product_id = key[2:]
                     subscription_product = SubscriptionProduct.objects.get(
@@ -1643,7 +1643,7 @@ def api_new_address(request, contact_id):
                 notes=form.cleaned_data["address_notes"],
             )
             data = {
-                address.id: u"{} {} {}".format(
+                address.id: "{} {} {}".format(
                     address.address_1, address.city, address.state
                 )
             }
@@ -1660,7 +1660,7 @@ def api_dynamic_prices(request):
     """
     if request.method == "POST" and request.is_ajax():
         frequency, product_copies = 1, {}
-        for key, value in request.POST.items():
+        for key, value in list(request.POST.items()):
             if key == "frequency":
                 frequency = value
             else:
@@ -2030,12 +2030,12 @@ def edit_envelopes(request, subscription_id):
     subscription = get_object_or_404(Subscription, pk=subscription_id)
     if request.POST:
         try:
-            for name, value in request.POST.items():
+            for name, value in list(request.POST.items()):
                 if name.startswith("env-"):
                     sp_id = name.replace("env-", "")
                     sp = SubscriptionProduct.objects.get(pk=sp_id)
                     if sp.subscription != subscription:
-                        raise(_("Incorrect data"))
+                        raise _
                     if value == "-":
                         sp.has_envelope = None
                     else:
@@ -2218,7 +2218,7 @@ def book_unsubscription(request, subscription_id):
         if form.is_valid():
             form.save()
             success_text = format_lazy(
-                u"Unsubscription for {name} booked for {end_date}",
+                "Unsubscription for {name} booked for {end_date}",
                 name=subscription.contact.name, end_date=subscription.end_date)
             messages.success(request, success_text)
             subscription.unsubscription_type = 1  # Complete unsubscription
@@ -2267,7 +2267,7 @@ def partial_unsubscription(request, subscription_id):
                 card_id=old_subscription.card_id,
                 customer_id=old_subscription.customer_id,
             )
-            for key, value in request.POST.items():
+            for key, value in list(request.POST.items()):
                 if key.startswith("sp"):
                     subscription_product_id = key.split("-")[1]
                     subscription_product = SubscriptionProduct.objects.get(pk=subscription_product_id)
@@ -2291,7 +2291,7 @@ def partial_unsubscription(request, subscription_id):
 
             # After that, we'll set the unsubscription date to this new subscription
             success_text = format_lazy(
-                u"Unsubscription for {name} booked for {end_date}",
+                "Unsubscription for {name} booked for {end_date}",
                 name=old_subscription.contact.name, end_date=old_subscription.end_date)
             messages.success(request, success_text)
 
@@ -2343,7 +2343,7 @@ def product_change(request, subscription_id):
                 card_id=old_subscription.card_id,
                 customer_id=old_subscription.customer_id,
             )
-            for key, value in request.POST.items():
+            for key, value in list(request.POST.items()):
                 if key.startswith("sp"):
                     subscription_product_id = key.split("-")[1]
                     subscription_product = SubscriptionProduct.objects.get(pk=subscription_product_id)
@@ -2377,7 +2377,7 @@ def product_change(request, subscription_id):
                     )
             # After that, we'll set the unsubscription date to this new subscription
             success_text = format_lazy(
-                u"Unsubscription for {name} booked for {end_date}",
+                "Unsubscription for {name} booked for {end_date}",
                 name=old_subscription.contact.name, end_date=old_subscription.end_date)
             messages.success(request, success_text)
             old_subscription.unsubscription_type = 3  # Partial unsubscription
@@ -2433,7 +2433,7 @@ def book_additional_product(request, subscription_id):
                 card_id=old_subscription.card_id,
                 customer_id=old_subscription.customer_id,
             )
-            for key, value in request.POST.items():
+            for key, value in list(request.POST.items()):
                 # These are the new products
                 if key.startswith("activateproduct"):
                     product_id = key.split("-")[1]
@@ -2468,7 +2468,7 @@ def book_additional_product(request, subscription_id):
                     )
             # After that, we'll set the unsubscription date to this new subscription
             success_text = format_lazy(
-                u"New product(s) booked for {end_date}",
+                "New product(s) booked for {end_date}",
                 end_date=old_subscription.end_date)
             messages.success(request, success_text)
             old_subscription.inactivity_reason = 3  # Upgrade
@@ -2555,7 +2555,7 @@ def campaign_statistics_detail(request, campaign_id):
         item = rejects_by_reason.get(reason, 0)
         item += 1
         rejects_by_reason[reason] = item
-    for index, item in rejects_by_reason.items():
+    for index, item in list(rejects_by_reason.items()):
         pct = (item * 100) / rejects_with_reason_count
         rejects_by_reason[index] = (item, pct)
 
@@ -2743,7 +2743,7 @@ def unsubscription_statistics(request):
             unsubscription_products=product_obj,
             unsubscription_reason__isnull=False).values(
             "unsubscription_reason").annotate(total=Count("unsubscription_reason"))
-    for individual_product in individual_products_dict.values():
+    for individual_product in list(individual_products_dict.values()):
         # This dictionary will have unsubscription_reason as the index to be shown, this is not ideal for sure
         for item in individual_product:
             # Probably very bad solution to convert choices to displays, someone help me with a better way!

@@ -7,7 +7,7 @@ from core.models import Subscription
 
 
 class Command(BaseCommand):
-    help = u'Executes all the stuff that needs to be maintained daily'
+    help = 'Executes all the stuff that needs to be maintained daily'
 
     def handle(self, *args, **options):
         # Deactivate all ended subscriptions

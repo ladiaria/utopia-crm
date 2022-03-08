@@ -1,5 +1,5 @@
 # coding=utf-8
-from __future__ import unicode_literals
+
 
 from django.http import HttpResponseRedirect
 from django.contrib.admin import SimpleListFilter
@@ -238,7 +238,7 @@ class AddressInline(admin.StackedInline):
 class ProductParticipationInline(admin.StackedInline):
     model = ProductParticipation
     fields = ('product', 'description')
-    verbose_name_plural = u'participaciones'
+    verbose_name_plural = 'participaciones'
     extra = 1
 
 
@@ -288,7 +288,7 @@ class ContactAdmin(TabbedModelAdmin):
         return super(ContactAdmin, self).get_queryset(request).prefetch_related('tags')
 
     def tag_list(self, obj):
-        return u", ".join(o.name for o in obj.tags.all())
+        return ", ".join(o.name for o in obj.tags.all())
 
     def response_add(self, request, obj, post_url_continue=None):
         if obj.offer_default_newsletters_condition():

@@ -36,7 +36,7 @@ def assign_routes(request):
     product_list = Product.objects.filter(type='S', offerable=True)
     product_id, product = 'all', None
     if request.POST:
-        for name, value in request.POST.items():
+        for name, value in list(request.POST.items()):
             if name.startswith('sp') and value:
                 try:
                     # We get the id of the subscription id here, removing the prefix 'sp-' from the name of the item
@@ -83,7 +83,7 @@ def assign_routes_future(request):
     product_list = Product.objects.filter(type='S', offerable=True)
     product_id, product = 'all', None
     if request.POST:
-        for name, value in request.POST.items():
+        for name, value in list(request.POST.items()):
             if name.startswith('sp') and value:
                 try:
                     # We get the id of the subscription id here, removing the prefix 'sp-' from the name of the item
@@ -155,7 +155,7 @@ def order_route(request, route_id=1):
     product_id, product = 'all', None
     route_object = get_object_or_404(Route, pk=route_id)
     if request.POST:
-        for name, value in request.POST.items():
+        for name, value in list(request.POST.items()):
             if name.startswith('sp-order') and value:
                 # We get the id of the subscription id here, removing the prefix 'sp-' from the name of the item
                 sp_id = name.replace('sp-order-', '')
@@ -216,7 +216,7 @@ def print_unordered_subscriptions(request):
             else:
                 route_key = -1
             dict_routes[route_key].append(sp)
-        route_list = dict_routes.keys()
+        route_list = list(dict_routes.keys())
         route_list = sorted(route_list, reverse=True)
         for route_number in route_list:
             routes.append({
@@ -248,7 +248,7 @@ def change_route(request, route_id=1):
     product_id, product = 'all', None
     route_object = get_object_or_404(Route, pk=route_id)
     if request.POST:
-        for name, value in request.POST.items():
+        for name, value in list(request.POST.items()):
             if name.startswith('sp-') and value and int(value) != route_object.number:
                 try:
                     # We get the id of the subscription id here, removing the prefix 'sp-' from the name of the item
@@ -383,7 +383,7 @@ def print_labels(request, page='Roll', list_type='', route_list='', product_id=N
 
         # Separator label
         if old_route != sp.route:
-            label = iterator.next()
+            label = next(iterator)
             label.separador()
             old_route = sp.route
 
@@ -397,7 +397,7 @@ def print_labels(request, page='Roll', list_type='', route_list='', product_id=N
 
         for copy in range(sp.copies):
 
-            label, route_suffix = iterator.next(), ''
+            label, route_suffix = next(iterator), ''
 
             # TODO: take in account also here the time of execution from 0:00 to 2:59 (after midnight)
             #       maybe next_day.isoweekday() instead of tomorrow.isoweekday() is the solution, make tests cases.
@@ -445,7 +445,7 @@ def print_labels(request, page='Roll', list_type='', route_list='', product_id=N
                         ref = sp.seller.name
                     else:
                         ref = "un amigo"  # TODO: i18n
-                    label.message_for_contact = u"Recomendado por {}".format(ref)  # TODO: i18n
+                    label.message_for_contact = "Recomendado por {}".format(ref)  # TODO: i18n
                 # When we have a 2x1 plan we should put it here
                 # elif getattr(sp.subscription.product, 'id', None) == 6:
                 #     label.message_for_contact = "2x1"
@@ -506,7 +506,7 @@ def print_labels_for_day(request):
 
             # Separator label
             if old_route != sp.route:
-                label = iterator.next()
+                label = next(iterator)
                 label.separador()
                 old_route = sp.route
 
@@ -520,7 +520,7 @@ def print_labels_for_day(request):
 
             for copy in range(sp.copies):
 
-                label, route_suffix = iterator.next(), ''
+                label, route_suffix = next(iterator), ''
 
                 if sp.product:
                     if isoweekday == '1':
@@ -561,7 +561,7 @@ def print_labels_for_day(request):
                             ref = sp.seller.name
                         else:
                             ref = "un amigo"  # TODO: i18n
-                        label.message_for_contact = u"Recomendado por {}".format(ref)  # TODO: i18n
+                        label.message_for_contact = "Recomendado por {}".format(ref)  # TODO: i18n
                     # When we have a 2x1 plan we should put it here
                     # elif getattr(sp.subscription.product, 'id', None) == 6:
                     #     label.message_for_contact = "2x1"
@@ -621,7 +621,7 @@ def print_labels_for_product(request, page='Roll', product_id=None, list_type=''
 
         # Separator between routes
         if sp.route and old_route != sp.route:
-            label = iterator.next()
+            label = next(iterator)
             label.separador()
             old_route = sp.route
 
@@ -636,7 +636,7 @@ def print_labels_for_product(request, page='Roll', product_id=None, list_type=''
 
         for copy in range(sp.copies):
 
-            label = iterator.next()
+            label = next(iterator)
 
             if sp.subscription.envelope or sp.subscription.free_envelope:
                 label.envelope = True
@@ -654,8 +654,8 @@ def print_labels_for_product(request, page='Roll', product_id=None, list_type=''
                     if sp.seller:
                         ref = sp.seller.name
                     else:
-                        ref = u"un amigo"  # TODO: i18n
-                    label.message_for_contact = u"Recomendado por {}".format(ref)  # TODO: i18n
+                        ref = "un amigo"  # TODO: i18n
+                    label.message_for_contact = "Recomendado por {}".format(ref)  # TODO: i18n
                 # When we have a 2x1 plan we should put it here
                 # elif getattr(sp.subscription.product, 'id', None) == 6:
                 #     eti.comunicar_cliente = "2x1"
@@ -702,15 +702,15 @@ def print_labels_from_csv(request):
 
         iterator = hoja.iterator()
         label_list = csv.reader(request.FILES.get('labels'))
-        label_list.next()  # consumo header
+        next(label_list)  # consumo header
 
         old_route = 0
         for row in label_list:
             if row[3] and old_route != row[3] and use_separators:
-                label = iterator.next()
+                label = next(iterator)
                 label.separador()
                 old_route = row[3]
-            label = iterator.next()
+            label = next(iterator)
             label.name = row[0].upper()
             label.address = '{}\n{}'.format(row[1], row[2])
             label.route = row[3] or ''
@@ -756,7 +756,7 @@ def issues_labels(request):
             if not issue.copies:
                 continue
             for copy in range(issue.copies):
-                label = iterator.next()
+                label = next(iterator)
                 if issue.subscription_product and issue.subscription_product.label_contact:
                     label.name = issue.subscription_product.label_contact.name.upper()
                 else:
@@ -1156,7 +1156,7 @@ def print_labels_for_product_date(request):
 
             # Separator between routes
             if sp.route and old_route != sp.route:
-                label = iterator.next()
+                label = next(iterator)
                 label.separador()
                 old_route = sp.route
 
@@ -1171,7 +1171,7 @@ def print_labels_for_product_date(request):
 
             for copy in range(sp.copies):
 
-                label = iterator.next()
+                label = next(iterator)
 
                 if sp.subscription.envelope or sp.subscription.free_envelope:
                     label.envelope = True
@@ -1189,8 +1189,8 @@ def print_labels_for_product_date(request):
                         if sp.seller:
                             ref = sp.seller.name
                         else:
-                            ref = u"un amigo"  # TODO: i18n
-                        label.message_for_contact = u"Recomendado por {}".format(ref)  # TODO: i18n
+                            ref = "un amigo"  # TODO: i18n
+                        label.message_for_contact = "Recomendado por {}".format(ref)  # TODO: i18n
                     # When we have a 2x1 plan we should put it here
                     # elif getattr(sp.subscription.product, 'id', None) == 6:
                     #     eti.comunicar_cliente = "2x1"

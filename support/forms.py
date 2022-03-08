@@ -352,7 +352,6 @@ class IssueStartForm(forms.ModelForm):
     def clean(self):
         dict_categories = dict(ISSUE_CATEGORIES)
         category = self.cleaned_data.get("category")
-        print category
         sub_category = self.cleaned_data.get("sub_category")
         if sub_category.category and sub_category.category != category:
             msg = _("{} is not a subcategory of {}").format(sub_category, dict_categories[category])

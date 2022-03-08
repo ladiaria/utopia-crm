@@ -110,19 +110,19 @@ CAMPAIGN_RESOLUTION_CHOICES = (
 )
 
 CAMPAIGN_RESOLUTION_REASONS_CHOICES = (
-    (1, u'Acepta llamada / va a pensarlo'),
-    (2, u'Motivos económicos'),
-    (3, u'Fuera de zona'),
-    (4, u'Le interesa para más adelante'),
-    (5, u'Mala experiencia'),
-    (6, u'No aplica a la campaña'),
-    (7, u'No da motivos'),
-    (8, u'No lee / No tiene tiempo'),
-    (9, u'No llegó promoción'),
-    (10, u'No responde'),
-    (11, u'No sabía que se había registrado'),
-    (12, u'Número y email incorrectos'),
-    (13, u'Ya es suscriptor'),
+    (1, 'Acepta llamada / va a pensarlo'),
+    (2, 'Motivos económicos'),
+    (3, 'Fuera de zona'),
+    (4, 'Le interesa para más adelante'),
+    (5, 'Mala experiencia'),
+    (6, 'No aplica a la campaña'),
+    (7, 'No da motivos'),
+    (8, 'No lee / No tiene tiempo'),
+    (9, 'No llegó promoción'),
+    (10, 'No responde'),
+    (11, 'No sabía que se había registrado'),
+    (12, 'Número y email incorrectos'),
+    (13, 'Ya es suscriptor'),
 )
 
 ACTIVITY_TYPES = (

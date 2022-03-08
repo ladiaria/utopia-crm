@@ -1,5 +1,5 @@
 # coding=utf-8
-from __future__ import unicode_literals
+
 from datetime import date, timedelta
 
 from django.conf import settings
@@ -150,7 +150,7 @@ class PickupPoint(models.Model):
     old_pk = models.PositiveIntegerField(blank=True, null=True, db_index=True)
 
     def __unicode__(self):
-        return u"{}{}".format(self.name, (u' ({})'.format(self.address)) if self.address else u'')
+        return "{}{}".format(self.name, (' ({})'.format(self.address)) if self.address else '')
 
     class Meta:
         ordering = ('name',)

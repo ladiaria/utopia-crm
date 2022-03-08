@@ -102,9 +102,9 @@ class _Menu:
         request = context['request']
         for app in context['available_apps']:
             if(str(app['app_url']) in request.path):
-                r += '<li class="nav-item has-treeview menu-open"><a href="#" class="nav-link active"><i class="nav-icon fas fa-edit"></i> <p>%s</p><p><i class="fas fa-angle-left right"></i></p></a><ul class="nav nav-treeview">\n' % unicode(app['name'])
+                r += '<li class="nav-item has-treeview menu-open"><a href="#" class="nav-link active"><i class="nav-icon fas fa-edit"></i> <p>%s</p><p><i class="fas fa-angle-left right"></i></p></a><ul class="nav nav-treeview">\n' % str(app['name'])
             else:
-                r += '<li class="nav-item has-treeview"><a href="#" class="nav-link"><i class="nav-icon fas fa-edit"></i> <p>%s</p><p><i class="fas fa-angle-left right"></i></p></a><ul class="nav nav-treeview">\n' % unicode(app['name'])
+                r += '<li class="nav-item has-treeview"><a href="#" class="nav-link"><i class="nav-icon fas fa-edit"></i> <p>%s</p><p><i class="fas fa-angle-left right"></i></p></a><ul class="nav nav-treeview">\n' % str(app['name'])
 
             for model in app['models']:
                 if 'add_url' in model:

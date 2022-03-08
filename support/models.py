@@ -1,6 +1,6 @@
 # coding=utf-8
 
-from __future__ import unicode_literals
+
 
 from datetime import date
 
@@ -138,7 +138,7 @@ class Issue(models.Model):
         self.closing_date = date.today()
         if answer_2:
             if self.answer_2:
-                self.answer_2 = u"{}\n\n{}".format(self.answer_2, answer_2)
+                self.answer_2 = "{}\n\n{}".format(self.answer_2, answer_2)
             else:
                 self.answer_2 = answer_2
         self.save()
@@ -165,7 +165,7 @@ class Issue(models.Model):
         return answers.get(self.answer_1, "N/A")
 
     def __unicode__(self):
-        return unicode(_("Issue of category {} for {} with status {}".format(
+        return str(_("Issue of category {} for {} with status {}".format(
             self.get_category(), self.contact.name, self.get_status()
         )))
 
