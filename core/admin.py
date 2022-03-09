@@ -188,7 +188,7 @@ class SubscriptionAdmin(admin.ModelAdmin):
             ('start_date', 'end_date'),
             ('next_billing', 'payment_type'),
             ('balance', 'frequency'),
-            ('status', 'send_bill_copy_by_email'),
+            ('status', 'send_bill_copy_by_email', 'send_pdf'),
             ('updated_from'),
         )}),
         ('Billing data', {
