@@ -1174,7 +1174,7 @@ def list_issues(request):
     """
     Shows a very basic list of issues.
     """
-    issues_queryset = Issue.objects.all().order_by("-date")
+    issues_queryset = Issue.objects.all().order_by("-date", "-id")
     issues_filter = IssueFilter(request.GET, queryset=issues_queryset)
     page_number = request.GET.get("p")
     paginator = Paginator(issues_filter.qs, 100)
