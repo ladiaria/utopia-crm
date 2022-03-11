@@ -738,7 +738,7 @@ def issues_labels(request):
         category='L',  # We're only getting the Logistics issues...
         copies__gte=0,  # ...that have more than zero copies
         date=labels_date,  # If it's monday we're going to select the issues that are on Saturday
-    )
+    ).order_by("-date", "-id")
 
     if issues:
         response = HttpResponse(content_type='application/pdf')
