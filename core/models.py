@@ -1447,6 +1447,12 @@ class Subscription(models.Model):
     def is_obsolete(self):
         return Subscription.objects.filter(updated_from=self).exists()
 
+    def get_updated_subscription(self):
+        if self.is_obsolete():
+            return Subscription.objects.get(updated_from=self)
+        else:
+            return None
+
     def balance_abs(self):
         return abs(self.balance)
 
