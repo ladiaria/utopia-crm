@@ -2229,7 +2229,7 @@ def book_unsubscription(request, subscription_id):
             subscription.save()
             return HttpResponseRedirect(reverse("contact_detail", args=[subscription.contact.id]))
     else:
-        if subscription.end_date:
+        if subscription.is_obsolete():
             messages.warning(request, _("WARNING: This subscription already has an end date"))
         form = UnsubscriptionForm(instance=subscription)
     return render(request, "book_unsubscription.html", {
