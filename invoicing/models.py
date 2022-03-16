@@ -60,7 +60,7 @@ class Invoice(models.Model):
 
     billing = models.ForeignKey("invoicing.Billing", blank=True, null=True, on_delete=models.SET_NULL)
 
-    def __unicode__(self):
+    def __str__(self):
         return '%s %d' % (_('Invoice'), self.id)
 
     def calc_total_amount(self):
@@ -177,7 +177,7 @@ class InvoiceItem(models.Model):
         max_length=1, blank=True, null=True, choices=INVOICEITEM_DR_TYPE_CHOICES
     )
 
-    def __unicode__(self):
+    def __str__(self):
         return str(self.description)
 
     class Meta:
