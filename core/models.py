@@ -1456,6 +1456,13 @@ class Subscription(models.Model):
     def balance_abs(self):
         return abs(self.balance)
 
+    def paused_until(self):
+        if self.scheduledtask_set.filter(completed=False, category="PA").exists():
+            return self.scheduledtask_set.filter(
+                subscription=self, completed=False, category="PA").first().execution_date
+        else:
+            return None
+
     class Meta:
         verbose_name = _("subscription")
         verbose_name_plural = _("subscriptions")
