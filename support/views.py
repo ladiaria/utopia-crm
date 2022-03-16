@@ -1585,7 +1585,9 @@ def contact_detail(request, contact_id):
     contact = get_object_or_404(Contact, pk=contact_id)
     addresses = contact.addresses.all()
     activities = contact.activity_set.all().order_by("-id")[:3]
-    subscriptions = contact.subscriptions.filter(active=True).exclude(status="AP")
+    active_subscriptions = contact.subscriptions.filter(active=True).exclude(status="AP")
+    paused_subscriptions = contact.subscriptions.filter(status="PA")
+    subscriptions = active_subscriptions | paused_subscriptions
     issues = contact.issue_set.all().order_by("-id")[:3]
     newsletters = contact.get_newsletters()
     last_paid_invoice = contact.get_last_paid_invoice()
@@ -1599,7 +1601,6 @@ def contact_detail(request, contact_id):
     all_issues = contact.issue_set.all().order_by('-date', 'id')
     all_scheduled_tasks = contact.scheduledtask_set.all().order_by('-creation_date', 'id')
     awaiting_payment_subscriptions = contact.subscriptions.filter(status="AP")
-    paused_subscriptions = contact.subscriptions.filter(status="PA")
     subscriptions_with_error = contact.subscriptions.filter(status="ER")
 
     return render(
