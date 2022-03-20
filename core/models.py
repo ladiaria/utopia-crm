@@ -46,11 +46,7 @@ from .choices import (
     DISCOUNT_PRODUCT_MODE_CHOICES,
     DISCOUNT_VALUE_MODE_CHOICES,
 )
-from .utils import (
-    delete_email_from_mailtrain_list,
-    subscribe_email_to_mailtrain_list,
-    get_emails_from_mailtrain_list,
-)
+from .utils import delete_email_from_mailtrain_list, subscribe_email_to_mailtrain_list, get_emails_from_mailtrain_list
 
 
 regex_alphanumeric = "^[@A-Za-z0-9ñüáéíóúÑÜÁÉÍÓÚ _'.\-]*$"  # noqa
