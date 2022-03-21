@@ -706,18 +706,22 @@ def print_labels_from_csv(request):
 
         old_route = 0
         for row in label_list:
-            if row[3] and old_route != row[3] and use_separators:
+            try:
+                if row[3] and old_route != row[3] and use_separators:
+                    label = iterator.next()
+                    label.separador()
+                    old_route = row[3]
                 label = iterator.next()
-                label.separador()
-                old_route = row[3]
-            label = iterator.next()
-            label.name = row[0].upper()
-            label.address = '{}\n{}'.format(row[1], row[2])
-            label.route = row[3] or ''
-            label.route_order = row[4] or ''
-            label.message = row[5] or ''
-            label.route_suffix = row[6] or ''
-            label.draw()
+                label.name = row[0].upper()
+                label.address = '{}\n{}'.format(row[1], row[2])
+                label.route = row[3] or ''
+                label.route_order = row[4] or ''
+                label.message = row[5] or ''
+                label.route_suffix = row[6] or ''
+                label.draw()
+            except IndexError:
+                messages.error(request, _("Columns count is wrong"))
+                return render(request, 'print_labels_from_csv.html')
 
         hoja.flush()
         canvas.save()
