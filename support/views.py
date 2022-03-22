@@ -1,5 +1,5 @@
 # coding=utf-8
-from __future__ import division
+from __future__ import division, unicode_literals
 import unicodecsv
 import collections
 from datetime import date, timedelta, datetime
@@ -94,8 +94,6 @@ def import_contacts(request):
 
     TODO: Pandas this
     """
-    subtypes = Subtype.objects.all()
-    campaigns = Campaign.objects.filter(active=True)
     if request.POST and request.FILES:
         new_contacts_list = []
         old_contacts_list = []
@@ -136,6 +134,9 @@ def import_contacts(request):
                     mobile = "0{}".format(mobile)
                 if work_phone and work_phone.startswith("9"):
                     work_phone = "0{}".format(work_phone)
+                if phone == "" or mobile == "" or work_phone == "" or not any([phone, mobile, work_phone]):
+                    errors_list.append("CSV Row {}: {} has no phone".format(row_number, name))
+                    continue
             except IndexError:
                 messages.error(
                     request,
@@ -144,13 +145,13 @@ def import_contacts(request):
                 return HttpResponseRedirect(reverse("import_contacts"))
             cpx = Q()
             # We're going to look for all the fields with possible coincidences
-            if email:
+            if email and email != "":
                 cpx = cpx | Q(email=email)
-            if phone:
+            if phone and phone != "":
                 cpx = cpx | Q(work_phone=phone) | Q(mobile=phone) | Q(phone=phone)
-            if mobile:
+            if mobile and mobile != "":
                 cpx = cpx | Q(work_phone=mobile) | Q(mobile=mobile) | Q(phone=mobile)
-            if work_phone:
+            if work_phone and work_phone != "":
                 cpx = cpx | Q(work_phone=work_phone) | Q(mobile=work_phone) | Q(phone=work_phone)
             matches = Contact.objects.filter(cpx)
             if matches.count() > 0:
@@ -228,6 +229,8 @@ def import_contacts(request):
             }
         )
     else:
+        subtypes = Subtype.objects.all()
+        campaigns = Campaign.objects.filter(active=True)
         return render(request, "import_contacts.html", {
             "subtypes": subtypes,
             "campaigns": campaigns,
