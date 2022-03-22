@@ -116,7 +116,12 @@
       </div>
       <div class="form-group">
         <label for="subtype">{% trans 'Choose the subtype for these contacts. This will be their origin.' %}:</label>
-        z
+        <select id="subtype_id" class="form-control">
+          <option selected>-</option>
+          {% for subtype in subtypes %}
+            <option value="{{ subtype.id }}">{{ subtype.name }}</option>
+          {% endfor %}
+        </select>
       </div>
       <div class="form-group">
         <label for="tags">{% trans 'Tags these contacts will have. (separated by comma. Example: doctor, ex-subscriber, likes the product)' %}:</label>
