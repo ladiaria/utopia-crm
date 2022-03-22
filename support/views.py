@@ -1137,7 +1137,7 @@ def release_seller_contacts(request, seller_id=None):
 
     if seller_id:
         seller = get_object_or_404(Seller, pk=seller_id)
-        seller.contactcampaignstatus_set.filter(status=1).delete()
+        seller.contactcampaignstatus_set.filter(status=1).update(seller=None)
         return HttpResponseRedirect(reverse("release_seller_contacts"))
     else:
         for seller in seller_qs:
