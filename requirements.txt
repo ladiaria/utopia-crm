@@ -26,6 +26,5 @@ python-memcached
 reportlab
 requests
 setuptools
-unicodecsv
 yolk
 zeep

@@ -1,5 +1,5 @@
 # coding=utf-8
-import unicodecsv
+import csv
 from datetime import date, timedelta, datetime
 
 from dateutil.relativedelta import relativedelta
@@ -523,7 +523,7 @@ def invoice_filter(request):
     if request.GET.get('export'):
         response = HttpResponse(content_type="text/csv")
         response["Content-Disposition"] = 'attachment; filename="invoices_export.csv"'
-        writer = unicodecsv.writer(response)
+        writer = csv.writer(response)
         header = [
             _("Id"),
             _("Contact name"),

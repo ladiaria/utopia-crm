@@ -1,6 +1,6 @@
 # coding=utf-8
 from __future__ import division, unicode_literals
-import unicodecsv
+import csv
 import collections
 from datetime import date, timedelta, datetime
 
@@ -81,8 +81,8 @@ def csv_sreader(src):
     """(Magic) CSV String Reader"""
 
     # Auto-detect the dialect
-    dialect = unicodecsv.Sniffer().sniff(src, delimiters=",;")
-    return unicodecsv.reader(src.splitlines(), dialect=dialect)
+    dialect = csv.Sniffer().sniff(src, delimiters=",;")
+    return csv.reader(src.splitlines(), dialect=dialect)
 
 
 @staff_member_required
@@ -111,7 +111,7 @@ def import_contacts(request):
             reader = csv_sreader(request.FILES["file"].read())
             # consume header
             next(reader)
-        except unicodecsv.Error:
+        except csv.Error:
             messages.error(request, _("No delimiters found in csv file. Please check the delimiters for csv files."))
             return HttpResponseRedirect(reverse("import_contacts"))
 
@@ -1021,7 +1021,7 @@ def assign_campaigns(request):
                     "errors": errors,
                 },
             )
-        except unicodecsv.Error:
+        except csv.Error:
             messages.error(
                 request,
                 "Error: No se encuentran delimitadores en el archivo "
@@ -1185,7 +1185,7 @@ def list_issues(request):
     if request.GET.get('export'):
         response = HttpResponse(content_type="text/csv")
         response["Content-Disposition"] = 'attachment; filename="issues_export.csv"'
-        writer = unicodecsv.writer(response)
+        writer = csv.writer(response)
         header = [
             _("Start date"),
             _("Contact ID"),
@@ -1516,7 +1516,7 @@ def contact_list(request):
     if request.GET.get('export'):
         response = HttpResponse(content_type="text/csv")
         response["Content-Disposition"] = 'attachment; filename="contacts_export.csv"'
-        writer = unicodecsv.writer(response)
+        writer = csv.writer(response)
         header = [
             _("Id"),
             _("Full name"),
@@ -1879,7 +1879,7 @@ def export_dcf_emails(request, dcf_id):
         dcf.id
     )
 
-    writer = unicodecsv.writer(response)
+    writer = csv.writer(response)
     for email in dcf.get_emails():
         writer.writerow([email])
 
@@ -1894,7 +1894,7 @@ def advanced_export_dcf_list(request, dcf_id):
         dcf.id
     )
 
-    writer = unicodecsv.writer(response)
+    writer = csv.writer(response)
     header = [
         _("Contact ID"),
         _("Name"),
@@ -2091,7 +2091,7 @@ def invoicing_issues(request):
     if request.GET.get('export'):
         response = HttpResponse(content_type="text/csv")
         response["Content-Disposition"] = 'attachment; filename="invoicing_issues_{}.csv"'.format(date.today())
-        writer = unicodecsv.writer(response)
+        writer = csv.writer(response)
         header = [
             _("Start date"),
             _("Contact ID"),
@@ -2165,7 +2165,7 @@ def debtor_contacts(request):
     if request.GET.get('export'):
         response = HttpResponse(content_type="text/csv")
         response["Content-Disposition"] = 'attachment; filename="debtors_{}.csv"'.format(date.today())
-        writer = unicodecsv.writer(response)
+        writer = csv.writer(response)
         header = [
             _("Contact ID"),
             _("Contact name"),
