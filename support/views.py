@@ -1010,7 +1010,7 @@ def assign_campaigns(request):
             for row in reader:
                 try:
                     contact = Contact.objects.get(pk=row[0])
-                    if ignore_contacts_in_campaigns and contact.contactcampaignstatus_set.exists() == False:
+                    if ignore_contacts_in_campaigns and contact.contactcampaignstatus_set.exists():
                         continue
                     contact.add_to_campaign(campaign)
                     count += 1
