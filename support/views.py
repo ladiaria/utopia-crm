@@ -1004,11 +1004,14 @@ def assign_campaigns(request):
     if request.POST and request.FILES:
         errors, count = [], 0
         campaign = request.POST.get("campaign")
+        ignore_contacts_in_campaigns = request.POST.get("ignore_in_older_campaign", False)
         try:
             reader = csv_sreader(request.FILES["file"].read())
             for row in reader:
                 try:
                     contact = Contact.objects.get(pk=row[0])
+                    if ignore_contacts_in_campaigns and contact.contactcampaignstatus_set.exists() == False:
+                        continue
                     contact.add_to_campaign(campaign)
                     count += 1
                 except Exception as e:

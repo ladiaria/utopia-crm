@@ -37,14 +37,19 @@
           </b>
         </div>
         <div class="form-group col-sm-5">
-            <label for="tags">{% trans 'Use contacts with the next tags' %}</label>
+            <label for="tags">{% trans 'Use contacts with the following tags' %}</label>
             <input type="text" class="form-control" name="tags" id="tags">
         </div>
       </div>
       <p class="font-weight-bold">
       {% trans 'Then' %}
       </p>
-
+      <div class="form-group col-sm-5">
+        <div class="form-check">
+          <input type="checkbox" class="form-check-input" name="ignore_in_older_campaign" id="ignore_in_older_campaign">
+          <label for="ignore_in_older_campaign">{% trans 'Ignore contacts in older campaigns' %}</label>
+        </div>
+      </div>
       <div class="form-group">
         <label for="campaign">{% trans 'Select campaign' %}</label>
         <select name="campaign" id="campaign" class="form-control">
