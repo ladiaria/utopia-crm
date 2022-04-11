@@ -8,13 +8,7 @@ function addParam(v) {
   }
 
 $(function(){
-  $("#product_select").change(function() {
-    var optionValue = $(this).val();
-    var url = window.location.href.split("?")[0];
-    window.location = url + "?product_id=" + optionValue;
-  });
-
-  $("#convert").click(function(){
+    $("#convert").click(function(){
     $( "#dialog-confirm" ).dialog({
       resizable: false,
       height: "auto",
@@ -22,7 +16,7 @@ $(function(){
       modal: true,
       buttons: {
         "{% trans 'Accept' %}": function() {
-          window.location = "{% url 'convert_orders_to_tens' route.number %}";
+          window.location = "{% if product %}{% url 'convert_orders_to_tens_by_product' route.number product.id %}{% else %}{% url 'convert_orders_to_tens' route.number %}{% endif %}";
           $( this ).dialog( "close" );
         },
         Cancel: function() {
@@ -46,7 +40,7 @@ $(function(){
 {% block content %}
 <div class="card">
   <div class="card-header">
-    <h3 class="card-title">{% trans "Order susbscription products on route" %} {{route.number}} - {{route.name}}{% if product %} - {% trans "Product" %}: {{product.name}}{% endif %}</h3>
+    <h3 class="card-title">{% trans "Order susbscription products on route" %} {{route.number}} - {{route.name|default:"No name"}}{% if product %} - {% trans "Product" %}: {{product.name}}{% endif %}</h3>
   </div>
   <div class="card-body">
     <div class="col-md-12">
@@ -135,6 +129,6 @@ $(function(){
 </div>
 
 <div style="display: none" id="dialog-confirm" title='{% trans "Confirm action" %}'>
-  <p><span class="ui-icon ui-icon-alert" style="float:left; margin:12px 12px 20px 0;"></span>{% blocktrans with route as route_number %}Convert all orders of route {{ route.number }} to tens?{% endblocktrans %}</p>
+  <p><span class="ui-icon ui-icon-alert" style="float:left; margin:12px 12px 20px 0;"></span>{% blocktrans with route as route_number %}Convert all orders of route {{ route.number }} to tens?{% endblocktrans %} ({% if product %}{{ product.name }}{% endif %})</p>
 </div>
 {% endblock %}

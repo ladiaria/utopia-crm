@@ -151,9 +151,12 @@ def order_route(request, route_id=1):
 
     TODO: Do something to quickly change route from the template itself.
     """
-    product_list = Product.objects.filter(type='S', offerable=True)
-    product_id, product = 'all', None
     route_object = get_object_or_404(Route, pk=route_id)
+    product_list = Product.objects.filter(type='S', offerable=True)
+    if request.GET.get("product", None):
+        product = Product.objects.get(pk=request.GET.get("product", None))
+    else:
+        product = None
     if request.POST:
         for name, value in request.POST.items():
             if name.startswith('sp-order') and value:
@@ -179,7 +182,6 @@ def order_route(request, route_id=1):
                     'subscription_products': subscription_products_filter.qs,
                     'route': route_object,
                     'product_list': product_list,
-                    'product_id': product_id,
                     'product': product,
                 })
     return render(
@@ -189,7 +191,6 @@ def order_route(request, route_id=1):
             "count": subscription_products_filter.qs.count(),
             'route': route_object,
             'product_list': product_list,
-            'product_id': product_id,
             'product': product,
     })
 
@@ -1112,15 +1113,24 @@ def print_routes_simple(request, route_list):
 
 
 @permission_required('logistics.change_route')
-def convert_orders_to_tens(request, route_id):
+def convert_orders_to_tens(request, route_id, product_id=None):
     route = get_object_or_404(Route, pk=route_id)
-    for product in Product.objects.filter(offerable=True, type="S"):
+    if product_id:
+        product = get_object_or_404(Product, pk=product_id)
         order_i = 10
         for sp in SubscriptionProduct.objects.filter(
                 product=product, route=route, order__isnull=False).order_by('order'):
             sp.order = order_i
             sp.save()
             order_i += 10
+    else:
+        for product in Product.objects.filter(offerable=True, type="S"):
+            order_i = 10
+            for sp in SubscriptionProduct.objects.filter(
+                    product=product, route=route, order__isnull=False).order_by('order'):
+                sp.order = order_i
+                sp.save()
+                order_i += 10
     messages.success(request, _("All orders have been converted to tens."))
     return HttpResponseRedirect(reverse("order_route", args=[route.number]))
 
