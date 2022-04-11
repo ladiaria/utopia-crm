@@ -18,6 +18,7 @@ urlpatterns = [
     url(r'^print_unordered_subscriptions/$', print_unordered_subscriptions, name='print_unordered_subscriptions'),
     url(r'^change_route/(\d+)/$', change_route, name='change_route'),
     url(r'^convert_orders_to_tens/(\d+)/$', convert_orders_to_tens, name='convert_orders_to_tens'),
+    url(r'^convert_orders_to_tens/(\d+)/(\d+)/$', convert_orders_to_tens, name='convert_orders_to_tens_by_product'),
     url(r'^routes/$', list_routes, name='list_routes'),
     url(r'^routes_detailed/$', list_routes_detailed, name='list_routes_detailed'),
     url(r'^routes/(?P<route_list>\d+(,\d+)*)/$', route_details, name='route_details'),
