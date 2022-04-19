@@ -1690,7 +1690,7 @@ class PriceRule(models.Model):
     # that are still being checked for the rule are present, then the current check is discarded.
     products_not_pool = models.ManyToManyField(
         Product,
-        limit_choices_to={"type__in": "DSA"},
+        limit_choices_to={"type__in": "DSAP"},
         related_name="not_pool",
         blank=True,
     )
