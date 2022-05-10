@@ -1680,7 +1680,7 @@ class PriceRule(models.Model):
     active = models.BooleanField(default=False)
     # Used so the function that checks the rules can check if the products exist.
     products_pool = models.ManyToManyField(
-        Product, limit_choices_to={"offerable": True, "type": "S"}, related_name="pool"
+        Product, limit_choices_to={"offerable": True, "type__in": "DS"}, related_name="pool"
     )
     # If any of the resulting products of the previous rules (by priority) or any of the products on the input products
     # that are still being checked for the rule are present, then the current check is discarded.
