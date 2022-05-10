@@ -181,7 +181,7 @@ class Product(models.Model):
     class Meta:
         verbose_name = _("product")
         verbose_name_plural = _("products")
-        ordering = ("id",)
+        ordering = ("-type", "id",)
 
 
 class Contact(models.Model):
