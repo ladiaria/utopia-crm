@@ -260,21 +260,7 @@ def bill_subscription(subscription_id, billing_date=None, dpp=10, check_route=Fa
 
             amount = total - discounts
 
-            # Finally we make the rounding and add the invoiceitem needed
-            if amount != round(amount):
-                amount_rounded = round(amount) - amount
-                round_item = InvoiceItem()
-                if amount_rounded < 0:
-                    round_item.type = 'D'
-                elif amount_rounded > 0:
-                    round_item.type = 'R'
-                round_item.description = _('Rounding')
-                round_item.type_dr = 1
-                round_item.amount = abs(amount_rounded)
-                amount = int(round(amount))
-                invoice_items.append(round_item)
-
-            # After we did the rounding and calculated the invoice amount, we'll make sure the balance item isn't
+            # After we calculated the invoice amount, we'll make sure the balance item isn't
             # greater than the invoice, we don't want a negative value invoice!
             if subscription.balance and subscription.balance != 0:
                 balance_item = InvoiceItem()
@@ -300,6 +286,21 @@ def bill_subscription(subscription_id, billing_date=None, dpp=10, check_route=Fa
                 # We don't want any negative shenanigans so we'll use the absolute.
                 balance_item.amount = abs(balance_item.amount)
                 invoice_items.append(balance_item)
+
+            # Finally we make the rounding and add the invoiceitem needed. This had to be changed to be made after the
+            # balance because this was causing to make the invoices to have decimal places.
+            if amount != round(amount):
+                amount_rounded = round(amount) - amount
+                round_item = InvoiceItem()
+                if amount_rounded < 0:
+                    round_item.type = 'D'
+                elif amount_rounded > 0:
+                    round_item.type = 'R'
+                round_item.description = _('Rounding')
+                round_item.type_dr = 1
+                round_item.amount = abs(amount_rounded)
+                amount = int(round(amount))
+                invoice_items.append(round_item)
 
             # We need to move the next billing even if the subscription is not billed
             subscription.next_billing = (subscription.next_billing or subscription.start_date) + relativedelta(
