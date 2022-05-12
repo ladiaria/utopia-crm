@@ -351,9 +351,7 @@ def bill_subscription(subscription_id, billing_date=None, dpp=10, check_route=Fa
                         invoice.subscription.remove_product(Product.objects.get(slug=discount_slug))
 
         except Exception as e:
-            raise Exception(
-                "Contact {} Subscription {}: {}".format(subscription.contact.id, subscription.id, e.message)
-            )
+            raise Exception("Contact {} Subscription {}: {}".format(subscription.contact.id, subscription.id, e))
     else:
         # If for whatever reasons there are no invoice items, we did something wrong, we'll have to return nothing.
         return None
