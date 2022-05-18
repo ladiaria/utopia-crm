@@ -96,9 +96,22 @@ $(function(){
                                 <label for="id_sub_category">{{form.sub_category.label}}</label>
                                 {{form.sub_category}}
                             </div>
-                            <div class="form-group">
-                                <label for="id_status">{{form.status.label}}</label>
-                                {{form.status}}
+                            <div class="row">
+                              <div class="col-6">
+                                <div class="form-group">
+                                    <label for="id_status">{{form.status.label}}</label>
+                                    {{form.status}}
+                                </div>
+                              </div>
+                              <div class="col-6">
+                                <div class="form-group">
+                                  <label for="id_envelope">{{ form.envelope.label }}</label>
+                                  <div class="form-check">
+                                    {{form.envelope}}
+                                    <label class="form-check-label">{% trans "Add" %}</label>
+                                  </div>
+                                </div>
+                              </div>
                             </div>
                             <div class="form-group">
                                 <label for="id_assigned_to">{{form.next_action_date.label}}</label>
