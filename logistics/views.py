@@ -2,14 +2,13 @@
 
 import csv
 from datetime import date, timedelta, datetime
-from collections import defaultdict, OrderedDict
+from collections import defaultdict
 from dateutil.relativedelta import relativedelta
 
 from django.shortcuts import render, reverse, get_object_or_404
 from django.http import (
     HttpResponseRedirect, HttpResponse, HttpResponseNotFound)
 from django.conf import settings
-from django.utils.text import format_lazy
 from django.utils.translation import ugettext_lazy as _
 from django.db.models import Sum
 from django.contrib.auth.decorators import login_required, permission_required
@@ -143,7 +142,6 @@ def order_route_list(request):
     )
 
 
-
 @login_required
 def order_route(request, route_id=1):
     """
@@ -192,7 +190,7 @@ def order_route(request, route_id=1):
             'route': route_object,
             'product_list': product_list,
             'product': product,
-    })
+            })
 
 
 @login_required
@@ -235,7 +233,7 @@ def print_unordered_subscriptions(request):
     return render(
         request, 'print_unordered_subscriptions_form.html', {
             'product_list': product_list,
-    })
+            })
 
 
 @login_required
@@ -803,6 +801,8 @@ def issues_labels(request):
                         label.message_for_contact = issue.subscription_product.product.name
                 elif issue.product:
                     label.message_for_contact = issue.product.name
+                if issue.envelope:
+                    label.envelope = True
                 label.draw()
         hoja.flush()
         canvas.save()
