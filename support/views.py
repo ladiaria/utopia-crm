@@ -1247,13 +1247,13 @@ def new_issue(request, contact_id, category="L"):
         if form.is_valid():
             if form.cleaned_data.get("new_address"):
                 address = Address.objects.create(
-                contact=contact,
-                address_1=form.cleaned_data.get("new_address_1"),
-                address_2=form.cleaned_data.get("new_address_2"),
-                city=form.cleaned_data.get("new_address_city"),
-                state=form.cleaned_data.get("new_address_state"),
-                notes=form.cleaned_data.get("new_address_notes"),
-            )
+                    contact=contact,
+                    address_1=form.cleaned_data.get("new_address_1"),
+                    address_2=form.cleaned_data.get("new_address_2"),
+                    city=form.cleaned_data.get("new_address_city"),
+                    state=form.cleaned_data.get("new_address_state"),
+                    notes=form.cleaned_data.get("new_address_notes"),
+                )
             else:
                 address = form.cleaned_data.get("contact_address")
             if form.cleaned_data["status"]:
@@ -1274,6 +1274,7 @@ def new_issue(request, contact_id, category="L"):
                 inside=False,
                 manager=request.user,
                 assigned_to=form.cleaned_data["assigned_to"],
+                envelope=form.cleaned_data["envelope"],
                 address=address,
                 status=status,
             )

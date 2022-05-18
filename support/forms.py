@@ -367,6 +367,7 @@ class IssueStartForm(forms.ModelForm):
             "subscription": forms.Select(attrs={"class": "form-control"}),
             "category": forms.HiddenInput(attrs={"class": "form-control"}),
             "copies": forms.NumberInput(attrs={"class": "form-control"}),
+            "envelope": forms.CheckboxInput(attrs={"class": "form-check-input"}),
         }
         fields = (
             "contact",
@@ -379,6 +380,7 @@ class IssueStartForm(forms.ModelForm):
             "assigned_to",
             "subscription",
             "status",
+            "envelope",
         )
 
 
@@ -406,7 +408,8 @@ class IssueChangeForm(forms.ModelForm):
             "answer_1": forms.Select(attrs={"class": "form-control"}),
             "answer_2": forms.Textarea(attrs={"class": "form-control"}),
             "status": forms.Select(attrs={"class": "form-control"}),
-        }
+            "envelope": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            }
         fields = (
             "contact",
             "sub_category",
@@ -416,6 +419,7 @@ class IssueChangeForm(forms.ModelForm):
             "answer_2",
             "next_action_date",
             "assigned_to",
+            "envelope",
         )
 
 
@@ -443,6 +447,7 @@ class InvoicingIssueChangeForm(forms.ModelForm):
             "answer_1": forms.Select(attrs={"class": "form-control"}),
             "answer_2": forms.Textarea(attrs={"class": "form-control"}),
             "status": forms.Select(attrs={"class": "form-control"}),
+            "envelope": forms.CheckboxInput(attrs={"class": "form-check-input"}),
         }
         fields = (
             "contact",
@@ -453,6 +458,7 @@ class InvoicingIssueChangeForm(forms.ModelForm):
             "answer_2",
             "next_action_date",
             "assigned_to",
+            "envelope",
         )
 
 
@@ -571,6 +577,7 @@ class AdditionalProductForm(forms.ModelForm):
         widgets = {
             "unsubscription_addendum": forms.Textarea(attrs={"class": "form-control"}),
         }
+
 
 class ContactCampaignStatusByDateForm(forms.Form):
     date_gte = forms.DateField(

@@ -104,11 +104,25 @@ $( function() {
               </div>
             </div>
           </div>
-          <div class="form-group">
-            <label for="id_copies">{{ form.copies.label }}</label>
-            {{ form.copies }}
-            <span class="error invalid-feedback">{{form.copies.errors}}</span>
+          <div class="row">
+            <div class="col-6">
+              <div class="form-group">
+                <label for="id_copies">{{ form.copies.label }}</label>
+                {{ form.copies }}
+                <span class="error invalid-feedback">{{form.copies.errors}}</span>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="form-group">
+                <label for="id_envelope">{{ form.envelope.label }}</label>
+                <div class="form-check">
+                  {{form.envelope}}
+                  <label class="form-check-label">{% trans "Add" %}</label>
+                </div>
+              </div>
+            </div>
           </div>
+
           <div class="form-group">
             <label>{% trans "Assigned to" %}</label>
             {{form.assigned_to}}
