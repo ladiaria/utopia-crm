@@ -637,10 +637,14 @@ def send_promo(request, contact_id):
                     address_id = request.POST.get("address-{}".format(product_id))
                     address = Address.objects.get(pk=address_id)
                     copies = request.POST.get("copies-{}".format(product_id))
+                    label_message = request.POST.get("message-{}".format(product_id))
+                    special_instructions = request.POST.get("instruction-{}".format(product_id))
                     subscription.add_product(
                         product=product,
                         address=address,
                         copies=copies,
+                        message=label_message,
+                        instructions=special_instructions,
                         seller_id=seller.id,
                     )
 
