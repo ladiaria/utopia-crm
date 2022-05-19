@@ -164,6 +164,9 @@ class Product(models.Model):
             name += ", newsletter"
         return "%s" % name
 
+    def natural_key(self):
+        return self.slug
+
     def get_type(self):
         """
         Returns the type of product
