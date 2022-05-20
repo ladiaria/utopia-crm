@@ -318,7 +318,6 @@ def bill_subscription(subscription_id, billing_date=None, dpp=10, check_route=Fa
             invoice = Invoice.objects.create(
                 contact=contact,
                 payment_type=payment_method,
-                # amount=amount,
                 creation_date=billing_date,
                 service_from=service_from,
                 service_to=service_from + relativedelta(months=subscription.frequency),
@@ -329,7 +328,7 @@ def bill_subscription(subscription_id, billing_date=None, dpp=10, check_route=Fa
                 route=billing_data['route'],
                 order=billing_data['order'],
                 expiration_date=expiration_date,
-                billing_document=subscription.rut,
+                billing_document=subscription.rut or subscription.billing_document,
                 subscription=subscription,
                 amount=amount,
             )
