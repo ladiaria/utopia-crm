@@ -328,7 +328,7 @@ def bill_subscription(subscription_id, billing_date=None, dpp=10, check_route=Fa
                 route=billing_data['route'],
                 order=billing_data['order'],
                 expiration_date=expiration_date,
-                billing_document=subscription.rut or subscription.billing_document,
+                billing_document=subscription.get_billing_document(),
                 subscription=subscription,
                 amount=amount,
             )
