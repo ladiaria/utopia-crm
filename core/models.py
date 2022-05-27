@@ -1001,17 +1001,21 @@ class Subscription(models.Model):
             sp = self.subscriptionproduct_set.filter(product=product).first()
             if sp.address and sp.address.address_1:
                 address = sp.address.address_1
+                state = sp.address.state
+                city = sp.address.city
             elif sp.product.digital and self.contact.email:
                 address = self.contact.email
+                state = settings.DEFAULT_STATE
+                city = settings.DEFAULT_CITY
             else:
-                address = None
+                address, state, city = None, None, None
             if address:
                 result = {
                     "route": sp.route_id,
                     "order": sp.order,
                     "address": address,
-                    "state": sp.address.state,
-                    "city": sp.address.city,
+                    "state": state,
+                    "city": city,
                     "name": self.get_billing_name(),
                 }
             elif settings.DEBUG:
