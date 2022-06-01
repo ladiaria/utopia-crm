@@ -11,11 +11,19 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         # Deactivate all ended subscriptions
+        verbose3 = options.get('verbosity') > 2
+
         ended_subscriptions = Subscription.objects.filter(
             active=True,
             end_date__lt=date.today()
         )
+        if verbose3:
+            print("Starting process of ending subscriptions that have reached their end date...")
         for s in ended_subscriptions.iterator():
             s.active = False
+            if verbose3:
+                print("Disabling subscription {} for contact {} - End date {}".format(s.id, s.contact.id, s.end_date))
             # NOTE: after saving, a signal will be triggered to add deactivation contactproducthistory entries
             s.save()
+        if verbose3:
+            print("Ended process")
