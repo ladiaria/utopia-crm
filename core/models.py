@@ -306,14 +306,14 @@ class Contact(models.Model):
         return self.get_expired_invoices().count()
 
     def get_total_invoices_count(self):
-        return self.invoice_set.all().count()
+        return self.invoice_set.count()
 
     def get_paid_invoices_count(self):
         return self.invoice_set.filter(Q(paid=True) | Q(debited=True)).count()
 
     def get_latest_invoice(self):
         if self.invoice_set.exists():
-            return self.invoice_set.all().latest("id")
+            return self.invoice_set.latest("id")
         else:
             return None
 
