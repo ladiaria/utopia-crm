@@ -836,7 +836,7 @@ class Subscription(models.Model):
     def add_product(
         self,
         product,
-        address,
+        address=None,
         copies=1,
         message=None,
         instructions=None,
