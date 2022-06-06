@@ -73,7 +73,7 @@ def bill_subscription(subscription_id, billing_date=None, dpp=10, check_route=Fa
     billing_date = billing_date or date.today()
     subscription = get_object_or_404(Subscription, pk=subscription_id)
     contact = subscription.contact
-    invoice, invoice_items = None, None
+    invoice, invoice_items, balance_item = None, None, None
 
     # Check that the subscription is active
     assert subscription.active, _('This subscription is not active and should not be billed.')
@@ -273,7 +273,6 @@ def bill_subscription(subscription_id, billing_date=None, dpp=10, check_route=Fa
                     else:
                         balance_item.amount = subscription.balance
                     balance_item.type_dr = 1  # 1 means it's a plain value
-                    subscription.balance -= balance_item.amount  # Then subtract the balance
                     amount -= float(balance_item.amount)  # And then we subtract that value from the invoice
                 elif subscription.balance < 0:
                     # If the balance is negative, it means the person owes us money, we'll make a surcharge.
@@ -281,7 +280,6 @@ def bill_subscription(subscription_id, billing_date=None, dpp=10, check_route=Fa
                     balance_item.type_dr = 1  # 1 means it's a plain value
                     balance_item.type = 'R'  # This means the item is a surcharge
                     balance_item.amount = abs(subscription.balance)  # The entire balance is applied to the item
-                    subscription.balance = None  # After that, we can deplete it from the subscription
                     amount += float(balance_item.amount)  # And then we add that value to the invoice
                 # We don't want any negative shenanigans so we'll use the absolute.
                 balance_item.amount = abs(balance_item.amount)
@@ -302,52 +300,57 @@ def bill_subscription(subscription_id, billing_date=None, dpp=10, check_route=Fa
                 amount = int(round(amount))
                 invoice_items.append(round_item)
 
-            # We need to move the next billing even if the subscription is not billed
-            subscription.next_billing = (subscription.next_billing or subscription.start_date) + relativedelta(
-                months=subscription.frequency)
-            subscription.save()
-
-            # Move the next billing to how many months it's necessary.
             # If the subscription doesn't have next_billing, we'll create one using the start_date of the subscription.
-
-            assert amount, _("This subscription won't be billed since amount is 0")
 
             payment_method = subscription.payment_type
 
             # Meanwhile we'll create the invoice object
-            invoice = Invoice.objects.create(
-                contact=contact,
-                payment_type=payment_method,
-                creation_date=billing_date,
-                service_from=service_from,
-                service_to=service_from + relativedelta(months=subscription.frequency),
-                billing_name=billing_data['name'],
-                billing_address=billing_data['address'],
-                billing_state=billing_data['state'],
-                billing_city=billing_data['city'],
-                route=billing_data['route'],
-                order=billing_data['order'],
-                expiration_date=expiration_date,
-                billing_document=subscription.get_billing_document(),
-                subscription=subscription,
-                amount=amount,
-            )
+            if amount > 0:
+                invoice = Invoice.objects.create(
+                    contact=contact,
+                    payment_type=payment_method,
+                    creation_date=billing_date,
+                    service_from=service_from,
+                    service_to=service_from + relativedelta(months=subscription.frequency),
+                    billing_name=billing_data['name'],
+                    billing_address=billing_data['address'],
+                    billing_state=billing_data['state'],
+                    billing_city=billing_data['city'],
+                    route=billing_data['route'],
+                    order=billing_data['order'],
+                    expiration_date=expiration_date,
+                    billing_document=subscription.get_billing_document(),
+                    subscription=subscription,
+                    amount=amount,
+                )
 
-            # We add all invoice items to the invoice.
-            for item in invoice_items:
-                item.save()
-                invoice.invoiceitem_set.add(item)
+                # We add all invoice items to the invoice.
+                for item in invoice_items:
+                    item.save()
+                    invoice.invoiceitem_set.add(item)
 
-            # When the invoice has finally been created and every date has been moved where it should have been, we're
-            # going to check if there's any temporary discounts, and remove them if it applies.
-            if getattr(settings, 'TEMPORARY_DISCOUNT', None):
-                temporary_discount_list = getattr(settings, 'TEMPORARY_DISCOUNT').items()
-                for discount_slug, months in temporary_discount_list:
-                    if (
-                        invoice.has_product(discount_slug)
-                        and invoice.subscription.months_in_invoices_with_product(discount_slug) >= months
-                    ):
-                        invoice.subscription.remove_product(Product.objects.get(slug=discount_slug))
+                # When the invoice has finally been created and every date has been moved where it should have been,
+                # we're going to check if there's any temporary discounts, and remove them if it applies.
+                if getattr(settings, 'TEMPORARY_DISCOUNT', None):
+                    temporary_discount_list = getattr(settings, 'TEMPORARY_DISCOUNT').items()
+                    for discount_slug, months in temporary_discount_list:
+                        if (
+                            invoice.has_product(discount_slug)
+                            and invoice.subscription.months_in_invoices_with_product(discount_slug) >= months
+                        ):
+                            invoice.subscription.remove_product(Product.objects.get(slug=discount_slug))
+
+            # Then finally we need to change everything on the subscription
+            if subscription.balance > 0 and balance_item:
+                subscription.balance -= balance_item.amount  # Then subtract the balance
+            if subscription.balance <= 0:
+                subscription.balance = None  # Then if it is zero or less, remove it completely.
+            subscription.next_billing = (subscription.next_billing or subscription.start_date) + relativedelta(
+                months=subscription.frequency)
+            subscription.save()
+            # We do this here because we also need to change the subscription dates even if the amount is 0, but
+            # we don't want to execute anything of this if the invoice creation process failed for whatever reason.
+            assert amount, _("This subscription wasn't billed since amount is 0")
 
         except Exception as e:
             raise Exception("Contact {} Subscription {}: {}".format(subscription.contact.id, subscription.id, e))
