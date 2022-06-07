@@ -1,5 +1,6 @@
 # coding=utf-8
 from django.utils.translation import ugettext_lazy as _
+from django.conf import settings
 
 ADDRESS_TYPE_CHOICES = (
     ('digital', _('Digital')),
@@ -109,21 +110,7 @@ CAMPAIGN_RESOLUTION_CHOICES = (
     ('UN', _('Cannot find contact')),
 )
 
-CAMPAIGN_RESOLUTION_REASONS_CHOICES = (
-    (1, u'Acepta llamada / va a pensarlo'),
-    (2, u'Motivos económicos'),
-    (3, u'Fuera de zona'),
-    (4, u'Le interesa para más adelante'),
-    (5, u'Mala experiencia'),
-    (6, u'No aplica a la campaña'),
-    (7, u'No da motivos'),
-    (8, u'No lee / No tiene tiempo'),
-    (9, u'No llegó promoción'),
-    (10, u'No responde'),
-    (11, u'No sabía que se había registrado'),
-    (12, u'Número y email incorrectos'),
-    (13, u'Ya es suscriptor'),
-)
+CAMPAIGN_RESOLUTION_REASONS_CHOICES = getattr(settings, 'CAMPAIGN_RESOLUTION_REASONS_CHOICES', ())
 
 ACTIVITY_TYPES = (
     ('S', _('Campaign start')),
