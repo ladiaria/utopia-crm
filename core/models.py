@@ -794,6 +794,7 @@ class Subscription(models.Model):
     )
 
     updated_from = models.OneToOneField('core.Subscription', on_delete=models.SET_NULL, blank=True, null=True)
+    payment_certificate = models.FileField(upload_to='certificates/', blank=True, null=True)
 
     # Mercadopago tokens, and others
     card_id = models.CharField(max_length=32, blank=True, null=True)
