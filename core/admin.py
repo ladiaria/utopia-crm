@@ -113,6 +113,7 @@ class SubscriptionInline(admin.StackedInline):
                 ('type', 'next_billing',),
                 ('edit_products_field',),
                 ('start_date', 'end_date'),
+                ('payment_certificate'),
             )
         }),
         (_('Billing data'), {
@@ -189,6 +190,7 @@ class SubscriptionAdmin(admin.ModelAdmin):
             ('next_billing', 'payment_type'),
             ('balance', 'frequency'),
             ('status', 'send_bill_copy_by_email', 'send_pdf'),
+            ('payment_certificate'),
             ('updated_from'),
         )}),
         ('Billing data', {
