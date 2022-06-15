@@ -1,5 +1,5 @@
 # coding=utf-8
-from datetime import date
+from datetime import date, timedelta
 
 from django.core.management.base import BaseCommand
 
@@ -7,7 +7,7 @@ from core.models import Subscription
 
 
 class Command(BaseCommand):
-    help = u'Ends subscriptions that have reached their end date'
+    help = u'Ends subscriptions that have reached their end date. It\'s meant to be ran the day before the end date.'
 
     def handle(self, *args, **options):
         # Deactivate all ended subscriptions
@@ -15,7 +15,7 @@ class Command(BaseCommand):
 
         ended_subscriptions = Subscription.objects.filter(
             active=True,
-            end_date__lt=date.today()
+            end_date__lte=date.today() + timedelta(1),
         )
         if verbose3:
             print("Starting process of ending subscriptions that have reached their end date...")
