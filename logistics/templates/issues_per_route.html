@@ -55,8 +55,9 @@ td p.ie{font-size:1.6em;}
       <table cellpadding="5" cellspacing="2">
             <tr>
                 <th style="width:1%">{% trans "Route" %}</th>
+                <th style="width:1%">{% trans "URL" %}</th>
                 <th style="width:1%">{% trans "Date" %}</th>
-                <th style="width:10%">{% trans "Contact" %}</th>
+                <th style="width:9%">{% trans "Contact" %}</th>
                 <th style="width:4%">{% trans "Phone" %}</th>
                 <th style="width:15%">{% trans "Address" %}</th>
                 <th style="width:1%">{% trans "Product" %}</th>
@@ -67,6 +68,9 @@ td p.ie{font-size:1.6em;}
         {% for issue in issues %}
             <tr class="{% cycle 'row1' 'row2' %}">
                 <td>{{ issue.subscription_product.route.number }}</td>
+                <td>
+                  <a href="{% url 'view_issue' issue.id %}">{{issue.id}}</a>
+                </td>
                 <td>{{ issue.date|date:"SHORT_DATE_FORMAT" }}</td>
                 <td>
                   <a href='{% url "contact_detail" issue.contact.id %}' target="_blank">{{issue.contact.name}}</a>
