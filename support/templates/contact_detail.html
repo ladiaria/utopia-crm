@@ -129,6 +129,7 @@ $( function() {
                                                     <a href="{% url 'admin:core_subscription_change' subscription.id %}" class="btn btn-info" target="_blank">{% trans "Advanced" %}</a>
                                                     {% endif %}
                                                     <a href="{% url 'edit_envelopes' subscription.id %}" class="btn btn-info"><i class="fas fa-envelope"></i></a>
+                                                    <a href="{% url 'upload_payment_certificate' subscription.id %}" class="btn-sm btn-info"><i class="fas fa-file-invoice-dollar"></i></i></a>
                                                   </div>
                                                   {% endfor %}
                                                 {% else %}
