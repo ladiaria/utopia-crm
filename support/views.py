@@ -64,6 +64,7 @@ from .forms import (
     NewActivityForm,
     UnsubscriptionForm,
     ContactCampaignStatusByDateForm,
+    SubscriptionPaymentCertificateForm,
 )
 from logistics.models import Route
 from .models import Seller, ScheduledTask, IssueStatus, Issue, IssueSubcategory
@@ -2067,6 +2068,26 @@ def edit_envelopes(request, subscription_id):
         'edit_envelopes.html', {
             'subscription': subscription,
             'subscription_products': subscription.get_subscriptionproducts(without_discounts=True)
+        })
+
+
+@staff_member_required
+def upload_payment_certificate(request, subscription_id):
+    subscription = get_object_or_404(Subscription, pk=subscription_id)
+    if request.POST:
+        form = SubscriptionPaymentCertificateForm(request.POST, request.FILES, instance=subscription)
+        if form.is_valid():
+            form.save()
+            messages.success(request, _("Payment certificate has been uploaded successfully"))
+            return HttpResponseRedirect(reverse("contact_detail", args=[subscription.contact_id]))
+    else:
+        form = SubscriptionPaymentCertificateForm(instance=subscription)
+
+    return render(
+        request,
+        'upload_payment_certificate.html', {
+            'subscription': subscription,
+            'form': form,
         })
 
 
