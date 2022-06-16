@@ -588,3 +588,11 @@ class ContactCampaignStatusByDateForm(forms.Form):
         required=False, widget=forms.DateInput(format="%Y-%m-%d", attrs={
             "class": "datepicker form-control", "autocomplete": "off"}),
     )
+
+
+class SubscriptionPaymentCertificateForm(forms.ModelForm):
+    class Meta:
+        model = Subscription
+        fields = (
+            "payment_certificate",
+        )
