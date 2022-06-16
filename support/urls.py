@@ -38,6 +38,7 @@ from support.views import (
     edit_contact,
     edit_newsletters,
     edit_envelopes,
+    upload_payment_certificate,
     campaign_statistics_list,
     campaign_statistics_detail,
     campaign_statistics_per_seller,
@@ -124,9 +125,14 @@ urlpatterns = [
     url(r"^contacts/(\d+)/edit/$", edit_contact, name="edit_contact"),
     url(r"^edit_newsletters/(\d+)/$", edit_newsletters, name="edit_newsletters"),
     url(r"^edit_envelopes/(\d+)/$", edit_envelopes, name="edit_envelopes"),
+    url(r"^upload_payment_certificate/(\d+)/$", upload_payment_certificate, name="upload_payment_certificate"),
     url(r"^campaign_statistics/$", campaign_statistics_list, name="campaign_statistics_list"),
     url(r"^campaign_statistics/(\d+)/$", campaign_statistics_detail, name="campaign_statistics_detail"),
-    url(r"^campaign_statistics/by_seller/(\d+)/$", campaign_statistics_per_seller, name="campaign_statistics_per_seller"),
+    url(
+        r"^campaign_statistics/by_seller/(\d+)/$",
+        campaign_statistics_per_seller,
+        name="campaign_statistics_per_seller"
+    ),
     url(r"^campaign_statistics/performance_by_time/$", seller_performance_by_time, name="seller_performance_by_time"),
     url(r"^unsubscription_statistics/$", unsubscription_statistics, name="unsubscription_statistics"),
     url(r"^release_seller_contacts/$", release_seller_contacts, name="release_seller_contacts"),
