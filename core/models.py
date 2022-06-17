@@ -1467,6 +1467,33 @@ class Subscription(models.Model):
         else:
             return None
 
+    def get_permanency_invoice_set(self):
+        invoice_set = None
+        invoice_set += self.invoice_set.all()
+        subscription = self
+        while subscription.updated_from:
+            subscription = subscription.updated_from
+            invoice_set = invoice_set | subscription.invoice_set.all()
+        return invoice_set
+
+    def get_permanency_invoice_count(self):
+        invoices_count = 0
+        invoices_count += self.invoice_set.count()
+        subscription = self
+        while subscription.updated_from:
+            subscription = subscription.updated_from
+            invoices_count += subscription.invoice_set.count()
+        return invoices_count
+
+    def get_permanency_months_count(self):
+        months_count = 0
+        months_count += self.invoice_set.count() * self.frequency
+        subscription = self
+        while subscription.updated_from:
+            subscription = subscription.updated_from
+            months_count += subscription.invoice_set.count() * subscription.frequency
+        return months_count
+
     class Meta:
         verbose_name = _("subscription")
         verbose_name_plural = _("subscriptions")
