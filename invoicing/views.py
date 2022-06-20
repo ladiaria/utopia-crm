@@ -155,11 +155,11 @@ def bill_subscription(subscription_id, billing_date=None, dpp=10, check_route=Fa
         item.product = product
         if product.type == 'S':
             # If the product is a subscription
-            copies = int(copies)
+            item.copies = int(copies)
             item.type = 'I'  # This means this is a regular item on the invoice
             subtotal += item.price
         elif product.type == 'D':
-            copies = 1  # If the product is a discount, the copies are always 1
+            item.copies = 1  # If the product is a discount, the copies are always 1
             item.type = 'D'  # This means this is a discount item
             # We'll use the type of discount/surcharge of 1, that uses the numeric value instead of a percentage.
             item.type_dr = 1
