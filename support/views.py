@@ -1606,10 +1606,10 @@ def contact_detail(request, contact_id):
     last_paid_invoice = contact.get_last_paid_invoice()
     inactive_subscriptions = contact.subscriptions.filter(
         active=False, start_date__lt=date.today()
-    ).exclude(status="AP").order_by("-end_date", "-start_date")
+    ).exclude(status__in=("AP", "ER")).order_by("-end_date", "-start_date")
     future_subscriptions = contact.subscriptions.filter(
         active=False, start_date__gte=date.today()
-    ).exclude(status="AP").order_by("-start_date")
+    ).exclude(status__in=("AP", "ER")).order_by("-start_date")
     all_activities = contact.activity_set.all().order_by('-datetime', 'id')
     all_issues = contact.issue_set.all().order_by('-date', 'id')
     all_scheduled_tasks = contact.scheduledtask_set.all().order_by('-creation_date', 'id')
