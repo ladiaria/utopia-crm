@@ -329,18 +329,6 @@ def bill_subscription(subscription_id, billing_date=None, dpp=10, check_route=Fa
                     item.save()
                     invoice.invoiceitem_set.add(item)
 
-<<<<<<< HEAD
-            # When the invoice has finally been created and every date has been moved where it should have been, we're
-            # going to check if there's any temporary discounts, and remove them if it applies.
-            if getattr(settings, 'TEMPORARY_DISCOUNT', None):
-                temporary_discount_list = list(getattr(settings, 'TEMPORARY_DISCOUNT').items())
-                for discount_slug, months in temporary_discount_list:
-                    if (
-                        invoice.has_product(discount_slug)
-                        and invoice.subscription.months_in_invoices_with_product(discount_slug) >= months
-                    ):
-                        invoice.subscription.remove_product(Product.objects.get(slug=discount_slug))
-=======
                 # When the invoice has finally been created and every date has been moved where it should have been,
                 # we're going to check if there's any temporary discounts, and remove them if it applies.
                 if getattr(settings, 'TEMPORARY_DISCOUNT', None):
@@ -363,7 +351,6 @@ def bill_subscription(subscription_id, billing_date=None, dpp=10, check_route=Fa
             # We do this here because we also need to change the subscription dates even if the amount is 0, but
             # we don't want to execute anything of this if the invoice creation process failed for whatever reason.
             assert amount, _("This subscription wasn't billed since amount is 0")
->>>>>>> t650
 
         except Exception as e:
             raise Exception("Contact {} Subscription {}: {}".format(subscription.contact.id, subscription.id, e))
