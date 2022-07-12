@@ -341,10 +341,11 @@ def bill_subscription(subscription_id, billing_date=None, dpp=10, check_route=Fa
                             invoice.subscription.remove_product(Product.objects.get(slug=discount_slug))
 
             # Then finally we need to change everything on the subscription
-            if subscription.balance > 0 and balance_item:
-                subscription.balance -= balance_item.amount  # Then subtract the balance
-            if subscription.balance <= 0:
-                subscription.balance = None  # Then if it is zero or less, remove it completely.
+            if subscription.balance:
+                if subscription.balance > 0 and balance_item:
+                    subscription.balance -= balance_item.amount  # Then subtract the balance
+                if subscription.balance <= 0:
+                    subscription.balance = None  # Then if it is zero or less, remove it completely.
             subscription.next_billing = (subscription.next_billing or subscription.start_date) + relativedelta(
                 months=subscription.frequency)
             subscription.save()
