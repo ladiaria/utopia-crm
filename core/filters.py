@@ -20,6 +20,7 @@ class ContactFilter(django_filters.FilterSet):
         choices=YESNO_CHOICES, method="with_active_subscription"
     )
     tags = django_filters.CharFilter(method="by_tags")
+    address = django_filters.CharFilter(method="by_address")
 
     class Meta:
         model = Contact
@@ -49,3 +50,6 @@ class ContactFilter(django_filters.FilterSet):
         if tags:
             queryset = queryset.filter(tags__name__in=tags).distinct()
         return queryset
+
+    def by_address(self, queryset, name, value):
+        return queryset.filter(addresses__address_1__icontains=value).distinct()

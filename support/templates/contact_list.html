@@ -68,6 +68,12 @@
                   {% render_field filter.form.tags class="form-control" %}
                 </div>
               </div>
+              <div class="form-group row col">
+                <label for="tags" class="col-sm-3 col-form-label">{% trans 'Address' %}</label>
+                <div class="col-sm-9">
+                  {% render_field filter.form.address class="form-control" %}
+                </div>
+              </div>
               <div class="form-group col-sm-1">
                 <input type="submit" class="btn bg-gradient-primary" value="{% trans 'Search' %}" />
               </div>
@@ -101,6 +107,7 @@
                     <th>{% trans "Email" %}</th>
                     <th>{% trans "Phone" %}</th>
                     <th>{% trans "Subscription" %}</th>
+                    <th>{% trans "Addresses" %}</th>
                     <th>{% trans "Last activity" %}</th>
                   </tr>
               </thead>
@@ -119,6 +126,13 @@
                         <i class="far fa-envelope" title="{% trans 'Free envelope' %}" data-toggle="tooltip"></i>
                         {% endif %} {{sp.product.name}} {% if sp.label_contact %}({{sp.label_contact.name}}){% endif %}<br>
                       {% endfor %}
+                    </td>
+                    <td>
+                      <ul>
+                        {% for address in contact.addresses.all %}
+                          {{address.address_1|default_if_none:""}} {{address.state|default_if_none:""}}
+                        {% endfor %}
+                      </ul>
                     </td>
                     <td>{{contact.last_activity.datetime|date:"SHORT_DATE_FORMAT"}} {% if contact.last_activity.activity_type %}/ {{contact.last_activity.get_type}}{% endif %}</td>
                 </tr>
