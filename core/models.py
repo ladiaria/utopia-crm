@@ -244,6 +244,7 @@ class Contact(models.Model):
     tags = TaggableManager(blank=True)
     allow_polls = models.BooleanField(default=True, verbose_name=_("Allows polls"))
     allow_promotions = models.BooleanField(default=True, verbose_name=_("Allows promotions"))
+    cms_date_joined = models.DateTimeField(blank=True, null=True, verbose_name=_("CMS join date"))
 
     def __unicode__(self):
         return self.name
