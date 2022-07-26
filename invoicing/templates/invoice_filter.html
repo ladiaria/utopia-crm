@@ -83,6 +83,10 @@
                 <label for="status">{% trans "Number" %}</label>
                 {% render_field invoice_filter.form.numero class="form-control" %}
               </div>
+              <div class="form-group col">
+                <label for="status">{% trans "No serial" %}</label>
+                {% render_field invoice_filter.form.no_serial class="form-control" %}
+              </div>
             </div>
             <div class="text-right">
               {{invoices_count}} {% trans "invoices" %}
