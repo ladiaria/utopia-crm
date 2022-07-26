@@ -7,6 +7,10 @@ from django.db.models import Q
 
 from .models import Invoice
 
+YESNO_CHOICES = (
+    ("yes", _("Yes")),
+    ("no", _("No")),
+)
 
 CREATION_CHOICES = (
     ('today', _('Today')),
@@ -43,6 +47,7 @@ class InvoiceFilter(django_filters.FilterSet):
         field_name='payment_date', lookup_expr='gte', widget=forms.TextInput(attrs={'autocomplete': 'off'}))
     payment_lte = django_filters.DateFilter(
         field_name='payment_date', lookup_expr='lte', widget=forms.TextInput(attrs={'autocomplete': 'off'}))
+    no_serial = django_filters.ChoiceFilter(choices=YESNO_CHOICES, method='filter_by_no_serial')
 
     class Meta:
         model = Invoice
@@ -93,3 +98,15 @@ class InvoiceFilter(django_filters.FilterSet):
         else:
             return queryset.filter(
                 paid=False, debited=False, uncollectible=False, canceled=False, expiration_date__gt=date.today())
+    
+    def filter_by_no_serial(self, queryset, name, value):
+        if value == 'yes':
+            return queryset.filter(
+                numero__isnull=True
+            )
+        elif value == 'no':
+            return queryset.filter(
+                numero__isnull=False
+            )
+        else:
+            return queryset
