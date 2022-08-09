@@ -1,6 +1,6 @@
 # -*- encoding: utf-8 -*-
 
-import csv, unicodecsv
+import csv
 from datetime import date, timedelta, datetime
 from collections import defaultdict
 from dateutil.relativedelta import relativedelta
@@ -1165,7 +1165,7 @@ def print_labels_for_product_date(request):
             response = HttpResponse(content_type="text/csv")
             response["Content-Disposition"] = 'attachment; filename="etiquetas_{}_{}.csv"'.format(
                 product.name, date_str)
-            writer = unicodecsv.writer(response)
+            writer = csv.writer(response)
             header = [
                 "id_cliente",
                 "id_suscripción",
