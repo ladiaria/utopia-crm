@@ -1,6 +1,6 @@
 # -*- encoding: utf-8 -*-
 
-import csv
+import csv, unicodecsv
 from datetime import date, timedelta, datetime
 from collections import defaultdict
 from dateutil.relativedelta import relativedelta
@@ -1160,6 +1160,63 @@ def print_labels_for_product_date(request):
             subscription__start_date__lte=date_obj,
             ).order_by(
                 'route', F('order').asc(nulls_first=True), 'address__address_1')
+
+        if request.POST.get('download-csv', None):
+            response = HttpResponse(content_type="text/csv")
+            response["Content-Disposition"] = 'attachment; filename="etiquetas_{}_{}.csv"'.format(
+                product.name, date_str)
+            writer = unicodecsv.writer(response)
+            header = [
+                "id_cliente",
+                "id_suscripción",
+                "producto",
+                "nombre_etiqueta",
+                "dirección_1",
+                "dirección_2",
+                "ciudad",
+                "departamento",
+                "ruta",
+                "orden",
+                "mensaje",
+                "instrucciones",
+                "sobre",
+            ]
+            writer.writerow(header)
+            for sp in subscription_products:
+                label_name = sp.subscription.contact.name
+                subscription_id = sp.subscription.id
+                product = sp.product.name
+                if sp.address:
+                    address_1 = sp.address.address_1
+                    address_2 = sp.address.address_2
+                    city = sp.address.city
+                    state = sp.address.state
+                else:
+                    address_1, address_2, city, state = None, None, None, None
+                if sp.route:
+                    route = sp.route.number
+                else:
+                    route = None
+                order = sp.order
+                message = sp.label_message
+                instructions = sp.special_instructions
+
+                writer.writerow([
+                    sp.subscription.contact.id,
+                    subscription_id,
+                    product,
+                    label_name,
+                    address_1,
+                    address_2,
+                    city,
+                    state,
+                    route,
+                    order,
+                    message,
+                    instructions,
+                ])
+            return response
+
 
         old_route = 0
 
