@@ -60,7 +60,7 @@ def calc_price_from_products(products_with_copies, frequency):
         product = Product.objects.get(pk=int(product_id))
         copies = int(copies)
         if getattr(settings, 'DEBUG_PRODUCTS', False):
-            print("{} {} x{} = {}".format(product.name, copies, product.price, product.price * copies))
+            print(u"{} {} x{} = {}".format(product.name, copies, product.price, product.price * copies))
         if product.type == 'S':
             total_price += product.price * copies
         elif product.type == 'D':
