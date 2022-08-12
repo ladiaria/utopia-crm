@@ -45,6 +45,7 @@ from support.views import (
     seller_performance_by_time,
     unsubscription_statistics,
     release_seller_contacts,
+    scheduled_task_filter,
 )
 
 from django.conf.urls import url
@@ -137,4 +138,6 @@ urlpatterns = [
     url(r"^unsubscription_statistics/$", unsubscription_statistics, name="unsubscription_statistics"),
     url(r"^release_seller_contacts/$", release_seller_contacts, name="release_seller_contacts"),
     url(r"^release_seller_contacts/(\d+)/$", release_seller_contacts, name="release_seller_contacts"),
+    url(r"^scheduled_task_filter/$", scheduled_task_filter, name="scheduled_task_filter"),
+
 ]
