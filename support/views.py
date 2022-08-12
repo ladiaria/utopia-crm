@@ -49,6 +49,7 @@ from .filters import (
     ScheduledActivityFilter,
     ContactCampaignStatusFilter,
     UnsubscribedSubscriptionsByEndDateFilter,
+    ScheduledTaskFilter
 )
 from .forms import (
     NewPauseScheduledTaskForm,
@@ -2844,3 +2845,56 @@ def seller_console_special_routes(request, route_id):
         "subprods": subprods,
         "route": route,
     })
+
+
+@login_required
+def scheduled_task_filter(request):
+    """
+    Shows a very basic list of Scheduled Tasks.
+    """
+    st_queryset = ScheduledTask.objects.all().order_by(
+        "-creation_date", "-execution_date", "-id")
+    st_filter = ScheduledTaskFilter(request.GET, queryset=st_queryset)
+    page_number = request.GET.get("p")
+    paginator = Paginator(st_filter.qs, 100)
+    if request.GET.get('export'):
+        response = HttpResponse(content_type="text/csv")
+        response["Content-Disposition"] = 'attachment; filename="scheduled_tasks_export.csv"'
+        writer = unicodecsv.writer(response)
+        header = [
+            _("Contact ID"),
+            _("Contact name"),
+            _("Category"),
+            _("Creation date"),
+            _("Execution date"),
+            _("Completed"),
+        ]
+        writer.writerow(header)
+        for st in st_filter.qs.all():
+            writer.writerow([
+                st.contact.id,
+                st.contact.name,
+                st.get_category_display(),
+                st.creation_date,
+                st.execution_date,
+                st.completed,
+            ])
+        return response
+    try:
+        page = paginator.page(page_number)
+    except PageNotAnInteger:
+        # If page is not an integer, deliver first page.
+        page = paginator.page(1)
+    except EmptyPage:
+        # If page is out of range (e.g. 9999), deliver last page of results.
+        page = paginator.page(paginator.num_pages)
+    return render(
+        request,
+        "scheduled_task_filter.html",
+        {
+            "page": page,
+            "paginator": paginator,
+            "st_filter": st_filter,
+            "count": st_filter.qs.count()
+        },
+    )
