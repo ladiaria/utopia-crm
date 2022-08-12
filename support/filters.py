@@ -4,9 +4,10 @@ import django_filters
 from django import forms
 from django.utils.translation import ugettext_lazy as _
 from django.contrib.auth.models import User
+from django.db.models import Q
 
 from core.models import Activity, ContactCampaignStatus, Subscription
-from .models import Issue, IssueSubcategory, Seller
+from .models import Issue, IssueSubcategory, Seller, ScheduledTask
 
 
 CREATION_CHOICES = (
@@ -111,3 +112,38 @@ class UnsubscribedSubscriptionsByEndDateFilter(django_filters.FilterSet):
     class Meta:
         model = Subscription
         fields = []
+
+
+class ScheduledTaskFilter(django_filters.FilterSet):
+    contact_filter = django_filters.CharFilter(method='by_contact_data')
+    address_filter = django_filters.CharFilter(method='by_address')
+    creation_date_gte = django_filters.DateFilter(
+        field_name='creation_date', lookup_expr='gte', widget=forms.TextInput(attrs={'autocomplete': 'off'}))
+    creation_date_lte = django_filters.DateFilter(
+        field_name='creation_date', lookup_expr='lte', widget=forms.TextInput(attrs={'autocomplete': 'off'}))
+    execution_date_gte = django_filters.DateFilter(
+        field_name='execution_date', lookup_expr='gte', widget=forms.TextInput(attrs={'autocomplete': 'off'}))
+    execution_date_lte = django_filters.DateFilter(
+        field_name='execution_date', lookup_expr='lte', widget=forms.TextInput(attrs={'autocomplete': 'off'}))
+
+    class Meta:
+        model = ScheduledTask
+        fields = [
+            'category',
+            'completed',
+            'label_message',
+            'special_instructions'
+        ]
+
+    def by_contact_data(self, queryset, name, value):
+        return queryset.filter(
+            Q(contact__id__contains=value)
+            | Q(contact__name__contains=value)
+            | Q(contact__id_document__contains=value)
+            | Q(contact__email__icontains=value)
+            | Q(contact__phone__icontains=value)
+            | Q(contact__mobile__contains=value)
+        )
+
+    def by_address(self, queryset, name, value):
+        return queryset.filter(address__address1__icontains=value)

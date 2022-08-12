@@ -39,6 +39,7 @@
 {% url "seller_performance_by_time" as seller_performance_by_time %}
 {% url "print_labels_for_day" as print_labels_for_day %}
 {% url "release_seller_contacts" as release_seller_contacts %}
+{% url "scheduled_task_filter" as scheduled_task_filter %}
 
 <li class="nav-item">
   <a href="{{contact_list}}" class="nav-link {% ifequal request.path contact_list  %}active{% endifequal %}">{% trans "Contacts" %}</a>
@@ -56,6 +57,7 @@
     <li class="nav-item"><a href="{{collection_issues}}" class="nav-link {% ifequal request.path collection_issues %}active{% endifequal %}">{% trans 'Collection issues' %}</a></li>
     <li class="nav-item"><a href="{{dynamic_contact_filter_list}}" class="nav-link {% ifequal request.path dynamic_contact_filter_list %}active{% endifequal %}">{% trans 'Dynamic contact filter list' %}</a></li>
     <li class="nav-item"><a href="{{list_routes}}" class="nav-link {% ifequal request.path list_routes %}active{% endifequal %}">{% trans 'List all routes' %}</a></li>
+    <li class="nav-item"><a href="{{scheduled_task_filter}}" class="nav-link">{% trans "Scheduled task filter" %}</a></li>
     {% include_if_exists "support_sidebar_extra.html" %}
   </ul>
 </li>
