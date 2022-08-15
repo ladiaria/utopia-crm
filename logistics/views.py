@@ -707,10 +707,10 @@ def print_labels_from_csv(request):
         for row in label_list:
             try:
                 if row[3] and old_route != row[3] and use_separators:
-                    label = iterator.next()
+                    label = next(iterator)
                     label.separador()
                     old_route = row[3]
-                label = iterator.next()
+                label = next(iterator)
                 label.name = row[0].upper()
                 label.address = '{}\n{}'.format(row[1], row[2])
                 label.route = row[3] or ''
