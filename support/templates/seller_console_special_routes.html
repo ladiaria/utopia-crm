@@ -1,5 +1,5 @@
 {% extends 'adminlte/base.html' %}
-{% load sip i18n %}
+{% load sip_tags i18n %}
 
 {% block no_heading %}
 <h1>{% trans "Special route" %}: {{route.name}}</h1>
@@ -35,9 +35,9 @@
             <td>{{sp.subscription.contact.name}}</td>
             <td>{{sp.subscription.id}}</td>
             <td>{{sp.product.name}}</td>
-            <td>{{sp.subscription.contact.email|default_if_none:""}}</td>
-            <td>{{sp.subscription.contact.phone|default_if_none:""}}</td>
-            <td>{{sp.subscription.contact.mobile|default_if_none:""}}</td>
+            <td>{{ sp.subscription.contact.email|default_if_none:"" }}</td>
+            <td>{{ sp.subscription.contact.phone|sip }}</td>
+            <td>{{ sp.subscription.contact.mobile|sip }}</td>
           </tr>
         {% endfor %}
       </tbody>
