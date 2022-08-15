@@ -1108,6 +1108,7 @@ def assign_seller(request, campaign_id):
             return HttpResponseRedirect(reverse("assign_sellers"))
         for seller, amount in seller_list:
             if amount:
+                amount = int(amount)
                 for status in ContactCampaignStatus.objects.filter(
                     seller=None, campaign=campaign
                 )[:amount]:
