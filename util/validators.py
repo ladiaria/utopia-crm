@@ -36,7 +36,7 @@ class ValidationError(Exception):
         if isinstance(message, list):
             self.messages = message
         else:
-            assert isinstance(message, (basestring, Promise)), ("%s should be a string" % repr(message))
+            assert isinstance(message, (str, Promise)), ("%s should be a string" % repr(message))
             self.messages = [message]
 
     def __str__(self):
@@ -53,7 +53,7 @@ class CriticalValidationError(Exception):
         if isinstance(message, list):
             self.messages = message
         else:
-            assert isinstance(message, (basestring, Promise)), ("'%s' should be a string" % message)
+            assert isinstance(message, (str, Promise)), ("'%s' should be a string" % message)
             self.messages = [message]
 
     def __str__(self):
@@ -62,27 +62,27 @@ class CriticalValidationError(Exception):
 
 def isAlphaNumeric(field_data, all_data):
     if not alnum_re.search(field_data):
-        raise ValidationError, _("This value must contain only letters, numbers and underscores.")
+        raise ValidationError(_("This value must contain only letters, numbers and underscores."))
 
 
 def isAlphaNumericURL(field_data, all_data):
     if not alnumurl_re.search(field_data):
-        raise ValidationError, _("This value must contain only letters, numbers, underscores, dashes or slashes.")
+        raise ValidationError(_("This value must contain only letters, numbers, underscores, dashes or slashes."))
 
 
 def isSlug(field_data, all_data):
     if not slug_re.search(field_data):
-        raise ValidationError, "This value must contain only letters, numbers, underscores or hyphens."
+        raise ValidationError("This value must contain only letters, numbers, underscores or hyphens.")
 
 
 def isLowerCase(field_data, all_data):
     if field_data.lower() != field_data:
-        raise ValidationError, _("Uppercase letters are not allowed here.")
+        raise ValidationError(_("Uppercase letters are not allowed here."))
 
 
 def isUpperCase(field_data, all_data):
     if field_data.upper() != field_data:
-        raise ValidationError, _("Lowercase letters are not allowed here.")
+        raise ValidationError(_("Lowercase letters are not allowed here."))
 
 
 def isCommaSeparatedIntegerList(field_data, all_data):
@@ -90,7 +90,7 @@ def isCommaSeparatedIntegerList(field_data, all_data):
         try:
             int(supposed_int)
         except ValueError:
-            raise ValidationError, _("Enter only digits separated by commas.")
+            raise ValidationError(_("Enter only digits separated by commas."))
 
 
 def isCommaSeparatedEmailList(field_data, all_data):
@@ -103,58 +103,58 @@ def isCommaSeparatedEmailList(field_data, all_data):
         try:
             isValidEmail(supposed_email.strip(), '')
         except ValidationError:
-            raise ValidationError, _("Enter valid e-mail addresses separated by commas.")
+            raise ValidationError(_("Enter valid e-mail addresses separated by commas."))
 
 
 def isValidIPAddress4(field_data, all_data):
     if not ip4_re.search(field_data):
-        raise ValidationError, _("Please enter a valid IP address.")
+        raise ValidationError(_("Please enter a valid IP address."))
 
 
 def isNotEmpty(field_data, all_data):
     if field_data.strip() == '':
-        raise ValidationError, _("Empty values are not allowed here.")
+        raise ValidationError(_("Empty values are not allowed here."))
 
 
 def isOnlyDigits(field_data, all_data):
     if not field_data.isdigit():
-        raise ValidationError, _("Non-numeric characters aren't allowed here.")
+        raise ValidationError(_("Non-numeric characters aren't allowed here."))
 
 
 def isNotOnlyDigits(field_data, all_data):
     if field_data.isdigit():
-        raise ValidationError, _("This value can't be comprised solely of digits.")
+        raise ValidationError(_("This value can't be comprised solely of digits."))
 
 
 def isInteger(field_data, all_data):
     # This differs from isOnlyDigits because this accepts the negative sign
     if not integer_re.search(field_data):
-        raise ValidationError, _("Enter a whole number.")
+        raise ValidationError(_("Enter a whole number."))
 
 
 def isOnlyLetters(field_data, all_data):
     if not field_data.isalpha():
-        raise ValidationError, _("Only alphabetical characters are allowed here.")
+        raise ValidationError(_("Only alphabetical characters are allowed here."))
 
 
 def isValidANSIDate(field_data, all_data):
     if not ansi_date_re.search(field_data):
-        raise ValidationError, _('Enter a valid date in YYYY-MM-DD format.')
+        raise ValidationError(_('Enter a valid date in YYYY-MM-DD format.'))
 
 
 def isValidANSITime(field_data, all_data):
     if not ansi_time_re.search(field_data):
-        raise ValidationError, _('Enter a valid time in HH:MM format.')
+        raise ValidationError(_('Enter a valid time in HH:MM format.'))
 
 
 def isValidANSIDatetime(field_data, all_data):
     if not ansi_datetime_re.search(field_data):
-        raise ValidationError, _('Enter a valid date/time in YYYY-MM-DD HH:MM format.')
+        raise ValidationError(_('Enter a valid date/time in YYYY-MM-DD HH:MM format.'))
 
 
 def isValidEmail(field_data, all_data):
     if not email_re.search(field_data):
-        raise ValidationError, _('Enter a valid e-mail address.')
+        raise ValidationError(_('Enter a valid e-mail address.'))
 
 
 def isValidImage(field_data, all_data):
@@ -163,11 +163,11 @@ def isValidImage(field_data, all_data):
     PNG, possibly others -- whatever the Python Imaging Library supports).
     """
     from PIL import Image
-    from cStringIO import StringIO
+    from io import StringIO
     try:
         Image.open(StringIO(field_data['content']))
     except IOError: # Python Imaging Library doesn't recognize it as an image
-        raise ValidationError, _("Upload a valid image. The file you uploaded was either not an image or a corrupted image.")
+        raise ValidationError(_("Upload a valid image. The file you uploaded was either not an image or a corrupted image."))
 
 
 def isValidImageURL(field_data, all_data):
@@ -175,12 +175,12 @@ def isValidImageURL(field_data, all_data):
     try:
         uc(field_data, all_data)
     except URLMimeTypeCheck.InvalidContentType:
-        raise ValidationError, _("The URL %s does not point to a valid image.") % field_data
+        raise ValidationError(_("The URL %s does not point to a valid image.") % field_data)
 
 
 def isValidPhone(field_data, all_data):
     if not phone_re.search(field_data):
-        raise ValidationError, _('Phone numbers must be in XXX-XXX-XXXX format. "%s" is invalid.') % field_data
+        raise ValidationError(_('Phone numbers must be in XXX-XXX-XXXX format. "%s" is invalid.') % field_data)
 
 
 def isValidQuicktimeVideoURL(field_data, all_data):
@@ -189,18 +189,18 @@ def isValidQuicktimeVideoURL(field_data, all_data):
     try:
         uc(field_data, all_data)
     except URLMimeTypeCheck.InvalidContentType:
-        raise ValidationError, _("The URL %s does not point to a valid QuickTime video.") % field_data
+        raise ValidationError(_("The URL %s does not point to a valid QuickTime video.") % field_data)
 
 
 def isValidURL(field_data, all_data):
     if not url_re.search(field_data):
-        raise ValidationError, _("A valid URL is required.")
+        raise ValidationError(_("A valid URL is required."))
 
 
 def isValidHTML(field_data, all_data):
-    import urllib, urllib2
+    import urllib.request, urllib.parse, urllib.error, urllib.request, urllib.error, urllib.parse
     try:
-        u = urllib2.urlopen('http://validator.w3.org/check', urllib.urlencode({'fragment': field_data, 'output': 'xml'}))
+        u = urllib.request.urlopen('http://validator.w3.org/check', urllib.parse.urlencode({'fragment': field_data, 'output': 'xml'}))
     except:
         # Validator or Internet connection is unavailable. Fail silently.
         return
@@ -209,15 +209,15 @@ def isValidHTML(field_data, all_data):
         return
     from xml.dom.minidom import parseString
     error_messages = [e.firstChild.wholeText for e in parseString(u.read()).getElementsByTagName('messages')[0].getElementsByTagName('msg')]
-    raise ValidationError, _("Valid HTML is required. Specific errors are:\n%s") % "\n".join(error_messages)
+    raise ValidationError(_("Valid HTML is required. Specific errors are:\n%s") % "\n".join(error_messages))
 
 
 def isWellFormedXml(field_data, all_data):
     from xml.dom.minidom import parseString
     try:
         parseString(field_data)
-    except Exception, e: # Naked except because we're not sure what will be thrown
-        raise ValidationError, _("Badly formed XML: %s") % str(e)
+    except Exception as e: # Naked except because we're not sure what will be thrown
+        raise ValidationError(_("Badly formed XML: %s") % str(e))
 
 
 def isWellFormedXmlFragment(field_data, all_data):
@@ -225,24 +225,24 @@ def isWellFormedXmlFragment(field_data, all_data):
 
 
 def isExistingURL(field_data, all_data):
-    import urllib2
+    import urllib.request, urllib.error, urllib.parse
     try:
-        u = urllib2.urlopen(field_data)
+        u = urllib.request.urlopen(field_data)
     except ValueError:
-        raise ValidationError, _("Invalid URL: %s") % field_data
-    except urllib2.HTTPError, e:
+        raise ValidationError(_("Invalid URL: %s") % field_data)
+    except urllib.error.HTTPError as e:
         # 401s are valid; they just mean authorization is required.
         if e.code not in ('401',):
-            raise ValidationError, _("The URL %s is a broken link.") % field_data
+            raise ValidationError(_("The URL %s is a broken link.") % field_data)
     except: # urllib2.URLError, httplib.InvalidURL, etc.
-        raise ValidationError, _("The URL %s is a broken link.") % field_data
+        raise ValidationError(_("The URL %s is a broken link.") % field_data)
 
 
 def isValidUSState(field_data, all_data):
     "Checks that the given string is a valid two-letter U.S. state abbreviation"
     states = ['AA', 'AE', 'AK', 'AL', 'AP', 'AR', 'AS', 'AZ', 'CA', 'CO', 'CT', 'DC', 'DE', 'FL', 'FM', 'GA', 'GU', 'HI', 'IA', 'ID', 'IL', 'IN', 'KS', 'KY', 'LA', 'MA', 'MD', 'ME', 'MH', 'MI', 'MN', 'MO', 'MP', 'MS', 'MT', 'NC', 'ND', 'NE', 'NH', 'NJ', 'NM', 'NV', 'NY', 'OH', 'OK', 'OR', 'PA', 'PR', 'PW', 'RI', 'SC', 'SD', 'TN', 'TX', 'UT', 'VA', 'VI', 'VT', 'WA', 'WI', 'WV', 'WY']
     if field_data.upper() not in states:
-        raise ValidationError, _("Enter a valid U.S. state abbreviation.")
+        raise ValidationError(_("Enter a valid U.S. state abbreviation."))
 
 
 def hasNoProfanities(field_data, all_data):
@@ -258,9 +258,9 @@ def hasNoProfanities(field_data, all_data):
     if words_seen:
         from django.utils.text import get_text_list
         plural = len(words_seen) > 1
-        raise ValidationError, ngettext("Watch your mouth! The word %s is not allowed here.",
+        raise ValidationError(ngettext("Watch your mouth! The word %s is not allowed here.",
             "Watch your mouth! The words %s are not allowed here.", plural) % \
-            get_text_list(['"%s%s%s"' % (i[0], '-'*(len(i)-2), i[-1]) for i in words_seen], 'and')
+            get_text_list(['"%s%s%s"' % (i[0], '-'*(len(i)-2), i[-1]) for i in words_seen], 'and'))
 
 
 class AlwaysMatchesOtherField:
@@ -271,7 +271,7 @@ class AlwaysMatchesOtherField:
 
     def __call__(self, field_data, all_data):
         if field_data != all_data[self.other]:
-            raise ValidationError, self.error_message
+            raise ValidationError(self.error_message)
 
 
 class ValidateIfOtherFieldEquals:
@@ -281,7 +281,7 @@ class ValidateIfOtherFieldEquals:
         self.always_test = True
 
     def __call__(self, field_data, all_data):
-        if all_data.has_key(self.other_field) and all_data[self.other_field] == self.other_value:
+        if self.other_field in all_data and all_data[self.other_field] == self.other_value:
             for v in self.validator_list:
                 v(field_data, all_data)
 
@@ -293,7 +293,7 @@ class RequiredIfOtherFieldNotGiven:
 
     def __call__(self, field_data, all_data):
         if not all_data.get(self.other, False) and not field_data:
-            raise ValidationError, self.error_message
+            raise ValidationError(self.error_message)
 
 
 class RequiredIfOtherFieldsGiven:
@@ -304,7 +304,7 @@ class RequiredIfOtherFieldsGiven:
     def __call__(self, field_data, all_data):
         for field in self.other:
             if all_data.get(field, False) and not field_data:
-                raise ValidationError, self.error_message
+                raise ValidationError(self.error_message)
 
 
 class RequiredIfOtherFieldGiven(RequiredIfOtherFieldsGiven):
@@ -322,7 +322,7 @@ class RequiredIfOtherFieldEquals:
         self.always_test = True
 
     def __call__(self, field_data, all_data):
-        if all_data.has_key(self.other_field) and all_data[self.other_field] == self.other_value and not field_data:
+        if self.other_field in all_data and all_data[self.other_field] == self.other_value and not field_data:
             raise ValidationError(self.error_message)
 
 
@@ -335,7 +335,7 @@ class RequiredIfOtherFieldDoesNotEqual:
         self.always_test = True
 
     def __call__(self, field_data, all_data):
-        if all_data.has_key(self.other_field) and all_data[self.other_field] != self.other_value and not field_data:
+        if self.other_field in all_data and all_data[self.other_field] != self.other_value and not field_data:
             raise ValidationError(self.error_message)
 
 
@@ -345,7 +345,7 @@ class IsLessThanOtherField:
 
     def __call__(self, field_data, all_data):
         if field_data > all_data[self.other]:
-            raise ValidationError, self.error_message
+            raise ValidationError(self.error_message)
 
 
 class UniqueAmongstFieldsWithPrefix:
@@ -354,9 +354,9 @@ class UniqueAmongstFieldsWithPrefix:
         self.error_message = error_message or gettext_lazy("Duplicate values are not allowed.")
 
     def __call__(self, field_data, all_data):
-        for field_name, value in all_data.items():
+        for field_name, value in list(all_data.items()):
             if field_name != self.field_name and value == field_data:
-                raise ValidationError, self.error_message
+                raise ValidationError(self.error_message)
 
 
 class IsAPowerOf:
@@ -375,7 +375,7 @@ class IsAPowerOf:
         from math import log
         val = log(int(field_data)) / log(self.power_of)
         if val != int(val):
-            raise ValidationError, _("This value must be a power of %s.") % self.power_of
+            raise ValidationError(_("This value must be a power of %s.") % self.power_of)
 
 
 class IsValidFloat:
@@ -387,13 +387,13 @@ class IsValidFloat:
         try:
             float(data)
         except ValueError:
-            raise ValidationError, _("Please enter a valid decimal number.")
+            raise ValidationError(_("Please enter a valid decimal number."))
         if len(data) > (self.max_digits + 1):
-            raise ValidationError, ngettext( "Please enter a valid decimal number with at most %s total digit.",
-                "Please enter a valid decimal number with at most %s total digits.", self.max_digits) % self.max_digits
+            raise ValidationError(ngettext( "Please enter a valid decimal number with at most %s total digit.",
+                "Please enter a valid decimal number with at most %s total digits.", self.max_digits) % self.max_digits)
         if '.' in data and len(data.split('.')[1]) > self.decimal_places:
-            raise ValidationError, ngettext("Please enter a valid decimal number with at most %s decimal place.",
-                "Please enter a valid decimal number with at most %s decimal places.", self.decimal_places) % self.decimal_places
+            raise ValidationError(ngettext("Please enter a valid decimal number with at most %s decimal place.",
+                "Please enter a valid decimal number with at most %s decimal places.", self.decimal_places) % self.decimal_places)
 
 
 class HasAllowableSize:
@@ -408,9 +408,9 @@ class HasAllowableSize:
 
     def __call__(self, field_data, all_data):
         if self.min_size is not None and len(field_data['content']) < self.min_size:
-            raise ValidationError, self.min_error_message
+            raise ValidationError(self.min_error_message)
         if self.max_size is not None and len(field_data['content']) > self.max_size:
-            raise ValidationError, self.max_error_message
+            raise ValidationError(self.max_error_message)
 
 
 class MatchesRegularExpression:
@@ -446,7 +446,7 @@ class AnyValidator:
             try:
                 v(field_data, all_data)
                 return
-            except ValidationError, e:
+            except ValidationError as e:
                 pass
         raise ValidationError(self.error_message)
 
@@ -462,19 +462,19 @@ class URLMimeTypeCheck:
         self.mime_type_list = mime_type_list
 
     def __call__(self, field_data, all_data):
-        import urllib2
+        import urllib.request, urllib.error, urllib.parse
         try:
             isValidURL(field_data, all_data)
         except ValidationError:
             raise
         try:
-            info = urllib2.urlopen(field_data).info()
-        except (urllib2.HTTPError, urllib2.URLError):
-            raise URLMimeTypeCheck.CouldNotRetrieve, _("Could not retrieve anything from %s.") % field_data
+            info = urllib.request.urlopen(field_data).info()
+        except (urllib.error.HTTPError, urllib.error.URLError):
+            raise URLMimeTypeCheck.CouldNotRetrieve(_("Could not retrieve anything from %s.") % field_data)
         content_type = info['content-type']
         if content_type not in self.mime_type_list:
-            raise URLMimeTypeCheck.InvalidContentType, _("The URL %(url)s returned the invalid Content-Type header '%(contenttype)s'.") % {
-                'url': field_data, 'contenttype': content_type}
+            raise URLMimeTypeCheck.InvalidContentType(_("The URL %(url)s returned the invalid Content-Type header '%(contenttype)s'.") % {
+                'url': field_data, 'contenttype': content_type})
 
 
 class RelaxNGCompact:
@@ -495,7 +495,7 @@ class RelaxNGCompact:
         fp.write(field_data)
         fp.close()
         if not os.path.exists(settings.JING_PATH):
-            raise Exception, "%s not found!" % settings.JING_PATH
+            raise Exception("%s not found!" % settings.JING_PATH)
         p = os.popen('%s -c %s %s' % (settings.JING_PATH, self.schema_path, filename))
         errors = [line.strip() for line in p.readlines()]
         p.close()
@@ -537,4 +537,4 @@ class RelaxNGCompact:
             display_error = 'Line %s: %s [%s]' % (line, message, level.strip())
             display_errors.append(display_error)
         if len(display_errors) > 0:
-            raise ValidationError, display_errors
+            raise ValidationError(display_errors)

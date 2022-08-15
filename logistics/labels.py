@@ -330,7 +330,7 @@ def main():
     iterator = hoja.iterator()
 
     for n in range(33):
-        e = iterator.next()
+        e = next(iterator)
         e.name = 'Ernesto Pizantolli'.upper()
         e.address = 'Florida 1453\nEsquina Soriano'
         e.envelope = True

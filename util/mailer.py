@@ -1,9 +1,9 @@
 # coding=utf-8
 import smtplib
-from email.MIMEMultipart import MIMEMultipart
-from email.MIMEText import MIMEText
-from email.Utils import COMMASPACE
-from email.Utils import formatdate
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.utils import COMMASPACE
+from email.utils import formatdate
 
 from django.conf import settings
 from django.template.loader import render_to_string

@@ -6,7 +6,7 @@ django-debug-toolbar~=1.11
 django-extensions<3
 django-filter~=1.1
 django-pdb
-django-rest-framework
+django-rest-framework<3.13.1
 django-rosetta==0.9.3
 django-tabbed-admin==1.0.4
 django-taggit==0.24
@@ -17,16 +17,14 @@ html2text
 ipython
 luhn
 lxml
-mercadopago
 postgis
 progress
 psycopg2
-pyPdf
+PyPDF2
 python-dateutil
 python-memcached
 reportlab
 requests
 setuptools
-unicodecsv
 yolk
 zeep

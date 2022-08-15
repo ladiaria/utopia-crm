@@ -34,7 +34,7 @@ class TestCaseUtopia(TestCase):
         """
         try:
             import html2text
-            print(html2text.html2text(text))
+            print((html2text.html2text(text)))
         except ImportError:
             print(text)
 

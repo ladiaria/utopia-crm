@@ -7,7 +7,7 @@ from core.models import Subscription
 
 
 class Command(BaseCommand):
-    help = u'Activates subscriptions on their start date, also activates them one day before their start date.'
+    help = 'Activates subscriptions on their start date, also activates them one day before their start date.'
 
     def handle(self, *args, **options):
         verbose3 = options.get('verbosity') > 2

@@ -17,7 +17,7 @@ def addMonth(d, n=1):
 
 
 def subscribe_email_to_mailtrain_list(email, mailtrain_list_id):
-    print("sending email {} to {}".format(email, mailtrain_list_id))
+    print(("sending email {} to {}".format(email, mailtrain_list_id)))
     url = '{}subscribe/{}'.format(settings.MAILTRAIN_API_URL, mailtrain_list_id)
     params = {'access_token': settings.MAILTRAIN_API_KEY}
     data = {'EMAIL': email}
@@ -26,7 +26,7 @@ def subscribe_email_to_mailtrain_list(email, mailtrain_list_id):
 
 
 def delete_email_from_mailtrain_list(email, mailtrain_list_id):
-    print("deleting email {} from {}".format(email, mailtrain_list_id))
+    print(("deleting email {} from {}".format(email, mailtrain_list_id)))
     url = '{}delete/{}'.format(settings.MAILTRAIN_API_URL, mailtrain_list_id)
     params = {'access_token': settings.MAILTRAIN_API_KEY}
     data = {'EMAIL': email}
@@ -56,11 +56,11 @@ def calc_price_from_products(products_with_copies, frequency):
     percentage_discount = None
     advanced_discount_list = []
 
-    for product_id, copies in products_with_copies.items():
+    for product_id, copies in list(products_with_copies.items()):
         product = Product.objects.get(pk=int(product_id))
         copies = int(copies)
         if getattr(settings, 'DEBUG_PRODUCTS', False):
-            print(u"{} {} x{} = {}".format(product.name, copies, product.price, product.price * copies))
+            print(("{} {} x{} = {}".format(product.name, copies, product.price, product.price * copies)))
         if product.type == 'S':
             total_price += product.price * copies
         elif product.type == 'D':
@@ -76,7 +76,7 @@ def calc_price_from_products(products_with_copies, frequency):
         advanced_discount = AdvancedDiscount.objects.get(discount_product=discount_product)
         discounted_product_price = 0
         for product in advanced_discount.find_products.all():
-            if product.id in products_with_copies.keys():
+            if product.id in list(products_with_copies.keys()):
                 if product.type == 'S':
                     discounted_product_price += int(products_with_copies[product.id]) * product.price
                 else:
@@ -106,7 +106,7 @@ def calc_price_from_products(products_with_copies, frequency):
         frequency_discount_amount = round((total_price * discount_pct) / 100)
         total_price -= frequency_discount_amount
     if getattr(settings, 'DEBUG_PRODUCTS', False):
-        print("Total: {}\n\n".format(total_price))
+        print(("Total: {}\n\n".format(total_price)))
     return int(round(total_price))
 
 
@@ -131,7 +131,7 @@ def process_products(input_product_dict):
         ignore_product_bundle = pricerule.ignore_product_bundle.all()
         if not_pool:
             for product in not_pool:
-                if product in input_products or product.id in output_dict.keys():
+                if product in input_products or product.id in list(output_dict.keys()):
                     # If any of the products is in the list of input products and on the not_pool, we skip the rule
                     exit_loop = True
                     break

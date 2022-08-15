@@ -81,12 +81,12 @@ MIGRATION_SKIP_GEOREF_ADDRESSES = False
 MIGRATION_SKIP_DELIVERIES = False
 
 # Default state and city used on the Address model. If it is not set, it will be None by default. Use your own cities.
-DEFAULT_STATE = u"Montevideo"
-DEFAULT_CITY = u"Montevideo"
+DEFAULT_STATE = "Montevideo"
+DEFAULT_CITY = "Montevideo"
 
 # Message that will appear on an invoice if the user is a debtor. The use of unicode is encouraged.
 # This is just a placeholder text.
-IS_DEBTOR_INVOICE_MESSAGE = u"Call 867-5309 for more info"
+IS_DEBTOR_INVOICE_MESSAGE = "Call 867-5309 for more info"
 
 # Percentage of discount for when the frequency is more than 1
 DISCOUNT_3_MONTHS = 4.76

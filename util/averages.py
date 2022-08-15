@@ -22,7 +22,7 @@ def lastweek_homes_avg():
         if line_day < lastweek_monday:
             continue # not last week yet
         elif line_day < lastweek_monday + timedelta(5):
-            print line_day
+            print(line_day)
             homes = [sum(x) for x in zip(homes, line_data[1])] # in last week
         else:
             break # after last week

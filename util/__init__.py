@@ -13,6 +13,6 @@ class DummyStaffRequest(object):
 
 def space_join(first_part, second_part):
     if first_part and second_part:
-        return first_part + u' ' + second_part
+        return first_part + ' ' + second_part
     else:
-        return first_part or second_part or u''
+        return first_part or second_part or ''

@@ -57,10 +57,10 @@ class TestCoreDynamicContactFilter(TestCase):
         c1.add_newsletter(newsletter.id)
         c2.add_newsletter(newsletter.id)
 
-    def test1_unicode(self):
+    def test1_str(self):
         dcf = create_dynamiccontactfilter('Test description')
         self.assertTrue(isinstance(dcf, DynamicContactFilter))
-        self.assertEqual(dcf.description, dcf.__unicode__())
+        self.assertEqual(dcf.description, dcf.__str__())
 
     def test2_create_filter_with_one_product_exactly(self):
         # For this test, all products must match so there should be only one match in this pre populated db

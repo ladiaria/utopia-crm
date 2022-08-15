@@ -1,5 +1,5 @@
 # coding=utf-8
-from __future__ import unicode_literals
+
 from importlib import import_module
 from datetime import date, datetime
 from dateutil.relativedelta import relativedelta
@@ -46,14 +46,10 @@ from .choices import (
     DISCOUNT_PRODUCT_MODE_CHOICES,
     DISCOUNT_VALUE_MODE_CHOICES,
 )
-from utils import (
-    delete_email_from_mailtrain_list,
-    subscribe_email_to_mailtrain_list,
-    get_emails_from_mailtrain_list,
-)
+from .utils import delete_email_from_mailtrain_list, subscribe_email_to_mailtrain_list, get_emails_from_mailtrain_list
 
 
-regex_alphanumeric = u"^[@A-Za-z0-9ñüáéíóúÑÜÁÉÍÓÚ _'.\-]*$"  # noqa
+regex_alphanumeric = "^[@A-Za-z0-9ñüáéíóúÑÜÁÉÍÓÚ _'.\-]*$"  # noqa
 regex_alphanumeric_msg = _(
     "This name only supports alphanumeric characters, at, apostrophes, spaces, hyphens, underscores, and periods."
 )
@@ -76,7 +72,7 @@ class Institution(models.Model):
     name = models.CharField(max_length=255, verbose_name=_("Name"))
     old_pk = models.PositiveIntegerField(blank=True, null=True, db_index=True)
 
-    def __unicode__(self):
+    def __str__(self):
         return self.name
 
     class Meta:
@@ -93,7 +89,7 @@ class Ocupation(models.Model):
     code = models.CharField(max_length=3, primary_key=True, verbose_name=_("Code"))
     name = models.CharField(max_length=128, verbose_name=_("Name"))
 
-    def __unicode__(self):
+    def __str__(self):
         return self.name
 
     class Meta:
@@ -114,7 +110,7 @@ class Subtype(models.Model):
     def get_contact_count(self):
         return self.contact_set.all().count()
 
-    def __unicode__(self):
+    def __str__(self):
         return self.name
 
     class Meta:
@@ -134,7 +130,7 @@ class Variable(models.Model):
         max_length=255, blank=True, choices=VARIABLE_TYPES, verbose_name=_("type")
     )
 
-    def __unicode__(self):
+    def __str__(self):
         return self.name
 
     class Meta:
@@ -162,7 +158,7 @@ class Product(models.Model):
     edition_frequency = models.IntegerField(default=None, choices=PRODUCT_EDITION_FREQUENCY, null=True, blank=True)
     old_pk = models.PositiveIntegerField(blank=True, null=True)
 
-    def __unicode__(self):
+    def __str__(self):
         name = self.name
         if self.type == "N":
             name += ", newsletter"
@@ -246,7 +242,7 @@ class Contact(models.Model):
     allow_promotions = models.BooleanField(default=True, verbose_name=_("Allows promotions"))
     cms_date_joined = models.DateTimeField(blank=True, null=True, verbose_name=_("CMS join date"))
 
-    def __unicode__(self):
+    def __str__(self):
         return self.name
 
     def clean(self, debug=False):
@@ -259,7 +255,7 @@ class Contact(models.Model):
                 if msg in ("TIMEOUT", "ERROR"):
                     # TODO: Alert user about web timeout or error
                     if debug:
-                        print("%s validating email on CMS for contact %d" % (msg, self.id))
+                        print(("%s validating email on CMS for contact %d" % (msg, self.id)))
                 elif msg != "OK":
                     raise ValidationError({"email": msg})
 
@@ -565,7 +561,7 @@ class Contact(models.Model):
 
     def add_default_newsletters(self):
         computed_slug_set, result = set(), []
-        for func_path, nl_slugs in getattr(settings, 'CORE_DEFAULT_NEWSLETTERS', {}).items():
+        for func_path, nl_slugs in list(getattr(settings, 'CORE_DEFAULT_NEWSLETTERS', {}).items()):
             func_module, func_name = func_path.rsplit('.', 1)
             func_def = getattr(import_module(func_module), func_name, None)
             if func_def and func_def(self):
@@ -636,7 +632,7 @@ class Address(models.Model):
 
     # TODO: validate there is only one default address per contact
 
-    def __unicode__(self):
+    def __str__(self):
         return space_join(space_join(self.address_1, self.address_2), space_join(self.city, self.state))
 
     def get_type(self):
@@ -679,14 +675,14 @@ class SubscriptionProduct(models.Model):
     )
     active = models.BooleanField(default=True)
 
-    def __unicode__(self):
+    def __str__(self):
         # TODO: result translation (i18n)
         if self.address:
             address = self.address.address_1
         else:
-            address = u""
+            address = ""
 
-        return u"{} - {} - (Suscripción de ${})".format(
+        return "{} - {} - (Suscripción de ${})".format(
             self.product, address, self.subscription.get_price_for_full_period()
         )
 
@@ -801,8 +797,8 @@ class Subscription(models.Model):
     card_id = models.CharField(max_length=32, blank=True, null=True)
     customer_id = models.CharField(max_length=32, blank=True, null=True)
 
-    def __unicode__(self):
-        return unicode(_("{} subscription for the contact {} {}").format(
+    def __str__(self):
+        return str(_("{} subscription for the contact {} {}").format(
             _("Active") if self.active else _("Inactive"),
             self.contact.name,
             "({})".format(self.get_price_for_full_period()) if self.type == 'N' else "",
@@ -1021,9 +1017,9 @@ class Subscription(models.Model):
                     "name": self.get_billing_name(),
                 }
             elif settings.DEBUG:
-                print('DEBUG: No address found in the billing data for subscription %d.' % self.id)
+                print(('DEBUG: No address found in the billing data for subscription %d.' % self.id))
         elif settings.DEBUG:
-            print('DEBUG: No product found in the billing data for subscription %d.' % self.id)
+            print(('DEBUG: No product found in the billing data for subscription %d.' % self.id))
         if not result and getattr(settings, "FORCE_DUMMY_MISSING_BILLING_DATA", False):
             result = {}
         return result
@@ -1160,7 +1156,7 @@ class Subscription(models.Model):
 
     def render_product_summary(self):
         output = "<ul>"
-        for product_id, copies in self.product_summary().items():
+        for product_id, copies in list(self.product_summary().items()):
             product = Product.objects.get(pk=product_id)
             output += "<li>{}</li>".format(product.name)
         return output + "</ul>"
@@ -1522,7 +1518,7 @@ class Campaign(models.Model):
     )
     days = models.PositiveSmallIntegerField(default=5, blank=True, null=True)
 
-    def __unicode__(self):
+    def __str__(self):
         return self.name
 
     def get_activities_by_seller(self, seller, status=None, type=None, datetime=None):
@@ -1597,8 +1593,8 @@ class Activity(models.Model):
     status = models.CharField(choices=ACTIVITY_STATUS_CHOICES, default="P", max_length=1)
     direction = models.CharField(choices=ACTIVITY_DIRECTION_CHOICES, default="O", max_length=1)
 
-    def __unicode__(self):
-        return unicode(_("Activity {} for contact {}".format(self.id, self.contact.id)))
+    def __str__(self):
+        return str(_("Activity {} for contact {}".format(self.id, self.contact.id)))
 
     def get_contact_seller(self):
         """
@@ -1796,7 +1792,7 @@ class DynamicContactFilter(models.Model):
     last_time_synced = models.DateTimeField(null=True, blank=True)
     debtor_contacts = models.PositiveSmallIntegerField(null=True, blank=True, choices=DEBTOR_CONCACTS_CHOICES)
 
-    def __unicode__(self):
+    def __str__(self):
         return self.description
 
     def get_subscriptions(self):
@@ -1858,7 +1854,7 @@ class DynamicContactFilter(models.Model):
         emails_in_filter = self.get_emails()
         emails_in_mailtrain = get_emails_from_mailtrain_list(self.mailtrain_id)
 
-        print("synchronizing DCF {} with list {}".format(self.id, self.mailtrain_id))
+        print(("synchronizing DCF {} with list {}".format(self.id, self.mailtrain_id)))
 
         # First we're going to delete the ones that don't belong to the list
         for email_in_mailtrain in emails_in_mailtrain:
@@ -1891,13 +1887,13 @@ class DynamicContactFilter(models.Model):
 class ProductBundle(models.Model):
     products = models.ManyToManyField(Product)
 
-    def __unicode__(self):
-        return_str = u"Bundle: "
+    def __str__(self):
+        return_str = "Bundle: "
         for index, product in enumerate(self.products.all()):
             if index > 0:
-                return_str += u" + {}".format(product.name)
+                return_str += " + {}".format(product.name)
             else:
-                return_str += u"{}".format(product.name)
+                return_str += "{}".format(product.name)
         return return_str
 
 
@@ -1908,7 +1904,7 @@ class AdvancedDiscount(models.Model):
     value_mode = models.PositiveSmallIntegerField(choices=DISCOUNT_VALUE_MODE_CHOICES)
     value = models.PositiveSmallIntegerField(default=0)
 
-    def __unicode__(self):
+    def __str__(self):
         if self.value_mode == 2:
             value = "{}%".format(self.value)
         else:

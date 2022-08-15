@@ -1,5 +1,5 @@
 # coding=utf-8
-from __future__ import unicode_literals
+
 from datetime import date, timedelta
 
 from django.conf import settings
@@ -40,7 +40,7 @@ class Route(models.Model):
         'self', related_name='child_route', blank=True, null=True, verbose_name=_('Parent route'))
     the_geom = PolygonField(blank=True, null=True, srid=32721)
 
-    def __unicode__(self):
+    def __str__(self):
         return _('Route %d') % self.number
 
     class Meta:
@@ -132,7 +132,7 @@ class GeorefAddress(models.Model):
     letter = models.CharField(null=True, blank=True, max_length=5, verbose_name=_('Letter'))
     the_geom = PointField(srid=32721)
 
-    def __unicode__(self):
+    def __str__(self):
         return '{} {}{}'.format(self.street_name, self.street_number, (' ' + self.letter) if self.letter else '')
 
     class Meta:
@@ -149,8 +149,8 @@ class PickupPoint(models.Model):
     address = models.CharField(max_length=255, blank=True, null=True, verbose_name=_('Address'))
     old_pk = models.PositiveIntegerField(blank=True, null=True, db_index=True)
 
-    def __unicode__(self):
-        return u"{}{}".format(self.name, (u' ({})'.format(self.address)) if self.address else u'')
+    def __str__(self):
+        return "{}{}".format(self.name, (' ({})'.format(self.address)) if self.address else '')
 
     class Meta:
         ordering = ('name',)
@@ -173,7 +173,7 @@ class Resort(models.Model):
     route = models.ForeignKey(Route, blank=True, null=True, verbose_name=_('Route'))
     order = models.PositiveSmallIntegerField(default=0, verbose_name=_('Order'))
 
-    def __unicode__(self):
+    def __str__(self):
         return self.name
 
     class Meta:
@@ -190,7 +190,7 @@ class PickupPlace(models.Model):
     description = models.TextField(verbose_name=_('Description'))
     the_geom = PointField(blank=True, null=True)
 
-    def __unicode__(self):
+    def __str__(self):
         return self.description
 
     class Meta:
@@ -208,7 +208,7 @@ class City(models.Model):
     if settings.USE_STATES_CHOICE:
         state.choices = settings.STATES
 
-    def __unicode__(self):
+    def __str__(self):
         return self.name
 
     class Meta:
@@ -228,7 +228,7 @@ class Message(models.Model):
     text = models.TextField(
         blank=True, verbose_name=_('Text'))
 
-    def __unicode__(self):
+    def __str__(self):
         return self.place
 
     class Meta:
@@ -318,7 +318,7 @@ class Edition(models.Model):
         verbose_name_plural = _('editions')
         unique_together = ('product', 'date')
 
-    def __unicode__(self):
+    def __str__(self):
         return _('Edition %s %s') % (self.product, self.date)
 
 

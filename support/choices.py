@@ -74,7 +74,7 @@ ISSUE_SUBCATEGORIES = (
     # Community
     ('O01', _('Community Benefits')),
     ('O02', _('Community Events')),
-    ('O03', _(u'Café')),
+    ('O03', _('Café')),
     ('O04', _('Media-lab')),
     ('O05', _('Shop')),
     ('O06', _('Community Suggestions')),

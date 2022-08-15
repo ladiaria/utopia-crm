@@ -1,6 +1,6 @@
 # coding=utf-8
 
-from __future__ import unicode_literals
+
 
 from datetime import date
 
@@ -30,7 +30,7 @@ class Seller(models.Model):
     user = models.ForeignKey(User, blank=True, null=True, on_delete=models.SET_NULL)
     old_pk = models.PositiveIntegerField(blank=True, null=True, db_index=True)
 
-    def __unicode__(self):
+    def __str__(self):
         return self.name
 
     def get_contact_count(self):
@@ -139,7 +139,7 @@ class Issue(models.Model):
         self.closing_date = date.today()
         if answer_2:
             if self.answer_2:
-                self.answer_2 = u"{}\n\n{}".format(self.answer_2, answer_2)
+                self.answer_2 = "{}\n\n{}".format(self.answer_2, answer_2)
             else:
                 self.answer_2 = answer_2
         self.save()
@@ -165,8 +165,8 @@ class Issue(models.Model):
         answers = dict(ISSUE_ANSWERS)
         return answers.get(self.answer_1, "N/A")
 
-    def __unicode__(self):
-        return unicode(_("Issue of category {} for {} with status {}".format(
+    def __str__(self):
+        return str(_("Issue of category {} for {} with status {}".format(
             self.get_category(), self.contact.name, self.get_status()
         )))
 
@@ -216,7 +216,7 @@ class IssueStatus(models.Model):
         max_length=2, blank=True, null=True, choices=ISSUE_CATEGORIES
     )
 
-    def __unicode__(self):
+    def __str__(self):
         return self.name
 
     def natural_key(self):
@@ -235,7 +235,7 @@ class IssueSubcategory(models.Model):
         max_length=2, blank=True, null=True, choices=ISSUE_CATEGORIES
     )
 
-    def __unicode__(self):
+    def __str__(self):
         return self.name
 
     def natural_key(self):

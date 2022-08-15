@@ -42,13 +42,13 @@ class TestCoreContact(TestCase):
         # Check if the contact's name has actually changed
         self.assertEqual(contact.name, 'Renamed Contact')
 
-    def test3_contact_unicode_method(self):
+    def test3_contact_str_method(self):
         """
         Check the unicode method. This test uses a contact that will only be used in this one.
         """
         contact = create_contact(name='Contact 3', phone='12345567')
         self.assertTrue(isinstance(contact, Contact))
-        self.assertEqual(contact.name, contact.__unicode__())
+        self.assertEqual(contact.name, contact.__str__())
 
     def test4_contact_debtor_methods(self):
         """

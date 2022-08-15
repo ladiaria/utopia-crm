@@ -33,7 +33,7 @@ class TestContact(TestCase):
     # hacer devuelta
     def test_4cliente_activo_debe_tener_ejemplares(self):
 
-        contact = create_contact(u'cliente2asd', 21312)
+        contact = create_contact('cliente2asd', 21312)
         contact.save()
         # p = create_plan('plan2', 200)
         # p.type = 'N'

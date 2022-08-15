@@ -1,5 +1,5 @@
 # coding=utf-8
-import unicodecsv
+import csv
 from datetime import date, timedelta, datetime
 
 from dateutil.relativedelta import relativedelta
@@ -137,7 +137,7 @@ def bill_subscription(subscription_id, billing_date=None, dpp=10, check_route=Fa
     product_summary = subscription.product_summary()
     advanced_discount_list = []
 
-    for product_id, copies in product_summary.items():
+    for product_id, copies in list(product_summary.items()):
         # For each product we're making an invoiceitem. These are common for both discounts and subscriptions
         product = Product.objects.get(pk=int(product_id))
         if product.type == 'P':
@@ -149,8 +149,8 @@ def bill_subscription(subscription_id, billing_date=None, dpp=10, check_route=Fa
             advanced_discount_list.append(product)
             continue
         item = InvoiceItem()
-        frequency_extra = _(u' {} months'.format(subscription.frequency)) if subscription.frequency > 1 else u''
-        item.description = format_lazy(u'{} {}', product.name, frequency_extra)
+        frequency_extra = _(' {} months'.format(subscription.frequency)) if subscription.frequency > 1 else ''
+        item.description = format_lazy('{} {}', product.name, frequency_extra)
         item.price = int(product.price * subscription.frequency)
         item.product = product
         if product.type == 'S':
@@ -173,7 +173,7 @@ def bill_subscription(subscription_id, billing_date=None, dpp=10, check_route=Fa
         advanced_discount = AdvancedDiscount.objects.get(discount_product=discount_product)
         discounted_product_price = 0
         for product in advanced_discount.find_products.all():
-            if product.id in product_summary.keys():
+            if product.id in list(product_summary.keys()):
                 if product.type == 'S':
                     discounted_product_price += int(product_summary[product.id]) * product.price
                 else:
@@ -468,7 +468,7 @@ def download_invoice(request, invoice_id):
         c.drawImage(logo, 17 * mm, height - 38 * mm, width=40 * mm, preserveAspectRatio=True, mask='auto')
         c.drawString(10 * mm, height - 35 * mm, _('Issue date: {}'.format(invoice.creation_date.strftime("%d/%m/%Y"))))
         c.drawString(10 * mm, height - 40 * mm, _('Due date: {}'.format(invoice.expiration_date.strftime("%d/%m/%Y"))))
-        c.drawString(10 * mm, height - 50 * mm, u'{}'.format(invoice.contact.name))
+        c.drawString(10 * mm, height - 50 * mm, '{}'.format(invoice.contact.name))
         c.setFont("Roboto", 5)
         table_data = []
         table_data.append((_('Item'), _('Un.'), _('Price'), _('Total')))
@@ -525,7 +525,7 @@ def invoice_filter(request):
     if request.GET.get('export'):
         response = HttpResponse(content_type="text/csv")
         response["Content-Disposition"] = 'attachment; filename="invoices_export.csv"'
-        writer = unicodecsv.writer(response)
+        writer = csv.writer(response)
         header = [
             _("Id"),
             _("Contact name"),
@@ -544,7 +544,7 @@ def invoice_filter(request):
         ]
         writer.writerow(header)
         for invoice in invoice_filter.qs.iterator():
-            products = u""
+            products = ""
             for index, invoiceitem in enumerate(invoice.invoiceitem_set.all()):
                 if index > 0 and len(products) > 1:
                     products += ", "
