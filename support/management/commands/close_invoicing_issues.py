@@ -43,5 +43,5 @@ class Command(BaseCommand):
                     msg = u"Incidencia cerrada automáticamente por pago de facturas el {}".format(datetime.now())
                     issue.mark_solved(msg)
             except Exception as e:
-                print("Error issue {}, contact {}: {}".format(issue.id, contact.id, e.message))
+                print("Error issue {}, contact {}: {}".format(issue.id, contact.id, e))
         print(_("Ended process"))

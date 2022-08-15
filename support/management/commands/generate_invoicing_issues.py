@@ -45,6 +45,6 @@ class Command(BaseCommand):
                     )
                     print("Generated new issue {} for contact {}".format(new_issue.id, contact.id))
             except Exception as e:
-                print("Error factura {}, contacto {}: {}".format(invoice.id, contact.id, e.message))
+                print("Error factura {}, contacto {}: {}".format(invoice.id, contact.id, e))
 
         print(_("Ended process"))

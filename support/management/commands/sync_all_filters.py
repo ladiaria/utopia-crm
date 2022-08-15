@@ -20,7 +20,7 @@ class Command(BaseCommand):
             try:
                 dcf.sync_with_mailtrain_list()
             except Exception as e:
-                print(_("There was an error synchronizing filter {}: {}".format(dcf.id, e.message)))
+                print(_("There was an error synchronizing filter {}: {}".format(dcf.id, e)))
             else:
                 print(_("Finished synchronizing filter {}".format(dcf.id)))
         print(_("Finished synchronization process"))

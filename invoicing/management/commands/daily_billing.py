@@ -28,7 +28,7 @@ class Command(BaseCommand):
                 # invoice.save()
             except Exception as e:
                 print('An error has been found.')
-                errors += 'Contact {}, Subscription {}: {}\n'.format(c.id, subscription.id, e.message)
+                errors += 'Contact {}, Subscription {}: {}\n'.format(c.id, subscription.id, e)
         print(('Ended billing process. {} invoices have been created.'.format(count)))
         print(('List of errors: \n{}'.format(errors)))
 

@@ -189,7 +189,7 @@ def import_contacts(request):
                     if campaign_id:
                         new_contact.add_to_campaign(campaign_id)
                 except Exception as e:
-                    errors_list.append("CSV Row {}: {}".format(row_number, e.message))
+                    errors_list.append("CSV Row {}: {}".format(row_number, e))
         return render(
             request, "import_contacts.html", {
                 "new_contacts_count": len(new_contacts_list),
@@ -223,7 +223,7 @@ def import_contacts(request):
                         contact.tags.add(tag)
                     changed_list.append(contact)
         except Exception as e:
-            errors_in_changes.append("{} - {}".format(contact.id, e.message))
+            errors_in_changes.append("{} - {}".format(contact.id, e))
         return render(
             request, "import_contacts.html", {
                 "changed_list": changed_list,
@@ -1021,7 +1021,7 @@ def assign_campaigns(request):
                     contact.add_to_campaign(campaign)
                     count += 1
                 except Exception as e:
-                    errors.append(e.message)
+                    errors.append(e)
             return render(
                 request,
                 "assign_campaigns.html",
@@ -1039,7 +1039,7 @@ def assign_campaigns(request):
             )
             return HttpResponseRedirect(reverse("assign_campaigns"))
         except Exception as e:
-            messages.error(request, "Error: %s" % e.message)
+            messages.error(request, "Error: %s" % e)
             return HttpResponseRedirect(reverse("assign_campaigns"))
     elif request.POST and request.POST.get("tags"):
         errors, count = [], 0
@@ -1052,7 +1052,7 @@ def assign_campaigns(request):
                 contact.add_to_campaign(campaign)
                 count += 1
             except Exception as e:
-                errors.append(e.message)
+                errors.append(e)
         return render(
             request,
             "assign_campaigns.html",
@@ -1117,7 +1117,7 @@ def assign_seller(request, campaign_id):
                     try:
                         status.save()
                     except Exception as e:
-                        messages.error(request, e.message)
+                        messages.error(request, e)
                         return HttpResponseRedirect(reverse("assign_sellers"))
         return HttpResponseRedirect(reverse("assign_sellers", args=[campaign_id]))
 
@@ -1940,7 +1940,7 @@ def sync_with_mailtrain(request, dcf_id):
     try:
         dcf.sync_with_mailtrain_list()
     except Exception as e:
-        messages.error(request, _("Error: {}".format(e.message)))
+        messages.error(request, _("Error: {}".format(e)))
         return HttpResponseRedirect(reverse("sync_with_mailtrain"))
     else:
         return HttpResponseRedirect(
@@ -1983,7 +1983,7 @@ def edit_contact(request, contact_id):
             try:
                 form.save()
             except Exception as e:
-                messages.error(request, "Error: {}".format(e.message))
+                messages.error(request, "Error: {}".format(e))
             else:
                 return HttpResponseRedirect(reverse('edit_contact', args=[contact_id]))
     return render(request, 'create_contact.html', {
@@ -2059,7 +2059,7 @@ def edit_envelopes(request, subscription_id):
                         sp.has_envelope = value
                     sp.save()
         except Exception as e:
-            messages.error(request, e.message)
+            messages.error(request, e)
             return HttpResponseRedirect(reverse("contact_detail", args=[subscription.contact_id]))
 
         messages.success(request, _("Envelope data has been saved."))
