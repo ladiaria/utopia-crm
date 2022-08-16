@@ -376,7 +376,7 @@ def bill_subscriptions_for_one_contact(request, contact_id):
             try:
                 invoice = bill_subscription(subscription.id, creation_date, dpp)
             except Exception as e:
-                messages.error(request, e.message)
+                messages.error(request, e)
             else:
                 messages.success(request, _("Invoice {} has been created successfully".format(invoice.id)))
         return HttpResponseRedirect(

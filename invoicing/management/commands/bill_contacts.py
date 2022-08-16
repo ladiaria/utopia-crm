@@ -34,5 +34,5 @@ class Command(BaseCommand):
                 invoice.billing = billing
                 invoice.save()
             except Exception as e:
-                print(('ID: {}\t{}'.format(c.id, e.message)))
+                print(('ID: {}\t{}'.format(c.id, e)))
         print(('Ended billing process. Billing id {} has been generated.'.format(billing.id)))

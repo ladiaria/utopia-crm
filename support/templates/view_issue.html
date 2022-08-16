@@ -43,10 +43,10 @@ $(function(){
                             <dt>{% trans "Start date" %}</dt>
                             <dd>{{issue.date_created}}</dd>
                             <dt>{% trans "Contact phone" %}</dt>
-                            <dd><a href="sip://{{issue.contact.phone}}">{{issue.contact.phone}}</a></dd>
+                            <dd>{{issue.contact.phone|sip}}</dd>
                             {% if issue.contact.mobile %}
                             <dt>{% trans "Contact mobile phone" %}</dt>
-                            <dd><a href="sip://{{issue.contact.mobile}}">{{issue.contact.mobile}}</a></dd>
+                            <dd>{{issue.contact.phone|sip}</dd>
                             {% endif %}
                             <dt>{% trans "Category" %}</dt>
                             <dd>{{issue.get_category}} - {{issue.get_subcategory}}</dd>
