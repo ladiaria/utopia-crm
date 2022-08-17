@@ -110,7 +110,7 @@ def import_contacts(request):
                 tag_list.append(tag.strip())
         # check files for every possible match
         try:
-            reader = csv_sreader(request.FILES["file"].read())
+            reader = csv_sreader(request.FILES["file"].read().decode("utf-8"))
             # consume header
             next(reader)
         except csv.Error:

@@ -467,7 +467,8 @@ def print_labels_for_day(request):
     page = 'Roll'
     if request.POST:
         if request.FILES:
-            exclude_contacts = csv.reader(request.FILES.get('exclude_contacts'))
+            decoded_file = request.FILES.get('exclude_contacts').read().decode("utf-8").splitlines()
+            exclude_contacts = csv.reader(decoded_file)
             exclude_contacts_list = list(exclude_contacts)
         else:
             exclude_contacts = None
@@ -700,7 +701,8 @@ def print_labels_from_csv(request):
         use_separators = request.POST.get('separators', None)
 
         iterator = hoja.iterator()
-        label_list = csv.reader(request.FILES.get('labels'))
+        decoded_file = request.FILES.get('labels').read().decode("utf-8").splitlines()
+        label_list = csv.reader(decoded_file)
         next(label_list)  # consumo header
 
         old_route = 0
