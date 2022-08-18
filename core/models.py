@@ -711,7 +711,8 @@ class Subscription(models.Model):
     active = models.BooleanField(default=True, verbose_name=_("Active"))
     contact = models.ForeignKey(Contact, verbose_name=_("Contact"), related_name="subscriptions")
     type = models.CharField(max_length=1, default="N", choices=SUBSCRIPTION_TYPE_CHOICES)
-    status = models.CharField(max_length=2, blank=True, null=True, choices=SUBSCRIPTION_STATUS_CHOICES)
+    status = models.CharField(
+        default="OK", max_length=2, blank=True, null=True, choices=SUBSCRIPTION_STATUS_CHOICES)
 
     # Billing information. This is added in case it's necessary.
     billing_name = models.CharField(max_length=100, blank=True, null=True, verbose_name=_("Billing name"))
