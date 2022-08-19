@@ -1172,6 +1172,8 @@ def print_labels_for_product_date(request):
                 "id_cliente",
                 "id_suscripción",
                 "producto",
+                "copies,"
+                "contact_name,"
                 "nombre_etiqueta",
                 "dirección_1",
                 "dirección_2",
@@ -1182,6 +1184,8 @@ def print_labels_for_product_date(request):
                 "mensaje",
                 "instrucciones",
                 "sobre",
+                "start_date",
+                "end_date",
             ]
             writer.writerow(header)
             for sp in subscription_products:
@@ -1207,6 +1211,8 @@ def print_labels_for_product_date(request):
                     sp.subscription.contact.id,
                     subscription_id,
                     product,
+                    sp.copies,
+                    sp.subscription.contact_name,
                     label_name,
                     address_1,
                     address_2,
@@ -1216,6 +1222,8 @@ def print_labels_for_product_date(request):
                     order,
                     message,
                     instructions,
+                    sp.subscription.start_date,
+                    sp.subscription.end_date,
                 ])
             return response
 
