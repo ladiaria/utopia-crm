@@ -23,7 +23,8 @@ class IssueAdmin(admin.ModelAdmin):
         "manager",
         "assigned_to",
         "product",
-        "subscription_product"
+        "subscription_product",
+        "address",
     ]
     exclude = ["subcategory"]
     list_filter = ["category", "subcategory", "status"]
