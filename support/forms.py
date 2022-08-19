@@ -409,7 +409,8 @@ class IssueChangeForm(forms.ModelForm):
             "answer_2": forms.Textarea(attrs={"class": "form-control"}),
             "status": forms.Select(attrs={"class": "form-control"}),
             "envelope": forms.CheckboxInput(attrs={"class": "form-check-input"}),
-            }
+            "copies": forms.TextInput(attrs={"class": "form-control"}),
+        }
         fields = (
             "contact",
             "sub_category",
@@ -420,6 +421,7 @@ class IssueChangeForm(forms.ModelForm):
             "next_action_date",
             "assigned_to",
             "envelope",
+            "copies",
         )
 
 

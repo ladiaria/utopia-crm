@@ -45,38 +45,40 @@ $(function(){
                             <dt>{% trans "Contact phone" %}</dt>
                             <dd>{{issue.contact.phone|sip}}</dd>
                             {% if issue.contact.mobile %}
-                            <dt>{% trans "Contact mobile phone" %}</dt>
-                            <dd>{{issue.contact.phone|sip}</dd>
+                                <dt>{% trans "Contact mobile phone" %}</dt>
+                                <dd>{{issue.contact.phone|sip}}</dd>
                             {% endif %}
                             <dt>{% trans "Category" %}</dt>
                             <dd>{{issue.get_category}} - {{issue.get_subcategory}}</dd>
-                            <dt>{% trans "Created by" %}</dt>
-                            <dd>{{issue.manager|default_if_none:"-"}}</dd>
+                            {% if issue.manager %}
+                                <dt>{% trans "Created by" %}</dt>
+                                <dd>{{issue.manager|default_if_none:"-"}}</dd>
+                            {% endif %}
                             <dt>{% trans "Notes" %}</dt>
                             <dd>{{issue.notes|default_if_none:"-"|linebreaks}}</dd>
                             {% if issue.subscription_product %}
-                            <dt>{% trans "Subscription product" %}</dt>
-                            <dd>{{issue.subscription_product.product}}</dd>
-                            <dd>{{issue.subscription_product.address}}</dd>
-                            <dd>{{issue.subscription_product.route}}</dd>
+                                <dt>{% trans "Subscription product" %}</dt>
+                                <dd>{{issue.subscription_product.product}}</dd>
+                                <dd>{{issue.subscription_product.address}}</dd>
+                                <dd>{{issue.subscription_product.route}}</dd>
                             {% endif %}
                             {% if issue.product %}
-                            <dt>{% trans "Product" %}</dt>
-                            <dd>{{issue.product}}</dd>
+                                <dt>{% trans "Product" %}</dt>
+                                <dd>{{issue.product}}</dd>
                             {% endif %}
                             {% if issue.address %}
-                            <dt>{% trans "Address" %}</dt>
-                            <dd>{{issue.address}}</dd>
+                                <dt>{% trans "Address" %}</dt>
+                                <dd>{{issue.address}}</dd>
                             {% endif %}
                             {% if issue.subscription %}
-                            <dt>{% trans "Subscription" %}</dt>
-                            <dd>{{issue.subscription}}</dd>
+                                <dt>{% trans "Subscription" %}</dt>
+                                <dd>{{issue.subscription}}</dd>
                             {% endif %}
                             {% ifequal issue.category "I" %}
-                            {% if issue.contact.get_debt %}
-                            <dt>{% trans "Debt" %}</dt>
-                            <dd>${{ issue.contact.get_debt }} ({{issue.contact.expired_invoices_count}} {% trans "overdue invoices" %})<i class="fas fa-exclamation-triangle text-danger"></i><a href="#" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#invoices_modal">{% trans "View" %}</a></dd>
-                            {% endif %}
+                                {% if issue.contact.get_debt %}
+                                    <dt>{% trans "Debt" %}</dt>
+                                    <dd>${{ issue.contact.get_debt }} ({{issue.contact.expired_invoices_count}} {% trans "overdue invoices" %})<i class="fas fa-exclamation-triangle text-danger"></i><a href="#" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#invoices_modal">{% trans "View" %}</a></dd>
+                                {% endif %}
                             {% endifequal %}
                         </dl>
                     </div><!-- /.card-body -->
@@ -97,13 +99,25 @@ $(function(){
                                 {{form.sub_category}}
                             </div>
                             <div class="row">
-                              <div class="col-6">
+                              <div class="col-4">
                                 <div class="form-group">
                                     <label for="id_status">{{form.status.label}}</label>
                                     {{form.status}}
                                 </div>
                               </div>
-                              <div class="col-6">
+                              <div class="col-2">
+                                <div class="form-group">
+                                    <label for="id_status">{{form.copies.label}}</label>
+                                    {{form.copies}}
+                                </div>
+                              </div>
+                              <div class="col-4">
+                                <div class="form-group">
+                                    <label for="id_assigned_to">{{form.next_action_date.label}}</label>
+                                    {{form.next_action_date}}
+                                </div>
+                              </div>
+                              <div class="col-2">
                                 <div class="form-group">
                                   <label for="id_envelope">{{ form.envelope.label }}</label>
                                   <div class="form-check">
@@ -113,10 +127,7 @@ $(function(){
                                 </div>
                               </div>
                             </div>
-                            <div class="form-group">
-                                <label for="id_assigned_to">{{form.next_action_date.label}}</label>
-                                {{form.next_action_date}}
-                            </div>
+                            
                             <div class="form-group">
                                 <label for="id_progress">{{form.progress.label}}</label>
                                 {{form.progress}}
