@@ -46,7 +46,7 @@ $(function(){
                             <dd>{{issue.contact.phone|sip}}</dd>
                             {% if issue.contact.mobile %}
                                 <dt>{% trans "Contact mobile phone" %}</dt>
-                                <dd>{{issue.contact.phone|sip}}</dd>
+                                <dd>{{issue.contact.mobile|sip}}</dd>
                             {% endif %}
                             <dt>{% trans "Category" %}</dt>
                             <dd>{{issue.get_category}} - {{issue.get_subcategory}}</dd>
@@ -105,12 +105,14 @@ $(function(){
                                     {{form.status}}
                                 </div>
                               </div>
-                              <div class="col-2">
-                                <div class="form-group">
-                                    <label for="id_status">{{form.copies.label}}</label>
-                                    {{form.copies}}
+                              {% if issue.category == "S" or issue.category == "L" %}
+                                <div class="col-2">
+                                    <div class="form-group">
+                                        <label for="id_status">{{form.copies.label}}</label>
+                                        {{form.copies}}
+                                    </div>
                                 </div>
-                              </div>
+                              {% endif %}
                               <div class="col-4">
                                 <div class="form-group">
                                     <label for="id_assigned_to">{{form.next_action_date.label}}</label>
