@@ -24,6 +24,7 @@ $( function() {
       $('#id_status').prop('required',false);
     }else if ((select).val() == 'I'){
       $('.id_product').hide();
+      $('.id_copies').hide();
       $('.id_subscription').show();
       $('#id_subscription').prop('required',true);
       $('.id_subscription_product').hide();
@@ -104,24 +105,26 @@ $( function() {
               </div>
             </div>
           </div>
-          <div class="row">
-            <div class="col-6">
-              <div class="form-group">
-                <label for="id_copies">{{ form.copies.label }}</label>
-                {{ form.copies }}
-                <span class="error invalid-feedback">{{form.copies.errors}}</span>
+          
+            <div class="row{% if form.category.value == 'I' %} d-none{% endif %}">
+              <div class="col-6">
+                <div class="form-group">
+                  <label for="id_copies">{{ form.copies.label }}</label>
+                  {{ form.copies }}
+                  <span class="error invalid-feedback">{{form.copies.errors}}</span>
+                </div>
               </div>
-            </div>
-            <div class="col-6">
-              <div class="form-group">
-                <label for="id_envelope">{{ form.envelope.label }}</label>
-                <div class="form-check">
-                  {{form.envelope}}
-                  <label class="form-check-label">{% trans "Add" %}</label>
+              <div class="col-6">
+                <div class="form-group">
+                  <label for="id_envelope">{{ form.envelope.label }}</label>
+                  <div class="form-check">
+                    {{form.envelope}}
+                    <label class="form-check-label">{% trans "Add" %}</label>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          
 
           <div class="form-group">
             <label>{% trans "Assigned to" %}</label>
@@ -157,12 +160,12 @@ $( function() {
             {{form.notes}}
             <span class="error invalid-feedback">{{form.notes.errors}}</span>
           </div>
-          <div class="form-group">
+          <div class="form-group {% if form.category.value == 'I' %} d-none{% endif %}">
             <label for="id_contact_address">{{form.contact_address.label}}</label>
             {{form.contact_address}}
             <span class="error invalid-feedback">{{form.contact_address.errors}}</span>
           </div>
-          <div class="form-group">
+          <div class="form-group {% if form.category.value == 'I' %} d-none{% endif %}">
             <div class="form-check">
               {{form.new_address}}
               <label for="id_new_address" class="form-check-label">{{form.new_address.label}}</label>
