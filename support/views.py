@@ -1474,7 +1474,7 @@ def view_issue(request, issue_id):
     has_active_subscription = issue.contact.has_active_subscription()
     if request.POST:
         if issue.category == 'I':
-            form = IssueChangeForm(request.POST, instance=issue)
+            form = InvoicingIssueChangeForm(request.POST, instance=issue)
             invoicing = True
         else:
             form = IssueChangeForm(request.POST, instance=issue)
@@ -1484,6 +1484,7 @@ def view_issue(request, issue_id):
     else:
         if issue.category == 'I':
             form = InvoicingIssueChangeForm(instance=issue)
+            invoicing = True
         else:
             form = IssueChangeForm(instance=issue)
 
