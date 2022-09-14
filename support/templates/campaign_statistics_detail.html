@@ -173,6 +173,7 @@ $( function() {
       </div>
     </div>
 
+    {% if reject_by_reason or rejects_without_reason_count %}
     <div class="card">
       <div class="card-header">
         <h3 class="card-title">Razones de rechazo</h3>
@@ -200,12 +201,29 @@ $( function() {
         * Rechazos sin razón registrada: {{rejects_without_reason_count}}
       </div>
     </div>
+    {% endif %}
 
     <div class="card">
       <div class="card-header">
-        <h3 class="card-title"></h3>
+        <h3 class="card-title">Productos vendidos en esta campaña</h3>
       </div>
       <div class="card-body">
+        <table class="table table-striped">
+          <thead>
+            <tr>
+              <th>Producto</th>
+              <th>Cantidad</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for product, amount in subs_dict.items %}
+            <tr>
+              <td>{{product}}</td>
+              <td>{{amount}}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
       </div>
     </div>
   </div>
@@ -219,8 +237,17 @@ $( function() {
             <p class="h2">{{success_rate_count}} suscriptores ({{success_rate_pct|floatformat:2}}% del total)</p>
         </div>
     </div>
+
+    {% if most_sold and most_sold > 0 %}
+    <div class="card">
+      <div class="card-header">
+          <h4 class="card-title">Producto más vendido</h4>
+      </div>
+      <div class="card-body">
+          <p class="h2">{{most_sold}} ({{most_sold_count}})</p>
+      </div>
+    </div>
+    {% endif %}
   </div>
-
-
 </div>
 {% endblock %}
