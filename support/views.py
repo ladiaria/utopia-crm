@@ -49,7 +49,7 @@ from .filters import (
     ScheduledActivityFilter,
     ContactCampaignStatusFilter,
     UnsubscribedSubscriptionsByEndDateFilter,
-    ScheduledTaskFilter
+    ScheduledTaskFilter,
 )
 from .forms import (
     NewPauseScheduledTaskForm,
@@ -141,8 +141,7 @@ def import_contacts(request):
                     continue
             except IndexError:
                 messages.error(
-                    request,
-                    _("The column count is wrong, please check that the header has at least 10 columns")
+                    request, _("The column count is wrong, please check that the header has at least 10 columns")
                 )
                 return HttpResponseRedirect(reverse("import_contacts"))
             cpx = Q()
@@ -164,12 +163,7 @@ def import_contacts(request):
             else:
                 try:
                     new_contact = Contact.objects.create(
-                        name=name,
-                        phone=phone,
-                        email=email,
-                        work_phone=work_phone,
-                        mobile=mobile,
-                        notes=notes
+                        name=name, phone=phone, email=email, work_phone=work_phone, mobile=mobile, notes=notes
                     )
                     # Build the address if necessary
                     if address_1:
@@ -191,7 +185,9 @@ def import_contacts(request):
                 except Exception as e:
                     errors_list.append("CSV Row {}: {}".format(row_number, e))
         return render(
-            request, "import_contacts.html", {
+            request,
+            "import_contacts.html",
+            {
                 "new_contacts_count": len(new_contacts_list),
                 "old_contacts_list": old_contacts_list,
                 "errors_list": errors_list,
@@ -225,18 +221,24 @@ def import_contacts(request):
         except Exception as e:
             errors_in_changes.append("{} - {}".format(contact.id, e))
         return render(
-            request, "import_contacts.html", {
+            request,
+            "import_contacts.html",
+            {
                 "changed_list": changed_list,
                 "errors_in_changes": errors_in_changes,
-            }
+            },
         )
     else:
         subtypes = Subtype.objects.all()
         campaigns = Campaign.objects.filter(active=True)
-        return render(request, "import_contacts.html", {
-            "subtypes": subtypes,
-            "campaigns": campaigns,
-        })
+        return render(
+            request,
+            "import_contacts.html",
+            {
+                "subtypes": subtypes,
+                "campaigns": campaigns,
+            },
+        )
 
 
 @staff_member_required
@@ -256,13 +258,15 @@ def seller_console_list_campaigns(request):
         return HttpResponseRedirect(reverse("main_menu"))
 
     special_routes = {}
-    if getattr(settings, 'SPECIAL_ROUTES_FOR_SELLERS_LIST', None):
+    if getattr(settings, "SPECIAL_ROUTES_FOR_SELLERS_LIST", None):
         route_ids = settings.SPECIAL_ROUTES_FOR_SELLERS_LIST
         for route_id in route_ids:
             route = Route.objects.get(pk=route_id)
             special_routes[route_id] = (
-                route.name, SubscriptionProduct.objects.filter(
-                    seller=seller, route_id=route_id, subscription__active=True).count()
+                route.name,
+                SubscriptionProduct.objects.filter(
+                    seller=seller, route_id=route_id, subscription__active=True
+                ).count(),
             )
     else:
         special_routes = None
@@ -280,13 +284,15 @@ def seller_console_list_campaigns(request):
         campaigns_with_not_contacted.append(campaign)
     for campaign in all_campaigns:
         campaign.pending = campaign.activity_set.filter(
-            seller=seller, status="P", activity_type="C", datetime__lte=datetime.now()).count()
+            seller=seller, status="P", activity_type="C", datetime__lte=datetime.now()
+        ).count()
         campaign.successful = campaign.get_successful_count(seller.id)
         if campaign.pending:
             campaigns_with_activities_to_do.append(campaign)
-    upcoming_activity = Activity.objects.filter(
-        seller=seller, status='P', activity_type='C').order_by('datetime', 'id').first()
-    total_pending_activities = Activity.objects.filter(seller=seller, status='P', activity_type='C').count()
+    upcoming_activity = (
+        Activity.objects.filter(seller=seller, status="P", activity_type="C").order_by("datetime", "id").first()
+    )
+    total_pending_activities = Activity.objects.filter(seller=seller, status="P", activity_type="C").count()
     return render(
         request,
         "seller_console_list_campaigns.html",
@@ -333,18 +339,19 @@ def seller_console(request, category, campaign_id):
             activity = Activity.objects.get(pk=instance_id)
             contact = activity.contact
             try:
-                ccs = ContactCampaignStatus.objects.get(
-                    campaign=campaign,
-                    contact=contact
-                )
+                ccs = ContactCampaignStatus.objects.get(campaign=campaign, contact=contact)
             except ContactCampaignStatus.DoesNotExist:
                 messages.success(
-                    request, _(
+                    request,
+                    _(
                         "Activity {}: Contact {} is not present in campaign {}. Please report this error!".format(
-                            activity.id, contact.id, campaign.id)))
-                return HttpResponseRedirect(reverse('seller_console_list_campaigns'))
+                            activity.id, contact.id, campaign.id
+                        )
+                    ),
+                )
+                return HttpResponseRedirect(reverse("seller_console_list_campaigns"))
             activity.notes = new_activity_notes
-            activity.status = 'C'
+            activity.status = "C"
             activity.save()
             if result == _("Call later"):
                 Activity.objects.create(
@@ -364,7 +371,7 @@ def seller_console(request, category, campaign_id):
                 campaign=campaign,
                 seller=seller,
                 status="C",
-                notes=new_activity_notes
+                notes=new_activity_notes,
             )
         if result == _("Schedule"):
             # Schedule customers
@@ -419,10 +426,7 @@ def seller_console(request, category, campaign_id):
         ccs.save()
 
         return HttpResponseRedirect(
-            reverse("seller_console", args=[category, campaign.id])
-            + "?offset={}".format(offset)
-            if offset
-            else None
+            reverse("seller_console", args=[category, campaign.id]) + "?offset={}".format(offset) if offset else None
         )
     else:
         """
@@ -452,47 +456,42 @@ def seller_console(request, category, campaign_id):
         elif category == "act":
             # We make sure to show the seller only the activities that are for today.
             console_instances = campaign.activity_set.filter(
-                activity_type='C',
-                seller=seller,
-                status="P",
-                datetime__lte=datetime.now()
-            ).order_by('datetime', 'id')
+                activity_type="C", seller=seller, status="P", datetime__lte=datetime.now()
+            ).order_by("datetime", "id")
 
         count = console_instances.count()
         if count == 0 or offset - 1 >= count:
             messages.success(request, _("You've reached the end of this list"))
-            return HttpResponseRedirect(reverse('seller_console_list_campaigns'))
+            return HttpResponseRedirect(reverse("seller_console_list_campaigns"))
         elif activity_id:
             try:
                 console_instance = console_instances.get(pk=activity_id)
             except Activity.DoesNotExist:
                 messages.error(request, _("An error has occurred with activity number {}".format(activity_id)))
-                return HttpResponseRedirect(reverse('seller_console_list_campaigns'))
+                return HttpResponseRedirect(reverse("seller_console_list_campaigns"))
         elif offset - 1 > 0:
             console_instance = console_instances[int(offset) - 1]
         else:
             console_instance = console_instances[0]
 
         contact = console_instance.contact
-        times_contacted = contact.activity_set.filter(
-            activity_type="C", status="C", campaign=campaign
-        ).count()
-        all_activities = Activity.objects.filter(contact=contact).order_by('-datetime', 'id')
+        times_contacted = contact.activity_set.filter(activity_type="C", status="C", campaign=campaign).count()
+        all_activities = Activity.objects.filter(contact=contact).order_by("-datetime", "id")
         if category == "act":
             # If what we're watching is an activity, let's please not show it here
             all_activities = all_activities.exclude(pk=console_instance.id)
-        all_subscriptions = Subscription.objects.filter(contact=contact).order_by('-active', 'id')
+        all_subscriptions = Subscription.objects.filter(contact=contact).order_by("-active", "id")
         url = request.META["PATH_INFO"]
         addresses = Address.objects.filter(contact=contact).order_by("address_1")
 
         pending_activities_count = Activity.objects.filter(
-            seller=seller, status='P', activity_type='C', datetime__lte=datetime.now()).count()
-        upcoming_activity = Activity.objects.filter(
-            seller=seller, status='P', activity_type='C').order_by('datetime', 'id').first()
+            seller=seller, status="P", activity_type="C", datetime__lte=datetime.now()
+        ).count()
+        upcoming_activity = (
+            Activity.objects.filter(seller=seller, status="P", activity_type="C").order_by("datetime", "id").first()
+        )
 
-        other_campaigns = ContactCampaignStatus.objects.filter(
-            contact=contact
-        ).exclude(campaign=campaign)
+        other_campaigns = ContactCampaignStatus.objects.filter(contact=contact).exclude(campaign=campaign)
 
         return render(
             request,
@@ -517,7 +516,7 @@ def seller_console(request, category, campaign_id):
                 "pending_activities_count": pending_activities_count,
                 "upcoming_activity": upcoming_activity,
                 "resolution_reasons": CAMPAIGN_RESOLUTION_REASONS_CHOICES,
-                "other_campaigns": other_campaigns
+                "other_campaigns": other_campaigns,
             },
         )
 
@@ -570,12 +569,12 @@ def send_promo(request, contact_id):
     offerable_products = Product.objects.filter(offerable=True)
     start_date = date.today()
 
-    if request.GET.get('act', None):
-        activity = Activity.objects.get(pk=request.GET.get('act'))
+    if request.GET.get("act", None):
+        activity = Activity.objects.get(pk=request.GET.get("act"))
         campaign = activity.campaign
         ccs = ContactCampaignStatus.objects.get(contact=contact, campaign=campaign)
-    elif request.GET.get('new', None):
-        ccs = ContactCampaignStatus.objects.get(pk=request.GET['new'])
+    elif request.GET.get("new", None):
+        ccs = ContactCampaignStatus.objects.get(pk=request.GET["new"])
         campaign = ccs.campaign
 
     seller = ccs.seller
@@ -650,14 +649,14 @@ def send_promo(request, contact_id):
                         seller_id=seller.id,
                     )
 
-            if request.GET.get('act', None):
+            if request.GET.get("act", None):
                 # the instance is somehow an activity and we needed to send a promo again, or has been scheduled
                 activity.status = "C"  # completed activity
                 activity.save()
                 ccs.campaign_resolution = "SP"
                 ccs.status = 2  # Contacted this person
                 ccs.save()
-            elif request.GET.get('new', None):
+            elif request.GET.get("new", None):
                 ccs.status = 2  # contacted this person
                 ccs.campaign_resolution = "SP"  # Sent promo to this c c ustomer
                 ccs.save()
@@ -696,17 +695,17 @@ def new_subscription(request, contact_id):
     attempt to change that subscription for a new one.
     """
     contact = get_object_or_404(Contact, pk=contact_id)
-    if request.GET.get('upgrade_subscription', None):
-        subscription_id = request.GET.get('upgrade_subscription')
+    if request.GET.get("upgrade_subscription", None):
+        subscription_id = request.GET.get("upgrade_subscription")
         form_subscription = get_object_or_404(Subscription, pk=subscription_id)
         if form_subscription.contact != contact:
-            return HttpResponseServerError(_('Wrong data'))
+            return HttpResponseServerError(_("Wrong data"))
         upgrade_subscription, edit_subscription = True, False
-    elif request.GET.get('edit_subscription', None):
-        subscription_id = request.GET.get('edit_subscription')
+    elif request.GET.get("edit_subscription", None):
+        subscription_id = request.GET.get("edit_subscription")
         form_subscription = get_object_or_404(Subscription, pk=subscription_id)
         if form_subscription.contact != contact:
-            return HttpResponseServerError(_('Wrong data'))
+            return HttpResponseServerError(_("Wrong data"))
         edit_subscription, upgrade_subscription = True, False
     else:
         form_subscription, upgrade_subscription, edit_subscription = None, False, False
@@ -716,13 +715,13 @@ def new_subscription(request, contact_id):
     offerable_products = Product.objects.filter(offerable=True)
     other_active_normal_subscriptions = Subscription.objects.filter(contact=contact, active=True, type="N")
 
-    if request.GET.get('act', None):
-        activity = Activity.objects.get(pk=request.GET['act'])
+    if request.GET.get("act", None):
+        activity = Activity.objects.get(pk=request.GET["act"])
         campaign = activity.campaign
         ccs = ContactCampaignStatus.objects.get(contact=contact, campaign=campaign)
         user_seller_id = ccs.seller.id
-    elif request.GET.get('new', None):
-        ccs = ContactCampaignStatus.objects.get(pk=request.GET['new'])
+    elif request.GET.get("new", None):
+        ccs = ContactCampaignStatus.objects.get(pk=request.GET["new"])
         campaign = ccs.campaign
         user_seller_id = ccs.seller.id
     elif request.user.seller_set.exists():
@@ -755,7 +754,7 @@ def new_subscription(request, contact_id):
             "send_bill_copy_by_email": form_subscription.send_bill_copy_by_email,
         }
         form = NewSubscriptionForm(initial=initial_dict)
-        form.fields['start_date'].widget.attrs['readonly'] = True
+        form.fields["start_date"].widget.attrs["readonly"] = True
     else:
         form = NewSubscriptionForm(
             initial={
@@ -779,7 +778,7 @@ def new_subscription(request, contact_id):
     if result == _("Cancel"):
         return HttpResponseRedirect(reverse("contact_detail", args=[contact.id]))
     elif result == _("Send"):
-        url = request.GET.get('url', None)
+        url = request.GET.get("url", None)
         form = NewSubscriptionForm(request.POST)
         if form.is_valid():
             # First we need to save all the new contact data if necessary
@@ -822,15 +821,15 @@ def new_subscription(request, contact_id):
                 subscription = form_subscription
                 # We're not going to change start_date
                 subscription.payment_type = form.cleaned_data["payment_type"]
-                subscription.billing_address = form.cleaned_data['billing_address']
-                subscription.billing_name = form.cleaned_data['billing_name']
-                subscription.billing_id_doc = form.cleaned_data['billing_id_document']
-                subscription.rut = form.cleaned_data['billing_rut']
-                subscription.billing_phone = form.cleaned_data['billing_phone']
-                subscription.billing_email = form.cleaned_data['billing_email']
-                subscription.frequency = form.cleaned_data['frequency']
-                subscription.end_date = form.cleaned_data['end_date']
-                subscription.send_bill_copy_by_email = form.cleaned_data['send_bill_copy_by_email']
+                subscription.billing_address = form.cleaned_data["billing_address"]
+                subscription.billing_name = form.cleaned_data["billing_name"]
+                subscription.billing_id_doc = form.cleaned_data["billing_id_document"]
+                subscription.rut = form.cleaned_data["billing_rut"]
+                subscription.billing_phone = form.cleaned_data["billing_phone"]
+                subscription.billing_email = form.cleaned_data["billing_email"]
+                subscription.frequency = form.cleaned_data["frequency"]
+                subscription.end_date = form.cleaned_data["end_date"]
+                subscription.send_bill_copy_by_email = form.cleaned_data["send_bill_copy_by_email"]
                 subscription.save()
             else:
                 subscription = Subscription.objects.create(
@@ -839,15 +838,15 @@ def new_subscription(request, contact_id):
                     start_date=form.cleaned_data["start_date"],
                     next_billing=form.cleaned_data["start_date"],
                     payment_type=form.cleaned_data["payment_type"],
-                    billing_address=form.cleaned_data['billing_address'],
-                    billing_name=form.cleaned_data['billing_name'],
-                    billing_id_doc=form.cleaned_data['billing_id_document'],
-                    rut=form.cleaned_data['billing_rut'],
-                    billing_phone=form.cleaned_data['billing_phone'],
-                    billing_email=form.cleaned_data['billing_email'],
-                    frequency=form.cleaned_data['frequency'],
-                    end_date=form.cleaned_data['end_date'],
-                    send_bill_copy_by_email=form.cleaned_data['send_bill_copy_by_email'],
+                    billing_address=form.cleaned_data["billing_address"],
+                    billing_name=form.cleaned_data["billing_name"],
+                    billing_id_doc=form.cleaned_data["billing_id_document"],
+                    rut=form.cleaned_data["billing_rut"],
+                    billing_phone=form.cleaned_data["billing_phone"],
+                    billing_email=form.cleaned_data["billing_email"],
+                    frequency=form.cleaned_data["frequency"],
+                    end_date=form.cleaned_data["end_date"],
+                    send_bill_copy_by_email=form.cleaned_data["send_bill_copy_by_email"],
                 )
             if upgrade_subscription:
                 # Then, the amount that was not paid in the period but was not used due to closing the
@@ -876,11 +875,17 @@ def new_subscription(request, contact_id):
                     if not SubscriptionProduct.objects.filter(subscription=subscription, product=product).exists():
                         # First we're going to check if this is an upgrade and the previous product existed and had a
                         # seller. If it hadn't then the seller will still be None
-                        if form_subscription and SubscriptionProduct.objects.filter(
-                            subscription=form_subscription, product=product
-                        ).exists():
-                            seller = SubscriptionProduct.objects.filter(
-                                subscription=form_subscription, product=product).first().seller
+                        if (
+                            form_subscription
+                            and SubscriptionProduct.objects.filter(
+                                subscription=form_subscription, product=product
+                            ).exists()
+                        ):
+                            seller = (
+                                SubscriptionProduct.objects.filter(subscription=form_subscription, product=product)
+                                .first()
+                                .seller
+                            )
                             if seller:
                                 seller_id = seller.id
                             else:
@@ -892,13 +897,15 @@ def new_subscription(request, contact_id):
                             copies=copies,
                             message=message,
                             instructions=instructions,
-                            seller_id=seller_id
+                            seller_id=seller_id,
                         )
-                        if product.slug == 'gigantes' and gigantes_contact:
+                        if product.slug == "gigantes" and gigantes_contact:
                             sp.label_contact = gigantes_contact
                             sp.save()
-                    elif request.GET.get('edit_subscription', None) and SubscriptionProduct.objects.filter(
-                            subscription=subscription, product=product).exists():
+                    elif (
+                        request.GET.get("edit_subscription", None)
+                        and SubscriptionProduct.objects.filter(subscription=subscription, product=product).exists()
+                    ):
                         sp = SubscriptionProduct.objects.get(subscription=subscription, product=product)
                         sp.address = address
                         sp.copies = copies
@@ -910,23 +917,23 @@ def new_subscription(request, contact_id):
                 if subscriptionproduct.product not in new_products_list:
                     subscription.remove_product(subscriptionproduct.product)
 
-            if request.GET.get('new', None):
+            if request.GET.get("new", None):
                 # This means this is a direct sale
-                offset = request.GET.get('offset')
+                offset = request.GET.get("offset")
                 ccs.campaign_resolution = "S2"  # this is a success with direct sale
                 ccs.status = 4  # Ended with contact
                 ccs.save()
                 # We also need to register the activity as just started
                 activity_notes = "{}\n{}".format(
                     _("Success with direct sale on {}").format(datetime.now().strftime("%Y-%m-%d %H:%M")),
-                    form.cleaned_data["register_activity"]
+                    form.cleaned_data["register_activity"],
                 )
                 Activity.objects.create(
                     activity_type="C",
                     seller=ccs.seller,
                     contact=contact,
-                    status='C',
-                    direction='O',
+                    status="C",
+                    direction="O",
                     datetime=datetime.now(),
                     campaign=ccs.campaign,
                     notes=activity_notes,
@@ -934,12 +941,12 @@ def new_subscription(request, contact_id):
                 subscription.campaign = ccs.campaign
                 subscription.save()
                 redirect_to = "{}?offset={}".format(url, offset)
-            elif request.GET.get('act', None):
+            elif request.GET.get("act", None):
                 # This means this is a sale from an activity
-                activity.status = 'C'
+                activity.status = "C"
                 activity_notes = "{}\n{}".format(
                     _("Success with promotion on {}").format(datetime.now().strftime("%Y-%m-%d %H:%M")),
-                    form.cleaned_data["register_activity"]
+                    form.cleaned_data["register_activity"],
                 )
                 if activity.notes:
                     activity.notes = activity.notes + "\n" + activity_notes
@@ -958,8 +965,9 @@ def new_subscription(request, contact_id):
 
             # if needed, redirect_to default_newsletters_dialog:
             if contact.offer_default_newsletters_condition():
-                redirect_to = '%s?next_page=%s' % (
-                    reverse("default_newsletters_dialog", kwargs={'contact_id': contact.id}), redirect_to
+                redirect_to = "%s?next_page=%s" % (
+                    reverse("default_newsletters_dialog", kwargs={"contact_id": contact.id}),
+                    redirect_to,
                 )
 
             return HttpResponseRedirect(redirect_to)
@@ -977,27 +985,27 @@ def new_subscription(request, contact_id):
             "offerable_products": offerable_products,
             "contact_addresses": contact_addresses,
             "other_active_normal_subscriptions": other_active_normal_subscriptions,
-        }
+        },
     )
 
 
 @login_required
 def default_newsletters_dialog(request, contact_id):
-    if request.method == 'POST':
-        if request.POST.get('answer') == 'yes':
+    if request.method == "POST":
+        if request.POST.get("answer") == "yes":
             try:
                 Contact.objects.get(id=contact_id).add_default_newsletters()
             except Contact.DoesNotExist:
                 pass
-        return HttpResponseRedirect(request.POST.get('next_page'))
+        return HttpResponseRedirect(request.POST.get("next_page"))
     else:
         try:
-            next_page = request.GET['next_page']
+            next_page = request.GET["next_page"]
         except KeyError:
             return HttpResponseNotFound()
         else:
             return render(
-                request, 'default_newsletters_dialog.html', {'contact_id': contact_id, 'next_page': next_page}
+                request, "default_newsletters_dialog.html", {"contact_id": contact_id, "next_page": next_page}
             )
 
 
@@ -1035,7 +1043,7 @@ def assign_campaigns(request):
                 request,
                 "Error: No se encuentran delimitadores en el archivo "
                 "ingresado, deben usarse ',' (comas) <br/><a href="
-                "'.'>Volver</a>"
+                "'.'>Volver</a>",
             )
             return HttpResponseRedirect(reverse("assign_campaigns"))
         except Exception as e:
@@ -1081,9 +1089,7 @@ def list_campaigns_with_no_seller(request):
         count = ContactCampaignStatus.objects.filter(campaign=campaign, seller=None).count()
         campaign.count = count
         campaign_list.append(campaign)
-    return render(
-        request, "distribute_campaigns.html", {"campaign_list": campaign_list}
-    )
+    return render(request, "distribute_campaigns.html", {"campaign_list": campaign_list})
 
 
 @login_required
@@ -1109,9 +1115,7 @@ def assign_seller(request, campaign_id):
         for seller, amount in seller_list:
             if amount:
                 amount = int(amount)
-                for status in ContactCampaignStatus.objects.filter(
-                    seller=None, campaign=campaign
-                )[:amount]:
+                for status in ContactCampaignStatus.objects.filter(seller=None, campaign=campaign)[:amount]:
                     status.seller = Seller.objects.get(pk=seller)
                     status.date_assigned = date.today()
                     try:
@@ -1142,8 +1146,11 @@ def release_seller_contacts(request, seller_id=None):
     Releases all the unworked contacts from a seller to allow them to be assigned to other sellers.
     """
     seller_list = []
-    seller_qs = Seller.objects.filter(contactcampaignstatus__status=1).annotate(
-        campaign_contacts=Count('contactcampaignstatus')).filter(campaign_contacts__gte=1)
+    seller_qs = (
+        Seller.objects.filter(contactcampaignstatus__status=1)
+        .annotate(campaign_contacts=Count("contactcampaignstatus"))
+        .filter(campaign_contacts__gte=1)
+    )
 
     if seller_id:
         seller = get_object_or_404(Seller, pk=seller_id)
@@ -1188,11 +1195,12 @@ def list_issues(request):
     Shows a very basic list of issues.
     """
     issues_queryset = Issue.objects.all().order_by(
-        "-date", "subscription_product__product", "-subscription_product__route__number", "-id")
+        "-date", "subscription_product__product", "-subscription_product__route__number", "-id"
+    )
     issues_filter = IssueFilter(request.GET, queryset=issues_queryset)
     page_number = request.GET.get("p")
     paginator = Paginator(issues_filter.qs, 100)
-    if request.GET.get('export'):
+    if request.GET.get("export"):
         response = HttpResponse(content_type="text/csv")
         response["Content-Disposition"] = 'attachment; filename="issues_export.csv"'
         writer = csv.writer(response)
@@ -1204,20 +1212,22 @@ def list_issues(request):
             _("Subcategory"),
             _("Activities count"),
             _("Status"),
-            _("Assigned to")
+            _("Assigned to"),
         ]
         writer.writerow(header)
         for issue in issues_filter.qs.all():
-            writer.writerow([
-                issue.date,
-                issue.contact.id,
-                issue.contact.name,
-                issue.get_category(),
-                issue.get_subcategory(),
-                issue.activity_count(),
-                issue.get_status(),
-                issue.get_assigned_to()
-            ])
+            writer.writerow(
+                [
+                    issue.date,
+                    issue.contact.id,
+                    issue.contact.name,
+                    issue.get_category(),
+                    issue.get_subcategory(),
+                    issue.activity_count(),
+                    issue.get_status(),
+                    issue.get_assigned_to(),
+                ]
+            )
         return response
     try:
         page = paginator.page(page_number)
@@ -1230,12 +1240,7 @@ def list_issues(request):
     return render(
         request,
         "list_issues.html",
-        {
-            "page": page,
-            "paginator": paginator,
-            "issues_filter": issues_filter,
-            "count": issues_filter.qs.count()
-        },
+        {"page": page, "paginator": paginator, "issues_filter": issues_filter, "count": issues_filter.qs.count()},
     )
 
 
@@ -1287,17 +1292,19 @@ def new_issue(request, contact_id, category="L"):
                 issue=new_issue,
                 notes=_("See related issue"),
                 activity_type=form.cleaned_data["activity_type"],
-                status='C',  # completed
-                direction='I',
+                status="C",  # completed
+                direction="I",
             )
             return HttpResponseRedirect(reverse("contact_detail", args=[contact.id]))
     else:
-        form = IssueStartForm(initial={
-            'copies': 1,
-            'contact': contact,
-            'category': category,
-            'activity_type': 'C',
-        })
+        form = IssueStartForm(
+            initial={
+                "copies": 1,
+                "contact": contact,
+                "category": category,
+                "activity_type": "C",
+            }
+        )
     form.fields["subscription_product"].queryset = contact.get_active_subscriptionproducts()
     form.fields["subscription"].queryset = contact.get_active_subscriptions()
     form.fields["contact_address"].queryset = contact.addresses.all()
@@ -1337,18 +1344,20 @@ def new_scheduled_task_total_pause(request, contact_id):
                 contact=contact,
                 notes=_("Scheduled task for pause"),
                 activity_type=form.cleaned_data["activity_type"],
-                status='C',  # completed
-                direction='I',
+                status="C",  # completed
+                direction="I",
             )
             if request.POST.get("apply_now", None):
                 run_start_of_total_pause(start_task)
                 messages.success(request, _("Total pause has been executed."))
             return HttpResponseRedirect(reverse("contact_detail", args=[contact.id]))
     else:
-        form = NewPauseScheduledTaskForm(initial={'activity_type': 'C'})
+        form = NewPauseScheduledTaskForm(initial={"activity_type": "C"})
     form.fields["subscription"].queryset = contact.subscriptions.filter(active=True)
     return render(
-        request, "new_scheduled_task_total_pause.html", {"contact": contact, "form": form},
+        request,
+        "new_scheduled_task_total_pause.html",
+        {"contact": contact, "form": form},
     )
 
 
@@ -1383,26 +1392,20 @@ def new_scheduled_task_address_change(request, contact_id):
                 contact=contact,
                 notes=_("Scheduled task for address change"),
                 activity_type=form.cleaned_data["activity_type"],
-                status='C',  # completed
-                direction='I',
+                status="C",  # completed
+                direction="I",
             )
             for key, value in list(request.POST.items()):
                 if key.startswith("sp"):
                     subscription_product_id = key[2:]
-                    subscription_product = SubscriptionProduct.objects.get(
-                        pk=subscription_product_id
-                    )
+                    subscription_product = SubscriptionProduct.objects.get(pk=subscription_product_id)
                     scheduled_task.subscription_products.add(subscription_product)
             if request.POST.get("apply_now", None):
                 run_address_change(scheduled_task)
                 messages.success(request, _("Address change has been executed."))
             return HttpResponseRedirect(reverse("contact_detail", args=[contact.id]))
     else:
-        form = NewAddressChangeScheduledTaskForm(
-            initial={
-                "new_address_type": "physical",
-                "activity_type": 'C'}
-        )
+        form = NewAddressChangeScheduledTaskForm(initial={"new_address_type": "physical", "activity_type": "C"})
     form.fields["contact_address"].queryset = contact.addresses.all()
     return render(
         request,
@@ -1437,9 +1440,7 @@ def new_scheduled_task_partial_pause(request, contact_id):
             for key, value in list(request.POST.items()):
                 if key.startswith("sp"):
                     subscription_product_id = key[2:]
-                    subscription_product = SubscriptionProduct.objects.get(
-                        pk=subscription_product_id
-                    )
+                    subscription_product = SubscriptionProduct.objects.get(pk=subscription_product_id)
                     start_task.subscription_products.add(subscription_product)
                     end_task.subscription_products.add(subscription_product)
             Activity.objects.create(
@@ -1447,12 +1448,12 @@ def new_scheduled_task_partial_pause(request, contact_id):
                 contact=contact,
                 notes=_("Scheduled task for pause"),
                 activity_type=form.cleaned_data["activity_type"],
-                status='C',  # completed
-                direction='I',
+                status="C",  # completed
+                direction="I",
             )
             return HttpResponseRedirect(reverse("contact_detail", args=[contact.id]))
     else:
-        form = PartialPauseTaskForm(initial={'activity_type': 'C'})
+        form = PartialPauseTaskForm(initial={"activity_type": "C"})
     return render(
         request,
         "new_scheduled_task_partial_pause.html",
@@ -1473,7 +1474,7 @@ def view_issue(request, issue_id):
     invoicing = False
     has_active_subscription = issue.contact.has_active_subscription()
     if request.POST:
-        if issue.category == 'I':
+        if issue.category == "I":
             form = InvoicingIssueChangeForm(request.POST, instance=issue)
             invoicing = True
         else:
@@ -1482,20 +1483,21 @@ def view_issue(request, issue_id):
             form.save()
             return HttpResponseRedirect(reverse("view_issue", args=(issue_id,)))
     else:
-        if issue.category == 'I':
+        if issue.category == "I":
             form = InvoicingIssueChangeForm(instance=issue)
             invoicing = True
         else:
             form = IssueChangeForm(instance=issue)
 
-    activities = issue.activity_set.all().order_by('-datetime', 'id')
+    activities = issue.activity_set.all().order_by("-datetime", "id")
     activity_form = NewActivityForm(
         initial={
             "contact": issue.contact,
             "direction": "O",
             "activity_type": "C",
-        })
-    activity_form.fields['contact'].label = False
+        }
+    )
+    activity_form.fields["contact"].label = False
     return render(
         request,
         "view_issue.html",
@@ -1506,7 +1508,7 @@ def view_issue(request, issue_id):
             "issue": issue,
             "activities": activities,
             "activity_form": activity_form,
-            "invoice_list": issue.contact.invoice_set.all().order_by('-creation_date', 'id')
+            "invoice_list": issue.contact.invoice_set.all().order_by("-creation_date", "id"),
         },
     )
 
@@ -1518,14 +1520,11 @@ def contact_list(request):
     """
     page = request.GET.get("p")
     contact_queryset = (
-        Contact.objects.all()
-        .prefetch_related("subscriptions", "activity_set")
-        .select_related()
-        .order_by("-id")
+        Contact.objects.all().prefetch_related("subscriptions", "activity_set").select_related().order_by("-id")
     )
     contact_filter = ContactFilter(request.GET, queryset=contact_queryset)
     paginator = Paginator(contact_filter.qs, 50)
-    if request.GET.get('export'):
+    if request.GET.get("export"):
         response = HttpResponse(content_type="text/csv")
         response["Content-Disposition"] = 'attachment; filename="contacts_export.csv"'
         writer = csv.writer(response)
@@ -1555,20 +1554,22 @@ def contact_list(request):
                 address = first_subscription.get_full_address_by_priority()
                 if address:
                     address_1, state, city = address.address_1, address.state, address.city
-            writer.writerow([
-                contact.id,
-                contact.name,
-                contact.email,
-                contact.phone,
-                contact.mobile,
-                contact.has_active_subscription(),
-                active_products,
-                contact.last_activity().datetime if contact.last_activity() else None,
-                contact.expired_invoices_count(),
-                address_1,
-                state,
-                city,
-            ])
+            writer.writerow(
+                [
+                    contact.id,
+                    contact.name,
+                    contact.email,
+                    contact.phone,
+                    contact.mobile,
+                    contact.has_active_subscription(),
+                    active_products,
+                    contact.last_activity().datetime if contact.last_activity() else None,
+                    contact.expired_invoices_count(),
+                    address_1,
+                    state,
+                    city,
+                ]
+            )
         return response
     try:
         contacts = paginator.page(page)
@@ -1587,7 +1588,7 @@ def contact_list(request):
             "page": page,
             "total_pages": paginator.num_pages,
             "filter": contact_filter,
-            "count": contact_filter.qs.count()
+            "count": contact_filter.qs.count(),
         },
     )
 
@@ -1607,15 +1608,19 @@ def contact_detail(request, contact_id):
     issues = contact.issue_set.all().order_by("-id")[:3]
     newsletters = contact.get_newsletters()
     last_paid_invoice = contact.get_last_paid_invoice()
-    inactive_subscriptions = contact.subscriptions.filter(
-        active=False, start_date__lt=date.today()
-    ).exclude(status__in=("AP", "ER")).order_by("-end_date", "-start_date")
-    future_subscriptions = contact.subscriptions.filter(
-        active=False, start_date__gte=date.today()
-    ).exclude(status__in=("AP", "ER")).order_by("-start_date")
-    all_activities = contact.activity_set.all().order_by('-datetime', 'id')
-    all_issues = contact.issue_set.all().order_by('-date', 'id')
-    all_scheduled_tasks = contact.scheduledtask_set.all().order_by('-creation_date', 'id')
+    inactive_subscriptions = (
+        contact.subscriptions.filter(active=False, start_date__lt=date.today())
+        .exclude(status__in=("AP", "ER"))
+        .order_by("-end_date", "-start_date")
+    )
+    future_subscriptions = (
+        contact.subscriptions.filter(active=False, start_date__gte=date.today())
+        .exclude(status__in=("AP", "ER"))
+        .order_by("-start_date")
+    )
+    all_activities = contact.activity_set.all().order_by("-datetime", "id")
+    all_issues = contact.issue_set.all().order_by("-date", "id")
+    all_scheduled_tasks = contact.scheduledtask_set.all().order_by("-creation_date", "id")
     awaiting_payment_subscriptions = contact.subscriptions.filter(status="AP")
     subscriptions_with_error = contact.subscriptions.filter(status="ER")
 
@@ -1660,11 +1665,7 @@ def api_new_address(request, contact_id):
                 address_type=form.cleaned_data["address_type"],
                 notes=form.cleaned_data["address_notes"],
             )
-            data = {
-                address.id: "{} {} {}".format(
-                    address.address_1, address.city, address.state
-                )
-            }
+            data = {address.id: "{} {} {}".format(address.address_1, address.city, address.state)}
             return JsonResponse(data)
     else:
         return HttpResponseNotFound()
@@ -1725,21 +1726,17 @@ def dynamic_contact_filter_new(request):
             if mode == 3:
                 subscription_newsletters = SubscriptionNewsletter.objects.all()
                 for newsletter in newsletters:
-                    subscription_newsletters = subscription_newsletters.filter(
-                        product=newsletter
-                    )
-                subscription_newsletters = subscription_newsletters.filter(
-                    contact__email__isnull=False
-                )
+                    subscription_newsletters = subscription_newsletters.filter(product=newsletter)
+                subscription_newsletters = subscription_newsletters.filter(contact__email__isnull=False)
                 count = subscription_newsletters.count()
                 email_sample = subscription_newsletters.values("contact__email")[:50]
             else:
                 if mode == 1:  # At least one of the products
                     subscriptions = Subscription.objects.filter(active=True, products__in=products)
                 elif mode == 2:  # All products must match
-                    subscriptions = Subscription.objects.annotate(
-                        count=Count("products")
-                    ).filter(active=True, count=products.count())
+                    subscriptions = Subscription.objects.annotate(count=Count("products")).filter(
+                        active=True, count=products.count()
+                    )
                     for product in products:
                         subscriptions = subscriptions.filter(products=product)
                 if allow_promotions:
@@ -1753,14 +1750,14 @@ def dynamic_contact_filter_new(request):
                         contact__invoice__debited=False,
                         contact__invoice__canceled=False,
                         contact__invoice__uncollectible=False,
-                    ).prefetch_related('contact__invoice_set')
+                    ).prefetch_related("contact__invoice_set")
                     if debtor_contacts == 1:
                         subscriptions = subscriptions.difference(only_debtors)
                     elif debtor_contacts == 2:
                         subscriptions = only_debtors
                 # Finally we remove the ones who don't have emails and apply distinct by contact
                 if mode == 1:
-                    subscriptions = subscriptions.filter(contact__email__isnull=False).distinct('contact')
+                    subscriptions = subscriptions.filter(contact__email__isnull=False).distinct("contact")
                 else:
                     subscriptions = subscriptions.filter(contact__email__isnull=False)
                 count = subscriptions.count()
@@ -1821,28 +1818,22 @@ def dynamic_contact_filter_edit(request, dcf_id):
                 dcf.newsletters = newsletters
                 dcf.debtor_contacts = debtor_contacts
                 dcf.save()
-                return HttpResponseRedirect(
-                    reverse("dynamic_contact_filter_edit", args=[dcf.id])
-                )
+                return HttpResponseRedirect(reverse("dynamic_contact_filter_edit", args=[dcf.id]))
 
             # After getting the data, process it to find out how many records there are for the filter
             if mode == 3:
                 subscription_newsletters = SubscriptionNewsletter.objects.all()
                 for newsletter in newsletters:
-                    subscription_newsletters = subscription_newsletters.filter(
-                        product=newsletter
-                    )
-                subscription_newsletters = subscription_newsletters.filter(
-                    contact__email__isnull=False
-                )
+                    subscription_newsletters = subscription_newsletters.filter(product=newsletter)
+                subscription_newsletters = subscription_newsletters.filter(contact__email__isnull=False)
                 count = subscription_newsletters.count()
             else:
                 if mode == 1:  # At least one of the products
                     subscriptions = Subscription.objects.filter(active=True, products__in=products)
                 elif mode == 2:  # All products must match
-                    subscriptions = Subscription.objects.annotate(
-                        count=Count("products")
-                    ).filter(active=True, count=products.count())
+                    subscriptions = Subscription.objects.annotate(count=Count("products")).filter(
+                        active=True, count=products.count()
+                    )
                     for product in products:
                         subscriptions = subscriptions.filter(products=product)
                 if allow_promotions:
@@ -1856,14 +1847,14 @@ def dynamic_contact_filter_edit(request, dcf_id):
                         contact__invoice__debited=False,
                         contact__invoice__canceled=False,
                         contact__invoice__uncollectible=False,
-                    ).prefetch_related('contact__invoice_set')
+                    ).prefetch_related("contact__invoice_set")
                     if debtor_contacts == 1:
                         subscriptions = subscriptions.difference(only_debtors)
                     elif debtor_contacts == 2:
                         subscriptions = only_debtors
                 # Finally we remove the ones who don't have emails and apply distinct by contact
                 if mode == 1:
-                    subscriptions = subscriptions.filter(contact__email__isnull=False).distinct('contact')
+                    subscriptions = subscriptions.filter(contact__email__isnull=False).distinct("contact")
                 else:
                     subscriptions = subscriptions.filter(contact__email__isnull=False)
                 count = subscriptions.count()
@@ -1878,18 +1869,14 @@ def dynamic_contact_filter_edit(request, dcf_id):
                     "count": count,
                 },
             )
-    return render(
-        request, "dynamic_contact_filter_details.html", {"dcf": dcf, "form": form}
-    )
+    return render(request, "dynamic_contact_filter_details.html", {"dcf": dcf, "form": form})
 
 
 @login_required
 def export_dcf_emails(request, dcf_id):
     dcf = get_object_or_404(DynamicContactFilter, pk=dcf_id)
     response = HttpResponse(content_type="text/csv")
-    response["Content-Disposition"] = 'attachment; filename="dcf_list_{}.csv"'.format(
-        dcf.id
-    )
+    response["Content-Disposition"] = 'attachment; filename="dcf_list_{}.csv"'.format(dcf.id)
 
     writer = csv.writer(response)
     for email in dcf.get_emails():
@@ -1902,9 +1889,7 @@ def export_dcf_emails(request, dcf_id):
 def advanced_export_dcf_list(request, dcf_id):
     dcf = get_object_or_404(DynamicContactFilter, pk=dcf_id)
     response = HttpResponse(content_type="text/csv")
-    response["Content-Disposition"] = 'attachment; filename="dcf_advanced_list_{}.csv"'.format(
-        dcf.id
-    )
+    response["Content-Disposition"] = 'attachment; filename="dcf_advanced_list_{}.csv"'.format(dcf.id)
 
     writer = csv.writer(response)
     header = [
@@ -1944,39 +1929,33 @@ def sync_with_mailtrain(request, dcf_id):
         messages.error(request, _("Error: {}".format(e)))
         return HttpResponseRedirect(reverse("sync_with_mailtrain"))
     else:
-        return HttpResponseRedirect(
-            reverse("dynamic_contact_filter_edit", args=[dcf.id])
-        )
+        return HttpResponseRedirect(reverse("dynamic_contact_filter_edit", args=[dcf.id]))
 
 
 def register_activity(request):
-    issue_id = request.GET.get('issue_id', None)
+    issue_id = request.GET.get("issue_id", None)
     form = NewActivityForm(request.POST)
     if form.is_valid():
         Activity.objects.create(
-            contact=form.cleaned_data['contact'],
+            contact=form.cleaned_data["contact"],
             issue_id=issue_id,
-            direction=form.cleaned_data['direction'],
-            notes=form.cleaned_data['notes'],
+            direction=form.cleaned_data["direction"],
+            notes=form.cleaned_data["notes"],
             datetime=datetime.now(),
-            activity_type=form.cleaned_data['activity_type'],
+            activity_type=form.cleaned_data["activity_type"],
             status="C",  # it should be completed
         )
     if issue_id:
-        return HttpResponseRedirect(
-            reverse("view_issue", args=[issue_id])
-        )
+        return HttpResponseRedirect(reverse("view_issue", args=[issue_id]))
     else:
-        return HttpResponseRedirect(
-            reverse("contact_detail", args=[form.cleaned_data['contact'].id])
-        )
+        return HttpResponseRedirect(reverse("contact_detail", args=[form.cleaned_data["contact"].id]))
 
 
 @staff_member_required
 def edit_contact(request, contact_id):
     contact = get_object_or_404(Contact, pk=contact_id)
     form = ContactAdminForm(instance=contact)
-    all_newsletters = Product.objects.filter(type='N', active=True)
+    all_newsletters = Product.objects.filter(type="N", active=True)
     contact_newsletters = contact.get_newsletter_products()
     if request.POST:
         form = ContactAdminForm(request.POST, instance=contact)
@@ -1986,13 +1965,17 @@ def edit_contact(request, contact_id):
             except Exception as e:
                 messages.error(request, "Error: {}".format(e))
             else:
-                return HttpResponseRedirect(reverse('edit_contact', args=[contact_id]))
-    return render(request, 'create_contact.html', {
-        'form': form,
-        'contact': contact,
-        'all_newsletters': all_newsletters,
-        'contact_newsletters': contact_newsletters
-    })
+                return HttpResponseRedirect(reverse("edit_contact", args=[contact_id]))
+    return render(
+        request,
+        "create_contact.html",
+        {
+            "form": form,
+            "contact": contact,
+            "all_newsletters": all_newsletters,
+            "contact_newsletters": contact_newsletters,
+        },
+    )
 
 
 @require_POST
@@ -2000,7 +1983,7 @@ def edit_contact(request, contact_id):
 def edit_newsletters(request, contact_id):
     contact = get_object_or_404(Contact, pk=contact_id)
     if request.POST:
-        all_newsletters = Product.objects.filter(type='N', active=True)
+        all_newsletters = Product.objects.filter(type="N", active=True)
         for newsletter in all_newsletters:
             if request.POST.get(str(newsletter.id)):
                 if not contact.has_newsletter(newsletter.id):
@@ -2008,7 +1991,7 @@ def edit_newsletters(request, contact_id):
             else:
                 if contact.has_newsletter(newsletter.id):
                     contact.remove_newsletter(newsletter.id)
-        return HttpResponseRedirect(reverse('edit_contact', args=[contact_id]))
+        return HttpResponseRedirect(reverse("edit_contact", args=[contact_id]))
 
 
 @staff_member_required
@@ -2018,7 +2001,7 @@ def scheduled_activities(request):
         seller = Seller.objects.get(user=user)
     except Seller.DoesNotExist:
         seller = None
-    activity_queryset = Activity.objects.filter(seller=seller).order_by('datetime', 'id')
+    activity_queryset = Activity.objects.filter(seller=seller).order_by("datetime", "id")
     activity_filter = ScheduledActivityFilter(request.GET, activity_queryset)
     page_number = request.GET.get("p")
     paginator = Paginator(activity_filter.qs, 100)
@@ -2032,15 +2015,17 @@ def scheduled_activities(request):
         activities = paginator.page(paginator.num_pages)
     return render(
         request,
-        'scheduled_activities.html', {
-            'filter': activity_filter,
-            'activities': activities,
-            'seller': seller,
+        "scheduled_activities.html",
+        {
+            "filter": activity_filter,
+            "activities": activities,
+            "seller": seller,
             "page": page_number,
             "total_pages": paginator.num_pages,
             "count": activity_filter.qs.count(),
             "now": datetime.now(),
-        })
+        },
+    )
 
 
 @staff_member_required
@@ -2068,10 +2053,12 @@ def edit_envelopes(request, subscription_id):
 
     return render(
         request,
-        'edit_envelopes.html', {
-            'subscription': subscription,
-            'subscription_products': subscription.get_subscriptionproducts(without_discounts=True)
-        })
+        "edit_envelopes.html",
+        {
+            "subscription": subscription,
+            "subscription_products": subscription.get_subscriptionproducts(without_discounts=True),
+        },
+    )
 
 
 @staff_member_required
@@ -2088,10 +2075,12 @@ def upload_payment_certificate(request, subscription_id):
 
     return render(
         request,
-        'upload_payment_certificate.html', {
-            'subscription': subscription,
-            'form': form,
-        })
+        "upload_payment_certificate.html",
+        {
+            "subscription": subscription,
+            "form": form,
+        },
+    )
 
 
 @staff_member_required
@@ -2099,28 +2088,31 @@ def invoicing_issues(request):
     """
     Shows a more comprehensive list of issues for debtors.
     """
-    issues_queryset = Issue.objects.filter(
-        category="I",
-        contact__invoice__paid=False,
-        contact__invoice__debited=False,
-        contact__invoice__canceled=False,
-        contact__invoice__uncollectible=False,
-        contact__invoice__expiration_date__lte=date.today()).exclude(
-        status__slug__in=settings.ISSUE_STATUS_FINISHED_LIST).annotate(
-        owed_invoices=Count('contact__invoice')).annotate(
-        debt=Sum('contact__invoice__amount')).annotate(
-        oldest_invoice=Min('contact__invoice__creation_date'))
+    issues_queryset = (
+        Issue.objects.filter(
+            category="I",
+            contact__invoice__paid=False,
+            contact__invoice__debited=False,
+            contact__invoice__canceled=False,
+            contact__invoice__uncollectible=False,
+            contact__invoice__expiration_date__lte=date.today(),
+        )
+        .exclude(status__slug__in=settings.ISSUE_STATUS_FINISHED_LIST)
+        .annotate(owed_invoices=Count("contact__invoice"))
+        .annotate(debt=Sum("contact__invoice__amount"))
+        .annotate(oldest_invoice=Min("contact__invoice__creation_date"))
+    )
     sort_by = request.GET.get("sort_by", "owed_invoices")
     order = request.GET.get("order", "desc")
     if sort_by:
         if order == "desc":
-            issues_queryset = issues_queryset.order_by('-{}'.format(sort_by))
+            issues_queryset = issues_queryset.order_by("-{}".format(sort_by))
         else:
             issues_queryset = issues_queryset.order_by(sort_by)
     issues_filter = InvoicingIssueFilter(request.GET, queryset=issues_queryset)
     page_number = request.GET.get("p")
     paginator = Paginator(issues_filter.qs, 100)
-    if request.GET.get('export'):
+    if request.GET.get("export"):
         response = HttpResponse(content_type="text/csv")
         response["Content-Disposition"] = 'attachment; filename="invoicing_issues_{}.csv"'.format(date.today())
         writer = csv.writer(response)
@@ -2134,21 +2126,23 @@ def invoicing_issues(request):
             _("Owed invoices"),
             _("Debt amount"),
             _("Oldest invoice"),
-            _("Assigned to")
+            _("Assigned to"),
         ]
         writer.writerow(header)
         for issue in issues_filter.qs.all():
-            writer.writerow([
-                issue.date,
-                issue.contact.id,
-                issue.contact.name,
-                issue.activity_count(),
-                issue.get_status(),
-                issue.owed_invoices,
-                issue.debt,
-                issue.oldest_invoice,
-                issue.get_assigned_to(),
-            ])
+            writer.writerow(
+                [
+                    issue.date,
+                    issue.contact.id,
+                    issue.contact.name,
+                    issue.activity_count(),
+                    issue.get_status(),
+                    issue.owed_invoices,
+                    issue.debt,
+                    issue.oldest_invoice,
+                    issue.get_assigned_to(),
+                ]
+            )
         return response
     try:
         page = paginator.page(page_number)
@@ -2177,24 +2171,29 @@ def debtor_contacts(request):
     """
     Shows a comprehensive list of contacts that are debtors.
     """
-    debtor_queryset = Contact.objects.filter(
-        invoice__paid=False, invoice__debited=False,
-        invoice__canceled=False, invoice__uncollectible=False,
-        invoice__expiration_date__lte=date.today()).annotate(
-        owed_invoices=Count('invoice', distinct=True)).annotate(
-        debt=Sum('invoice__amount')).annotate(
-        oldest_invoice=Min('invoice__creation_date'))
+    debtor_queryset = (
+        Contact.objects.filter(
+            invoice__paid=False,
+            invoice__debited=False,
+            invoice__canceled=False,
+            invoice__uncollectible=False,
+            invoice__expiration_date__lte=date.today(),
+        )
+        .annotate(owed_invoices=Count("invoice", distinct=True))
+        .annotate(debt=Sum("invoice__amount"))
+        .annotate(oldest_invoice=Min("invoice__creation_date"))
+    )
     sort_by = request.GET.get("sort_by", "owed_invoices")
     order = request.GET.get("order", "desc")
     if sort_by:
         if order == "desc":
-            debtor_queryset = debtor_queryset.order_by('-{}'.format(sort_by))
+            debtor_queryset = debtor_queryset.order_by("-{}".format(sort_by))
         else:
             debtor_queryset = debtor_queryset.order_by(sort_by)
     debtor_filter = ContactFilter(request.GET, queryset=debtor_queryset)
     page_number = request.GET.get("p")
     paginator = Paginator(debtor_filter.qs, 100)
-    if request.GET.get('export'):
+    if request.GET.get("export"):
         response = HttpResponse(content_type="text/csv")
         response["Content-Disposition"] = 'attachment; filename="debtors_{}.csv"'.format(date.today())
         writer = csv.writer(response)
@@ -2210,16 +2209,18 @@ def debtor_contacts(request):
         ]
         writer.writerow(header)
         for contact in debtor_queryset.all():
-            writer.writerow([
-                contact.id,
-                contact.name,
-                contact.has_active_subscription(),
-                contact.owed_invoices,
-                contact.get_open_issues_by_category_count("I"),
-                contact.get_finished_issues_by_category_count("I"),
-                contact.get_debt(),
-                contact.oldest_invoice,
-            ])
+            writer.writerow(
+                [
+                    contact.id,
+                    contact.name,
+                    contact.has_active_subscription(),
+                    contact.owed_invoices,
+                    contact.get_open_issues_by_category_count("I"),
+                    contact.get_finished_issues_by_category_count("I"),
+                    contact.get_debt(),
+                    contact.oldest_invoice,
+                ]
+            )
         return response
     try:
         page = paginator.page(page_number)
@@ -2250,14 +2251,16 @@ def book_unsubscription(request, subscription_id):
     subscription = get_object_or_404(Subscription, pk=subscription_id)
     if subscription.is_obsolete():
         messages.warning(request, _("WARNING: This subscription has already been closed"))
-        return HttpResponseRedirect(reverse('contact_detail', args=[subscription.contact.id]))
+        return HttpResponseRedirect(reverse("contact_detail", args=[subscription.contact.id]))
     if request.POST:
         form = UnsubscriptionForm(request.POST, instance=subscription)
         if form.is_valid():
             form.save()
             success_text = format_lazy(
                 "Unsubscription for {name} booked for {end_date}",
-                name=subscription.contact.name, end_date=subscription.end_date)
+                name=subscription.contact.name,
+                end_date=subscription.end_date,
+            )
             messages.success(request, success_text)
             subscription.unsubscription_type = 1  # Complete unsubscription
             subscription.unsubscription_date = date.today()
@@ -2269,10 +2272,14 @@ def book_unsubscription(request, subscription_id):
         if subscription.is_obsolete():
             messages.warning(request, _("WARNING: This subscription already has an end date"))
         form = UnsubscriptionForm(instance=subscription)
-    return render(request, "book_unsubscription.html", {
-        "subscription": subscription,
-        "form": form,
-    })
+    return render(
+        request,
+        "book_unsubscription.html",
+        {
+            "subscription": subscription,
+            "form": form,
+        },
+    )
 
 
 @staff_member_required
@@ -2280,7 +2287,7 @@ def partial_unsubscription(request, subscription_id):
     old_subscription = get_object_or_404(Subscription, pk=subscription_id)
     if old_subscription.is_obsolete():
         messages.warning(request, _("WARNING: This subscription has already been closed"))
-        return HttpResponseRedirect(reverse('contact_detail', args=[old_subscription.contact.id]))
+        return HttpResponseRedirect(reverse("contact_detail", args=[old_subscription.contact.id]))
     if request.POST:
         form = UnsubscriptionForm(request.POST, instance=old_subscription)
         if form.is_valid():
@@ -2288,7 +2295,7 @@ def partial_unsubscription(request, subscription_id):
             new_subscription = Subscription.objects.create(
                 active=False,
                 contact=old_subscription.contact,
-                start_date=form.cleaned_data['end_date'],
+                start_date=form.cleaned_data["end_date"],
                 payment_type=old_subscription.payment_type,
                 type=old_subscription.type,
                 status=old_subscription.status,
@@ -2330,7 +2337,9 @@ def partial_unsubscription(request, subscription_id):
             # After that, we'll set the unsubscription date to this new subscription
             success_text = format_lazy(
                 "Unsubscription for {name} booked for {end_date}",
-                name=old_subscription.contact.name, end_date=old_subscription.end_date)
+                name=old_subscription.contact.name,
+                end_date=old_subscription.end_date,
+            )
             messages.success(request, success_text)
 
             old_subscription.unsubscription_type = 2  # Partial unsubscription
@@ -2341,10 +2350,14 @@ def partial_unsubscription(request, subscription_id):
     else:
         messages.warning(request, _("WARNING: This subscription already has an end date"))
         form = UnsubscriptionForm(instance=old_subscription)
-    return render(request, "book_partial_unsubscription.html", {
-        "subscription": old_subscription,
-        "form": form,
-    })
+    return render(
+        request,
+        "book_partial_unsubscription.html",
+        {
+            "subscription": old_subscription,
+            "form": form,
+        },
+    )
 
 
 @staff_member_required
@@ -2352,9 +2365,9 @@ def product_change(request, subscription_id):
     old_subscription = get_object_or_404(Subscription, pk=subscription_id)
     if old_subscription.is_obsolete():
         messages.warning(request, _("WARNING: This subscription has already been closed"))
-        return HttpResponseRedirect(reverse('contact_detail', args=[old_subscription.contact.id]))
+        return HttpResponseRedirect(reverse("contact_detail", args=[old_subscription.contact.id]))
     offerable_products = Product.objects.filter(offerable=True, type="S").exclude(
-        id__in=old_subscription.products.values_list('id')
+        id__in=old_subscription.products.values_list("id")
     )
     new_products_ids_list = []
     if request.POST:
@@ -2364,7 +2377,7 @@ def product_change(request, subscription_id):
             new_subscription = Subscription.objects.create(
                 active=False,
                 contact=old_subscription.contact,
-                start_date=form.cleaned_data['end_date'],
+                start_date=form.cleaned_data["end_date"],
                 payment_type=old_subscription.payment_type,
                 type=old_subscription.type,
                 status=old_subscription.status,
@@ -2416,7 +2429,9 @@ def product_change(request, subscription_id):
             # After that, we'll set the unsubscription date to this new subscription
             success_text = format_lazy(
                 "Unsubscription for {name} booked for {end_date}",
-                name=old_subscription.contact.name, end_date=old_subscription.end_date)
+                name=old_subscription.contact.name,
+                end_date=old_subscription.end_date,
+            )
             messages.success(request, success_text)
             old_subscription.unsubscription_type = 3  # Partial unsubscription
             old_subscription.unsubscription_date = date.today()
@@ -2424,17 +2439,21 @@ def product_change(request, subscription_id):
             old_subscription.save()
             return HttpResponseRedirect(
                 "{}?edit_subscription={}".format(
-                    reverse("new_subscription", args=[old_subscription.contact.id]),
-                    new_subscription.id)
+                    reverse("new_subscription", args=[old_subscription.contact.id]), new_subscription.id
+                )
             )
     else:
         messages.warning(request, _("WARNING: This subscription already has an end date"))
         form = UnsubscriptionForm(instance=old_subscription)
-    return render(request, "book_product_change.html", {
-        "offerable_products": offerable_products,
-        "subscription": old_subscription,
-        "form": form,
-    })
+    return render(
+        request,
+        "book_product_change.html",
+        {
+            "offerable_products": offerable_products,
+            "subscription": old_subscription,
+            "form": form,
+        },
+    )
 
 
 @login_required
@@ -2444,7 +2463,7 @@ def book_additional_product(request, subscription_id):
         messages.error(request, "La periodicidad de la suscripción debe ser mensual")
         return HttpResponseRedirect(reverse("contact_detail", args=[old_subscription.contact_id]))
     offerable_products = Product.objects.filter(offerable=True, type="S").exclude(
-        id__in=old_subscription.products.values_list('id')
+        id__in=old_subscription.products.values_list("id")
     )
     new_products_ids_list = []
     if request.POST:
@@ -2454,7 +2473,7 @@ def book_additional_product(request, subscription_id):
             new_subscription = Subscription.objects.create(
                 active=False,
                 contact=old_subscription.contact,
-                start_date=form.cleaned_data['end_date'],
+                start_date=form.cleaned_data["end_date"],
                 payment_type=old_subscription.payment_type,
                 type=old_subscription.type,
                 status="OK",
@@ -2505,9 +2524,7 @@ def book_additional_product(request, subscription_id):
                         address=default_address,
                     )
             # After that, we'll set the unsubscription date to this new subscription
-            success_text = format_lazy(
-                "New product(s) booked for {end_date}",
-                end_date=old_subscription.end_date)
+            success_text = format_lazy("New product(s) booked for {end_date}", end_date=old_subscription.end_date)
             messages.success(request, success_text)
             old_subscription.inactivity_reason = 3  # Upgrade
             old_subscription.unsubscription_type = 4  # Upgrade
@@ -2516,18 +2533,22 @@ def book_additional_product(request, subscription_id):
             old_subscription.save()
             return HttpResponseRedirect(
                 "{}?edit_subscription={}".format(
-                    reverse("new_subscription", args=[old_subscription.contact.id]),
-                    new_subscription.id)
+                    reverse("new_subscription", args=[old_subscription.contact.id]), new_subscription.id
+                )
             )
     else:
         if old_subscription.end_date:
             messages.warning(request, _("WARNING: This subscription already has an end date"))
         form = AdditionalProductForm(instance=old_subscription)
-    return render(request, "book_additional_product.html", {
-        "offerable_products": offerable_products,
-        "subscription": old_subscription,
-        "form": form,
-    })
+    return render(
+        request,
+        "book_additional_product.html",
+        {
+            "offerable_products": offerable_products,
+            "subscription": old_subscription,
+            "form": form,
+        },
+    )
 
 
 @staff_member_required
@@ -2535,22 +2556,22 @@ def campaign_statistics_list(request):
     campaigns = Campaign.objects.all()
     for campaign in campaigns:
         contacts = campaign.contactcampaignstatus_set.count() or 1
-        campaign.called_count = campaign.contactcampaignstatus_set.filter(
-            status__gte=2
-        ).count()
+        campaign.called_count = campaign.contactcampaignstatus_set.filter(status__gte=2).count()
         campaign.called_pct = (campaign.called_count * 100) / contacts
-        campaign.contacted_count = campaign.contactcampaignstatus_set.filter(
-            status__in=(2, 4)
-        ).count()
+        campaign.contacted_count = campaign.contactcampaignstatus_set.filter(status__in=(2, 4)).count()
         campaign.contacted_pct = (campaign.contacted_count * 100) / contacts
         campaign.success_count = campaign.contactcampaignstatus_set.filter(
             campaign_resolution__in=("S1", "S2")
         ).count()
-        campaign.success_over_total_pct = (campaign.success_count * 100) / contacts
+        campaign.success_over_total_pct = (campaign.success_count * 100) / (contacts or 1)
         campaign.success_over_contacted_pct = (campaign.success_count * 100) / (campaign.contacted_count or 1)
-    return render(request, "campaign_statistics_list.html", {
-        "campaigns": campaigns,
-    })
+    return render(
+        request,
+        "campaign_statistics_list.html",
+        {
+            "campaigns": campaigns,
+        },
+    )
 
 
 @staff_member_required
@@ -2594,48 +2615,69 @@ def campaign_statistics_detail(request, campaign_id):
         item += 1
         rejects_by_reason[reason] = item
     for index, item in list(rejects_by_reason.items()):
-        pct = (item * 100) / rejects_with_reason_count
+        pct = (item * 100) / (rejects_with_reason_count or 1)
         rejects_by_reason[index] = (item, pct)
 
     success_rate_count = success_with_promotion_count + success_with_direct_sale_count
-    success_rate_pct = ((success_with_promotion_count + success_with_direct_sale_count) * 100) / filtered_count
+    success_rate_pct = ((success_with_promotion_count + success_with_direct_sale_count) * 100) / (filtered_count or 1)
 
-    return render(request, "campaign_statistics_detail.html", {
-        "campaign": campaign,
-        "filter": ccs_filter,
-        "filtered_count": ccs_filter.qs.count(),
-        "total_count": total_count,
-        "assigned_count": assigned_count,
-        "not_assigned_count": not_assigned_count,
-        "not_contacted_yet_count": not_contacted_yet_count,
-        "not_contacted_yet_pct": float((not_contacted_yet_count * 100) / (filtered_count or 1)),
-        "tried_to_contact_count": tried_to_contact_count,
-        "tried_to_contact_pct": float((tried_to_contact_count * 100) / (filtered_count or 1)),
-        "contacted_count": contacted_count,
-        "contacted_pct": (contacted_count * 100) / (filtered_count or 1),
-        "could_not_contact_count": could_not_contact_count,
-        "could_not_contact_pct": (could_not_contact_count * 100) / (filtered_count or 1),
-        "total_rejects_count": total_rejects_count,
-        "total_rejects_pct": (total_rejects_count * 100) / (ccs_with_resolution_contacted_count or 1),
-        "rejects_by_reason": rejects_by_reason,
-        "rejects_without_reason_count": rejects_without_reason_count,
-        "success_with_promotion_count": success_with_promotion_count,
-        "success_with_promotion_pct": (success_with_promotion_count * 100) / (ccs_with_resolution_contacted_count or 1),
-        "success_with_direct_sale_count": success_with_direct_sale_count,
-        "success_with_direct_sale_pct": (success_with_direct_sale_count * 100) / (ccs_with_resolution_contacted_count or 1),
-        "scheduled_count": scheduled_count,
-        "scheduled_pct": (scheduled_count * 100) / (ccs_with_resolution_contacted_count or 1),
-        "call_later_count": call_later_count,
-        "call_later_pct": (call_later_count * 100) / (ccs_with_resolution_contacted_count or 1),
-        "started_promotion_count": started_promotion_count,
-        "started_promotion_pct": (started_promotion_count * 100) / (ccs_with_resolution_contacted_count or 1),
-        "unreachable_count": unreachable_count,
-        "unreachable_pct": (unreachable_count * 100) / (ccs_with_resolution_not_contacted_count or 1),
-        "error_in_promotion_count": error_in_promotion_count,
-        "error_in_promotion_pct": (error_in_promotion_count * 100) / (ccs_with_resolution_not_contacted_count or 1),
-        "success_rate_count": success_rate_count,
-        "success_rate_pct": success_rate_pct,
-    })
+    # Per product section
+    subscriptions, subs_dict = campaign.subscription_set.all(), {}
+    for product in Product.objects.filter(offerable=True, type="S"):
+        subs_dict[product.name] = subscriptions.filter(products=product).count()
+
+    try:
+        most_sold = max(subs_dict, key=subs_dict.get)
+        most_sold_count = subs_dict[max(subs_dict, key=subs_dict.get)]
+    except Exception:
+        most_sold, most_sold_count = None, None
+
+    return render(
+        request,
+        "campaign_statistics_detail.html",
+        {
+            "campaign": campaign,
+            "filter": ccs_filter,
+            "filtered_count": ccs_filter.qs.count(),
+            "total_count": total_count,
+            "assigned_count": assigned_count,
+            "not_assigned_count": not_assigned_count,
+            "not_contacted_yet_count": not_contacted_yet_count,
+            "not_contacted_yet_pct": float((not_contacted_yet_count * 100) / (filtered_count or 1)),
+            "tried_to_contact_count": tried_to_contact_count,
+            "tried_to_contact_pct": float((tried_to_contact_count * 100) / (filtered_count or 1)),
+            "contacted_count": contacted_count,
+            "contacted_pct": (contacted_count * 100) / (filtered_count or 1),
+            "could_not_contact_count": could_not_contact_count,
+            "could_not_contact_pct": (could_not_contact_count * 100) / (filtered_count or 1),
+            "total_rejects_count": total_rejects_count,
+            "total_rejects_pct": (total_rejects_count * 100) / (ccs_with_resolution_contacted_count or 1),
+            "rejects_by_reason": rejects_by_reason,
+            "rejects_without_reason_count": rejects_without_reason_count,
+            "success_with_promotion_count": success_with_promotion_count,
+            "success_with_promotion_pct": (success_with_promotion_count * 100)
+            / (ccs_with_resolution_contacted_count or 1),
+            "success_with_direct_sale_count": success_with_direct_sale_count,
+            "success_with_direct_sale_pct": (success_with_direct_sale_count * 100)
+            / (ccs_with_resolution_contacted_count or 1),
+            "scheduled_count": scheduled_count,
+            "scheduled_pct": (scheduled_count * 100) / (ccs_with_resolution_contacted_count or 1),
+            "call_later_count": call_later_count,
+            "call_later_pct": (call_later_count * 100) / (ccs_with_resolution_contacted_count or 1),
+            "started_promotion_count": started_promotion_count,
+            "started_promotion_pct": (started_promotion_count * 100) / (ccs_with_resolution_contacted_count or 1),
+            "unreachable_count": unreachable_count,
+            "unreachable_pct": (unreachable_count * 100) / (ccs_with_resolution_not_contacted_count or 1),
+            "error_in_promotion_count": error_in_promotion_count,
+            "error_in_promotion_pct": (error_in_promotion_count * 100)
+            / (ccs_with_resolution_not_contacted_count or 1),
+            "success_rate_count": success_rate_count,
+            "success_rate_pct": success_rate_pct,
+            "subs_dict": subs_dict,
+            "most_sold": most_sold,
+            "most_sold_count": most_sold_count,
+        },
+    )
 
 
 @staff_member_required
@@ -2647,17 +2689,11 @@ def campaign_statistics_per_seller(request, campaign_id):
     for seller in sellers:
         seller.assigned_count = seller.contactcampaignstatus_set.filter(campaign=campaign).count()
         assigned = seller.assigned_count or 1
-        seller.not_contacted_yet_count = seller.contactcampaignstatus_set.filter(
-            campaign=campaign, status=1
-        ).count()
+        seller.not_contacted_yet_count = seller.contactcampaignstatus_set.filter(campaign=campaign, status=1).count()
         seller.not_contacted_yet_pct = (seller.not_contacted_yet_count * 100) / assigned
-        seller.called_count = seller.contactcampaignstatus_set.filter(
-            campaign=campaign, status__gte=2
-        ).count()
+        seller.called_count = seller.contactcampaignstatus_set.filter(campaign=campaign, status__gte=2).count()
         seller.called_pct = (seller.called_count * 100) / assigned
-        seller.contacted_count = seller.contactcampaignstatus_set.filter(
-            campaign=campaign, status__in=[2, 4]
-        ).count()
+        seller.contacted_count = seller.contactcampaignstatus_set.filter(campaign=campaign, status__in=[2, 4]).count()
         seller.contacted_pct = (seller.contacted_count * 100) / assigned
         seller.success_count = seller.contactcampaignstatus_set.filter(
             campaign=campaign, campaign_resolution__in=("S1", "S2")
@@ -2667,16 +2703,18 @@ def campaign_statistics_per_seller(request, campaign_id):
             campaign=campaign, campaign_resolution__in=("AS", "DN", "LO", "NI")
         ).count()
         seller.rejected_pct = (seller.rejected_count * 100) / assigned
-        seller.unreachable_count = seller.contactcampaignstatus_set.filter(
-            campaign=campaign, status=5
-        ).count()
+        seller.unreachable_count = seller.contactcampaignstatus_set.filter(campaign=campaign, status=5).count()
         seller.unreachable_pct = (seller.unreachable_count * 100) / assigned
-    return render(request, "campaign_statistics_per_seller.html", {
-        "campaign": campaign,
-        "assigned_count": assigned_count,
-        "not_assigned_count": not_assigned_count,
-        "sellers": sellers,
-    })
+    return render(
+        request,
+        "campaign_statistics_per_seller.html",
+        {
+            "campaign": campaign,
+            "assigned_count": assigned_count,
+            "not_assigned_count": not_assigned_count,
+            "sellers": sellers,
+        },
+    )
 
 
 @staff_member_required
@@ -2686,7 +2724,7 @@ def seller_performance_by_time(request):
     date_to = date(
         date.today().year + 1 if date.today().month == 12 else date.today().year,
         1 if date.today().month == 12 else date.today().month + 1,
-        1
+        1,
     ) - timedelta(1)
     if request.GET:
         ccs_queryset = ContactCampaignStatus.objects.all()
@@ -2695,9 +2733,7 @@ def seller_performance_by_time(request):
             date_from = form.cleaned_data["date_gte"]
             date_to = form.cleaned_data["date_lte"]
     else:
-        form = ContactCampaignStatusByDateForm(initial={
-            "date_gte": date_from, "date_lte": date_to
-        })
+        form = ContactCampaignStatusByDateForm(initial={"date_gte": date_from, "date_lte": date_to})
     ccs_queryset = ContactCampaignStatus.objects.filter(
         last_action_date__gte=date_from,
         last_action_date__lte=date_to,
@@ -2726,48 +2762,56 @@ def seller_performance_by_time(request):
         seller.rejected_pct = (seller.rejected_count * 100) / (seller.assigned_count or 1)
         seller.unreachable_count = ccs_queryset.filter(seller=seller, status=5).count()
         seller.unreachable_pct = (seller.unreachable_count * 100) / (seller.assigned_count or 1)
-    return render(request, "seller_performance_by_time.html", {
-        "date_from": date_from,
-        "date_to": date_to,
-        "form": form,
-        "sellers": sellers,
-        "assigned_count": assigned_count,
-        "called_count": called_count,
-        "called_pct": called_pct,
-        "contacted_count": contacted_count,
-        "contacted_pct": contacted_pct,
-        "success_count": success_count,
-        "success_pct": success_pct,
-    })
+    return render(
+        request,
+        "seller_performance_by_time.html",
+        {
+            "date_from": date_from,
+            "date_to": date_to,
+            "form": form,
+            "sellers": sellers,
+            "assigned_count": assigned_count,
+            "called_count": called_count,
+            "called_pct": called_pct,
+            "contacted_count": contacted_count,
+            "contacted_pct": contacted_pct,
+            "success_count": success_count,
+            "success_pct": success_pct,
+        },
+    )
 
 
 def unsubscription_statistics(request):
     unsubscriptions_queryset = Subscription.objects.filter(end_date__isnull=False, unsubscription_products__type="S")
     unsubscriptions_filter = UnsubscribedSubscriptionsByEndDateFilter(request.GET, queryset=unsubscriptions_queryset)
 
-    executed_unsubscriptions_requested = unsubscriptions_filter.qs.filter(
-        end_date__lte=date.today(), unsubscription_requested=True
-    ).values("unsubscription_products__name").annotate(
-        total=Count("unsubscription_products")).order_by(
-            "unsubscription_products__billing_priority", "unsubscription_products__name")
+    executed_unsubscriptions_requested = (
+        unsubscriptions_filter.qs.filter(end_date__lte=date.today(), unsubscription_requested=True)
+        .values("unsubscription_products__name")
+        .annotate(total=Count("unsubscription_products"))
+        .order_by("unsubscription_products__billing_priority", "unsubscription_products__name")
+    )
 
-    executed_unsubscriptions_not_requested = unsubscriptions_filter.qs.filter(
-        end_date__lte=date.today(), unsubscription_requested=False
-    ).values("unsubscription_products__name").annotate(
-        total=Count("unsubscription_products")).order_by(
-            "unsubscription_products__billing_priority", "unsubscription_products__name")
+    executed_unsubscriptions_not_requested = (
+        unsubscriptions_filter.qs.filter(end_date__lte=date.today(), unsubscription_requested=False)
+        .values("unsubscription_products__name")
+        .annotate(total=Count("unsubscription_products"))
+        .order_by("unsubscription_products__billing_priority", "unsubscription_products__name")
+    )
 
-    programmed_unsubscriptions_requested = unsubscriptions_filter.qs.filter(
-        end_date__gt=date.today(), unsubscription_requested=True
-    ).values("unsubscription_products__name").annotate(
-        total=Count("unsubscription_products")).order_by(
-            "unsubscription_products__billing_priority", "unsubscription_products__name")
+    programmed_unsubscriptions_requested = (
+        unsubscriptions_filter.qs.filter(end_date__gt=date.today(), unsubscription_requested=True)
+        .values("unsubscription_products__name")
+        .annotate(total=Count("unsubscription_products"))
+        .order_by("unsubscription_products__billing_priority", "unsubscription_products__name")
+    )
 
-    programmed_unsubscriptions_not_requested = unsubscriptions_filter.qs.filter(
-        end_date__gt=date.today(), unsubscription_requested=False
-    ).values("unsubscription_products__name").annotate(
-        total=Count("unsubscription_products")).order_by(
-            "unsubscription_products__billing_priority", "unsubscription_products__name")
+    programmed_unsubscriptions_not_requested = (
+        unsubscriptions_filter.qs.filter(end_date__gt=date.today(), unsubscription_requested=False)
+        .values("unsubscription_products__name")
+        .annotate(total=Count("unsubscription_products"))
+        .order_by("unsubscription_products__billing_priority", "unsubscription_products__name")
+    )
 
     total_unsubscriptions_requested = programmed_unsubscriptions_requested | executed_unsubscriptions_requested
     total_unsubscriptions_not_requested = (
@@ -2777,48 +2821,55 @@ def unsubscription_statistics(request):
     individual_products_dict = collections.OrderedDict()
     choices = dict(settings.UNSUBSCRIPTION_REASON_CHOICES)
     for product_obj in Product.objects.filter(type="S", offerable=True).order_by("billing_priority"):
-        individual_products_dict[product_obj.name] = unsubscriptions_filter.qs.filter(
-            unsubscription_products=product_obj,
-            unsubscription_reason__isnull=False).values(
-            "unsubscription_reason").annotate(total=Count("unsubscription_reason"))
+        individual_products_dict[product_obj.name] = (
+            unsubscriptions_filter.qs.filter(unsubscription_products=product_obj, unsubscription_reason__isnull=False)
+            .values("unsubscription_reason")
+            .annotate(total=Count("unsubscription_reason"))
+        )
     for individual_product in list(individual_products_dict.values()):
         # This dictionary will have unsubscription_reason as the index to be shown, this is not ideal for sure
         for item in individual_product:
             # Probably very bad solution to convert choices to displays, someone help me with a better way!
-            item['unsubscription_reason'] = choices.get(item["unsubscription_reason"], None)
+            item["unsubscription_reason"] = choices.get(item["unsubscription_reason"], None)
 
-    total_unsubscriptions_by_reason = unsubscriptions_filter.qs.filter(
-        unsubscription_reason__isnull=False
-    ).values("unsubscription_reason").annotate(total=Count("unsubscription_reason"))
+    total_unsubscriptions_by_reason = (
+        unsubscriptions_filter.qs.filter(unsubscription_reason__isnull=False)
+        .values("unsubscription_reason")
+        .annotate(total=Count("unsubscription_reason"))
+    )
     for item in total_unsubscriptions_by_reason:
         # Probably very bad solution to convert choices to displays, someone help me with a better way!
-        item['unsubscription_reason'] = choices.get(item["unsubscription_reason"], None)
+        item["unsubscription_reason"] = choices.get(item["unsubscription_reason"], None)
 
-    total_requested_unsubscriptions_count = unsubscriptions_filter.qs.filter(
-        unsubscription_requested=True).count()
+    total_requested_unsubscriptions_count = unsubscriptions_filter.qs.filter(unsubscription_requested=True).count()
     total_not_requested_unsubscriptions_count = unsubscriptions_filter.qs.filter(
-        unsubscription_requested=False).count()
+        unsubscription_requested=False
+    ).count()
     total_unsubscriptions_count = unsubscriptions_filter.qs.count()
 
-    return render(request, "unsubscription_statistics.html", {
-        "filter": unsubscriptions_filter,
-        "queryset": unsubscriptions_filter.qs,
-        "executed_unsubscriptions_requested": executed_unsubscriptions_requested,
-        "executed_unsubscriptions_not_requested": executed_unsubscriptions_not_requested,
-        "programmed_unsubscriptions_requested": programmed_unsubscriptions_requested,
-        "programmed_unsubscriptions_not_requested": programmed_unsubscriptions_not_requested,
-        "total_unsubscriptions_requested": total_unsubscriptions_requested,
-        "total_unsubscriptions_not_requested": total_unsubscriptions_not_requested,
-        "individual_products_dict": individual_products_dict,
-        "total_unsubscriptions_by_reason": total_unsubscriptions_by_reason,
-        "total_requested_unsubscriptions_count": total_requested_unsubscriptions_count,
-        "total_not_requested_unsubscriptions_count": total_not_requested_unsubscriptions_count,
-        "total_unsubscriptions_count": total_unsubscriptions_count,
-    })
+    return render(
+        request,
+        "unsubscription_statistics.html",
+        {
+            "filter": unsubscriptions_filter,
+            "queryset": unsubscriptions_filter.qs,
+            "executed_unsubscriptions_requested": executed_unsubscriptions_requested,
+            "executed_unsubscriptions_not_requested": executed_unsubscriptions_not_requested,
+            "programmed_unsubscriptions_requested": programmed_unsubscriptions_requested,
+            "programmed_unsubscriptions_not_requested": programmed_unsubscriptions_not_requested,
+            "total_unsubscriptions_requested": total_unsubscriptions_requested,
+            "total_unsubscriptions_not_requested": total_unsubscriptions_not_requested,
+            "individual_products_dict": individual_products_dict,
+            "total_unsubscriptions_by_reason": total_unsubscriptions_by_reason,
+            "total_requested_unsubscriptions_count": total_requested_unsubscriptions_count,
+            "total_not_requested_unsubscriptions_count": total_not_requested_unsubscriptions_count,
+            "total_unsubscriptions_count": total_unsubscriptions_count,
+        },
+    )
 
 
 def seller_console_special_routes(request, route_id):
-    if not getattr(settings, 'SPECIAL_ROUTES_FOR_SELLERS_LIST', None):
+    if not getattr(settings, "SPECIAL_ROUTES_FOR_SELLERS_LIST", None):
         messages.error(request, _("This function is not available."))
         return HttpResponseRedirect("/")
     if int(route_id) not in settings.SPECIAL_ROUTES_FOR_SELLERS_LIST:
@@ -2837,16 +2888,20 @@ def seller_console_special_routes(request, route_id):
         return HttpResponseRedirect(reverse("main_menu"))
 
     subprods = SubscriptionProduct.objects.filter(seller=seller, route=route, subscription__active=True).order_by(
-        'subscription__contact__id'
+        "subscription__contact__id"
     )
     if subprods.count() == 0:
         messages.error(request, _("There are no contacts in that route for this seller."))
         return HttpResponseRedirect(reverse("seller_console_list_campaigns"))
-    return render(request, "seller_console_special_routes.html", {
-        "seller": seller,
-        "subprods": subprods,
-        "route": route,
-    })
+    return render(
+        request,
+        "seller_console_special_routes.html",
+        {
+            "seller": seller,
+            "subprods": subprods,
+            "route": route,
+        },
+    )
 
 
 @login_required
@@ -2854,12 +2909,11 @@ def scheduled_task_filter(request):
     """
     Shows a very basic list of Scheduled Tasks.
     """
-    st_queryset = ScheduledTask.objects.all().order_by(
-        "-creation_date", "-execution_date", "-id")
+    st_queryset = ScheduledTask.objects.all().order_by("-creation_date", "-execution_date", "-id")
     st_filter = ScheduledTaskFilter(request.GET, queryset=st_queryset)
     page_number = request.GET.get("p")
     paginator = Paginator(st_filter.qs, 100)
-    if request.GET.get('export'):
+    if request.GET.get("export"):
         response = HttpResponse(content_type="text/csv")
         response["Content-Disposition"] = 'attachment; filename="scheduled_tasks_export.csv"'
         writer = unicodecsv.writer(response)
@@ -2873,14 +2927,16 @@ def scheduled_task_filter(request):
         ]
         writer.writerow(header)
         for st in st_filter.qs.all():
-            writer.writerow([
-                st.contact.id,
-                st.contact.name,
-                st.get_category_display(),
-                st.creation_date,
-                st.execution_date,
-                st.completed,
-            ])
+            writer.writerow(
+                [
+                    st.contact.id,
+                    st.contact.name,
+                    st.get_category_display(),
+                    st.creation_date,
+                    st.execution_date,
+                    st.completed,
+                ]
+            )
         return response
     try:
         page = paginator.page(page_number)
@@ -2893,10 +2949,5 @@ def scheduled_task_filter(request):
     return render(
         request,
         "scheduled_task_filter.html",
-        {
-            "page": page,
-            "paginator": paginator,
-            "st_filter": st_filter,
-            "count": st_filter.qs.count()
-        },
+        {"page": page, "paginator": paginator, "st_filter": st_filter, "count": st_filter.qs.count()},
     )
