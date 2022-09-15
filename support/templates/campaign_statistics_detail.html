@@ -23,20 +23,23 @@ $( function() {
   <div class="col-8">
     <div class="card">
       <div class="card-header">
-        <h3 class="card-title">{% trans "Campaign summary" %}</h3>
+        <h3 class="card-title">{% trans "Campaign summary" %} - {% if seller %}{% trans "Filtered" %} ({{seller.name}}){% endif %}</h3>
       </div>
       <div class="card-body">
         <dl>
           <dd><b>{% trans "Name" %}:</b> {{campaign.name}}</dd>
           <dd><b>{% trans "Amount of contacts" %}:</b> {{total_count}}</dd>
-          <dd><b>{% trans "Assigned" %}:</b> {{assigned_count}}</dd>
+          <dd><b>{% trans "Assigned" %} (total):</b> {{assigned_count}}</dd>
+          {% if seller_assigned_count %}<dd><b>{% trans "Assigned" %} ({% trans "this seller only" %}):</b> {{seller_assigned_count}}</dd>{% endif %}
           <dd><b>{% trans "Not assigned" %}:</b> {{not_assigned_count}}</dd>
           {% if campaign.description %}
           <dt>{% trans "Description" %}:</dt>
           <dd>{{campaign.description}}</dd>
           {% endif %}
           <dd><b>{% trans "Start date" %}:</b> {{campaign.start_date|default_if_none:""}}</dd>
-          <dd><b>{% trans "End date" %}:</b> {{campaign.end_date|default_if_none:""}}</dd>
+          {% if campaign.end_date %}
+          <dd><b>{% trans "End date" %}:</b> {{campaign.end_date}}</dd>
+          {% endif %}
         </dl>
 
         <form method="GET" id="form">
