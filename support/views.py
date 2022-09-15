@@ -2621,11 +2621,19 @@ def campaign_statistics_detail(request, campaign_id):
     success_rate_count = success_with_promotion_count + success_with_direct_sale_count
     success_rate_pct = ((success_with_promotion_count + success_with_direct_sale_count) * 100) / (filtered_count or 1)
 
-    # Per product section
-    subscriptions, subs_dict = campaign.subscription_set.all(), {}
-    for product in Product.objects.filter(offerable=True, type="S"):
-        subs_dict[product.name] = subscriptions.filter(products=product).count()
+    if ccs_filter.data.get("seller", None):
+        seller = Seller.objects.get(pk=ccs_filter.data["seller"])
+        seller_assigned_count = campaign.contactcampaignstatus_set.filter(seller=seller).count()
+    else:
+        seller, seller_assigned_count = None, None
 
+    # Per product section
+    subs_dict = {}
+    subscription_products = SubscriptionProduct.objects.filter(subscription__campaign=campaign)
+    if seller:
+        subscription_products = subscription_products.filter(seller=seller)
+    for product in Product.objects.filter(offerable=True, type="S"):
+        subs_dict[product.name] = subscription_products.filter(product=product).count()
     try:
         most_sold = max(subs_dict, key=subs_dict.get)
         most_sold_count = subs_dict[max(subs_dict, key=subs_dict.get)]
@@ -2676,6 +2684,8 @@ def campaign_statistics_detail(request, campaign_id):
             "subs_dict": subs_dict,
             "most_sold": most_sold,
             "most_sold_count": most_sold_count,
+            "seller": seller,
+            "seller_assigned_count": seller_assigned_count,
         },
     )
 
