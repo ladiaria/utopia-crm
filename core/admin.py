@@ -207,7 +207,7 @@ class SubscriptionAdmin(admin.ModelAdmin):
                     ("balance", "frequency"),
                     ("status", "send_bill_copy_by_email", "send_pdf"),
                     ("payment_certificate"),
-                    ("updated_from"),
+                    ("updated_from", "campaign"),
                 )
             },
         ),
