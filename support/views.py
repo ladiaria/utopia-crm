@@ -1621,6 +1621,7 @@ def contact_detail(request, contact_id):
     all_activities = contact.activity_set.all().order_by("-datetime", "id")
     all_issues = contact.issue_set.all().order_by("-date", "id")
     all_scheduled_tasks = contact.scheduledtask_set.all().order_by("-creation_date", "id")
+    all_campaigns = contact.contactcampaignstatus_set.all().order_by("-date_created", "id")
     awaiting_payment_subscriptions = contact.subscriptions.filter(status="AP")
     subscriptions_with_error = contact.subscriptions.filter(status="ER")
 
@@ -1643,6 +1644,7 @@ def contact_detail(request, contact_id):
             "all_activities": all_activities,
             "all_issues": all_issues,
             "all_scheduled_tasks": all_scheduled_tasks,
+            "all_campaigns": all_campaigns,
         },
     )
 
