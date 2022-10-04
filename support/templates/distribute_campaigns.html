@@ -13,17 +13,22 @@
     <h2 class="card-title">{% trans 'Assign contacts to sellers' %}</h2>
   </div>
   <div class="card-body">
-      <table class="table table-bordered">
-          <tr>
-            <th>{% trans 'Campaign' %}</th><th>{% trans 'Contacts' %}</th>
-          </tr>
-          {% for campaign in campaign_list %}
-            <tr>
-                <td><a href="{{ campaign.id }}">{{ campaign.name }}</a></td>
-                <td>{{ campaign.count }}</td>
-            </tr>
-          {% endfor %}
-      </table>
-    </div>
+    <table class="table table-bordered">
+      <tr>
+        <th>{% trans 'Campaign' %}</th>
+        <th>{% trans 'Contacts' %}</th>
+        <th>{% trans "Morning" %}</th>
+        <th>{% trans "Afternoon" %}</th>
+      </tr>
+      {% for campaign in campaign_list %}
+      <tr>
+        <td><a href="{{ campaign.id }}">{{ campaign.name }}</a></td>
+        <td><a href="{% url 'assign_sellers' campaign.id %}">{{ campaign.count }}</a></td>
+        <td><a href="{% url 'assign_sellers' campaign.id %}?shift=mo">{{ campaign.morning }}</a></td>
+        <td><a href="{% url 'assign_sellers' campaign.id %}?shift=af">{{ campaign.afternoon }}</a></td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
 </div>
 {% endblock %}
