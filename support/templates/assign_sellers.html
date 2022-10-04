@@ -10,11 +10,14 @@
 {% block content %}
 <div class="card">
   <div class="card-header">
-    <h2 class="card-title">{% trans "Assign contacts in campaigns to sellers" %}</h2>
+    <ul class="nav nav-pills">
+      <li class="nav-item"><a class="nav-link {% if not shift %}active{% endif %}" href="{% url 'assign_sellers' campaign.id %}">Sin asignar ({{regular_count}})</a></li>
+      <li class="nav-item"><a class="nav-link {% if shift == "mo" %}active{% endif %}" href="{% url 'assign_sellers' campaign.id %}?shift=mo">Pasar a la mañana ({{morning_count}})</a></li>
+      <li class="nav-item"><a class="nav-link {% if shift == "af" %}active{% endif %}" href="{% url 'assign_sellers' campaign.id %}?shift=af">Pasar a la tarde ({{afternoon_count}})</a></li>
   </div>
   <div class="card-body">
     <div class="mb-4">
-    <h3>{{ campaign.name }}</h3>
+    <h3>{{ campaign.name }} {% if shift == "mo" %}- Pasar a turno de la mañana{% elif shift == "af" %}- Pasar a turno de la tarde{% endif %}</h3>
     <p>{% trans "Contacts available" %}: <b>{{ campaign.count }}</b></p>
     {% autoescape off %}
     {% if message %}<br/>{{ message }}{% endif %}
@@ -32,7 +35,7 @@
             <tr class="{% cycle 'row1' 'row2' %}">
                 <td>{{ seller.name }}</td>
                 <td class="text-center">{{ seller.contacts }}</td>
-                <td class="text-center"><input type="text" name="seller-{{ seller.id}}" value="0" size="2" tabindex="{{ forloop.counter }}" class="form-control col-3"/></td>
+                <td class="text-center"><input type="number" name="seller-{{ seller.id}}" value="0" size="2" tabindex="{{ forloop.counter }}" class="form-control col-3"/></td>
             </tr>
         {% endfor %}
       </table>
