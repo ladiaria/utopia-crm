@@ -270,7 +270,7 @@ def seller_console_list_campaigns(request):
             )
     else:
         special_routes = None
-    if special_routes and all(value == 0 for value in list(special_routes.values())):
+    if special_routes and all(value[1] == 0 for value in list(special_routes.values())):
         special_routes = None
 
     # We'll make these lists so we can append the sub count to each campaign
@@ -419,6 +419,14 @@ def seller_console(request, category, campaign_id):
         elif result == _("Error in promotion"):
             ccs.campaign_resolution = "EP"
             ccs.status = 5
+
+        elif result == "Mover a la mañana":
+            ccs.status = 6
+            ccs.seller = None
+
+        elif result == "Mover a la tarde":
+            ccs.status = 7
+            ccs.seller = None
 
         if request.POST.get("campaign_resolution_reason", None):
             ccs.resolution_reason = request.POST.get("campaign_resolution_reason", None)
@@ -1086,10 +1094,21 @@ def list_campaigns_with_no_seller(request):
     campaigns = Campaign.objects.filter(contactcampaignstatus__seller=None).distinct()
     campaign_list = []
     for campaign in campaigns:
-        count = ContactCampaignStatus.objects.filter(campaign=campaign, seller=None).count()
+        count = (
+            ContactCampaignStatus.objects.filter(campaign=campaign, seller=None, campaign_resolution=None)
+            .exclude(status__in=(6, 7))
+            .count()
+        )
         campaign.count = count
+        campaign.morning = ContactCampaignStatus.objects.filter(campaign=campaign, seller=None, status=6).count()
+        campaign.afternoon = ContactCampaignStatus.objects.filter(campaign=campaign, seller=None, status=7).count()
         campaign_list.append(campaign)
-    return render(request, "distribute_campaigns.html", {"campaign_list": campaign_list})
+
+    return render(
+        request,
+        "distribute_campaigns.html",
+        {"campaign_list": campaign_list},
+    )
 
 
 @login_required
@@ -1098,7 +1117,17 @@ def assign_seller(request, campaign_id):
     Shows a list of sellers to assign contacts to.
     """
     campaign = Campaign.objects.get(pk=campaign_id)
-    campaign.count = ContactCampaignStatus.objects.filter(campaign=campaign, seller=None).count()
+    ccs_qs_regular = ContactCampaignStatus.objects.filter(campaign=campaign, seller=None).exclude(status__in=[6, 7])
+    ccs_qs_morning = ContactCampaignStatus.objects.filter(campaign=campaign, seller=None, status=6)
+    ccs_qs_afternoon = ContactCampaignStatus.objects.filter(campaign=campaign, seller=None, status=7)
+    ccs_qs = ccs_qs_regular
+    shift = request.GET.get("shift", None)
+    if shift == "mo":
+        ccs_qs = ccs_qs_morning
+    elif shift == "af":
+        ccs_qs = ccs_qs_afternoon
+
+    campaign.count = ccs_qs.count()
     message = ""
 
     if request.POST:
@@ -1111,18 +1140,23 @@ def assign_seller(request, campaign_id):
             total += int(amount)
         if total > campaign.count:
             messages.error(request, "Cantidad de clientes superior a la que hay.")
-            return HttpResponseRedirect(reverse("assign_sellers"))
+            return HttpResponseRedirect(reverse("assign_sellers", args=[campaign_id]))
+        assigned_total = 0
         for seller, amount in seller_list:
             if amount:
                 amount = int(amount)
-                for status in ContactCampaignStatus.objects.filter(seller=None, campaign=campaign)[:amount]:
+                assigned_total += amount
+                for status in ccs_qs[:amount]:
                     status.seller = Seller.objects.get(pk=seller)
                     status.date_assigned = date.today()
+                    if status.status in (6, 7):
+                        status.status = 1
                     try:
                         status.save()
                     except Exception as e:
                         messages.error(request, e)
                         return HttpResponseRedirect(reverse("assign_sellers"))
+        messages.success(request, f"{assigned_total} contactos fueron repartidos con éxito.")
         return HttpResponseRedirect(reverse("assign_sellers", args=[campaign_id]))
 
     sellers = Seller.objects.filter(internal=True)
@@ -1132,11 +1166,19 @@ def assign_seller(request, campaign_id):
         seller_list.append(seller)
     if message:
         # Refresh value if some subs were distributed
-        campaign.count = ContactCampaignStatus.objects.filter(campaign=campaign, seller=None).count()
+        campaign.count = ccs_qs.count()
     return render(
         request,
         "assign_sellers.html",
-        {"seller_list": seller_list, "campaign": campaign, "message": message},
+        {
+            "seller_list": seller_list,
+            "campaign": campaign,
+            "message": message,
+            "shift": shift,
+            "regular_count": ccs_qs_regular.count(),
+            "morning_count": ccs_qs_morning.count(),
+            "afternoon_count": ccs_qs_afternoon.count(),
+        },
     )
 
 
