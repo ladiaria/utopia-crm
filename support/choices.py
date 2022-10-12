@@ -13,6 +13,7 @@ SCHEDULED_TASK_CATEGORIES = (
 ISSUE_CATEGORIES = (
     ('L', _('Logistics')),
     ('I', _('Invoicing')),
+    ('M', _('Collections')),
     ('C', _('Contents')),
     ('W', _('Web')),
     ('S', _('Service')),
@@ -92,5 +93,5 @@ ISSUE_ANSWERS = (
     ('L3', _('Can\'t be delivered that way')),
     ('L4', _('Delivered late')),
     ('L5', _('Problems to be delivered')),
-    ('L6', _('Delivered in a specific way'))
+    ('L6', _('Delivered in a specific way')),
 )
