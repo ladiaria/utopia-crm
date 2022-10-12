@@ -37,14 +37,10 @@ class NewPauseScheduledTaskForm(forms.Form):
         Subscription.objects.all(), widget=forms.Select(attrs={"class": "form-control"})
     )
     date_1 = forms.DateField(
-        widget=forms.DateTimeInput(
-            attrs={"class": "datepicker form-control float-right", "autocomplete": "off"}
-        )
+        widget=forms.DateTimeInput(attrs={"class": "datepicker form-control float-right", "autocomplete": "off"})
     )
     date_2 = forms.DateField(
-        widget=forms.DateTimeInput(
-            attrs={"class": "datepicker form-control float-right", "autocomplete": "off"}
-        )
+        widget=forms.DateTimeInput(attrs={"class": "datepicker form-control float-right", "autocomplete": "off"})
     )
     activity_type = forms.ChoiceField(
         widget=forms.Select(attrs={"class": "form-control"}),
@@ -57,23 +53,17 @@ class NewPauseScheduledTaskForm(forms.Form):
 
         if not date_2 > date_1:
             raise forms.ValidationError(
-                _(
-                    "There must be at least 1 day difference between date 2 and 1. Date 1 must be smaller than date 2"
-                )
+                _("There must be at least 1 day difference between date 2 and 1. Date 1 must be smaller than date 2")
             )
 
 
 class PartialPauseTaskForm(forms.Form):
     date_1 = forms.DateField(
-        widget=forms.DateTimeInput(
-            attrs={"class": "datepicker form-control float-right", "autocomplete": "off"}
-        ),
+        widget=forms.DateTimeInput(attrs={"class": "datepicker form-control float-right", "autocomplete": "off"}),
         label=_("Date of deactivation"),
     )
     date_2 = forms.DateField(
-        widget=forms.DateTimeInput(
-            attrs={"class": "datepicker form-control float-right", "autocomplete": "off"}
-        ),
+        widget=forms.DateTimeInput(attrs={"class": "datepicker form-control float-right", "autocomplete": "off"}),
         label=_("Date of activation (Products will be activated this exact day)"),
     )
     activity_type = forms.ChoiceField(
@@ -87,17 +77,13 @@ class PartialPauseTaskForm(forms.Form):
 
         if not date_2 > date_1:
             raise forms.ValidationError(
-                _(
-                    "There must be at least 1 day difference between date 2 and 1. Date 1 must be smaller than date 2"
-                )
+                _("There must be at least 1 day difference between date 2 and 1. Date 1 must be smaller than date 2")
             )
 
 
 class NewAddressChangeScheduledTaskForm(forms.Form):
     date_1 = forms.DateField(
-        widget=forms.DateTimeInput(
-            attrs={"class": "datepicker form-control float-right", "autocomplete": "off"}
-        )
+        widget=forms.DateTimeInput(attrs={"class": "datepicker form-control float-right", "autocomplete": "off"})
     )
     contact_address = forms.ModelChoiceField(
         Address.objects.all(),
@@ -107,23 +93,13 @@ class NewAddressChangeScheduledTaskForm(forms.Form):
     new_address = forms.BooleanField(
         label=_("New address"), required=False, widget=forms.CheckboxInput(attrs={"class": "form-check-input"})
     )
-    new_address_1 = forms.CharField(
-        required=False, widget=forms.TextInput(attrs={"class": "form-control"})
-    )
-    new_address_2 = forms.CharField(
-        required=False, widget=forms.TextInput(attrs={"class": "form-control"})
-    )
-    new_address_city = forms.CharField(
-        required=False, widget=forms.TextInput(attrs={"class": "form-control"})
-    )
-    new_address_state = forms.ChoiceField(
-        required=False, widget=forms.Select(attrs={"class": "form-control"})
-    )
+    new_address_1 = forms.CharField(required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
+    new_address_2 = forms.CharField(required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
+    new_address_city = forms.CharField(required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
+    new_address_state = forms.ChoiceField(required=False, widget=forms.Select(attrs={"class": "form-control"}))
     if settings.USE_STATES_CHOICE:
         new_address_state.choices = settings.STATES
-    new_address_notes = forms.CharField(
-        required=False, widget=forms.TextInput(attrs={"class": "form-control"})
-    )
+    new_address_notes = forms.CharField(required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
     new_address_type = forms.ChoiceField(
         required=False,
         choices=ADDRESS_TYPE_CHOICES,
@@ -136,9 +112,7 @@ class NewAddressChangeScheduledTaskForm(forms.Form):
     new_label_message = forms.CharField(
         max_length=40, required=False, widget=forms.TextInput(attrs={"class": "form-control"})
     )
-    new_special_instructions = forms.CharField(
-        required=False, widget=forms.TextInput(attrs={"class": "form-control"})
-    )
+    new_special_instructions = forms.CharField(required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
 
     def clean(self):
         new_address = self.cleaned_data.get("new_address")
@@ -146,39 +120,25 @@ class NewAddressChangeScheduledTaskForm(forms.Form):
         new_address_city = self.cleaned_data.get("new_address_city")
         new_address_state = self.cleaned_data.get("new_address_state")
 
-        if new_address and not (
-            new_address_1 and new_address_city and new_address_state
-        ):
+        if new_address and not (new_address_1 and new_address_city and new_address_state):
             raise forms.ValidationError(
-                _(
-                    "Please complete the new address first line, city and state if new address is selected"
-                )
+                _("Please complete the new address first line, city and state if new address is selected")
             )
 
 
 class NewPromoForm(forms.Form):
     name = forms.CharField(widget=forms.TextInput(attrs={"class": "form-control"}))
-    phone = forms.CharField(
-        empty_value=None, required=False, widget=forms.TextInput(attrs={"class": "form-control"})
-    )
-    mobile = forms.CharField(
-        empty_value=None, required=False, widget=forms.TextInput(attrs={"class": "form-control"})
-    )
+    phone = forms.CharField(empty_value=None, required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
+    mobile = forms.CharField(empty_value=None, required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
     notes = forms.CharField(
         empty_value=None, required=False, widget=forms.Textarea(attrs={"class": "form-control", "rows": "4"})
     )
-    email = forms.CharField(
-        empty_value=None, required=False, widget=forms.TextInput(attrs={"class": "form-control"})
-    )
+    email = forms.CharField(empty_value=None, required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
     start_date = forms.DateField(
-        widget=forms.DateInput(
-            format="%Y-%m-%d", attrs={"class": "datepicker form-control", "autocomplete": "off"}
-        )
+        widget=forms.DateInput(format="%Y-%m-%d", attrs={"class": "datepicker form-control", "autocomplete": "off"})
     )
     end_date = forms.DateField(
-        widget=forms.DateInput(
-            format="%Y-%m-%d", attrs={"class": "datepicker form-control", "autocomplete": "off"}
-        )
+        widget=forms.DateInput(format="%Y-%m-%d", attrs={"class": "datepicker form-control", "autocomplete": "off"})
     )
     default_address = forms.ModelChoiceField(
         Address.objects.all(),
@@ -190,23 +150,15 @@ class NewPromoForm(forms.Form):
 class NewSubscriptionForm(forms.Form):
     contact_id = forms.CharField(required=False)
     name = forms.CharField(widget=forms.TextInput(attrs={"class": "form-control"}))
-    phone = forms.CharField(
-        empty_value=None, required=False, widget=forms.TextInput(attrs={"class": "form-control"})
-    )
-    mobile = forms.CharField(
-        empty_value=None, required=False, widget=forms.TextInput(attrs={"class": "form-control"})
-    )
-    notes = forms.CharField(
-        empty_value=None, required=False, widget=forms.Textarea(attrs={"class": "form-control"})
-    )
+    phone = forms.CharField(empty_value=None, required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
+    mobile = forms.CharField(empty_value=None, required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
+    notes = forms.CharField(empty_value=None, required=False, widget=forms.Textarea(attrs={"class": "form-control"}))
     register_activity = forms.CharField(
         empty_value=None,
         required=False,
         widget=forms.Textarea(attrs={"class": "form-control", "rows": "4"}),
     )
-    email = forms.CharField(
-        empty_value=None, required=False, widget=forms.TextInput(attrs={"class": "form-control"})
-    )
+    email = forms.CharField(empty_value=None, required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
     id_document = forms.CharField(
         empty_value=None, required=False, widget=forms.TextInput(attrs={"class": "form-control"})
     )
@@ -221,15 +173,11 @@ class NewSubscriptionForm(forms.Form):
         widget=forms.Select(attrs={"class": "form-control"}),
     )
     start_date = forms.DateField(
-        widget=forms.DateInput(
-            format="%Y-%m-%d", attrs={"class": "datepicker form-control", "autocomplete": "off"}
-        )
+        widget=forms.DateInput(format="%Y-%m-%d", attrs={"class": "datepicker form-control", "autocomplete": "off"})
     )
     end_date = forms.DateField(
         required=False,
-        widget=forms.DateInput(
-            format="%Y-%m-%d", attrs={"class": "datepicker form-control", "autocomplete": "off"}
-        )
+        widget=forms.DateInput(format="%Y-%m-%d", attrs={"class": "datepicker form-control", "autocomplete": "off"}),
     )
     billing_address = forms.ModelChoiceField(
         Address.objects.all(),
@@ -258,7 +206,8 @@ class NewSubscriptionForm(forms.Form):
     )
     send_bill_copy_by_email = forms.BooleanField(
         label=_("Send invoice copy by email"),
-        required=False, widget=forms.CheckboxInput(attrs={"class": "form-check-input"})
+        required=False,
+        widget=forms.CheckboxInput(attrs={"class": "form-check-input"}),
     )
 
     def clean(self):
@@ -277,6 +226,7 @@ class IssueStartForm(forms.ModelForm):
     """
     Used when you want to start an issue to track logistics, what used to be 'Claims
     """
+
     contact = forms.ModelChoiceField(
         queryset=Contact.objects,
         widget=forms.TextInput(attrs={"class": "form-control"}),
@@ -302,21 +252,19 @@ class IssueStartForm(forms.ModelForm):
     sub_category = forms.ModelChoiceField(
         label=_("Sub Category (Required)"),
         queryset=IssueSubcategory.objects.all(),
-        widget=forms.Select(attrs={"class": "form-control", "autocomplete": "off"})
+        widget=forms.Select(attrs={"class": "form-control", "autocomplete": "off"}),
     )
     activity_type = forms.ChoiceField(
         widget=forms.Select(attrs={"class": "form-control"}),
         choices=ACTIVITY_TYPES,
     )
     status = forms.ModelChoiceField(
-        required=False,
-        queryset=IssueStatus.objects.all(),
-        widget=forms.Select(attrs={"class": "form-control"})
+        required=False, queryset=IssueStatus.objects.all(), widget=forms.Select(attrs={"class": "form-control"})
     )
     assigned_to = forms.ModelChoiceField(
         required=False,
         queryset=User.objects.filter(is_staff=True).order_by('username'),
-        widget=forms.Select(attrs={"class": "form-control", "autocomplete": "off"})
+        widget=forms.Select(attrs={"class": "form-control", "autocomplete": "off"}),
     )
     contact_address = forms.ModelChoiceField(
         Address.objects.all(),
@@ -326,23 +274,13 @@ class IssueStartForm(forms.ModelForm):
     new_address = forms.BooleanField(
         label=_("New address"), required=False, widget=forms.CheckboxInput(attrs={"class": "form-check-input"})
     )
-    new_address_1 = forms.CharField(
-        required=False, widget=forms.TextInput(attrs={"class": "form-control"})
-    )
-    new_address_2 = forms.CharField(
-        required=False, widget=forms.TextInput(attrs={"class": "form-control"})
-    )
-    new_address_city = forms.CharField(
-        required=False, widget=forms.TextInput(attrs={"class": "form-control"})
-    )
-    new_address_state = forms.ChoiceField(
-        required=False, widget=forms.Select(attrs={"class": "form-control"})
-    )
+    new_address_1 = forms.CharField(required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
+    new_address_2 = forms.CharField(required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
+    new_address_city = forms.CharField(required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
+    new_address_state = forms.ChoiceField(required=False, widget=forms.Select(attrs={"class": "form-control"}))
     if settings.USE_STATES_CHOICE:
         new_address_state.choices = settings.STATES
-    new_address_notes = forms.CharField(
-        required=False, widget=forms.TextInput(attrs={"class": "form-control"})
-    )
+    new_address_notes = forms.CharField(required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
     new_address_type = forms.ChoiceField(
         required=False,
         choices=ADDRESS_TYPE_CHOICES,
@@ -353,7 +291,9 @@ class IssueStartForm(forms.ModelForm):
         dict_categories = dict(ISSUE_CATEGORIES)
         category = self.cleaned_data.get("category")
         sub_category = self.cleaned_data.get("sub_category")
-        if sub_category.category and sub_category.category != category:
+        if sub_category.category == "I" and category == "M":
+            pass
+        elif sub_category.category and sub_category.category != category:
             msg = _("{} is not a subcategory of {}").format(sub_category, dict_categories[category])
             self.add_error("sub_category", forms.ValidationError(msg))
 
@@ -388,16 +328,27 @@ class IssueChangeForm(forms.ModelForm):
     """
     Used when you want to start an issue to track logistics, what used to be 'Claims'
     """
+
     sub_category = forms.ModelChoiceField(
-        required=False,
-        queryset=IssueSubcategory.objects.all(),
-        widget=forms.Select(attrs={"class": "form-control"})
+        required=False, queryset=IssueSubcategory.objects.all(), widget=forms.Select(attrs={"class": "form-control"})
     )
     contact = forms.ModelChoiceField(queryset=Contact.objects, widget=forms.TextInput)
     next_action_date = forms.DateField(
-        required=False, widget=forms.DateInput(format="%Y-%m-%d", attrs={
-            "class": "datepicker form-control", "autocomplete": "off"}),
+        required=False,
+        widget=forms.DateInput(format="%Y-%m-%d", attrs={"class": "datepicker form-control", "autocomplete": "off"}),
     )
+
+    def clean(self):
+        dict_categories = dict(ISSUE_CATEGORIES)
+        category = self.cleaned_data.get("category")
+        sub_category = self.cleaned_data.get("sub_category")
+        if sub_category.category == "I" and category == "M":
+            pass
+        elif sub_category.category and sub_category.category != category:
+            msg = _("{} is not a subcategory of {}").format(sub_category, dict_categories[category])
+            self.add_error("sub_category", forms.ValidationError(msg))
+
+        return self.cleaned_data
 
     class Meta:
         model = Issue
@@ -429,16 +380,29 @@ class InvoicingIssueChangeForm(forms.ModelForm):
     """
     Used when you want to start an issue to track logistics, what used to be 'Claims'
     """
+
     sub_category = forms.ModelChoiceField(
         required=False,
         queryset=IssueSubcategory.objects.filter(category='I'),
-        widget=forms.Select(attrs={"class": "form-control"})
+        widget=forms.Select(attrs={"class": "form-control"}),
     )
     contact = forms.ModelChoiceField(queryset=Contact.objects, widget=forms.TextInput)
     next_action_date = forms.DateField(
-        required=False, widget=forms.DateInput(format="%Y-%m-%d", attrs={
-            "class": "datepicker form-control", "autocomplete": "off"}),
+        required=False,
+        widget=forms.DateInput(format="%Y-%m-%d", attrs={"class": "datepicker form-control", "autocomplete": "off"}),
     )
+
+    def clean(self):
+        dict_categories = dict(ISSUE_CATEGORIES)
+        category = self.cleaned_data.get("category")
+        sub_category = self.cleaned_data.get("sub_category")
+        if sub_category.category == "I" and category == "M":
+            pass
+        elif sub_category.category and sub_category.category != category:
+            msg = _("{} is not a subcategory of {}").format(sub_category, dict_categories[category])
+            self.add_error("sub_category", forms.ValidationError(msg))
+
+        return self.cleaned_data
 
     class Meta:
         model = Issue
@@ -473,20 +437,12 @@ SELECT_CONTACT_FOR_ISSUE_TYPE_CHOICES = (
 
 class NewAddressForm(forms.Form):
     address_1 = forms.CharField(widget=forms.TextInput(attrs={"class": "form-control"}))
-    address_2 = forms.CharField(
-        required=False, widget=forms.TextInput(attrs={"class": "form-control"})
-    )
-    address_city = forms.CharField(
-        required=False, widget=forms.TextInput(attrs={"class": "form-control"})
-    )
-    address_state = forms.ChoiceField(
-        required=False, widget=forms.Select(attrs={"class": "form-control"})
-    )
+    address_2 = forms.CharField(required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
+    address_city = forms.CharField(required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
+    address_state = forms.ChoiceField(required=False, widget=forms.Select(attrs={"class": "form-control"}))
     if settings.USE_STATES_CHOICE:
         address_state.choices = settings.STATES
-    address_notes = forms.CharField(
-        required=False, widget=forms.TextInput(attrs={"class": "form-control"})
-    )
+    address_notes = forms.CharField(required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
     address_type = forms.ChoiceField(
         required=False,
         choices=ADDRESS_TYPE_CHOICES,
@@ -538,9 +494,7 @@ class NewActivityForm(forms.ModelForm):
 class UnsubscriptionForm(forms.ModelForm):
     end_date = forms.DateField(
         required=True,
-        widget=forms.DateInput(
-            format="%Y-%m-%d", attrs={"class": "datepicker form-control", "autocomplete": "off"}
-        )
+        widget=forms.DateInput(format="%Y-%m-%d", attrs={"class": "datepicker form-control", "autocomplete": "off"}),
     )
 
     class Meta:
@@ -565,9 +519,7 @@ class UnsubscriptionForm(forms.ModelForm):
 class AdditionalProductForm(forms.ModelForm):
     end_date = forms.DateField(
         required=True,
-        widget=forms.DateInput(
-            format="%Y-%m-%d", attrs={"class": "datepicker form-control", "autocomplete": "off"}
-        )
+        widget=forms.DateInput(format="%Y-%m-%d", attrs={"class": "datepicker form-control", "autocomplete": "off"}),
     )
 
     class Meta:
@@ -583,18 +535,16 @@ class AdditionalProductForm(forms.ModelForm):
 
 class ContactCampaignStatusByDateForm(forms.Form):
     date_gte = forms.DateField(
-        required=False, widget=forms.DateInput(format="%Y-%m-%d", attrs={
-            "class": "datepicker form-control", "autocomplete": "off"}),
+        required=False,
+        widget=forms.DateInput(format="%Y-%m-%d", attrs={"class": "datepicker form-control", "autocomplete": "off"}),
     )
     date_lte = forms.DateField(
-        required=False, widget=forms.DateInput(format="%Y-%m-%d", attrs={
-            "class": "datepicker form-control", "autocomplete": "off"}),
+        required=False,
+        widget=forms.DateInput(format="%Y-%m-%d", attrs={"class": "datepicker form-control", "autocomplete": "off"}),
     )
 
 
 class SubscriptionPaymentCertificateForm(forms.ModelForm):
     class Meta:
         model = Subscription
-        fields = (
-            "payment_certificate",
-        )
+        fields = ("payment_certificate",)

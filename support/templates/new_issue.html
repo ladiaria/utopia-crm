@@ -22,7 +22,7 @@ $( function() {
       $('.id_subscription_product').show();
       $('#id_subscription_product').prop('required',true);
       $('#id_status').prop('required',false);
-    }else if ((select).val() == 'I'){
+    }else if ((select).val() in ('I', 'M')){
       $('.id_product').hide();
       $('.id_copies').hide();
       $('.id_subscription').show();
@@ -66,6 +66,7 @@ $( function() {
         <ul class="nav nav-pills">
           <li class="new-item"><a class="nav-link {% if form.category.value == 'L'%}active{% endif %}" href="{% url 'new_issue' contact.id 'L' %}">{% trans 'Logistics' %}</a></li>
           <li class="new-item"><a class="nav-link {% if form.category.value == 'I'%}active{% endif %}" href="{% url 'new_issue' contact.id 'I' %}">{% trans 'Invoicing' %}</a></li>
+          <li class="new-item"><a class="nav-link {% if form.category.value == 'M'%}active{% endif %}" href="{% url 'new_issue' contact.id 'M' %}">{% trans 'Collections' %}</a></li>
           <li class="new-item"><a class="nav-link {% if form.category.value == 'C'%}active{% endif %}" href="{% url 'new_issue' contact.id 'C' %}">{% trans 'Contents' %}</a></li>
           <li class="new-item"><a class="nav-link {% if form.category.value == 'W'%}active{% endif %}" href="{% url 'new_issue' contact.id 'W' %}">{% trans 'Web' %}</a></li>
           <li class="new-item"><a class="nav-link {% if form.category.value == 'S'%}active{% endif %}" href="{% url 'new_issue' contact.id 'S' %}">{% trans 'Service' %}</a></li>
@@ -106,7 +107,7 @@ $( function() {
             </div>
           </div>
           
-            <div class="row{% if form.category.value == 'I' %} d-none{% endif %}">
+            <div class="row{% if form.category.value == 'I' or form.category.value == "M" %} d-none{% endif %}">
               <div class="col-6">
                 <div class="form-group">
                   <label for="id_copies">{{ form.copies.label }}</label>
@@ -160,12 +161,12 @@ $( function() {
             {{form.notes}}
             <span class="error invalid-feedback">{{form.notes.errors}}</span>
           </div>
-          <div class="form-group {% if form.category.value == 'I' %} d-none{% endif %}">
+          <div class="form-group {% if form.category.value == 'I' or form.category.value == "M" %} d-none{% endif %}">
             <label for="id_contact_address">{{form.contact_address.label}}</label>
             {{form.contact_address}}
             <span class="error invalid-feedback">{{form.contact_address.errors}}</span>
           </div>
-          <div class="form-group {% if form.category.value == 'I' %} d-none{% endif %}">
+          <div class="form-group {% if form.category.value == 'I' or form.category.value == "M" %} d-none{% endif %}">
             <div class="form-check">
               {{form.new_address}}
               <label for="id_new_address" class="form-check-label">{{form.new_address.label}}</label>

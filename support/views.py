@@ -1350,7 +1350,12 @@ def new_issue(request, contact_id, category="L"):
     form.fields["subscription_product"].queryset = contact.get_active_subscriptionproducts()
     form.fields["subscription"].queryset = contact.get_active_subscriptions()
     form.fields["contact_address"].queryset = contact.addresses.all()
-    form.fields["sub_category"].queryset = IssueSubcategory.objects.filter(category=category)
+    if category == "M":
+        form.fields["sub_category"].queryset = IssueSubcategory.objects.filter(
+            category="I"
+        )  # Invoicing and collections share subcategories
+    else:
+        form.fields["sub_category"].queryset = IssueSubcategory.objects.filter(category=category)
     dict_categories = dict(ISSUE_CATEGORIES)
     category_name = dict_categories[category]
     return render(request, "new_issue.html", {"contact": contact, "form": form, "category_name": category_name})
@@ -1516,7 +1521,7 @@ def view_issue(request, issue_id):
     invoicing = False
     has_active_subscription = issue.contact.has_active_subscription()
     if request.POST:
-        if issue.category == "I":
+        if issue.category in ("I", "M"):
             form = InvoicingIssueChangeForm(request.POST, instance=issue)
             invoicing = True
         else:
@@ -1525,11 +1530,14 @@ def view_issue(request, issue_id):
             form.save()
             return HttpResponseRedirect(reverse("view_issue", args=(issue_id,)))
     else:
-        if issue.category == "I":
+        if issue.category in ("I", "M"):
+            subcategories = IssueSubcategory.objects.filter(category="I")
             form = InvoicingIssueChangeForm(instance=issue)
             invoicing = True
         else:
+            subcategories = IssueSubcategory.objects.filter(category=issue.category)
             form = IssueChangeForm(instance=issue)
+        form.fields["sub_category"].queryset = subcategories
 
     activities = issue.activity_set.all().order_by("-datetime", "id")
     activity_form = NewActivityForm(
