@@ -338,18 +338,6 @@ class IssueChangeForm(forms.ModelForm):
         widget=forms.DateInput(format="%Y-%m-%d", attrs={"class": "datepicker form-control", "autocomplete": "off"}),
     )
 
-    def clean(self):
-        dict_categories = dict(ISSUE_CATEGORIES)
-        category = self.cleaned_data.get("category")
-        sub_category = self.cleaned_data.get("sub_category")
-        if sub_category.category == "I" and category == "M":
-            pass
-        elif sub_category.category and sub_category.category != category:
-            msg = _("{} is not a subcategory of {}").format(sub_category, dict_categories[category])
-            self.add_error("sub_category", forms.ValidationError(msg))
-
-        return self.cleaned_data
-
     class Meta:
         model = Issue
         widgets = {
@@ -391,18 +379,6 @@ class InvoicingIssueChangeForm(forms.ModelForm):
         required=False,
         widget=forms.DateInput(format="%Y-%m-%d", attrs={"class": "datepicker form-control", "autocomplete": "off"}),
     )
-
-    def clean(self):
-        dict_categories = dict(ISSUE_CATEGORIES)
-        category = self.cleaned_data.get("category")
-        sub_category = self.cleaned_data.get("sub_category")
-        if sub_category.category == "I" and category == "M":
-            pass
-        elif sub_category.category and sub_category.category != category:
-            msg = _("{} is not a subcategory of {}").format(sub_category, dict_categories[category])
-            self.add_error("sub_category", forms.ValidationError(msg))
-
-        return self.cleaned_data
 
     class Meta:
         model = Issue
