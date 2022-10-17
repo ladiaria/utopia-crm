@@ -8,6 +8,8 @@ from django.db.models import Sum, Q
 from django.contrib.auth.models import User
 from django.conf import settings
 
+from simple_history.models import HistoricalRecords
+
 from core.models import Subscription, Contact
 from invoicing.choices import (
     INVOICEITEM_TYPE_CHOICES,
@@ -59,6 +61,7 @@ class Invoice(models.Model):
     order = models.PositiveIntegerField(blank=True, null=True)
 
     billing = models.ForeignKey("invoicing.Billing", blank=True, null=True, on_delete=models.SET_NULL)
+    history = HistoricalRecords()
 
     def __str__(self):
         return '%s %d' % (_('Invoice'), self.id)
@@ -155,27 +158,19 @@ class InvoiceCopy(Invoice):
 class InvoiceItem(models.Model):
     invoice = models.ForeignKey(Invoice, blank=True, null=True)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
-    product = models.ForeignKey(
-        "core.Product", blank=True, null=True, on_delete=models.SET_NULL
-    )
-    subscription = models.ForeignKey(
-        "core.Subscription", blank=True, null=True, on_delete=models.SET_NULL
-    )
+    product = models.ForeignKey("core.Product", blank=True, null=True, on_delete=models.SET_NULL)
+    subscription = models.ForeignKey("core.Subscription", blank=True, null=True, on_delete=models.SET_NULL)
     copies = models.PositiveSmallIntegerField(default=1)
     description = models.CharField(max_length=500)
     price = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
-    discount = models.DecimalField(
-        max_digits=10, decimal_places=2, blank=True, null=True
-    )
+    discount = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     notes = models.TextField(blank=True, null=True)
     service_from = models.DateField(null=True, blank=True)
     service_to = models.DateField(null=True, blank=True)
 
     # Fields for CFE
     type = models.CharField(max_length=1, default="I", choices=INVOICEITEM_TYPE_CHOICES)
-    type_dr = models.CharField(
-        max_length=1, blank=True, null=True, choices=INVOICEITEM_DR_TYPE_CHOICES
-    )
+    type_dr = models.CharField(max_length=1, blank=True, null=True, choices=INVOICEITEM_DR_TYPE_CHOICES)
 
     def __str__(self):
         return str(self.description)
@@ -199,12 +194,8 @@ class InvoiceItemCopy(InvoiceItem):
 class Billing(models.Model):
     start = models.DateTimeField(auto_now_add=True)
     end = models.DateTimeField(null=True, blank=True)
-    created_by = models.ForeignKey(
-        User, blank=True, null=True, related_name="created_by"
-    )
-    started_by = models.ForeignKey(
-        User, blank=True, null=True, related_name="started_by"
-    )
+    created_by = models.ForeignKey(User, blank=True, null=True, related_name="created_by")
+    started_by = models.ForeignKey(User, blank=True, null=True, related_name="started_by")
     product = models.ForeignKey("core.Product", blank=True, null=True)
     payment_type = models.CharField(
         max_length=1,
@@ -277,6 +268,7 @@ class CreditNote(models.Model):
     uuid = models.CharField(max_length=36, blank=True, null=True)
     serie = models.CharField(max_length=1, editable=False, blank=True, null=True)
     numero = models.PositiveIntegerField(editable=False, blank=True, null=True)
+    history = HistoricalRecords()
 
     class Meta:
         verbose_name_plural = "credit notes"
