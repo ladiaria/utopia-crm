@@ -625,6 +625,7 @@ class Address(models.Model):
         null=True,
         verbose_name=_("GeorefAddress"),
     )
+    history = HistoricalRecords()
 
     # TODO: validate there is only one default address per contact
 
@@ -795,6 +796,7 @@ class Subscription(models.Model):
     # Mercadopago tokens, and others
     card_id = models.CharField(max_length=32, blank=True, null=True)
     customer_id = models.CharField(max_length=32, blank=True, null=True)
+    history = HistoricalRecords()
 
     def __str__(self):
         return str(
@@ -1538,6 +1540,7 @@ class Activity(models.Model):
     activity_type = models.CharField(choices=ACTIVITY_TYPES, max_length=1, null=True, blank=True)
     status = models.CharField(choices=ACTIVITY_STATUS_CHOICES, default="P", max_length=1)
     direction = models.CharField(choices=ACTIVITY_DIRECTION_CHOICES, default="O", max_length=1)
+    history = HistoricalRecords()
 
     def __str__(self):
         return str(_("Activity {} for contact {}".format(self.id, self.contact.id)))
@@ -1707,6 +1710,7 @@ class PriceRule(models.Model):
     # something like "order" in the future.
     priority = models.PositiveSmallIntegerField(null=True, blank=True)
     ignore_product_bundle = models.ManyToManyField("core.ProductBundle", blank=True)
+    history = HistoricalRecords()
 
 
 class DynamicContactFilter(models.Model):

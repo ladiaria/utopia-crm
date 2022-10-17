@@ -1,7 +1,4 @@
 # coding=utf-8
-
-
-
 from datetime import date
 
 from django.db import models
@@ -10,6 +7,8 @@ from django.contrib.auth.models import User
 from django.utils.translation import ugettext_lazy as _
 from autoslug import AutoSlugField
 from core.models import Campaign
+
+from simple_history.models import HistoricalRecords
 
 from support.choices import (
     ISSUE_CATEGORIES,
@@ -64,12 +63,8 @@ class Issue(models.Model):
     date_created = models.DateField(auto_now_add=True)
     contact = models.ForeignKey("core.Contact", verbose_name=_("Contact"))
     date = models.DateField(default=date.today, verbose_name=_("Date"))
-    category = models.CharField(
-        max_length=1, blank=True, null=True, choices=ISSUE_CATEGORIES
-    )
-    subcategory = models.CharField(
-        max_length=3, blank=True, null=True, choices=ISSUE_SUBCATEGORIES
-    )
+    category = models.CharField(max_length=1, blank=True, null=True, choices=ISSUE_CATEGORIES)
+    subcategory = models.CharField(max_length=3, blank=True, null=True, choices=ISSUE_SUBCATEGORIES)
     inside = models.BooleanField(default=True)
     notes = models.TextField(blank=True, null=True)
     manager = models.ForeignKey(
@@ -87,16 +82,10 @@ class Issue(models.Model):
         on_delete=models.SET_NULL,
     )  # Editable, assigned to which user
     progress = models.TextField(blank=True, null=True)
-    answer_1 = models.CharField(
-        max_length=2, blank=True, null=True, choices=ISSUE_ANSWERS
-    )
+    answer_1 = models.CharField(max_length=2, blank=True, null=True, choices=ISSUE_ANSWERS)
     answer_2 = models.TextField(blank=True, null=True)
-    status = models.ForeignKey(
-        "support.IssueStatus", blank=True, null=True, on_delete=models.SET_NULL
-    )
-    sub_category = models.ForeignKey(
-        "support.IssueSubcategory", blank=True, null=True, on_delete=models.SET_NULL
-    )
+    status = models.ForeignKey("support.IssueStatus", blank=True, null=True, on_delete=models.SET_NULL)
+    sub_category = models.ForeignKey("support.IssueSubcategory", blank=True, null=True, on_delete=models.SET_NULL)
     end_date = models.DateField(blank=True, null=True)
     next_action_date = models.DateField(blank=True, null=True)
     closing_date = models.DateField(blank=True, null=True)
@@ -109,6 +98,7 @@ class Issue(models.Model):
     product = models.ForeignKey("core.Product", null=True, blank=True)
     address = models.ForeignKey("core.Address", null=True, blank=True)
     envelope = models.NullBooleanField(default=False, verbose_name=_("Envelope"))
+    history = HistoricalRecords()
 
     class Meta:
         pass
@@ -166,9 +156,13 @@ class Issue(models.Model):
         return answers.get(self.answer_1, "N/A")
 
     def __str__(self):
-        return str(_("Issue of category {} for {} with status {}".format(
-            self.get_category(), self.contact.name, self.get_status()
-        )))
+        return str(
+            _(
+                "Issue of category {} for {} with status {}".format(
+                    self.get_category(), self.contact.name, self.get_status()
+                )
+            )
+        )
 
 
 class ScheduledTask(models.Model):
@@ -177,12 +171,8 @@ class ScheduledTask(models.Model):
     """
 
     contact = models.ForeignKey("core.Contact", verbose_name=_("Contact"))
-    category = models.CharField(
-        max_length=2, choices=SCHEDULED_TASK_CATEGORIES, verbose_name=_("Type")
-    )
-    address = models.ForeignKey(
-        "core.Address", verbose_name=_("Address"), null=True, blank=True
-    )
+    category = models.CharField(max_length=2, choices=SCHEDULED_TASK_CATEGORIES, verbose_name=_("Type"))
+    address = models.ForeignKey("core.Address", verbose_name=_("Address"), null=True, blank=True)
     completed = models.BooleanField(default=False, verbose_name=_("Completed"))
     execution_date = models.DateField(verbose_name=_("Date of execution"))
 
@@ -190,14 +180,11 @@ class ScheduledTask(models.Model):
     subscription_products = models.ManyToManyField("core.SubscriptionProduct")
 
     creation_date = models.DateField(auto_now_add=True, verbose_name=_("Creation date"))
-    modification_date = models.DateField(
-        auto_now=True, verbose_name=_("Modification date"), blank=True, null=True
-    )
-    ends = models.ForeignKey(
-        "support.ScheduledTask", blank=True, null=True, on_delete=models.SET_NULL
-    )
+    modification_date = models.DateField(auto_now=True, verbose_name=_("Modification date"), blank=True, null=True)
+    ends = models.ForeignKey("support.ScheduledTask", blank=True, null=True, on_delete=models.SET_NULL)
     label_message = models.CharField(max_length=40, blank=True, null=True)
     special_instructions = models.TextField(blank=True, null=True)
+    history = HistoricalRecords()
 
     def get_category(self):
         categories = dict(SCHEDULED_TASK_CATEGORIES)
@@ -209,12 +196,8 @@ class ScheduledTask(models.Model):
 
 class IssueStatus(models.Model):
     name = models.CharField(max_length=60)
-    slug = AutoSlugField(
-        populate_from="name", always_update=True, null=True, blank=True
-    )
-    category = models.CharField(
-        max_length=2, blank=True, null=True, choices=ISSUE_CATEGORIES
-    )
+    slug = AutoSlugField(populate_from="name", always_update=True, null=True, blank=True)
+    category = models.CharField(max_length=2, blank=True, null=True, choices=ISSUE_CATEGORIES)
 
     def __str__(self):
         return self.name
@@ -228,12 +211,8 @@ class IssueStatus(models.Model):
 
 class IssueSubcategory(models.Model):
     name = models.CharField(max_length=60)
-    slug = AutoSlugField(
-        populate_from="name", always_update=True, null=True, blank=True
-    )
-    category = models.CharField(
-        max_length=2, blank=True, null=True, choices=ISSUE_CATEGORIES
-    )
+    slug = AutoSlugField(populate_from="name", always_update=True, null=True, blank=True)
+    category = models.CharField(max_length=2, blank=True, null=True, choices=ISSUE_CATEGORIES)
 
     def __str__(self):
         return self.name

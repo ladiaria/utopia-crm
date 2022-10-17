@@ -17,6 +17,7 @@ class Route(models.Model):
     A route is a territory which is used to deliver a product easily, allowing us to organize the delivery of the
     product for the different distributors. There are routes that are parents of other routes in hierarchy.
     """
+
     number = models.IntegerField(primary_key=True, verbose_name=_('Number'))
     name = models.CharField(max_length=40, verbose_name=_('Name'), blank=True, null=True)
     state = models.CharField(max_length=20, verbose_name=_('State'), blank=True, null=True)
@@ -35,9 +36,11 @@ class Route(models.Model):
     active = models.BooleanField(default=True, verbose_name=_('Active'))
     print_labels = models.BooleanField(default=True, verbose_name=_('Print labels from this route'))
     price_per_copy = models.DecimalField(
-        max_digits=10, decimal_places=2, blank=True, null=True, verbose_name=_('Price per copy'))
+        max_digits=10, decimal_places=2, blank=True, null=True, verbose_name=_('Price per copy')
+    )
     parent_route = models.ForeignKey(
-        'self', related_name='child_route', blank=True, null=True, verbose_name=_('Parent route'))
+        'self', related_name='child_route', blank=True, null=True, verbose_name=_('Parent route')
+    )
     the_geom = PolygonField(blank=True, null=True, srid=32721)
 
     def __str__(self):
@@ -78,10 +81,12 @@ class Route(models.Model):
         """
         if product is None:
             subprods = SubscriptionProduct.objects.filter(
-                route=self, subscription__active=True, subscription__type='P').aggregate(Sum('copies'))
+                route=self, subscription__active=True, subscription__type='P'
+            ).aggregate(Sum('copies'))
         else:
             subprods = SubscriptionProduct.objects.filter(
-                route=self, product=product, subscription__active=True, subscription__type='P').aggregate(Sum('copies'))
+                route=self, product=product, subscription__active=True, subscription__type='P'
+            ).aggregate(Sum('copies'))
         return subprods['copies__sum']
 
     def contacts_in_route_count(self):
@@ -97,9 +102,10 @@ class Route(models.Model):
         today.
         """
         from invoicing.models import Invoice
+
         invoices = Invoice.objects.filter(
-            route=self.number, print_date__range=(date.today() - timedelta(6), date.today()),
-            canceled=False).count()
+            route=self.number, print_date__range=(date.today() - timedelta(6), date.today()), canceled=False
+        ).count()
         return invoices
 
     def get_subscriptionproducts(self, product_id=None, isoweekday=None):
@@ -126,6 +132,7 @@ class GeorefAddress(models.Model):
     """
     Stores geo ref addresses.
     """
+
     gid = models.IntegerField(primary_key=True, verbose_name=_('gid'))
     street_name = models.CharField(max_length=36, verbose_name=_('Street name'))
     street_number = models.IntegerField(verbose_name=_('Street number'))
@@ -145,6 +152,7 @@ class PickupPoint(models.Model):
     """
     A pickup point is a place where people can go and get their product, if we can't deliver it to certain places.
     """
+
     name = models.CharField(max_length=60, verbose_name=_('Name'))
     address = models.CharField(max_length=255, blank=True, null=True, verbose_name=_('Address'))
     old_pk = models.PositiveIntegerField(blank=True, null=True, db_index=True)
@@ -162,6 +170,7 @@ class Resort(models.Model):
     """
     Stores data for resorts, usually vacation places where we don't reach or usually deliver to.
     """
+
     state = models.CharField(max_length=20, verbose_name=_('State'))
     if settings.USE_STATES_CHOICE:
         state.choices = settings.STATES
@@ -186,6 +195,7 @@ class PickupPlace(models.Model):
     """
     This is a place in resorts where people can go and get their products.
     """
+
     resort = models.ForeignKey(Resort, verbose_name=_('Resort'))
     description = models.TextField(verbose_name=_('Description'))
     the_geom = PointField(blank=True, null=True)
@@ -203,6 +213,7 @@ class City(models.Model):
     """
     Stores data of cities.
     """
+
     name = models.CharField(max_length=40, unique=True, verbose_name=_('Name'))
     state = models.CharField(max_length=20, verbose_name=_('City'))
     if settings.USE_STATES_CHOICE:
@@ -223,10 +234,9 @@ class Message(models.Model):
 
     TODO: Check if this is True.
     """
-    place = models.CharField(
-        max_length=20, unique=True, choices=MESSAGE_PLACES, verbose_name=_('Place'))
-    text = models.TextField(
-        blank=True, verbose_name=_('Text'))
+
+    place = models.CharField(max_length=20, unique=True, choices=MESSAGE_PLACES, verbose_name=_('Place'))
+    text = models.TextField(blank=True, verbose_name=_('Text'))
 
     def __str__(self):
         return self.place
@@ -240,12 +250,10 @@ class Delivery(models.Model):
     """
     Stores information of how many copies were delivered by route, each day.
     """
-    date = models.DateField(
-        verbose_name=_('Date'))
-    route = models.IntegerField(
-        verbose_name=_('Route'))
-    copies = models.IntegerField(
-        verbose_name=_('Copies'), null=True, blank=True)
+
+    date = models.DateField(verbose_name=_('Date'))
+    route = models.IntegerField(verbose_name=_('Route'))
+    copies = models.IntegerField(verbose_name=_('Copies'), null=True, blank=True)
 
     class Meta:
         verbose_name = _('delivery')
@@ -256,18 +264,13 @@ class RouteChange(models.Model):
     """
     A log model for when a contact changes route. It only uses model information.
     """
-    dt = models.DateTimeField(
-        auto_now_add=True, verbose_name=_('Dt'))
-    contact = models.ForeignKey(
-        'core.Contact', verbose_name=_('Contact'))
-    product = models.ForeignKey(
-        'core.Product', verbose_name=_('Product'), null=True, blank=True)
-    old_route = models.ForeignKey(
-        Route, verbose_name=_('Old route'))
-    old_address = models.CharField(
-        max_length=255, null=True, blank=True, verbose_name=_('Old address'))
-    old_city = models.CharField(
-        max_length=64, null=True, blank=True, verbose_name=_('Old city'))
+
+    dt = models.DateTimeField(auto_now_add=True, verbose_name=_('Dt'))
+    contact = models.ForeignKey('core.Contact', verbose_name=_('Contact'))
+    product = models.ForeignKey('core.Product', verbose_name=_('Product'), null=True, blank=True)
+    old_route = models.ForeignKey(Route, verbose_name=_('Old route'))
+    old_address = models.CharField(max_length=255, null=True, blank=True, verbose_name=_('Old address'))
+    old_city = models.CharField(max_length=64, null=True, blank=True, verbose_name=_('Old city'))
 
     class Meta:
         verbose_name = _('route change')
@@ -280,30 +283,21 @@ class Edition(models.Model):
 
     TODO: Store information for each product on a many to many or similar.
     """
+
     product = models.ForeignKey('core.Product', verbose_name=_('Product'))
     number = models.PositiveSmallIntegerField(null=True, blank=True)
     year = models.PositiveSmallIntegerField(null=True, blank=True)
     month = models.PositiveSmallIntegerField(null=True, blank=True)
-    date = models.DateField(
-        verbose_name=_('Date'))
-    start_time = models.TimeField(
-        blank=True, null=True, verbose_name=_('Start time'))
-    end_time = models.TimeField(
-        blank=True, null=True, verbose_name=_('End Time'))
-    standard = models.IntegerField(
-        blank=True, null=True, verbose_name=_('Standard'))
-    digital = models.IntegerField(
-        blank=True, null=True, verbose_name=_('Digital'))
-    free = models.IntegerField(
-        blank=True, null=True, verbose_name=_('Free'))
-    promotions = models.IntegerField(
-        blank=True, null=True, verbose_name=_('Promotions'))
-    total = models.IntegerField(
-        blank=True, null=True, verbose_name=_('Total'))
-    extras = models.IntegerField(
-        blank=True, null=True, verbose_name='Extras')
-    rounding = models.IntegerField(
-        blank=True, null=True)
+    date = models.DateField(verbose_name=_('Date'))
+    start_time = models.TimeField(blank=True, null=True, verbose_name=_('Start time'))
+    end_time = models.TimeField(blank=True, null=True, verbose_name=_('End Time'))
+    standard = models.IntegerField(blank=True, null=True, verbose_name=_('Standard'))
+    digital = models.IntegerField(blank=True, null=True, verbose_name=_('Digital'))
+    free = models.IntegerField(blank=True, null=True, verbose_name=_('Free'))
+    promotions = models.IntegerField(blank=True, null=True, verbose_name=_('Promotions'))
+    total = models.IntegerField(blank=True, null=True, verbose_name=_('Total'))
+    extras = models.IntegerField(blank=True, null=True, verbose_name='Extras')
+    rounding = models.IntegerField(blank=True, null=True)
 
     old_pk = models.PositiveIntegerField(blank=True, null=True)
 
@@ -326,6 +320,7 @@ class EditionRoute(models.Model):
     """
     Stores data for every edition on each route
     """
+
     edition = models.ForeignKey(Edition, verbose_name=_('Edition'))
     route = models.ForeignKey(Route, verbose_name=_('Route'))
     promotions = models.IntegerField(blank=True, null=True, verbose_name=_('Promotions'))
