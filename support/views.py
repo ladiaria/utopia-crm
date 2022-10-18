@@ -1971,17 +1971,20 @@ def advanced_export_dcf_list(request, dcf_id):
 @login_required
 def sync_with_mailtrain(request, dcf_id):
     dcf = get_object_or_404(DynamicContactFilter, pk=dcf_id)
-    dcf.sync_with_mailtrain_list()
-    if dcf.mailtrain_id is None:
-        messages.error(request, _("Error: This filter has no mailtrain id"))
-        return HttpResponseRedirect(reverse("sync_with_mailtrain"))
+    if not dcf.mailtrain_id:
+        messages.error(
+            request,
+            _(
+                "This filter has no mailtrain id. To use the sync function"
+                f" choose a list id from {settings.MAILTRAIN_URL}lists"
+            ),
+        )
+        return HttpResponseRedirect(reverse("dynamic_contact_filter_edit", args=[dcf.id]))
     try:
         dcf.sync_with_mailtrain_list()
     except Exception as e:
-        messages.error(request, _("Error: {}".format(e)))
-        return HttpResponseRedirect(reverse("sync_with_mailtrain"))
-    else:
-        return HttpResponseRedirect(reverse("dynamic_contact_filter_edit", args=[dcf.id]))
+        messages.error(request, _(f"Error: {e}"))
+    return HttpResponseRedirect(reverse("dynamic_contact_filter_edit", args=[dcf.id]))
 
 
 def register_activity(request):
