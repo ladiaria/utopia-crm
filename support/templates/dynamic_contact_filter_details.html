@@ -21,18 +21,7 @@
   </div>
 
   <div class="card-body">
-
     <div class="row">
-      <div class="col">
-        <b>{% trans "Last time synced" %}:</b><br> {{dcf.last_time_synced}}<br>
-        <a href="{% url 'sync_with_mailtrain' dcf.id %}" class="btn btn-sm btn-success"><i class="fas fa-sync"></i> {% trans "Sync now" %}</a>
-      </div>
-      <div class="col">
-
-      </div>
-    </div>
-
-    <div class="row mt-4">
       <div class="col">
         <form method="post">
           {% csrf_token %}
@@ -51,6 +40,16 @@
         </form>
       </div>
     </div>
+    <div class="row">
+      <div class="col-1">
+        <b>{% trans "Last time synced" %}:</b><br> {{dcf.last_time_synced|default_if_none:"N/A"}}<br>
+        
+      </div>
+      <div class="col-1">
+        <a href="{% url 'sync_with_mailtrain' dcf.id %}" class="btn btn-sm btn-success"><i class="fas fa-sync"></i> {% trans "Sync now" %}</a>
+      </div>
+    </div>
+
   </div>
 </div>
 {% endblock %}
