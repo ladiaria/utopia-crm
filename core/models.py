@@ -126,7 +126,7 @@ class Variable(models.Model):
     """
 
     name = models.CharField(max_length=255, verbose_name=_("name"))
-    value = models.CharField(max_length=255, verbose_name=_("value"))
+    value = models.CharField(max_length=500, verbose_name=_("value"))
     type = models.CharField(max_length=255, blank=True, choices=VARIABLE_TYPES, verbose_name=_("type"))
 
     def __str__(self):
