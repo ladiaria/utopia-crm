@@ -10,13 +10,14 @@ from django.http import HttpResponseRedirect, HttpResponse, HttpResponseNotFound
 from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 from django.db.models import Sum
+from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required, permission_required
 from django.db.models import F, Q
 from django.contrib import messages
 
 from reportlab.pdfgen.canvas import Canvas
 
-from core.models import SubscriptionProduct, Subscription, Product
+from core.models import SubscriptionProduct, Subscription, Product, Address
 from core.choices import PRODUCT_WEEKDAYS
 from logistics.models import Route, Edition
 from support.models import Issue
@@ -1405,3 +1406,18 @@ def print_labels_for_product_date(request):
                 "products": products,
             },
         )
+
+
+@staff_member_required
+def addresses_with_complementary_information(request):
+    addresses_qs = Address.objects.filter((~Q(picture=None) & ~Q(picture="")) | Q(google_maps_url__isnull=False))
+    if request.GET.get("show_hidden", None):
+        show_hidden = True
+    else:
+        addresses_qs = addresses_qs.filter(do_not_show=False)
+        show_hidden = False
+    return render(
+        request,
+        "addresses_with_complementary_information.html",
+        {"addresses": addresses_qs, "show_hidden": show_hidden},
+    )

@@ -46,6 +46,7 @@ from support.views import (
     unsubscription_statistics,
     release_seller_contacts,
     scheduled_task_filter,
+    edit_address_complementary_information,
 )
 
 from django.conf.urls import url
@@ -119,25 +120,27 @@ urlpatterns = [
     ),
     url(r"^export_dcf_emails/(\d+)/$", export_dcf_emails, name="export_dcf_emails"),
     url(r"^export_dcf_contacts/(\d+)/$", advanced_export_dcf_list, name="advanced_export_dcf_list"),
-    url(
-        r"^sync_with_mailtrain/(\d+)/$", sync_with_mailtrain, name="sync_with_mailtrain"
-    ),
+    url(r"^sync_with_mailtrain/(\d+)/$", sync_with_mailtrain, name="sync_with_mailtrain"),
     url(r"^register_activity/$", register_activity, name="register_activity"),
     url(r"^contacts/(\d+)/edit/$", edit_contact, name="edit_contact"),
     url(r"^edit_newsletters/(\d+)/$", edit_newsletters, name="edit_newsletters"),
     url(r"^edit_envelopes/(\d+)/$", edit_envelopes, name="edit_envelopes"),
     url(r"^upload_payment_certificate/(\d+)/$", upload_payment_certificate, name="upload_payment_certificate"),
+    url(
+        r"^address_complementary_information/(\d+)/$",
+        edit_address_complementary_information,
+        name="edit_address_complementary_information",
+    ),
     url(r"^campaign_statistics/$", campaign_statistics_list, name="campaign_statistics_list"),
     url(r"^campaign_statistics/(\d+)/$", campaign_statistics_detail, name="campaign_statistics_detail"),
     url(
         r"^campaign_statistics/by_seller/(\d+)/$",
         campaign_statistics_per_seller,
-        name="campaign_statistics_per_seller"
+        name="campaign_statistics_per_seller",
     ),
     url(r"^campaign_statistics/performance_by_time/$", seller_performance_by_time, name="seller_performance_by_time"),
     url(r"^unsubscription_statistics/$", unsubscription_statistics, name="unsubscription_statistics"),
     url(r"^release_seller_contacts/$", release_seller_contacts, name="release_seller_contacts"),
     url(r"^release_seller_contacts/(\d+)/$", release_seller_contacts, name="release_seller_contacts"),
     url(r"^scheduled_task_filter/$", scheduled_task_filter, name="scheduled_task_filter"),
-
 ]

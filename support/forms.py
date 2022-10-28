@@ -524,3 +524,9 @@ class SubscriptionPaymentCertificateForm(forms.ModelForm):
     class Meta:
         model = Subscription
         fields = ("payment_certificate",)
+
+
+class AddressComplementaryInformationForm(forms.ModelForm):
+    class Meta:
+        model = Address
+        fields = ("picture", "google_maps_url")
