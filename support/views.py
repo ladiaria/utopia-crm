@@ -66,6 +66,7 @@ from .forms import (
     UnsubscriptionForm,
     ContactCampaignStatusByDateForm,
     SubscriptionPaymentCertificateForm,
+    AddressComplementaryInformationForm,
 )
 from logistics.models import Route
 from .models import Seller, ScheduledTask, IssueStatus, Issue, IssueSubcategory
@@ -2846,6 +2847,7 @@ def seller_performance_by_time(request):
     )
 
 
+@staff_member_required
 def unsubscription_statistics(request):
     unsubscriptions_queryset = Subscription.objects.filter(end_date__isnull=False, unsubscription_products__type="S")
     unsubscriptions_filter = UnsubscribedSubscriptionsByEndDateFilter(request.GET, queryset=unsubscriptions_queryset)
@@ -2933,6 +2935,7 @@ def unsubscription_statistics(request):
     )
 
 
+@staff_member_required
 def seller_console_special_routes(request, route_id):
     if not getattr(settings, "SPECIAL_ROUTES_FOR_SELLERS_LIST", None):
         messages.error(request, _("This function is not available."))
@@ -2969,7 +2972,7 @@ def seller_console_special_routes(request, route_id):
     )
 
 
-@login_required
+@staff_member_required
 def scheduled_task_filter(request):
     """
     Shows a very basic list of Scheduled Tasks.
@@ -3015,4 +3018,26 @@ def scheduled_task_filter(request):
         request,
         "scheduled_task_filter.html",
         {"page": page, "paginator": paginator, "st_filter": st_filter, "count": st_filter.qs.count()},
+    )
+
+
+@staff_member_required
+def edit_address_complementary_information(request, address_id):
+    address = get_object_or_404(Address, pk=address_id)
+    if request.POST:
+        form = AddressComplementaryInformationForm(request.POST, request.FILES, instance=address)
+        if form.is_valid():
+            form.save()
+            messages.success(request, _("Address information has been updated successfully"))
+            return HttpResponseRedirect(reverse("contact_detail", args=[address.contact_id]))
+    else:
+        form = AddressComplementaryInformationForm(instance=address)
+
+    return render(
+        request,
+        "edit_address_complementary_information.html",
+        {
+            "address": address,
+            "form": form,
+        },
     )

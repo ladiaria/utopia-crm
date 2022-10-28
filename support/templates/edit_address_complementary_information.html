@@ -1,0 +1,55 @@
+{% extends 'adminlte/base.html' %}
+{% load static i18n widget_tweaks %}
+
+{% block title %}{% trans "Address complementary information" %}{% endblock title %}
+
+
+{% block content %}
+<section class="content-header">
+  <div class="container-fluid">
+    <div class="row mb-2">
+      <div class="col-sm-12">
+        <h2>
+        {% blocktrans with address_1=address.address_1 name=address.contact.name %}
+            Upload payment address complementary information for address {{address_1}} for contact {{name}}
+        {% endblocktrans %}
+        </h2>
+      </div>
+    </div>
+  </div>
+</section>
+<section class="content">
+  <div class="container-fluid">
+    <div class="row">
+      <div class="col-md-12">
+        <div class="card">
+          <div class="card-body">
+            <div class="tab-pane" id="address_complementary_information">
+                <div class="row">
+                  <div class="col-md-8">
+                    <form method="post" enctype="multipart/form-data">
+                      {% csrf_token %}
+                      <div class="card">
+                        <div class="card-header">
+                          <h2 class="card-title">{% trans "Upload address complementary information" %}</h2>
+                        </div>
+                        <div class="card-body">
+                          <div class="form-group">
+                            {{form.as_p}}
+                          </div>
+                        </div>
+                      </div>
+                      <div class="text-right">
+                        <button class="btn btn-primary" type="submit">{% trans "Save" %}</button>
+                      </div>
+                    </form>
+                  </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,45 @@
+{% extends "adminlte/base.html" %}
+{% load static i18n core_tags %}
+
+
+{% block no_heading %}
+<h1>{% trans 'Logistics' %}</h1>
+<p>{% trans "Addresses with complementary information" %}</p>
+{% endblock %}
+
+{% block title %}
+    {% trans "Addresses with complementary information" %}
+{% endblock title %}
+
+{% block content %}
+<div class="card">
+  <div class="card-body">
+      <table class="table table-hover table-head-fixed table-sm m-6">
+        <thead>
+          <tr>
+              <th>{% trans "Address" %}</th>
+              <th>{% trans "Contact" %}</th>
+              <th>{% trans "Picture" %}</th>
+              <th>{% trans "Google Maps Link" %}</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for address in addresses %}
+        <tr class='{% if address.do_not_show %}table-secondary{% endif %}'>
+            <td><a href="{% url 'admin:core_address_change' address.id %}">{{address}}</a></td>
+            <td><a href="{% url 'contact_detail' address.contact.id %}">{{address.contact}}</a></td>
+            <td>{% if address.picture %}<a href="{{address.picture.url}}" target="_blank">Link to picture</a>{% endif %}</td>
+            <td>{% if address.google_maps_url %}<a href="{{address.google_maps_url}}" target="_blank">Google Maps URL</a>{% endif %}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      <br>
+      {% if show_hidden %}
+      <a href="{% url 'addresses_with_complementary_information' %}">{% trans "Do not show hidden" %}</a>
+      {% else %}
+      <a href="?show_hidden=True">{% trans "Show hidden" %}</a>
+      {% endif %}
+    </div>
+</div>
+{% endblock %}

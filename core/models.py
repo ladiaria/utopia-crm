@@ -626,11 +626,14 @@ class Address(models.Model):
         verbose_name=_("GeorefAddress"),
     )
     history = HistoricalRecords()
+    picture = models.FileField(upload_to="address_pictures/", blank=True, null=True)
+    google_maps_url = models.CharField(max_length=2048, null=True, blank=True)
+    do_not_show = models.BooleanField(default=False, help_text=_("Do not show in picture/google maps list"))
 
     # TODO: validate there is only one default address per contact
 
     def __str__(self):
-        return space_join(space_join(self.address_1, self.address_2), space_join(self.city, self.state))
+        return f"{self.address_1 or ''} {self.address_2 or ''} {self.city or ''} {self.state or ''}"
 
     def get_type(self):
         """

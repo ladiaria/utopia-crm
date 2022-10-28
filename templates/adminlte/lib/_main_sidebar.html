@@ -40,6 +40,7 @@
 {% url "print_labels_for_day" as print_labels_for_day %}
 {% url "release_seller_contacts" as release_seller_contacts %}
 {% url "scheduled_task_filter" as scheduled_task_filter %}
+{% url 'addresses_with_complementary_information' as addresses_with_complementary_information %}
 
 <li class="nav-item">
   <a href="{{contact_list}}" class="nav-link {% ifequal request.path contact_list  %}active{% endifequal %}">{% trans "Contacts" %}</a>
@@ -122,6 +123,7 @@
     <li class="nav-item"><a href='{{edition_time_arrival}}' class="nav-link {% ifequal request.path edition_time_arrival %}active{% endifequal %}">{% trans 'Edition arrival time' %}</a></li>
     <li class="nav-item"><a href="{{list_routes}}" class="nav-link">{% trans 'List all routes' %} ({% trans "Simple" %})</a></li>
     <li class="nav-item"><a href='{{list_routes_detailed}}' class="nav-link {% ifequal request.path list_routes_detailed %}active{% endifequal %}">{% trans 'List all routes' %} ({% trans "Detailed" %})</a></li>
+    <li class="nav-item"><a href='{{addresses_with_complementary_information}}' class="nav-link {% ifequal request.path addresses_with_complementary_information %}active{% endifequal %}">{% trans 'Addresses complementary information' %}</a></li>
     {% include_if_exists "logistics_sidebar_extra.html" %}
   </ul>
 </li>
