@@ -191,7 +191,7 @@ def default_newsletters_dialog_redirect(request, obj, contact_id_attr_name):
     )
 
 
-class SubscriptionAdmin(admin.ModelAdmin):
+class SubscriptionAdmin(SimpleHistoryAdmin):
     model = Subscription
     inlines = [SubscriptionProductInline]
     form = SubscriptionAdminForm
@@ -364,7 +364,7 @@ class PlanAdmin(admin.ModelAdmin):
     pass
 
 
-class AddressAdmin(admin.ModelAdmin):
+class AddressAdmin(SimpleHistoryAdmin):
     raw_id_fields = ("contact", "geo_ref_address")
 
 
@@ -389,7 +389,7 @@ class SubtypeAdmin(admin.ModelAdmin):
     search_fields = ("name",)
 
 
-class ActivityAdmin(admin.ModelAdmin):
+class ActivityAdmin(SimpleHistoryAdmin):
     raw_id_fields = ["contact", "issue", "seller", "campaign"]
     date_hierarchy = "datetime"
     list_display = ("id", "contact", "seller", "datetime", "activity_type", "campaign", "seller", "status")
@@ -420,7 +420,7 @@ class ContactCampaignStatusAdmin(admin.ModelAdmin):
     search_fields = ("contact__name",)
 
 
-class PriceRuleAdmin(admin.ModelAdmin):
+class PriceRuleAdmin(SimpleHistoryAdmin):
     list_display = ("id", "active", "priority", "amount_to_pick", "mode", "resulting_product")
     list_editable = ("active", "priority")
     ordering = ("priority",)
