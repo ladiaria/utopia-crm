@@ -3,6 +3,8 @@
 
 from django.contrib import admin
 
+from simple_history.admin import SimpleHistoryAdmin
+
 from .forms import SellerForm
 from .models import ScheduledTask, Issue, Seller, IssueStatus, IssueSubcategory
 
@@ -14,7 +16,7 @@ class SellerAdmin(admin.ModelAdmin):
     form = SellerForm
 
 
-class IssueAdmin(admin.ModelAdmin):
+class IssueAdmin(SimpleHistoryAdmin):
     date_hierarchy = "date"
     list_display = ["id", "date", "contact", "status", "category", "sub_category"]
     raw_id_fields = [
@@ -30,7 +32,7 @@ class IssueAdmin(admin.ModelAdmin):
     list_filter = ["category", "subcategory", "status"]
 
 
-class ScheduledTaskAdmin(admin.ModelAdmin):
+class ScheduledTaskAdmin(SimpleHistoryAdmin):
     list_display = ["contact", "execution_date", "category", "completed"]
     readonly_fields = ["subscription_products"]
     ordering = ["-execution_date"]
