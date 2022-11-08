@@ -60,10 +60,7 @@ def contact_invoices(request, contact_id):
 
     debt = contact.get_debt()
 
-    return render(
-        request,
-        'contact_invoices.html', {'contact': contact, 'invoice_list': invoice_list, 'debt': debt}
-    )
+    return render(request, 'contact_invoices.html', {'contact': contact, 'invoice_list': invoice_list, 'debt': debt})
 
 
 def bill_subscription(subscription_id, billing_date=None, dpp=10, check_route=False, debug=False):
@@ -82,15 +79,15 @@ def bill_subscription(subscription_id, billing_date=None, dpp=10, check_route=Fa
     assert subscription.type == 'N', _('This subscription is not normal and should not be billed.')
 
     # Check that the next billing date exists or we need to raise an exception.
-    assert subscription.next_billing, (_("Could not bill because next billing date does not exist"))
+    assert subscription.next_billing, _("Could not bill because next billing date does not exist")
 
     # Check that the subscription has a payment type
-    assert subscription.payment_type, (_("The subscription has no payment type, it can't be billed"))
+    assert subscription.payment_type, _("The subscription has no payment type, it can't be billed")
 
     # Check that the subscription's next billing is smaller than end date if it has it
     if subscription.end_date:
         error_msg = _("This subscription has an end date greater than its next billing")
-        assert subscription.next_billing < subscription.end_date, (error_msg)
+        assert subscription.next_billing < subscription.end_date, error_msg
 
     if subscription.next_billing > billing_date + timedelta(settings.BILLING_EXTRA_DAYS):
         raise Exception(_('This subscription should not be billed yet.'))
@@ -101,9 +98,7 @@ def bill_subscription(subscription_id, billing_date=None, dpp=10, check_route=Fa
 
     if not billing_data and not getattr(settings, "FORCE_DUMMY_MISSING_BILLING_DATA", False):
         raise Exception(
-            "Subscription {} for contact {} contains no billing data.".format(
-                subscription.id, subscription.contact.id
-            )
+            "Subscription {} for contact {} contains no billing data.".format(subscription.id, subscription.contact.id)
         )
 
     if billing_data and billing_data["address"] is None:
@@ -159,7 +154,7 @@ def bill_subscription(subscription_id, billing_date=None, dpp=10, check_route=Fa
             item.type = 'I'  # This means this is a regular item on the invoice
             subtotal += item.price
         elif product.type == 'D':
-            item.copies = 1  # If the product is a discount, the copies are always 1
+            item.copies = int(copies)  # If the product is a discount, the copies are always 1
             item.type = 'D'  # This means this is a discount item
             # We'll use the type of discount/surcharge of 1, that uses the numeric value instead of a percentage.
             item.type_dr = 1
@@ -210,12 +205,14 @@ def bill_subscription(subscription_id, billing_date=None, dpp=10, check_route=Fa
     # After adding all of the invoiceitems, we need to check if the subscription has an envelope. In future reviews
     # this should be deprecated and envelopes should be its own product, because here you'd end up adding envelopes
     # to digital products potentially. Fancy digital envelopes huh?
-    if SubscriptionProduct.objects.filter(
-            subscription=subscription, has_envelope=1).exists() and getattr(settings, 'ENVELOPE_PRICE', None):
+    if SubscriptionProduct.objects.filter(subscription=subscription, has_envelope=1).exists() and getattr(
+        settings, 'ENVELOPE_PRICE', None
+    ):
         envelope_price = settings.ENVELOPE_PRICE
         # Get the amount of days per week the subscription gets the paper
         products_with_envelope_count = SubscriptionProduct.objects.filter(
-            subscription=subscription, has_envelope=1).count()
+            subscription=subscription, has_envelope=1
+        ).count()
         # Then we multiply the amount of days by 4.25 (average of weeks per
         # month) and that amount by the price of the envelope
         amount = products_with_envelope_count * envelope_price * subscription.frequency
@@ -243,8 +240,9 @@ def bill_subscription(subscription_id, billing_date=None, dpp=10, check_route=Fa
         discount_amount = int(round((sub_total * discount_pct) / 100))
         # Pack the discount invoiceitem and add it to the list
         frequency_discount_item = InvoiceItem()
-        frequency_discount_item.description = _('{} months discount ({} discount)'.format(
-            subscription.frequency, discount_pct))
+        frequency_discount_item.description = _(
+            '{} months discount ({} discount)'.format(subscription.frequency, discount_pct)
+        )
         frequency_discount_item.amount = discount_amount
         # 1 means it's a plain value. This is just in case you want to use percentage discounts.
         frequency_discount_item.type_dr = 1
@@ -347,7 +345,8 @@ def bill_subscription(subscription_id, billing_date=None, dpp=10, check_route=Fa
                 if subscription.balance <= 0:
                     subscription.balance = None  # Then if it is zero or less, remove it completely.
             subscription.next_billing = (subscription.next_billing or subscription.start_date) + relativedelta(
-                months=subscription.frequency)
+                months=subscription.frequency
+            )
             subscription.save()
             # We do this here because we also need to change the subscription dates even if the amount is 0, but
             # we don't want to execute anything of this if the invoice creation process failed for whatever reason.
@@ -379,14 +378,16 @@ def bill_subscriptions_for_one_contact(request, contact_id):
                 messages.error(request, e)
             else:
                 messages.success(request, _("Invoice {} has been created successfully".format(invoice.id)))
-        return HttpResponseRedirect(
-            reverse("contact_invoices", args=(contact_id,)))
+        return HttpResponseRedirect(reverse("contact_invoices", args=(contact_id,)))
     else:
         return render(
-            request, 'bill_subscriptions_for_one_contact.html', {
+            request,
+            'bill_subscriptions_for_one_contact.html',
+            {
                 'contact': contact,
                 'today': date.today(),
-            })
+            },
+        )
 
 
 @staff_member_required
@@ -415,9 +416,14 @@ def billing_invoices(request, billing_id):
                 invoice.status = 'pending'
         invoice_list.append(invoice)
 
-    return render(request, 'billing_invoices.html', {
-        'billing': billing, 'invoice_list': invoice_list,
-    })
+    return render(
+        request,
+        'billing_invoices.html',
+        {
+            'billing': billing,
+            'invoice_list': invoice_list,
+        },
+    )
 
 
 @permission_required(('invoicing.change_invoice', 'invoicing.change_creditnote'), raise_exception=True)
@@ -459,10 +465,12 @@ def download_invoice(request, invoice_id):
     height = 110 * mm if getattr(settings, 'USE_SQUASHED_SUBSCRIPTION_INVOICEITEMS', False) else 140 * mm
     c = Canvas(response, pagesize=(width, height))
     logo = getattr(settings, 'INVOICE_LOGO')
-    table_style = TableStyle([
-        ('FONTSIZE', (0, 0), (-1, -1), 8),
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-    ])
+    table_style = TableStyle(
+        [
+            ('FONTSIZE', (0, 0), (-1, -1), 8),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ]
+    )
     for page in range(1, 3):
         c.setFont("Roboto", 12)
         c.drawImage(logo, 17 * mm, height - 38 * mm, width=40 * mm, preserveAspectRatio=True, mask='auto')
@@ -550,34 +558,38 @@ def invoice_filter(request):
                     products += ", "
                 if invoiceitem.product:
                     products += invoiceitem.product.name
-            writer.writerow([
-                invoice.id,
-                invoice.contact.name,
-                invoice.get_invoiceitem_description_list(html=False),
-                invoice.amount,
-                invoice.get_payment_type(),
-                invoice.creation_date,
-                invoice.expiration_date,
-                invoice.service_from,
-                invoice.service_to,
-                invoice.get_status(with_date=False),
-                invoice.payment_date,
-                invoice.serie,
-                invoice.numero,
-                invoice.payment_reference,
-            ])
+            writer.writerow(
+                [
+                    invoice.id,
+                    invoice.contact.name,
+                    invoice.get_invoiceitem_description_list(html=False),
+                    invoice.amount,
+                    invoice.get_payment_type(),
+                    invoice.creation_date,
+                    invoice.expiration_date,
+                    invoice.service_from,
+                    invoice.service_to,
+                    invoice.get_status(with_date=False),
+                    invoice.payment_date,
+                    invoice.serie,
+                    invoice.numero,
+                    invoice.payment_reference,
+                ]
+            )
         return response
 
     invoices_sum = invoice_filter.qs.aggregate(Sum('amount'))['amount__sum']
     invoices_count = invoice_filter.qs.count()
 
     pending = invoice_filter.qs.filter(
-        canceled=False, uncollectible=False, paid=False, debited=False, expiration_date__gt=date.today())
+        canceled=False, uncollectible=False, paid=False, debited=False, expiration_date__gt=date.today()
+    )
     pending_sum = pending.aggregate(Sum('amount'))['amount__sum']
     pending_count = pending.count()
 
     overdue = invoice_filter.qs.filter(
-        canceled=False, uncollectible=False, paid=False, debited=False, expiration_date__lte=date.today())
+        canceled=False, uncollectible=False, paid=False, debited=False, expiration_date__lte=date.today()
+    )
     overdue_sum = overdue.aggregate(Sum('amount'))['amount__sum']
     overdue_count = overdue.count()
 
@@ -594,7 +606,9 @@ def invoice_filter(request):
     uncollectible_count = uncollectible.count()
 
     return render(
-        request, 'invoice_filter.html', {
+        request,
+        'invoice_filter.html',
+        {
             'invoices': invoices,
             'page': page_number,
             'paginator': paginator,
@@ -611,7 +625,8 @@ def invoice_filter(request):
             'canceled_sum': canceled_sum,
             'uncollectible_sum': uncollectible_sum,
             'uncollectible_count': uncollectible_count,
-        })
+        },
+    )
 
 
 @staff_member_required
