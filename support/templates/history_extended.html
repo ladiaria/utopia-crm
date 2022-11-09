@@ -1,0 +1,25 @@
+{% extends 'adminlte/base.html' %}
+{% load static i18n %}
+
+{% block title %}{% trans "New issue" %}{% endblock title %}
+
+{% block no_heading %}
+<h1>{% trans 'Support' %}</h1>
+<p>{% trans 'Register an issue' %}</p>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col-md-9">
+    <div class="card">
+      <div class="card-header p-2">
+        test
+      </div>
+      <div class="card-body">
+        {{contact}}
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

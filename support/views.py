@@ -3041,3 +3041,29 @@ def edit_address_complementary_information(request, address_id):
             "form": form,
         },
     )
+
+
+@staff_member_required
+def history_extended(request, contact_id):
+    contact = get_object_or_404(Contact, pk=contact_id)
+    contact_history_qs = contact.history.all().order_by('-history_date')
+    contact_history_dict = {}
+    for history in contact_history_qs:
+        if history.prev_record:
+            list_of_changes = []
+            delta = history.diff_against(history.prev_record)
+            for change in delta.changes:
+                if change.field != "tags":
+                    list_of_changes.append([change.field, change.old, change.new])
+            contact_history_dict[history] = list_of_changes
+        else:
+            contact_history_dict[history] = "created"
+    print(contact_history_dict)
+    return render(
+        request,
+        "history_extended.html",
+        {
+            "contact": contact,
+            "contact_history_dict": contact_history_dict,
+        },
+    )
