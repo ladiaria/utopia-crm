@@ -60,12 +60,15 @@ def calc_price_from_products(products_with_copies, frequency):
         product = Product.objects.get(pk=int(product_id))
         copies = int(copies)
         if getattr(settings, 'DEBUG_PRODUCTS', False):
-            print(("{} {} x{} = {}".format(product.name, copies, product.price, product.price * copies)))
+            print(
+                f"{product.name} {copies}x{'-' if product.type == 'D' else ''}"
+                f"{product.price} = {'-' if product.type == 'D' else ''}{product.price * copies}"
+            )
         if product.type == 'S':
             total_price += product.price * copies
         elif product.type == 'D':
-            # Discounts are only applied once (TODO: Decide if we need to change this)
-            total_price -= product.price
+            # Discounts are now applied as many times as necessary
+            total_price -= product.price * copies
         elif product.type == 'P':
             percentage_discount = product
         elif product.type == 'A':

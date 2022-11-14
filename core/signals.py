@@ -1,5 +1,6 @@
 # coding=utf-8
 import re
+
 try:
     import simplejson as json
 except ImportError:
