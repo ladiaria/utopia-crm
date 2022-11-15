@@ -1,11 +1,11 @@
 {% extends 'adminlte/base.html' %}
 {% load static i18n %}
 
-{% block title %}{% trans "New issue" %}{% endblock title %}
+{% block title %}{{contact.name}} - {% trans "Extended history" %}{% endblock title %}
 
 {% block no_heading %}
-<h1>{% trans 'Support' %}</h1>
-<p>{% trans 'Register an issue' %}</p>
+<h1>{{contact.name}}</h1>
+<p>{% trans 'History' %}</p>
 {% endblock %}
 
 {% block content %}
@@ -13,13 +13,150 @@
   <div class="col-md-9">
     <div class="card">
       <div class="card-header p-2">
-        test
+        {% trans "Contact info" %}
       </div>
       <div class="card-body">
-        {{contact}}
+        <table class="table">
+          <thead>
+            <th>{% trans "Date" %}</th>
+            <th>{% trans "User" %}</th>
+            <th>{% trans "Changes" %}</th>
+          </thead>
+          <tbody>
+            {% for history_object, changes in contact_history_dict.items %}
+            <tr>
+              <td>{{history_object.history_date}}</td>
+              <td>{{history_object.history_user|default_if_none:"System"}}</td>
+              <td>
+                <ul>
+                  {% if not changes %}
+                  <li>{% trans "Saved but no changes made" %}</li>
+                  {% else %}
+                  {% for change in changes %}
+                  {% if change.0 == "created" %}
+                  <li>{% trans "History was created" %}</li>
+                  {% else %}
+                  <li>{{change.0}}: {{change.1}} -> {{change.2}}</li>
+                  {% endif %}
+                  {% endfor %}
+                  {% endif %}
+                </ul>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
       </div>
     </div>
   </div>
 </div>
+
+{% if subscriptions_history_dict %}
+<div class="row">
+  <div class="col-md-9">
+    <div class="card">
+      <div class="card-header p-2">
+        {% trans "Subscriptions" %}
+      </div>
+      <div class="card-body">
+        {% for subscription, history_dict in subscriptions_history_dict.items %}
+        <div class="card">
+          <div class="card-header">
+            <a href="{% url 'admin:core_subscription_change' subscription.id %}">{{subscription.id}}</a> - 
+            {{subscription}}
+          </div>
+          <div class="card-body">
+            <table class="table">
+              <thead>
+                <th>{% trans "Date" %}</th>
+                <th>{% trans "User" %}</th>
+                <th>{% trans "Changes" %}</th>
+              </thead>
+              <tbody>
+                {% for history_object, changes in history_dict.items %}
+                <tr>
+                  <td>{{history_object.history_date}}</td>
+                  <td>{{history_object.history_user|default_if_none:"System"}}</td>
+                  <td>
+                    <ul>
+                      {% if not changes %}
+                      <li>{% trans "Saved but no changes made" %}</li>
+                      {% else %}
+                      {% for change in changes %}
+                      {% if change.0 == "created" %}
+                      <li>{% trans "History was created" %}</li>
+                      {% else %}
+                      <li>{{change.0}}: {{change.1}} -> {{change.2}}</li>
+                      {% endif %}
+                      {% endfor %}
+                      {% endif %}
+                    </ul>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% if issues_history_dict %}
+<div class="row">
+  <div class="col-md-9">
+    <div class="card">
+      <div class="card-header p-2">
+        {% trans "Issues" %}
+      </div>
+      <div class="card-body">
+        {% for issue, history_dict in issues_history_dict.items %}
+        <div class="card">
+          <div class="card-header">
+            <a href="{% url 'admin:support_issue_change' issue.id %}">{{issue.id}}</a> - 
+            {{issue}}
+          </div>
+          <div class="card-body">
+            <table class="table">
+              <thead>
+                <th>{% trans "Date" %}</th>
+                <th>{% trans "User" %}</th>
+                <th>{% trans "Changes" %}</th>
+              </thead>
+              <tbody>
+                {% for history_object, changes in history_dict.items %}
+                <tr>
+                  <td>{{history_object.history_date}}</td>
+                  <td>{{history_object.history_user|default_if_none:"System"}}</td>
+                  <td>
+                    <ul>
+                      {% if not changes %}
+                      <li>{% trans "Saved but no changes made" %}</li>
+                      {% else %}
+                      {% for change in changes %}
+                      {% if change.0 == "created" %}
+                      <li>{% trans "History was created" %}</li>
+                      {% else %}
+                      <li>{{change.0}}: {{change.1}} -> {{change.2}}</li>
+                      {% endif %}
+                      {% endfor %}
+                      {% endif %}
+                    </ul>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
 
 {% endblock %}
