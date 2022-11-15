@@ -174,7 +174,7 @@ def import_contacts(request):
                             address_2=address_2,
                             city=city,
                             state=state,
-                            type="physical",
+                            address_type="physical",
                             email=email,
                         )
                     new_contacts_list.append(new_contact)
