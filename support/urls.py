@@ -1,4 +1,5 @@
 # coding=utf-8
+from support import views
 from support.views import (
     assign_campaigns,
     list_campaigns_with_no_seller,
@@ -80,6 +81,7 @@ urlpatterns = [
     url(r"^edit_products/(\d+)/$", edit_products, name="edit_products"),
     url(r"^contacts/$", contact_list, name="contact_list"),
     url(r"^contacts/(\d+)/$", contact_detail, name="contact_detail"),
+    url(r"^contacts/(\d+)/history$", views.history_extended, name="history_extended"),
     url(r"^api_new_address/(\d+)/$", api_new_address),
     url(r"^api_dynamic_prices/$", api_dynamic_prices),
     # Issues

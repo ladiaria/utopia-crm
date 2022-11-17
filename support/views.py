@@ -70,7 +70,7 @@ from .forms import (
 )
 from logistics.models import Route
 from .models import Seller, ScheduledTask, IssueStatus, Issue, IssueSubcategory
-from .choices import ISSUE_CATEGORIES
+from .choices import ISSUE_CATEGORIES, ISSUE_ANSWERS
 from support.management.commands.run_scheduled_tasks import run_address_change, run_start_of_total_pause
 from core.utils import calc_price_from_products, process_products
 from core.forms import ContactAdminForm
@@ -3039,5 +3039,70 @@ def edit_address_complementary_information(request, address_id):
         {
             "address": address,
             "form": form,
+        },
+    )
+
+
+def history_build_aux(object, tags=False):
+    history_qs = object.history.all().order_by('-history_date')
+    history_dict = {}
+    for history in history_qs:
+        if history.prev_record:
+            list_of_changes = []
+            delta = history.diff_against(history.prev_record)
+            for change in delta.changes:
+                if tags and change.field == "tags":
+                    continue
+                old, new = change.old, change.new
+                if isinstance(object, Issue):
+                    if change.field == "status":
+                        if change.old:
+                            old = IssueStatus.objects.get(pk=change.old).name
+                        if change.new:
+                            new = IssueStatus.objects.get(pk=change.new).name
+                    if change.field == "sub_category":
+                        if change.old:
+                            old = IssueSubcategory.objects.get(pk=change.old).name
+                        if change.new:
+                            new = IssueSubcategory.objects.get(pk=change.new).name
+                    if change.field == "answer_1":
+                        issue_answer_dict = dict(ISSUE_ANSWERS)
+                        old = issue_answer_dict.get(change.old, None)
+                        new = issue_answer_dict.get(change.new, None)
+                list_of_changes.append([change.field, old, new])
+            history_dict[history] = list_of_changes
+        else:
+            history_dict[history] = (["created"],)
+    return history_dict
+
+
+@staff_member_required
+def history_extended(request, contact_id):
+    contact = get_object_or_404(Contact, pk=contact_id)
+    contact_history_dict = history_build_aux(contact, tags=True)
+
+    # Subscriptions
+    subscriptions = contact.subscriptions.all().order_by("-start_date")
+    subscriptions_list = [subscription for subscription in subscriptions if subscription.history.count() > 1]
+    subscriptions_history_dict = {}
+    for subscription in subscriptions_list:
+        history_dict = history_build_aux(subscription)
+        subscriptions_history_dict[subscription] = history_dict
+
+    # Issues
+    issues = contact.issue_set.all().order_by("-date_created")
+    issues_list = [issue for issue in issues if issue.history.count() > 1]
+    issues_history_dict = {}
+    for issue in issues_list:
+        history_dict = history_build_aux(issue)
+        issues_history_dict[issue] = history_dict
+    return render(
+        request,
+        "history_extended.html",
+        {
+            "contact": contact,
+            "contact_history_dict": contact_history_dict,
+            "subscriptions_history_dict": subscriptions_history_dict,
+            "issues_history_dict": issues_history_dict,
         },
     )
