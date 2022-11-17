@@ -70,7 +70,7 @@ from .forms import (
 )
 from logistics.models import Route
 from .models import Seller, ScheduledTask, IssueStatus, Issue, IssueSubcategory
-from .choices import ISSUE_CATEGORIES
+from .choices import ISSUE_CATEGORIES, ISSUE_ANSWERS
 from support.management.commands.run_scheduled_tasks import run_address_change, run_start_of_total_pause
 from core.utils import calc_price_from_products, process_products
 from core.forms import ContactAdminForm
@@ -3053,7 +3053,23 @@ def history_build_aux(object, tags=False):
             for change in delta.changes:
                 if tags and change.field == "tags":
                     continue
-                list_of_changes.append([change.field, change.old, change.new])
+                old, new = change.old, change.new
+                if isinstance(object, Issue):
+                    if change.field == "status":
+                        if change.old:
+                            old = IssueStatus.objects.get(pk=change.old).name
+                        if change.new:
+                            new = IssueStatus.objects.get(pk=change.new).name
+                    if change.field == "sub_category":
+                        if change.old:
+                            old = IssueSubcategory.objects.get(pk=change.old).name
+                        if change.new:
+                            new = IssueSubcategory.objects.get(pk=change.new).name
+                    if change.field == "answer_1":
+                        issue_answer_dict = dict(ISSUE_ANSWERS)
+                        old = issue_answer_dict.get(change.old, None)
+                        new = issue_answer_dict.get(change.new, None)
+                list_of_changes.append([change.field, old, new])
             history_dict[history] = list_of_changes
         else:
             history_dict[history] = (["created"],)
