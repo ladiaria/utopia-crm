@@ -329,14 +329,11 @@ def bill_subscription(subscription_id, billing_date=None, dpp=10, check_route=Fa
 
                 # When the invoice has finally been created and every date has been moved where it should have been,
                 # we're going to check if there's any temporary discounts, and remove them if it applies.
-                if getattr(settings, 'TEMPORARY_DISCOUNT', None):
-                    temporary_discount_list = getattr(settings, 'TEMPORARY_DISCOUNT').items()
-                    for discount_slug, months in temporary_discount_list:
-                        if (
-                            invoice.has_product(discount_slug)
-                            and invoice.subscription.months_in_invoices_with_product(discount_slug) >= months
-                        ):
-                            invoice.subscription.remove_product(Product.objects.get(slug=discount_slug))
+                ii_qs = invoice.invoiceitem_set.filter(product__temporary_discount_months__gte=1)
+                for ii in ii_qs:
+                    months = ii.product.temporary_discount_months
+                    if invoice.subscription.months_in_invoices_with_product(temporary_discount.slug) >= months:
+                        invoice.subscription.remove_product(temporary_discount)
 
             # Then finally we need to change everything on the subscription
             if subscription.balance:
