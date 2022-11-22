@@ -155,6 +155,7 @@ class Product(models.Model):
     billing_priority = models.PositiveSmallIntegerField(null=True, blank=True)
     digital = models.BooleanField(default=False, verbose_name=_("Digital"))
     edition_frequency = models.IntegerField(default=None, choices=PRODUCT_EDITION_FREQUENCY, null=True, blank=True)
+    temporary_discount_months = models.PositiveSmallIntegerField(null=True, blank=True)
     old_pk = models.PositiveIntegerField(blank=True, null=True)
 
     def __str__(self):

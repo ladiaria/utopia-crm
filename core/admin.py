@@ -353,8 +353,18 @@ class ProductAdmin(admin.ModelAdmin):
         "offerable",
         "billing_priority",
         "edition_frequency",
+        "temporary_discount_months",
     )
-    list_editable = ["name", "type", "price", "weekday", "billing_priority", "offerable", "edition_frequency"]
+    list_editable = [
+        "name",
+        "type",
+        "price",
+        "weekday",
+        "billing_priority",
+        "offerable",
+        "edition_frequency",
+        "temporary_discount_months",
+    ]
     readonly_fields = ("slug",)
     # TODO: explain or remove next commented line
     # prepopulated_fields = {'slug': ('name',)}
