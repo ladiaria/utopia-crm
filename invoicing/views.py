@@ -331,7 +331,8 @@ def bill_subscription(subscription_id, billing_date=None, dpp=10, check_route=Fa
                 # we're going to check if there's any temporary discounts, and remove them if it applies.
                 ii_qs = invoice.invoiceitem_set.filter(product__temporary_discount_months__gte=1)
                 for ii in ii_qs:
-                    months = ii.product.temporary_discount_months
+                    temporary_discount = ii.product
+                    months = temporary_discount.temporary_discount_months
                     if invoice.subscription.months_in_invoices_with_product(temporary_discount.slug) >= months:
                         invoice.subscription.remove_product(temporary_discount)
 
