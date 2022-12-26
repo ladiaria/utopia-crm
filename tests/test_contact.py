@@ -3,7 +3,7 @@ from datetime import timedelta
 
 from django.conf import settings
 from django.test import TestCase
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from tests.factory import (
     create_contact, create_simple_invoice, create_product, create_campaign, create_address, create_subtype

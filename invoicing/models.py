@@ -3,7 +3,7 @@
 from datetime import date
 
 from django.db import models
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from django.db.models import Sum, Q
 from django.contrib.auth.models import User
 from django.conf import settings
@@ -19,7 +19,7 @@ from invoicing.choices import (
 
 
 class Invoice(models.Model):
-    contact = models.ForeignKey("core.Contact")
+    contact = models.ForeignKey("core.Contact", on_delete=models.SET_NULL, null=True)
     creation_date = models.DateField()
     expiration_date = models.DateField()
     service_from = models.DateField()
@@ -156,7 +156,7 @@ class InvoiceCopy(Invoice):
 
 
 class InvoiceItem(models.Model):
-    invoice = models.ForeignKey(Invoice, blank=True, null=True)
+    invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, blank=True, null=True)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     product = models.ForeignKey("core.Product", blank=True, null=True, on_delete=models.SET_NULL)
     subscription = models.ForeignKey("core.Subscription", blank=True, null=True, on_delete=models.SET_NULL)
@@ -194,9 +194,9 @@ class InvoiceItemCopy(InvoiceItem):
 class Billing(models.Model):
     start = models.DateTimeField(auto_now_add=True)
     end = models.DateTimeField(null=True, blank=True)
-    created_by = models.ForeignKey(User, blank=True, null=True, related_name="created_by")
-    started_by = models.ForeignKey(User, blank=True, null=True, related_name="started_by")
-    product = models.ForeignKey("core.Product", blank=True, null=True)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True, related_name="created_by")
+    started_by = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True, related_name="started_by")
+    product = models.ForeignKey("core.Product", on_delete=models.SET_NULL, blank=True, null=True)
     payment_type = models.CharField(
         max_length=1,
         choices=settings.SUBSCRIPTION_PAYMENT_METHODS,
@@ -264,7 +264,7 @@ class CreditNote(models.Model):
     Esto modela las notas de crédito necesarias para la factura electrónica.
     """
 
-    invoice = models.ForeignKey(Invoice)
+    invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE)
     uuid = models.CharField(max_length=36, blank=True, null=True)
     serie = models.CharField(max_length=1, editable=False, blank=True, null=True)
     numero = models.PositiveIntegerField(editable=False, blank=True, null=True)

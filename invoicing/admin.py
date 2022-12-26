@@ -2,13 +2,14 @@
 
 
 from django.contrib import admin
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from simple_history.admin import SimpleHistoryAdmin
 
 from .models import *
 
 
+@admin.register(CreditNote)
 class CreditNoteAdmin(SimpleHistoryAdmin):
     model = CreditNote
     search_fields = ('numero', 'invoice__id', 'invoice__contact__id')
@@ -24,6 +25,7 @@ class InvoiceItemInline(admin.StackedInline):
     extra = 0
 
 
+@admin.register(Invoice)
 class InvoiceAdmin(SimpleHistoryAdmin):
     search_fields = ('contact__id', 'contact__name')
     list_display = ('id', 'contact', 'amount', 'paid', 'debited', 'canceled', 'uncollectible', 'serie', 'numero')
@@ -66,10 +68,12 @@ class InvoiceAdmin(SimpleHistoryAdmin):
     ordering = ['-id']
 
 
+@admin.register(InvoiceItem)
 class InvoiceItemAdmin(admin.ModelAdmin):
     pass
 
 
+@admin.register(Billing)
 class BillingAdmin(admin.ModelAdmin):
     list_display = ('id', 'product', 'start', 'amount_billed', 'count', 'progress', 'status')
     # readonly_fields = ['exclude']
@@ -93,7 +97,3 @@ class BillingAdmin(admin.ModelAdmin):
                 return [f.name for f in self.model._meta.fields]
 
 
-admin.site.register(Invoice, InvoiceAdmin)
-admin.site.register(Billing, BillingAdmin)
-admin.site.register(InvoiceItem, InvoiceItemAdmin)
-admin.site.register(CreditNote, CreditNoteAdmin)

@@ -5,11 +5,13 @@ from .models import *
 from django.contrib import admin
 
 
+@admin.register(Support)
 class SupportAdmin(admin.ModelAdmin):
     search_fields = ('name', )
     list_display = ('name', 'description')
 
 
+@admin.register(ProductParticipation)
 class ProductParticipationAdmin(admin.ModelAdmin):
     search_fields = ('contact__name', )
     list_display = ('contact', 'product')
@@ -17,6 +19,7 @@ class ProductParticipationAdmin(admin.ModelAdmin):
     raw_id_fields = ['contact', ]
 
 
+@admin.register(Supporter)
 class SupporterAdmin(admin.ModelAdmin):
     search_fields = ('contact__name', )
     list_display = ('contact', 'support')
@@ -24,6 +27,3 @@ class SupporterAdmin(admin.ModelAdmin):
     raw_id_fields = ['contact', ]
 
 
-admin.site.register(Support, SupportAdmin)
-admin.site.register(ProductParticipation, ProductParticipationAdmin)
-admin.site.register(Supporter, SupporterAdmin)

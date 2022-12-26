@@ -1,11 +1,7 @@
-{% extends "tabbed_admin/change_form.html" %}
-{% load staticfiles %}
+{% extends "admin/change_form.html" %}
+{% load static %}
 {% load i18n %}
 
-{% block extrahead %}
-    {{ block.super }}
-    <link rel="stylesheet" type="text/css" href="{% static 'css/admin-extra.css' %}"/>
-{% endblock %}
 
 {% block object-tools-items %}
     <li><a href="/invoicing/contact_invoices/{{ object_id }}/" class="historylink">{% trans 'Invoices' %}</a></li>
@@ -14,5 +10,5 @@
     <li><a href="{% url 'new_scheduled_task_partial_pause' object_id %}" class="historylink">{% trans 'Schedule partial pause' %}</a></li>
     <li><a href="{% url 'new_scheduled_task_address_change' object_id %}" class="historylink">{% trans 'Schedule address change' %}</a></li>
     <li><a href="{% url 'contact_detail' object_id %}" class="historylink">{% trans 'Go to contact details' %}</a></li>
-    {{ block.super }}
+    {{block.super}}
 {% endblock %}
