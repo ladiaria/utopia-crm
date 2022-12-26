@@ -26,11 +26,8 @@ def get_item(dictionary, key):
     return dictionary.get(key)
 
 
-@register.filter('in_group')
+@register.filter(is_safe=True)
 def in_group(user, group_name):
-    """
-    TODO: Improve this using generic names with settings.
-    """
     if user.is_superuser:
         return True
     if user.groups.filter(name="Admins").exists():
@@ -43,28 +40,26 @@ def in_group(user, group_name):
 @register.filter('get_address_id_from_subscription')
 def get_address_id_from_subscription(subscription_id, product_slug):
     try:
-        sp = SubscriptionProduct.objects.filter(
-            subscription_id=subscription_id, product__slug=product_slug
-        ).first()
+        sp = SubscriptionProduct.objects.filter(subscription_id=subscription_id, product__slug=product_slug).first()
         return sp.address.id
     except Exception:
         return ''
 
 
-@register.tag('include_if_exists')
-def do_include_maybe(parser, token):
+@register.tag
+def include_if_exists(parser, token):
     "Source: http://stackoverflow.com/a/18951166/15690"
     bits = token.split_contents()
     if len(bits) < 2:
         raise template.TemplateSyntaxError(
-            "%r tag takes at least one argument: "
-            "the name of the template to be included." % bits[0])
+            "%r tag takes at least one argument: " "the name of the template to be included." % bits[0]
+        )
 
     try:
         silent_node = do_include(parser, token)
     except template.TemplateDoesNotExist:
         # Django < 1.7
-        return CommentNode()
+        return CommentNode.render()
 
     _orig_render = silent_node.render
 
@@ -72,6 +67,7 @@ def do_include_maybe(parser, token):
         try:
             return _orig_render(*args, **kwargs)
         except template.TemplateDoesNotExist:
-            return CommentNode()
+            return CommentNode.render()
+
     silent_node.render = wrapped_render
     return silent_node

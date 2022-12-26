@@ -3,12 +3,13 @@
 
 from django.http import HttpResponseRedirect
 from django.contrib.admin import SimpleListFilter
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from django.contrib import admin
 from django.urls import resolve, reverse
 
 from taggit.models import TaggedItem
-from tabbed_admin import TabbedModelAdmin
+
+# from tabbed_admin import TabbedModelAdmin
 from simple_history.admin import SimpleHistoryAdmin
 
 from community.models import ProductParticipation, Supporter
@@ -191,6 +192,7 @@ def default_newsletters_dialog_redirect(request, obj, contact_id_attr_name):
     )
 
 
+@admin.register(Subscription)
 class SubscriptionAdmin(SimpleHistoryAdmin):
     model = Subscription
     inlines = [SubscriptionProductInline]
@@ -287,7 +289,8 @@ class SupporterInline(admin.StackedInline):
     extra = 1
 
 
-class ContactAdmin(TabbedModelAdmin, SimpleHistoryAdmin):
+@admin.register(Contact)
+class ContactAdmin(SimpleHistoryAdmin):
     form = ContactAdminForm
     tab_overview = (
         (None, {"fields": (("name", "tags"),)}),
@@ -319,10 +322,11 @@ class ContactAdmin(TabbedModelAdmin, SimpleHistoryAdmin):
         ("Community", tab_community),
     ]
     list_display = ("id", "name", "id_document", "subtype", "tag_list")
+    raw_id_fields = "subtype"
     list_filter = ("subtype", TaggitListFilter)
     ordering = ("id",)
-    raw_id_fields = ("subtype",)
-    change_form_template = "admin/core/contact/change_form.html"
+    raw_id_fields = ("subtype", "referrer")
+    # change_form_template = "admin/core/contact/change_form.html"
 
     def get_queryset(self, request):
         return super(ContactAdmin, self).get_queryset(request).prefetch_related("tags")
@@ -341,6 +345,7 @@ class ContactAdmin(TabbedModelAdmin, SimpleHistoryAdmin):
         return super(ContactAdmin, self).response_change(request, obj)
 
 
+@admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
     list_display = (
         "id",
@@ -374,31 +379,38 @@ class PlanAdmin(admin.ModelAdmin):
     pass
 
 
+@admin.register(Address)
 class AddressAdmin(SimpleHistoryAdmin):
     raw_id_fields = ("contact", "geo_ref_address")
 
 
+@admin.register(Campaign)
 class CampaignAdmin(admin.ModelAdmin):
     pass
 
 
+@admin.register(Ocupation)
 class OcupationAdmin(admin.ModelAdmin):
     pass
 
 
+@admin.register(Institution)
 class InstitutionAdmin(admin.ModelAdmin):
     pass
 
 
+@admin.register(Variable)
 class VariableAdmin(admin.ModelAdmin):
     list_display = ("name", "value", "type")
 
 
+@admin.register(Subtype)
 class SubtypeAdmin(admin.ModelAdmin):
     list_display = ("id", "name")
     search_fields = ("name",)
 
 
+@admin.register(Activity)
 class ActivityAdmin(SimpleHistoryAdmin):
     raw_id_fields = ["contact", "issue", "seller", "campaign"]
     date_hierarchy = "datetime"
@@ -407,12 +419,14 @@ class ActivityAdmin(SimpleHistoryAdmin):
     search_fields = ("contact__id", "contact__name")
 
 
+@admin.register(ContactProductHistory)
 class ContactProductHistoryAdmin(admin.ModelAdmin):
     list_display = ("contact", "product", "date", "status")
     search_fields = ("contact__name",)
     raw_id_fields = ("contact", "subscription")
 
 
+@admin.register(ContactCampaignStatus)
 class ContactCampaignStatusAdmin(admin.ModelAdmin):
     raw_id_fields = ["contact"]
     list_display = (
@@ -430,31 +444,19 @@ class ContactCampaignStatusAdmin(admin.ModelAdmin):
     search_fields = ("contact__name",)
 
 
+@admin.register(PriceRule)
 class PriceRuleAdmin(SimpleHistoryAdmin):
     list_display = ("id", "active", "priority", "amount_to_pick", "mode", "resulting_product")
     list_editable = ("active", "priority")
     ordering = ("priority",)
 
 
+@admin.register(SubscriptionProduct)
 class SubscriptionProductAdmin(admin.ModelAdmin):
     list_display = ("subscription_id", "product", "copies", "address", "route", "order", "seller")
     raw_id_fields = ("subscription", "address", "label_contact")
 
 
-admin.site.register(Subscription, SubscriptionAdmin)
-admin.site.register(Contact, ContactAdmin)
-admin.site.register(Product, ProductAdmin)
-admin.site.register(Address, AddressAdmin)
-admin.site.register(Variable, VariableAdmin)
-admin.site.register(Campaign, CampaignAdmin)
-admin.site.register(Institution, InstitutionAdmin)
-admin.site.register(Ocupation, OcupationAdmin)
-admin.site.register(Subtype, SubtypeAdmin)
-admin.site.register(Activity, ActivityAdmin)
-admin.site.register(ContactProductHistory, ContactProductHistoryAdmin)
-admin.site.register(ContactCampaignStatus, ContactCampaignStatusAdmin)
-admin.site.register(PriceRule, PriceRuleAdmin)
-admin.site.register(SubscriptionProduct, SubscriptionProductAdmin)
 admin.site.register(DynamicContactFilter)
 admin.site.register(ProductBundle)
 admin.site.register(AdvancedDiscount)
