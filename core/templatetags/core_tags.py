@@ -55,11 +55,7 @@ def include_if_exists(parser, token):
             "%r tag takes at least one argument: " "the name of the template to be included." % bits[0]
         )
 
-    try:
-        silent_node = do_include(parser, token)
-    except template.TemplateDoesNotExist:
-        # Django < 1.7
-        return CommentNode.render()
+    silent_node = do_include(parser, token)
 
     _orig_render = silent_node.render
 
@@ -67,7 +63,7 @@ def include_if_exists(parser, token):
         try:
             return _orig_render(*args, **kwargs)
         except template.TemplateDoesNotExist:
-            return CommentNode.render()
+            return ""
 
     silent_node.render = wrapped_render
     return silent_node

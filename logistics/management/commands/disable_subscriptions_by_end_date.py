@@ -15,7 +15,7 @@ class Command(BaseCommand):
 
         ended_subscriptions = Subscription.objects.filter(
             active=True,
-            end_date__lte=date.today() + timedelta(1),
+            end_date__lte=date.today() - timedelta(1),
         )
         if verbose3:
             print("Starting process of ending subscriptions that have reached their end date...")
