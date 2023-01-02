@@ -74,14 +74,14 @@ $(function(){
                                 <dt>{% trans "Subscription" %}</dt>
                                 <dd>{{issue.subscription}}</dd>
                             {% endif %}
-                            {% ifequal issue.category "I" %}
+                            {% if issue.category == "I" %}
                                 {% if issue.contact.get_debt %}
                                     <dt>{% trans "Debt" %}</dt>
                                     <dd>${{ issue.contact.get_debt }} ({{issue.contact.expired_invoices_count}} {% trans "overdue invoices" %})<i class="fas fa-exclamation-triangle text-danger"></i><a href="#" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#invoices_modal">{% trans "View" %}</a></dd>
                                 {% else %}
                                     <dt>{% trans "This contact doesn't have a debt" %}</dt>
                                 {% endif %}
-                            {% endifequal %}
+                            {% endif %}
                         </dl>
                     </div><!-- /.card-body -->
                 </div>

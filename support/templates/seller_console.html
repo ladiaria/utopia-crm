@@ -275,9 +275,9 @@ function validateHhMm(inputField) {
                             {% if s.end_date %}
                             <dd><b>{% trans 'End'%}</b>: {{s.end_date|date:"SHORT_DATE_FORMAT"}}</dd>
                             {% endif %}
-                            {% ifequal s.type 'N' %}
+                            {% if s.type == 'N' %}
                             <dd><b>{% trans 'Payment type'%}:</b> {{s.get_payment_type}}</dd>
-                            {% endifequal %}
+                            {% endif %}
                             {% if s.unsubscription_reason %}<dt>{% trans 'Unsubscription reason'%}:</dt> <dd>{{s.get_unsubscription_reason}}</dd>{% endif %}
                             {% if s.active and s.type == 'N' and request.user|in_group:"AdvancedSellers" %}
                             <a href="{% url 'new_subscription' contact.id %}?upgrade_subscription={{s.id}}&url={{url}}&offset={{offset}}&{{category}}={{console_instance.id}}" class="btn  btn-success">{% trans "Upgrade" %}</a>

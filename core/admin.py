@@ -86,8 +86,8 @@ class SubscriptionProductInline(admin.TabularInline):
         is not available in the regular admin.ModelAdmin as an attribute.
         """
         resolved = resolve(request.path_info)
-        if resolved.args:
-            return self.parent_model.objects.get(pk=resolved.args[0])
+        if resolved.kwargs:
+            return self.parent_model.objects.get(pk=resolved.kwargs["object_id"])
         return None
 
     def formfield_for_foreignkey(self, db_field, request=None, **kwargs):
@@ -310,13 +310,12 @@ class ContactAdmin(SimpleHistoryAdmin):
             },
         ),
     )
-    tab_subscriptions = (SubscriptionInline,)
+    # tab_subscriptions = (SubscriptionInline,)
     tab_addresses = (AddressInline,)
     tab_newsletters = (SubscriptionNewsletterInline,)
     tab_community = (SupporterInline, ProductParticipationInline)
     tabs = [
         ("Overview", tab_overview),
-        ("Subscriptions", tab_subscriptions),
         ("Newsletters", tab_newsletters),
         ("Address", tab_addresses),
         ("Community", tab_community),
