@@ -10,20 +10,15 @@
 </script>
 {% endblock extra_js %}
 
+{% block no_heading %}
+  {% if contact %}
+    <h1><a href="{% url 'contact_list' %}">{% trans "Contacts" %}</a> &raquo; <a href="{% url 'contact_detail' contact.id %}">{{contact.id}} - {{contact.name}}</a> &raquo; {% trans "Edit contact" %} </h1>
+  {% else %}
+      <h1>{% trans "Contacts" %} &raquo;  {% trans "New contact" %}</h1>
+  {% endif %}
+{% endblock no_heading %}
+
 {% block content %}
-<section class="content-header">
-  <div class="container-fluid">
-    <div class="row mb-2">
-      <div class="col-sm-12">
-        {% if contact %}
-        <h1>{% trans "Contacts" %} &raquo;  {% trans "Edit contact" %} {{contact.name}}</h1>
-        {% else %}
-        <h1>{% trans "Contacts" %} &raquo;  {% trans "New contact" %}</h1>
-        {% endif %}
-      </div>
-    </div>
-  </div>
-</section>
 <section class="content">
   <div class="container-fluid">
     <div class="row">

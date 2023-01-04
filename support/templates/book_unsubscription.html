@@ -13,11 +13,7 @@ $( function() {
 {% endblock %}
 
 {% block no_heading %}
-<h3>
-  {% blocktrans with subscription.contact.name as contact_name %}
-  Unsubscription for {{contact_name}}
-  {% endblocktrans %}
-</h3>
+<h1><a href="{% url 'contact_list' %}">{% trans "Contacts" %}</a> &raquo; <a href="{% url 'contact_detail' subscription.contact.id %}">{{subscription.contact.id}} - {{subscription.contact.name}}</a> &raquo; {% trans "Book unsubscription of all products" %} </h1>
 {% endblock %}
 
 {% block content %}
