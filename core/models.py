@@ -1787,7 +1787,7 @@ class DynamicContactFilter(models.Model):
                 contact__invoice__uncollectible=False,
             ).prefetch_related("contact__invoice_set")
             if self.debtor_contacts == 1:
-                subscriptions = subscriptions.difference(only_debtors)
+                subscriptions = subscriptions.exclude(pk__in=only_debtors.values('pk'))
             elif self.debtor_contacts == 2:
                 subscriptions = only_debtors
         if self.mode == 1:

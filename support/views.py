@@ -1805,7 +1805,7 @@ def dynamic_contact_filter_new(request):
                         contact__invoice__uncollectible=False,
                     ).prefetch_related("contact__invoice_set")
                     if debtor_contacts == 1:
-                        subscriptions = subscriptions.difference(only_debtors)
+                        subscriptions = subscriptions.exclude(pk__in=only_debtors.values('pk'))
                     elif debtor_contacts == 2:
                         subscriptions = only_debtors
                 # Finally we remove the ones who don't have emails and apply distinct by contact
@@ -1902,7 +1902,7 @@ def dynamic_contact_filter_edit(request, dcf_id):
                         contact__invoice__uncollectible=False,
                     ).prefetch_related("contact__invoice_set")
                     if debtor_contacts == 1:
-                        subscriptions = subscriptions.difference(only_debtors)
+                        subscriptions = subscriptions.exclude(pk__in=only_debtors.values('pk'))
                     elif debtor_contacts == 2:
                         subscriptions = only_debtors
                 # Finally we remove the ones who don't have emails and apply distinct by contact

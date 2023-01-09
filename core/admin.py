@@ -99,79 +99,6 @@ class SubscriptionProductInline(admin.TabularInline):
         return field
 
 
-class SubscriptionInline(admin.StackedInline):
-    model = Subscription
-    # TODO: remove or explain the next commented line
-    # form = SubscriptionAdminForm
-    extra = 0
-    fieldsets = (
-        (
-            None,
-            {
-                "fields": (
-                    ("id", "active"),
-                    ("frequency", "status"),
-                    ("campaign",),
-                    (
-                        "type",
-                        "next_billing",
-                    ),
-                    ("edit_products_field",),
-                    ("start_date", "end_date"),
-                    ("payment_certificate"),
-                )
-            },
-        ),
-        (
-            _("Billing data"),
-            {
-                "fields": (
-                    ("payment_type"),
-                    ("billing_address", "billing_name"),
-                    ("billing_id_doc",),
-                    ("rut",),
-                    ("billing_phone", "billing_email"),
-                    ("balance", "send_bill_copy_by_email"),
-                )
-            },
-        ),
-        (
-            _("Unsubscription"),
-            {
-                "classes": ("collapse",),
-                "fields": (
-                    ("inactivity_reason", "unsubscription_date"),
-                    ("unsubscription_type", "unsubscription_requested"),
-                    ("unsubscription_products",),
-                    ("unsubscription_reason",),
-                    ("unsubscription_addendum",),
-                ),
-            },
-        ),
-    )
-    readonly_fields = ("id", "web_comments", "edit_products_field", "unsubscription_products")
-    raw_id_fields = ["campaign"]
-
-    def get_parent_object_from_request(self, request):
-        """
-        Returns the parent object from the request or None.
-        Note that this only works for Inlines, because the `parent_model`
-        is not available in the regular admin.ModelAdmin as an attribute.
-        """
-        resolved = resolve(request.path_info)
-        if resolved.args:
-            return self.parent_model.objects.get(pk=resolved.args[0])
-        return None
-
-    def formfield_for_foreignkey(self, db_field, request=None, **kwargs):
-        field = super(SubscriptionInline, self).formfield_for_foreignkey(db_field, request, **kwargs)
-        if db_field.name in ("delivery_address", "billing_address"):
-            if request:
-                contact = self.get_parent_object_from_request(request)
-                field.queryset = field.queryset.filter(contact=contact)
-        return field
-
-
 def response_add_or_change_next_url(request, obj):
     """Returns the next_url to be used in the response_add and response_change method redefinitions"""
     opts = obj._meta
@@ -292,15 +219,14 @@ class SupporterInline(admin.StackedInline):
 @admin.register(Contact)
 class ContactAdmin(SimpleHistoryAdmin):
     form = ContactAdminForm
-    tab_overview = (
-        (None, {"fields": (("name", "tags"),)}),
-        (None, {"fields": (("subtype", "id_document"),)}),
+    fieldsets = (
+        (None, {"fields": (("name", "tags", "subtype"),)}),
         (
             None,
             {
                 "fields": (
-                    ("email", "no_email"),
-                    ("phone", "mobile"),
+                    ("email", "no_email", "id_document"),
+                    ("phone", "mobile", "work_phone"),
                     ("gender", "education"),
                     ("birthdate", "private_birthdate"),
                     ("protected",),
@@ -310,22 +236,11 @@ class ContactAdmin(SimpleHistoryAdmin):
             },
         ),
     )
-    # tab_subscriptions = (SubscriptionInline,)
-    tab_addresses = (AddressInline,)
-    tab_newsletters = (SubscriptionNewsletterInline,)
-    tab_community = (SupporterInline, ProductParticipationInline)
-    tabs = [
-        ("Overview", tab_overview),
-        ("Newsletters", tab_newsletters),
-        ("Address", tab_addresses),
-        ("Community", tab_community),
-    ]
     list_display = ("id", "name", "id_document", "subtype", "tag_list")
     raw_id_fields = "subtype"
     list_filter = ("subtype", TaggitListFilter)
     ordering = ("id",)
     raw_id_fields = ("subtype", "referrer")
-    # change_form_template = "admin/core/contact/change_form.html"
 
     def get_queryset(self, request):
         return super(ContactAdmin, self).get_queryset(request).prefetch_related("tags")
@@ -370,8 +285,6 @@ class ProductAdmin(admin.ModelAdmin):
         "temporary_discount_months",
     ]
     readonly_fields = ("slug",)
-    # TODO: explain or remove next commented line
-    # prepopulated_fields = {'slug': ('name',)}
 
 
 class PlanAdmin(admin.ModelAdmin):
