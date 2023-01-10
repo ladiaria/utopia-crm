@@ -1,30 +1,24 @@
 # coding=utf-8
-
 from datetime import date
-
-from django.db import models
-from django.utils.translation import gettext_lazy as _
-from django.db.models import Sum, Q
-from django.contrib.auth.models import User
-from django.conf import settings
 
 from simple_history.models import HistoricalRecords
 
+from django.conf import settings
+from django.db import models
+from django.db.models import Sum, Q
+from django.contrib.auth.models import User
+from django.utils.translation import gettext_lazy as _
+
 from core.models import Subscription, Contact
-from invoicing.choices import (
-    INVOICEITEM_TYPE_CHOICES,
-    INVOICEITEM_DR_TYPE_CHOICES,
-    BILLING_STATUS,
-)
+from invoicing.choices import INVOICEITEM_TYPE_CHOICES, INVOICEITEM_DR_TYPE_CHOICES, BILLING_STATUS
 
 
 class Invoice(models.Model):
-    contact = models.ForeignKey("core.Contact", on_delete=models.SET_NULL, null=True)
+    contact = models.ForeignKey("core.Contact", on_delete=models.CASCADE)
     creation_date = models.DateField()
     expiration_date = models.DateField()
     service_from = models.DateField()
     service_to = models.DateField()
-
     balance = models.DecimalField(_("Balance"), max_digits=10, decimal_places=2, blank=True, null=True)
     amount = models.DecimalField(_("Amount"), max_digits=10, decimal_places=2, blank=True, null=True)
     payment_type = models.CharField(_("Payment type"), max_length=2, choices=settings.INVOICE_PAYMENT_METHODS)
@@ -38,7 +32,6 @@ class Invoice(models.Model):
     uncollectible = models.BooleanField(_("Uncollectible"), default=False)
     subscription = models.ForeignKey("core.Subscription", blank=True, null=True, on_delete=models.SET_NULL)
     print_date = models.DateField(null=True, blank=True)
-
     uuid = models.CharField(max_length=36, editable=False, blank=True, null=True)
     serie = models.CharField(max_length=1, editable=False, blank=True, null=True)
     numero = models.PositiveIntegerField(editable=False, blank=True, null=True)
