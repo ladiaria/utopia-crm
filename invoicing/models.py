@@ -191,7 +191,7 @@ class Billing(models.Model):
     started_by = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True, related_name="started_by")
     product = models.ForeignKey("core.Product", on_delete=models.SET_NULL, blank=True, null=True)
     payment_type = models.CharField(
-        max_length=1,
+        max_length=2,
         choices=settings.SUBSCRIPTION_PAYMENT_METHODS,
         null=True,
         blank=True,
