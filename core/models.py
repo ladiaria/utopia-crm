@@ -657,7 +657,7 @@ class SubscriptionProduct(models.Model):
     is delivered, and route/order.
     """
 
-    product = models.ForeignKey("core.Product", on_delete=models.SET_NULL, null=True)
+    product = models.ForeignKey("core.Product", on_delete=models.CASCADE, null=True)
     subscription = models.ForeignKey("core.Subscription", on_delete=models.CASCADE)
     copies = models.PositiveSmallIntegerField(default=1)
     address = models.ForeignKey("core.Address", blank=True, null=True, on_delete=models.SET_NULL)
@@ -1538,13 +1538,13 @@ class Activity(models.Model):
     """
 
     contact = models.ForeignKey(Contact, on_delete=models.CASCADE, null=True, blank=True)
-    campaign = models.ForeignKey(Campaign, on_delete=models.SET_NULL, null=True, blank=True)
-    product = models.ForeignKey(Product, on_delete=models.SET_NULL, null=True, blank=True)
+    campaign = models.ForeignKey(Campaign, on_delete=models.CASCADE, null=True, blank=True)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, null=True, blank=True)
     seller = models.ForeignKey(
-        "support.Seller", on_delete=models.SET_NULL, blank=True, null=True, verbose_name=_("Seller")
+        "support.Seller", on_delete=models.CASCADE, blank=True, null=True, verbose_name=_("Seller")
     )
     issue = models.ForeignKey(
-        "support.Issue", on_delete=models.SET_NULL, blank=True, null=True, verbose_name=_("Issue")
+        "support.Issue", on_delete=models.CASCADE, blank=True, null=True, verbose_name=_("Issue")
     )
     datetime = models.DateTimeField(blank=True, null=True)
     asap = models.BooleanField(default=False)
@@ -1635,7 +1635,7 @@ class ContactCampaignStatus(models.Model):
     campaign = models.ForeignKey(Campaign, on_delete=models.CASCADE)
     status = models.SmallIntegerField(choices=CAMPAIGN_STATUS_CHOICES, default=1)
     campaign_resolution = models.CharField(choices=CAMPAIGN_RESOLUTION_CHOICES, null=True, blank=True, max_length=2)
-    seller = models.ForeignKey("support.Seller", on_delete=models.SET_NULL, null=True, blank=True)
+    seller = models.ForeignKey("support.Seller", on_delete=models.CASCADE, null=True, blank=True)
     date_created = models.DateField(auto_now_add=True)
     date_assigned = models.DateField(null=True, blank=True)
     last_action_date = models.DateField(auto_now=True)
@@ -1700,7 +1700,7 @@ class PriceRule(models.Model):
     # Select one product from the pool that will be replaced. This is only used in the 'replace one' mode.
     choose_one_product = models.ForeignKey(
         Product,
-        on_delete=models.SET_NULL,
+        on_delete=models.CASCADE,
         null=True,
         blank=True,
         related_name="chosen_product",
@@ -1714,7 +1714,7 @@ class PriceRule(models.Model):
     # not_pool so you make sure you add the specific product you want.
     resulting_product = models.ForeignKey(
         Product,
-        on_delete=models.SET_NULL,
+        on_delete=models.CASCADE,
         null=True,
         blank=True,
         related_name="resulting_product",
@@ -1862,7 +1862,7 @@ class ProductBundle(models.Model):
 
 
 class AdvancedDiscount(models.Model):
-    discount_product = models.ForeignKey(Product, on_delete=models.SET_NULL, related_name="discount", null=True)
+    discount_product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="discount", null=True)
     find_products = models.ManyToManyField(Product, related_name="find_products_discount")
     products_mode = models.PositiveSmallIntegerField(choices=DISCOUNT_PRODUCT_MODE_CHOICES)
     value_mode = models.PositiveSmallIntegerField(choices=DISCOUNT_VALUE_MODE_CHOICES)

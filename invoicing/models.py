@@ -187,9 +187,9 @@ class InvoiceItemCopy(InvoiceItem):
 class Billing(models.Model):
     start = models.DateTimeField(auto_now_add=True)
     end = models.DateTimeField(null=True, blank=True)
-    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True, related_name="created_by")
-    started_by = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True, related_name="started_by")
-    product = models.ForeignKey("core.Product", on_delete=models.SET_NULL, blank=True, null=True)
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE, blank=True, null=True, related_name="created_by")
+    started_by = models.ForeignKey(User, on_delete=models.CASCADE, blank=True, null=True, related_name="started_by")
+    product = models.ForeignKey("core.Product", on_delete=models.CASCADE, blank=True, null=True)
     payment_type = models.CharField(
         max_length=2,
         choices=settings.SUBSCRIPTION_PAYMENT_METHODS,
