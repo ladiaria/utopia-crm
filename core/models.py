@@ -19,6 +19,7 @@ from simple_history.models import HistoricalRecords
 
 from util import space_join
 from util.dates import get_default_next_billing, get_default_start_date, diff_month
+from .managers import ProductManager
 from .choices import (
     ACTIVITY_DIRECTION_CHOICES,
     ACTIVITY_STATUS_CHOICES,
@@ -157,6 +158,7 @@ class Product(models.Model):
     edition_frequency = models.IntegerField(default=None, choices=PRODUCT_EDITION_FREQUENCY, null=True, blank=True)
     temporary_discount_months = models.PositiveSmallIntegerField(null=True, blank=True)
     old_pk = models.PositiveIntegerField(blank=True, null=True)
+    objects = ProductManager()
 
     def __str__(self):
         name = self.name
@@ -165,7 +167,7 @@ class Product(models.Model):
         return "%s" % name
 
     def natural_key(self):
-        return self.slug
+        return (self.slug, )
 
     def get_type(self):
         """
