@@ -31,6 +31,7 @@ from .models import (
     DynamicContactFilter,
     ProductBundle,
     AdvancedDiscount,
+    DoNotCallNumber,
 )
 from .forms import SubscriptionAdminForm, ContactAdminForm
 
@@ -458,3 +459,4 @@ admin.site.register(SubscriptionProduct, SubscriptionProductAdmin)
 admin.site.register(DynamicContactFilter)
 admin.site.register(ProductBundle)
 admin.site.register(AdvancedDiscount)
+admin.site.register(DoNotCallNumber)
