@@ -6,7 +6,7 @@ from django.conf import settings
 from django.db import models
 from django.db.models import Sum
 from django.contrib.gis.db.models import PointField, PolygonField
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from logistics.choices import RESORT_STATUS_CHOICES, MESSAGE_PLACES
 from core.models import SubscriptionProduct
@@ -39,7 +39,7 @@ class Route(models.Model):
         max_digits=10, decimal_places=2, blank=True, null=True, verbose_name=_('Price per copy')
     )
     parent_route = models.ForeignKey(
-        'self', related_name='child_route', blank=True, null=True, verbose_name=_('Parent route')
+        'self', on_delete=models.CASCADE, related_name='child_route', blank=True, null=True, verbose_name=_('Parent route')
     )
     the_geom = PolygonField(blank=True, null=True, srid=32721)
 
@@ -179,7 +179,7 @@ class Resort(models.Model):
     confirmation_date = models.DateField(blank=True, null=True, verbose_name=_('Confirmation date'))
     notes = models.TextField(blank=True, null=True, verbose_name=_('Notes'))
     arrival_time = models.TimeField(blank=True, null=True, verbose_name=_('Arrival time'))
-    route = models.ForeignKey(Route, blank=True, null=True, verbose_name=_('Route'))
+    route = models.ForeignKey(Route, on_delete=models.CASCADE, blank=True, null=True, verbose_name=_('Route'))
     order = models.PositiveSmallIntegerField(default=0, verbose_name=_('Order'))
 
     def __str__(self):
@@ -196,7 +196,7 @@ class PickupPlace(models.Model):
     This is a place in resorts where people can go and get their products.
     """
 
-    resort = models.ForeignKey(Resort, verbose_name=_('Resort'))
+    resort = models.ForeignKey(Resort, on_delete=models.CASCADE, verbose_name=_('Resort'))
     description = models.TextField(verbose_name=_('Description'))
     the_geom = PointField(blank=True, null=True)
 
@@ -266,9 +266,9 @@ class RouteChange(models.Model):
     """
 
     dt = models.DateTimeField(auto_now_add=True, verbose_name=_('Dt'))
-    contact = models.ForeignKey('core.Contact', verbose_name=_('Contact'))
-    product = models.ForeignKey('core.Product', verbose_name=_('Product'), null=True, blank=True)
-    old_route = models.ForeignKey(Route, verbose_name=_('Old route'))
+    contact = models.ForeignKey('core.Contact', on_delete=models.CASCADE, verbose_name=_('Contact'))
+    product = models.ForeignKey('core.Product', on_delete=models.CASCADE, verbose_name=_('Product'), null=True, blank=True)
+    old_route = models.ForeignKey(Route, on_delete=models.CASCADE, verbose_name=_('Old route'))
     old_address = models.CharField(max_length=255, null=True, blank=True, verbose_name=_('Old address'))
     old_city = models.CharField(max_length=64, null=True, blank=True, verbose_name=_('Old city'))
 
@@ -284,7 +284,7 @@ class Edition(models.Model):
     TODO: Store information for each product on a many to many or similar.
     """
 
-    product = models.ForeignKey('core.Product', verbose_name=_('Product'))
+    product = models.ForeignKey('core.Product', on_delete=models.CASCADE, verbose_name=_('Product'))
     number = models.PositiveSmallIntegerField(null=True, blank=True)
     year = models.PositiveSmallIntegerField(null=True, blank=True)
     month = models.PositiveSmallIntegerField(null=True, blank=True)
@@ -321,8 +321,8 @@ class EditionRoute(models.Model):
     Stores data for every edition on each route
     """
 
-    edition = models.ForeignKey(Edition, verbose_name=_('Edition'))
-    route = models.ForeignKey(Route, verbose_name=_('Route'))
+    edition = models.ForeignKey(Edition, on_delete=models.CASCADE, verbose_name=_('Edition'))
+    route = models.ForeignKey(Route, on_delete=models.CASCADE, verbose_name=_('Route'))
     promotions = models.IntegerField(blank=True, null=True, verbose_name=_('Promotions'))
 
     class Meta:
@@ -331,6 +331,6 @@ class EditionRoute(models.Model):
 
 
 class EditionProduct(models.Model):
-    product = models.ForeignKey('core.Product', verbose_name=_('Product'))
-    route = models.ForeignKey(Route, verbose_name=_('Route'))
+    product = models.ForeignKey('core.Product', on_delete=models.CASCADE, verbose_name=_('Product'))
+    route = models.ForeignKey(Route, on_delete=models.CASCADE, verbose_name=_('Route'))
     additional_copies = models.PositiveSmallIntegerField(default=3, verbose_name=_('Additional copies'))

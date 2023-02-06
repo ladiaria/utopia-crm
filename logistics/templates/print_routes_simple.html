@@ -20,7 +20,7 @@
 
 {% block no_heading %}
 <span onclick="window.print()" class="btn btn-primary float-right"><i class="fas fa-print"></i>  {% trans 'Print' %}</span>
-<h1>{% trans 'Route(s)' %}
+<h1>{% trans "Logistics" %} &raquo; <a href="{% url 'list_routes' %}">{% trans "All routes" %}</a> &raquo;
 {% for route in route_list %}{% if forloop.counter > 1 %},&nbsp;{% endif %}{{route}}{% endfor %}
 {% if product_name %}
     ({{product_name}})

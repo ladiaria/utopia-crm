@@ -18,7 +18,7 @@ from django.http import (
 )
 from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from django.utils.text import format_lazy
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.admin.views.decorators import staff_member_required
@@ -1707,7 +1707,7 @@ def api_new_address(request, contact_id):
     """
     contact = get_object_or_404(Contact, pk=contact_id)
     data = {}
-    if request.method == "POST" and request.is_ajax():
+    if request.method == "POST" and request.META.get('HTTP_X_REQUESTED_WITH') == "XMLHttpRequest":
         form = NewAddressForm(request.POST)
         if form.is_valid():
             address = Address.objects.create(
@@ -1731,7 +1731,7 @@ def api_dynamic_prices(request):
     Uses price rules to calculate products and prices depending on the products that have been selected on one of the
     views to add new products to a subscription.
     """
-    if request.method == "POST" and request.is_ajax():
+    if request.method == "POST" and request.META.get('HTTP_X_REQUESTED_WITH') == "XMLHttpRequest":
         frequency, product_copies = 1, {}
         for key, value in list(request.POST.items()):
             if key == "frequency":
@@ -1806,7 +1806,7 @@ def dynamic_contact_filter_new(request):
                         contact__invoice__uncollectible=False,
                     ).prefetch_related("contact__invoice_set")
                     if debtor_contacts == 1:
-                        subscriptions = subscriptions.difference(only_debtors)
+                        subscriptions = subscriptions.exclude(pk__in=only_debtors.values('pk'))
                     elif debtor_contacts == 2:
                         subscriptions = only_debtors
                 # Finally we remove the ones who don't have emails and apply distinct by contact
@@ -1903,7 +1903,7 @@ def dynamic_contact_filter_edit(request, dcf_id):
                         contact__invoice__uncollectible=False,
                     ).prefetch_related("contact__invoice_set")
                     if debtor_contacts == 1:
-                        subscriptions = subscriptions.difference(only_debtors)
+                        subscriptions = subscriptions.exclude(pk__in=only_debtors.values('pk'))
                     elif debtor_contacts == 2:
                         subscriptions = only_debtors
                 # Finally we remove the ones who don't have emails and apply distinct by contact
@@ -2022,6 +2022,7 @@ def edit_contact(request, contact_id):
             except Exception as e:
                 messages.error(request, "Error: {}".format(e))
             else:
+                messages.success(request, _("Contact saved successfully"))
                 return HttpResponseRedirect(reverse("edit_contact", args=[contact_id]))
     return render(
         request,
@@ -2048,6 +2049,7 @@ def edit_newsletters(request, contact_id):
             else:
                 if contact.has_newsletter(newsletter.id):
                     contact.remove_newsletter(newsletter.id)
+        messages.success(request, _("Newsletters edited successfully"))
         return HttpResponseRedirect(reverse("edit_contact", args=[contact_id]))
 
 

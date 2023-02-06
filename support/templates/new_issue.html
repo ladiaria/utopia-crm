@@ -48,8 +48,7 @@ $( function() {
 {% endblock %}
 
 {% block no_heading %}
-<h1>{% trans 'Support' %}</h1>
-<p>{% trans 'Register an issue' %}</p>
+<h1><a href="{% url 'contact_list' %}">{% trans "Contacts" %}</a> &raquo; <a href="{% url 'contact_detail' contact.id %}">{{contact.id}} - {{contact.name}}</a> &raquo; {% trans "New issue" %} ({{category_name}})</h1>
 {% endblock %}
 
 {% block content %}
@@ -63,7 +62,7 @@ $( function() {
           <li class="new-item"><a class="nav-link" href="{% url 'new_scheduled_task_total_pause' contact.id %}">{% trans 'Pause subscription' %}</a></li>
           <li class="new-item"><a class="nav-link" href="{% url 'new_scheduled_task_partial_pause' contact.id  %}">{% trans 'Partial pause' %}</a></li>
         </ul>
-        <ul class="nav nav-pills">
+        <ul class="nav nav-pills mt-2">
           <li class="new-item"><a class="nav-link {% if form.category.value == 'L'%}active{% endif %}" href="{% url 'new_issue' contact.id 'L' %}">{% trans 'Logistics' %}</a></li>
           <li class="new-item"><a class="nav-link {% if form.category.value == 'I'%}active{% endif %}" href="{% url 'new_issue' contact.id 'I' %}">{% trans 'Invoicing' %}</a></li>
           <li class="new-item"><a class="nav-link {% if form.category.value == 'M'%}active{% endif %}" href="{% url 'new_issue' contact.id 'M' %}">{% trans 'Collections' %}</a></li>
@@ -74,7 +73,6 @@ $( function() {
         </ul>
       </div>
       <div class="card-body">
-        <h3>{% trans "New issue" %} ({{category_name}}): {{contact.name}}</h3>
         <form method="post">
           {{form.category}}
           {% if form.errors %}

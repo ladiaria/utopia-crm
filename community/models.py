@@ -1,14 +1,14 @@
 # coding=utf-8
 
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from django.db import models
 
 
 class ProductParticipation(models.Model):
-    contact = models.ForeignKey('core.contact')
-    product = models.ForeignKey('core.product')
+    contact = models.ForeignKey('core.contact', on_delete=models.CASCADE)
+    product = models.ForeignKey('core.product', on_delete=models.CASCADE)
     description = models.TextField('Descripción', null=True, blank=True)
 
     def __str__(self):
@@ -30,8 +30,8 @@ class Support(models.Model):
 
 
 class Supporter(models.Model):
-    contact = models.ForeignKey('core.contact')
-    support = models.ForeignKey(Support)
+    contact = models.ForeignKey('core.contact', on_delete=models.CASCADE)
+    support = models.ForeignKey(Support, on_delete=models.CASCADE)
     description = models.TextField('Descripción', null=True, blank=True)
 
     def __str__(self):

@@ -1,7 +1,7 @@
 # coding=utf-8
 from datetime import date, timedelta
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from django.core.management import BaseCommand
 
 from core.models import ContactProductHistory, SubscriptionProduct

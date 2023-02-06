@@ -3,12 +3,13 @@
 
 from django.http import HttpResponseRedirect
 from django.contrib.admin import SimpleListFilter
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from django.contrib import admin
 from django.urls import resolve, reverse
 
 from taggit.models import TaggedItem
-from tabbed_admin import TabbedModelAdmin
+
+# from tabbed_admin import TabbedModelAdmin
 from simple_history.admin import SimpleHistoryAdmin
 
 from community.models import ProductParticipation, Supporter
@@ -86,8 +87,8 @@ class SubscriptionProductInline(admin.TabularInline):
         is not available in the regular admin.ModelAdmin as an attribute.
         """
         resolved = resolve(request.path_info)
-        if resolved.args:
-            return self.parent_model.objects.get(pk=resolved.args[0])
+        if resolved.kwargs:
+            return self.parent_model.objects.get(pk=resolved.kwargs["object_id"])
         return None
 
     def formfield_for_foreignkey(self, db_field, request=None, **kwargs):
@@ -95,79 +96,6 @@ class SubscriptionProductInline(admin.TabularInline):
         if db_field.name == "address":
             if request:
                 contact = self.get_parent_object_from_request(request).contact
-                field.queryset = field.queryset.filter(contact=contact)
-        return field
-
-
-class SubscriptionInline(admin.StackedInline):
-    model = Subscription
-    # TODO: remove or explain the next commented line
-    # form = SubscriptionAdminForm
-    extra = 0
-    fieldsets = (
-        (
-            None,
-            {
-                "fields": (
-                    ("id", "active"),
-                    ("frequency", "status"),
-                    ("campaign",),
-                    (
-                        "type",
-                        "next_billing",
-                    ),
-                    ("edit_products_field",),
-                    ("start_date", "end_date"),
-                    ("payment_certificate"),
-                )
-            },
-        ),
-        (
-            _("Billing data"),
-            {
-                "fields": (
-                    ("payment_type"),
-                    ("billing_address", "billing_name"),
-                    ("billing_id_doc",),
-                    ("rut",),
-                    ("billing_phone", "billing_email"),
-                    ("balance", "send_bill_copy_by_email"),
-                )
-            },
-        ),
-        (
-            _("Unsubscription"),
-            {
-                "classes": ("collapse",),
-                "fields": (
-                    ("inactivity_reason", "unsubscription_date"),
-                    ("unsubscription_type", "unsubscription_requested"),
-                    ("unsubscription_products",),
-                    ("unsubscription_reason",),
-                    ("unsubscription_addendum",),
-                ),
-            },
-        ),
-    )
-    readonly_fields = ("id", "web_comments", "edit_products_field", "unsubscription_products")
-    raw_id_fields = ["campaign"]
-
-    def get_parent_object_from_request(self, request):
-        """
-        Returns the parent object from the request or None.
-        Note that this only works for Inlines, because the `parent_model`
-        is not available in the regular admin.ModelAdmin as an attribute.
-        """
-        resolved = resolve(request.path_info)
-        if resolved.args:
-            return self.parent_model.objects.get(pk=resolved.args[0])
-        return None
-
-    def formfield_for_foreignkey(self, db_field, request=None, **kwargs):
-        field = super(SubscriptionInline, self).formfield_for_foreignkey(db_field, request, **kwargs)
-        if db_field.name in ("delivery_address", "billing_address"):
-            if request:
-                contact = self.get_parent_object_from_request(request)
                 field.queryset = field.queryset.filter(contact=contact)
         return field
 
@@ -192,6 +120,7 @@ def default_newsletters_dialog_redirect(request, obj, contact_id_attr_name):
     )
 
 
+@admin.register(Subscription)
 class SubscriptionAdmin(SimpleHistoryAdmin):
     model = Subscription
     inlines = [SubscriptionProductInline]
@@ -288,17 +217,17 @@ class SupporterInline(admin.StackedInline):
     extra = 1
 
 
-class ContactAdmin(TabbedModelAdmin, SimpleHistoryAdmin):
+@admin.register(Contact)
+class ContactAdmin(SimpleHistoryAdmin):
     form = ContactAdminForm
-    tab_overview = (
-        (None, {"fields": (("name", "tags"),)}),
-        (None, {"fields": (("subtype", "id_document"),)}),
+    fieldsets = (
+        (None, {"fields": (("name", "tags", "subtype"),)}),
         (
             None,
             {
                 "fields": (
-                    ("email", "no_email"),
-                    ("phone", "mobile"),
+                    ("email", "no_email", "id_document"),
+                    ("phone", "mobile", "work_phone"),
                     ("gender", "education"),
                     ("birthdate", "private_birthdate"),
                     ("protected",),
@@ -308,22 +237,11 @@ class ContactAdmin(TabbedModelAdmin, SimpleHistoryAdmin):
             },
         ),
     )
-    tab_subscriptions = (SubscriptionInline,)
-    tab_addresses = (AddressInline,)
-    tab_newsletters = (SubscriptionNewsletterInline,)
-    tab_community = (SupporterInline, ProductParticipationInline)
-    tabs = [
-        ("Overview", tab_overview),
-        ("Subscriptions", tab_subscriptions),
-        ("Newsletters", tab_newsletters),
-        ("Address", tab_addresses),
-        ("Community", tab_community),
-    ]
     list_display = ("id", "name", "id_document", "subtype", "tag_list")
+    raw_id_fields = "subtype"
     list_filter = ("subtype", TaggitListFilter)
     ordering = ("id",)
-    raw_id_fields = ("subtype",)
-    change_form_template = "admin/core/contact/change_form.html"
+    raw_id_fields = ("subtype", "referrer")
 
     def get_queryset(self, request):
         return super(ContactAdmin, self).get_queryset(request).prefetch_related("tags")
@@ -342,6 +260,7 @@ class ContactAdmin(TabbedModelAdmin, SimpleHistoryAdmin):
         return super(ContactAdmin, self).response_change(request, obj)
 
 
+@admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
     list_display = (
         "id",
@@ -367,39 +286,44 @@ class ProductAdmin(admin.ModelAdmin):
         "temporary_discount_months",
     ]
     readonly_fields = ("slug",)
-    # TODO: explain or remove next commented line
-    # prepopulated_fields = {'slug': ('name',)}
 
 
 class PlanAdmin(admin.ModelAdmin):
     pass
 
 
+@admin.register(Address)
 class AddressAdmin(SimpleHistoryAdmin):
     raw_id_fields = ("contact", "geo_ref_address")
 
 
+@admin.register(Campaign)
 class CampaignAdmin(admin.ModelAdmin):
     pass
 
 
+@admin.register(Ocupation)
 class OcupationAdmin(admin.ModelAdmin):
     pass
 
 
+@admin.register(Institution)
 class InstitutionAdmin(admin.ModelAdmin):
     pass
 
 
+@admin.register(Variable)
 class VariableAdmin(admin.ModelAdmin):
     list_display = ("name", "value", "type")
 
 
+@admin.register(Subtype)
 class SubtypeAdmin(admin.ModelAdmin):
     list_display = ("id", "name")
     search_fields = ("name",)
 
 
+@admin.register(Activity)
 class ActivityAdmin(SimpleHistoryAdmin):
     raw_id_fields = ["contact", "issue", "seller", "campaign"]
     date_hierarchy = "datetime"
@@ -408,12 +332,14 @@ class ActivityAdmin(SimpleHistoryAdmin):
     search_fields = ("contact__id", "contact__name")
 
 
+@admin.register(ContactProductHistory)
 class ContactProductHistoryAdmin(admin.ModelAdmin):
     list_display = ("contact", "product", "date", "status")
     search_fields = ("contact__name",)
     raw_id_fields = ("contact", "subscription")
 
 
+@admin.register(ContactCampaignStatus)
 class ContactCampaignStatusAdmin(admin.ModelAdmin):
     raw_id_fields = ["contact"]
     list_display = (
@@ -431,31 +357,19 @@ class ContactCampaignStatusAdmin(admin.ModelAdmin):
     search_fields = ("contact__name",)
 
 
+@admin.register(PriceRule)
 class PriceRuleAdmin(SimpleHistoryAdmin):
     list_display = ("id", "active", "priority", "amount_to_pick", "mode", "resulting_product")
     list_editable = ("active", "priority")
     ordering = ("priority",)
 
 
+@admin.register(SubscriptionProduct)
 class SubscriptionProductAdmin(admin.ModelAdmin):
     list_display = ("subscription_id", "product", "copies", "address", "route", "order", "seller")
     raw_id_fields = ("subscription", "address", "label_contact")
 
 
-admin.site.register(Subscription, SubscriptionAdmin)
-admin.site.register(Contact, ContactAdmin)
-admin.site.register(Product, ProductAdmin)
-admin.site.register(Address, AddressAdmin)
-admin.site.register(Variable, VariableAdmin)
-admin.site.register(Campaign, CampaignAdmin)
-admin.site.register(Institution, InstitutionAdmin)
-admin.site.register(Ocupation, OcupationAdmin)
-admin.site.register(Subtype, SubtypeAdmin)
-admin.site.register(Activity, ActivityAdmin)
-admin.site.register(ContactProductHistory, ContactProductHistoryAdmin)
-admin.site.register(ContactCampaignStatus, ContactCampaignStatusAdmin)
-admin.site.register(PriceRule, PriceRuleAdmin)
-admin.site.register(SubscriptionProduct, SubscriptionProductAdmin)
 admin.site.register(DynamicContactFilter)
 admin.site.register(ProductBundle)
 admin.site.register(AdvancedDiscount)

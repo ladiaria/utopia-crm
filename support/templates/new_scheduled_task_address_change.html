@@ -33,8 +33,7 @@ $(function(){
 {% endblock %}
 
 {% block no_heading %}
-<h1>{% trans 'Support' %}</h1>
-<p>{% trans "Address change" %}</p>
+<h1><a href="{% url 'contact_list' %}">{% trans "Contacts" %}</a> &raquo; <a href="{% url 'contact_detail' contact.id %}">{{contact.id}} - {{contact.name}}</a> &raquo; {% trans "Address change" %}</h1>
 {% endblock %}
 
 {% block content %}
@@ -50,7 +49,6 @@ $(function(){
         </ul>
       </div>
       <div class="card-body">
-        <h3>{% trans 'Address change' %}: {{contact.name}}</h3>
         <form method="post">
           {% if form.errors %}
           {% for field in form %}

@@ -14,11 +14,11 @@
 {% endblock %}
 
 {% block no_heading %}
-<h1>{% trans 'Logistics' %}</h1>
+<h1>{% trans "Logistics" %} &raquo; <a href="{% url 'list_routes' %}">{% trans "All routes" %}</a> &raquo; {% trans "Change route" %} {{route.number}}</h1>
 {% endblock %}
 
 {% block title %}
-    {% trans "Change route" %} {{route.number}}
+{% trans "Change route" %}
 {% endblock title %}
 
 {% block content %}

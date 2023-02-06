@@ -5,6 +5,18 @@
 {% trans "New subscription" %}
 {% endblock %}
 
+{% block no_heading %}
+<h1><a href="{% url 'contact_list' %}">{% trans "Contacts" %}</a> &raquo; <a href="{% url 'contact_detail' contact.id %}">{{contact.id}} - {{contact.name}}</a> &raquo;
+  {% if upgrade_subscription %}
+  {% trans 'Upgrade subscription' %}
+  {% elif edit_subscription %}
+  {% trans 'Edit subscription' %}
+  {% else %}
+  {% trans 'New subscription' %}
+  {% endif %}
+</h1>
+{% endblock no_heading %}
+
 {% block extra_js %}
 <script type="text/javascript" src="{% static 'js/datepicker-es.js' %}"></script>
 <script type="text/javascript" src="{% static 'js/product_dynamic_prices.js' %}"></script>
@@ -51,9 +63,6 @@ $( function() {
 {% block extra_scripts %}{% endblock %}
 {% endblock %}
 
-{% block no_heading %}
-<h1>{% trans 'Support' %}</h1>
-{% endblock %}
 
 {% block content %}
 <div class="card">

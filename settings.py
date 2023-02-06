@@ -2,7 +2,7 @@
 # Django settings for utopia-crm project.
 import os
 import chartkick
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 LOGIN_URL = "/user/login/"
 LOGIN_REDIRECT_URL = "/"
@@ -38,7 +38,6 @@ LANGUAGES = [
     ("es", _("Spanish")),
 ]
 USE_I18N = True
-USE_L10N = True
 
 LOCALE_PATHS = (os.path.join(BASE_DIR, "locale"),)
 
@@ -180,6 +179,8 @@ BILLING_EXTRA_DAYS = 2
 # list of statuses slugs that will be used to mark the issue as finished
 ISSUE_STATUS_SOLVED = "solved"
 ISSUE_STATUS_FINISHED_LIST = [ISSUE_STATUS_SOLVED, "not-solved"]
+
+DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 
 # Import local settings if they exist
 # TODO: improve hardcoded load of community settings

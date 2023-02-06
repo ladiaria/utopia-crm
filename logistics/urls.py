@@ -8,38 +8,38 @@ from logistics.views import (
     addresses_with_complementary_information,
     )
 
-from django.conf.urls import url
+from django.urls import path, re_path
 
 urlpatterns = [
-    url(r'^assign_routes/$', assign_routes, name='assign_routes'),
-    url(r'^assign_routes_future/$', assign_routes_future, name='assign_routes_future'),
-    url(r'^change_route/$', change_route, name='change_route_default'),
-    url(r'^order_route/$', order_route_list, name='order_route_list'),
-    url(r'^order_route/(\d+)/$', order_route, name='order_route'),
-    url(r'^print_unordered_subscriptions/$', print_unordered_subscriptions, name='print_unordered_subscriptions'),
-    url(r'^change_route/(\d+)/$', change_route, name='change_route'),
-    url(r'^convert_orders_to_tens/(\d+)/$', convert_orders_to_tens, name='convert_orders_to_tens'),
-    url(r'^convert_orders_to_tens/(\d+)/(\d+)/$', convert_orders_to_tens, name='convert_orders_to_tens_by_product'),
-    url(r'^routes/$', list_routes, name='list_routes'),
-    url(r'^routes_detailed/$', list_routes_detailed, name='list_routes_detailed'),
-    url(r'^routes/(?P<route_list>\d+(,\d+)*)/$', route_details, name='route_details'),
-    url(r'^print_routes/(?P<route_list>\d+(,\d+)*)/$', print_routes_simple, name='print_routes_simple'),
-    url(r'^issues_labels/$', issues_labels, name='issues_labels'),
-    url(r'^logistics_issues_statistics/$', logistics_issues_statistics, name="logistics_issues_statistics"),
-    url(r'^issues_per_route/([^/]+)/([^/]+)/([^/]+)/$', issues_per_route, name="issues_per_route"),
-    url(r'^issues_route_list/([^/]+)/([^/]+)/$', issues_route_list, name="issues_route_list"),
+    path('assign_routes/', assign_routes, name='assign_routes'),
+    path('assign_routes_future/', assign_routes_future, name='assign_routes_future'),
+    path('change_route/', change_route, name='change_route_default'),
+    path('order_route/', order_route_list, name='order_route_list'),
+    re_path(r'^order_route/(\d+)/$', order_route, name='order_route'),
+    path('print_unordered_subscriptions/', print_unordered_subscriptions, name='print_unordered_subscriptions'),
+    re_path(r'^change_route/(\d+)/$', change_route, name='change_route'),
+    re_path(r'^convert_orders_to_tens/(\d+)/$', convert_orders_to_tens, name='convert_orders_to_tens'),
+    re_path(r'^convert_orders_to_tens/(\d+)/(\d+)/$', convert_orders_to_tens, name='convert_orders_to_tens_by_product'),
+    path('routes/', list_routes, name='list_routes'),
+    path('routes_detailed/', list_routes_detailed, name='list_routes_detailed'),
+    re_path(r'^routes/(?P<route_list>\d+(,\d+)*)/$', route_details, name='route_details'),
+    re_path(r'^print_routes/(?P<route_list>\d+(,\d+)*)/$', print_routes_simple, name='print_routes_simple'),
+    path('issues_labels/', issues_labels, name='issues_labels'),
+    path('logistics_issues_statistics/', logistics_issues_statistics, name="logistics_issues_statistics"),
+    re_path(r'^issues_per_route/([^/]+)/([^/]+)/([^/]+)/$', issues_per_route, name="issues_per_route"),
+    re_path(r'^issues_route_list/([^/]+)/([^/]+)/$', issues_route_list, name="issues_route_list"),
 
     # Label printing system
-    url(
+    re_path(
         r'^print_labels_for_product/(?P<page>Roll|SheetA4)/(?P<product_id>\d+)(/(?P<list_type>route)/(?P<route_list>\d+(,\d+)*))?/$',
         print_labels_for_product, name='print_labels_for_product'),
-    url(
+    re_path(
         r'^print_labels/(?P<page>Roll|SheetA4)(/(?P<list_type>route)/(?P<route_list>\d+(,\d+)*))?/$',
         print_labels, name='print_labels'),
-    url(r'^print_labels_from_csv/$', print_labels_from_csv, name='print_labels_from_csv'),
-    url(r'^print_labels_for_day/$', print_labels_for_day, name='print_labels_for_day'),
-    url(r'^print_labels_for_product_date/$', print_labels_for_product_date, name='print_labels_for_product_date'),
+    path('print_labels_from_csv/', print_labels_from_csv, name='print_labels_from_csv'),
+    path('print_labels_for_day/', print_labels_for_day, name='print_labels_for_day'),
+    path('print_labels_for_product_date/', print_labels_for_product_date, name='print_labels_for_product_date'),
 
-    url(r'^edition_time/(?P<direction>arrival|departure)/$', edition_time, name='edition_time'),
-    url(r'^addresses_with_complementary_information/$', addresses_with_complementary_information, name='addresses_with_complementary_information'),
+    re_path(r'^edition_time/(?P<direction>arrival|departure)/$', edition_time, name='edition_time'),
+    path('addresses_with_complementary_information/', addresses_with_complementary_information, name='addresses_with_complementary_information'),
 ]

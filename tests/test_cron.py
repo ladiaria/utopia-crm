@@ -5,13 +5,10 @@ from django.test import TestCase
 from django.core.management import call_command
 
 from core.models import Subscription
-from tests.factory import (
-    create_contact, create_subscription, create_product, create_address
-)
+from tests.factory import create_contact, create_subscription, create_product, create_address
 
 
 class TestCron(TestCase):
-
     def setUp(self):
         contact = create_contact(name="la diaria", phone="29000808")
         subscription = create_subscription(contact)
@@ -23,21 +20,21 @@ class TestCron(TestCase):
         product1 = create_product(name="newspaper", price=350)
         subscription.add_product(product1, address)
 
-    def test1_subscription_with_start_date_today_or_yesterday_should_be_activated(self):
+    def test1_subscription_with_start_date_today_should_be_activated(self):
         # We check it exists and it's inactive
         subscription = Subscription.objects.first()
         self.assertTrue(isinstance(subscription, Subscription))
         self.assertFalse(subscription.active)
-        call_command("cron")
+        call_command("activate_subscriptions_by_start_date")
         # Then we load the subscription from the database again
         subscription = Subscription.objects.first()
         self.assertTrue(subscription.active)
         # We'll disable the subscription again
         subscription.active = False
         # The activation date will be yesterday
-        subscription.start_date = date.today() - timedelta(1)
+        subscription.start_date = date.today()
         subscription.save()
-        call_command("cron")
+        call_command("activate_subscriptions_by_start_date")
         subscription = Subscription.objects.first()
         self.assertTrue(subscription.active)
 
@@ -47,13 +44,13 @@ class TestCron(TestCase):
         self.assertFalse(subscription.active)
         subscription.start_date = date.today() - timedelta(3)
         subscription.save()
-        call_command("cron")
+        call_command("activate_subscriptions_by_start_date")
         # Then we load the subscription from the database again
         subscription = Subscription.objects.first()
         self.assertFalse(subscription.active)
-        subscription.start_date = date.today() + timedelta(1)
+        subscription.start_date = date.today() + timedelta(2)
         subscription.save()
-        call_command("cron")
+        call_command("activate_subscriptions_by_start_date")
         # Then we load the subscription from the database again
         subscription = Subscription.objects.first()
         self.assertFalse(subscription.active)
@@ -64,7 +61,7 @@ class TestCron(TestCase):
         self.assertFalse(subscription.active)
         subscription.end_date = date.today()
         subscription.save()
-        call_command("cron")
+        call_command("activate_subscriptions_by_start_date")
         # Then we load the subscription from the database again
         subscription = Subscription.objects.first()
         self.assertFalse(subscription.active)
@@ -79,7 +76,7 @@ class TestCron(TestCase):
         subscription.start_date = date.today() - timedelta(30)
         subscription.end_date = date.today() - timedelta(1)
         subscription.save()
-        call_command("cron")
+        call_command("disable_subscriptions_by_end_date")
         # Then we load the subscription from the database again
         subscription = Subscription.objects.first()
         self.assertFalse(subscription.active)
