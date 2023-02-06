@@ -40,6 +40,7 @@ from core.models import (
     SubscriptionNewsletter,
     Subtype,
     DynamicContactFilter,
+    DoNotCallNumber,
 )
 from core.choices import CAMPAIGN_RESOLUTION_REASONS_CHOICES
 
@@ -3107,4 +3108,26 @@ def history_extended(request, contact_id):
             "subscriptions_history_dict": subscriptions_history_dict,
             "issues_history_dict": issues_history_dict,
         },
+    )
+
+
+@staff_member_required
+def upload_do_not_call_numbers(request):
+    if request.FILES:
+        decoded_file = request.FILES.get("do_not_call_numbers").read().decode("utf-8").splitlines()
+        numbers = csv.reader(decoded_file)
+        if numbers:
+            # Remove both headers
+            next(numbers)
+            next(numbers)
+
+            DoNotCallNumber.delete_all_numbers()
+            DoNotCallNumber.upload_new_numbers(numbers)
+
+            messages.success(request, _("Numbers have been uploaded successfully."))
+            return HttpResponseRedirect("/")
+
+    return render(
+        request,
+        "upload_do_not_call_numbers.html",
     )

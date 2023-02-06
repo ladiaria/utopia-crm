@@ -95,19 +95,20 @@ function validateHhMm(inputField) {
                         {% if contact.phone %}
                         <tr>
                             <td><i class="fas fa-phone"></i> {% trans "Phone" %}:</td>
-                            <td>{{ contact.phone|sip }}</td>
+                            <td>{{ contact.phone|sip }} {% if contact.do_not_call_phone %}<span class="alert alert-danger">Teléfono en registro de no llamar</span>{% endif %}</td>
+                            
                         </tr>
                         {% endif %}
                         {% if contact.work_phone %}
                         <tr>
                             <td><i class="fas fa-phone"></i> {% trans "Work phone" %}:</td>
-                            <td>{{ contact.work_phone|sip }}</td>
+                            <td>{{ contact.work_phone|sip }} {% if contact.do_not_call_work_phone %}<span class="alert alert-danger">Teléfono en registro de no llamar</span>{% endif %}</td>
                         </tr>
                         {% endif %}
                         {% if contact.mobile %}
                         <tr>
                             <td><i class="fas fa-mobile-alt"></i> {% trans "Mobile" %}:</td>
-                            <td>{{ contact.mobile|sip }}</td>
+                            <td>{{ contact.mobile|sip }} {% if contact.do_not_call_mobile %}<span class="alert alert-danger">Teléfono en registro de no llamar</span>{% endif %}</td>
                         </tr>
                         {% endif %}
                         {% if contact.email %}

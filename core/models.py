@@ -581,6 +581,21 @@ class Contact(models.Model):
                 result.append(product_slug)
         return result
 
+    def do_not_call(self, phone_att="phone"):
+        number = getattr(self, phone_att, None)
+        if number and DoNotCallNumber.objects.filter(number__contains=number[-8:]).exists():
+            return True
+        return False
+
+    def do_not_call_phone(self):
+        return self.do_not_call("phone")
+
+    def do_not_call_work_phone(self):
+        return self.do_not_call("work_phone")
+
+    def do_not_call_mobile(self):
+        return self.do_not_call("mobile")
+
     class Meta:
         verbose_name = _("contact")
         verbose_name_plural = _("contacts")
@@ -1876,3 +1891,24 @@ class AdvancedDiscount(models.Model):
         else:
             value = "${}".format(self.value)
         return "{} ({})".format(self.discount_product.name, value)
+
+
+class DoNotCallNumber(models.Model):
+    number = models.CharField(max_length=20, primary_key=True)
+
+    @staticmethod
+    def delete_all_numbers():
+        DoNotCallNumber.objects.all().delete()
+
+    @staticmethod
+    def upload_new_numbers(numbers_list):
+        objs = []
+        for number in numbers_list:
+            objs.append(DoNotCallNumber(number=number[0]))
+        DoNotCallNumber.objects.bulk_create(objs)
+
+    def __str__(self):
+        return self.number
+
+    class Meta:
+        ordering = ["number"]

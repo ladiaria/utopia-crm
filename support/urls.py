@@ -48,6 +48,7 @@ from support.views import (
     release_seller_contacts,
     scheduled_task_filter,
     edit_address_complementary_information,
+    upload_do_not_call_numbers,
 )
 
 from django.urls import path, re_path
@@ -145,4 +146,5 @@ urlpatterns = [
     path("release_seller_contacts/", release_seller_contacts, name="release_seller_contacts"),
     re_path(r"^release_seller_contacts/(\d+)/$", release_seller_contacts, name="release_seller_contacts"),
     path("scheduled_task_filter/", scheduled_task_filter, name="scheduled_task_filter"),
+    path("upload_do_not_call_numbers/", upload_do_not_call_numbers, name="upload_do_not_call_numbers"),
 ]

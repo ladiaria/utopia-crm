@@ -41,6 +41,7 @@
 {% url "release_seller_contacts" as release_seller_contacts %}
 {% url "scheduled_task_filter" as scheduled_task_filter %}
 {% url 'addresses_with_complementary_information' as addresses_with_complementary_information %}
+{% url "upload_do_not_call_numbers" as upload_do_not_call_numbers %}
 
 <li class="nav-item">
   <a href="{{contact_list}}" class="nav-link {% if request.path == contact_list  %}active{% endif %}">{% trans "Contacts" %}</a>
@@ -80,6 +81,7 @@
     <li class="nav-item"><a href="{{campaign_statistics_list}}" class="nav-link">{% trans "Campaign statistics" %}</a></li>
     <li class="nav-item"><a href="{{seller_performance_by_time}}" class="nav-link">{% trans "Sellers performance" %}</a></li>
     <li class="nav-item"><a href="{{release_seller_contacts}}" class="nav-link">{% trans "Release seller contacts" %}</a></li>
+    <li class="nav-item"><a href="{{upload_do_not_call_numbers}}" class="nav-link">{% trans "Upload do not call list" %}</a></li>
     {% include_if_exists "campaign_management_sidebar_extra.html" %}
   </ul>
 </li>
