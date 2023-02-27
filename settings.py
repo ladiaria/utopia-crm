@@ -2,7 +2,9 @@
 # Django settings for utopia-crm project.
 import os
 import chartkick
+
 from django.utils.translation import gettext_lazy as _
+
 
 LOGIN_URL = "/user/login/"
 LOGIN_REDIRECT_URL = "/"

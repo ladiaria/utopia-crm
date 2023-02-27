@@ -1,4 +1,4 @@
-chartkick
+chartkick<1
 django-autoslug
 django-cors-headers
 django-debug-toolbar
