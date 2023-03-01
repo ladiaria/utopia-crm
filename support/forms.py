@@ -119,6 +119,10 @@ class NewAddressChangeScheduledTaskForm(forms.Form):
         new_address_1 = self.cleaned_data.get("new_address_1")
         new_address_city = self.cleaned_data.get("new_address_city")
         new_address_state = self.cleaned_data.get("new_address_state")
+        contact_address = self.cleaned_data.get("contact_address")
+
+        if not (new_address or contact_address):
+            raise forms.ValidationError(_("Please select an existing address or create a new one."))
 
         if new_address and not (new_address_1 and new_address_city and new_address_state):
             raise forms.ValidationError(

@@ -19,6 +19,7 @@ from simple_history.models import HistoricalRecords
 
 from util import space_join
 from util.dates import get_default_next_billing, get_default_start_date, diff_month
+from .managers import ProductManager
 from .choices import (
     ACTIVITY_DIRECTION_CHOICES,
     ACTIVITY_STATUS_CHOICES,
@@ -157,6 +158,7 @@ class Product(models.Model):
     edition_frequency = models.IntegerField(default=None, choices=PRODUCT_EDITION_FREQUENCY, null=True, blank=True)
     temporary_discount_months = models.PositiveSmallIntegerField(null=True, blank=True)
     old_pk = models.PositiveIntegerField(blank=True, null=True)
+    objects = ProductManager()
 
     def __str__(self):
         name = self.name
@@ -165,7 +167,7 @@ class Product(models.Model):
         return "%s" % name
 
     def natural_key(self):
-        return self.slug
+        return (self.slug, )
 
     def get_type(self):
         """
@@ -579,6 +581,21 @@ class Contact(models.Model):
                 result.append(product_slug)
         return result
 
+    def do_not_call(self, phone_att="phone"):
+        number = getattr(self, phone_att, None)
+        if number and DoNotCallNumber.objects.filter(number__contains=number[-8:]).exists():
+            return True
+        return False
+
+    def do_not_call_phone(self):
+        return self.do_not_call("phone")
+
+    def do_not_call_work_phone(self):
+        return self.do_not_call("work_phone")
+
+    def do_not_call_mobile(self):
+        return self.do_not_call("mobile")
+
     class Meta:
         verbose_name = _("contact")
         verbose_name_plural = _("contacts")
@@ -634,7 +651,7 @@ class Address(models.Model):
     # TODO: validate there is only one default address per contact
 
     def __str__(self):
-        return f"{self.address_1 or ''} {self.address_2 or ''} {self.city or ''} {self.state or ''}"
+        return ' '.join(filter(None, (self.address_1, self.address_2, self.city, self.state)))
 
     def get_type(self):
         """
@@ -1862,3 +1879,24 @@ class AdvancedDiscount(models.Model):
         else:
             value = "${}".format(self.value)
         return "{} ({})".format(self.discount_product.name, value)
+
+
+class DoNotCallNumber(models.Model):
+    number = models.CharField(max_length=20, primary_key=True)
+
+    @staticmethod
+    def delete_all_numbers():
+        DoNotCallNumber.objects.all().delete()
+
+    @staticmethod
+    def upload_new_numbers(numbers_list):
+        objs = []
+        for number in numbers_list:
+            objs.append(DoNotCallNumber(number=number[0]))
+        DoNotCallNumber.objects.bulk_create(objs)
+
+    def __str__(self):
+        return self.number
+
+    class Meta:
+        ordering = ["number"]
