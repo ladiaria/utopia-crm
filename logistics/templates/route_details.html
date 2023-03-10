@@ -53,11 +53,11 @@
                 <td>{% if sp.subscription.has_friday %}*{% endif %}</td>
                 <td>{% if sp.subscription.has_weekend %}{% trans "Yes" %}{% else %}{% trans "No" %}{% endif %}</td>
                 {% endautoescape %}
-                {% ifnotequal sp.copies 1 %}
+                {% if sp.copies != 1 %}
                     <td><strong>{{ sp.copies }}</strong></td>
                 {% else %}
                     <td></td>
-                {% endifnotequal %}
+                {% endif %}
                 {% if sp.subscription.start_date > one_month_ago %}
                     <td>*</td>
                 {% else %}
