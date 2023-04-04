@@ -4,7 +4,7 @@ from datetime import date
 from django.db import models
 from django.conf import settings
 from django.contrib.auth.models import User
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from autoslug import AutoSlugField
 from core.models import Campaign
 
@@ -61,7 +61,7 @@ class Issue(models.Model):
     """
 
     date_created = models.DateField(auto_now_add=True)
-    contact = models.ForeignKey("core.Contact", verbose_name=_("Contact"))
+    contact = models.ForeignKey("core.Contact", on_delete=models.CASCADE, verbose_name=_("Contact"))
     date = models.DateField(default=date.today, verbose_name=_("Date"))
     category = models.CharField(max_length=1, blank=True, null=True, choices=ISSUE_CATEGORIES)
     subcategory = models.CharField(max_length=3, blank=True, null=True, choices=ISSUE_SUBCATEGORIES)
@@ -94,10 +94,10 @@ class Issue(models.Model):
     subscription_product = models.ForeignKey(
         "core.SubscriptionProduct", null=True, blank=True, on_delete=models.SET_NULL
     )
-    subscription = models.ForeignKey("core.Subscription", null=True, blank=True)
-    product = models.ForeignKey("core.Product", null=True, blank=True)
-    address = models.ForeignKey("core.Address", null=True, blank=True)
-    envelope = models.NullBooleanField(default=False, verbose_name=_("Envelope"))
+    subscription = models.ForeignKey("core.Subscription", on_delete=models.CASCADE, null=True, blank=True)
+    product = models.ForeignKey("core.Product", on_delete=models.CASCADE, null=True, blank=True)
+    address = models.ForeignKey("core.Address", on_delete=models.CASCADE, null=True, blank=True)
+    envelope = models.BooleanField(default=False, verbose_name=_("Envelope"), null=True)
     history = HistoricalRecords()
 
     class Meta:
@@ -170,13 +170,13 @@ class ScheduledTask(models.Model):
     Description: This is used to execute certain tasks in the future, it replaces events
     """
 
-    contact = models.ForeignKey("core.Contact", verbose_name=_("Contact"))
+    contact = models.ForeignKey("core.Contact", on_delete=models.CASCADE, verbose_name=_("Contact"))
     category = models.CharField(max_length=2, choices=SCHEDULED_TASK_CATEGORIES, verbose_name=_("Type"))
-    address = models.ForeignKey("core.Address", verbose_name=_("Address"), null=True, blank=True)
+    address = models.ForeignKey("core.Address", on_delete=models.CASCADE, verbose_name=_("Address"), null=True, blank=True)
     completed = models.BooleanField(default=False, verbose_name=_("Completed"))
     execution_date = models.DateField(verbose_name=_("Date of execution"))
 
-    subscription = models.ForeignKey("core.Subscription", blank=True, null=True)
+    subscription = models.ForeignKey("core.Subscription", on_delete=models.CASCADE, blank=True, null=True)
     subscription_products = models.ManyToManyField("core.SubscriptionProduct")
 
     creation_date = models.DateField(auto_now_add=True, verbose_name=_("Creation date"))

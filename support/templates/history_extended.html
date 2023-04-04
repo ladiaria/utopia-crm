@@ -4,15 +4,7 @@
 {% block title %}{{contact.name}} - {% trans "Extended history" %}{% endblock title %}
 
 {% block no_heading %}
-<div class="d-flex justify-content-between m-2 col">
-  <div>
-    <h1>{{contact.name}}</h1>
-    <p>{% trans 'History' %}</p>
-  </div>
-  <div>
-    <a href="{% url 'contact_detail' contact.id %}" class="btn btn-primary">{% trans "Go back" %}</a>
-  </div>
-</div>
+<h1><a href="{% url 'contact_list' %}">{% trans "Contacts" %}</a> &raquo; <a href="{% url 'contact_detail' contact.id %}">{{contact.id}} - {{contact.name}}</a> &raquo; {% trans "History" %} </h1>
 {% endblock %}
 
 {% block content %}

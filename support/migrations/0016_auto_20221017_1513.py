@@ -35,7 +35,7 @@ class Migration(migrations.Migration):
                 ('next_action_date', models.DateField(blank=True, null=True)),
                 ('closing_date', models.DateField(blank=True, null=True)),
                 ('copies', models.PositiveSmallIntegerField(default=0)),
-                ('envelope', models.NullBooleanField(default=False, verbose_name='Envelope')),
+                ('envelope', models.BooleanField(default=False, verbose_name='Envelope', null=True)),
                 ('history_id', models.AutoField(primary_key=True, serialize=False)),
                 ('history_date', models.DateTimeField()),
                 ('history_change_reason', models.CharField(max_length=100, null=True)),

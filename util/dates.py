@@ -1,7 +1,7 @@
 import calendar
 from datetime import date, datetime, timedelta
 from time import localtime
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 
 def add_business_days(from_date, add_days):

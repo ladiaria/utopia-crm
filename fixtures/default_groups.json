@@ -117,16 +117,6 @@
         "subscriptionproduct"
       ],
       [
-        "change_invoicecopy",
-        "invoicing",
-        "invoice"
-      ],
-      [
-        "change_invoiceitemcopy",
-        "invoicing",
-        "invoiceitem"
-      ],
-      [
         "add_issue",
         "support",
         "issue"

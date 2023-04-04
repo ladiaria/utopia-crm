@@ -15,6 +15,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='issue',
             name='envelope',
-            field=models.NullBooleanField(default=False, verbose_name='Envelope'),
+            field=models.BooleanField(default=False, verbose_name='Envelope', null=True),
         ),
     ]

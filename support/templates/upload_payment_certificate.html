@@ -1,23 +1,13 @@
 {% extends 'adminlte/base.html' %}
 {% load static i18n widget_tweaks %}
 
-{% block title %}{% trans "Edit envelopes" %}{% endblock title %}
+{% block title %}{% trans "Upload payment certificate" %}{% endblock title %}
 
+{% block no_heading %}
+<h1><a href="{% url 'contact_list' %}">{% trans "Contacts" %}</a> &raquo; <a href="{% url 'contact_detail' subscription.contact.id %}">{{subscription.contact.id}} - {{subscription.contact.name}}</a> &raquo; {% trans "Upload payment certificate" %} </h1>
+{% endblock no_heading %}
 
 {% block content %}
-<section class="content-header">
-  <div class="container-fluid">
-    <div class="row mb-2">
-      <div class="col-sm-12">
-        <h2>
-        {% blocktrans with subscription_id=subscription.id name=subscription.contact.name %}
-            Upload payment certificate for subscription id {{subscription_id}} for contact {{name}}
-        {% endblocktrans %}
-        </h2>
-      </div>
-    </div>
-  </div>
-</section>
 <section class="content">
   <div class="container-fluid">
     <div class="row">

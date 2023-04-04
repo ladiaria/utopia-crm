@@ -1,30 +1,24 @@
 # coding=utf-8
-
 from datetime import date
-
-from django.db import models
-from django.utils.translation import ugettext_lazy as _
-from django.db.models import Sum, Q
-from django.contrib.auth.models import User
-from django.conf import settings
 
 from simple_history.models import HistoricalRecords
 
+from django.conf import settings
+from django.db import models
+from django.db.models import Sum, Q
+from django.contrib.auth.models import User
+from django.utils.translation import gettext_lazy as _
+
 from core.models import Subscription, Contact
-from invoicing.choices import (
-    INVOICEITEM_TYPE_CHOICES,
-    INVOICEITEM_DR_TYPE_CHOICES,
-    BILLING_STATUS,
-)
+from invoicing.choices import INVOICEITEM_TYPE_CHOICES, INVOICEITEM_DR_TYPE_CHOICES, BILLING_STATUS
 
 
 class Invoice(models.Model):
-    contact = models.ForeignKey("core.Contact")
+    contact = models.ForeignKey("core.Contact", on_delete=models.CASCADE)
     creation_date = models.DateField()
     expiration_date = models.DateField()
     service_from = models.DateField()
     service_to = models.DateField()
-
     balance = models.DecimalField(_("Balance"), max_digits=10, decimal_places=2, blank=True, null=True)
     amount = models.DecimalField(_("Amount"), max_digits=10, decimal_places=2, blank=True, null=True)
     payment_type = models.CharField(_("Payment type"), max_length=2, choices=settings.INVOICE_PAYMENT_METHODS)
@@ -38,7 +32,6 @@ class Invoice(models.Model):
     uncollectible = models.BooleanField(_("Uncollectible"), default=False)
     subscription = models.ForeignKey("core.Subscription", blank=True, null=True, on_delete=models.SET_NULL)
     print_date = models.DateField(null=True, blank=True)
-
     uuid = models.CharField(max_length=36, editable=False, blank=True, null=True)
     serie = models.CharField(max_length=1, editable=False, blank=True, null=True)
     numero = models.PositiveIntegerField(editable=False, blank=True, null=True)
@@ -156,7 +149,7 @@ class InvoiceCopy(Invoice):
 
 
 class InvoiceItem(models.Model):
-    invoice = models.ForeignKey(Invoice, blank=True, null=True)
+    invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, blank=True, null=True)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     product = models.ForeignKey("core.Product", blank=True, null=True, on_delete=models.SET_NULL)
     subscription = models.ForeignKey("core.Subscription", blank=True, null=True, on_delete=models.SET_NULL)
@@ -194,11 +187,11 @@ class InvoiceItemCopy(InvoiceItem):
 class Billing(models.Model):
     start = models.DateTimeField(auto_now_add=True)
     end = models.DateTimeField(null=True, blank=True)
-    created_by = models.ForeignKey(User, blank=True, null=True, related_name="created_by")
-    started_by = models.ForeignKey(User, blank=True, null=True, related_name="started_by")
-    product = models.ForeignKey("core.Product", blank=True, null=True)
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE, blank=True, null=True, related_name="created_by")
+    started_by = models.ForeignKey(User, on_delete=models.CASCADE, blank=True, null=True, related_name="started_by")
+    product = models.ForeignKey("core.Product", on_delete=models.CASCADE, blank=True, null=True)
     payment_type = models.CharField(
-        max_length=1,
+        max_length=2,
         choices=settings.SUBSCRIPTION_PAYMENT_METHODS,
         null=True,
         blank=True,
@@ -264,7 +257,7 @@ class CreditNote(models.Model):
     Esto modela las notas de crédito necesarias para la factura electrónica.
     """
 
-    invoice = models.ForeignKey(Invoice)
+    invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE)
     uuid = models.CharField(max_length=36, blank=True, null=True)
     serie = models.CharField(max_length=1, editable=False, blank=True, null=True)
     numero = models.PositiveIntegerField(editable=False, blank=True, null=True)

@@ -116,11 +116,11 @@
                             <td>{{ factura.fecha_vencimiento }}</td>
                             <td>{{ factura.importe }}</td>
                             <td>{{ factura.metodo_pago }}</td>
-                            {% ifequal factura.estado "paga" %}
+                            {% if factura.estado == "paga" %}
                               <td class="paga">{% trans "PAID" %} {{ factura.fecha_pago }}</td>
                             {% else %}
                               <td class="{{ factura.estado }}">{{ factura.estado }}</td>
-                            {% endifequal %}
+                            {% endif %}
                         </tr>
                     {% endfor %}
                   </table>

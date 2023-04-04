@@ -30,7 +30,7 @@ $(function(){
 {% endblock %}
 
 {% block no_heading %}
-<h1>{% trans 'Logistics' %}</h1>
+<h1>{% trans "Logistics" %} &raquo; <a href="{% url 'list_routes' %}">{% trans "All routes" %}</a> &raquo; {% trans "Order route" %} {{route.number}}</h1>
 {% endblock %}
 
 {% block title %}

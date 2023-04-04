@@ -10,7 +10,7 @@ from django.core.validators import RegexValidator, MinValueValidator, MaxValueVa
 from django.db import models
 from django.db.models import Q, Sum, Count
 from django.forms import ValidationError
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from django_extensions.db.fields import AutoSlugField
 from django.utils.html import mark_safe
 
@@ -610,6 +610,7 @@ class Address(models.Model):
 
     contact = models.ForeignKey(
         Contact,
+        on_delete=models.CASCADE,
         blank=True,
         null=True,
         verbose_name=_("Contact"),
@@ -639,6 +640,7 @@ class Address(models.Model):
     default = models.BooleanField(default=False, verbose_name=_("Default"))
     geo_ref_address = models.ForeignKey(
         "logistics.GeorefAddress",
+        on_delete=models.CASCADE,
         blank=True,
         null=True,
         verbose_name=_("GeorefAddress"),
@@ -672,8 +674,8 @@ class SubscriptionProduct(models.Model):
     is delivered, and route/order.
     """
 
-    product = models.ForeignKey("core.Product")
-    subscription = models.ForeignKey("core.Subscription")
+    product = models.ForeignKey("core.Product", on_delete=models.CASCADE, null=True)
+    subscription = models.ForeignKey("core.Subscription", on_delete=models.CASCADE)
     copies = models.PositiveSmallIntegerField(default=1)
     address = models.ForeignKey("core.Address", blank=True, null=True, on_delete=models.SET_NULL)
     route = models.ForeignKey(
@@ -711,8 +713,8 @@ class SubscriptionNewsletter(models.Model):
     inside of the same contact. So one contact can only have one set of newsletters which they will receive.
     """
 
-    product = models.ForeignKey("core.Product", limit_choices_to={"type": "N"})
-    contact = models.ForeignKey("core.Contact")
+    product = models.ForeignKey("core.Product", on_delete=models.CASCADE, limit_choices_to={"type": "N"})
+    contact = models.ForeignKey("core.Contact", on_delete=models.CASCADE)
     active = models.BooleanField(default=True)
 
 
@@ -727,7 +729,9 @@ class Subscription(models.Model):
         "core.Campaign", blank=True, null=True, verbose_name=_("Campaign"), on_delete=models.SET_NULL
     )
     active = models.BooleanField(default=True, verbose_name=_("Active"))
-    contact = models.ForeignKey(Contact, verbose_name=_("Contact"), related_name="subscriptions")
+    contact = models.ForeignKey(
+        Contact, on_delete=models.CASCADE, verbose_name=_("Contact"), related_name="subscriptions"
+    )
     type = models.CharField(max_length=1, default="N", choices=SUBSCRIPTION_TYPE_CHOICES)
     status = models.CharField(default="OK", max_length=2, choices=SUBSCRIPTION_STATUS_CHOICES)
 
@@ -756,8 +760,8 @@ class Subscription(models.Model):
         on_delete=models.SET_NULL,
     )
     billing_email = models.EmailField(blank=True, null=True, verbose_name=_("Billing email"))
-    envelope = models.NullBooleanField(default=False, verbose_name=_("Envelope"))
-    free_envelope = models.NullBooleanField(default=False, verbose_name=_("Free envelope"))
+    envelope = models.BooleanField(default=False, verbose_name=_("Envelope"), null=True)
+    free_envelope = models.BooleanField(default=False, verbose_name=_("Free envelope"), null=True)
     start_date = models.DateField(blank=True, null=True, default=get_default_start_date, verbose_name=_("Start date"))
     end_date = models.DateField(blank=True, null=True, verbose_name=_("End date"))
     next_billing = models.DateField(
@@ -768,7 +772,9 @@ class Subscription(models.Model):
     inactivity_reason = models.IntegerField(
         choices=INACTIVITY_REASONS, blank=True, null=True, verbose_name=_("Inactivity reason")
     )
-    pickup_point = models.ForeignKey("logistics.PickupPoint", blank=True, null=True, verbose_name=_("Pickup point"))
+    pickup_point = models.ForeignKey(
+        "logistics.PickupPoint", on_delete=models.CASCADE, blank=True, null=True, verbose_name=_("Pickup point")
+    )
 
     # Unsubscription
     unsubscription_date = models.DateField(blank=True, null=True, verbose_name=_("Unsubscription date"))
@@ -1548,11 +1554,15 @@ class Activity(models.Model):
     visits or comments on a website.
     """
 
-    contact = models.ForeignKey(Contact, null=True, blank=True)
-    campaign = models.ForeignKey(Campaign, null=True, blank=True)
-    product = models.ForeignKey(Product, null=True, blank=True)
-    seller = models.ForeignKey("support.Seller", blank=True, null=True, verbose_name=_("Seller"))
-    issue = models.ForeignKey("support.Issue", blank=True, null=True, verbose_name=_("Issue"))
+    contact = models.ForeignKey(Contact, on_delete=models.CASCADE, null=True, blank=True)
+    campaign = models.ForeignKey(Campaign, on_delete=models.CASCADE, null=True, blank=True)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, null=True, blank=True)
+    seller = models.ForeignKey(
+        "support.Seller", on_delete=models.CASCADE, blank=True, null=True, verbose_name=_("Seller")
+    )
+    issue = models.ForeignKey(
+        "support.Issue", on_delete=models.CASCADE, blank=True, null=True, verbose_name=_("Issue")
+    )
     datetime = models.DateTimeField(blank=True, null=True)
     asap = models.BooleanField(default=False)
     notes = models.TextField(blank=True, null=True)
@@ -1612,9 +1622,9 @@ class ContactProductHistory(models.Model):
           when the subscription is deleted (with the on_cascade option).
     """
 
-    contact = models.ForeignKey(Contact)
+    contact = models.ForeignKey(Contact, on_delete=models.CASCADE)
     subscription = models.ForeignKey(Subscription, null=True, blank=True, on_delete=models.SET_NULL)
-    product = models.ForeignKey(Product)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
     campaign = models.ForeignKey(Campaign, null=True, blank=True, on_delete=models.SET_NULL)
     status = models.CharField(max_length=1, choices=PRODUCTHISTORY_CHOICES)
     seller = models.ForeignKey(
@@ -1638,11 +1648,11 @@ class ContactCampaignStatus(models.Model):
     Controls what's the status of a contact inside of a campaign, so we can take statistics of them in the future.
     """
 
-    contact = models.ForeignKey(Contact)
-    campaign = models.ForeignKey(Campaign)
+    contact = models.ForeignKey(Contact, on_delete=models.CASCADE)
+    campaign = models.ForeignKey(Campaign, on_delete=models.CASCADE)
     status = models.SmallIntegerField(choices=CAMPAIGN_STATUS_CHOICES, default=1)
     campaign_resolution = models.CharField(choices=CAMPAIGN_RESOLUTION_CHOICES, null=True, blank=True, max_length=2)
-    seller = models.ForeignKey("support.Seller", null=True, blank=True)
+    seller = models.ForeignKey("support.Seller", on_delete=models.CASCADE, null=True, blank=True)
     date_created = models.DateField(auto_now_add=True)
     date_assigned = models.DateField(null=True, blank=True)
     last_action_date = models.DateField(auto_now=True)
@@ -1707,6 +1717,7 @@ class PriceRule(models.Model):
     # Select one product from the pool that will be replaced. This is only used in the 'replace one' mode.
     choose_one_product = models.ForeignKey(
         Product,
+        on_delete=models.CASCADE,
         null=True,
         blank=True,
         related_name="chosen_product",
@@ -1720,6 +1731,7 @@ class PriceRule(models.Model):
     # not_pool so you make sure you add the specific product you want.
     resulting_product = models.ForeignKey(
         Product,
+        on_delete=models.CASCADE,
         null=True,
         blank=True,
         related_name="resulting_product",
@@ -1792,7 +1804,7 @@ class DynamicContactFilter(models.Model):
                 contact__invoice__uncollectible=False,
             ).prefetch_related("contact__invoice_set")
             if self.debtor_contacts == 1:
-                subscriptions = subscriptions.difference(only_debtors)
+                subscriptions = subscriptions.exclude(pk__in=only_debtors.values('pk'))
             elif self.debtor_contacts == 2:
                 subscriptions = only_debtors
         if self.mode == 1:
@@ -1867,7 +1879,7 @@ class ProductBundle(models.Model):
 
 
 class AdvancedDiscount(models.Model):
-    discount_product = models.ForeignKey(Product, related_name="discount")
+    discount_product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="discount", null=True)
     find_products = models.ManyToManyField(Product, related_name="find_products_discount")
     products_mode = models.PositiveSmallIntegerField(choices=DISCOUNT_PRODUCT_MODE_CHOICES)
     value_mode = models.PositiveSmallIntegerField(choices=DISCOUNT_VALUE_MODE_CHOICES)
