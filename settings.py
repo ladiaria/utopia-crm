@@ -95,12 +95,10 @@ INSTALLED_APPS = (
     "django.contrib.gis",
     # Extra Django apps
     "taggit",
-    "admin_honeypot",
     "corsheaders",
     "rest_framework",
     "rest_framework.authtoken",
     "django_filters",
-    "rosetta",
     "widget_tweaks",
     "simple_history",
     # crm apps enabled
