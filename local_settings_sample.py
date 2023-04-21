@@ -47,14 +47,11 @@ if DEBUG:
         "debug_toolbar",
         # Extra Django apps
         "taggit",
-        "admin_honeypot",
         "corsheaders",
         "rest_framework",
         "rest_framework.authtoken",
         "django_filters",
-        "rosetta",
         "widget_tweaks",
-        "tabbed_admin",
         # crm apps enabled
         "core",
         "support",
@@ -62,9 +59,6 @@ if DEBUG:
         "community",
         "invoicing",
     )
-else:
-    # Use your own installed apps here if you need different settings
-    pass
 
 # Replace with your own allowed hosts.
 ALLOWED_HOSTS = ["localhost"]
