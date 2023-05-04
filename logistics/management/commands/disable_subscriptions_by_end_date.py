@@ -7,7 +7,8 @@ from core.models import Subscription
 
 
 class Command(BaseCommand):
-    help = u'Ends subscriptions that have reached their end date. It\'s meant to be ran the day before the end date.'
+    help = """Ends subscriptions that have reached their end date.
+        It's executed at 20:40 so it's meant to disable things from today or less."""
 
     def handle(self, *args, **options):
         # Deactivate all ended subscriptions
@@ -15,7 +16,7 @@ class Command(BaseCommand):
 
         ended_subscriptions = Subscription.objects.filter(
             active=True,
-            end_date__lte=date.today() - timedelta(1),
+            end_date__lte=date.today(),
         )
         if verbose3:
             print("Starting process of ending subscriptions that have reached their end date...")
