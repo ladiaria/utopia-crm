@@ -657,8 +657,8 @@ class Address(models.Model):
     state_id = models.IntegerField(null=True, blank=True)
     city_id = models.IntegerField(null=True, blank=True)
     georef_point = gismodels.PointField(blank=True, null=True)
-    latitude = models.DecimalField(null=True, max_digits=10, decimal_places=6)
-    longitude = models.DecimalField(null=True, max_digits=10, decimal_places=6)
+    latitude = models.DecimalField(null=True, blank=True, max_digits=10, decimal_places=6)
+    longitude = models.DecimalField(null=True, blank=True, max_digits=10, decimal_places=6)
 
     def __str__(self):
         return ' '.join(filter(None, (self.address_1, self.address_2, self.city, self.state)))
