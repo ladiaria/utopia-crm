@@ -6,6 +6,7 @@ from django.contrib.admin import SimpleListFilter
 from django.utils.translation import gettext_lazy as _
 from django.contrib import admin
 from django.urls import resolve, reverse
+from leaflet.admin import LeafletGeoAdmin
 
 from taggit.models import TaggedItem
 
@@ -293,7 +294,7 @@ class PlanAdmin(admin.ModelAdmin):
 
 
 @admin.register(Address)
-class AddressAdmin(SimpleHistoryAdmin):
+class AddressAdmin(SimpleHistoryAdmin, LeafletGeoAdmin):
     raw_id_fields = ("contact", "geo_ref_address")
 
 
