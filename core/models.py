@@ -596,6 +596,12 @@ class Contact(models.Model):
     def do_not_call_mobile(self):
         return self.do_not_call("mobile")
 
+    def date_of_first_invoice(self):
+        if self.invoice_set.exists():
+            return self.invoice_set.first().creation_date
+        else:
+            return None
+
     class Meta:
         verbose_name = _("contact")
         verbose_name_plural = _("contacts")
