@@ -676,11 +676,11 @@ class Address(models.Model):
         """
         types = dict(ADDRESS_TYPE_CHOICES)
         return types.get(self.address_type, "N/A")
-    
+
     def add_note(self, note):
         self.notes = self.notes + f"{note}" if not self.notes else self.notes + f"\n{note}"
         self.save()
-    
+
     def save(self, *args, **kwargs):
         if self.latitude and self.longitude:
             self.georef_point = Point(float(self.longitude), float(self.latitude), srid=4326)
