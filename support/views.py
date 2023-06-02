@@ -18,6 +18,7 @@ from django.http import (
 )
 from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django.utils.text import format_lazy
 from django.views.decorators.csrf import csrf_exempt
@@ -286,15 +287,17 @@ def seller_console_list_campaigns(request):
         campaigns_with_not_contacted.append(campaign)
     for campaign in all_campaigns:
         campaign.pending = campaign.activity_set.filter(
-            seller=seller, status="P", activity_type="C", datetime__lte=datetime.now()
+            Q(campaign__end_date__isnull=True) | Q(campaign__end_date__gte=timezone.now()),
+            seller=seller,
+            status="P",
+            activity_type="C",
+            datetime__lte=timezone.now(),
         ).count()
         campaign.successful = campaign.get_successful_count(seller.id)
         if campaign.pending:
             campaigns_with_activities_to_do.append(campaign)
-    upcoming_activity = (
-        Activity.objects.filter(seller=seller, status="P", activity_type="C").order_by("datetime", "id").first()
-    )
-    total_pending_activities = Activity.objects.filter(seller=seller, status="P", activity_type="C").count()
+    upcoming_activity = seller.upcoming_activity()
+    total_pending_activities = seller.total_pending_activities_count()
     return render(
         request,
         "seller_console_list_campaigns.html",
@@ -494,12 +497,8 @@ def seller_console(request, category, campaign_id):
         url = request.META["PATH_INFO"]
         addresses = Address.objects.filter(contact=contact).order_by("address_1")
 
-        pending_activities_count = Activity.objects.filter(
-            seller=seller, status="P", activity_type="C", datetime__lte=datetime.now()
-        ).count()
-        upcoming_activity = (
-            Activity.objects.filter(seller=seller, status="P", activity_type="C").order_by("datetime", "id").first()
-        )
+        pending_activities_count = seller.total_pending_activities_count()
+        upcoming_activity = seller.upcoming_activity()
 
         other_campaigns = ContactCampaignStatus.objects.filter(contact=contact).exclude(campaign=campaign)
 
@@ -2060,7 +2059,7 @@ def scheduled_activities(request):
         seller = Seller.objects.get(user=user)
     except Seller.DoesNotExist:
         seller = None
-    activity_queryset = Activity.objects.filter(seller=seller).order_by("datetime", "id")
+    activity_queryset = seller.total_pending_activities()
     activity_filter = ScheduledActivityFilter(request.GET, activity_queryset)
     page_number = request.GET.get("p")
     paginator = Paginator(activity_filter.qs, 100)
