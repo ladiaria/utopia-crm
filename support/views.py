@@ -788,6 +788,7 @@ def new_subscription(request, contact_id):
         return HttpResponseRedirect(reverse("contact_detail", args=[contact.id]))
     elif result == _("Send"):
         url = request.GET.get("url", None)
+        offset = request.GET.get("offset", None)
         form = NewSubscriptionForm(request.POST)
         if form.is_valid():
             # First we need to save all the new contact data if necessary
@@ -928,7 +929,6 @@ def new_subscription(request, contact_id):
 
             if request.GET.get("new", None):
                 # This means this is a direct sale
-                offset = request.GET.get("offset")
                 ccs.campaign_resolution = "S2"  # this is a success with direct sale
                 ccs.status = 4  # Ended with contact
                 ccs.save()
@@ -949,7 +949,9 @@ def new_subscription(request, contact_id):
                 )
                 subscription.campaign = ccs.campaign
                 subscription.save()
-                redirect_to = "{}?offset={}".format(url, offset)
+                redirect_to = url
+                if offset:
+                    redirect_to += f"?offset={offset}"
             elif request.GET.get("act", None):
                 # This means this is a sale from an activity
                 activity.status = "C"
@@ -968,7 +970,9 @@ def new_subscription(request, contact_id):
                 ccs.save()
                 subscription.campaign = campaign
                 subscription.save()
-                redirect_to = "{}?offset={}".format(url, offset)
+                redirect_to = url
+                if offset:
+                    redirect_to += f"?offset={offset}"
             else:
                 redirect_to = reverse("contact_detail", args=[contact.id])
 
@@ -2517,6 +2521,8 @@ def product_change(request, subscription_id):
 @login_required
 def book_additional_product(request, subscription_id):
     old_subscription = get_object_or_404(Subscription, pk=subscription_id)
+    if request.POST.get("url", None):
+        from_seller_console = True
     if old_subscription.frequency != 1:
         messages.error(request, "La periodicidad de la suscripción debe ser mensual")
         return HttpResponseRedirect(reverse("contact_detail", args=[old_subscription.contact_id]))
@@ -2589,10 +2595,9 @@ def book_additional_product(request, subscription_id):
             old_subscription.unsubscription_date = date.today()
             old_subscription.unsubscription_manager = request.user
             old_subscription.save()
+            new_sub_url = reverse("new_subscription", args=[old_subscription.contact.id])
             return HttpResponseRedirect(
-                "{}?edit_subscription={}".format(
-                    reverse("new_subscription", args=[old_subscription.contact.id]), new_subscription.id
-                )
+                f"{new_sub_url}?edit_subscription={new_subscription.id}"
             )
     else:
         if old_subscription.end_date:
@@ -2602,6 +2607,7 @@ def book_additional_product(request, subscription_id):
         request,
         "book_additional_product.html",
         {
+            "from_seller_console": from_seller_console,
             "offerable_products": offerable_products,
             "subscription": old_subscription,
             "form": form,
