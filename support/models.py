@@ -2,8 +2,10 @@
 from datetime import date
 
 from django.db import models
+from django.db.models import Q
 from django.conf import settings
 from django.contrib.auth.models import User
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from autoslug import AutoSlugField
 from core.models import Campaign
@@ -37,6 +39,7 @@ class Seller(models.Model):
 
     def get_unfinished_campaigns(self):
         seller_campaigns = Campaign.objects.filter(
+            Q(end_date__isnull=True) | Q(end_date__gte=timezone.now()),
             contactcampaignstatus__seller=self,
             contactcampaignstatus__status__lt=4,
         ).distinct()
@@ -44,10 +47,36 @@ class Seller(models.Model):
 
     def get_campaigns_by_status(self, status):
         seller_campaigns = Campaign.objects.filter(
+            Q(end_date__isnull=True) | Q(end_date__gte=timezone.now()),
             contactcampaignstatus__seller=self,
             contactcampaignstatus__status__in=status,
         ).distinct()
         return seller_campaigns
+
+    def upcoming_activity(self):
+        return (
+            self.activity_set.filter(
+                Q(campaign__end_date__isnull=True) | Q(campaign__end_date__gte=timezone.now()),
+                status="P",
+                activity_type="C",
+            )
+            .order_by("datetime", "id")
+            .first()
+        )
+
+    def total_pending_activities(self):
+        return self.activity_set.filter(
+            Q(campaign__end_date__isnull=True) | Q(campaign__end_date__gte=timezone.now()),
+            status="P",
+            activity_type="C",
+        )
+
+    def total_pending_activities_count(self):
+        return self.activity_set.filter(
+            Q(campaign__end_date__isnull=True) | Q(campaign__end_date__gte=timezone.now()),
+            status="P",
+            activity_type="C",
+        ).count()
 
     class Meta:
         verbose_name = _("seller")
@@ -172,7 +201,9 @@ class ScheduledTask(models.Model):
 
     contact = models.ForeignKey("core.Contact", on_delete=models.CASCADE, verbose_name=_("Contact"))
     category = models.CharField(max_length=2, choices=SCHEDULED_TASK_CATEGORIES, verbose_name=_("Type"))
-    address = models.ForeignKey("core.Address", on_delete=models.CASCADE, verbose_name=_("Address"), null=True, blank=True)
+    address = models.ForeignKey(
+        "core.Address", on_delete=models.CASCADE, verbose_name=_("Address"), null=True, blank=True
+    )
     completed = models.BooleanField(default=False, verbose_name=_("Completed"))
     execution_date = models.DateField(verbose_name=_("Date of execution"))
 

@@ -79,6 +79,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "django_htmx.middleware.HtmxMiddleware",
     "simple_history.middleware.HistoryRequestMiddleware",
 ]
 
@@ -101,6 +102,7 @@ INSTALLED_APPS = (
     "django_filters",
     "widget_tweaks",
     "simple_history",
+    "django_htmx",
     # crm apps enabled
     "core",
     "support",
