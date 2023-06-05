@@ -103,6 +103,7 @@ INSTALLED_APPS = (
     "widget_tweaks",
     "simple_history",
     "django_htmx",
+    'markdownify.apps.MarkdownifyConfig',
     # crm apps enabled
     "core",
     "support",
