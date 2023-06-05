@@ -17,6 +17,7 @@ class TestCaseUtopia(TestCase):
         """
         Hace login de usuario con una requests.Session
         """
+        # TODO: why using verify here? (and why it uses the verify value to call the cms apis?)
         s = requests.Session()
         s.get((url or self.ss_url) + 'admin/', verify=settings.WEB_UPDATE_USER_VERIFY_SSL)
         data = {'username': user or 'admin', 'password': password or 'admin', 'this_is_the_login_form': 1}
