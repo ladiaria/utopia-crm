@@ -46,6 +46,7 @@ from support.views import (
     seller_performance_by_time,
     unsubscription_statistics,
     release_seller_contacts,
+    release_seller_contacts_by_campaign,
     scheduled_task_filter,
     edit_address_complementary_information,
     upload_do_not_call_numbers,
@@ -145,6 +146,16 @@ urlpatterns = [
     path("unsubscription_statistics/", unsubscription_statistics, name="unsubscription_statistics"),
     path("release_seller_contacts/", release_seller_contacts, name="release_seller_contacts"),
     re_path(r"^release_seller_contacts/(\d+)/$", release_seller_contacts, name="release_seller_contacts"),
+    path(
+        "release_seller_contacts_by_campaign/<int:seller_id>/",
+        release_seller_contacts_by_campaign,
+        name="release_seller_contacts_by_campaign",
+    ),
+    path(
+        "release_seller_contacts_by_campaign/<int:seller_id>/<int:campaign_id>/",
+        release_seller_contacts_by_campaign,
+        name="release_seller_contacts_by_campaign",
+    ),
     path("scheduled_task_filter/", scheduled_task_filter, name="scheduled_task_filter"),
     path("upload_do_not_call_numbers/", upload_do_not_call_numbers, name="upload_do_not_call_numbers"),
 ]

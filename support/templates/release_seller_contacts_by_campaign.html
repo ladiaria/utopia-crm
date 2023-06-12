@@ -4,7 +4,7 @@
 {% block title %}{% trans "Release contacts from sellers" %}{% endblock %}
 
 {% block no_heading %}
-<h1>Liberar contactos</h1>
+<h1><a href="{% url 'release_seller_contacts' %}">Liberar contactos</a> &raquo; {{seller.name}}</h1>
 {% endblock %}
 
 {% block content %}
@@ -16,17 +16,13 @@
     <table class="table table-bordered table-striped">
       <tr>
         <th width="auto">{% trans "Seller" %}</th>
-        <th width="10%"></th>
-        <th width="10%"></th>
+        <th width="20%"></th>
       </tr>
-      {% for seller in seller_list %}
+      {% for campaign in active_campaigns %}
         <tr class="{% cycle 'row1' 'row2' %}">
-          <td>{{ seller.name }}</td>
+          <td>{{ campaign.name }}</td>
           <td>
-            <a href="{% url 'release_seller_contacts_by_campaign' seller.id %}" class="btn btn-primary">Por campaña</a>
-          </td>
-          <td>
-            <a href="{% url 'release_seller_contacts' seller.id %}" onclick="return confirm('¿Liberar {{seller.contacts_not_worked}} contactos de {{seller.name}}? Esta acción no puede deshacerse.')" class="btn btn-primary">{% blocktrans with seller.contacts_not_worked as contacts_not_worked %}Release {{contacts_not_worked}} contacts{% endblocktrans %}</a>
+            <a href="{% url 'release_seller_contacts_by_campaign' seller.id campaign.id %}" onclick="return confirm('¿Liberar {{campaign.contacts_not_worked}} contactos de {{seller.name}}? Esta acción no puede deshacerse.')" class="btn btn-primary">{% blocktrans with campaign.contacts_not_worked as contacts_not_worked %}Release {{contacts_not_worked}} contacts{% endblocktrans %}</a>
           </td>
         </tr>
       {% endfor %}

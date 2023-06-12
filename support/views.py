@@ -1201,12 +1201,26 @@ def release_seller_contacts(request, seller_id=None):
 
     if seller_id:
         seller = get_object_or_404(Seller, pk=seller_id)
-        seller.contactcampaignstatus_set.filter(status=1).update(seller=None)
+        seller.contactcampaignstatus_set.filter(status__lt=4).update(seller=None)
+        messages.success(request, f"Los contactos de {seller} fueron liberados")
         return HttpResponseRedirect(reverse("release_seller_contacts"))
     else:
         for seller in seller_qs:
-            seller.contacts_not_worked = seller.contactcampaignstatus_set.filter(status=1).count()
+            seller.contacts_not_worked = seller.contactcampaignstatus_set.filter(status__lt=4).count()
         return render(request, "release_seller_contacts.html", {"seller_list": seller_qs})
+
+def release_seller_contacts_by_campaign(request, seller_id, campaign_id=None):
+    seller_obj = get_object_or_404(Seller, pk=seller_id)
+    active_campaigns = seller_obj.get_unfinished_campaigns()
+    if campaign_id:
+        campaign_obj = get_object_or_404(Campaign, pk=campaign_id)
+        seller_obj.contactcampaignstatus_set.filter(status__lt=4, campaign=campaign_obj).update(seller=None)
+        messages.success(request, f"Los contactos de {seller_obj} fueron liberados de la campaña {campaign_obj.name}")
+        return HttpResponseRedirect(reverse("release_seller_contacts"))
+    else:
+        for campaign in active_campaigns:
+            campaign.contacts_not_worked = campaign.contactcampaignstatus_set.filter(status__lt=4, seller=seller_obj).count()
+        return render(request, "release_seller_contacts_by_campaign.html", {"active_campaigns": active_campaigns, "seller": seller_obj})
 
 
 @login_required
