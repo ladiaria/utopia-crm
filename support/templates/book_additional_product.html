@@ -112,13 +112,6 @@ $( function() {
                 <span class="error invalid-feedback">{{form.unsubscription_addendum.errors}}</span>
               </div>
             </div>
-          </div>
-          {% if from_seller_console %}
-          <input type="hidden" name="offset" value="{{offset}}">
-          <input type="hidden" name="url" value="{{url}}">
-          <input type="hidden" name="category" value="{{category}}">
-          <input type="hidden" name="category_value" value="{{category_value}}">
-          {% endif %}
 
           <div class="form-group text-right">
             <span id="custom_error_message" class="text-danger"><small>Selecciona un producto para continuar</small></span>
