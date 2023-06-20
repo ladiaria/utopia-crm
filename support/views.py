@@ -18,6 +18,7 @@ from django.http import (
 )
 from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django.utils.text import format_lazy
 from django.views.decorators.csrf import csrf_exempt
@@ -286,15 +287,17 @@ def seller_console_list_campaigns(request):
         campaigns_with_not_contacted.append(campaign)
     for campaign in all_campaigns:
         campaign.pending = campaign.activity_set.filter(
-            seller=seller, status="P", activity_type="C", datetime__lte=datetime.now()
+            Q(campaign__end_date__isnull=True) | Q(campaign__end_date__gte=timezone.now()),
+            seller=seller,
+            status="P",
+            activity_type="C",
+            datetime__lte=timezone.now(),
         ).count()
         campaign.successful = campaign.get_successful_count(seller.id)
         if campaign.pending:
             campaigns_with_activities_to_do.append(campaign)
-    upcoming_activity = (
-        Activity.objects.filter(seller=seller, status="P", activity_type="C").order_by("datetime", "id").first()
-    )
-    total_pending_activities = Activity.objects.filter(seller=seller, status="P", activity_type="C").count()
+    upcoming_activity = seller.upcoming_activity()
+    total_pending_activities = seller.total_pending_activities_count()
     return render(
         request,
         "seller_console_list_campaigns.html",
@@ -494,12 +497,8 @@ def seller_console(request, category, campaign_id):
         url = request.META["PATH_INFO"]
         addresses = Address.objects.filter(contact=contact).order_by("address_1")
 
-        pending_activities_count = Activity.objects.filter(
-            seller=seller, status="P", activity_type="C", datetime__lte=datetime.now()
-        ).count()
-        upcoming_activity = (
-            Activity.objects.filter(seller=seller, status="P", activity_type="C").order_by("datetime", "id").first()
-        )
+        pending_activities_count = seller.total_pending_activities_count()
+        upcoming_activity = seller.upcoming_activity()
 
         other_campaigns = ContactCampaignStatus.objects.filter(contact=contact).exclude(campaign=campaign)
 
@@ -789,6 +788,7 @@ def new_subscription(request, contact_id):
         return HttpResponseRedirect(reverse("contact_detail", args=[contact.id]))
     elif result == _("Send"):
         url = request.GET.get("url", None)
+        offset = request.GET.get("offset", None)
         form = NewSubscriptionForm(request.POST)
         if form.is_valid():
             # First we need to save all the new contact data if necessary
@@ -929,7 +929,6 @@ def new_subscription(request, contact_id):
 
             if request.GET.get("new", None):
                 # This means this is a direct sale
-                offset = request.GET.get("offset")
                 ccs.campaign_resolution = "S2"  # this is a success with direct sale
                 ccs.status = 4  # Ended with contact
                 ccs.save()
@@ -950,7 +949,9 @@ def new_subscription(request, contact_id):
                 )
                 subscription.campaign = ccs.campaign
                 subscription.save()
-                redirect_to = "{}?offset={}".format(url, offset)
+                redirect_to = url
+                if offset:
+                    redirect_to += f"?offset={offset}"
             elif request.GET.get("act", None):
                 # This means this is a sale from an activity
                 activity.status = "C"
@@ -969,7 +970,9 @@ def new_subscription(request, contact_id):
                 ccs.save()
                 subscription.campaign = campaign
                 subscription.save()
-                redirect_to = "{}?offset={}".format(url, offset)
+                redirect_to = url
+                if offset:
+                    redirect_to += f"?offset={offset}"
             else:
                 redirect_to = reverse("contact_detail", args=[contact.id])
 
@@ -1198,12 +1201,26 @@ def release_seller_contacts(request, seller_id=None):
 
     if seller_id:
         seller = get_object_or_404(Seller, pk=seller_id)
-        seller.contactcampaignstatus_set.filter(status=1).update(seller=None)
+        seller.contactcampaignstatus_set.filter(status__lt=4).update(seller=None)
+        messages.success(request, f"Los contactos de {seller} fueron liberados")
         return HttpResponseRedirect(reverse("release_seller_contacts"))
     else:
         for seller in seller_qs:
-            seller.contacts_not_worked = seller.contactcampaignstatus_set.filter(status=1).count()
+            seller.contacts_not_worked = seller.contactcampaignstatus_set.filter(status__lt=4).count()
         return render(request, "release_seller_contacts.html", {"seller_list": seller_qs})
+
+def release_seller_contacts_by_campaign(request, seller_id, campaign_id=None):
+    seller_obj = get_object_or_404(Seller, pk=seller_id)
+    active_campaigns = seller_obj.get_unfinished_campaigns()
+    if campaign_id:
+        campaign_obj = get_object_or_404(Campaign, pk=campaign_id)
+        seller_obj.contactcampaignstatus_set.filter(status__lt=4, campaign=campaign_obj).update(seller=None)
+        messages.success(request, f"Los contactos de {seller_obj} fueron liberados de la campaña {campaign_obj.name}")
+        return HttpResponseRedirect(reverse("release_seller_contacts"))
+    else:
+        for campaign in active_campaigns:
+            campaign.contacts_not_worked = campaign.contactcampaignstatus_set.filter(status__lt=4, seller=seller_obj).count()
+        return render(request, "release_seller_contacts_by_campaign.html", {"active_campaigns": active_campaigns, "seller": seller_obj})
 
 
 @login_required
@@ -2060,7 +2077,7 @@ def scheduled_activities(request):
         seller = Seller.objects.get(user=user)
     except Seller.DoesNotExist:
         seller = None
-    activity_queryset = Activity.objects.filter(seller=seller).order_by("datetime", "id")
+    activity_queryset = seller.total_pending_activities()
     activity_filter = ScheduledActivityFilter(request.GET, activity_queryset)
     page_number = request.GET.get("p")
     paginator = Paginator(activity_filter.qs, 100)
@@ -2518,6 +2535,8 @@ def product_change(request, subscription_id):
 @login_required
 def book_additional_product(request, subscription_id):
     old_subscription = get_object_or_404(Subscription, pk=subscription_id)
+    if request.POST.get("url", None):
+        from_seller_console = True
     if old_subscription.frequency != 1:
         messages.error(request, "La periodicidad de la suscripción debe ser mensual")
         return HttpResponseRedirect(reverse("contact_detail", args=[old_subscription.contact_id]))
@@ -2590,10 +2609,9 @@ def book_additional_product(request, subscription_id):
             old_subscription.unsubscription_date = date.today()
             old_subscription.unsubscription_manager = request.user
             old_subscription.save()
+            new_sub_url = reverse("new_subscription", args=[old_subscription.contact.id])
             return HttpResponseRedirect(
-                "{}?edit_subscription={}".format(
-                    reverse("new_subscription", args=[old_subscription.contact.id]), new_subscription.id
-                )
+                f"{new_sub_url}?edit_subscription={new_subscription.id}"
             )
     else:
         if old_subscription.end_date:
@@ -2603,6 +2621,7 @@ def book_additional_product(request, subscription_id):
         request,
         "book_additional_product.html",
         {
+            "from_seller_console": from_seller_console,
             "offerable_products": offerable_products,
             "subscription": old_subscription,
             "form": form,

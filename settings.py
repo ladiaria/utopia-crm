@@ -105,6 +105,7 @@ INSTALLED_APPS = (
     "django_htmx",
     "leaflet",
     "djgeojson",
+    'markdownify.apps.MarkdownifyConfig',
     # crm apps enabled
     "core",
     "support",
