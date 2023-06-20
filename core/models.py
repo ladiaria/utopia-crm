@@ -665,7 +665,8 @@ class Address(models.Model):
     georef_point = gismodels.PointField(blank=True, null=True)
     latitude = models.DecimalField(null=True, blank=True, max_digits=10, decimal_places=6)
     longitude = models.DecimalField(null=True, blank=True, max_digits=10, decimal_places=6)
-    verified = models.BooleanField(default=False)
+    verified = models.BooleanField(null=True, default=False)
+    needs_georef = models.BooleanField(null=True, default=False)
 
     def __str__(self):
         return ' '.join(filter(None, (self.address_1, self.address_2, self.city, self.state)))
