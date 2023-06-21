@@ -45,6 +45,9 @@ $( function() {
         {% endif %}
       </div>
       <div class="card-body">
+        {% if new_balance %}
+        <div class="alert alert-warning m-2">Esta suscripción es {{subscription.get_frequency_display}}: Se agregará un balance de $ {{new_balance}} correspondiente a los {{days_remaining}} días restantes de la suscripción.</div>
+        {% endif %}
         <form method="post" id="form">
           {% csrf_token %}
           {% if form.errors %}
