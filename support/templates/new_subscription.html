@@ -17,6 +17,7 @@
 {% endblock no_heading %}
 
 {% block extra_js %}
+<script src="{% static 'js/htmx.min.js' %}" defer></script>
 <script type="text/javascript" src="{% static 'js/datepicker-es.js' %}"></script>
 <script type="text/javascript" src="{% static 'js/product_dynamic_prices.js' %}"></script>
 <script type="text/javascript">
@@ -209,7 +210,7 @@
       {% endblock contact_info %}
 
       <a href="#address_modal" id="add_address" data-toggle="modal" data-target="#address_modal"
-        class="btn bg-gradient-success"><i class="fas fa-plus"></i> Add new address</a>
+        class="btn bg-gradient-success" data-backdrop="false"><i class="fas fa-plus"></i> Add new address</a>
 
       {% block form_products %}
       <div class="mt-4">
@@ -269,6 +270,7 @@
   </div>
 </div>
 
+{% block address_modal %}
 <div id="address_modal" class="modal" tabindex="-1" role="dialog">
   <div class="modal-dialog" role="document">
     <div class="modal-content">
@@ -290,4 +292,5 @@
     </div>
   </div>
 </div>
+{% endblock address_modal %}
 {% endblock content %}
