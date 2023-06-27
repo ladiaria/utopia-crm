@@ -28,22 +28,6 @@
       dateFormat: 'yy-mm-dd'
     });
 
-    $("#address_form").submit(function (event) {
-      var formData = $(this).serialize();
-      event.preventDefault();
-      $.ajax({
-        method: "POST",
-        url: "/support/api_new_address/{{contact.id}}/",
-        data: formData,
-        success: handleFormSuccess,
-        error: handleFormError,
-      });
-    });
-
-    function handleFormError() {
-      console.log("error");
-    };
-
     function handleFormSuccess(data) {
       $.each(data, function (key, entry) {
         $(".address_selector").each(function () {
@@ -209,8 +193,7 @@
       </div>
       {% endblock contact_info %}
 
-      <a href="#address_modal" id="add_address" data-toggle="modal" data-target="#address_modal"
-        class="btn bg-gradient-success" data-backdrop="false"><i class="fas fa-plus"></i> Add new address</a>
+      <a href="{% url 'agregar_direccion_georef' contact.id %}?stayhere=True" id="add_address" class="btn bg-gradient-success" target="_blank"><i class="fas fa-plus"></i> Add new address</a>
 
       {% block form_products %}
       <div class="mt-4">
@@ -270,27 +253,5 @@
   </div>
 </div>
 
-{% block address_modal %}
-<div id="address_modal" class="modal" tabindex="-1" role="dialog">
-  <div class="modal-dialog" role="document">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="exampleModalLabel">{% trans 'Add new address' %}</h5>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-          <span aria-hidden="true">&times;</span>
-        </button>
-      </div>
-      <div class="modal-body">
-        <form method="post" id="address_form">
-          {% csrf_token %}
-          {{address_form.as_p}}
-          <div class="form-group text-right">
-            <input id="submit_address" type="submit" value="{% trans 'Save address' %}" class="btn bg-gradient-primary">
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
-</div>
-{% endblock address_modal %}
 {% endblock content %}
+

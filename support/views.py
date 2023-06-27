@@ -69,6 +69,7 @@ from .forms import (
     ContactCampaignStatusByDateForm,
     SubscriptionPaymentCertificateForm,
     AddressComplementaryInformationForm,
+    SugerenciaGeorefForm,
 )
 from logistics.models import Route
 from .models import Seller, ScheduledTask, IssueStatus, Issue, IssueSubcategory
@@ -1719,23 +1720,21 @@ def contact_detail(request, contact_id):
 
 
 def api_new_address(request, contact_id):
+    # Convertir en api para llamar a todas las direcciones
     """
     To be called by ajax methods. Creates a new address and responds with the created address on a JSON.
     """
     contact = get_object_or_404(Contact, pk=contact_id)
     data = {}
     if request.method == "POST" and request.META.get('HTTP_X_REQUESTED_WITH') == "XMLHttpRequest":
-        form = NewAddressForm(request.POST)
+        form = SugerenciaGeorefForm(request.POST)
         if form.is_valid():
-            address = Address.objects.create(
-                contact=contact,
-                address_1=form.cleaned_data["address_1"],
-                address_2=form.cleaned_data["address_2"],
-                city=form.cleaned_data["address_city"],
-                state=form.cleaned_data["address_state"],
-                address_type=form.cleaned_data["address_type"],
-                notes=form.cleaned_data["address_notes"],
-            )
+            address = form.save(commit=False)
+            if getattr(settings, "GEOREF_SERVICES", None):
+                if address.lat is None:
+                    address.needs_georef = True
+            address.contact = contact
+            address.save()
             data = {address.id: "{} {} {}".format(address.address_1, address.city, address.state)}
             return JsonResponse(data)
     else:
