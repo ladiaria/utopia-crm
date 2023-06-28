@@ -28,20 +28,33 @@
       dateFormat: 'yy-mm-dd'
     });
 
-    function handleFormSuccess(data) {
-      $.each(data, function (key, entry) {
-        $(".address_selector").each(function () {
-          $(this).append($('<option></option>').attr('value', key).text(entry));
-        });
-        $("#id_default_address").append($('<option></option>').attr('value', key).text(entry));
-      });
-      $("#address_form").trigger("reset");
-      $('#address_modal').modal('hide');
-    };
-
     $("#id_default_address").change(function () {
       $(".address_selector").each(function () {
         $(this).val($("#id_default_address").val());
+      });
+    });
+
+    $('#fetch-button').click(function() {
+      // Send an AJAX request to the Django view
+      $.ajax({
+        url: '{% url "api_get_addresses" contact.id %}',
+        method: 'POST',
+        dataType: 'json',
+        success: function(data) {
+          // Clear previous options and populate the HTML selects
+          $('.address_selector').each(function() {
+            var addressSelect = $(this);
+            var selectedValue = addressSelect.val();
+            addressSelect.empty();
+            $.each(data, function(index, item) {
+              var option = $('<option>').text(item.text).val(item.value);
+                if(item.value == selectedValue){
+                  option.prop('selected', true);
+                }
+              addressSelect.append(option);
+            });
+          });
+        }
       });
     });
   });
@@ -187,13 +200,18 @@
       </div>
       {% endblock billing_info %}
 
+      {% comment "Removed to see if they dont need it" %}
       <div class="form-group">
         <label for="id_default_address">{{form.default_address.label}}</label>
         {{ form.default_address }}
       </div>
+      {% endcomment %}
       {% endblock contact_info %}
+      <div class="form-group mt-2">
+        <a href="{% url 'agregar_direccion_georef' contact.id %}?stayhere=True" id="add_address" class="btn bg-gradient-success" target="_blank"><i class="fas fa-plus"></i> Add new address</a>
+        <button type="button" class="btn bg-gradient-success" id="fetch-button">Recargar direcciones</button>
+      </div>
 
-      <a href="{% url 'agregar_direccion_georef' contact.id %}?stayhere=True" id="add_address" class="btn bg-gradient-success" target="_blank"><i class="fas fa-plus"></i> Add new address</a>
 
       {% block form_products %}
       <div class="mt-4">

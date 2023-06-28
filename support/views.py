@@ -1760,6 +1760,18 @@ def api_dynamic_prices(request):
     else:
         return HttpResponseNotFound()
 
+@csrf_exempt
+def api_get_addresses(request, contact_id):
+    if request.method == "POST" and request.META.get('HTTP_X_REQUESTED_WITH') == "XMLHttpRequest":
+        contact = get_object_or_404(Contact, pk=contact_id)
+        addresses_list = []
+        addresses_qs = contact.addresses.all()
+        for address in addresses_qs:
+            addresses_list.append({"value": address.id, "text": f"{address.address_1} {address.city} {address.state}"})
+        return JsonResponse(addresses_list, safe=False)
+    else:
+        return HttpResponseNotFound()
+
 
 @login_required
 def dynamic_contact_filter_new(request):
