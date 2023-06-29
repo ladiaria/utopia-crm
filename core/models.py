@@ -679,8 +679,20 @@ class Address(models.Model):
         return types.get(self.address_type, "N/A")
 
     def add_note(self, note):
-        self.notes = self.notes + f"{note}" if not self.notes else self.notes + f"\n{note}"
+        self.notes = f"{note}" if not self.notes else self.notes + f"\n{note}"
         self.save()
+
+    def get_routes(self):
+        sps = SubscriptionProduct.objects.filter(address=self.id).order_by('route')
+        routes = []
+        for sp in sps:
+            if sp.route:
+                routes.append(str(sp.route.number))
+        if len(routes) > 0:
+            routes = list(set(routes))
+            return ", ".join(routes)
+        else:
+            return "N/A"
 
     def save(self, *args, **kwargs):
         if self.latitude and self.longitude:

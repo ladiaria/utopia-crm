@@ -515,7 +515,6 @@ def seller_console(request, category, campaign_id):
                 "seller": seller,
                 "contact": contact,
                 "count": count,
-                "url": url,
                 "addresses": addresses,
                 "call_date": call_datetime,
                 "all_activities": all_activities,

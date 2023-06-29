@@ -14,6 +14,7 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required, permission_required
 from django.db.models import F, Q
 from django.contrib import messages
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
 from reportlab.pdfgen.canvas import Canvas
 
@@ -24,7 +25,7 @@ from support.models import Issue
 
 from util.dates import next_business_day, format_date
 from .labels import LogisticsLabel, LogisticsLabel96x30, Roll, Roll96x30
-from .filters import OrderRouteFilter
+from .filters import OrderRouteFilter, AddressGeorefFilter
 
 
 @login_required
@@ -1420,4 +1421,39 @@ def addresses_with_complementary_information(request):
         request,
         "addresses_with_complementary_information.html",
         {"addresses": addresses_qs, "show_hidden": show_hidden},
+    )
+
+
+@staff_member_required
+def mass_georef_address(request):
+    addr_queryset = Address.objects.filter(verified=False).order_by("subscriptionproduct__route").distinct()
+    if not request.session.get("mass_georef_address_form") or request.GET:
+        addr_filter = AddressGeorefFilter(request.GET, addr_queryset)
+        request.session['mass_georef_address_form'] = addr_filter.data
+    else:
+        form = request.session.get("mass_georef_address_form")
+        addr_filter = AddressGeorefFilter(form, addr_queryset)
+    page_number = request.GET.get("p")
+    paginator = Paginator(addr_filter.qs, 100)
+    try:
+        addresses = paginator.page(page_number)
+    except PageNotAnInteger:
+        # If page is not an integer, deliver first page.
+        addresses = paginator.page(1)
+    except EmptyPage:
+        # If page is out of range (e.g. 9999), deliver last page of results.
+        addresses = paginator.page(paginator.num_pages)
+    return render(
+        request,
+        "mass_georef_address_filter.html",
+        {
+            "paginator": paginator,
+            "filter": addr_filter,
+            "addresses": addresses,
+            "page": page_number,
+            "total_pages": paginator.num_pages,
+            "count": addr_filter.qs.count(),
+            "now": datetime.now(),
+            "url": request.META["PATH_INFO"],
+        },
     )
