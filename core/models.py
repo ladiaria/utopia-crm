@@ -693,6 +693,12 @@ class Address(models.Model):
             return ", ".join(routes)
         else:
             return "N/A"
+    
+    def reset_georef(self):
+        self.latitude, self.longitude, self.georef_point = None, None, None
+        self.needs_georef = True
+        self.verified = False
+        self.save()
 
     def save(self, *args, **kwargs):
         if self.latitude and self.longitude:

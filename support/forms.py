@@ -549,4 +549,5 @@ class SugerenciaGeorefForm(forms.ModelForm):
             "latitude",
             "longitude",
             "verified",
+            "address_type",
         ]

@@ -74,6 +74,7 @@
                     <th>{% trans "Address" %}</th>
                     <th>{% trans "Contact" %}</th>
                     <th>{% trans "Route" %}</th>
+                    <th>Sin georef</th>
                     <th></th>
                   </tr>
               </thead>
@@ -83,7 +84,8 @@
                     <td>{{address}}</td>
                     <td><a href="{% url 'contact_detail' address.contact.id %}">{{address.contact.name}}</a></td>
                     <td>{{address.get_routes}}</td>
-                    <td><a href="{% url 'sugerir_direcciones' address.contact.id address.id %}?goback=mass_georef" class="btn btn-gradient btn-primary">Normalizar</a></td>
+                    <td>{% if address.needs_georef %}Sí{% endif %}</td>
+                    <td><a href="{% url 'normalizar_direccion' address.contact.id address.id %}?goback=mass_georef" class="btn btn-gradient btn-primary">Normalizar</a></td>
                 </tr>
                 {% endfor %}
               </tbody>
