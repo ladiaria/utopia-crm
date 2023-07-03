@@ -74,8 +74,8 @@
     </p>
   </a>
   <ul class="nav nav-treeview">
-    <li class="nav-item"><a href="{{import_contacts}}" class="nav-link {% if request.path == import_contacts %}active{% endif %}">{% trans 'Import new contacts' %}</a></li>
-    <li class="nav-item"><a href="{{assign_campaigns}}" class="nav-link {% if request.path == assign_campaigns %}active{% endif %}">{% trans 'Assign campaigns' %}</a></li>
+    <li class="nav-item"><a href="{{import_contacts}}" class="nav-link {% if request.path == import_contacts %}active{% endif %}">Importar nuevos contactos por CSV</a></li>
+    <li class="nav-item"><a href="{{assign_campaigns}}" class="nav-link {% if request.path == assign_campaigns %}active{% endif %}">Asignar contactos a campaña por etiqueta</a></li>
     <li class="nav-item"><a href="{{assign_to_seller}}" class="nav-link {% if request.path == assign_to_seller %}active{% endif %}">{% trans 'Assign contacts to sellers' %}</a></li>
     <li class="nav-item"><a href="{{core_campaign_add}}" target="_blank" class="nav-link">{% trans "New campaign" %}</a></li>
     <li class="nav-item"><a href="{{campaign_statistics_list}}" class="nav-link">{% trans "Campaign statistics" %}</a></li>
