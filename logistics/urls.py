@@ -5,7 +5,7 @@ from logistics.views import (
     print_labels_from_csv, edition_time, print_labels, logistics_issues_statistics, issues_per_route,
     issues_route_list, print_routes_simple, list_routes_detailed, convert_orders_to_tens, print_unordered_subscriptions,
     print_labels_for_day, assign_routes_future, order_route_list, print_labels_for_product_date,
-    addresses_with_complementary_information,
+    addresses_with_complementary_information, mass_georef_address,
     )
 
 from django.urls import path, re_path
@@ -42,4 +42,5 @@ urlpatterns = [
 
     re_path(r'^edition_time/(?P<direction>arrival|departure)/$', edition_time, name='edition_time'),
     path('addresses_with_complementary_information/', addresses_with_complementary_information, name='addresses_with_complementary_information'),
+    path("mass_georef_address/", mass_georef_address, name="mass_georef_address"),
 ]
