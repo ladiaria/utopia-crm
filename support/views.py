@@ -163,6 +163,7 @@ def import_contacts(request):
                 for c in matches:
                     if c not in old_contacts_list:
                         old_contacts_list.append(c)
+                        # NOTE: Maybe try to tag them with an extra thingy like tag_existente
             else:
                 try:
                     new_contact = Contact.objects.create(
@@ -3096,4 +3097,29 @@ def upload_do_not_call_numbers(request):
     return render(
         request,
         "upload_do_not_call_numbers.html",
+    )
+
+@staff_member_required
+def tag_contacts(request):
+    if request.FILES:
+        decoded_file = request.FILES.get("file").read().decode("utf-8").splitlines()
+        csvfile = csv.reader(decoded_file)
+        count = 0
+        errors = []
+        if csvfile:
+            for row in csvfile:
+                try:
+                    contact = Contact.objects.get(pk=row[0])
+                    contact.tags.add(row[1].lower())
+                    count += 1
+                except Contact.DoesNotExist:
+                    errors.append(f"Contacto con id {row[0]} no existe.")
+            messages.success(request, f"Se agregaron {count} etiquetas.")
+            if errors:
+                messages.error(request, f"{len(errors)} contactos no existen")
+            return HttpResponseRedirect(reverse("tag_contacts"))
+
+    return render(
+        request,
+        "tag_contacts.html",
     )
