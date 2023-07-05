@@ -27,6 +27,8 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.conf import settings
 
+from taggit.models import Tag
+
 from core.filters import ContactFilter
 from core.forms import AddressForm
 from core.models import (
@@ -105,8 +107,6 @@ def import_contacts(request):
         old_contacts_list = []
         errors_list = []
         tag_list = []
-        campaign_id = request.POST.get("campaign_id", None)
-        subtype_id = request.POST.get("subtype_id", None)
         tags = request.POST.get("tags", None)
         if tags:
             tags = tags.split(",")
@@ -164,6 +164,7 @@ def import_contacts(request):
                 for c in matches:
                     if c not in old_contacts_list:
                         old_contacts_list.append(c)
+                        # NOTE: Maybe try to tag them with an extra thingy like tag_existente
             else:
                 try:
                     new_contact = Contact.objects.create(
@@ -184,8 +185,6 @@ def import_contacts(request):
                     if tag_list:
                         for tag in tag_list:
                             new_contact.tags.add(tag)
-                    if campaign_id:
-                        new_contact.add_to_campaign(campaign_id)
                 except Exception as e:
                     errors_list.append("CSV Row {}: {}".format(row_number, e))
         return render(
@@ -195,29 +194,16 @@ def import_contacts(request):
                 "new_contacts_count": len(new_contacts_list),
                 "old_contacts_list": old_contacts_list,
                 "errors_list": errors_list,
-                "subtype_id": subtype_id,
-                "campaign_id": campaign_id,
                 "tag_list": tag_list,
             },
         )
-    elif request.POST and (request.POST.get("hidden_campaign_id") or request.POST.get("hidden_tag_list")):
-        campaign_id = request.POST.get("hidden_campaign_id", None)
+    elif request.POST and request.POST.get("hidden_tag_list"):
         tag_list = request.POST.get("hidden_tag_list", None)
         errors_in_changes = []
         changed_list = []
         try:
             for name, value in list(request.POST.items()):
-                if name.startswith("move") and value == "M":
-                    contact = Contact.objects.get(pk=name.replace("move-", ""))
-                    contact.add_to_campaign(campaign_id)
-                    for tag in eval(tag_list):
-                        contact.tags.add(tag)
-                    changed_list.append(contact)
-                elif name.startswith("move") and value == "C":
-                    contact = Contact.objects.get(pk=name.replace("move-", ""))
-                    contact.add_to_campaign(campaign_id)
-                    changed_list.append(contact)
-                elif name.startswith("move") and value == "T":
+                if name.startswith("move") and value == "T":
                     contact = Contact.objects.get(pk=name.replace("move-", ""))
                     for tag in eval(tag_list):
                         contact.tags.add(tag)
@@ -233,15 +219,9 @@ def import_contacts(request):
             },
         )
     else:
-        subtypes = Subtype.objects.all()
-        campaigns = Campaign.objects.filter(active=True)
         return render(
             request,
             "import_contacts.html",
-            {
-                "subtypes": subtypes,
-                "campaigns": campaigns,
-            },
         )
 
 
@@ -1027,61 +1007,29 @@ def assign_campaigns(request):
     """
     Allows a manager to add contacts to campaigns, using tags or a csv file.
     """
+    count, errors = 0, 0
     campaigns = Campaign.objects.filter(active=True)
-    if request.POST and request.FILES:
-        errors, count = [], 0
-        campaign = request.POST.get("campaign")
-        ignore_contacts_in_campaigns = request.POST.get("ignore_in_older_campaign", False)
-        try:
-            reader = csv_sreader(request.FILES["file"].read())
-            for row in reader:
-                try:
-                    contact = Contact.objects.get(pk=row[0])
-                    if ignore_contacts_in_campaigns and contact.contactcampaignstatus_set.exists():
-                        continue
-                    contact.add_to_campaign(campaign)
-                    count += 1
-                except Exception as e:
-                    errors.append(e)
-            return render(
-                request,
-                "assign_campaigns.html",
-                {
-                    "count": count,
-                    "errors": errors,
-                },
-            )
-        except csv.Error:
-            messages.error(
-                request,
-                "Error: No se encuentran delimitadores en el archivo "
-                "ingresado, deben usarse ',' (comas) <br/><a href="
-                "'.'>Volver</a>",
-            )
-            return HttpResponseRedirect(reverse("assign_campaigns"))
-        except Exception as e:
-            messages.error(request, "Error: %s" % e)
-            return HttpResponseRedirect(reverse("assign_campaigns"))
-    elif request.POST and request.POST.get("tags"):
-        errors, count = [], 0
+    if request.POST and request.POST.get("tags"):
         campaign = request.POST.get("campaign")
         tags = request.POST.get("tags")
         tag_list = tags.split(",")
+        for tag in tag_list:
+            try:
+                Tag.objects.get(name=tag)
+            except:
+                messages.error(request, f"El tag {tag} no existe.")
+                return HttpResponseRedirect(reverse("assign_campaigns"))
         contacts = Contact.objects.filter(tags__name__in=tag_list)
         for contact in contacts.iterator():
             try:
                 contact.add_to_campaign(campaign)
                 count += 1
             except Exception as e:
-                errors.append(e)
-        return render(
-            request,
-            "assign_campaigns.html",
-            {
-                "count": count,
-                "errors": errors,
-            },
-        )
+                errors += 1
+            messages.success(request, f"{count} contactos fueron agregados a la campaña con éxito.")
+            if errors:
+                messages.error(request, f"{errors} contactos ya pertenecían a esta campaña.")
+            return HttpResponseRedirect(reverse("assign_campaigns"))
     return render(
         request,
         "assign_campaigns.html",
@@ -3159,4 +3107,29 @@ def upload_do_not_call_numbers(request):
     return render(
         request,
         "upload_do_not_call_numbers.html",
+    )
+
+@staff_member_required
+def tag_contacts(request):
+    if request.FILES:
+        decoded_file = request.FILES.get("file").read().decode("utf-8").splitlines()
+        csvfile = csv.reader(decoded_file)
+        count = 0
+        errors = []
+        if csvfile:
+            for row in csvfile:
+                try:
+                    contact = Contact.objects.get(pk=row[0])
+                    contact.tags.add(row[1].lower())
+                    count += 1
+                except Contact.DoesNotExist:
+                    errors.append(f"Contacto con id {row[0]} no existe.")
+            messages.success(request, f"Se agregaron {count} etiquetas.")
+            if errors:
+                messages.error(request, f"{len(errors)} contactos no existen")
+            return HttpResponseRedirect(reverse("tag_contacts"))
+
+    return render(
+        request,
+        "tag_contacts.html",
     )

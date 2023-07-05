@@ -45,13 +45,8 @@
         <input type="hidden" name="hidden_tag_list" value="{{tag_list}}"/>
         {% trans "Select an action for all contacts, you can them edit them individually" %}
         <select id="default_option" class="form-control">
-          <option value="">{% trans 'Do nothing' %}</option>
-          {% if tag_list and campaign_id %}
-          <option value="M">{% trans 'Add tags and add to campaign' %}</option>
-          {% elif tag_list %}
+          {% if tag_list %}
           <option value="T">{% trans 'Only add tags' %}</option>
-          {% elif campaign_id %}
-          <option value="C">{% trans 'Only move to campaign' %}</option>
           {% endif %}
         </select>
         <br><br>
@@ -60,12 +55,8 @@
           {% if contact.has_active_subscription %}<span style="color:red">{% trans 'WARNING: This contact has an active subscription!' %}</span>{% endif %}
           <select name="move-{{contact.id}}" class="form-control contact_option">
             <option value="">{% trans 'Do nothing' %}</option>
-            {% if tag_list and campaign_id %}
-            <option value="M">{% trans 'Add tags' %} {{tag_list}} {% trans 'and add to campaign' %} {{campaign_id}}</option>
-            {% elif tag_list %}
+            {% if tag_list %}
             <option value="T">{% trans 'Only add tags' %} {{tag_list}}</option>
-            {% elif campaign_id %}
-            <option value="C">{% trans 'Only move to campaign' %} {{campaign_id}}</option>
             {% endif %}
           </select>
         {% endfor %}
@@ -115,30 +106,10 @@
         <input type="file" name="file" id="file" class="form-control">
       </div>
       <div class="form-group">
-        <label for="subtype">{% trans 'Choose the subtype for these contacts. This will be their origin.' %}:</label>
-        <select id="subtype_id" class="form-control">
-          <option selected>-</option>
-          {% for subtype in subtypes %}
-            <option value="{{ subtype.id }}">{{ subtype.name }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="form-group">
         <label for="tags">{% trans 'Tags these contacts will have. (separated by comma. Example: doctor, ex-subscriber, likes the product)' %}:</label>
         <input type="text" id="tags" name="tags" class="form-control" required/>
       </div>
-      <div class="form-group">
-        <label for="campaign_id">{% trans 'If you want these contacts to be on a campaign, choose it here.' %}:</label>
-        <select id="campaign_id" class="form-control">
-          <option selected>-</option>
-          {% for campaign in campaigns %}
-          <option value="{{ campaign.id }}">{{ campaign.name }}</option>
-          {% endfor %}
-        </select>
-      </div>
       <div class="form-group text-right">
-        <a href="{% url 'admin:core_campaign_add' %}" class="btn bg-gradient-primary" target="_blank">{% trans "Add new campaign" %}</a>
-        <a href="{% url 'admin:core_subtype_add' %}" class="btn bg-gradient-primary" target="_blank">{% trans "Add new subtype" %}</a>
         <input type="submit" value="{% trans 'Import' %}" class="btn bg-gradient-primary" >
       </div>
       </form>
