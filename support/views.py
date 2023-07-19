@@ -1007,7 +1007,7 @@ def assign_campaigns(request):
     """
     Allows a manager to add contacts to campaigns, using tags or a csv file.
     """
-    count, errors = 0, 0
+    count, errors, in_campaign, debtors = 0, 0, 0, 0
     campaigns = Campaign.objects.filter(active=True)
     if request.POST and request.POST.get("tags"):
         campaign = request.POST.get("campaign")
@@ -1022,6 +1022,14 @@ def assign_campaigns(request):
         contacts = Contact.objects.filter(tags__name__in=tag_list)
         for contact in contacts.iterator():
             try:
+                if request.POST.get("ignore_in_active_campaign", False):
+                    if contact.contactcampaignstatus_set.filter(campaign__active=True).exists():
+                        in_campaign += 1
+                        continue
+                if request.POST.get("ignore_debtors", False):
+                    if contact.is_debtor():
+                        debtors += 1
+                        continue
                 contact.add_to_campaign(campaign)
                 count += 1
             except Exception as e:
@@ -1029,6 +1037,10 @@ def assign_campaigns(request):
             messages.success(request, f"{count} contactos fueron agregados a la campaña con éxito.")
             if errors:
                 messages.error(request, f"{errors} contactos ya pertenecían a esta campaña.")
+            if in_campaign:
+                messages.error(request, f"{in_campaign} contactos ya están en campañas activas.")
+            if debtors:
+                messages.error(request, f"{debtors} contactos son deudores y no pudieron ser agregados.")
             return HttpResponseRedirect(reverse("assign_campaigns"))
     return render(
         request,
