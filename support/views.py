@@ -1034,14 +1034,14 @@ def assign_campaigns(request):
                 count += 1
             except Exception as e:
                 errors += 1
-            messages.success(request, f"{count} contactos fueron agregados a la campaña con éxito.")
-            if errors:
-                messages.error(request, f"{errors} contactos ya pertenecían a esta campaña.")
-            if in_campaign:
-                messages.error(request, f"{in_campaign} contactos ya están en campañas activas.")
-            if debtors:
-                messages.error(request, f"{debtors} contactos son deudores y no pudieron ser agregados.")
-            return HttpResponseRedirect(reverse("assign_campaigns"))
+        messages.success(request, f"{count} contactos fueron agregados a la campaña con éxito.")
+        if errors:
+            messages.error(request, f"{errors} contactos ya pertenecían a esta campaña.")
+        if in_campaign:
+            messages.error(request, f"{in_campaign} contactos ya están en campañas activas.")
+        if debtors:
+            messages.error(request, f"{debtors} contactos son deudores y no pudieron ser agregados.")
+        return HttpResponseRedirect(reverse("assign_campaigns"))
     return render(
         request,
         "assign_campaigns.html",
