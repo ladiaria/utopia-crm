@@ -368,7 +368,18 @@ class PriceRuleAdmin(SimpleHistoryAdmin):
 
 @admin.register(SubscriptionProduct)
 class SubscriptionProductAdmin(admin.ModelAdmin):
-    list_display = ("subscription_id", "product", "copies", "address", "route", "order", "seller")
+    # TODO: improve get_subscription_active UX
+    list_display = (
+        "subscription_id",
+        "get_subscription_active",
+        "active",
+        "product",
+        "copies",
+        "address",
+        "route",
+        "order",
+        "seller",
+    )
     raw_id_fields = ("subscription", "address", "label_contact")
 
 

@@ -715,6 +715,9 @@ class SubscriptionProduct(models.Model):
             self.product, address, self.subscription.get_price_for_full_period()
         )
 
+    def get_subscription_active(self):
+        return self.subscription.active
+
 
 class SubscriptionNewsletter(models.Model):
     """
