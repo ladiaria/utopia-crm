@@ -1,6 +1,7 @@
 # coding=utf-8
-from django.utils.translation import gettext_lazy as _
 from django.conf import settings
+from django.utils.translation import gettext_lazy as _
+
 
 ADDRESS_TYPE_CHOICES = (("digital", _("Digital")), ("physical", _("Physical")))
 
@@ -151,6 +152,10 @@ PRICERULE_MODE_CHOICES = (
     (2, _("Replace one")),
     (3, _("Add new")),
 )
+
+PRICERULE_WILDCARD_MODE_CHOICES = (("pool_and_any", _("Pool AND Any")), ("pool_or_any", _("Pool OR Any")))
+
+PRICERULE_AMOUNT_TO_PICK_CONDITION_CHOICES = (("eq", _("Equal than")), ("gt", _("Greater than")))
 
 DYNAMIC_CONTACT_FILTER_MODES = [
     (1, _("At least one of the products")),

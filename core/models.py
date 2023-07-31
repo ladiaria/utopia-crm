@@ -36,6 +36,8 @@ from .choices import (
     GENDERS,
     INACTIVITY_REASONS,
     PRICERULE_MODE_CHOICES,
+    PRICERULE_WILDCARD_MODE_CHOICES,
+    PRICERULE_AMOUNT_TO_PICK_CONDITION_CHOICES,
     PRIORITY_CHOICES,
     PRODUCT_EDITION_FREQUENCY,
     PRODUCT_TYPE_CHOICES,
@@ -141,22 +143,23 @@ class Variable(models.Model):
 
 class Product(models.Model):
     """
-    Products that a subscription can have. By default they can be subscription products or newsletters.
-
-    Products MUST have a billing priority to be billed.
+    Products that a subscription can have. (They must have a billing priority to be billed).
     """
-
     name = models.CharField(max_length=50, verbose_name=_("Name"), db_index=True)
     slug = AutoSlugField(populate_from="name", null=True, blank=True)
     active = models.BooleanField(default=False, verbose_name=_("Active"))
-    price = models.IntegerField(default=0)
+    price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     type = models.CharField(max_length=1, default="O", choices=PRODUCT_TYPE_CHOICES, db_index=True)
     weekday = models.IntegerField(default=None, choices=PRODUCT_WEEKDAYS, null=True, blank=True)
     offerable = models.BooleanField(default=False, verbose_name=_("Allow offer"))
+    has_implicit_discount = models.BooleanField(default=False, verbose_name=_("Has implicit discount"))
     billing_priority = models.PositiveSmallIntegerField(null=True, blank=True)
     digital = models.BooleanField(default=False, verbose_name=_("Digital"))
     edition_frequency = models.IntegerField(default=None, choices=PRODUCT_EDITION_FREQUENCY, null=True, blank=True)
     temporary_discount_months = models.PositiveSmallIntegerField(null=True, blank=True)
+    target_product = models.ForeignKey(
+        "self", blank=True, null=True, on_delete=models.SET_NULL, limit_choices_to={"offerable": True, "type": "S"}
+    )
     old_pk = models.PositiveIntegerField(blank=True, null=True)
     objects = ProductManager()
 
@@ -1078,17 +1081,9 @@ class Subscription(models.Model):
 
     def get_frequency_discount(self):
         """
-        Returns the amount discounted for when the subscription is more than one month. Requires these settings to be
-        set on the local settings.
+        Returns the amount discounted configured in settings, for this subscription frequency
         """
-        if self.frequency == 3:
-            return getattr(settings, "DISCOUNT_3_MONTHS", 0)
-        elif self.frequency == 6:
-            return getattr(settings, "DISCOUNT_6_MONTHS", 0)
-        elif self.frequency == 12:
-            return getattr(settings, "DISCOUNT_12_MONTHS", 0)
-        else:
-            return 0
+        return getattr(settings, "DISCOUNT_%d_MONTHS" % self.frequency, 0)
 
     def get_first_day_of_the_week(self):
         """
@@ -1163,16 +1158,13 @@ class Subscription(models.Model):
             output += "<li>{}</li>".format(product.name)
         return output + "</ul>"
 
-    def get_price_for_full_period(self):
+    def get_price_for_full_period(self, debug_id=""):
         """
         Returns the price for a single period on this customer, taking a view from invoicing as aid.
         """
         from .utils import calc_price_from_products
 
-        summary_of_products = self.product_summary()
-        frequency = self.frequency
-        price = calc_price_from_products(summary_of_products, frequency)
-        return price
+        return calc_price_from_products(self.product_summary(), self.frequency, debug_id)
 
     def period_start(self):
         if not self.next_billing:
@@ -1700,10 +1692,12 @@ class PriceRule(models.Model):
 
     # Controls if the rule is active.
     active = models.BooleanField(default=False)
+
     # Used so the function that checks the rules can check if the products exist.
     products_pool = models.ManyToManyField(
         Product, limit_choices_to={"offerable": True, "type__in": "DS"}, related_name="pool"
     )
+
     # If any of the resulting products of the previous rules (by priority) or any of the products on the input products
     # that are still being checked for the rule are present, then the current check is discarded.
     products_not_pool = models.ManyToManyField(
@@ -1712,14 +1706,24 @@ class PriceRule(models.Model):
         related_name="not_pool",
         blank=True,
     )
+
     # How many of the products of the pool have to be in it for the rule to apply.
     amount_to_pick = models.PositiveSmallIntegerField(default=0)
+
+    # How to compare the amount of products in the pool against amount_to_pick.
+    amount_to_pick_condition = models.CharField(
+        max_length=2, choices=PRICERULE_AMOUNT_TO_PICK_CONDITION_CHOICES, default="eq"
+    )
+
     # 'What' are we going to do in the rule. Right now the choices are replacing all products foo, the pool, replacing
     # one product from the pool or adding one product to the output.
     mode = models.PositiveSmallIntegerField(default=1, choices=PRICERULE_MODE_CHOICES)
-    # If this is selected, the price rule will be treated differently. The rule will check for the product on the pool
-    # plus at least one more of ANY product. If it succeeds, then the rule will be applied.
-    add_wildcard = models.BooleanField(default=False)
+
+    # - Pool AND ANY: The rule will check for the product on the pool plus at least one more of ANY product.
+    # - Pool OR ANY: The rule will check for the product on the pool OR ANY product. (An empty pool can also succed).
+    # If it succeeds, then the rule will be applied.
+    wildcard_mode = models.CharField(max_length=12, choices=PRICERULE_WILDCARD_MODE_CHOICES, blank=True, null=True)
+
     # Select one product from the pool that will be replaced. This is only used in the 'replace one' mode.
     choose_one_product = models.ForeignKey(
         Product,
@@ -1729,6 +1733,7 @@ class PriceRule(models.Model):
         related_name="chosen_product",
         limit_choices_to={"offerable": True, "type": "S"},
     )
+
     # When the rule is applied, instead of modifying prices, it will result into a different product that will be
     # added to the output. The product can modify one, or even be added. What can be added can be a normal product or
     # even a discount, depending on what you need.
@@ -1743,12 +1748,18 @@ class PriceRule(models.Model):
         related_name="resulting_product",
         limit_choices_to={"offerable": False},
     )
+
     # A field for leaving notes on this rule.
     notes = models.TextField(blank=True, null=True)
+
     # This is the order in which every rule will be checked, from lower to higher. This will probably be renamed to
     # something like "order" in the future.
     priority = models.PositiveSmallIntegerField(null=True, blank=True)
+
+    # TODO: describe this field
     ignore_product_bundle = models.ManyToManyField("core.ProductBundle", blank=True)
+
+    # TODO: describe this field
     history = HistoricalRecords()
 
 
@@ -1885,6 +1896,7 @@ class ProductBundle(models.Model):
 
 
 class AdvancedDiscount(models.Model):
+    # TODO: analize if "limit choices" should be set in fk and m2m fields
     discount_product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="discount", null=True)
     find_products = models.ManyToManyField(Product, related_name="find_products_discount")
     products_mode = models.PositiveSmallIntegerField(choices=DISCOUNT_PRODUCT_MODE_CHOICES)
