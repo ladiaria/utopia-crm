@@ -168,7 +168,7 @@ def process_products(input_product_dict):
 
     input_product_ids = list(input_product_dict.keys())
     input_products = Product.objects.filter(id__in=input_product_ids)
-    input_products_count, output_dict = input_products.count(), {}
+    input_products_count, output_dict, non_discount_added = input_products.count(), {}, 0
 
     for pricerule in PriceRule.objects.filter(active=True).order_by('priority'):
         exit_loop = False
@@ -206,43 +206,52 @@ def process_products(input_product_dict):
             elif input_product in pool:
                 products_in_list_and_pool.append(input_product)
 
+        non_discount_added_ignore = 0
         for p in rm_after:
             try:
                 products_in_list_and_pool.remove(p)
             except ValueError:
-                pass
+                # if found in output (added by previous rule), inc the ammount to substract
+                if p.id in output_dict:
+                    non_discount_added_ignore += 1
 
-        list_and_pool_len = len(products_in_list_and_pool)
+        list_and_pool_len, pr_res_prod = len(products_in_list_and_pool), pricerule.resulting_product
         if pricerule.wildcard_mode == "pool_and_any":
             # wildcard_mode "AND ANY": it means it has to be in the pool, and MUST NOT be the only product in the mix.
             if input_products_count > 1 and list_and_pool_len > 0:
-                output_dict[pricerule.resulting_product.id] = input_product_dict[input_product_ids[0]]
+                output_dict[pr_res_prod.id] = input_product_dict[input_product_ids[0]]
+        else:
+            if pricerule.wildcard_mode == "pool_or_any":
+                # consider also non discount products that have been added to the output_dict by previous rules
+                list_and_pool_len += non_discount_added - non_discount_added_ignore
+            if (
+                (pricerule.amount_to_pick_condition == "eq" and list_and_pool_len == pricerule.amount_to_pick)
+                or (pricerule.amount_to_pick_condition == "gt" and list_and_pool_len > pricerule.amount_to_pick)
+            ):
 
-        elif (
-            (pricerule.amount_to_pick_condition == "eq" and list_and_pool_len == pricerule.amount_to_pick)
-            or (pricerule.amount_to_pick_condition == "gt" and list_and_pool_len > pricerule.amount_to_pick)
-        ):
-
-            if pricerule.mode == 1:
-                # We use the copies for any of the products, the first one for instance, they should all be the same
-                # since they're on the 'choose all products' mode.
-                output_dict[pricerule.resulting_product.id] = input_product_dict[str(products_in_list_and_pool[0].id)]
-                # We're going to exclude the products that were not used here so they can be used by other rules.
-                for product in input_products:
-                    if product in pool:
-                        input_products = input_products.exclude(pk=product.id)
-            elif pricerule.mode == 2:
-                # This is if we only need to change one product into another. WIP.
-                output_dict[pricerule.choose_one_product.id] = products_in_list_and_pool[0][1]
-                for product in input_products:
-                    if product == pricerule.choose_one_product:
-                        # We're only going to replace the chosen product from the mix.
-                        input_products = input_products.exclude(pk=product.id)
-            elif pricerule.mode == 3:
-                # We just add an extra product to the list. We're not going to remove them from input products.
-                # Again we take the copies from the first product on the list. This might be dangerous, and might need
-                # a different value. We might change it to 1.
-                output_dict[pricerule.resulting_product.id] = input_product_dict[input_product_ids[0]]
+                if pricerule.mode == 1:
+                    # We use the copies for any of the products, the first one for instance, they should all be the
+                    # same since they're on the 'choose all products' mode.
+                    output_dict[pr_res_prod.id] = input_product_dict[str(products_in_list_and_pool[0].id)]
+                    # We're going to exclude the products that were not used here so they can be used by other rules.
+                    for product in input_products:
+                        if product in pool:
+                            input_products = input_products.exclude(pk=product.id)
+                    # Increment "non discount" counter if is the case
+                    if pr_res_prod.type not in "DP" and not pr_res_prod.has_implicit_discount:
+                        non_discount_added += 1
+                elif pricerule.mode == 2:
+                    # This is if we only need to change one product into another. WIP.
+                    output_dict[pricerule.choose_one_product.id] = products_in_list_and_pool[0][1]
+                    for product in input_products:
+                        if product == pricerule.choose_one_product:
+                            # We're only going to replace the chosen product from the mix.
+                            input_products = input_products.exclude(pk=product.id)
+                elif pricerule.mode == 3:
+                    # We just add an extra product to the list. We're not going to remove them from input products.
+                    # Again we take the copies from the first product on the list. This might be dangerous, and might
+                    # need a different value. We might change it to 1.
+                    output_dict[pr_res_prod.id] = input_product_dict[input_product_ids[0]]
 
     # In the end we will also add the remainder of the products that were not used to the output dictionary.
     # Note that this is useful to place the untargetted percentage discounts that came on input AFTER the untargetted
