@@ -90,7 +90,12 @@ def calc_price_from_products(products_with_copies, frequency, debug_id=""):
             affectable = True
             break
         if not affectable:
-            total_non_affectable += product.price * copies
+            # not affected by discounts but the product price can be also "affectable" if has_implicit_discount
+            product_delta = product.price * copies
+            if product.has_implicit_discount:
+                total_affectable += product_delta
+            else:
+                total_non_affectable += product_delta
 
     if debug:
         print(debug_id + "before3 affectable=%s, non-affectable=%s" % (total_affectable, total_non_affectable))
@@ -100,7 +105,7 @@ def calc_price_from_products(products_with_copies, frequency, debug_id=""):
         if product.type == 'D':
             total_non_affectable -= product.price * int(products_with_copies[product.id])
         elif product.type == 'P':
-            percentage_discount = product
+            percentage_discount = product  # only one percentage discount product (the last one found in the list).
         elif product.type == 'A':
             advanced_discount_list.append(product)
 
@@ -132,12 +137,11 @@ def calc_price_from_products(products_with_copies, frequency, debug_id=""):
         print(debug_id + "before_pd affectable=%s, non-affectable=%s" % (total_affectable, total_non_affectable))
 
     # After calculating the prices of S and D products, we need to calculate the one for P.
-    # It's important that we only put one percentage discount product.
     if percentage_discount:
         total_non_affectable -= (total_non_affectable * percentage_discount.price) / 100
 
     if debug:
-        print(debug_id + "after_pdaffectable=%s, non-affectable=%s" % (total_affectable, total_non_affectable))
+        print(debug_id + "after_pd affectable=%s, non-affectable=%s" % (total_affectable, total_non_affectable))
 
     # Then we multiply all this by the frequency
     total_price = float((total_affectable + total_non_affectable) * frequency)
@@ -240,7 +244,10 @@ def process_products(input_product_dict):
                 # a different value. We might change it to 1.
                 output_dict[pricerule.resulting_product.id] = input_product_dict[input_product_ids[0]]
 
-    # In the end we will also add the remainder of the products that were not used to the output dictionary
+    # In the end we will also add the remainder of the products that were not used to the output dictionary.
+    # Note that this is useful to place the untargetted percentage discounts that came on input AFTER the untargetted
+    # percentage discounts added by the rules, because the price calculation function will use only the LAST one found,
+    # and as expected, the rules ones will not be applied.
     for product in input_products:
         output_dict[product.id] = input_product_dict[str(product.id)]
     return output_dict

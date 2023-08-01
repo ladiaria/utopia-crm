@@ -189,7 +189,12 @@ def bill_subscription(subscription_id, billing_date=None, dpp=10, check_route=Fa
             affectable = True
             break
         if not affectable:
-            subtotal_non_affectable += float(item.amount)
+            # not affected by discounts but the product price can be also "affectable" if has_implicit_discount
+            product_delta = float(item.amount)
+            if product.has_implicit_discount:
+                subtotal_affectable += product_delta
+            else:
+                subtotal_non_affectable += product_delta
 
     # 3. iterate over discounts left
     for product in discount_list:
