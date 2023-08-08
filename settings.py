@@ -50,9 +50,6 @@ STATIC_URL = "/static/"
 STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
-# Make this unique, and don't share it with anybody.
-SECRET_KEY = "****"
-
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
@@ -114,7 +111,8 @@ INSTALLED_APPS = (
     "invoicing",
 )
 
-# Password storage
+
+# Password storage and validators
 PASSWORD_HASHERS = [
     "django.contrib.auth.hashers.SHA1PasswordHasher",
     "django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher",
@@ -131,7 +129,8 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "validators.LowercaseValidator"},
 ]
 
-####################################################################
+# other settings
+DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 
 CSS_URL = STATIC_URL + "css/"
 IMG_URL = STATIC_URL + "img/"

@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0047_address_verified_historicaladdress_verified_and_more'),
+        ('core', '0050_address_verified_historicaladdress_verified_and_more'),
     ]
 
     operations = [
