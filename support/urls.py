@@ -50,6 +50,7 @@ from support.views import (
     scheduled_task_filter,
     edit_address_complementary_information,
     upload_do_not_call_numbers,
+    tag_contacts,
     api_get_addresses,
 )
 
@@ -160,4 +161,5 @@ urlpatterns = [
     ),
     path("scheduled_task_filter/", scheduled_task_filter, name="scheduled_task_filter"),
     path("upload_do_not_call_numbers/", upload_do_not_call_numbers, name="upload_do_not_call_numbers"),
+    path("tag_contacts/", tag_contacts, name="tag_contacts"),
 ]

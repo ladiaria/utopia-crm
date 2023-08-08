@@ -1,0 +1,50 @@
+{% extends 'adminlte/base.html' %}
+{% load static i18n %}
+
+{% block title %}{% trans "Import contacts" %}{% endblock title %}
+
+{% block extra_js %}
+<script type="text/javascript">
+    $( function() {
+        $("#default_option").change(function(){
+            $(".contact_option").each(function(){
+                $(this).val($("#default_option").val());
+            });
+        });
+    });
+</script>
+{% endblock %}
+
+{% block no_heading %}
+<h1>{% trans 'Support' %}</h1>
+<p>{% trans 'Tag multiple contacts' %}</p>
+{% endblock %}
+{% block breadcrumbs %}
+<ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="/support/">{% trans 'Support' %}</a></li>
+     <li class="breadcrumb-item active">{% trans 'Tag multiple contacts' %}</li>
+</ol>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h3 class="card-title">{% trans 'Tag multiple contacts' %}</h3>
+  </div>
+  <div class="card-body">
+      <form action="" method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      <div class="form-group">
+        <label for="file">{% trans "Choose file to send. It mustn't have a header" %}:</label>
+        <p>Los contenidos del CSV deben ser una columna de id de contacto, y otra columna con el tag.</p>
+        <p>Por cada fila se agregará el tag indicado al contacto correspondiente. Se pueden utilizar varios tags en el mismo archivo pero solo se admite uno por fila.</p>
+        <p>Los caracteres del tag serán convertidos a minúsculas, recomendamos no usar espacios y usar guiones o guiones bajos en su lugar.</p>
+        <input type="file" name="file" id="file" class="form-control">
+      </div>
+      <div class="form-group text-right">
+        <input type="submit" value="{% trans 'Import' %}" class="btn bg-gradient-primary" >
+      </div>
+      </form>
+  </div>
+</div>
+{% endblock %}

@@ -63,6 +63,9 @@ if DEBUG:
 # Replace with your own allowed hosts.
 ALLOWED_HOSTS = ["localhost"]
 
+# Make this unique, and don't share it with anybody.
+SECRET_KEY = ""
+
 # Use this setting to only import certain contacts, activate with True and
 # type the id numbers (int) in the MIGRATION_CUSTOM_CONTACT_LIST.
 MIGRATION_USE_CUSTOM_CONTACT_LIST = False

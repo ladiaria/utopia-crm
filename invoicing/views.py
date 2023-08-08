@@ -65,6 +65,7 @@ def contact_invoices(request, contact_id):
 
 def bill_subscription(subscription_id, billing_date=None, dpp=10, check_route=False, debug=False):
     """
+    # TODO: debug arg is not used, use/remove it.
     Bills a single subscription into an only invoice. Returns the created invoice.
     """
     billing_date = billing_date or date.today()
@@ -125,68 +126,129 @@ def bill_subscription(subscription_id, billing_date=None, dpp=10, check_route=Fa
 
     invoice_items = []
 
+    # TODO: the same calculation code is repeated in utils.calc_price_from_products, but here we need to add items,
+    #       we can somehow pass the invoice to that function to deduplicate calculation code, for example.
     # First we're going to form all the invoiceitems from the processed products the subscription has.
     # This gives a dictionary with product_id and copies so we need to call the items of said dictionary
     percentage_discount_product = None
-    subtotal = 0
     product_summary = subscription.product_summary()
-    advanced_discount_list = []
+    all_list, discount_list, non_discount_list, advanced_discount_list = product_summary.items(), [], [], []
 
-    for product_id, copies in list(product_summary.items()):
-        # For each product we're making an invoiceitem. These are common for both discounts and subscriptions
-        product = Product.objects.get(pk=int(product_id))
-        if product.type == 'P':
-            # If it's a percentage discount we'll save it for last, after the entire price has been calculated
-            percentage_discount_product = product
-            continue
-        elif product.type == 'A':
-            # if it's an advanced discount, save it for last too
-            advanced_discount_list.append(product)
-            continue
+    # 1. partition the input by discount products / non discount products
+    for product_id, copies in all_list:
+        try:
+            product = Product.objects.get(pk=int(product_id))
+        except Product.DoesNotExist:
+            pass
+        else:
+            (non_discount_list if product.type == 'S' else discount_list).append(product)
+
+    # 2. obtain 2 total cost amounts: affectable/non-affectable by discounts
+    subtotal_affectable, subtotal_non_affectable = 0.0, 0.0
+    for product in non_discount_list:
+        copies = int(product_summary[product.id])
+
+        if getattr(settings, 'DEBUG_PRODUCTS', False):
+            print(
+                f"{product.name} {copies}x{'-' if product.type == 'D' else ''}"
+                f"{product.price} = {'-' if product.type == 'D' else ''}{product.price * copies}"
+            )
+
+        # For each product we're making an invoiceitem.
         item = InvoiceItem()
         frequency_extra = _(' {} months'.format(subscription.frequency)) if subscription.frequency > 1 else ''
         item.description = format_lazy('{} {}', product.name, frequency_extra)
-        item.price = int(product.price * subscription.frequency)
+        item.price = product.price * subscription.frequency
         item.product = product
-        if product.type == 'S':
-            # If the product is a subscription
-            item.copies = int(copies)
-            item.type = 'I'  # This means this is a regular item on the invoice
-            subtotal += item.price * item.copies
-        elif product.type == 'D':
-            item.copies = int(copies)
-            item.type = 'D'  # This means this is a discount item
-            # We'll use the type of discount/surcharge of 1, that uses the numeric value instead of a percentage.
-            item.type_dr = 1
-            subtotal -= item.price * item.copies
+        item.copies = copies
+        item.type = 'I'  # This means this is a regular item on the invoice
         item.amount = item.price * item.copies
         # save all the package
         invoice_items.append(item)
 
+        # check first if this product is affected to any of the discounts
+        affectable = False
+        for discount_product in [d for d in discount_list if d.target_product == product]:
+            item_discount = InvoiceItem()
+            frequency_extra = _(' {} months'.format(subscription.frequency)) if subscription.frequency > 1 else ''
+            item_discount.description = format_lazy('{} {}', discount_product.name, frequency_extra)
+            item_discount.price = discount_product.price * subscription.frequency
+            item_discount.product = discount_product
+            item_discount.copies = int(product_summary[discount_product.id])
+            affectable_delta = float(item.amount)
+            if discount_product.type == "D":
+                item_discount.type_dr = 1
+                affectable_delta -= float(item_discount.price * item_discount.copies)
+            elif discount_product.type == "P":
+                affectable_delta_discount = (affectable_delta * discount_product.price) / 100
+                affectable_delta -= affectable_delta_discount
+            item_discount.amount = item_discount.price * item_discount.copies
+            subtotal_affectable += affectable_delta
+            invoice_items.append(item_discount)
+            discount_list.remove(discount_product)
+            affectable = True
+            break
+        if not affectable:
+            # not affected by discounts but the product price can be also "affectable" if has_implicit_discount
+            product_delta = float(item.amount)
+            if product.has_implicit_discount:
+                subtotal_affectable += product_delta
+            else:
+                subtotal_non_affectable += product_delta
+
+    # 3. iterate over discounts left
+    for product in discount_list:
+        if product.type == 'D':
+            item = InvoiceItem()
+            frequency_extra = _(' {} months'.format(subscription.frequency)) if subscription.frequency > 1 else ''
+            item.description = format_lazy('{} {}', product.name, frequency_extra)
+            item.price = product.price * subscription.frequency
+            item.product = product
+            item.copies = int(product_summary[product.id])
+            item.type = 'D'  # This means this is a discount item
+            # We'll use the type of discount/surcharge of 1, that uses the numeric value instead of a percentage.
+            item.type_dr = 1
+            item.amount = item.price * item.copies
+            # save all the package
+            invoice_items.append(item)
+            subtotal_non_affectable -= float(item.amount)
+        elif product.type == 'P':
+            # If it's a percentage discount we'll save it for last, after the entire price has been calculated
+            percentage_discount_product = product
+        elif product.type == 'A':
+            # if it's an advanced discount, save it for last too
+            advanced_discount_list.append(product)
+
     # After calculating the prices of the product, we check out every product in the advanced_discount_list
+    # TODO: this must be tested
     for discount_product in advanced_discount_list:
-        advanced_discount = AdvancedDiscount.objects.get(discount_product=discount_product)
-        discounted_product_price = 0
-        for product in advanced_discount.find_products.all():
-            if product.id in list(product_summary.keys()):
-                if product.type == 'S':
-                    discounted_product_price += int(product_summary[product.id]) * product.price
-                else:
-                    discounted_product_price -= int(product_summary[product.id]) * product.price
-        if advanced_discount.value_mode == 1:
-            discounted_product_price = advanced_discount.value
+        try:
+            advanced_discount = AdvancedDiscount.objects.get(discount_product=discount_product)
+        except AdvancedDiscount.DoesNotExist:
+            continue
         else:
-            discounted_product_price = round((discounted_product_price * advanced_discount.value) / 100)
-        item = InvoiceItem()
-        frequency_extra = _(' {} months'.format(subscription.frequency)) if subscription.frequency > 1 else ''
-        item.description = format_lazy('{} {}', discount_product.name, frequency_extra)
-        item.price = int(round(discounted_product_price))  # This is to calculate the $
-        item.type = 'D'
-        item.type_dr = 1
-        item.product = discount_product
-        item.copies = 1
-        item.amount = item.price  # Copies is 1 so this is also the amount
-        invoice_items.append(item)
+            if advanced_discount.value_mode == 1:
+                discounted_product_price = advanced_discount.value
+            else:
+                discounted_product_price = 0
+                for product in advanced_discount.find_products.all():
+                    if product.id in product_summary:
+                        if product.type == 'S':
+                            discounted_product_price += int(product_summary[product.id]) * product.price
+                        else:
+                            discounted_product_price -= int(product_summary[product.id]) * product.price
+                discounted_product_price = (discounted_product_price * advanced_discount.value) / 100
+            item = InvoiceItem()
+            frequency_extra = _(' {} months'.format(subscription.frequency)) if subscription.frequency > 1 else ''
+            item.description = format_lazy('{} {}', discount_product.name, frequency_extra)
+            item.price = discounted_product_price  # This is to calculate the $
+            item.type = 'D'
+            item.type_dr = 1
+            item.product = discount_product
+            item.copies = 1
+            item.amount = item.price  # Copies is 1 so this is also the amount
+            invoice_items.append(item)
+            subtotal_non_affectable -= item.amount
 
     if percentage_discount_product:
         # Then if we have the percentage discount, we'll calculate how much it is. We do this last to make sure
@@ -194,12 +256,13 @@ def bill_subscription(subscription_id, billing_date=None, dpp=10, check_route=Fa
         item = InvoiceItem()
         frequency_extra = _(' {} months'.format(subscription.frequency)) if subscription.frequency > 1 else ''
         item.description = format_lazy('{} {}', percentage_discount_product.name, frequency_extra)
-        item.price = int(round((subtotal * percentage_discount_product.price) / 100))  # This is to calculate the $
+        item.price = (subtotal_non_affectable * float(percentage_discount_product.price)) / 100  # calculate the $
         item.type = 'D'
         item.type_dr = 1
         item.product = percentage_discount_product
         item.copies = 1
         item.amount = item.price  # Copies is 1 so this is also the amount
+        subtotal_non_affectable -= item.amount
         invoice_items.append(item)
 
     # After adding all of the invoiceitems, we need to check if the subscription has an envelope. In future reviews
@@ -219,44 +282,33 @@ def bill_subscription(subscription_id, billing_date=None, dpp=10, check_route=Fa
         # We now pack the value into an InvoiceItem and add it to the list
         envelope_item = InvoiceItem()
         envelope_item.description = _('Envelope')
-        envelope_item.amount = int(amount)
+        envelope_item.amount = amount
         envelope_item.subscription = subscription
         invoice_items.append(envelope_item)
+        subtotal_affectable += envelope_item.amount
 
     expiration_date = billing_date + timedelta(int(dpp))
     service_from = subscription.next_billing
 
-    # The next part before the append is only to add frequency discounts
-    if subscription.frequency > 1:
-        # We sum all the money from this subscription
-        sub_items_amount = sum([item.amount for item in invoice_items if item.type == 'I'])
-        # Then we make the sum of all discount InvoiceItems
-        sub_discounts_amount = sum([item.amount for item in invoice_items if item.type == 'D'])
-        # Subtract discount from totals
-        sub_total = sub_items_amount - sub_discounts_amount
-        # Then we check if it is necessary to add discounts. The discount percentage comes from this method
-        discount_pct = subscription.get_frequency_discount()
-        # Then we add that to the corresponding invoiceitem
-        discount_amount = int(round((sub_total * discount_pct) / 100))
+    # check if it is necessary to add discounts by frequency.
+    discount_pct = subscription.get_frequency_discount()
+    if discount_pct:
         # Pack the discount invoiceitem and add it to the list
         frequency_discount_item = InvoiceItem()
         frequency_discount_item.description = _(
             '{} months discount ({} discount)'.format(subscription.frequency, discount_pct)
         )
-        frequency_discount_item.amount = discount_amount
+        frequency_discount_item.amount = (subtotal_non_affectable * discount_pct) / 100
         # 1 means it's a plain value. This is just in case you want to use percentage discounts.
         frequency_discount_item.type_dr = 1
         # This means the item is a discount.
         frequency_discount_item.type = 'D'
         invoice_items.append(frequency_discount_item)
+        subtotal_non_affectable -= frequency_discount_item.amount
 
     if invoice_items:
         try:
-            # Make the sum of all InvoiceItems of the type 'I' and 'R'
-            total = sum([item.amount for item in invoice_items if item.type in 'IR'])
-            discounts = sum([item.amount for item in invoice_items if item.type == 'D'])
-
-            amount = total - discounts
+            amount = subtotal_affectable + subtotal_non_affectable
 
             # After we calculated the invoice amount, we'll make sure the balance item isn't
             # greater than the invoice, we don't want a negative value invoice!

@@ -263,6 +263,7 @@ class ContactAdmin(SimpleHistoryAdmin):
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
+    # TODO: validations, for example target_product only makes sense on discount products
     list_display = (
         "id",
         "name",
@@ -286,7 +287,7 @@ class ProductAdmin(admin.ModelAdmin):
         "edition_frequency",
         "temporary_discount_months",
     ]
-    readonly_fields = ("slug",)
+    readonly_fields = ("slug", )
 
 
 class PlanAdmin(admin.ModelAdmin):
@@ -368,7 +369,18 @@ class PriceRuleAdmin(SimpleHistoryAdmin):
 
 @admin.register(SubscriptionProduct)
 class SubscriptionProductAdmin(admin.ModelAdmin):
-    list_display = ("subscription_id", "product", "copies", "address", "route", "order", "seller")
+    # TODO: improve get_subscription_active UX
+    list_display = (
+        "subscription_id",
+        "get_subscription_active",
+        "active",
+        "product",
+        "copies",
+        "address",
+        "route",
+        "order",
+        "seller",
+    )
     raw_id_fields = ("subscription", "address", "label_contact")
 
 
