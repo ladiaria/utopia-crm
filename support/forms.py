@@ -534,3 +534,20 @@ class AddressComplementaryInformationForm(forms.ModelForm):
     class Meta:
         model = Address
         fields = ("picture", "google_maps_url")
+
+class SugerenciaGeorefForm(forms.ModelForm):
+    class Meta:
+        model = Address
+        fields = [
+            "contact",
+            "address_1",
+            "address_2",
+            "city",
+            "state",
+            "state_id",
+            "city_id",
+            "latitude",
+            "longitude",
+            "verified",
+            "address_type",
+        ]

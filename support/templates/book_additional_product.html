@@ -7,7 +7,10 @@
 <script type="text/javascript" src="{% static 'js/datepicker-es.js' %}"></script>
 <script type="text/javascript">
 $( function() {
-  $(".datepicker").datepicker({ dateFormat: 'yy-mm-dd' });
+  $(".datepicker").datepicker({
+    dateFormat: 'yy-mm-dd',
+    minDate: "1",
+  });
 
   function activateSend() {
       var disable = false;
@@ -49,15 +52,22 @@ $( function() {
   <div class="col-9">
     <div class="card">
       <div class="card-header p-2">
+        {% if from_seller_console %}
+        <h3>{% trans "Add products" %}</h3>
+        {% else %}
         <ul class="nav nav-pills">
           <li class="new-item"><a class="nav-link" href="{% url 'book_unsubscription' subscription.id  %}">{% trans 'Unsubscription' %}</a></li>
           <li class="new-item"><a class="nav-link" href="{% url 'partial_unsubscription' subscription.id  %}">{% trans 'Partial unsubscription' %}</a></li>
           <li class="new-item"><a class="nav-link" href="{% url 'product_change' subscription.id  %}">{% trans 'Product change' %}</a></li>
           <li class="new-item"><a class="nav-link active" href="{% url 'additional_product' subscription.id  %}">{% trans 'Add product' %}</a></li>
         </ul>
+        {% endif %}
       </div>
       <div class="card-body">
-        <form method="post" id="form">
+        {% if new_balance %}
+        <div class="alert alert-warning m-2">Esta suscripción es {{subscription.get_frequency_display}}: Se agregará un balance de $ {{new_balance}} correspondiente a los {{days_remaining}} días restantes de la suscripción.</div>
+        {% endif %}
+        <form method="post" id="form" {% if url %}action="?url={{url}}&offset={{offset}}&{{category}}={{category_value}}"{% endif %}>
           {% csrf_token %}
           {% if form.errors %}
             {% for field in form %}
@@ -105,7 +115,6 @@ $( function() {
                 <span class="error invalid-feedback">{{form.unsubscription_addendum.errors}}</span>
               </div>
             </div>
-          </div>
 
           <div class="form-group text-right">
             <span id="custom_error_message" class="text-danger"><small>Selecciona un producto para continuar</small></span>

@@ -105,6 +105,7 @@ INSTALLED_APPS = (
     "django_htmx",
     "leaflet",
     "djgeojson",
+    'markdownify.apps.MarkdownifyConfig',
     # crm apps enabled
     "core",
     "support",
@@ -185,6 +186,8 @@ ISSUE_STATUS_SOLVED = "solved"
 ISSUE_STATUS_FINISHED_LIST = [ISSUE_STATUS_SOLVED, "not-solved"]
 
 DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
+
+GEOREF_SERVICES = True
 
 # Import local settings if they exist
 # TODO: improve hardcoded load of community settings

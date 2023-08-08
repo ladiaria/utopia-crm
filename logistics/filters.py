@@ -5,7 +5,7 @@ import django_filters
 from django import forms
 from django.utils.translation import gettext_lazy as _
 
-from core.models import SubscriptionProduct, Product
+from core.models import SubscriptionProduct, Product, Address
 
 EMPTY_ORDER_CHOICES = (
     ("only_ordered", _("Only ordered")),
@@ -24,6 +24,13 @@ ACTIVE_FUTURE_CHOICES = (
     ("both", _("Both")),
 )
 
+ACTIVE_FUTURE_INACTIVE_CHOICES = (
+    ("active", _("Active")),
+    ("future", _("Future")),
+    ("both", _("Active and future")),
+    ("inactive", _("Inactive")),
+)
+
 
 class OrderRouteFilter(django_filters.FilterSet):
     class Meta:
@@ -34,11 +41,8 @@ class OrderRouteFilter(django_filters.FilterSet):
         queryset=Product.objects.filter(type='S', offerable=True, digital=False)
     )
     weekday = django_filters.ChoiceFilter(choices=PRODUCT_WEEKDAY_CHOICES, method="filter_by_product_weekday")
-    empty_order = django_filters.ChoiceFilter(
-        choices=EMPTY_ORDER_CHOICES, method="filter_by_empty_order"
-    )
+    empty_order = django_filters.ChoiceFilter(choices=EMPTY_ORDER_CHOICES, method="filter_by_empty_order")
     active_future = django_filters.ChoiceFilter(choices=ACTIVE_FUTURE_CHOICES, method="filter_by_active")
-
 
     def filter_by_empty_order(self, queryset, name, value):
         if value == 'only_ordered':
@@ -69,3 +73,37 @@ class OrderRouteFilter(django_filters.FilterSet):
             return active_qs | future_qs
         else:
             return queryset
+
+
+class AddressGeorefFilter(django_filters.FilterSet):
+
+    route = django_filters.CharFilter(method="by_route")
+    active_subscription = django_filters.ChoiceFilter(
+        choices=ACTIVE_FUTURE_INACTIVE_CHOICES, method="by_active_inactive"
+    )
+
+    def by_route(self, queryset, name, value):
+        return queryset.filter(subscriptionproduct__route__number=value)
+
+    def by_active_inactive(self, queryset, name, value):
+        active_qs = queryset.filter(subscriptionproduct__subscription__active=True).distinct()
+        future_qs = queryset.filter(
+            subscriptionproduct__subscription__active=False,
+            subscriptionproduct__subscription__start_date__gte=date.today(),
+        ).distinct()
+        inactive_qs = queryset.filter(subscriptionproduct__subscription__active=False).distinct()
+
+        if value == "active":
+            return active_qs
+        elif value == "future":
+            return future_qs
+        elif value == "both":
+            return active_qs | future_qs
+        elif value == "inactive":
+            return inactive_qs
+        else:
+            return queryset
+
+    class Meta:
+        model = Address
+        fields = ["verified", "needs_georef", "route", "active_subscription"]

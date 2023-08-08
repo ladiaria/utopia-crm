@@ -665,7 +665,8 @@ class Address(models.Model):
     georef_point = gismodels.PointField(blank=True, null=True)
     latitude = models.DecimalField(null=True, blank=True, max_digits=10, decimal_places=6)
     longitude = models.DecimalField(null=True, blank=True, max_digits=10, decimal_places=6)
-    verified = models.BooleanField(default=False)
+    verified = models.BooleanField(null=True, default=False)
+    needs_georef = models.BooleanField(null=True, default=False)
 
     def __str__(self):
         return ' '.join(filter(None, (self.address_1, self.address_2, self.city, self.state)))
@@ -678,7 +679,25 @@ class Address(models.Model):
         return types.get(self.address_type, "N/A")
 
     def add_note(self, note):
-        self.notes = self.notes + f"{note}" if not self.notes else self.notes + f"\n{note}"
+        self.notes = f"{note}" if not self.notes else self.notes + f"\n{note}"
+        self.save()
+
+    def get_routes(self):
+        sps = SubscriptionProduct.objects.filter(address=self.id).order_by('route')
+        routes = []
+        for sp in sps:
+            if sp.route:
+                routes.append(str(sp.route.number))
+        if len(routes) > 0:
+            routes = list(set(routes))
+            return ", ".join(routes)
+        else:
+            return "N/A"
+    
+    def reset_georef(self):
+        self.latitude, self.longitude, self.georef_point = None, None, None
+        self.needs_georef = True
+        self.verified = False
         self.save()
 
     def save(self, *args, **kwargs):
