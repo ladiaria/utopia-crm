@@ -103,14 +103,31 @@ def import_contacts(request):
     """
     if request.POST and request.FILES:
         new_contacts_list = []
-        old_contacts_list = []
+        in_active_campaign = []
+        active_contacts = []
+        existing_inactive_contacts = []
         errors_list = []
-        tag_list = []
+        tag_list, tag_list_in_campaign, tag_list_active, tag_list_existing = [], [], [], []
         tags = request.POST.get("tags", None)
         if tags:
             tags = tags.split(",")
             for tag in tags:
                 tag_list.append(tag.strip())
+        tags_existing = request.POST.get("tags_existing", None)
+        if tags_existing:
+            tags_existing = tags_existing.split(",")
+            for tag in tags_existing:
+                tag_list_existing.append(tag.strip())
+        tags_active = request.POST.get("tags_active", None)
+        if tags_active:
+            tags_active = tags_active.split(",")
+            for tag in tags_active:
+                tag_list_active.append(tag.strip())
+        tags_in_campaign = request.POST.get("tags_in_campaign", None)
+        if tags_in_campaign:
+            tags_in_campaign = tags_in_campaign.split(",")
+            for tag in tags_in_campaign:
+                tag_list_in_campaign.append(tag.strip())
         # check files for every possible match
         try:
             reader = csv_sreader(request.FILES["file"].read().decode("utf-8"))
@@ -144,7 +161,7 @@ def import_contacts(request):
                     continue
             except IndexError:
                 messages.error(
-                    request, _("The column count is wrong, please check that the header has at least 10 columns")
+                    request, _("The column count is wrong, please check that the file has at least 10 columns")
                 )
                 return HttpResponseRedirect(reverse("import_contacts"))
             cpx = Q()
@@ -161,9 +178,21 @@ def import_contacts(request):
             if matches.count() > 0:
                 # if we get more than one match, alert the user
                 for c in matches:
-                    if c not in old_contacts_list:
-                        old_contacts_list.append(c)
-                        # NOTE: Maybe try to tag them with an extra thingy like tag_existente
+                    if c.contactcampaignstatus_set.filter(campaign__active=True).exists():
+                        in_active_campaign.append(c.id)
+                        if tag_list_in_campaign:
+                            for tag in tag_list_in_campaign:
+                                c.tags.add(tag)
+                    elif c.has_active_subscription():
+                        active_contacts.append(C.id)
+                        if tag_list_active:
+                            for tag in tag_list_active:
+                                c.tags.add(tag)
+                    else:
+                        existing_inactive_contacts.append(c.id)
+                        if tag_list_existing:
+                            for tag in tag_list_existing:
+                                c.tags.add(tag)
             else:
                 try:
                     new_contact = Contact.objects.create(
@@ -191,30 +220,11 @@ def import_contacts(request):
             "import_contacts.html",
             {
                 "new_contacts_count": len(new_contacts_list),
-                "old_contacts_list": old_contacts_list,
+                "in_active_campaign": len(in_active_campaign),
+                "active_contacts": len(active_contacts),
+                "existing_inactive_contacts": len(existing_inactive_contacts),
                 "errors_list": errors_list,
                 "tag_list": tag_list,
-            },
-        )
-    elif request.POST and request.POST.get("hidden_tag_list"):
-        tag_list = request.POST.get("hidden_tag_list", None)
-        errors_in_changes = []
-        changed_list = []
-        try:
-            for name, value in list(request.POST.items()):
-                if name.startswith("move") and value == "T":
-                    contact = Contact.objects.get(pk=name.replace("move-", ""))
-                    for tag in eval(tag_list):
-                        contact.tags.add(tag)
-                    changed_list.append(contact)
-        except Exception as e:
-            errors_in_changes.append("{} - {}".format(contact.id, e))
-        return render(
-            request,
-            "import_contacts.html",
-            {
-                "changed_list": changed_list,
-                "errors_in_changes": errors_in_changes,
             },
         )
     else:
