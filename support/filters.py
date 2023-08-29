@@ -6,7 +6,7 @@ from django.utils.translation import gettext_lazy as _
 from django.contrib.auth.models import User
 from django.db.models import Q
 
-from core.models import Activity, ContactCampaignStatus, Subscription
+from core.models import Activity, ContactCampaignStatus, Subscription, Campaign
 from .models import Issue, IssueSubcategory, Seller, ScheduledTask
 
 
@@ -147,3 +147,11 @@ class ScheduledTaskFilter(django_filters.FilterSet):
 
     def by_address(self, queryset, name, value):
         return queryset.filter(address__address1__icontains=value)
+
+class CampaignFilter(django_filters.FilterSet):
+    name_icontains = django_filters.CharFilter(field_name="name", lookup_expr="icontains")
+    class Meta:
+        model = Campaign
+        fields = {"active": ["exact"],
+                  "name": ["icontains"]
+                  }

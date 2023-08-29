@@ -80,7 +80,7 @@
     <li class="nav-item"><a href="{{assign_campaigns}}" class="nav-link {% if request.path == assign_campaigns %}active{% endif %}">Asignar contactos a campaña por etiqueta</a></li>
     <li class="nav-item"><a href="{{assign_to_seller}}" class="nav-link {% if request.path == assign_to_seller %}active{% endif %}">{% trans 'Assign contacts to sellers' %}</a></li>
     <li class="nav-item"><a href="{{core_campaign_add}}" target="_blank" class="nav-link">{% trans "New campaign" %}</a></li>
-    <li class="nav-item"><a href="{{campaign_statistics_list}}" class="nav-link">{% trans "Campaign statistics" %}</a></li>
+    <li class="nav-item"><a href="{{campaign_statistics_list}}?active=true" class="nav-link">{% trans "Campaign statistics" %}</a></li>
     <li class="nav-item"><a href="{{seller_performance_by_time}}" class="nav-link">{% trans "Sellers performance" %}</a></li>
     <li class="nav-item"><a href="{{release_seller_contacts}}" class="nav-link">{% trans "Release seller contacts" %}</a></li>
     <li class="nav-item"><a href="{{upload_do_not_call_numbers}}" class="nav-link">{% trans "Upload do not call list" %}</a></li>
