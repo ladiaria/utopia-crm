@@ -9,7 +9,7 @@ from django.urls import resolve, reverse
 
 from taggit.models import TaggedItem
 
-# from tabbed_admin import TabbedModelAdmin
+# from tabbed_admin import TabbedModelAdmin  # TODO: explain or remove this commented line
 from simple_history.admin import SimpleHistoryAdmin
 
 from community.models import ProductParticipation, Supporter
@@ -77,7 +77,7 @@ class SubscriptionProductInline(admin.TabularInline):
         ("route", "order", "label_contact", "seller"),
         ("has_envelope", "active"),
     )
-    raw_id_fields = ["route", "label_contact", "seller"]
+    raw_id_fields = ["route", "label_contact", "seller"]##, "address", "subscription"]
     extra = 1
 
     def get_parent_object_from_request(self, request):
@@ -91,13 +91,15 @@ class SubscriptionProductInline(admin.TabularInline):
             return self.parent_model.objects.get(pk=resolved.kwargs["object_id"])
         return None
 
+    """
     def formfield_for_foreignkey(self, db_field, request=None, **kwargs):
-        field = super(SubscriptionProductInline, self).formfield_for_foreignkey(db_field, request, **kwargs)
+        field = super().formfield_for_foreignkey(db_field, request, **kwargs)
         if db_field.name == "address":
             if request:
-                contact = self.get_parent_object_from_request(request).contact
-                field.queryset = field.queryset.filter(contact=contact)
+                parent = self.get_parent_object_from_request(request)
+                field.queryset = field.queryset.filter(contact=parent.contact if parent else None)
         return field
+    """
 
 
 def response_add_or_change_next_url(request, obj):
@@ -122,8 +124,9 @@ def default_newsletters_dialog_redirect(request, obj, contact_id_attr_name):
 
 @admin.register(Subscription)
 class SubscriptionAdmin(SimpleHistoryAdmin):
+    # TODO: use empty DB to see if more "raw" fields still unset
     model = Subscription
-    inlines = [SubscriptionProductInline]
+    ##inlines = [SubscriptionProductInline]
     form = SubscriptionAdminForm
     fieldsets = (
         ("Contact data", {"fields": ("contact",)}),
@@ -175,6 +178,7 @@ class SubscriptionAdmin(SimpleHistoryAdmin):
     list_editable = ("active", "payment_type")
     list_filter = ("campaign", "active", "payment_type")
     readonly_fields = ("contact", "edit_products_field", "campaign", "updated_from", "unsubscription_products")
+    raw_id_fields = ["campaign", "contact", "billing_address", "updated_from"]##
 
     def response_add(self, request, obj, post_url_continue=None):
         if obj.contact.offer_default_newsletters_condition():
