@@ -274,11 +274,18 @@ def email_replacements():
     return dict(reader(open(mapfile))) if mapfile else {}
 
 
+def email_replacement_request_add(domain, replacement):
+    # TODO: A way to track the new replacements approved by staff users
+    #       idea: use a model with also an status field which indicates wether or not the request should be staged to
+    #       our replacement list (think also if that replacement list can be migrated to be taken from the model)
+    pass
+
+
 def clean_email(email):
     """
     If the email received does not have a valid domain, email returned will be the email given replacing the domain
     with the replacement existing on our replacement list.
-    @returns: a dict with valid=bool, email=original or replaced email.
+    @returns: a dict with valid=bool, email=original or replaced email, suggestion=suggested email to be used.
     """
     result, replacements = {}, email_replacements()
 
@@ -289,7 +296,7 @@ def clean_email(email):
     if validate_email(email, True):
         result.update({"valid": True, "email": email})
         if replaced:
-            # valid but we check in our replacements (it can be a valid domain who matches a known typo for us)
+            # valid but present in our replacements (a valid domain which is considered by us as a typo)
             result["suggestion"] = replaced
     else:
         if replaced:
