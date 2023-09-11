@@ -1,6 +1,12 @@
-import requests, collections
 from datetime import date, timedelta
+from csv import reader
+import requests, collections
+
+from validate_email_address import validate_email
+from pymailcheck import split_email, suggest
+
 from django.conf import settings
+
 
 dnames = ('monday', 'tuesday', 'wednesday', 'thursday', 'friday')
 
@@ -260,3 +266,38 @@ def process_products(input_product_dict):
     for product in input_products:
         output_dict[product.id] = input_product_dict[str(product.id)]
     return output_dict
+
+
+def email_replacements():
+    """ Returns the replacements map dict """
+    mapfile = getattr(settings, "EMAIL_DOMAIN_REPLACEMENTS_CSV_PATH", None)
+    return dict(reader(open(mapfile))) if mapfile else {}
+
+
+def clean_email(email):
+    """
+    If the email received does not have a valid domain, email returned will be the email given replacing the domain
+    with the replacement existing on our replacement list.
+    @returns: a dict with valid=bool, email=original or replaced email.
+    """
+    result, replacements = {}, email_replacements()
+
+    splitted = split_email(email)
+    replacement = replacements.get(splitted["domain"]) if replacements else None
+    replaced = "%s@%s" % (splitted["address"], replacement) if replacement else None
+
+    if validate_email(email, True):
+        result.update({"valid": True, "email": email})
+        if replaced:
+            # valid but we check in our replacements (it can be a valid domain who matches a known typo for us)
+            result["suggestion"] = replaced
+    else:
+        if replaced:
+            # invalid but we know how to fix
+            result.update({"valid": True, "email": replaced})
+        else:
+            # invalid, suggestion (if any) is given by pymailcheck module
+            result["valid"], result["email"], suggestion = False, email, suggest(email)
+            if suggestion:
+                result["suggestion"] = suggestion["full"]
+    return result
