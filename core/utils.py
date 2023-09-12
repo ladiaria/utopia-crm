@@ -275,11 +275,11 @@ def email_replacements():
     return dict(reader(open(mapfile))) if mapfile else {}
 
 
-def email_replacement_request_add(domain, replacement):
+def email_replacement_add(domain, replacement):
     # TODO: A way to register the suggestion replacements accepted by users.
     #       idea: use a model with also an status field which indicates wether or not the request should be staged to
     #       our replacement list (think also if that replacement list can be migrated to be taken from the model)
-    #       status: {requested(default), approved, rejected}
+    #       domain: varchar(252) unique, replacement: varchar(252), status: {requested(default), approved, rejected}
     pass
 
 
