@@ -49,6 +49,7 @@ from .choices import (
     VARIABLE_TYPES,
     DISCOUNT_PRODUCT_MODE_CHOICES,
     DISCOUNT_VALUE_MODE_CHOICES,
+    EMAIL_REPLACEMENT_STATUS_CHOICES,
 )
 from .utils import delete_email_from_mailtrain_list, subscribe_email_to_mailtrain_list, get_emails_from_mailtrain_list
 
@@ -1933,3 +1934,23 @@ class DoNotCallNumber(models.Model):
 
     class Meta:
         ordering = ["number"]
+
+
+class EmailReplacement(models.Model):
+    domain = models.CharField(max_length=252, unique=True)
+    replacement = models.CharField(max_length=252)
+    status = models.CharField(max_length=15, choices=EMAIL_REPLACEMENT_STATUS_CHOICES, default="requested")
+
+    @staticmethod
+    def approved():
+        return dict(EmailReplacement.objects.filter(status="approved").values_list("domain", "replacement"))
+
+    @staticmethod
+    def is_rejected(domain, replacement):
+        return EmailReplacement.objects.filter(domain=domain, replacement=replacement, status="rejected").exists()
+
+    def __str__(self):
+        return "%s -> %s (%s)" % (self.domain, self.replacement, self.get_status_display())
+
+    class Meta:
+        ordering = ("status", "domain")

@@ -2,9 +2,6 @@ from datetime import date, timedelta
 from csv import reader
 import requests, collections
 
-from validate_email_address import validate_email
-from pymailcheck import split_email, suggest
-
 from django.conf import settings
 
 
@@ -266,52 +263,3 @@ def process_products(input_product_dict):
     for product in input_products:
         output_dict[product.id] = input_product_dict[str(product.id)]
     return output_dict
-
-
-def email_replacements():
-    """ Returns the replacements map dict """
-    # TODO: return dict(NewModel.objects.filter(status="approved").values_list(("domain", "replacement"), flat=True))
-    mapfile = getattr(settings, "EMAIL_DOMAIN_REPLACEMENTS_CSV_PATH", None)
-    return dict(reader(open(mapfile))) if mapfile else {}
-
-
-def email_replacement_add(domain, replacement):
-    # TODO: A way to register the suggestion replacements accepted by users.
-    #       idea: use a model with also an status field which indicates wether or not the request should be staged to
-    #       our replacement list (think also if that replacement list can be migrated to be taken from the model)
-    #       domain: varchar(252) unique, replacement: varchar(252), status: {requested(default), approved, rejected}
-    pass
-
-
-def email_replacement_is_rejected(domain, replacement):
-    # TODO: return NewModel.objects.filter(domain=domain, replacement=replacement, status="rejected").exists()
-    return False
-
-
-def clean_email(email):
-    """
-    If the email received does not have a valid domain, email returned will be the email given replacing the domain
-    with the replacement existing on our replacement list.
-    @returns: a dict with valid=bool, email=original or replaced email, suggestion=suggested email to be used.
-    """
-    splitted, replacements, result = split_email(email), email_replacements(), {}
-
-    domain = splitted["domain"]
-    replacement = replacements.get(domain) if replacements else None
-    replaced = "%s@%s" % (splitted["address"], replacement) if replacement else None
-
-    if validate_email(email, True):
-        result.update({"valid": True, "email": email})
-        if replaced:
-            # valid but present in our replacements (a valid domain which is considered by us as a typo)
-            result["suggestion"] = replaced
-    else:
-        if replaced:
-            # invalid but we know how to fix
-            result.update({"valid": True, "email": replaced})
-        else:
-            # invalid, suggestion (if any) is given by pymailcheck module and no already rejected by us
-            result["valid"], result["email"], suggestion = False, email, suggest(email)
-            if suggestion and not email_replacement_is_rejected(domain, suggestion["domain"]):
-                result["suggestion"] = suggestion["full"]
-    return result
