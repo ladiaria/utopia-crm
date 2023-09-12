@@ -3,26 +3,14 @@
 
 {% block title %}{% trans "Import contacts" %}{% endblock title %}
 
-{% block extra_js %}
-<script type="text/javascript">
-    $( function() {
-        $("#default_option").change(function(){
-            $(".contact_option").each(function(){
-                $(this).val($("#default_option").val());
-            });
-        });
-    });
-</script>
-{% endblock %}
-
 {% block no_heading %}
 <h1>{% trans 'Support' %}</h1>
 <p>{% trans 'Import new contacts' %}</p>
 {% endblock %}
 {% block breadcrumbs %}
 <ol class="breadcrumb">
-    <li class="breadcrumb-item"><a href="/support/">{% trans 'Support' %}</a></li>
-     <li class="breadcrumb-item active">{% trans 'Import new contacts' %}</li>
+  <li class="breadcrumb-item"><a href="/support/">{% trans 'Support' %}</a></li>
+  <li class="breadcrumb-item active">{% trans 'Import new contacts' %}</li>
 </ol>
 {% endblock %}
 
@@ -32,88 +20,57 @@
     <h3 class="card-title">{% trans 'Import new contacts' %}</h3>
   </div>
   <div class="card-body">
-  {% if new_contacts_count or old_contacts_list or errors_list %}
-      {% if new_contacts_count %}
-          <h4>{{new_contacts_count}} {% trans 'new contacts imported' %}:</h4>
-      {% endif %}
+    {% if new_contacts_count %}
+    <h4>{{new_contacts_count}} {% trans 'new contacts imported' %}:</h4>
+    {% endif %}
 
-      {% if old_contacts_list %}
-        <h4>{% trans 'Coincidences in contacts already in database found' %} ({% trans "By phones or emails" %}):</h4>
-        <form method="post">
-        {% csrf_token %}
-        <input type="hidden" name="hidden_campaign_id" value="{{campaign_id}}"/>
-        <input type="hidden" name="hidden_tag_list" value="{{tag_list}}"/>
-        {% trans "Select an action for all contacts, you can them edit them individually" %}
-        <select id="default_option" class="form-control">
-          {% if tag_list %}
-          <option value="T">{% trans 'Only add tags' %}</option>
-          {% endif %}
-        </select>
-        <br><br>
-        {% for contact in old_contacts_list %}
-          <span>{% trans 'Coincidence in' %}: {{contact.name}} <a href="{% url 'contact_detail' contact.id %}" target="_blank">({{contact.id}})</a>
-          {% if contact.has_active_subscription %}<span style="color:red">{% trans 'WARNING: This contact has an active subscription!' %}</span>{% endif %}
-          <select name="move-{{contact.id}}" class="form-control contact_option">
-            <option value="">{% trans 'Do nothing' %}</option>
-            {% if tag_list %}
-            <option value="T">{% trans 'Only add tags' %} {{tag_list}}</option>
-            {% endif %}
-          </select>
-        {% endfor %}
-          <br>
-          <div class="form-group text-right">
-            <input type="submit" value="{% trans 'Execute actions' %}" class="btn bg-gradient-primary" />
-          </div>
-        </form>
-      {% else %}
-        <br>
-        <a href=".">{% trans 'Back' %}</a>
-      {% endif %}
-      {% if errors_list %}
-        <h4>{% trans 'Import has encountered some errors' %}:</h4>
-        <ul>
-          {% for error in errors_list %}
-            <li>{% trans "Error" %}: {{error}}</li>
-          {% endfor %}
-        </ul>
-      {% endif %}
+    {% if in_active_campaign %}<p>{{in_active_campaign}} contactos fueron encontrados en campañas activas.</p>
+    {% endif %}
+    {% if active_contacts %}<p>{{active_contacts}} contactos estaban activos.</p>{% endif %}
+    {% if existing_inactive_contacts %}<p>{{existing_inactive_contacts}} contactos estaban inactivos.</p>{% endif %}
 
-  {% elif changed_list or errors_in_changes %}
-      {% if changed_list %}
-        <p>{% trans 'These contacts have been updated' %}</p>
-        {% for contact in changed_list %}
-          <a href="{% url 'contact_detail' contact.id %}" target="_blank">{{contact.name}}</a><br/>
-        {% endfor %}
-      {% endif %}
-      {% if errors_in_changes %}
-        <h4>{% trans 'There were some errors assigning new data to contacts' %}:</h4>
-        <ul>
-          {% for error in errors_in_changes %}
-            <li>{% trans "Error" %}: {{error}}</li>
-          {% endfor %}
-        </ul>
-      {% endif %}
-      <div class="form-group text-right">
-        <a href="." class="btn bg-gradient-primary">{% trans 'Back' %}</a>
-      </div>
-  {% else %}
-      <form action="" method="post" enctype="multipart/form-data">
+    {% if errors_list %}
+    <h4>{% trans 'Import has encountered some errors' %}:</h4>
+    <ul>
+      {% for error in errors_list %}
+      <li>{% trans "Error" %}: {{error}}</li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+
+
+    <form action="" method="post" enctype="multipart/form-data">
       {% csrf_token %}
       <div class="form-group">
-        <label for="file">{% trans 'Choose file to send. It has to be a csv file with the following header and columns' %}:</label>
+        <label
+          for="file">{% trans 'Choose file to send. It has to be a csv file with the following header and columns' %}:</label>
         <p>{% trans "name, phone, email, mobile, work_phone, notes, address_1, address_2, city, state" %}</p>
         <p>{% trans "All columns must be present in the header. Only name and phone are required in the content." %}</p>
         <input type="file" name="file" id="file" class="form-control">
       </div>
       <div class="form-group">
-        <label for="tags">{% trans 'Tags these contacts will have. (separated by comma. Example: doctor, ex-subscriber, likes the product)' %}:</label>
-        <input type="text" id="tags" name="tags" class="form-control" required/>
+        <label for="tags">Etiqueta para los contactos inexistentes:</label>
+        <input type="text" id="tags" name="tags" class="form-control" required />
       </div>
+      <div class="form-group">
+        <label for="tags">Etiqueta para los contactos existentes, fuera de campaña, inactivos, y sin deuda (Dejar en
+          blanco si no es requerido):</label>
+        <input type="text" id="tags" name="tags_existing" class="form-control" required />
+      </div>
+      <div class="form-group">
+        <label for="tags">Etiqueta para los contactos existentes, activos (Dejar en blanco si no es requerido):</label>
+        <input type="text" id="tags" name="tags_active" class="form-control" required />
+      </div>
+      <div class="form-group">
+        <label for="tags">Etiqueta para los contactos existentes, en campañas (Dejar en blanco si no es
+          requerido):</label>
+        <input type="text" id="tags" name="tags_in_campaign" class="form-control" required />
+      </div>
+
       <div class="form-group text-right">
-        <input type="submit" value="{% trans 'Import' %}" class="btn bg-gradient-primary" >
+        <input type="submit" value="{% trans 'Import' %}" class="btn bg-gradient-primary">
       </div>
-      </form>
-  {% endif %}
+    </form>
   </div>
 </div>
 {% endblock %}

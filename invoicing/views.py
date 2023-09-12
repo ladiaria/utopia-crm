@@ -175,6 +175,7 @@ def bill_subscription(subscription_id, billing_date=None, dpp=10, check_route=Fa
             item_discount.price = discount_product.price * subscription.frequency
             item_discount.product = discount_product
             item_discount.copies = int(product_summary[discount_product.id])
+            item_discount.type = "D"
             affectable_delta = float(item.amount)
             if discount_product.type == "D":
                 item_discount.type_dr = 1
