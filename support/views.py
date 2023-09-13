@@ -81,6 +81,8 @@ from core.utils import calc_price_from_products, process_products
 from core.forms import ContactAdminForm
 from util.dates import add_business_days
 
+from util.email_typosquash import clean_email
+
 
 now = datetime.now()
 
@@ -3146,4 +3148,27 @@ def tag_contacts(request):
     return render(
         request,
         "tag_contacts.html",
+    )
+
+@csrf_exempt
+def email_suggestion(request):
+    email = request.POST.get("email", None)
+    if email:
+        clean = clean_email(email)
+        if clean and not clean["valid"]:
+            suggestion = clean["suggestion"]
+            return render(
+                request,
+                "new_subscription/email_suggestion.html",
+                {
+                    "suggestion": suggestion,
+                    "email": email,
+                 }
+            )
+    return render(
+        request,
+        "new_subscription/email_suggestion.html",
+        {
+            "email" : email,
+        }
     )

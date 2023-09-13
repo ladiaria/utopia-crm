@@ -1,5 +1,5 @@
 {% extends 'adminlte/base.html' %}
-{% load i18n static core_tags %}
+{% load i18n static core_tags widget_tweaks %}
 
 {% block title %}
 {% trans "New subscription" %}
@@ -61,11 +61,14 @@
     });
   });
 </script>
+<script src="{% static 'js/htmx.min.js' %}" defer></script>
 {% block extra_scripts %}{% endblock %}
 {% endblock %}
 
 
 {% block content %}
+{% url 'email_suggestion' as email_suggestion_url %}
+
 <div class="card">
   <div class="card-header">
     {% if edit_subscription %}
@@ -100,17 +103,23 @@
           <label for="id_contact_id">{{form.id.label}}</label>
           {{form.contact_id}}
         </div>
-        <div class="form-group col-sm-4">
+        <div class="form-group col-sm-6">
           <label for="id_name">{{form.name.label}}</label>
           {{form.name}}
         </div>
-        <div class="form-group col-sm-4">
-          <label for="id_email">{{form.email.label}}</label>
-          {{form.email}}
-        </div>
-        <div class="form-group col-sm-4">
+        <div class="form-group col-sm-6">
           <label for="id_id_document">{{form.id_document.label}}</label>
           {{form.id_document}}
+        </div>
+      </div>
+
+      <div class="row" id="email_suggestion_row">
+        <div class="form-group col-sm-6">
+          <label for="id_email">{{form.email.label}}</label>
+          {% render_field form.email hx-post=email_suggestion_url hx-target="#email_suggestion_row" hx-swap="outerHTML" %}
+        </div>
+        <div class="form-group col-sm-5 m-4">
+          <div id="suggestion_text"></div>
         </div>
       </div>
 

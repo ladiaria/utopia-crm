@@ -1,0 +1,21 @@
+<div class="row" id="email_suggestion_row">
+  <div class="form-group col-sm-6">
+    <label for="id_email">Correo electrónico</label>
+    <input type="email" name="email" value="{{email}}" class="form-control {% if suggestion %}is-invalid{% else %}is-valid{% endif %}" hx-swap="outerHTML" hx-target="#email_suggestion_row" hx-post="{% url 'email_suggestion' %}" id="id_email">
+  </div>
+  {% if suggestion %}
+  <div class="form-group col-sm-5 m-4">
+    <span id="suggestion_text" class="text-danger">Mail inválido, ¿quisiste decir <span>{{suggestion}}</span>? <button class="btn-sm btn-success" type="button" id="apply_suggestion">Aplicar sugerencia</button></span>
+  </div>
+  {% endif %}
+</div>
+<script>
+  $('#apply_suggestion').click(function(){
+    $('#id_email').val("{{suggestion}}");
+    $("#suggestion_text").html("¡Sugerencia aplicada!");
+    $("#suggestion_text").removeClass("text-danger");
+    $("#suggestion_text").addClass("text-success");
+    $("#id_email").removeClass("is-invalid");
+    $("#id_email").addClass("is-valid");
+  });
+</script>
