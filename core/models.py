@@ -655,7 +655,7 @@ class Address(models.Model):
         blank=True,
         null=True,
         verbose_name=_("GeorefAddress"),
-    )
+    )  # TODO: will be migrated to new "# GEOREF" fields (georef_point) and then deprecated/removed (doing)
     history = HistoricalRecords()
     picture = models.FileField(upload_to="address_pictures/", blank=True, null=True)
     google_maps_url = models.CharField(max_length=2048, null=True, blank=True)
@@ -696,7 +696,7 @@ class Address(models.Model):
             return ", ".join(routes)
         else:
             return "N/A"
-    
+
     def reset_georef(self):
         self.latitude, self.longitude, self.georef_point = None, None, None
         self.needs_georef = True
