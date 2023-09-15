@@ -272,7 +272,7 @@ class Contact(models.Model):
     def save(self, *args, **kwargs):
         if not getattr(self, "updatefromweb", False):
             self.clean()
-        return super(Contact, self).save(*args, **kwargs)
+        return super().save(*args, **kwargs)
 
     def is_debtor(self):
         """
@@ -284,12 +284,7 @@ class Contact(models.Model):
         """
         Returns a queryset with the pending invoices for the contact.
         """
-        return self.invoice_set.filter(
-            paid=False,
-            debited=False,
-            canceled=False,
-            uncollectible=False,
-        )
+        return self.invoice_set.filter(paid=False, debited=False, canceled=False, uncollectible=False)
 
     def pending_invoices_count(self):
         return self.get_pending_invoices().count()
@@ -425,18 +420,35 @@ class Contact(models.Model):
         return genders.get(self.gender, "N/A")
 
     def add_newsletter(self, newsletter_id):
-        SubscriptionNewsletter.objects.get_or_create(
-            contact=self, product=Product.objects.get(id=newsletter_id, type="N"), active=True
+        sn, created = SubscriptionNewsletter.objects.get_or_create(
+            contact=self, product=Product.objects.get(id=newsletter_id, type="N")
         )
+        if not created and not sn.active:
+            sn.active=True
+            sn.save()
 
     def add_newsletter_by_slug(self, newsletter_slug):
-        # TODO: improve this using the "active" field
         try:
-            SubscriptionNewsletter.objects.get_or_create(
-                contact=self, product=Product.objects.get(slug=newsletter_slug, type="N"), active=True
+            sn, created = SubscriptionNewsletter.objects.get_or_create(
+                contact=self, product=Product.objects.get(slug=newsletter_slug, type="N")
             )
+            if not created and not sn.active:
+                sn.active=True
+                sn.save()
         except (Product.DoesNotExist, SubscriptionNewsletter.MultipleObjectsReturned):
             pass
+
+    def get_newsletters(self):
+        """
+        Returns a queryset with all the newsletters that this contact has subscriptions in (active or inactive).
+        """
+        return self.subscriptionnewsletter_set.all()
+
+    def get_active_newsletters(self):
+        """
+        Returns a queryset with all the newsletters that this contact has subscriptions in (active only).
+        """
+        return self.get_newsletters().filter(active=True)
 
     def remove_newsletter(self, newsletter_id):
         try:
@@ -444,16 +456,14 @@ class Contact(models.Model):
         except Product.DoesNotExist:
             raise _("Invalid product id")
         else:
-            SubscriptionNewsletter.objects.filter(contact=self, product=newsletter, active=True).delete()
+            self.get_active_newsletters().filter(product=newsletter).delete()
 
-    def get_newsletters(self):
-        """
-        Returns a queryset with all the newsletters that this contact has subscriptions in (active or inactive).
-        """
-        return SubscriptionNewsletter.objects.filter(contact=self)
+    def remove_newsletters(self):
+        """ Remove all contac's active newsletters """
+        self.get_active_newsletters().delete()
 
     def has_newsletter(self, newsletter_id):
-        return self.get_newsletters().filter(product_id=newsletter_id, active=True).exists()
+        return self.get_active_newsletters().filter(product_id=newsletter_id).exists()
 
     def get_newsletter_products(self):
         return Product.objects.filter(
