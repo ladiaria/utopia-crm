@@ -2,25 +2,25 @@
 {% load static i18n widget_tweaks core_tags %}
 
 {% block stylesheets %}
-    {{block.super}}
-    <link rel="stylesheet" href="{% static '/admin-lte/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css' %}" />
+{{block.super}}
+<link rel="stylesheet" href="{% static '/admin-lte/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css' %}" />
 {% endblock %}
 
 {% block extra_js %}
 <script type="text/javascript" src="{% static '/admin-lte/plugins/datatables/jquery.dataTables.min.js' %}"></script>
 <script src="{% static '/admin-lte/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js' %}"></script>
 <script>
-  $(function() {
+  $(function () {
     $("#table1").DataTable({
-      "paging":   false,
-      "info":     false
+      "paging": false,
+      "info": false
     });
   });
 </script>
 {% endblock %}
 
 {% block title %}
-    {% trans "Campaign statistics" %}
+{% trans "Campaign statistics" %}
 {% endblock title %}
 
 {% block no_heading %}
@@ -30,75 +30,96 @@
 
 {% block content %}
 <div class="row">
-    <div class="col-md-12">
-        <div class="card">
-          <div class="card-body">
-            <h3>{% trans "All campaigns" %}</h3>
-            <table id="table1" class="table table-bordered table-striped">
-              <thead>
-                  <tr role="row">
-                    <th>{% trans "Name" %}</th>
-                    <th>{% trans "End date" %}</th>
-                    <th>{% trans "Contacts" %}</th>
-                    <th>{% trans "Called" %}</th>
-                    <th>{% trans "Contacted" %}</th>
-                    <th>{% trans "Success (over contacted)" %}</th>
-                    <th>{% trans "Success (over total)" %}</th>
-                    <th>{% trans "View" %}</th>
-                    <th>{% trans "Per seller" %}</th>
-                  </tr>
-              </thead>
-              <tbody>
-                {% for campaign in campaigns %}
-                <tr role="row">
-                    <td><a href='{% url "campaign_statistics_detail" campaign.id %}'>{{campaign.name}}</a></td>
-                    <td>{{campaign.end_date|date:"d-M-Y"|default_if_none:""}}</td>
-                    <td>{{campaign.contactcampaignstatus_set.count}}</td>
-                    <td>{{campaign.called_pct|floatformat:1}}%</td>
-                    <td>{{campaign.contacted_pct|floatformat:1}}%</td>
-                    <td>{{campaign.success_over_contacted_pct|floatformat:1}}%</td>
-                    <td>{{campaign.success_over_total_pct|floatformat:1}}%</td>
-                    <td><a class="btn btn-primary" href='{% url "campaign_statistics_detail" campaign.id %}'>{% trans "Details" %}</a></td>
-                    <td><a class="btn btn-primary" href='{% url "campaign_statistics_per_seller" campaign.id %}'>{% trans "Sellers" %}</a></td>
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
+  <div class="col-md-12">
+    <div class="card">
+      <div class="card-body">
+        <form method="GET" id="form">
+          <div class="row">
+            <div class="form-group col">
+              <label for="active">{% trans "Active" %}</label>
+              {% render_field campaigns_filter.form.active class="form-control" %}
+            </div>
+            <div class="form-group col">
+              <label for="assigned_to">{% trans "Name" %}</label>
+              {% render_field campaigns_filter.form.name_icontains class="form-control" %}
+            </div>
           </div>
-        </div>
+          <div class="text-right">
+            <input type="submit" class="btn bg-gradient-primary ml-3" value="{% trans 'Filter' %}" />
+          </div>
+        </form>
       </div>
+    </div>
+    <div class="card">
+      <div class="card-body">
+        <h3>{% trans "All campaigns" %}</h3>
+        <table id="table1" class="table table-bordered table-striped">
+          <thead>
+            <tr role="row">
+              <th>{% trans "Name" %}</th>
+              <th>{% trans "End date" %}</th>
+              <th>{% trans "Contacts" %}</th>
+              <th>{% trans "Called" %}</th>
+              <th>{% trans "Contacted" %}</th>
+              <th>{% trans "Success (over contacted)" %}</th>
+              <th>{% trans "Success (over total)" %}</th>
+              <th>{% trans "View" %}</th>
+              <th>{% trans "Per seller" %}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for campaign in campaigns %}
+            <tr role="row">
+              <td><a href='{% url "campaign_statistics_detail" campaign.id %}'>{{campaign.name}}</a></td>
+              <td>{{campaign.end_date|date:"d-M-Y"|default_if_none:""}}</td>
+              <td>{{campaign.contactcampaignstatus_set.count}}</td>
+              <td>{{campaign.called_pct|floatformat:1}}%</td>
+              <td>{{campaign.contacted_pct|floatformat:1}}%</td>
+              <td>{{campaign.success_over_contacted_pct|floatformat:1}}%</td>
+              <td>{{campaign.success_over_total_pct|floatformat:1}}%</td>
+              <td><a class="btn btn-primary"
+                  href='{% url "campaign_statistics_detail" campaign.id %}'>{% trans "Details" %}</a></td>
+              <td><a class="btn btn-primary"
+                  href='{% url "campaign_statistics_per_seller" campaign.id %}'>{% trans "Sellers" %}</a></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
-  {% if page.has_other_pages %}
-    {% load proper_paginate %}
-    {% load url_replace %}
-    <ul class="pagination">
-        {% if page.number == 1 %}
-            <li class="page-item disabled"><span class="page-link">{% trans "first" %}</span></li>
-        {% else %}
-            <li><a class="page-link" href="?{% url_replace request 'p' 1 %}">{% trans "first" %}</a></li>
-        {% endif %}
-        {% if paginator.has_previous %}
-            <li><a class="page-link" href="?{% url_replace request 'p' page.previous_page_number %}">&laquo;</a></li>
-        {% else %}
-            <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
-        {% endif %}
-        {% for i in paginator|proper_paginate:page.number %}
-            {% if page.number == i %}
-                <li class="page-item active"><span class="page-link">{{ i }} <span class="sr-only">(current)</span></span></li>
-            {% else %}
-                <li><a class="page-link" href="?{% url_replace request 'p' i %}">{{ i }}</a></li>
-            {% endif %}
-        {% endfor %}
-        {% if page.has_next %}
-            <li><a class="page-link" href="?{% url_replace request 'p' page.next_page_number %}">&raquo;</a></li>
-        {% else %}
-            <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
-        {% endif %}
-        {% if page.number == paginator.num_pages %}
-            <li class="page-item disabled"><span class="page-link">{% trans "last" %}</span></li>
-        {% else %}
-            <li><a class="page-link" href="?{% url_replace request 'p' paginator.num_pages %}">{% trans "last" %}</a></li>
-        {% endif %}
-    </ul>
+</div>
+{% if page.has_other_pages %}
+{% load proper_paginate %}
+{% load url_replace %}
+<ul class="pagination">
+  {% if page.number == 1 %}
+  <li class="page-item disabled"><span class="page-link">{% trans "first" %}</span></li>
+  {% else %}
+  <li><a class="page-link" href="?{% url_replace request 'p' 1 %}">{% trans "first" %}</a></li>
   {% endif %}
+  {% if paginator.has_previous %}
+  <li><a class="page-link" href="?{% url_replace request 'p' page.previous_page_number %}">&laquo;</a></li>
+  {% else %}
+  <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+  {% endif %}
+  {% for i in paginator|proper_paginate:page.number %}
+  {% if page.number == i %}
+  <li class="page-item active"><span class="page-link">{{ i }} <span class="sr-only">(current)</span></span></li>
+  {% else %}
+  <li><a class="page-link" href="?{% url_replace request 'p' i %}">{{ i }}</a></li>
+  {% endif %}
+  {% endfor %}
+  {% if page.has_next %}
+  <li><a class="page-link" href="?{% url_replace request 'p' page.next_page_number %}">&raquo;</a></li>
+  {% else %}
+  <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+  {% endif %}
+  {% if page.number == paginator.num_pages %}
+  <li class="page-item disabled"><span class="page-link">{% trans "last" %}</span></li>
+  {% else %}
+  <li><a class="page-link" href="?{% url_replace request 'p' paginator.num_pages %}">{% trans "last" %}</a></li>
+  {% endif %}
+</ul>
+{% endif %}
 {% endblock %}

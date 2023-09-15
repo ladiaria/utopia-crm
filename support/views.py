@@ -54,6 +54,7 @@ from .filters import (
     ContactCampaignStatusFilter,
     UnsubscribedSubscriptionsByEndDateFilter,
     ScheduledTaskFilter,
+    CampaignFilter,
 )
 from .forms import (
     NewPauseScheduledTaskForm,
@@ -2611,8 +2612,8 @@ def book_additional_product(request, subscription_id):
 
 @staff_member_required
 def campaign_statistics_list(request):
-    campaigns = Campaign.objects.all()
-    for campaign in campaigns:
+    campaigns_filter = CampaignFilter(request.GET, queryset=Campaign.objects.all())
+    for campaign in campaigns_filter.qs:
         contacts = campaign.contactcampaignstatus_set.count() or 1
         campaign.called_count = campaign.contactcampaignstatus_set.filter(status__gte=2).count()
         campaign.called_pct = (campaign.called_count * 100) / contacts
@@ -2627,7 +2628,8 @@ def campaign_statistics_list(request):
         request,
         "campaign_statistics_list.html",
         {
-            "campaigns": campaigns,
+            "campaigns": campaigns_filter.qs,
+            "campaigns_filter": campaigns_filter,
         },
     )
 
