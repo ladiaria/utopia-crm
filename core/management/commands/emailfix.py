@@ -9,13 +9,12 @@ from core.models import EmailReplacement
 
 
 class Command(BaseCommand):
-    """
-    Applies the actual approved email fix replacements to all contacts.
-    """
+    help = "Applies the actual approved email fix replacements to all contacts"
 
     def add_arguments(self, parser):
         parser.add_argument(
             '--export-replacements',
+            type=str,
             action='store',
             dest='export_replacements',
             help='Additionaly exports the approved replacements entries to this CSV file path',
