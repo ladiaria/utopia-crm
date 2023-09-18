@@ -52,6 +52,7 @@ from support.views import (
     upload_do_not_call_numbers,
     tag_contacts,
     api_get_addresses,
+    not_contacted_campaign,
 )
 
 from django.urls import path, re_path
@@ -162,4 +163,5 @@ urlpatterns = [
     path("scheduled_task_filter/", scheduled_task_filter, name="scheduled_task_filter"),
     path("upload_do_not_call_numbers/", upload_do_not_call_numbers, name="upload_do_not_call_numbers"),
     path("tag_contacts/", tag_contacts, name="tag_contacts"),
+    path("not_contacted_campaign/<int:campaign_id>/", not_contacted_campaign, name="not_contacted_campaign"),
 ]

@@ -3157,3 +3157,30 @@ def tag_contacts(request):
         request,
         "tag_contacts.html",
     )
+
+@staff_member_required
+def not_contacted_campaign(request, campaign_id):
+    campaign_obj = get_object_or_404(Campaign, pk=campaign_id)
+    contacts = Contact.objects.filter(contactcampaignstatus__campaign=campaign_obj, contactcampaignstatus__status=5)
+    response = HttpResponse(content_type="text/csv")
+    response["Content-Disposition"] = f'attachment; filename="{campaign_obj.name}_inubicables_{date.today()}.csv"'
+    writer = csv.writer(response)
+    header = [
+        _("Contact ID"),
+        _("Contact name"),
+        _("Email"),
+        _("Phone"),
+        _("Mobile"),
+        "Inubicables",
+    ]
+    writer.writerow(header)
+    for c in contacts.order_by('id'):
+        writer.writerow([
+            c.id,
+            c.name,
+            c.email,
+            c.phone,
+            c.mobile
+        ])
+    return response
+        
