@@ -5,6 +5,8 @@ from datetime import date, datetime
 from dateutil.relativedelta import relativedelta
 
 from django.contrib.auth.models import User
+from django.contrib.gis.db import models as gismodels
+from django.contrib.gis.geos import Point
 from django.conf import settings
 from django.core.validators import RegexValidator, MinValueValidator, MaxValueValidator
 from django.db import models
@@ -664,13 +666,22 @@ class Address(models.Model):
         blank=True,
         null=True,
         verbose_name=_("GeorefAddress"),
-    )
+    )  # TODO: will be migrated to new "# GEOREF" fields (georef_point) and then deprecated/removed (doing)
     history = HistoricalRecords()
     picture = models.FileField(upload_to="address_pictures/", blank=True, null=True)
     google_maps_url = models.CharField(max_length=2048, null=True, blank=True)
     do_not_show = models.BooleanField(default=False, help_text=_("Do not show in picture/google maps list"))
 
-    # TODO: validate there is only one default address per contact
+    # GEOREF fields
+    georef_point = gismodels.PointField(blank=True, null=True)
+    latitude = models.DecimalField(null=True, blank=True, max_digits=10, decimal_places=6)
+    longitude = models.DecimalField(null=True, blank=True, max_digits=10, decimal_places=6)
+    verified = models.BooleanField(null=True, default=False)
+    needs_georef = models.BooleanField(null=True, default=False)
+    # These last three fields are here for debug reasons. The first one is totally unused.abs
+    address_georef_id = models.IntegerField(null=True, blank=True)
+    state_id = models.IntegerField(null=True, blank=True)
+    city_id = models.IntegerField(null=True, blank=True)
 
     def __str__(self):
         return ' '.join(filter(None, (self.address_1, self.address_2, self.city, self.state)))
@@ -681,6 +692,38 @@ class Address(models.Model):
         """
         types = dict(ADDRESS_TYPE_CHOICES)
         return types.get(self.address_type, "N/A")
+
+    def add_note(self, note):
+        self.notes = f"{note}" if not self.notes else self.notes + f"\n{note}"
+        self.save()
+
+    def get_routes(self):
+        sps = SubscriptionProduct.objects.filter(address=self.id).order_by('route')
+        routes = []
+        for sp in sps:
+            if sp.route:
+                routes.append(str(sp.route.number))
+        if len(routes) > 0:
+            routes = list(set(routes))
+            return ", ".join(routes)
+        else:
+            return "N/A"
+
+    def reset_georef(self):
+        self.latitude, self.longitude, self.georef_point = None, None, None
+        self.needs_georef = True
+        self.verified = False
+        self.save()
+
+    def save(self, *args, **kwargs):
+        if self.latitude and self.longitude:
+            self.georef_point = Point(float(self.longitude), float(self.latitude), srid=4326)
+        if self.georef_point and not (self.latitude and self.longitude):
+            self.latitude = self.georef_point.y
+            self.longitude = self.georef_point.x
+        if self.state_id and self.city_id and self.georef_point:
+            self.verified = True
+        super(Address, self).save(*args, **kwargs)
 
     class Meta:
         verbose_name = _("address")

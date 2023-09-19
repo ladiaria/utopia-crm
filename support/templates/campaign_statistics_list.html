@@ -65,6 +65,7 @@
               <th>{% trans "Success (over total)" %}</th>
               <th>{% trans "View" %}</th>
               <th>{% trans "Per seller" %}</th>
+              <th>Inubicables</th>
             </tr>
           </thead>
           <tbody>
@@ -81,6 +82,8 @@
                   href='{% url "campaign_statistics_detail" campaign.id %}'>{% trans "Details" %}</a></td>
               <td><a class="btn btn-primary"
                   href='{% url "campaign_statistics_per_seller" campaign.id %}'>{% trans "Sellers" %}</a></td>
+              <td><a class="btn btn-primary"
+                href='{% url "not_contacted_campaign" campaign.id %}'>Inubicables</a></td>
             </tr>
             {% endfor %}
           </tbody>

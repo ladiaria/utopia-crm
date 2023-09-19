@@ -15,3 +15,4 @@ other
 staticfiles
 uwsgi.ini
 wsgi.py
+*.sqlite
