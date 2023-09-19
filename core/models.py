@@ -661,15 +661,16 @@ class Address(models.Model):
     google_maps_url = models.CharField(max_length=2048, null=True, blank=True)
     do_not_show = models.BooleanField(default=False, help_text=_("Do not show in picture/google maps list"))
 
-    # GEOREF
-    address_georef_id = models.IntegerField(null=True, blank=True)
-    state_id = models.IntegerField(null=True, blank=True)
-    city_id = models.IntegerField(null=True, blank=True)
+    # GEOREF fields
     georef_point = gismodels.PointField(blank=True, null=True)
     latitude = models.DecimalField(null=True, blank=True, max_digits=10, decimal_places=6)
     longitude = models.DecimalField(null=True, blank=True, max_digits=10, decimal_places=6)
     verified = models.BooleanField(null=True, default=False)
     needs_georef = models.BooleanField(null=True, default=False)
+    # These last three fields are here for debug reasons. The first one is totally unused.abs
+    address_georef_id = models.IntegerField(null=True, blank=True)
+    state_id = models.IntegerField(null=True, blank=True)
+    city_id = models.IntegerField(null=True, blank=True)
 
     def __str__(self):
         return ' '.join(filter(None, (self.address_1, self.address_2, self.city, self.state)))
