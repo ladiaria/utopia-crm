@@ -1,28 +1,28 @@
 {% extends 'adminlte/base.html' %}
-{% load static i18n %}
+{% load static i18n core_tags %}
 
 {% block extra_js %}
-<script type="text/javascript">
-$( function() {
-    $('[data-toggle="tooltip"]').tooltip();
-});
-</script>
+  <script type="text/javascript">
+    $(function() {
+      $('[data-toggle="tooltip"]').tooltip();
+    });
+  </script>
 {% endblock %}
 
-{% block content %}
+{% block content %}{# TODO: indent with 2 spaces #}
 <section class="content-header">
     <div class="container-fluid">
         <div class="row mb-2">
             <div class="col-sm-8">
-                <h1><a href="#">{% trans "Contacts" %}</a> &raquo; {{contact.id}} - {{contact.name}} {% if request.user|in_group:"Managers" or request.user|in_group:"Support" or request.user|in_group:"Finances" %}<a href='{% url "admin:core_contact_change" contact.id %}' class="btn btn-primary">{% trans "See in Admin" %}</a>{% endif %}</h1>
+                <h1><a href="{% url 'contact_list' %}">{% trans "Contacts" %}</a> &raquo; {{contact.id}} - {{contact.name}} {% if request.user|in_group:"Managers" or request.user|in_group:"Support" or request.user|in_group:"Finances" %}<a href='{% url "admin:core_contact_change" contact.id %}' class="btn btn-primary">{% trans "See in Admin" %}</a>{% endif %}</h1>
             </div>
             {% if request.user|in_group:"Support" or request.user|in_group:"Managers" %}
               <div class="text-right col-sm-7">
                 {% if request.user|in_group:"Managers" or request.user|in_group:"Support" or request.user|in_group:"Finances" %}<a href='{% url "admin:core_contact_change" contact.id %}' class="btn btn-sm btn-primary"><i class="fas fa-eye"></i> {% trans "See in Admin" %}</a>{% endif %}
-                <a href="{% url 'new_issue' contact.id 'L' %}" target="_blank" class="btn btn-sm btn-primary"><i class="fas fa-plus-circle"></i> Nueva incidencia</a>
-                <a href="{% url 'new_scheduled_task_total_pause' contact.id %}" target="_blank" class="btn btn-sm btn-primary"><i class="far fa-clock"></i> Pausa total</a>
-                <a href="{% url 'new_scheduled_task_partial_pause' contact.id %}" target="_blank" class="btn btn-sm btn-primary"><i class="far fa-clock"></i> Pausa parcial</a>
-                <a href="{% url 'new_scheduled_task_address_change' contact.id %}" target="_blank" class="btn btn-sm btn-primary"><i class="fas fa-address-book"></i> Cambio de dirección</a>
+                <a href="{% url 'new_issue' contact.id 'L' %}" class="btn btn-sm btn-primary"><i class="fas fa-plus-circle"></i> Nueva incidencia</a>
+                <a href="{% url 'new_scheduled_task_total_pause' contact.id %}" class="btn btn-sm btn-primary"><i class="far fa-clock"></i> Pausa total</a>
+                <a href="{% url 'new_scheduled_task_partial_pause' contact.id %}" class="btn btn-sm btn-primary"><i class="far fa-clock"></i> Pausa parcial</a>
+                <a href="{% url 'new_scheduled_task_address_change' contact.id %}" class="btn btn-sm btn-primary"><i class="fas fa-address-book"></i> Cambio de dirección</a>
               </div>
             {% endif %}
         </div>
@@ -41,7 +41,7 @@ $( function() {
                             <li class="nav-item"><a class="nav-link" href="#issues" data-toggle="tab">{% trans "Issues" %} ({{contact.get_total_issues_count}}{% if contact.get_open_issues_count > 0 %} / {{contact.get_open_issues_count}}{% endif %})</a></li>
                             <li class="nav-item"><a class="nav-link" href="#tasks" data-toggle="tab">{% trans "Tasks" %} ({{contact.get_total_scheduledtask_count}})</a></li>
                             <li class="nav-item"><a class="nav-link" href="#activities" data-toggle="tab">{% trans "Activities" %} ({{contact.get_total_activities_count}})</a></li>
-                            <li class="nav-item"><a class="{% if contact.expired_invoices_count > 0 %}btn-danger{% else %}btn-success{% endif %} btn" href="{% url 'contact_invoices' contact.id %}" target="_blank">{% trans "Go to Invoices" %} ({{contact.get_total_invoices_count}}{% if contact.expired_invoices_count > 0 %} / {{contact.expired_invoices_count}}{% endif %})</a></li>
+                            <li class="nav-item"><a class="{% if contact.expired_invoices_count > 0 %}btn-danger{% else %}btn-success{% endif %} btn" href="{% url 'contact_invoices' contact.id %}">{% trans "Go to Invoices" %} ({{contact.get_total_invoices_count}}{% if contact.expired_invoices_count > 0 %} / {{contact.expired_invoices_count}}{% endif %})</a></li>
                         </ul>
                     </div>
                     <div class="card-body">
@@ -89,7 +89,7 @@ $( function() {
                                                     {% endif %}
                                                 </dl>
                                             </div>
-                                            <a href="{% url 'edit_contact' contact.id %}" class="btn btn-success" target="_blank">{% trans "Edit info and newsletters" %}</a>
+                                            <a href="{% url 'edit_contact' contact.id %}" class="btn btn-success">{% trans "Edit info and newsletters" %}</a>
                                         </div>
                                     </div>
                                     <div class="col-md-4">
@@ -126,7 +126,7 @@ $( function() {
                                                   {% endif %}
                                                   <div class="row">
                                                     {% if request.user|in_group:"Managers" %}
-                                                    <a href="{% url 'admin:core_subscription_change' subscription.id %}" class="btn btn-info" target="_blank">{% trans "Advanced" %}</a>
+                                                    <a href="{% url 'admin:core_subscription_change' subscription.id %}" class="btn btn-info">{% trans "Advanced" %}</a>
                                                     {% endif %}
                                                     <a href="{% url 'edit_envelopes' subscription.id %}" class="btn btn-info"><i class="fas fa-envelope"></i></a>
                                                     <a href="{% url 'upload_payment_certificate' subscription.id %}" class="btn-sm btn-info"><i class="fas fa-file-invoice-dollar"></i></i></a>
@@ -184,7 +184,7 @@ $( function() {
                                                 <dl>
                                                     {% for issue in issues %}
                                                     <dt {% if forloop.counter != 1 %}class="border-top mt-4 pt-3"{% endif %}>
-                                                        {{issue.get_category}} - {{issue.get_subcategory}} - <a href="{% url 'view_issue' issue.id %}" target="_blank" class="btn btn-primary btn-sm">{% trans "View" %}</a>
+                                                        {{issue.get_category}} - {{issue.get_subcategory}} - <a href="{% url 'view_issue' issue.id %}" class="btn btn-primary btn-sm">{% trans "View" %}</a>
                                                     </dt>
                                                     <dd>{{issue.get_status}} {{issue.assigned_to|default_if_none:""}}</dd>
                                                     <dd>{{issue.date_created}}</dd>
@@ -287,7 +287,7 @@ $( function() {
                                                     {% endif %}
                                                 </dl>
                                             </div>
-                                            <a href="{% url 'edit_contact' contact.id %}" class="btn btn-success" target="_blank">{% trans "Edit info and newsletters" %}</a>
+                                            <a href="{% url 'edit_contact' contact.id %}" class="btn btn-success">{% trans "Edit info and newsletters" %}</a>
                                         </div>
                                     </div>
                                     <div class="row">
@@ -497,9 +497,11 @@ $( function() {
                                                     <dt>{% trans "Type" %}:</dt> <dd>{{subscription.get_type}}</dd>
                                                     <dt>{% trans "Payment type" %}:</dt>
                                                     <dd>{{subscription.get_payment_type}}
+                                                        {% comment "TODO: not yet implemented template tags" %}
                                                         {% if subscription.payment_type == 'T' %}
                                                         ({% get_card_type_from_subscription_id subscription.id %} - {% get_last_4_digits_from_card subscription.id %})
                                                         {% endif %}
+                                                        {% endcomment %}
                                                     </dd>
                                                     <dt>{% trans "Start date" %}:</dt> <dd>{{subscription.start_date}}</dd>
                                                     {% if subscription.end_date %}
@@ -548,9 +550,11 @@ $( function() {
                                                     <dt>{% trans "Type" %}:</dt> <dd>{{subscription.get_type}}</dd>
                                                     <dt>{% trans "Payment type" %}:</dt>
                                                     <dd>{{subscription.get_payment_type}}
+                                                        {% comment "TODO: not yet implemented template tags" %}
                                                         {% if subscription.payment_type == 'T' %}
                                                         ({% get_card_type_from_subscription_id subscription.id %} - {% get_last_4_digits_from_card subscription.id %})
                                                         {% endif %}
+                                                        {% endcomment %}
                                                     </dd>
                                                     <dt>{% trans "Start date" %}:</dt> <dd>{{subscription.start_date}}</dd>
                                                     {% if subscription.end_date %}
@@ -594,9 +598,11 @@ $( function() {
                                                     <dt>{% trans "Type" %}:</dt> <dd>{{subscription.get_type}}</dd>
                                                     <dt>{% trans "Payment type" %}:</dt>
                                                     <dd>{{subscription.get_payment_type}}
+                                                        {% comment "TODO: not yet implemented template tags" %}
                                                         {% if subscription.payment_type == 'T' %}
                                                         ({% get_card_type_from_subscription_id subscription.id %} - {% get_last_4_digits_from_card subscription.id %})
                                                         {% endif %}
+                                                        {% endcomment %}
                                                     </dd>
                                                     <dt>{% trans "Start date" %}:</dt> <dd>{{subscription.start_date}}</dd>
                                                     {% if subscription.end_date %}
@@ -695,7 +701,7 @@ $( function() {
                                                             <td>{{issue.get_subcategory}}</td>
                                                             <td>{{issue.get_status}}</td>
                                                             <td>{{issue.assigned_to}}</td>
-                                                            <td><a href="{% url 'view_issue' issue.id %}" target="_blank" class="btn btn-primary btn-sm">{% trans "View" %}</a></td>
+                                                            <td><a href="{% url 'view_issue' issue.id %}" class="btn btn-primary btn-sm">{% trans "View" %}</a></td>
                                                         </tr>
                                                         {% endfor %}
                                                     </tbody>
