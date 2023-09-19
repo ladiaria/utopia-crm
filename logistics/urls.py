@@ -2,28 +2,28 @@
 from django.urls import path, re_path
 
 from logistics.views import (
-    assign_routes
-    order_route
-    change_route
-    list_routes
-    route_details
-    issues_labels
+    assign_routes,
+    order_route,
+    change_route,
+    list_routes,
+    route_details,
+    issues_labels,
     print_labels_for_product,
-    print_labels_from_csv
-    edition_time
-    print_labels
-    logistics_issues_statistics
+    print_labels_from_csv,
+    edition_time,
+    print_labels,
+    logistics_issues_statistics,
     issues_per_route,
-    issues_route_list
-    print_routes_simple
-    list_routes_detailed
-    convert_orders_to_tens
+    issues_route_list,
+    print_routes_simple,
+    list_routes_detailed,
+    convert_orders_to_tens,
     print_unordered_subscriptions,
-    print_labels_for_day
-    assign_routes_future
-    order_route_list
+    print_labels_for_day,
+    assign_routes_future,
+    order_route_list,
     print_labels_for_product_date,
-    addresses_with_complementary_information
+    addresses_with_complementary_information,
     mass_georef_address,
 )
 

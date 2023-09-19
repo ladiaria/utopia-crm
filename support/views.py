@@ -1700,7 +1700,7 @@ def api_new_address(request, contact_id):
         form = SugerenciaGeorefForm(request.POST)
         if form.is_valid():
             address = form.save(commit=False)
-            if getattr(settings, "GEOREF_SERVICES", None):
+            if getattr(settings, "GEOREF_SERVICES", False):
                 if address.lat is None:
                     address.needs_georef = True
             address.contact = contact
@@ -3183,4 +3183,3 @@ def not_contacted_campaign(request, campaign_id):
             c.mobile
         ])
     return response
-        
