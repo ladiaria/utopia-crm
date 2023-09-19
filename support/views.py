@@ -1690,7 +1690,7 @@ def contact_detail(request, contact_id):
 
 
 def api_new_address(request, contact_id):
-    # Convertir en api para llamar a todas las direcciones
+    # Convertir en api para llamar a todas las direcciones. TODO: is this a "to-do"?
     """
     To be called by ajax methods. Creates a new address and responds with the created address on a JSON.
     """
