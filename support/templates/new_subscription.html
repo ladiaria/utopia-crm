@@ -208,7 +208,7 @@
       {% endcomment %}
       {% endblock contact_info %}
       <div class="form-group mt-2">
-        <a href="{% url 'agregar_direccion_georef' contact.id %}?stayhere=True" id="add_address" class="btn bg-gradient-success" target="_blank"><i class="fas fa-plus"></i> Add new address</a>
+        <a href="{% url 'agregar_direccion' contact.id %}?stayhere=True" id="add_address" class="btn bg-gradient-success" target="_blank"><i class="fas fa-plus"></i> Add new address</a>
         <button type="button" class="btn bg-gradient-success" id="fetch-button">Recargar direcciones</button>
       </div>
 

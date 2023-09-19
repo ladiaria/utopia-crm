@@ -3183,4 +3183,3 @@ def not_contacted_campaign(request, campaign_id):
             c.mobile
         ])
     return response
-        
