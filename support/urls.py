@@ -1,5 +1,5 @@
 # coding=utf-8
-from support import views
+from support import views, location
 from support.views import (
     assign_campaigns,
     list_campaigns_with_no_seller,
@@ -164,4 +164,8 @@ urlpatterns = [
     path("upload_do_not_call_numbers/", upload_do_not_call_numbers, name="upload_do_not_call_numbers"),
     path("tag_contacts/", tag_contacts, name="tag_contacts"),
     path("not_contacted_campaign/<int:campaign_id>/", not_contacted_campaign, name="not_contacted_campaign"),
+    path("contacts/<int:contact_id>/agregar_direccion/", location.agregar_direccion, name="agregar_direccion"),
+    path("contacts/<int:contact_id>/editar_direccion/<int:address_id>/", location.editar_direccion, name="editar_direccion"),
+    path("contacts/<int:contact_id>/normalizar_direccion/<int:address_id>/", location.normalizar_direccion, name="normalizar_direccion"),
+    path("ajax/sugerir_direccion_autocompletar/", location.sugerir_direccion_autocompletar, name="ajax_sugerir_direccion_autocompletar"),
 ]
