@@ -1,6 +1,9 @@
-import requests, collections
 from datetime import date, timedelta
+from csv import reader
+import requests, collections
+
 from django.conf import settings
+
 
 dnames = ('monday', 'tuesday', 'wednesday', 'thursday', 'friday')
 

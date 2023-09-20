@@ -34,6 +34,7 @@ from .models import (
     ProductBundle,
     AdvancedDiscount,
     DoNotCallNumber,
+    EmailReplacement,
 )
 from .forms import SubscriptionAdminForm, ContactAdminForm
 
@@ -382,6 +383,14 @@ class SubscriptionProductAdmin(admin.ModelAdmin):
         "seller",
     )
     raw_id_fields = ("subscription", "address", "label_contact")
+
+
+@admin.register(EmailReplacement)
+class EmailReplacementAdmin(admin.ModelAdmin):
+    list_display = ("domain", "replacement", "status")
+    list_editable = ("status", )
+    list_filter = ("status", "replacement")
+    search_fields = ("domain", "replacement")
 
 
 admin.site.register(DynamicContactFilter)

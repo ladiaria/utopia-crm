@@ -189,3 +189,7 @@ DISCOUNT_PRODUCT_MODE_CHOICES = (
     (1, _("Find at least one product")),
     (2, _("Find all products")),
 )
+
+EMAIL_REPLACEMENT_STATUS_CHOICES = (
+    ("requested", _("Requested")), ("approved", _("Approved")), ("rejected", _("Rejected"))
+)

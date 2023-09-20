@@ -51,6 +51,7 @@ from .choices import (
     VARIABLE_TYPES,
     DISCOUNT_PRODUCT_MODE_CHOICES,
     DISCOUNT_VALUE_MODE_CHOICES,
+    EMAIL_REPLACEMENT_STATUS_CHOICES,
 )
 from .utils import delete_email_from_mailtrain_list, subscribe_email_to_mailtrain_list, get_emails_from_mailtrain_list
 
@@ -273,7 +274,7 @@ class Contact(models.Model):
     def save(self, *args, **kwargs):
         if not getattr(self, "updatefromweb", False):
             self.clean()
-        return super(Contact, self).save(*args, **kwargs)
+        return super().save(*args, **kwargs)
 
     def is_debtor(self):
         """
@@ -285,12 +286,7 @@ class Contact(models.Model):
         """
         Returns a queryset with the pending invoices for the contact.
         """
-        return self.invoice_set.filter(
-            paid=False,
-            debited=False,
-            canceled=False,
-            uncollectible=False,
-        )
+        return self.invoice_set.filter(paid=False, debited=False, canceled=False, uncollectible=False)
 
     def pending_invoices_count(self):
         return self.get_pending_invoices().count()
@@ -426,18 +422,35 @@ class Contact(models.Model):
         return genders.get(self.gender, "N/A")
 
     def add_newsletter(self, newsletter_id):
-        SubscriptionNewsletter.objects.get_or_create(
-            contact=self, product=Product.objects.get(id=newsletter_id, type="N"), active=True
+        sn, created = SubscriptionNewsletter.objects.get_or_create(
+            contact=self, product=Product.objects.get(id=newsletter_id, type="N")
         )
+        if not created and not sn.active:
+            sn.active=True
+            sn.save()
 
     def add_newsletter_by_slug(self, newsletter_slug):
-        # TODO: improve this using the "active" field
         try:
-            SubscriptionNewsletter.objects.get_or_create(
-                contact=self, product=Product.objects.get(slug=newsletter_slug, type="N"), active=True
+            sn, created = SubscriptionNewsletter.objects.get_or_create(
+                contact=self, product=Product.objects.get(slug=newsletter_slug, type="N")
             )
+            if not created and not sn.active:
+                sn.active=True
+                sn.save()
         except (Product.DoesNotExist, SubscriptionNewsletter.MultipleObjectsReturned):
             pass
+
+    def get_newsletters(self):
+        """
+        Returns a queryset with all the newsletters that this contact has subscriptions in (active or inactive).
+        """
+        return self.subscriptionnewsletter_set.all()
+
+    def get_active_newsletters(self):
+        """
+        Returns a queryset with all the newsletters that this contact has subscriptions in (active only).
+        """
+        return self.get_newsletters().filter(active=True)
 
     def remove_newsletter(self, newsletter_id):
         try:
@@ -445,16 +458,14 @@ class Contact(models.Model):
         except Product.DoesNotExist:
             raise _("Invalid product id")
         else:
-            SubscriptionNewsletter.objects.filter(contact=self, product=newsletter, active=True).delete()
+            self.get_active_newsletters().filter(product=newsletter).delete()
 
-    def get_newsletters(self):
-        """
-        Returns a queryset with all the newsletters that this contact has subscriptions in (active or inactive).
-        """
-        return SubscriptionNewsletter.objects.filter(contact=self)
+    def remove_newsletters(self):
+        """ Remove all contac's active newsletters """
+        self.get_active_newsletters().delete()
 
     def has_newsletter(self, newsletter_id):
-        return self.get_newsletters().filter(product_id=newsletter_id, active=True).exists()
+        return self.get_active_newsletters().filter(product_id=newsletter_id).exists()
 
     def get_newsletter_products(self):
         return Product.objects.filter(
@@ -661,15 +672,16 @@ class Address(models.Model):
     google_maps_url = models.CharField(max_length=2048, null=True, blank=True)
     do_not_show = models.BooleanField(default=False, help_text=_("Do not show in picture/google maps list"))
 
-    # GEOREF
-    address_georef_id = models.IntegerField(null=True, blank=True)
-    state_id = models.IntegerField(null=True, blank=True)
-    city_id = models.IntegerField(null=True, blank=True)
+    # GEOREF fields
     georef_point = gismodels.PointField(blank=True, null=True)
     latitude = models.DecimalField(null=True, blank=True, max_digits=10, decimal_places=6)
     longitude = models.DecimalField(null=True, blank=True, max_digits=10, decimal_places=6)
     verified = models.BooleanField(null=True, default=False)
     needs_georef = models.BooleanField(null=True, default=False)
+    # These last three fields are here for debug reasons. The first one is totally unused.abs
+    address_georef_id = models.IntegerField(null=True, blank=True)
+    state_id = models.IntegerField(null=True, blank=True)
+    city_id = models.IntegerField(null=True, blank=True)
 
     def __str__(self):
         return ' '.join(filter(None, (self.address_1, self.address_2, self.city, self.state)))
@@ -1975,3 +1987,23 @@ class DoNotCallNumber(models.Model):
 
     class Meta:
         ordering = ["number"]
+
+
+class EmailReplacement(models.Model):
+    domain = models.CharField(max_length=252, unique=True)
+    replacement = models.CharField(max_length=252)
+    status = models.CharField(max_length=15, choices=EMAIL_REPLACEMENT_STATUS_CHOICES, default="requested")
+
+    @staticmethod
+    def approved():
+        return dict(EmailReplacement.objects.filter(status="approved").values_list("domain", "replacement"))
+
+    @staticmethod
+    def is_rejected(domain, replacement):
+        return EmailReplacement.objects.filter(domain=domain, replacement=replacement, status="rejected").exists()
+
+    def __str__(self):
+        return "%s -> %s (%s)" % (self.domain, self.replacement, self.get_status_display())
+
+    class Meta:
+        ordering = ("status", "domain")

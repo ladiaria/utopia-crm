@@ -1690,7 +1690,7 @@ def contact_detail(request, contact_id):
 
 
 def api_new_address(request, contact_id):
-    # Convertir en api para llamar a todas las direcciones
+    # Convertir en api para llamar a todas las direcciones. TODO: is this a "to-do"?
     """
     To be called by ajax methods. Creates a new address and responds with the created address on a JSON.
     """
@@ -1700,7 +1700,7 @@ def api_new_address(request, contact_id):
         form = SugerenciaGeorefForm(request.POST)
         if form.is_valid():
             address = form.save(commit=False)
-            if getattr(settings, "GEOREF_SERVICES", None):
+            if getattr(settings, "GEOREF_SERVICES", False):
                 if address.lat is None:
                     address.needs_georef = True
             address.contact = contact
@@ -3183,4 +3183,3 @@ def not_contacted_campaign(request, campaign_id):
             c.mobile
         ])
     return response
-        

@@ -1,0 +1,18 @@
+[
+  {
+    "model": "core.emailreplacement",
+    "fields": {
+      "domain": "hotamil.com",
+      "replacement": "hotmail.com",
+      "status": "approved"
+    }
+  },
+  {
+    "model": "core.emailreplacement",
+    "fields": {
+      "domain": "hotmil.com",
+      "replacement": "hotmail.com",
+      "status": "approved"
+    }
+  }
+]

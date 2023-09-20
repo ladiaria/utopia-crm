@@ -21,6 +21,9 @@ lxml
 postgis
 progress
 psycopg2
+py3DNS
+validate_email_address
+pymailcheck
 PyPDF2
 python-dateutil
 pymemcache

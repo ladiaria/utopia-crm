@@ -45,6 +45,7 @@ LOCALE_PATHS = (os.path.join(BASE_DIR, "locale"),)
 
 SITE_ID = 1
 
+FIXTURE_DIRS = (os.path.join(BASE_DIR, 'fixtures'), )
 STATICFILES_DIRS = [os.path.join(BASE_DIR, "static"), chartkick.js()]
 STATIC_URL = "/static/"
 STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
@@ -186,11 +187,9 @@ ISSUE_STATUS_FINISHED_LIST = [ISSUE_STATUS_SOLVED, "not-solved"]
 
 DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 
-GEOREF_SERVICES = True
-
 # Import local settings if they exist
-# TODO: improve hardcoded load of community settings
+# TODO: improve hardcoded load of community settings (which are this community settings?)
 try:
-    from local_settings import *  # noqa
+    from local_settings import *
 except ImportError:
     pass
