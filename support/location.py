@@ -22,7 +22,7 @@ from util.location_utils import (
 
 @staff_member_required
 def normalizar_direccion(request, contact_id, address_id):
-    if not getattr(settings, 'GEOREF_SERVICES', None):
+    if not getattr(settings, 'GEOREF_SERVICES', False):
         messages.error(request, "Servicio de georeferenciación no configurado.")
         return HttpResponseRedirect(reverse("contact_detail", args=[contact_id]))
     address_obj = get_object_or_404(Address, pk=address_id)
@@ -96,7 +96,7 @@ def normalizar_direccion(request, contact_id, address_id):
 
 @staff_member_required
 def agregar_direccion(request, contact_id):
-    georef_activated = getattr(settings, "GEOREF_SERVICES", None)
+    georef_activated = getattr(settings, "GEOREF_SERVICES", False)
     contact_obj = get_object_or_404(Contact, pk=contact_id)
     form = SugerenciaGeorefForm(initial={"address_type": "physical"})
     stayhere = "?stayhere=True" if request.GET.get("stayhere", None) else ""
@@ -170,7 +170,7 @@ def agregar_direccion(request, contact_id):
 
 @staff_member_required
 def editar_direccion(request, contact_id, address_id):
-    georef_activated = getattr(settings, "GEOREF_SERVICES", None)
+    georef_activated = getattr(settings, "GEOREF_SERVICES", False)
     address_obj = get_object_or_404(Address, pk=address_id)
     contact_obj = get_object_or_404(Contact, pk=contact_id)
     lat, lng = address_obj.latitude or None, address_obj.longitude or None
