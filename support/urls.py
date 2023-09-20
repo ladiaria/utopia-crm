@@ -52,6 +52,7 @@ from support.views import (
     upload_do_not_call_numbers,
     tag_contacts,
     email_suggestion,
+    api_get_addresses,
 )
 
 from django.urls import path, re_path
@@ -88,6 +89,7 @@ urlpatterns = [
     re_path(r"^contacts/(\d+)/history$", views.history_extended, name="history_extended"),
     re_path(r"^api_new_address/(\d+)/$", api_new_address),
     path("api_dynamic_prices/", api_dynamic_prices),
+    path("api_get_addresses/<int:contact_id>/", api_get_addresses, name="api_get_addresses"),
     # Issues
     path("list_issues/", list_issues, name="list_issues"),
     path("invoicing_issues/", invoicing_issues, name="invoicing_issues"),

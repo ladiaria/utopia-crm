@@ -5,6 +5,8 @@ django-debug-toolbar
 django-extensions
 django-filter
 django-htmx
+django-leaflet
+django-geojson
 django-pdb
 django-rest-framework
 django-simple-history
