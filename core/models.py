@@ -678,7 +678,7 @@ class Address(models.Model):
     longitude = models.DecimalField(null=True, blank=True, max_digits=10, decimal_places=6)
     verified = models.BooleanField(null=True, default=False)
     needs_georef = models.BooleanField(null=True, default=False)
-    # These last three fields are here for debug reasons. The first one is totally unused.abs
+    # These last three fields are here for debug reasons. The first one is totally unused
     address_georef_id = models.IntegerField(null=True, blank=True)
     state_id = models.IntegerField(null=True, blank=True)
     city_id = models.IntegerField(null=True, blank=True)
