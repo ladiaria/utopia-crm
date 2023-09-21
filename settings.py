@@ -101,6 +101,8 @@ INSTALLED_APPS = (
     "widget_tweaks",
     "simple_history",
     "django_htmx",
+    "leaflet",
+    "djgeojson",
     'markdownify.apps.MarkdownifyConfig',
     # crm apps enabled
     "core",
@@ -186,8 +188,8 @@ ISSUE_STATUS_FINISHED_LIST = [ISSUE_STATUS_SOLVED, "not-solved"]
 DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 
 # Import local settings if they exist
-# TODO: improve hardcoded load of community settings
+# TODO: improve hardcoded load of community settings (which are this community settings?)
 try:
-    from local_settings import *  # noqa
+    from local_settings import *
 except ImportError:
     pass

@@ -17,6 +17,7 @@
 {% endblock no_heading %}
 
 {% block extra_js %}
+<script src="{% static 'js/htmx.min.js' %}" defer></script>
 <script type="text/javascript" src="{% static 'js/datepicker-es.js' %}"></script>
 <script type="text/javascript" src="{% static 'js/product_dynamic_prices.js' %}"></script>
 <script type="text/javascript">
@@ -27,36 +28,33 @@
       dateFormat: 'yy-mm-dd'
     });
 
-    $("#address_form").submit(function (event) {
-      var formData = $(this).serialize();
-      event.preventDefault();
-      $.ajax({
-        method: "POST",
-        url: "/support/api_new_address/{{contact.id}}/",
-        data: formData,
-        success: handleFormSuccess,
-        error: handleFormError,
-      });
-    });
-
-    function handleFormError() {
-      console.log("error");
-    };
-
-    function handleFormSuccess(data) {
-      $.each(data, function (key, entry) {
-        $(".address_selector").each(function () {
-          $(this).append($('<option></option>').attr('value', key).text(entry));
-        });
-        $("#id_default_address").append($('<option></option>').attr('value', key).text(entry));
-      });
-      $("#address_form").trigger("reset");
-      $('#address_modal').modal('hide');
-    };
-
     $("#id_default_address").change(function () {
       $(".address_selector").each(function () {
         $(this).val($("#id_default_address").val());
+      });
+    });
+
+    $('#fetch-button').click(function() {
+      // Send an AJAX request to the Django view
+      $.ajax({
+        url: '{% url "api_get_addresses" contact.id %}',
+        method: 'POST',
+        dataType: 'json',
+        success: function(data) {
+          // Clear previous options and populate the HTML selects
+          $('.address_selector').each(function() {
+            var addressSelect = $(this);
+            var selectedValue = addressSelect.val();
+            addressSelect.empty();
+            $.each(data, function(index, item) {
+              var option = $('<option>').text(item.text).val(item.value);
+                if(item.value == selectedValue){
+                  option.prop('selected', true);
+                }
+              addressSelect.append(option);
+            });
+          });
+        }
       });
     });
   });
@@ -211,14 +209,18 @@
       </div>
       {% endblock billing_info %}
 
+      {% comment "Removed to see if they dont need it" %}
       <div class="form-group">
         <label for="id_default_address">{{form.default_address.label}}</label>
         {{ form.default_address }}
       </div>
+      {% endcomment %}
       {% endblock contact_info %}
+      <div class="form-group mt-2">
+        <a href="{% url 'agregar_direccion' contact.id %}?stayhere=True" id="add_address" class="btn bg-gradient-success" target="_blank"><i class="fas fa-plus"></i> Add new address</a>
+        <button type="button" class="btn bg-gradient-success" id="fetch-button">Recargar direcciones</button>
+      </div>
 
-      <a href="#address_modal" id="add_address" data-toggle="modal" data-target="#address_modal"
-        class="btn bg-gradient-success"><i class="fas fa-plus"></i> Add new address</a>
 
       {% block form_products %}
       <div class="mt-4">
@@ -278,25 +280,5 @@
   </div>
 </div>
 
-<div id="address_modal" class="modal" tabindex="-1" role="dialog">
-  <div class="modal-dialog" role="document">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="exampleModalLabel">{% trans 'Add new address' %}</h5>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-          <span aria-hidden="true">&times;</span>
-        </button>
-      </div>
-      <div class="modal-body">
-        <form method="post" id="address_form">
-          {% csrf_token %}
-          {{address_form.as_p}}
-          <div class="form-group text-right">
-            <input id="submit_address" type="submit" value="{% trans 'Save address' %}" class="btn bg-gradient-primary">
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
-</div>
 {% endblock content %}
+

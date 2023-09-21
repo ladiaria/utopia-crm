@@ -1,5 +1,5 @@
 # coding=utf-8
-from support import views
+from support import views, location
 from support.views import (
     assign_campaigns,
     list_campaigns_with_no_seller,
@@ -51,6 +51,8 @@ from support.views import (
     edit_address_complementary_information,
     upload_do_not_call_numbers,
     tag_contacts,
+    not_contacted_campaign,
+    api_get_addresses,
     email_suggestion,
 )
 
@@ -88,6 +90,7 @@ urlpatterns = [
     re_path(r"^contacts/(\d+)/history$", views.history_extended, name="history_extended"),
     re_path(r"^api_new_address/(\d+)/$", api_new_address),
     path("api_dynamic_prices/", api_dynamic_prices),
+    path("api_get_addresses/<int:contact_id>/", api_get_addresses, name="api_get_addresses"),
     # Issues
     path("list_issues/", list_issues, name="list_issues"),
     path("invoicing_issues/", invoicing_issues, name="invoicing_issues"),
@@ -161,5 +164,13 @@ urlpatterns = [
     path("scheduled_task_filter/", scheduled_task_filter, name="scheduled_task_filter"),
     path("upload_do_not_call_numbers/", upload_do_not_call_numbers, name="upload_do_not_call_numbers"),
     path("tag_contacts/", tag_contacts, name="tag_contacts"),
+<<<<<<< HEAD
     path("api_email_suggestion/", email_suggestion, name="email_suggestion"),
+=======
+    path("not_contacted_campaign/<int:campaign_id>/", not_contacted_campaign, name="not_contacted_campaign"),
+    path("contacts/<int:contact_id>/agregar_direccion/", location.agregar_direccion, name="agregar_direccion"),
+    path("contacts/<int:contact_id>/editar_direccion/<int:address_id>/", location.editar_direccion, name="editar_direccion"),
+    path("contacts/<int:contact_id>/normalizar_direccion/<int:address_id>/", location.normalizar_direccion, name="normalizar_direccion"),
+    path("ajax/sugerir_direccion_autocompletar/", location.sugerir_direccion_autocompletar, name="ajax_sugerir_direccion_autocompletar"),
+>>>>>>> treg3
 ]

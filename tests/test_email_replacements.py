@@ -20,7 +20,10 @@ class TestEmailReplacements(TestCase):
         )
 
         # 3. domain is not valid but the replacement using our replacement list is valid
-        self.assertEqual(clean_email("address@hotamil.com"), {'valid': True, 'email': 'address@hotmail.com'})
+        self.assertEqual(
+            clean_email("address@hotamil.com"),
+            {'valid': False, 'email': "address@hotamil.com", "replacement": 'address@hotmail.com'},
+        )
 
         # 4. valid
         self.assertEqual(clean_email("address@hotmail.com"), {'valid': True, 'email': 'address@hotmail.com'})
@@ -28,5 +31,5 @@ class TestEmailReplacements(TestCase):
         # 5. valid domain but we have this domain in our replacement list as typo
         self.assertEqual(
             clean_email("address@hotmil.com"),
-            {'valid': True, 'email': 'address@hotmil.com', 'suggestion': 'address@hotmail.com'},
+            {'valid': True, 'email': 'address@hotmil.com', 'replacement': 'address@hotmail.com'},
         )

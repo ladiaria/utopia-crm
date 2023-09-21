@@ -1,0 +1,15 @@
+{% load url_replace %}
+{% if sugerencias %}
+<form method="POST" id="sugerencia_form">
+  {% csrf_token %}
+    <input type="hidden" name="q_direccion" value="{{q_direccion}}">
+    <select id="sugerencias" name="sugerencias" onchange="this.form.submit()"
+        class="form-control" placeholder="Dirección validada">
+        <option value="-1">{{ sugerencias|length }} sugerencias...</option>
+        {% for sugerencia in sugerencias  %}
+        <option value="{{sugerencia.direccion}}-{{sugerencia.idCalle}}-{{sugerencia.idLocalidad}}-{{sugerencia.portalNumber}}"
+            class="w-full truncate">{{sugerencia.resumen}}</option>
+        {% endfor %}
+    </select>
+</form>
+{% endif %}
