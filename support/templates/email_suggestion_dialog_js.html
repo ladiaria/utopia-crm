@@ -1,0 +1,57 @@
+{% load i18n %}
+
+{% if form.errors.as_data.email.0.code == 'email_typosquash_clean_confirmation' %}
+
+    {% with email_error_data=form.errors.as_data.email.0 %}
+    // dialog opened only on specific email error code
+    // save the validity of the email submitted in a field for the resubmittion analysis hook
+    $("#id_email_was_valid").val("{{ email_error_data.valid }}");
+
+    // save also the possible replacement for the resubmittion analysis hook
+    $("#id_email_replacement").val("{{ email_error_data.replacement }}");
+    $("#id_email_suggestion").val("{{ email_error_data.suggestion }}");
+
+    {% comment "debug" %}
+    console.log($("#id_email_was_valid").val());
+    console.log($("#id_email_replacement").val());
+    console.log($("#id_email_suggestion").val());
+    {% endcomment %}
+
+    $("#dialog-email-suggestion").dialog({
+        dialogClass: "no-close",
+        resizable: false,
+        width: "auto",
+        height: "auto",
+        modal: true,
+        closeOnEscape: false,
+        buttons: [
+        {
+            text: "{% trans 'no' %}",
+            click: function(){
+            // replacement was not accepted, change it to blank
+            $("#id_email_replacement").val("");
+            $("#id_email_suggestion").val("");
+            {% if email_error_data.valid %}
+                $("#send_form").click();
+            {% else %}
+                $(this).dialog("close");
+            {% endif %}
+            }
+        },
+        {
+            text: "{% trans 'yes' %}",
+            click: function(){
+            $("#id_email").val($("#id_email_replacement").val() || $("#id_email_suggestion").val());
+            $("#send_form").click();
+            }
+        }
+        ]
+    });
+    {% endwith %}
+
+{% elif form.errors %}
+    // if any other error => reset the "was_vaild" and replacements value
+    $("#id_email_was_valid").val(false);
+    $("#id_email_replacement").val("");
+    $("#id_email_suggestion").val("");
+{% endif %}

@@ -1,18 +1,15 @@
 # coding=utf-8
-from pymailcheck import split_email
-
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 from django import forms
-from django.core.exceptions import ValidationError
 from django.contrib.auth.models import User
 
-from util.email_typosquash import clean_email as email_typosquash_clean
 from core.models import Contact, Product, Subscription, Address, DynamicContactFilter, SubscriptionProduct, Activity
+from core.forms import EmailValidationForm
 from core.choices import ADDRESS_TYPE_CHOICES, FREQUENCY_CHOICES, ACTIVITY_TYPES
-from support.models import Seller
-from support.choices import ISSUE_CATEGORIES
-from .models import Issue, IssueStatus, IssueSubcategory
+
+from .models import Seller, Issue, IssueStatus, IssueSubcategory
+from .choices import ISSUE_CATEGORIES
 
 
 class SellerForm(forms.ModelForm):
@@ -152,86 +149,7 @@ class NewPromoForm(forms.Form):
     )
 
 
-class EmailValidationError(ValidationError):
-
-    def __init__(self, *args, **kwargs):
-        valid = kwargs.pop("valid", False)
-        replacement = kwargs.pop("replacement", None)
-        suggestion = kwargs.pop("suggestion", None)
-        splitted = kwargs.pop("splitted", None)
-        super().__init__(*args, **kwargs)
-        self.valid = valid
-        self.replacement = replacement
-        self.suggestion = suggestion
-        self.splitted = splitted
-
-
-class BaseSubscriptionForm(forms.Form):
-    email_was_valid = forms.BooleanField(widget=forms.HiddenInput(), required=False)
-    email_replacement = forms.EmailField(widget=forms.HiddenInput(), required=False)
-    email_suggestion = forms.EmailField(widget=forms.HiddenInput(), required=False)
-
-    def as_dict(self):
-        return self.__dict__
-
-    def checked_products(self):
-        return [int(val) for key, val in self.data.items() if key.startswith("check-")]
-
-    def bound_product_values(self, product_id):
-        if self.is_bound:
-            address = self.data.get("address-%d" % product_id)
-            result = {"address": int(address)} if address else {}
-            for key in ("copies", "message", "instructions"):
-                val = self.data.get("%s-%d" % (key, product_id))
-                if val:
-                    result[key] = val
-            return result
-
-    def email_extra_clean(self, cleaned_data):
-
-        email, was_valid = cleaned_data.get("email"), cleaned_data.get("email_was_valid")
-        replacement, suggestion = cleaned_data.get("email_replacement"), cleaned_data.get("email_suggestion")
-        if was_valid:
-            if not replacement:
-                print("TODO: Alertar posible overwrite by management commands")
-            return email
-        else:
-            if suggestion:
-                print("TODO: Add new replacement request")
-                return email
-            elif email and not replacement:
-
-                email_typosquash_clean_result = email_typosquash_clean(email)
-                valid = email_typosquash_clean_result["valid"]
-                replacement = email_typosquash_clean_result.get("replacement", "")
-                if not valid or replacement:
-                    suggestion = email_typosquash_clean_result.get("suggestion", "")
-                    if replacement or suggestion:
-                        self.add_error(
-                            "email",
-                            EmailValidationError(
-                                _('Confirmation for email replacement is needed'),
-                                code='email_typosquash_clean_confirmation',
-                                valid=valid,
-                                replacement=replacement,
-                                suggestion=suggestion,
-                                splitted=split_email(email),
-                            ),
-                        )
-                    else:
-                        self.add_error(
-                            "email",
-                            EmailValidationError(
-                                _('Invalid email: %(email)s'),
-                                code='email_typosquash_clean_invalid',
-                                params={'email': email},
-                            ),
-                        )
-                else:
-                    return email
-
-
-class NewSubscriptionForm(BaseSubscriptionForm):
+class NewSubscriptionForm(EmailValidationForm):
     contact_id = forms.CharField(required=False)
     name = forms.CharField(widget=forms.TextInput(attrs={"class": "form-control"}))
     phone = forms.CharField(empty_value=None, required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
@@ -296,15 +214,12 @@ class NewSubscriptionForm(BaseSubscriptionForm):
 
     def clean(self):
         cleaned_data = super().clean()
-        email = self.email_extra_clean(cleaned_data)
-        if email:
-            contact_id, id_document = cleaned_data['contact_id'], cleaned_data['id_document']
-
-            if Contact.objects.filter(email=email).exclude(id=contact_id).exists():
-                raise ValidationError(_("This email already exists in a different contact"))
-
-            if Contact.objects.filter(id_document=id_document).exclude(id=contact_id).exists():
-                raise ValidationError(_("This id document already exists in a different contact"))
+        email, contact_id = self.email_extra_clean(cleaned_data), cleaned_data['contact_id']
+        if email and Contact.objects.filter(email=email).exclude(id=contact_id).exists():
+            raise forms.ValidationError(_("This email already exists in a different contact"))
+        id_document = cleaned_data['id_document']
+        if Contact.objects.filter(id_document=id_document).exclude(id=contact_id).exists():
+            raise forms.ValidationError(_("This id document already exists in a different contact"))
 
 
 class IssueStartForm(forms.ModelForm):

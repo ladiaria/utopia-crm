@@ -124,6 +124,7 @@ def default_newsletters_dialog_redirect(request, obj, contact_id_attr_name):
 
 @admin.register(Subscription)
 class SubscriptionAdmin(SimpleHistoryAdmin):
+    # TODO: for extra email validation we must intervent into the admin template
     model = Subscription
     inlines = [SubscriptionProductInline]
     form = SubscriptionAdminForm
@@ -221,6 +222,7 @@ class SupporterInline(admin.StackedInline):
 
 @admin.register(Contact)
 class ContactAdmin(SimpleHistoryAdmin):
+    # TODO: for extra email validation we must intervent into the admin template
     form = ContactAdminForm
     fieldsets = (
         (None, {"fields": (("name", "tags", "subtype"),)}),

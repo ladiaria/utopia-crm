@@ -1,11 +1,20 @@
 {% extends 'adminlte/base.html' %}
 {% load static i18n widget_tweaks %}
 
+{% block extra_head %}
+  <style>
+    div.wrapper {z-index: 1;}
+    .no-close .ui-dialog-titlebar-close { display: none; }
+    span.typo {text-decoration: red wavy underline;}
+  </style>
+{% endblock %}
+
 {% block extra_js %}
   <script type="text/javascript" src="{% static 'js/datepicker-es.js' %}"></script>
   <script type="text/javascript">
     $(function(){
       $(".datepicker").datepicker({ dateFormat: 'yy-mm-dd' });
+      {% include 'email_suggestion_dialog_js.html' %}
     });
   </script>
 {% endblock extra_js %}
@@ -23,6 +32,7 @@
 {% endblock no_heading %}
 
 {% block content %}
+  {% include 'email_suggestion_dialog.html' %}
   <section class="content">
     <div class="container-fluid">
       <div class="row">
@@ -38,15 +48,11 @@
               {% if form.errors %}
                 {% for field in form %}
                   {% for error in field.errors %}
-                    <div class="alert alert-danger">
-                      <strong>{{ error|escape }}</strong>
-                    </div>
+                    <div class="alert alert-danger"><strong>{{ error|escape }}</strong></div>
                   {% endfor %}
                 {% endfor %}
                 {% for error in form.non_field_errors %}
-                  <div class="alert alert-danger">
-                    <strong>{{ error|escape }}</strong>
-                  </div>
+                  <div class="alert alert-danger"><strong>{{ error|escape }}</strong></div>
                 {% endfor %}
               {% endif %}
               <div class="tab-content">
@@ -55,92 +61,95 @@
                     <div class="col-md-10">
                       <form method="post">
                         {% csrf_token %}
+                        {% if form.errors %}
+                          {{ form.email_was_valid }}{{ form.email_replacement }}{{ form.email_suggestion }}
+                        {% endif %}
                         <div class="card">
                           <div class="card-header">
                             <h2 class="card-title">{% trans "Contact data" %}</h2>
                           </div>
                           <div class="card-body">
-                              <div class="row">
-                                <div class="form-group col-12">
-                                  <label for="">{% trans "Full name" %}</label>
-                                  {% render_field form.name class="form-control" %}
+                            <div class="row">
+                              <div class="form-group col-12">
+                                <label for="">{% trans "Full name" %}</label>
+                                {% render_field form.name class="form-control" %}
+                              </div>
+                            </div>
+                            <div class="row">
+                              <div class="form-group col-5">
+                                <label for="">{% trans "Tags" %}</label>
+                                {% render_field form.tags class="form-control" %}
+                              </div>
+                              <div class="form-group col-5">
+                                <label for="">{% trans "Email" %}</label>
+                                {% render_field form.email class="form-control" %}
+                              </div>
+                              <div class="form-group col-2">
+                                <label>{% trans "No email" %}</label>
+                                <div class="form-check">
+                                  {% render_field form.no_email class="form-check-input" %}
+                                  <label for="" class="form-check-label">{% trans "No email" %}</label>
                                 </div>
                               </div>
-                              <div class="row">
-                                <div class="form-group col-5">
-                                  <label for="">{% trans "Tags" %}</label>
-                                  {% render_field form.tags class="form-control"  %}
-                                </div>
-                                <div class="form-group col-5">
-                                  <label for="">{% trans "Email" %}</label>
-                                  {% render_field form.email class="form-control" %}
-                                </div>
-                                <div class="form-group col-2">
-                                  <label>{% trans "No email" %}</label>
-                                  <div class="form-check">
-                                    {% render_field form.no_email class="form-check-input" %}
-                                    <label for="" class="form-check-label">{% trans "No email" %}</label>
-                                  </div>
-                                </div>
+                            </div>
+                            <div class="row">
+                              <div class="form-group col-4">
+                                <label for="">{% trans "Phone" %}</label>
+                                {% render_field form.phone class="form-control" %}
                               </div>
-                              <div class="row">
-                                <div class="form-group col-4">
-                                  <label for="">{% trans "Phone" %}</label>
-                                  {% render_field form.phone class="form-control" %}
-                                </div>
-                                <div class="form-group col-4">
-                                  <label for="">{% trans "Mobile" %}</label>
-                                  {% render_field form.mobile class="form-control" %}
-                                </div>
-                                <div class="form-group col-4">
-                                  <label for="">{% trans "Work phone" %}</label>
-                                  {% render_field form.work_phone class="form-control" %}
-                                </div>
+                              <div class="form-group col-4">
+                                <label for="">{% trans "Mobile" %}</label>
+                                {% render_field form.mobile class="form-control" %}
                               </div>
-                              <div class="row">
-                                <div class="form-group col-6">
-                                  <label for="">{% trans "Id document" %}</label>
-                                  {% render_field form.id_document class="form-control" %}
-                                </div>
+                              <div class="form-group col-4">
+                                <label for="">{% trans "Work phone" %}</label>
+                                {% render_field form.work_phone class="form-control" %}
+                              </div>
+                            </div>
+                            <div class="row">
+                              <div class="form-group col-6">
+                                <label for="">{% trans "Id document" %}</label>
+                                {% render_field form.id_document class="form-control" %}
+                              </div>
 
-                                <div class="form-group col-6">
-                                  <label for="">{% trans "Birthdate" %}</label>
-                                  {% render_field form.birthdate class="form-control datepicker" %}
+                              <div class="form-group col-6">
+                                <label for="">{% trans "Birthdate" %}</label>
+                                {% render_field form.birthdate class="form-control datepicker" %}
+                              </div>
+                            </div>
+                            <div class="row">
+                              <div class="form-group col-6">
+                                <label for="">{% trans "Gender" %}</label>
+                                {% render_field form.gender class="form-control" %}
+                              </div>
+                              <div class="form-group col-6">
+                                <label for="">{% trans "Education" %}</label>
+                                {% render_field form.education class="form-control" %}
+                              </div>
+                            </div>
+                            <div class="form-group">
+                              <label for="">{% trans "Notes" %}</label>
+                              {% render_field form.notes class="form-control" %}
+                            </div>
+                            <div class="row">
+                              <div class="form-group col-12">
+                                <div class="form-check">
+                                  {% render_field form.allow_polls class="form-check-input" %}
+                                  <label class="form-check-label" for="">{% trans "Allow polls" %}</label>
+                                </div>
+                                <div class="form-check">
+                                  {% render_field form.allow_promotions class="form-check-input" %}
+                                  <label class="form-check-label" for="">{% trans "Allow promotions" %}</label>
                                 </div>
                               </div>
-                              <div class="row">
-                                <div class="form-group col-6">
-                                  <label for="">{% trans "Gender" %}</label>
-                                  {% render_field form.gender class="form-control" %}
-                                </div>
-                                <div class="form-group col-6">
-                                  <label for="">{% trans "Education" %}</label>
-                                  {% render_field form.education class="form-control" %}
-                                </div>
-                              </div>
-                              <div class="form-group">
-                                <label for="">{% trans "Notes" %}</label>
-                                {% render_field form.notes class="form-control" %}
-                              </div>
-                              <div class="row">
-                                <div class="form-group col-12">
-                                  <div class="form-check">
-                                    {% render_field form.allow_polls class="form-check-input" %}
-                                    <label class="form-check-label" for="">{% trans "Allow polls" %}</label>
-                                  </div>
-                                  <div class="form-check">
-                                    {% render_field form.allow_promotions class="form-check-input" %}
-                                    <label class="form-check-label" for="">{% trans "Allow promotions" %}</label>
-                                  </div>
-                                </div>
-                              </div>
+                            </div>
                           </div>
                         </div>
                         <div class="text-right">
-                          <button class="btn btn-primary" type="submit">{% trans "Save" %}</button>
+                          <button class="btn btn-primary" type="submit" id="send_form">{% trans "Save" %}</button>
                         </div>
-                        </form>
-                      </div>
+                      </form>
+                    </div>
                   </div>
                 </div>
                 <div class="tab-pane" id="newsletters">
