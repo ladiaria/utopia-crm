@@ -208,7 +208,7 @@
       {% endcomment %}
       {% endblock contact_info %}
       <div class="form-group mt-2">
-        <a href="{% url 'agregar_direccion' contact.id %}?stayhere=True" id="add_address" class="btn bg-gradient-success" target="_blank"><i class="fas fa-plus"></i> Add new address</a>
+        <a href="{% url 'agregar_direccion' contact.id %}?stayhere=True" id="add_address" class="btn bg-gradient-success" target="_blank"><i class="fas fa-plus"></i> Nueva dirección</a>
         <button type="button" class="btn bg-gradient-success" id="fetch-button">Recargar direcciones</button>
       </div>
 
@@ -227,7 +227,7 @@
               </div>
               <select name='address-{{product.id}}' class="address_selector form-control">
                 {% for address in contact_addresses %}
-                <option value="{{address.id}}"
+                <option  style="{% if address.verified %}color:green{% else %}color:red{% endif %}" value="{{address.id}}"
                   {% if form_subscription|get_address_id_from_subscription:product.slug == address.id %}selected{% endif %}>
                   {{address.address_1}} {{address.city}} {{address.state}}</option>
                 {% endfor %}
