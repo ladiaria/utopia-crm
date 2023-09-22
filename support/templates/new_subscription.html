@@ -299,7 +299,7 @@
                     </select>
                   </div>
                   <div class="col-1">
-                    <label for="copies-{{product.id}}"><small>{% trans 'Copies' %}X</small></label>
+                    <label for="copies-{{product.id}}"><small>{% trans 'Copies' %}</small></label>
                     <input value="{% if form_subscription %}{% call_method form_subscription 'get_copies_for_product' product.id %}{% else %}{{ bound_product_values.copies|default:1 }}{% endif %}"
                            type="text" id="copies-{{product.id}}" name="copies-{{product.id}}" class="form-control">
                   </div>
