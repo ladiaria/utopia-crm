@@ -229,12 +229,12 @@
                   <div class="row mt-2">
                     <div class="col-5">
                       <div class="form-check">
-                        <input {% if product in form_subscription.products.all %}checked{% endif %} value="{{product.id}}"
-                          type='checkbox' name='check-{{product.id}}' id="check-{{product.id}}"
-                          class='product_checkbox form-check-input' />
+                        <input value="{{product.id}}" type="checkbox" name="check-{{product.id}}" id="check-{{product.id}}"
+                              {% if product in form_subscription.products.all or product.id in form.checked_products %}checked="checked"{% endif %}
+                              class="product_checkbox form-check-input">
                         <label for="check-{{product.id}}">{{product.name}}</label>
                       </div>
-                      <select name='address-{{product.id}}' class="address_selector form-control">
+                      <select name="address-{{product.id}}" class="address_selector form-control">
                         {% for address in contact_addresses %}
                           <option style="{% if address.verified %}color:green{% else %}color:red{% endif %}" value="{{address.id}}"
                                   {% if form_subscription|get_address_id_from_subscription:product.slug == address.id %}selected{% endif %}>
@@ -245,21 +245,20 @@
                     </div>
                     <div class="col-1">
                       <label for="copies-{{product.id}}"><small>{% trans 'Copies' %}</small></label>
-                      <input type="text" id="copies-{{product.id}}" name="copies-{{product.id}}"
-                        value="{% if form_subscription %}{% call_method form_subscription 'get_copies_for_product' product.id %}{% else %}1{% endif %}"
-                        class="form-control">
+                      <input value="{% if form_subscription %}{% call_method form_subscription 'get_copies_for_product' product.id %}{% else %}{{ bound_product_values.copies|default:1 }}{% endif %}"
+                            type="text" id="copies-{{product.id}}" name="copies-{{product.id}}" class="form-control">
                     </div>
                     <div class="col-3">
                       <label for="message-{{product.id}}"><small>{% trans 'Label Message' %}</small></label>
                       <input maxlength="40" type="text" id="message-{{product.id}}" name="message-{{product.id}}"
-                        value="{% if form_subscription %}{% call_method form_subscription 'get_message_for_product' product.id %}{% else %}{% endif %}"
-                        class="form-control">
+                            value="{% if form_subscription %}{% call_method form_subscription 'get_message_for_product' product.id %}{% else %}{{ bound_product_values.message }}{% endif %}"
+                            class="form-control">
                     </div>
                     <div class="col-3">
                       <label for="instructions-{{product.id}}"><small>{% trans 'Special Instructions' %}</small></label>
                       <input type="text" id="instructions-{{product.id}}" name="instructions-{{product.id}}"
-                        value="{% if form_subscription %}{% call_method form_subscription 'get_instructions_for_product' product.id %}{% else %}{% endif %}"
-                        class="form-control">
+                            value="{% if form_subscription %}{% call_method form_subscription 'get_instructions_for_product' product.id %}{% else %}{{ bound_product_values.instructions }}{% endif %}"
+                            class="form-control">
                     </div>
                   </div>
                 </div>
@@ -272,8 +271,10 @@
               <h4 class="mb-4 mt-4">{% trans "Total price is" %}: <span class="text-success" id="price_amount">$0</span>
                 <span id="custom_error_message" class="text-danger"><small></small></span>
               </h4>
-              <input type="submit" name='result' value="{% trans 'Cancel' %}" class="btn bg-gradient-secondary">
-              <input type="submit" name="result" id="send_form" value="{% trans 'Send' %}" class="btn bg-gradient-primary">
+              <div style="float: right; margin-left: 10px;">
+                <input type="submit" name="result" id="send_form" value="{% trans 'Send' %}" class="btn bg-gradient-primary">
+              </div>
+              <input type="submit" name="result" value="{% trans 'Cancel' %}" class="btn bg-gradient-secondary">
             </div>
           {% endblock form_send_controls %}
         </form>
