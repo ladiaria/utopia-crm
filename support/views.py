@@ -82,8 +82,6 @@ from core.utils import calc_price_from_products, process_products
 from core.forms import ContactAdminForm
 from util.dates import add_business_days
 
-from util.email_typosquash import clean_email
-
 
 now = datetime.now()
 
