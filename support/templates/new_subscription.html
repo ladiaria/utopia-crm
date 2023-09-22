@@ -217,7 +217,7 @@
           {% endblock contact_info %}
 
           <div class="form-group mt-2">
-            <a href="{% url 'agregar_direccion' contact.id %}?stayhere=True" id="add_address" class="btn bg-gradient-success" target="_blank"><i class="fas fa-plus"></i> Add new address</a>
+            <a href="{% url 'agregar_direccion' contact.id %}?stayhere=True" id="add_address" class="btn bg-gradient-success" target="_blank"><i class="fas fa-plus"></i> Nueva dirección</a>
             <button type="button" class="btn bg-gradient-success" id="fetch-button">Recargar direcciones</button>
           </div>
 
@@ -234,7 +234,7 @@
                               class="product_checkbox form-check-input">
                         <label for="check-{{product.id}}">{{product.name}}</label>
                       </div>
-                      <select name="address-{{product.id}}' class="address_selector form-control">
+                      <select name="address-{{product.id}}" class="address_selector form-control">
                         {% for address in contact_addresses %}
                           <option {% if form_subscription|get_address_id_from_subscription:product.slug == address.id or bound_product_values.address == address.id %}
                                     selected="selected"
