@@ -1,28 +1,30 @@
+{% load i18n %}
+
 {% if form.errors.as_data.email.0.code == 'email_typosquash_clean_confirmation' %}
-<div id="dialog-email-suggestion" title='{% trans "Email suggestion" %}'>
-  {% with email_error_data=form.errors.as_data.email.0 %}
-    <p>
-      <span class="ui-icon ui-icon-alert" style="float:left; margin:12px 12px 20px 0;"></span>
-      El email <code style="color: grey">{{ form.email.value }}</code>
-      {% if email_error_data.valid %}
-        es válido, pero se sugiere reemplazarlo por
-        <strong id="id_email-replacement">{{ email_error_data.replacement }}</strong>
-      {% else %}
-        no es válido.
+  <div id="dialog-email-suggestion" title='{% trans "Email suggestion" %}'>
+    {% with email_error_data=form.errors.as_data.email.0 %}
+      <p>
+        <span class="ui-icon ui-icon-alert" style="float:left; margin:12px 12px 20px 0;"></span>
+        El email <code style="color: grey">{{ form.email.value }}</code>
+        {% if email_error_data.valid %}
+          es válido, pero se sugiere reemplazarlo por
+          <strong id="id_email-replacement">{{ email_error_data.replacement }}</strong>
+        {% else %}
+          no es válido.
+        {% endif %}
+      </p>
+      {% if not email_error_data.valid %}
+        <p>
+          {{ email_error_data.splitted.address }}@<span class="typo">{{ email_error_data.splitted.domain }}</span>
+        </p>
+        <p>
+          Un posible reemplazo para solucionarlo es:
+          <strong id="id_email-replacement">
+            {{ email_error_data.replacement|default:email_error_data.suggestion }}
+          </strong>
+        </p>
       {% endif %}
-    </p>
-    {% if not email_error_data.valid %}
-      <p>
-        {{ email_error_data.splitted.address }}@<span class="typo">{{ email_error_data.splitted.domain }}</span>
-      </p>
-      <p>
-        Un posible reemplazo para solucionarlo es:
-        <strong id="id_email-replacement">
-          {{ email_error_data.replacement|default:email_error_data.suggestion }}
-        </strong>
-      </p>
-    {% endif %}
-    <p>{% trans 'Do you accept the replacement?' %}</p>
-  {% endwith %}
-</div>
+      <p>{% trans 'Do you accept the replacement?' %}</p>
+    {% endwith %}
+  </div>
 {% endif %}

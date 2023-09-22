@@ -3185,27 +3185,3 @@ def not_contacted_campaign(request, campaign_id):
             c.mobile
         ])
     return response
-
-
-@csrf_exempt
-def email_suggestion(request):
-    email = request.POST.get("email", None)
-    if email:
-        clean = clean_email(email)
-        if clean and not clean["valid"]:
-            suggestion = clean["suggestion"]
-            return render(
-                request,
-                "new_subscription/email_suggestion.html",
-                {
-                    "suggestion": suggestion,
-                    "email": email,
-                 }
-            )
-    return render(
-        request,
-        "new_subscription/email_suggestion.html",
-        {
-            "email" : email,
-        }
-    )

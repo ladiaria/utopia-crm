@@ -53,7 +53,6 @@ from support.views import (
     tag_contacts,
     not_contacted_campaign,
     api_get_addresses,
-    email_suggestion,
 )
 
 from django.urls import path, re_path
@@ -181,5 +180,4 @@ urlpatterns = [
         location.sugerir_direccion_autocompletar,
         name="ajax_sugerir_direccion_autocompletar",
     ),
-    path("api_email_suggestion/", email_suggestion, name="email_suggestion"),
 ]
