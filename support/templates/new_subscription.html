@@ -1,24 +1,25 @@
 {% extends 'adminlte/base.html' %}
 {% load i18n static core_tags %}
 
-{% block title %}
-{% trans "New subscription" %}
+{% block title %}{% trans "New subscription" %}{% endblock %}
+
+{% block extra_head %}
+  <style>
+    div.wrapper {z-index: 1;}
+    .no-close .ui-dialog-titlebar-close { display: none; }
+    span.typo {text-decoration: red wavy underline;}
+  </style>
 {% endblock %}
 
 {% block no_heading %}
   <h1>
     <a href="{% url 'contact_list' %}">{% trans "Contacts" %}</a> &raquo;
     <a href="{% url 'contact_detail' contact.id %}">{{contact.id}} - {{contact.name}}</a> &raquo;
-    {% if edit_subscription %}
-      {% trans 'Edit subscription' %}
-    {% else %}
-      {% trans 'New subscription' %}
-    {% endif %}
+    {% if edit_subscription %}{% trans 'Edit subscription' %}{% else %}{% trans 'New subscription' %}{% endif %}
   </h1>
-{% endblock no_heading %}
+{% endblock %}
 
 {% block extra_js %}
-  <script src="{% static 'js/htmx.min.js' %}" defer></script>
   <script type="text/javascript" src="{% static 'js/datepicker-es.js' %}"></script>
   <script type="text/javascript" src="{% static 'js/product_dynamic_prices.js' %}"></script>
   <script type="text/javascript">
@@ -58,25 +59,35 @@
           }
         });
       });
+
+      {% include 'email_suggestion_dialog_js.html' %}
+
     });
   </script>
   {% block extra_scripts %}{% endblock %}
 {% endblock %}
 
 {% block content %}
+
+  {% include 'email_suggestion_dialog.html' %}
+
   <div class="card">
     <div class="card-header">
-      {% if edit_subscription %}
-        <h2 class="card-title">{% trans 'Edit subscription' %}</h2>
-      {% else %}
-        <h2 class="card-title">{% trans 'New subscription' %}</h2>
-      {% endif %}
+      <h2 class="card-title">
+        {% if edit_subscription %}
+          {% trans 'Edit subscription' %}
+        {% else %}
+          {% trans 'New subscription' %}
+        {% endif %}
+      </h2>
     </div>
     <div class="card-body">
       {% block subscription_form %}
         <form method="post" id="subscription_form">
           {% csrf_token %}
+
           {% if form.errors %}
+            {{ form.email_was_valid }}{{ form.email_replacement }}{{ form.email_suggestion }}
             {% for field in form %}
               {% for error in field.errors %}
                 <div class="alert alert-danger"><strong>{{ error|escape }}</strong></div>
@@ -141,7 +152,7 @@
                   </div>
                 </div>
               </div>
-              {% block extra_payment %}{% endblock extra_payment %}
+            {% block extra_payment %}{% endblock extra_payment %}
             {% endblock payment_type %}
 
             <div class="row">
@@ -196,13 +207,15 @@
               </div>
             {% endblock billing_info %}
 
-            {% comment "Removed to see if they dont need it" %}
+            {% comment "TODO: Removed to see if they dont need it" %}
             <div class="form-group">
               <label for="id_default_address">{{form.default_address.label}}</label>
               {{ form.default_address }}
             </div>
             {% endcomment %}
+
           {% endblock contact_info %}
+
           <div class="form-group mt-2">
             <a href="{% url 'agregar_direccion' contact.id %}?stayhere=True" id="add_address" class="btn bg-gradient-success" target="_blank"><i class="fas fa-plus"></i> Nueva dirección</a>
             <button type="button" class="btn bg-gradient-success" id="fetch-button">Recargar direcciones</button>
@@ -211,7 +224,8 @@
           {% block form_products %}
             <div class="mt-4">
               {% for product in offerable_products %}
-                <div class='form-group border-bottom pb-2'>
+                {% call_method form 'bound_product_values' product.id as bound_product_values %}
+                <div class="form-group border-bottom pb-2">
                   <div class="row mt-2">
                     <div class="col-5">
                       <div class="form-check">
