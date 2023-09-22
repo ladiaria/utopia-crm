@@ -236,7 +236,8 @@
                       </div>
                       <select name="address-{{product.id}}" class="address_selector form-control">
                         {% for address in contact_addresses %}
-                          <option {% if form_subscription|get_address_id_from_subscription:product.slug == address.id or bound_product_values.address == address.id %}
+                          <option style="color:{% if address.verified %}green{% else %}red{% endif %};"
+                                  {% if form_subscription|get_address_id_from_subscription:product.slug == address.id or bound_product_values.address == address.id %}
                                     selected="selected"
                                   {% endif %} value="{{address.id}}">
                             {{address.address_1}} {{address.city}} {{address.state}}

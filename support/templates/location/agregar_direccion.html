@@ -108,7 +108,9 @@ Nueva dirección para {{contact.name}} {{contact.last_name}}
                     {% elif georef_activated and q_sugerencia %}
                     <div class="col text-right">
                       <p><span class="text-danger">No se encuentra georeferenciación para esta dirección</span><input type="submit" value="Guardar sin georeferenciación" name="save_needs_georef" class="m-2 btn-large btn btn-danger"></p>
+                      {% if not request.user|in_group:"Sellers" %}
                       <p><span class="text-info">Podés seleccionar el departamento manualmente (y ciudad si aplica) y buscar en la siguiente opción</span><input type="submit" value="Buscar otras alternativas (completar formulario)" name="no_encuentro_direccion" class="m-2 btn-large btn btn-info"></p>
+                      {% endif %}
                     </div>
                     {% elif not georef_activated %}
                     <div class="col text-right">
