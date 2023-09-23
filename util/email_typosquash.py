@@ -1,13 +1,17 @@
 from validate_email_address import validate_email
 from pymailcheck import split_email, suggest
 
+from django.core.mail import mail_managers
+from django.utils.translation import gettext as _
+
 from core.models import EmailReplacement
 
 
 def email_replacement_add(domain, replacement):
     obj, created = EmailReplacement.objects.get_or_create(domain=domain, replacement=replacement)
     if created:
-        print("TODO: alert managers about a new request pending approve/reject")
+        # TODO: include 3 links in the email to approve/reject (new views to make) and another to the object_list
+        mail_managers(_("A new email replacement request is pending approval"), "%s ==> %s" % (domain, replacement))
 
 
 def clean_email(email):
