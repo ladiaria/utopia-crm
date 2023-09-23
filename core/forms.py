@@ -1,11 +1,102 @@
 # coding=utf-8
+from pymailcheck import split_email
+
 from django import forms
 from django.utils.translation import gettext as _
+
+from util.email_typosquash import clean_email as email_typosquash_clean
 
 from .models import Contact, Subscription, Address
 
 
 no_email_validation_msg = _('email must be left blank if the contact has no email')
+
+
+class EmailValidationError(forms.ValidationError):
+
+    def __init__(self, *args, **kwargs):
+        valid = kwargs.pop("valid", False)
+        replacement = kwargs.pop("replacement", "")
+        suggestion = kwargs.pop("suggestion", "")
+        splitted = kwargs.pop("splitted", "")
+        submit_btn_selector = kwargs.pop("submit_btn_selector", "")
+        super().__init__(*args, **kwargs)
+        self.valid = valid
+        self.replacement = replacement
+        self.suggestion = suggestion
+        self.splitted = splitted
+        self.submit_btn_selector = submit_btn_selector
+
+
+class EmailValidationForm(forms.Form):
+    email_was_valid = forms.BooleanField(widget=forms.HiddenInput(), required=False)
+    email_replacement = forms.EmailField(widget=forms.HiddenInput(), required=False)
+    email_suggestion = forms.EmailField(widget=forms.HiddenInput(), required=False)
+
+    def as_dict(self):
+        return self.__dict__
+
+    def checked_products(self):
+        return [int(val) for key, val in self.data.items() if key.startswith("check-")]
+
+    def bound_product_values(self, product_id):
+        if self.is_bound:
+            address = self.data.get("address-%d" % product_id)
+            result = {"address": int(address)} if address else {}
+            for key in ("copies", "message", "instructions"):
+                val = self.data.get("%s-%d" % (key, product_id))
+                if val:
+                    result[key] = val
+            return result
+
+    def email_extra_clean(self, cleaned_data):
+
+        email, was_valid = cleaned_data.get("email"), cleaned_data.get("email_was_valid")
+        replacement, suggestion = cleaned_data.get("email_replacement"), cleaned_data.get("email_suggestion")
+        if was_valid:
+            if not replacement:
+                print("TODO: Alertar posible overwrite by management commands")
+            return email
+        else:
+            if suggestion:
+                print("TODO: Add new replacement request")
+                return email
+            elif email and not replacement:
+
+                email_typosquash_clean_result = email_typosquash_clean(email)
+                valid = email_typosquash_clean_result["valid"]
+                replacement = email_typosquash_clean_result.get("replacement", "")
+                if not valid or replacement:
+                    suggestion = email_typosquash_clean_result.get("suggestion", "")
+                    if replacement or suggestion:
+                        admin_submit_btn_name = next(
+                            (k for k in ("_save", "_addanother", "_continue") if k in self.data), None
+                        )
+                        self.add_error(
+                            "email",
+                            EmailValidationError(
+                                _('Confirmation for email replacement is needed'),
+                                code='email_typosquash_clean_confirmation',
+                                valid=valid,
+                                replacement=replacement,
+                                suggestion=suggestion,
+                                splitted=split_email(email),
+                                submit_btn_selector=(
+                                    ":submit[name='%s']" % admin_submit_btn_name
+                                ) if admin_submit_btn_name else "#send_form",
+                            ),
+                        )
+                    else:
+                        self.add_error(
+                            "email",
+                            EmailValidationError(
+                                _('Invalid email: %(email)s'),
+                                code='email_typosquash_clean_invalid',
+                                params={'email': email},
+                            ),
+                        )
+                else:
+                    return email
 
 
 def validate_no_email(form, no_email, email):
@@ -17,7 +108,7 @@ def validate_no_email(form, no_email, email):
         form.add_error('no_email', forms.ValidationError(no_email_validation_msg))
 
 
-class ContactAdminForm(forms.ModelForm):
+class ContactAdminForm(EmailValidationForm, forms.ModelForm):
     class Meta:
         model = Contact
         fields = "__all__"
@@ -26,19 +117,21 @@ class ContactAdminForm(forms.ModelForm):
         }
 
     def clean(self):
-        protected = self.cleaned_data.get("protected")
-        protection_reason = self.cleaned_data.get("protection_reason")
-        email = self.cleaned_data.get("email")
-        no_email = self.cleaned_data.get("no_email")
+        cleaned_data = super().clean()
+        protected = cleaned_data.get("protected")
+        protection_reason = cleaned_data.get("protection_reason")
 
         if protected and not protection_reason:
             msg = _("This field must be provided if the contact is protected")
             self.add_error("protection_reason", forms.ValidationError(msg))
+        else:
+            email = cleaned_data.get("email")
+            if email:
+                email = self.email_extra_clean(cleaned_data)
 
-        # no_email validation:
-        validate_no_email(self, no_email, email)
+            # no_email validation:
+            validate_no_email(self, cleaned_data.get("no_email"), email)
 
-        return self.cleaned_data
 
     def clean_id_document(self):
         id_document = self.cleaned_data.get("id_document")

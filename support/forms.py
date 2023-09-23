@@ -2,16 +2,14 @@
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 from django import forms
-from django.core.exceptions import ValidationError
 from django.contrib.auth.models import User
 
-from .models import Issue, IssueStatus, IssueSubcategory
-
 from core.models import Contact, Product, Subscription, Address, DynamicContactFilter, SubscriptionProduct, Activity
+from core.forms import EmailValidationForm
 from core.choices import ADDRESS_TYPE_CHOICES, FREQUENCY_CHOICES, ACTIVITY_TYPES
 
-from support.models import Seller
-from support.choices import ISSUE_CATEGORIES
+from .models import Seller, Issue, IssueStatus, IssueSubcategory
+from .choices import ISSUE_CATEGORIES
 
 
 class SellerForm(forms.ModelForm):
@@ -151,7 +149,7 @@ class NewPromoForm(forms.Form):
     )
 
 
-class NewSubscriptionForm(forms.Form):
+class NewSubscriptionForm(EmailValidationForm):
     contact_id = forms.CharField(required=False)
     name = forms.CharField(widget=forms.TextInput(attrs={"class": "form-control"}))
     phone = forms.CharField(empty_value=None, required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
@@ -215,15 +213,13 @@ class NewSubscriptionForm(forms.Form):
     )
 
     def clean(self):
-        contact_id = self.cleaned_data['contact_id']
-        id_document = self.cleaned_data['id_document']
-        email = self.cleaned_data['email']
-
-        if Contact.objects.filter(email=email).exclude(id=contact_id).exists():
-            raise ValidationError(_("This email already exists in a different contact"))
-
+        cleaned_data = super().clean()
+        email, contact_id = self.email_extra_clean(cleaned_data), cleaned_data['contact_id']
+        if email and Contact.objects.filter(email=email).exclude(id=contact_id).exists():
+            raise forms.ValidationError(_("This email already exists in a different contact"))
+        id_document = cleaned_data['id_document']
         if Contact.objects.filter(id_document=id_document).exclude(id=contact_id).exists():
-            raise ValidationError(_("This id document already exists in a different contact"))
+            raise forms.ValidationError(_("This id document already exists in a different contact"))
 
 
 class IssueStartForm(forms.ModelForm):
@@ -237,6 +233,7 @@ class IssueStartForm(forms.ModelForm):
     )
 
     widget = forms.Select(attrs={"class": "form-control"})
+    # TODO: explain or remove the following commented line
     # contact.disabled = True
     product = forms.ModelChoiceField(
         queryset=Product.objects.filter(type="S"),

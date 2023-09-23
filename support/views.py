@@ -1,8 +1,11 @@
 # coding=utf-8
 from __future__ import division, unicode_literals
+
 import csv
 import collections
 from datetime import date, timedelta, datetime
+
+from taggit.models import Tag
 
 from django import forms
 from django.contrib import messages
@@ -27,10 +30,9 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.conf import settings
 
-from taggit.models import Tag
-
+from util.dates import add_business_days
 from core.filters import ContactFilter
-from core.forms import AddressForm
+from core.forms import AddressForm, ContactAdminForm
 from core.models import (
     Contact,
     Subscription,
@@ -46,6 +48,9 @@ from core.models import (
     DoNotCallNumber,
 )
 from core.choices import CAMPAIGN_RESOLUTION_REASONS_CHOICES
+from core.utils import calc_price_from_products, process_products
+from logistics.models import Route
+from support.management.commands.run_scheduled_tasks import run_address_change, run_start_of_total_pause
 
 from .filters import (
     IssueFilter,
@@ -74,13 +79,8 @@ from .forms import (
     AddressComplementaryInformationForm,
     SugerenciaGeorefForm,
 )
-from logistics.models import Route
 from .models import Seller, ScheduledTask, IssueStatus, Issue, IssueSubcategory
 from .choices import ISSUE_CATEGORIES, ISSUE_ANSWERS
-from support.management.commands.run_scheduled_tasks import run_address_change, run_start_of_total_pause
-from core.utils import calc_price_from_products, process_products
-from core.forms import ContactAdminForm
-from util.dates import add_business_days
 
 
 now = datetime.now()
@@ -3133,6 +3133,7 @@ def upload_do_not_call_numbers(request):
         "upload_do_not_call_numbers.html",
     )
 
+
 @staff_member_required
 def tag_contacts(request):
     if request.FILES:
@@ -3157,6 +3158,7 @@ def tag_contacts(request):
         request,
         "tag_contacts.html",
     )
+
 
 @staff_member_required
 def not_contacted_campaign(request, campaign_id):

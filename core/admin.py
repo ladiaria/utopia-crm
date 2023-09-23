@@ -1,19 +1,18 @@
 # coding=utf-8
-
-
+from django.conf import settings
 from django.http import HttpResponseRedirect
 from django.contrib.admin import SimpleListFilter
 from django.utils.translation import gettext_lazy as _
 from django.contrib import admin
 from django.urls import resolve, reverse
+
 from leaflet.admin import LeafletGeoAdmin
-
 from taggit.models import TaggedItem
-
+# TODO: explain or remove next commented line
 # from tabbed_admin import TabbedModelAdmin
 from simple_history.admin import SimpleHistoryAdmin
-
 from community.models import ProductParticipation, Supporter
+
 from .models import (
     Subscription,
     Contact,
@@ -103,7 +102,7 @@ class SubscriptionProductInline(admin.TabularInline):
 
 
 def response_add_or_change_next_url(request, obj):
-    """Returns the next_url to be used in the response_add and response_change method redefinitions"""
+    """ Returns the next_url to be used in the response_add and response_change method redefinitions """
     opts = obj._meta
     reverse_begin = "admin:%s_%s_" % (opts.app_label, opts.model_name)
     if "_continue" in request.POST:
@@ -112,7 +111,7 @@ def response_add_or_change_next_url(request, obj):
 
 
 def default_newsletters_dialog_redirect(request, obj, contact_id_attr_name):
-    """Returns the redirect to be used for the default newsletters dialog page"""
+    """ Returns the redirect to be used for the default newsletters dialog page """
     return HttpResponseRedirect(
         "%s?next_page=%s"
         % (
@@ -223,19 +222,22 @@ class SupporterInline(admin.StackedInline):
 class ContactAdmin(SimpleHistoryAdmin):
     form = ContactAdminForm
     fieldsets = (
-        (None, {"fields": (("name", "tags", "subtype"),)}),
         (
-            None,
+            _("Contact details"),
             {
                 "fields": (
-                    ("email", "no_email", "id_document"),
-                    ("phone", "mobile", "work_phone"),
+                    ("name", "tags"),
+                    "subtype",
+                    ("email", "no_email"),
+                    "id_document",
+                    ("phone", "mobile"),
+                    "work_phone",
                     ("gender", "education"),
                     ("birthdate", "private_birthdate"),
-                    ("protected",),
+                    "protected",
                     "protection_reason",
                     "notes",
-                )
+                ),
             },
         ),
     )
@@ -244,6 +246,13 @@ class ContactAdmin(SimpleHistoryAdmin):
     list_filter = ("subtype", TaggitListFilter)
     ordering = ("id",)
     raw_id_fields = ("subtype", "referrer")
+
+    class Media:
+        # jquery loaded again (admin uses custom js namespaces and we use jquery-ui)
+        js = (
+            'admin-lte/plugins/jquery/jquery%s.js' % ("" if settings.DEBUG else ".min"),
+            'admin-lte/plugins/jquery-ui/jquery-ui%s.js' % ("" if settings.DEBUG else ".min"),
+        )
 
     def get_queryset(self, request):
         return super(ContactAdmin, self).get_queryset(request).prefetch_related("tags")
