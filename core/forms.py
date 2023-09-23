@@ -2,6 +2,7 @@
 from pymailcheck import split_email
 
 from django import forms
+from django.core.mail import mail_managers
 from django.utils.translation import gettext as _
 
 from util.email_typosquash import clean_email as email_typosquash_clean, email_replacement_add
@@ -56,7 +57,10 @@ class EmailValidationForm(forms.Form):
         replacement, suggestion = cleaned_data.get("email_replacement"), cleaned_data.get("email_suggestion")
         if was_valid:
             if not replacement:
-                print("TODO: Alertar posible overwrite by management commands")
+                mail_managers(
+                    _("WARN: wrong email replcement risk"),
+                    "The email %s can be soon be overwritten by the emailfix management command." % email,
+                )
             return email
         elif email:
             splitted = split_email(email)
