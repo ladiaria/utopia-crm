@@ -7,8 +7,7 @@ from core.models import EmailReplacement
 def email_replacement_add(domain, replacement):
     obj, created = EmailReplacement.objects.get_or_create(domain=domain, replacement=replacement)
     if created:
-        # TODO: alert managers about a new request pending approve/reject
-        pass
+        print("TODO: alert managers about a new request pending approve/reject")
 
 
 def clean_email(email):

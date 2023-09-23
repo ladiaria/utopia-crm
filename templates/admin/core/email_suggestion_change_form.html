@@ -19,7 +19,7 @@
   {% with form=adminform.form %}
     {% include 'email_suggestion_dialog.html' %}
     {% if errors %}
-      {{ form.email_was_valid }}{{ form.email_replacement }}{{ form.email_suggestion }}
+      {{ form.email_was_valid }}{{ form.email_replaced }}{{ form.email_replacement }}{{ form.email_suggestion }}
     {% endif %}
   {% endwith %}
 {% endblock %}
