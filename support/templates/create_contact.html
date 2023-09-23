@@ -2,11 +2,7 @@
 {% load static i18n widget_tweaks %}
 
 {% block extra_head %}
-  <style>
-    div.wrapper {z-index: 1;}
-    .no-close .ui-dialog-titlebar-close { display: none; }
-    span.typo {text-decoration: red wavy underline;}
-  </style>
+  <link rel="stylesheet" type="text/css" href="{% static 'css/email_suggestion_dialog.css' %}">
 {% endblock %}
 
 {% block extra_js %}

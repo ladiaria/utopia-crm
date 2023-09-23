@@ -4,11 +4,7 @@
 {% block title %}{% trans "New subscription" %}{% endblock %}
 
 {% block extra_head %}
-  <style>
-    div.wrapper {z-index: 1;}
-    .no-close .ui-dialog-titlebar-close { display: none; }
-    span.typo {text-decoration: red wavy underline;}
-  </style>
+  <link rel="stylesheet" type="text/css" href="{% static 'css/email_suggestion_dialog.css' %}">
 {% endblock %}
 
 {% block no_heading %}
@@ -59,9 +55,7 @@
           }
         });
       });
-
       {% include 'email_suggestion_dialog_js.html' %}
-
     });
   </script>
   {% block extra_scripts %}{% endblock %}
@@ -74,11 +68,7 @@
   <div class="card">
     <div class="card-header">
       <h2 class="card-title">
-        {% if edit_subscription %}
-          {% trans 'Edit subscription' %}
-        {% else %}
-          {% trans 'New subscription' %}
-        {% endif %}
+        {% if edit_subscription %}{% trans 'Edit subscription' %}{% else %}{% trans 'New subscription' %}{% endif %}
       </h2>
     </div>
     <div class="card-body">

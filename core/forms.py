@@ -16,14 +16,16 @@ class EmailValidationError(forms.ValidationError):
 
     def __init__(self, *args, **kwargs):
         valid = kwargs.pop("valid", False)
-        replacement = kwargs.pop("replacement", None)
-        suggestion = kwargs.pop("suggestion", None)
-        splitted = kwargs.pop("splitted", None)
+        replacement = kwargs.pop("replacement", "")
+        suggestion = kwargs.pop("suggestion", "")
+        splitted = kwargs.pop("splitted", "")
+        submit_btn_selector = kwargs.pop("submit_btn_selector", "")
         super().__init__(*args, **kwargs)
         self.valid = valid
         self.replacement = replacement
         self.suggestion = suggestion
         self.splitted = splitted
+        self.submit_btn_selector = submit_btn_selector
 
 
 class EmailValidationForm(forms.Form):
@@ -67,6 +69,9 @@ class EmailValidationForm(forms.Form):
                 if not valid or replacement:
                     suggestion = email_typosquash_clean_result.get("suggestion", "")
                     if replacement or suggestion:
+                        admin_submit_btn_name = next(
+                            (k for k in ("_save", "_addanother", "_continue") if k in self.data), None
+                        )
                         self.add_error(
                             "email",
                             EmailValidationError(
@@ -76,6 +81,9 @@ class EmailValidationForm(forms.Form):
                                 replacement=replacement,
                                 suggestion=suggestion,
                                 splitted=split_email(email),
+                                submit_btn_selector=(
+                                    ":submit[name='%s']" % admin_submit_btn_name
+                                ) if admin_submit_btn_name else "#send_form",
                             ),
                         )
                     else:
