@@ -4,7 +4,7 @@ from pymailcheck import split_email
 from django import forms
 from django.utils.translation import gettext as _
 
-from util.email_typosquash import clean_email as email_typosquash_clean
+from util.email_typosquash import clean_email as email_typosquash_clean, email_replacement_add
 
 from .models import Contact, Subscription, Address
 
@@ -30,6 +30,7 @@ class EmailValidationError(forms.ValidationError):
 
 class EmailValidationForm(forms.Form):
     email_was_valid = forms.BooleanField(widget=forms.HiddenInput(), required=False)
+    email_replaced = forms.EmailField(widget=forms.HiddenInput(), required=False)
     email_replacement = forms.EmailField(widget=forms.HiddenInput(), required=False)
     email_suggestion = forms.EmailField(widget=forms.HiddenInput(), required=False)
 
@@ -57,11 +58,12 @@ class EmailValidationForm(forms.Form):
             if not replacement:
                 print("TODO: Alertar posible overwrite by management commands")
             return email
-        else:
+        elif email:
+            splitted = split_email(email)
             if suggestion:
-                print("TODO: Add new replacement request")
+                email_replacement_add(split_email(cleaned_data.get("email_replaced"))["domain"], splitted["domain"])
                 return email
-            elif email and not replacement:
+            elif not replacement:
 
                 email_typosquash_clean_result = email_typosquash_clean(email)
                 valid = email_typosquash_clean_result["valid"]
@@ -80,7 +82,7 @@ class EmailValidationForm(forms.Form):
                                 valid=valid,
                                 replacement=replacement,
                                 suggestion=suggestion,
-                                splitted=split_email(email),
+                                splitted=splitted,
                                 submit_btn_selector=(
                                     ":submit[name='%s']" % admin_submit_btn_name
                                 ) if admin_submit_btn_name else "#send_form",

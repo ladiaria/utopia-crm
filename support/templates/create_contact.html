@@ -58,7 +58,8 @@
                       <form method="post">
                         {% csrf_token %}
                         {% if form.errors %}
-                          {{ form.email_was_valid }}{{ form.email_replacement }}{{ form.email_suggestion }}
+                          {{ form.email_was_valid }}{{ form.email_replaced }}
+                          {{ form.email_replacement }}{{ form.email_suggestion }}
                         {% endif %}
                         <div class="card">
                           <div class="card-header">
