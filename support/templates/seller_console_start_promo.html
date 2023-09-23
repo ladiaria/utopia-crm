@@ -1,218 +1,221 @@
 {% extends 'adminlte/base.html' %}
-{% load i18n static %}
+{% load i18n static core_tags %}
 
-{% block title %}
-    {% trans "Start promotion" %}
+{% block title %}{% trans "Start promotion" %}{% endblock %}
+
+{% block extra_head %}
+  <link rel="stylesheet" type="text/css" href="{% static 'css/email_suggestion_dialog.css' %}">
 {% endblock %}
 
 {% block extra_js %}
-<script type="text/javascript" src="{% static 'js/datepicker-es.js' %}"></script>
-<script type="text/javascript" src="{% static 'js/product_dynamic_prices.js' %}"></script>
-<script type="text/javascript">
-    $( function() {
-        $(".datepicker").datepicker({ dateFormat: 'yy-mm-dd' });
+  <script type="text/javascript" src="{% static 'js/datepicker-es.js' %}"></script>
+  <script type="text/javascript" src="{% static 'js/product_dynamic_prices.js' %}"></script>
+  <script type="text/javascript">
+    $(function(){
+      $(".datepicker").datepicker({ dateFormat: 'yy-mm-dd' });
 
-        $("#address_form").submit(function(event){
-            var formData = $(this).serialize();
-            event.preventDefault();
-            console.log("address is being sent");
-            $.ajax({
-                method: "POST",
-                url: "/support/api_new_address/{{contact.id}}/",
-                data: formData,
-                success: handleFormSuccess,
-                error: handleFormError,
-            });
+      $("#address_form").submit(function(event){
+        var formData = $(this).serialize();
+        event.preventDefault();
+        console.log("address is being sent");
+        $.ajax({
+            method: "POST",
+            url: "/support/api_new_address/{{contact.id}}/",
+            data: formData,
+            success: handleFormSuccess,
+            error: handleFormError,
         });
+      });
 
-        function handleFormError(){
-            console.log("error");
-        };
+      function handleFormError(){
+        console.log("error");
+      };
 
-        function handleFormSuccess(data){
-            $.each(data, function (key, entry) {
-                $(".address_selector").each(function(){
-                    $(this).append($('<option selected></option>').attr('value', key).text(entry));
-                });
-            $("#id_default_address").append($('<option selected></option>').attr('value', key).text(entry));
-            });
-            $("#address_form").trigger("reset");
-            $('#address_modal').modal('hide');
-        };
-
-        $("#id_default_address").change(function(){
-            $(".address_selector").each(function(){
-                $(this).val($("#id_default_address").val());
-            });
+      function handleFormSuccess(data){
+        $.each(data, function (key, entry) {
+          $(".address_selector").each(function(){
+              $(this).append($('<option selected></option>').attr('value', key).text(entry));
+          });
+          $("#id_default_address").append($('<option selected></option>').attr('value', key).text(entry));
         });
+        $("#address_form").trigger("reset");
+        $('#address_modal').modal('hide');
+      };
 
-        function activateSend() {
-          var disable = false;
-          if ($("#subscription_form input:checkbox:checked").length == 0){
-            disable = true;  // Can't submit without a product
-          }
+      $("#id_default_address").change(function(){
+        $(".address_selector").each(function(){
+          $(this).val($("#id_default_address").val());
+        });
+      });
 
-          if ($(".address_selector").has('option').length == 0){
-            disable = true;  // Can't submit without addresses
-          }
+      function activateSend() {
+        var disable = false;
+        if ($("#subscription_form input:checkbox:checked").length == 0){
+          disable = true;  // Can't submit without a product
+        }
 
-          if (disable == false){
-            $("#send_form").removeAttr("disabled");  // Enable the send button
-          } else {
-            $("#send_form").attr("disabled", "disabled");  // Disable the send button
-          }
-        };
+        if ($(".address_selector").has('option').length == 0){
+          disable = true;  // Can't submit without addresses
+        }
 
+        if (disable == false){
+          $("#send_form").removeAttr("disabled");  // Enable the send button
+        } else {
+          $("#send_form").attr("disabled", "disabled");  // Disable the send button
+        }
+      };
+
+      activateSend();
+
+      $("input:checkbox, select").change(function(){
         activateSend();
-
-        $("input:checkbox, select").change(function(){
-          activateSend();
-        });
+      });
+      {% include 'email_suggestion_dialog_js.html' %}
     });
-</script>
+  </script>
 {% endblock %}
 
 {% block no_heading %}
-<h1>{% trans 'Support' %}</h1>
-<p>{% trans 'Send promo' %}</p>
+  <h1>{% trans 'Support' %}</h1>
+  <p>{% trans 'Send promo' %}</p>
 {% endblock %}
 
 {% block content %}
-<div class="card">
-  <div class="card-header">
-    <h2 class="card-title">{% trans 'Send promo' %}</h2>
-  </div>
-  <div class="card-body">
-    <form method="post" id="subscription_form">
-    {% csrf_token %}
-    {% if form.errors %}
-        {% for field in form %}
+  {% include 'email_suggestion_dialog.html' %}
+  <div class="card">
+    <div class="card-header"><h2 class="card-title">{% trans 'Send promo' %}</h2></div>
+    <div class="card-body">
+      <form method="post" id="subscription_form">
+        {% csrf_token %}
+        {% if form.errors %}
+          {{ form.email_was_valid }}{{ form.email_replacement }}{{ form.email_suggestion }}
+          {% for field in form %}
             {% for error in field.errors %}
-                <div class="alert alert-danger">
-                    <strong>{{ error|escape }}</strong>
-                </div>
+              <div class="alert alert-danger"><strong>{{ error|escape }}</strong></div>
             {% endfor %}
-        {% endfor %}
-        {% for error in form.non_field_errors %}
-            <div class="alert alert-danger">
-                <strong>{{ error|escape }}</strong>
-            </div>
-        {% endfor %}
-    {% endif %}
-    <div class="row">
-      <div class="form-group col-sm-6">
-        <label for="id_name">{{form.name.label}}</label>
-        {{form.name}}
-      </div>
-      <div class="form-group col-sm-6">
-        <label for="id_email">{{form.email.label}}</label>
-        {{form.email}}
-      </div>
-    </div>
-    <div class="row">
-      <div class="form-group col-sm-6">
-        <label for="id_phone">{{form.phone.label}}</label>
-        {{form.phone}}
-      </div>
-      <div class="form-group col-sm-6">
-        <label for="id_mobile">{{form.mobile.label}}</label>
-        {{form.mobile}}
-      </div>
-    </div>
-    <div class="form-group">
-      <label for="id_notes">{{form.notes.label}}</label>
-      {{form.notes}}
-    </div>
-    <div class="row">
-      <div class="form-group col-sm-6">
-        <label for="id_start_date">{{form.start_date.label}}</label>
-        {{form.start_date}}
-      </div>
-      <div class="form-group col-sm-6">
-        <label for="id_end_date">{{form.end_date.label}}</label>
-        {{form.end_date}}
-      </div>
-    </div>
-    <div class="form-group">
-      <label for="id_default_address">{{form.default_address.label}}</label>
-      {{form.default_address}}
-    </div>
-    <a href="#address_modal" data-toggle="modal" data-target="#address_modal" id="add_address" class="btn bg-gradient-success"><i class="fas fa-plus"></i> {% trans 'Add new address' %}</a>
-    <br>
-    <div class="mt-4">
-    {% for product in offerable_products %}
-
-      <div class="form-group border-bottom pb-2">
-        <div class="row mt-2">
-          <div class="col-4">
-            <div class="form-check">
-              <input type='checkbox' name='check-{{product.id}}' class="form-check-input product_checkbox" id="check-{{product.id}}">
-              <label for="check-{{product.id}}">{{product.name}}</label>
-            </div>
-            <select name='address-{{product.id}}' class="address_selector form-control">
-                {% for address in contact_addresses %}
-                    <option value="{{address.id}}">{{address.address_1}} {{address.city}} {{address.state}}</option>
-                {% endfor %}
-            </select>
+          {% endfor %}
+          {% for error in form.non_field_errors %}
+            <div class="alert alert-danger"><strong>{{ error|escape }}</strong></div>
+          {% endfor %}
+        {% endif %}
+        <div class="row">
+          <div class="form-group col-sm-6">
+            <label for="id_name">{{form.name.label}}</label>
+            {{form.name}}
           </div>
-          <div class="col-2">
-            <label for="copies-{{product.id}}"><small>{% trans 'Copies' %}</small></label>
-            <input type="text" id="copies-{{product.id}}" name="copies-{{product.id}}" value="1" class="form-control">
-          </div>
-          <div class="col-3">
-              <label for="message-{{product.id}}"><small>{% trans 'Label Message' %}</small></label>
-              <input maxlength="40" type="text" id="message-{{product.id}}" name="message-{{product.id}}" class="form-control">
-          </div>
-          <div class="col-3">
-              <label for="instructions-{{product.id}}"><small>{% trans 'Special Instructions' %}</small></label>
-              <input type="text" id="instructions-{{product.id}}" name="instructions-{{product.id}}" class="form-control">
+          <div class="form-group col-sm-6">
+            <label for="id_email">{{form.email.label}}</label>
+            {{form.email}}
           </div>
         </div>
-      </div>
-
-    {% endfor %}
-    </div>
-    <div class="form-group text-right">
-      <input type="submit" name='result' value="{% trans 'Cancel' %}" class="btn bg-gradient-secondary">
-      <input type="submit" name="result" id="send_form" value="{% trans 'Send' %}" class="btn bg-gradient-primary">
-    </div>
-    </form>
-    </div>
-</div>
-
-    <div id="address_modal"  class="modal" tabindex="-1" role="dialog">
-       <div class="modal-dialog" role="document">
-         <div class="modal-content">
-           <div class="modal-header">
-            <h5 class="modal-title" id="exampleModalLabel">{% trans 'Add new address' %}</h5>
-            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-              <span aria-hidden="true">&times;</span>
-            </button>
+        <div class="row">
+          <div class="form-group col-sm-6">
+            <label for="id_phone">{{form.phone.label}}</label>
+            {{form.phone}}
           </div>
-          <div class="modal-body">
-            <form method="post" id="address_form">
-                {% if form.errors %}
-                    {% for field in form %}
-                        {% for error in field.errors %}
-                            <div class="alert alert-danger">
-                                <strong>{{ error|escape }}</strong>
-                            </div>
-                        {% endfor %}
+          <div class="form-group col-sm-6">
+            <label for="id_mobile">{{form.mobile.label}}</label>
+            {{form.mobile}}
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="id_notes">{{form.notes.label}}</label>
+          {{form.notes}}
+        </div>
+        <div class="row">
+          <div class="form-group col-sm-6">
+            <label for="id_start_date">{{form.start_date.label}}</label>
+            {{form.start_date}}
+          </div>
+          <div class="form-group col-sm-6">
+            <label for="id_end_date">{{form.end_date.label}}</label>
+            {{form.end_date}}
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="id_default_address">{{form.default_address.label}}</label>
+          {{form.default_address}}
+        </div>
+        <a href="#address_modal" data-toggle="modal" data-target="#address_modal" id="add_address" class="btn bg-gradient-success"><i class="fas fa-plus"></i> {% trans 'Add new address' %}</a>
+        <br>
+        <div class="mt-4">
+          {% for product in offerable_products %}
+            {% call_method form 'bound_product_values' product.id as bound_product_values %}
+            <div class="form-group border-bottom pb-2">
+              <div class="row mt-2">
+                <div class="col-4">
+                  <div class="form-check">
+                    <input value="{{product.id}}"{% if product.id in form.checked_products %} checked="checked"{% endif %}
+                           type="checkbox" name="check-{{product.id}}" class="form-check-input product_checkbox" id="check-{{product.id}}">
+                    <label for="check-{{product.id}}">{{product.name}}</label>
+                  </div>
+                  <select name="address-{{product.id}}" class="address_selector form-control">
+                    {% for address in contact_addresses %}
+                      <option value="{{address.id}}"
+                              {% if bound_product_values.address == address.id %}selected="selected"{% endif %}>
+                        {{address.address_1}} {{address.city}} {{address.state}}
+                      </option>
                     {% endfor %}
-                    {% for error in form.non_field_errors %}
-                        <div class="alert alert-danger">
-                            <strong>{{ error|escape }}</strong>
-                        </div>
-                    {% endfor %}
-                {% endif %}
-                {% csrf_token %}
-                {{address_form.as_p}}
-                <div class="form-group text-right">
-                  <input id="submit_address" type="submit" value="{% trans 'Save address' %}" class="btn bg-gradient-primary">
+                  </select>
                 </div>
-            </form>
+                <div class="col-2">
+                  <label for="copies-{{product.id}}"><small>{% trans 'Copies' %}</small></label>
+                  <input type="text" id="copies-{{product.id}}" name="copies-{{product.id}}"
+                         value="{{ bound_product_values.copies|default:1 }}" class="form-control">
+                </div>
+                <div class="col-3">
+                  <label for="message-{{product.id}}"><small>{% trans 'Label Message' %}</small></label>
+                  <input maxlength="40" type="text" id="message-{{product.id}}" name="message-{{product.id}}" class="form-control"
+                         value="{{ bound_product_values.message }}">
+                </div>
+                <div class="col-3">
+                  <label for="instructions-{{product.id}}"><small>{% trans 'Special Instructions' %}</small></label>
+                  <input type="text" id="instructions-{{product.id}}" name="instructions-{{product.id}}" class="form-control"
+                         value="{{ bound_product_values.instructions }}">
+                </div>
+              </div>
             </div>
+          {% endfor %}
+        </div>
+        <div class="form-group text-right">
+          <div style="float: right; margin-left: 10px;">
+            <input type="submit" name="result" id="send_form" value="{% trans 'Send' %}" class="btn bg-gradient-primary">
           </div>
+          <input type="submit" name="result" value="{% trans 'Cancel' %}" class="btn bg-gradient-secondary">
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="address_modal"  class="modal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="exampleModalLabel">{% trans 'Add new address' %}</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <form method="post" id="address_form">
+            {% if form.errors %}
+              {% for field in form %}
+                {% for error in field.errors %}
+                  <div class="alert alert-danger"><strong>{{ error|escape }}</strong></div>
+                {% endfor %}
+              {% endfor %}
+              {% for error in form.non_field_errors %}
+                <div class="alert alert-danger"><strong>{{ error|escape }}</strong></div>
+              {% endfor %}
+            {% endif %}
+            {% csrf_token %}
+            {{address_form.as_p}}
+            <div class="form-group text-right">
+              <input id="submit_address" type="submit" value="{% trans 'Save address' %}" class="btn bg-gradient-primary">
+            </div>
+          </form>
+        </div>
       </div>
     </div>
+  </div>
 {% endblock content %}

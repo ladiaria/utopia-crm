@@ -128,14 +128,16 @@ class NewAddressChangeScheduledTaskForm(forms.Form):
             )
 
 
-class NewPromoForm(forms.Form):
+class NewPromoForm(EmailValidationForm):
     name = forms.CharField(widget=forms.TextInput(attrs={"class": "form-control"}))
     phone = forms.CharField(empty_value=None, required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
     mobile = forms.CharField(empty_value=None, required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
     notes = forms.CharField(
         empty_value=None, required=False, widget=forms.Textarea(attrs={"class": "form-control", "rows": "4"})
     )
-    email = forms.CharField(empty_value=None, required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
+    email = forms.EmailField(
+        empty_value=None, required=False, widget=forms.EmailInput(attrs={"class": "form-control"})
+    )
     start_date = forms.DateField(
         widget=forms.DateInput(format="%Y-%m-%d", attrs={"class": "datepicker form-control", "autocomplete": "off"})
     )
@@ -147,6 +149,9 @@ class NewPromoForm(forms.Form):
         required=False,
         widget=forms.Select(attrs={"class": "form-control"}),
     )
+
+    def clean(self):
+        self.email_extra_clean(super().clean())
 
 
 class NewSubscriptionForm(EmailValidationForm):
@@ -160,7 +165,9 @@ class NewSubscriptionForm(EmailValidationForm):
         required=False,
         widget=forms.Textarea(attrs={"class": "form-control", "rows": "4"}),
     )
-    email = forms.CharField(empty_value=None, required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
+    email = forms.EmailField(
+        empty_value=None, required=False, widget=forms.EmailInput(attrs={"class": "form-control"})
+    )
     id_document = forms.CharField(
         empty_value=None, required=False, widget=forms.TextInput(attrs={"class": "form-control"})
     )
@@ -198,8 +205,8 @@ class NewSubscriptionForm(EmailValidationForm):
     billing_phone = forms.CharField(
         empty_value=None, required=False, widget=forms.TextInput(attrs={"class": "form-control"})
     )
-    billing_email = forms.CharField(
-        empty_value=None, required=False, widget=forms.TextInput(attrs={"class": "form-control"})
+    billing_email = forms.EmailField(
+        empty_value=None, required=False, widget=forms.EmailInput(attrs={"class": "form-control"})
     )
     default_address = forms.ModelChoiceField(
         Address.objects.all(),
