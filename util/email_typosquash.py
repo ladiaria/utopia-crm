@@ -11,7 +11,9 @@ def email_replacement_add(domain, replacement):
     obj, created = EmailReplacement.objects.get_or_create(domain=domain, replacement=replacement)
     if created:
         # TODO: include 3 links in the email to approve/reject (new views to make) and another to the object_list
-        mail_managers(_("A new email replacement request is pending approval"), "%s ==> %s" % (domain, replacement))
+        mail_managers(
+            _("A new email replacement request is pending approval"), "%s ==> %s" % (domain, replacement), True
+        )
 
 
 def clean_email(email):

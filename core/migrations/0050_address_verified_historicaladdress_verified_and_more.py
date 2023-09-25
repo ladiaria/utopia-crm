@@ -75,30 +75,6 @@ class Migration(migrations.Migration):
             name="state_id",
             field=models.IntegerField(blank=True, null=True),
         ),
-        migrations.AlterField(
-            model_name="address",
-            name="state",
-            field=models.CharField(
-                blank=True,
-                choices=[],
-                default="Montevideo",
-                max_length=50,
-                null=True,
-                verbose_name="State",
-            ),
-        ),
-        migrations.AlterField(
-            model_name="historicaladdress",
-            name="state",
-            field=models.CharField(
-                blank=True,
-                choices=[],
-                default="Montevideo",
-                max_length=50,
-                null=True,
-                verbose_name="State",
-            ),
-        ),
         migrations.AddField(
             model_name="address",
             name="verified",

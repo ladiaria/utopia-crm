@@ -28,7 +28,6 @@
 {% endblock no_heading %}
 
 {% block content %}
-  {% include 'email_suggestion_dialog.html' %}
   <section class="content">
     <div class="container-fluid">
       <div class="row">
@@ -41,6 +40,7 @@
               </ul>
             </div>
             <div class="card-body">
+              {% include 'email_suggestion_dialog.html' %}
               {% if form.errors %}
                 {% for field in form %}
                   {% for error in field.errors %}

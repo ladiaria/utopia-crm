@@ -7,7 +7,7 @@ from django.utils.translation import gettext as _
 
 from util.email_typosquash import clean_email as email_typosquash_clean, email_replacement_add
 
-from .models import Contact, Subscription, Address
+from .models import Contact, Subscription, Address, EmailBounceActionLog
 
 
 no_email_validation_msg = _('email must be left blank if the contact has no email')
@@ -35,8 +35,9 @@ class EmailValidationForm(forms.Form):
     email_replacement = forms.EmailField(widget=forms.HiddenInput(), required=False)
     email_suggestion = forms.EmailField(widget=forms.HiddenInput(), required=False)
 
-    def as_dict(self):
-        return self.__dict__
+    @staticmethod
+    def email_is_bouncer(email):
+        return EmailBounceActionLog.email_is_bouncer(email)
 
     def checked_products(self):
         return [int(val) for key, val in self.data.items() if key.startswith("check-")]
@@ -60,6 +61,7 @@ class EmailValidationForm(forms.Form):
                 mail_managers(
                     _("WARN: wrong email replcement risk"),
                     "The email %s can be soon be overwritten by the emailfix management command." % email,
+                    True,
                 )
             return email
         elif email:

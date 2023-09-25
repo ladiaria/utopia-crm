@@ -193,3 +193,10 @@ DISCOUNT_PRODUCT_MODE_CHOICES = (
 EMAIL_REPLACEMENT_STATUS_CHOICES = (
     ("requested", _("Requested")), ("approved", _("Approved")), ("rejected", _("Rejected"))
 )
+
+EMAIL_BOUNCE_ACTION_INVALID = 1
+EMAIL_BOUNCE_ACTION_MAXREACH = 2
+EMAIL_BOUNCE_ACTIONLOG_CHOICES = (
+    (EMAIL_BOUNCE_ACTION_INVALID, _("invalid email")),
+    (EMAIL_BOUNCE_ACTION_MAXREACH, _("max bounce reached")),
+)

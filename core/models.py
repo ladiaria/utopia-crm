@@ -1,7 +1,7 @@
 # coding=utf-8
 
 from importlib import import_module
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from dateutil.relativedelta import relativedelta
 
 from django.contrib.auth.models import User
@@ -10,7 +10,7 @@ from django.contrib.gis.geos import Point
 from django.conf import settings
 from django.core.validators import RegexValidator, MinValueValidator, MaxValueValidator
 from django.db import models
-from django.db.models import Q, Sum, Count
+from django.db.models import Q, Sum, Count, Max
 from django.forms import ValidationError
 from django.utils.translation import gettext_lazy as _
 from django_extensions.db.fields import AutoSlugField
@@ -21,6 +21,7 @@ from simple_history.models import HistoricalRecords
 
 from util import space_join
 from util.dates import get_default_next_billing, get_default_start_date, diff_month
+
 from .managers import ProductManager
 from .choices import (
     ACTIVITY_DIRECTION_CHOICES,
@@ -52,6 +53,8 @@ from .choices import (
     DISCOUNT_PRODUCT_MODE_CHOICES,
     DISCOUNT_VALUE_MODE_CHOICES,
     EMAIL_REPLACEMENT_STATUS_CHOICES,
+    EMAIL_BOUNCE_ACTIONLOG_CHOICES,
+    EMAIL_BOUNCE_ACTION_MAXREACH,
 )
 from .utils import delete_email_from_mailtrain_list, subscribe_email_to_mailtrain_list, get_emails_from_mailtrain_list
 
@@ -198,10 +201,25 @@ class Product(models.Model):
         )
 
 
+class EmailBounceActionLog(models.Model):
+    created = models.DateField(editable=False, auto_now_add=True)
+    contact = models.ForeignKey("Contact", blank=True, null=True, on_delete=models.SET_NULL)
+    email = models.EmailField(editable=False)
+    action = models.PositiveSmallIntegerField(choices=EMAIL_BOUNCE_ACTIONLOG_CHOICES)
+
+    @staticmethod
+    def email_is_bouncer(email):
+        """ Returns last created date iff the email given has a 'bounce detection' in the past 90 days """
+        return (
+            email
+            and EmailBounceActionLog.objects.filter(
+                created__gt=date.today() - timedelta(90), email=email, action=EMAIL_BOUNCE_ACTION_MAXREACH
+            ).aggregate(created_max=Max("created"))["created_max"]
+        )
+
+
 class Contact(models.Model):
-    """
-    Holds people personal information
-    """
+    """ Holds people personal information """
 
     subtype = models.ForeignKey(
         Subtype,
@@ -258,6 +276,10 @@ class Contact(models.Model):
         return self.name
 
     def clean(self, debug=False):
+        if EmailBounceActionLog.email_is_bouncer(self.email):
+            raise ValidationError(
+                {"email": "El email '%s' registra exceso de rebotes, no se permite su utilización" % self.email}
+            )
         if getattr(settings, "WEB_UPDATE_USER_ENABLED", False) and self.email and self.id:
             custom_module = getattr(settings, "WEB_UPDATE_USER_VALIDATION_MODULE", None)
             if custom_module:

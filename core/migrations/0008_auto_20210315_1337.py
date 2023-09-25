@@ -13,11 +13,6 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.AlterField(
-            model_name='address',
-            name='state',
-            field=models.CharField(blank=True, default='Montevideo', max_length=50, null=True, verbose_name='State'),
-        ),
-        migrations.AlterField(
             model_name='subscription',
             name='payment_type',
             field=models.CharField(blank=True, max_length=1, null=True, verbose_name='Payment type'),

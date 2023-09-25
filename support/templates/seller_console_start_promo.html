@@ -81,12 +81,12 @@
 {% endblock %}
 
 {% block content %}
-  {% include 'email_suggestion_dialog.html' %}
   <div class="card">
     <div class="card-header"><h2 class="card-title">{% trans 'Send promo' %}</h2></div>
     <div class="card-body">
       <form method="post" id="subscription_form">
         {% csrf_token %}
+        {% include 'email_suggestion_dialog.html' %}
         {% if form.errors %}
           {{ form.email_was_valid }}{{ form.email_replaced }}
           {{ form.email_replacement }}{{ form.email_suggestion }}
