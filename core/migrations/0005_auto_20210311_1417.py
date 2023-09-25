@@ -17,11 +17,6 @@ class Migration(migrations.Migration):
             name='old_pk',
         ),
         migrations.AlterField(
-            model_name='address',
-            name='state',
-            field=models.CharField(blank=True, choices=[(b'State 1', b'State 1'), (b'State 2', b'State 2')], default='Montevideo', max_length=50, null=True, verbose_name='State'),
-        ),
-        migrations.AlterField(
             model_name='institution',
             name='old_pk',
             field=models.PositiveIntegerField(blank=True, db_index=True, null=True),
@@ -40,5 +35,15 @@ class Migration(migrations.Migration):
             model_name='subtype',
             name='old_pk',
             field=models.PositiveIntegerField(blank=True, db_index=True, null=True),
+        ),
+        migrations.AddField(
+            model_name='subscriptionproduct',
+            name='label_message',
+            field=models.CharField(blank=True, max_length=40, null=True),
+        ),
+        migrations.AddField(
+            model_name='subscriptionproduct',
+            name='special_instructions',
+            field=models.TextField(blank=True, null=True),
         ),
     ]

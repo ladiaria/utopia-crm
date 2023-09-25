@@ -1,4 +1,4 @@
-{% load i18n %}
+{% load i18n core_tags %}
 
 {% if form.errors.as_data.email.0.code == 'email_typosquash_clean_confirmation' %}
   <div id="dialog-email-suggestion" title='{% trans "Email suggestion" %}'>
@@ -26,5 +26,12 @@
       {% endif %}
       <p>{% trans 'Do you accept the replacement?' %}</p>
     {% endwith %}
+  </div>
+{% endif %}
+{% call_method form 'email_is_bouncer' form.email.value as last_max_bounce_reached %}
+{% if last_max_bounce_reached %}
+  <div class="alert alert-warning">
+    El email <strong>{{ form.email.value }}</strong> tiene registro por exceso de rebotes con fecha
+    <em>{{ last_max_bounce_reached }}</em>, se sugiere no activarle comunicaciones ni newsletters.
   </div>
 {% endif %}
