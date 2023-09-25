@@ -1,11 +1,16 @@
 import requests
 from django.conf import settings
 import requests_cache
-# from requests_cache import NEVER_EXPIRE, CachedSession
 import re
 import pandas as pd
 from django.contrib.gis.geos import Point
 
+# We avoid using the following lines for now because if many users are trying to access the sqlite backend
+# at the same time, we get a database locked error.
+# If we consider it necessary later we can switch the backend to redis, uncomment these lines, and instead of using
+# requests.get, we would use session.get
+
+# from requests_cache import NEVER_EXPIRE, CachedSession
 # session = CachedSession("location_utils_cache", backend="sqlite", expire_after=NEVER_EXPIRE)
 
 import logging
