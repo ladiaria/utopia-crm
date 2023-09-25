@@ -163,7 +163,7 @@ class InvoiceItem(models.Model):
 
     # Fields for CFE
     type = models.CharField(max_length=1, default="I", choices=INVOICEITEM_TYPE_CHOICES)
-    type_dr = models.CharField(max_length=1, blank=True, null=True, choices=INVOICEITEM_DR_TYPE_CHOICES)
+    type_dr = models.CharField(max_length=1, blank=True, null=True, choices=INVOICEITEM_DR_TYPE_CHOICES, default="1")
 
     def __str__(self):
         return str(self.description)
