@@ -21,7 +21,7 @@ class CreditNoteAdmin(SimpleHistoryAdmin):
 
 class InvoiceItemInline(admin.StackedInline):
     model = InvoiceItem
-    fields = ['amount', 'product', 'description', 'price', 'copies', 'service_from', 'service_to', 'type']
+    fields = ['amount', 'product', 'description', 'price', 'copies', 'service_from', 'service_to', 'type', 'type_dr']
     extra = 0
 
 

@@ -1,12 +1,17 @@
 import requests
 from django.conf import settings
 import requests_cache
-from requests_cache import NEVER_EXPIRE, CachedSession
 import re
 import pandas as pd
 from django.contrib.gis.geos import Point
 
-session = CachedSession("location_utils_cache", backend="sqlite", expire_after=NEVER_EXPIRE)
+# We avoid using the following lines for now because if many users are trying to access the sqlite backend
+# at the same time, we get a database locked error.
+# If we consider it necessary later we can switch the backend to redis, uncomment these lines, and instead of using
+# requests.get, we would use session.get
+
+# from requests_cache import NEVER_EXPIRE, CachedSession
+# session = CachedSession("location_utils_cache", backend="sqlite", expire_after=NEVER_EXPIRE)
 
 import logging
 
@@ -19,7 +24,7 @@ def buscar_localidades(state):
     """
     url = settings.SERVICIO_LOCALIDADES
     params = {"departamento": departamento, "alias": True}
-    response = session.get(url, params=params)
+    response = requests.get(url, params=params)
     if response.status_code == 200:
         return response.json()
     else:
@@ -32,7 +37,7 @@ def autocompletar_direccion(texto, obs):
     """
     url = settings.SERVICIO_DIRECCION_AUTOCOMPLETADO
     params = {"q": texto, "soloLocalidad": False, "limit": 20}
-    response = session.get(url, params=params)
+    response = requests.get(url, params=params)
     result = []
     if response.status_code == 200:
         sugerencias = response.json()
@@ -68,7 +73,7 @@ def buscar_direccion(sugerencias, sug_num_calle, sug_num_localidad, sug_num_port
     sug_num_portal = int(sug_num_portal)
 
     params = {"idcalle": sug_num_calle, "portal": sug_num_portal, "type": "CALLEyPORTAL"}
-    response = session.get(url, params=params)
+    response = requests.get(url, params=params)
 
     df_sugerencias = pd.DataFrame(sugerencias)[
         ["type", "idCalle", "nomVia", "idLocalidad", "localidad", "idDepartamento", "departamento", "portalNumber"]
