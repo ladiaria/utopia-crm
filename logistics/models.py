@@ -128,26 +128,6 @@ class Route(models.Model):
         return self.get_subscriptionproducts(isoweekday=tomorrow_isoweekday).count()
 
 
-class GeorefAddress(models.Model):
-    """
-    Stores geo ref addresses.
-    """
-
-    gid = models.IntegerField(primary_key=True, verbose_name=_('gid'))
-    street_name = models.CharField(max_length=36, verbose_name=_('Street name'))
-    street_number = models.IntegerField(verbose_name=_('Street number'))
-    letter = models.CharField(null=True, blank=True, max_length=5, verbose_name=_('Letter'))
-    the_geom = PointField(srid=32721)
-
-    def __str__(self):
-        return '{} {}{}'.format(self.street_name, self.street_number, (' ' + self.letter) if self.letter else '')
-
-    class Meta:
-        ordering = ('street_number',)
-        verbose_name = _('geo ref address')
-        verbose_name_plural = _('geo ref addresses')
-
-
 class PickupPoint(models.Model):
     """
     A pickup point is a place where people can go and get their product, if we can't deliver it to certain places.

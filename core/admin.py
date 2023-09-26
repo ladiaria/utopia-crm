@@ -34,6 +34,7 @@ from .models import (
     AdvancedDiscount,
     DoNotCallNumber,
     EmailReplacement,
+    EmailBounceActionLog,
 )
 from .forms import SubscriptionAdminForm, ContactAdminForm
 
@@ -192,7 +193,6 @@ class SubscriptionAdmin(SimpleHistoryAdmin):
 
 
 class AddressInline(admin.StackedInline):
-    raw_id_fields = "geo_ref_address"
     model = Address
     extra = 0
 
@@ -306,7 +306,7 @@ class PlanAdmin(admin.ModelAdmin):
 
 @admin.register(Address)
 class AddressAdmin(SimpleHistoryAdmin, LeafletGeoAdmin):
-    raw_id_fields = ("contact", "geo_ref_address")
+    raw_id_fields = ("contact", )
 
 
 @admin.register(Campaign)
@@ -400,6 +400,32 @@ class EmailReplacementAdmin(admin.ModelAdmin):
     list_editable = ("status", )
     list_filter = ("status", "replacement")
     search_fields = ("domain", "replacement")
+
+
+class ReadOnlyModelAdmin(admin.ModelAdmin):
+    """ A read-only modeladmin for this model, no action can be performed, only see the object list """
+    list_display_links = None
+    actions = None
+
+    def changelist_view(self, request, extra_context=None):
+        extra_context = {'title': self.model._meta.verbose_name_plural.capitalize()}
+        return super().changelist_view(request, extra_context=extra_context)
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    has_delete_permission = has_change_permission
+
+
+@admin.register(EmailBounceActionLog)
+class EmailBounceActionLogAdmin(ReadOnlyModelAdmin):
+    list_display = ("created", "contact", "email", "action")
+    list_filter = ("action", )
+    search_fields = ("email", )
+    date_hierarchy = "created"
 
 
 admin.site.register(DynamicContactFilter)

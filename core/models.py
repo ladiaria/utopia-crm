@@ -210,12 +210,17 @@ class EmailBounceActionLog(models.Model):
     @staticmethod
     def email_is_bouncer(email):
         """ Returns last created date iff the email given has a 'bounce detection' in the past 90 days """
+        if email:
+            email = email.lower()
         return (
             email
             and EmailBounceActionLog.objects.filter(
                 created__gt=date.today() - timedelta(90), email=email, action=EMAIL_BOUNCE_ACTION_MAXREACH
             ).aggregate(created_max=Max("created"))["created_max"]
         )
+
+    class Meta:
+        ordering = ("-created", "email")
 
 
 class Contact(models.Model):
@@ -276,16 +281,20 @@ class Contact(models.Model):
         return self.name
 
     def clean(self, debug=False):
-        if EmailBounceActionLog.email_is_bouncer(self.email):
+        email = self.email
+        if email:
+            email = email.lower()
+        old_email = self.id and self.__class__.objects.get(id=self.id).email
+        if old_email:
+            old_email = old_email.lower()
+        if old_email != email and EmailBounceActionLog.email_is_bouncer(email):
             raise ValidationError(
-                {"email": "El email '%s' registra exceso de rebotes, no se permite su utilización" % self.email}
+                {"email": "El email '%s' registra exceso de rebotes, no se permite su utilización" % email}
             )
-        if getattr(settings, "WEB_UPDATE_USER_ENABLED", False) and self.email and self.id:
+        if getattr(settings, "WEB_UPDATE_USER_ENABLED", False) and email and self.id:
             custom_module = getattr(settings, "WEB_UPDATE_USER_VALIDATION_MODULE", None)
             if custom_module:
-                msg = __import__(custom_module, fromlist=["validateEmailOnWeb"]).validateEmailOnWeb(
-                    self.id, self.email
-                )
+                msg = __import__(custom_module, fromlist=["validateEmailOnWeb"]).validateEmailOnWeb(self.id, email)
                 if msg in ("TIMEOUT", "ERROR"):
                     # TODO: Alert user about web timeout or error
                     if debug:
@@ -682,13 +691,6 @@ class Address(models.Model):
     address_type = models.CharField(max_length=50, choices=ADDRESS_TYPE_CHOICES, verbose_name=_("Address type"))
     notes = models.TextField(blank=True, null=True, verbose_name=_("Notes"))
     default = models.BooleanField(default=False, verbose_name=_("Default"))
-    geo_ref_address = models.ForeignKey(
-        "logistics.GeorefAddress",
-        on_delete=models.CASCADE,
-        blank=True,
-        null=True,
-        verbose_name=_("GeorefAddress"),
-    )  # TODO: will be migrated to new "# GEOREF" fields (georef_point) and then deprecated/removed (doing)
     history = HistoricalRecords()
     picture = models.FileField(upload_to="address_pictures/", blank=True, null=True)
     google_maps_url = models.CharField(max_length=2048, null=True, blank=True)
