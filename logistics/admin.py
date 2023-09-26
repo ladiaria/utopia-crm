@@ -41,11 +41,6 @@ class VacationAdmin(admin.ModelAdmin):
     pass
 
 
-@admin.register(GeorefAddress)
-class GeorefAddressAdmin(admin.ModelAdmin):
-    pass
-
-
 @admin.register(RouteChange)
 class RouteChangeAdmin(admin.ModelAdmin):
     raw_id_fields = ['contact']
@@ -70,5 +65,3 @@ class CityAdmin(admin.ModelAdmin):
 @admin.register(Message)
 class MessageAdmin(admin.ModelAdmin):
     pass
-
-

@@ -193,7 +193,6 @@ class SubscriptionAdmin(SimpleHistoryAdmin):
 
 
 class AddressInline(admin.StackedInline):
-    raw_id_fields = "geo_ref_address"
     model = Address
     extra = 0
 
@@ -307,7 +306,7 @@ class PlanAdmin(admin.ModelAdmin):
 
 @admin.register(Address)
 class AddressAdmin(SimpleHistoryAdmin, LeafletGeoAdmin):
-    raw_id_fields = ("contact", "geo_ref_address")
+    raw_id_fields = ("contact", )
 
 
 @admin.register(Campaign)

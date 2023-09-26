@@ -691,13 +691,6 @@ class Address(models.Model):
     address_type = models.CharField(max_length=50, choices=ADDRESS_TYPE_CHOICES, verbose_name=_("Address type"))
     notes = models.TextField(blank=True, null=True, verbose_name=_("Notes"))
     default = models.BooleanField(default=False, verbose_name=_("Default"))
-    geo_ref_address = models.ForeignKey(
-        "logistics.GeorefAddress",
-        on_delete=models.CASCADE,
-        blank=True,
-        null=True,
-        verbose_name=_("GeorefAddress"),
-    )  # TODO: will be migrated to new "# GEOREF" fields (georef_point) and then deprecated/removed (doing)
     history = HistoricalRecords()
     picture = models.FileField(upload_to="address_pictures/", blank=True, null=True)
     google_maps_url = models.CharField(max_length=2048, null=True, blank=True)
