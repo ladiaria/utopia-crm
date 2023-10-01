@@ -2014,7 +2014,7 @@ class DoNotCallNumber(models.Model):
 class EmailReplacement(models.Model):
     domain = models.CharField(max_length=252, unique=True)
     replacement = models.CharField(max_length=252)
-    status = models.CharField(max_length=15, choices=EMAIL_REPLACEMENT_STATUS_CHOICES, default="requested")
+    status = models.CharField(max_length=15, choices=EMAIL_REPLACEMENT_STATUS_CHOICES, default="suggested")
 
     @staticmethod
     def approved():

@@ -10,9 +10,19 @@ from django.utils.translation import gettext as _
 from core.models import EmailReplacement
 
 
-def email_replacement_add(domain, replacement):
-    obj, created = EmailReplacement.objects.get_or_create(domain=domain, replacement=replacement)
-    if created:
+def replacement_request_add(domain, replacement):
+    notify = False
+    try:
+        obj = EmailReplacement.objects.get(domain=domain, replacement=replacement)
+    except EmailReplacement.DoesNotExist:
+        EmailReplacement.objects.create(domain=domain, replacement=replacement, status="requested")
+        notify = True
+    else:
+        if obj.status == "suggested":
+            obj.status = "requested"
+            obj.save()
+            notify = True
+    if notify:
         # TODO: include 3 links in the email to approve/reject (new views to make) and another to the object_list
         mail_managers(
             _("A new email replacement request is pending approval"), "%s ==> %s" % (domain, replacement), True

@@ -5,7 +5,7 @@ from django import forms
 from django.core.mail import mail_managers
 from django.utils.translation import gettext as _
 
-from util.email_typosquash import clean_email as email_typosquash_clean, email_replacement_add
+from util.email_typosquash import clean_email as email_typosquash_clean, replacement_request_add
 
 from .models import Contact, Subscription, Address, EmailBounceActionLog
 
@@ -67,7 +67,7 @@ class EmailValidationForm(forms.Form):
         elif email:
             splitted = split_email(email)
             if suggestion:
-                email_replacement_add(split_email(cleaned_data.get("email_replaced"))["domain"], splitted["domain"])
+                replacement_request_add(split_email(cleaned_data.get("email_replaced"))["domain"], splitted["domain"])
                 return email
             elif not replacement:
 

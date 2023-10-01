@@ -191,7 +191,10 @@ DISCOUNT_PRODUCT_MODE_CHOICES = (
 )
 
 EMAIL_REPLACEMENT_STATUS_CHOICES = (
-    ("requested", _("Requested")), ("approved", _("Approved")), ("rejected", _("Rejected"))
+    ("suggested", _("Suggested")),
+    ("requested", _("Requested")),
+    ("approved", _("Approved")),
+    ("rejected", _("Rejected")),
 )
 
 EMAIL_BOUNCE_ACTION_INVALID = 1
