@@ -403,7 +403,7 @@ class EmailReplacementAdmin(admin.ModelAdmin):
 
 
 class ReadOnlyModelAdmin(admin.ModelAdmin):
-    """ A read-only modeladmin for this model, no action can be performed, only see the object list """
+    """ A read-only modeladmin, no action can be performed, only see the object list """
     list_display_links = None
     actions = None
 

@@ -195,10 +195,7 @@ class Product(models.Model):
     class Meta:
         verbose_name = _("product")
         verbose_name_plural = _("products")
-        ordering = (
-            "-type",
-            "id",
-        )
+        ordering = ("-type", "id")
 
 
 class EmailBounceActionLog(models.Model):
@@ -220,6 +217,7 @@ class EmailBounceActionLog(models.Model):
         )
 
     class Meta:
+        unique_together = ("created", "contact", "email", "action")
         ordering = ("-created", "email")
 
 
