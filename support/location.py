@@ -134,7 +134,7 @@ def agregar_direccion(request, contact_id):
                 address.save()
                 messages.info(request, "Dirección guardada con éxito, buscando otras alternativas...")
                 return HttpResponseRedirect(reverse("normalizar_direccion", args=[contact_id, address.id]) + stayhere)
-        direccion, id_calle, id_localidad, id_portal = request.POST.get('sugerencias').split("-")
+        direccion, id_calle, id_localidad, id_portal = request.POST.get('sugerencias').split("/")
         j = seleccionar_sugerencia(direccion, id_calle, id_localidad, id_portal)
         form = SugerenciaGeorefForm(
             initial={
