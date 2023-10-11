@@ -1359,6 +1359,15 @@ class Subscription(models.Model):
         """
         return self.products.filter(type="S", weekday=5).exists()
 
+    def has_all_days(self):
+        return (
+            self.has_monday() and
+            self.has_tuesday() and
+            self.has_wednesday() and
+            self.has_thursday() and
+            self.has_friday()
+        )
+
     def has_weekend(self):
         """
         Returns true if the subscription has a Weekend product.
