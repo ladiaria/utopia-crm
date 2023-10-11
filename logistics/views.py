@@ -532,6 +532,10 @@ def print_labels(request, page="Roll", list_type="", route_list="", product_id=N
                 label.name = sp.label_contact.name.upper()
             else:
                 label.name = sp.subscription.contact.name.upper()
+
+            if not sp.subscription.has_all_days():
+                label.partial = True
+
             label.address = (sp.address.address_1 or "") + "\n" + (sp.address.address_2 or "")
             label.route = sp.route.number
             label.route_order = sp.order

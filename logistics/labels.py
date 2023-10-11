@@ -163,6 +163,7 @@ class LogisticsLabel(Label):
         self.message_for_distributor = ''
         self.special_instructions = False
         self.extra_field = False
+        self.partial = False
 
         self.octavio = (self.height - self.topm - self.bottomm) / 8
 
@@ -220,6 +221,8 @@ class LogisticsLabel(Label):
             icons += 'G'
         if self.extra_field:
             icons += 'F'
+        if self.partial:
+            icons += "H"
         p5.putLine(icons, font='Ldcode')
 
         p0.draw(debug=debug, stretch=True)
