@@ -13,7 +13,7 @@ from core.models import EmailReplacement
 def replacement_request_add(domain, replacement):
     notify = False
     try:
-        obj = EmailReplacement.objects.get(domain=domain, replacement=replacement)
+        obj = EmailReplacement.objects.get(domain=domain)
     except EmailReplacement.DoesNotExist:
         EmailReplacement.objects.create(domain=domain, replacement=replacement, status="requested")
         notify = True
