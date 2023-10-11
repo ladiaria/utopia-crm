@@ -1,0 +1,31 @@
+{% extends 'adminlte/base.html' %}
+{% load  i18n %}
+
+{% block title %}
+{% trans "Print labels for tomorrow" %}
+{% endblock %}
+
+{% block no_heading %}
+<h1>{% trans 'Logistics' %}</h1>
+<p>{% trans 'Print labels for tomorrow' %}</p>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h3 class="card-title">{% trans 'Select options' %}</h3>
+  </div>
+  <div class="card-body">
+    <form action="" method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      <div class="form-group">
+        <label for="id_mark_contacts">{% trans "Optional" %}: {% trans 'Upload CSV with contacts to mark. Only one ID per line, no headers.' %}</label>
+        <input id="id_mark_contacts" type="file" name="mark_contacts" class="form-control"/>
+      </div>
+      <div class="form-group text-right">
+        <input type="submit" value="{% trans 'Generate PDF with labels' %}" class="btn btn-primary btn-gradient"/>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
