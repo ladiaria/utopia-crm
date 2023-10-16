@@ -10,10 +10,10 @@ from django.utils.translation import gettext as _
 from core.models import EmailReplacement
 
 
-def replacement_request_add(domain, replacement):
+def replacement_request_add(domain, replacement, target_obj=None):
     notify = False
     try:
-        obj = EmailReplacement.objects.get(domain=domain, replacement=replacement)
+        obj = EmailReplacement.objects.get(domain=domain)
     except EmailReplacement.DoesNotExist:
         EmailReplacement.objects.create(domain=domain, replacement=replacement, status="requested")
         notify = True
@@ -24,9 +24,10 @@ def replacement_request_add(domain, replacement):
             notify = True
     if notify:
         # TODO: include 3 links in the email to approve/reject (new views to make) and another to the object_list
-        mail_managers(
-            _("A new email replacement request is pending approval"), "%s ==> %s" % (domain, replacement), True
-        )
+        email_body = "%s ==> %s" % (domain, replacement)
+        if target_obj:
+            email_body += "\nfor %s: %s (id=%s)" % (type(target_obj), target_obj, target_obj.pk or "new_instance")
+        mail_managers(_("A new email replacement request is pending approval"), email_body, True)
 
 
 def clean_email(email):

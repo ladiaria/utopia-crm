@@ -67,7 +67,9 @@ class EmailValidationForm(forms.Form):
         elif email:
             splitted = split_email(email)
             if suggestion:
-                replacement_request_add(split_email(cleaned_data.get("email_replaced"))["domain"], splitted["domain"])
+                replacement_request_add(
+                    split_email(cleaned_data.get("email_replaced"))["domain"], splitted["domain"], self.instance
+                )
                 return email
             elif not replacement:
 
