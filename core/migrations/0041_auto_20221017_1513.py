@@ -129,7 +129,7 @@ class Migration(migrations.Migration):
                 ('unsubscription_requested', models.BooleanField(default=False, verbose_name='Requested unsubscription')),
                 ('unsubscription_addendum', models.TextField(blank=True, null=True, verbose_name='Unsubscription addendum')),
                 ('frequency', models.PositiveSmallIntegerField(choices=[(1, 'Monthly'), (3, 'Quarterly'), (6, 'Biannual'), (12, 'Annual')], default=1)),
-                ('payment_type', models.CharField(blank=True, max_length=2, null=True, verbose_name='Payment type')),
+                ('payment_type', models.CharField(blank=True, choices=[('O', 'Other'), ('D', 'Debit card'), ('S', 'Cash payment')], max_length=2, null=True, verbose_name='Payment type')),
                 ('payment_certificate', models.TextField(blank=True, max_length=100, null=True)),
                 ('card_id', models.CharField(blank=True, max_length=32, null=True)),
                 ('customer_id', models.CharField(blank=True, max_length=32, null=True)),

@@ -22,16 +22,6 @@ class Migration(migrations.Migration):
             field=models.PositiveIntegerField(blank=True, db_index=True, null=True),
         ),
         migrations.AlterField(
-            model_name='subscription',
-            name='payment_type',
-            field=models.CharField(blank=True, choices=[(b'O', b'Other'), (b'D', b'Debit card'), (b'S', b'Cash payment')], max_length=1, null=True, verbose_name='Payment type'),
-        ),
-        migrations.AlterField(
-            model_name='subscription',
-            name='unsubscription_reason',
-            field=models.PositiveSmallIntegerField(blank=True, choices=[(1, b'Economical reasons'), (2, b'Did not like the product'), (3, b'Problem with payment type'), (4, b'Did not receive the product')], null=True, verbose_name='Unsubscription reason'),
-        ),
-        migrations.AlterField(
             model_name='subtype',
             name='old_pk',
             field=models.PositiveIntegerField(blank=True, db_index=True, null=True),

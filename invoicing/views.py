@@ -109,7 +109,7 @@ def bill_subscription(subscription_id, billing_date=None, dpp=10, check_route=Fa
             )
         )
 
-    if billing_data and getattr(settings, "REQUIRE_ROUTE_FOR_BILLING", False):
+    if billing_data and settings.REQUIRE_ROUTE_FOR_BILLING:
         if billing_data["route"] is None:
             raise Exception(
                 "Subscription {} for contact {} requires a route to be billed.".format(
@@ -117,7 +117,7 @@ def bill_subscription(subscription_id, billing_date=None, dpp=10, check_route=Fa
                 )
             )
 
-        elif billing_data["route"] in getattr(settings, "EXCLUDE_ROUTES_FROM_BILLING_LIST", []):
+        elif billing_data["route"] in settings.EXCLUDE_ROUTES_FROM_BILLING_LIST:
             raise Exception(
                 "Subscription {} for contact {} can't be billed since it's on route {}.".format(
                     subscription.id, subscription.contact.id, billing_data["route"]
@@ -269,8 +269,9 @@ def bill_subscription(subscription_id, billing_date=None, dpp=10, check_route=Fa
     # After adding all of the invoiceitems, we need to check if the subscription has an envelope. In future reviews
     # this should be deprecated and envelopes should be its own product, because here you'd end up adding envelopes
     # to digital products potentially. Fancy digital envelopes huh?
-    if SubscriptionProduct.objects.filter(subscription=subscription, has_envelope=1).exists() and getattr(
-        settings, 'ENVELOPE_PRICE', None
+    if (
+        hasattr(settings, 'ENVELOPE_PRICE')
+        and SubscriptionProduct.objects.filter(subscription=subscription, has_envelope=1).exists()
     ):
         envelope_price = settings.ENVELOPE_PRICE
         # Get the amount of days per week the subscription gets the paper
@@ -515,7 +516,6 @@ def download_invoice(request, invoice_id):
     width = 80 * mm
     height = 110 * mm if getattr(settings, 'USE_SQUASHED_SUBSCRIPTION_INVOICEITEMS', False) else 140 * mm
     c = Canvas(response, pagesize=(width, height))
-    logo = getattr(settings, 'INVOICE_LOGO')
     table_style = TableStyle(
         [
             ('FONTSIZE', (0, 0), (-1, -1), 8),
@@ -524,7 +524,9 @@ def download_invoice(request, invoice_id):
     )
     for page in range(1, 3):
         c.setFont("Roboto", 12)
-        c.drawImage(logo, 17 * mm, height - 38 * mm, width=40 * mm, preserveAspectRatio=True, mask='auto')
+        c.drawImage(
+            settings.INVOICE_LOGO, 17 * mm, height - 38 * mm, width=40 * mm, preserveAspectRatio=True, mask='auto'
+        )
         c.drawString(10 * mm, height - 35 * mm, _('Issue date: {}'.format(invoice.creation_date.strftime("%d/%m/%Y"))))
         c.drawString(10 * mm, height - 40 * mm, _('Due date: {}'.format(invoice.expiration_date.strftime("%d/%m/%Y"))))
         c.drawString(10 * mm, height - 50 * mm, '{}'.format(invoice.contact.name))

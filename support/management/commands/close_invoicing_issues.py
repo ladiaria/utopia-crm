@@ -12,11 +12,7 @@ DEFAULT_NOTE = _("Generated automatically on {}\n".format(date.today()))
 
 
 class Command(BaseCommand):
-    help = """Cierra incidencias de facturación de tipo gestión de cobranzas, automáticamente."""
-
-    # This is left blank if it's necessary to add some arguments
-    # def add_arguments(self, parser):
-    #    # parser.add_argument('payment_type', type=str)
+    help = """ Cierra incidencias de facturación de tipo gestión de cobranzas, automáticamente. """
 
     def handle(self, *args, **options):
         # TODO: Generate a queryset to look for debtors, or a method to check for it while iterating through all
@@ -24,10 +20,15 @@ class Command(BaseCommand):
         issues = Issue.objects.filter(category="I").exclude(
             status__slug__in=settings.ISSUE_STATUS_FINISHED_LIST
         )
-        if getattr(settings, 'ISSUE_STATUS_AUTO_CLOSE_SLUGS', None):
-            issues = issues.filter(status__slug__in=settings.ISSUE_STATUS_AUTO_CLOSE_SLUGS)
-        if getattr(settings, 'ISSUE_SUBCATEGORY_AUTO_CLOSE_SLUGS', None):
-            issues = issues.filter(status__slug__in=settings.ISSUE_SUBCATEGORY_AUTO_CLOSE_SLUGS)
+
+        issue_status_autoclose = getattr(settings, 'ISSUE_STATUS_AUTO_CLOSE_SLUGS', [])
+        if issue_status_autoclose:
+            issues = issues.filter(status__slug__in=issue_status_autoclose)
+
+        issue_subcat_autoclose = getattr(settings, 'ISSUE_SUBCATEGORY_AUTO_CLOSE_SLUGS', [])
+        if issue_subcat_autoclose:
+            issues = issues.filter(status__slug__in=issue_subcat_autoclose)
+
         print(_("Started process"))
         for issue in issues.iterator():
             try:

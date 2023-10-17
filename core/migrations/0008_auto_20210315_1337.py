@@ -11,15 +11,4 @@ class Migration(migrations.Migration):
         ('core', '0007_merge_20210311_1859'),
     ]
 
-    operations = [
-        migrations.AlterField(
-            model_name='subscription',
-            name='payment_type',
-            field=models.CharField(blank=True, max_length=1, null=True, verbose_name='Payment type'),
-        ),
-        migrations.AlterField(
-            model_name='subscription',
-            name='unsubscription_reason',
-            field=models.PositiveSmallIntegerField(blank=True, null=True, verbose_name='Unsubscription reason'),
-        ),
-    ]
+    operations = []

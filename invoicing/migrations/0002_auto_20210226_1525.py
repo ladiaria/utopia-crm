@@ -11,15 +11,4 @@ class Migration(migrations.Migration):
         ('invoicing', '0001_initial'),
     ]
 
-    operations = [
-        migrations.AlterField(
-            model_name='billing',
-            name='payment_type',
-            field=models.CharField(blank=True, max_length=1, null=True),
-        ),
-        migrations.AlterField(
-            model_name='invoice',
-            name='payment_type',
-            field=models.CharField(max_length=2, verbose_name='Payment type'),
-        ),
-    ]
+    operations = []

@@ -47,7 +47,7 @@ class Migration(migrations.Migration):
                 ('service_to', models.DateField()),
                 ('balance', models.DecimalField(blank=True, decimal_places=2, max_digits=10, null=True, verbose_name='Balance')),
                 ('amount', models.DecimalField(blank=True, decimal_places=2, max_digits=10, null=True, verbose_name='Amount')),
-                ('payment_type', models.CharField(max_length=2, verbose_name='Payment type')),
+                ('payment_type', models.CharField(max_length=2, choices=[("M", "Mastercard"), ("V", "Visa"), ("C", "Cash")], verbose_name='Payment type')),
                 ('debited', models.BooleanField(default=False, verbose_name='Debited')),
                 ('paid', models.BooleanField(default=False, verbose_name='Paid')),
                 ('payment_date', models.DateField(blank=True, null=True, verbose_name='Payment date')),
@@ -84,11 +84,6 @@ class Migration(migrations.Migration):
             model_name='billing',
             name='status',
             field=models.CharField(choices=[('P', 'Pending'), ('R', 'Starting'), ('S', 'Started'), ('A', 'Aborted'), ('C', 'Completed'), ('E', 'Completed with errors')], default='P', max_length=1),
-        ),
-        migrations.AlterField(
-            model_name='invoice',
-            name='pdf',
-            field=models.FileField(blank=True, editable=False, null=True, upload_to='facturas/%Y/%m/%d/'),
         ),
         migrations.AlterField(
             model_name='invoiceitem',
