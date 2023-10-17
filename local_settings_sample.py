@@ -44,8 +44,8 @@ SECRET_KEY = ""
 # Payment methods for invoicing
 INVOICE_PAYMENT_METHODS = (("M", "Mastercard"), ("V", "Visa"), ("C", "Cash"))
 
-# Set the payment types that you want to track on labels here. They must be set by type on a string.
-# LABEL_INVOICE_PAYMENT_TYPES = ["RI"]
+# Set the payment types that you want to track on labels in this list. (NOTE: this example matches "R" or "I")
+# LABEL_INVOICE_PAYMENT_TYPES = "RI"
 
 # Show only one item per subscription in subscription invoices, instead of one item per invoiceitem. (default=False)
 # USE_SQUASHED_SUBSCRIPTION_INVOICEITEMS = False
