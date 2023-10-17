@@ -15,16 +15,11 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='subscription',
             name='unsubscription_channel',
-            field=models.PositiveSmallIntegerField(blank=True, choices=[(1, b'E-Mail'), (2, b'Phone')], null=True, verbose_name='Unsubscription reason'),
+            field=models.PositiveSmallIntegerField(blank=True, choices=[(1, b'E-Mail'), (2, b'Phone')], null=True, verbose_name='Unsubscription channel'),
         ),
         migrations.AddField(
             model_name='subscription',
             name='unsubscription_type',
             field=models.PositiveSmallIntegerField(blank=True, choices=[(1, 'Asked for unsubscription'), (2, 'Did not ask for unsubscription')], null=True, verbose_name='Unsubscription type'),
-        ),
-        migrations.AlterField(
-            model_name='subscription',
-            name='unsubscription_reason',
-            field=models.PositiveSmallIntegerField(blank=True, choices=[(1, b'Does not like content'), (2, b'Economical reasons'), (3, b'Other')], null=True, verbose_name='Unsubscription reason'),
         ),
     ]

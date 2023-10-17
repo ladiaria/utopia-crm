@@ -225,7 +225,7 @@ class NewSubscriptionForm(EmailValidationForm):
         if email and Contact.objects.filter(email=email).exclude(id=contact_id).exists():
             raise forms.ValidationError(_("This email already exists in a different contact"))
         id_document = cleaned_data['id_document']
-        if Contact.objects.filter(id_document=id_document).exclude(id=contact_id).exists():
+        if id_document and Contact.objects.filter(id_document=id_document).exclude(id=contact_id).exists():
             raise forms.ValidationError(_("This id document already exists in a different contact"))
 
 

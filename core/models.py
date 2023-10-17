@@ -1113,8 +1113,8 @@ class Subscription(models.Model):
                 city = sp.address.city
             elif sp.product.digital and self.contact.email:
                 address = self.contact.email
-                state = settings.DEFAULT_STATE
-                city = settings.DEFAULT_CITY
+                state = getattr(settings, "DEFAULT_STATE", None)
+                city = getattr(settings, "DEFAULT_CITY", None)
             else:
                 address, state, city = None, None, None
             if address:

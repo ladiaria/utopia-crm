@@ -1,4 +1,3 @@
-# coding: utf-8
 # Django settings for utopia-crm project.
 import os
 
@@ -8,21 +7,12 @@ from django.utils.translation import gettext_lazy as _
 LOGIN_URL = "/user/login/"
 LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/"
-DEBUG = False
-DEBUG_INVOICING = True  # prints debug data for invoicing in uwsgi log
 
-SERVER_EMAIL = "email@example.com"
-ADMINS = (("Utopia Admins", SERVER_EMAIL),)
-MANAGERS = ADMINS
-# SMTP email host
-EMAIL_HOST = "smtp.example.com"
-# supervision email.
-SUPERVISION_EMAIL = "example@example.com"
-DEFAULT_EMAIL_FROM = SUPERVISION_EMAIL
+DEBUG_INVOICING = False  # when enabled prints debug data for invoicing in uwsgi log
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["localhost"]
 
-# Build paths inside the project like this: os.path.join(BASE_DIR, ...)
+# Useful to build absolute paths inside the project, like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # Local time zone for this installation. All choices can be found here:
@@ -38,7 +28,6 @@ LANGUAGES = [
     ("en", _("English")),
     ("es", _("Spanish")),
 ]
-USE_I18N = True
 
 LOCALE_PATHS = (os.path.join(BASE_DIR, "locale"),)
 
@@ -82,7 +71,7 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = "urls"
 
-INSTALLED_APPS = (
+INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.admindocs",
     "django.contrib.auth",
@@ -92,6 +81,7 @@ INSTALLED_APPS = (
     "django.contrib.staticfiles",
     "django.contrib.gis",
     # Extra Django apps
+    "django_extensions",
     "taggit",
     "corsheaders",
     "rest_framework",
@@ -109,8 +99,7 @@ INSTALLED_APPS = (
     "logistics",
     "community",
     "invoicing",
-)
-
+]
 
 # Password storage and validators
 PASSWORD_HASHERS = [
@@ -135,7 +124,10 @@ DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 CSS_URL = STATIC_URL + "css/"
 IMG_URL = STATIC_URL + "img/"
 
-LOGO = "static/img/logo-utopia.png"  # Image logo under static directory
+# logo for the admin site and dashboard pages
+LOGO = "static/img/logo-utopia.png"
+# logo for the invoices.
+INVOICE_LOGO = LOGO
 
 # Background tasks settings
 MAX_ATTEMPTS = 1
@@ -148,13 +140,12 @@ GRAPH_MODELS = {
     "group_models": True,
 }
 
-# Use this to pre define your states on the Address model. If you don't want to use a choice for the states,
-# set USE_STATES_CHOICE on False
+# Predefined states in Address model. If you don't want to use a choice for the states, override this to False.
 USE_STATES_CHOICE = True
+# The values to use if the previous setting is True
 STATES = (("State 1", "State 1"), ("State 2", "State 2"))
 
-# Here you can add a series of reasons to categorize why a contact was unsubscribed. The index must be a positive
-# number
+# Reasons to categorize why a contact was unsubscribed. The index must be a positive number
 UNSUBSCRIPTION_REASON_CHOICES = (
     (1, "Does not like content"),
     (2, "Economical reasons"),
@@ -167,7 +158,7 @@ UNSUBSCRIPTION_CHANNEL_CHOICES = (
     (2, "Phone"),
 )
 
-# Add your payment methods for subscriptions here. This is required for the program to work.
+# Payment methods for subscriptions.
 SUBSCRIPTION_PAYMENT_METHODS = (
     ("O", "Other"),
     ("D", "Debit card"),
@@ -176,6 +167,7 @@ SUBSCRIPTION_PAYMENT_METHODS = (
 
 # Invoicing.Invoice model storage path relative to "MEDIA"
 INVOICES_PATH = "invoices"
+INVOICE_PAYMENT_METHODS = (("M", "Mastercard"), ("V", "Visa"), ("C", "Cash"))
 
 # How many days into the future are we going to bill contacts
 BILLING_EXTRA_DAYS = 2
@@ -184,7 +176,16 @@ BILLING_EXTRA_DAYS = 2
 ISSUE_STATUS_SOLVED = "solved"
 ISSUE_STATUS_FINISHED_LIST = [ISSUE_STATUS_SOLVED, "not-solved"]
 
-DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
+# Override to True if route for billing is required.
+# Useful when you explicitly require to send the invoices via logistics.
+REQUIRE_ROUTE_FOR_BILLING = False
+
+# Route numbers to ignore the billing of subscriptions which main route is included in this list.
+EXCLUDE_ROUTES_FROM_BILLING_LIST = []
+
+# Route numbers to allow sellers to have contacts with products having these particular routes.
+# We usually use the same ones than we use at EXCLUDE_ROUTES_FROM_BILLING_LIST.
+SPECIAL_ROUTES_FOR_SELLERS_LIST = []
 
 # Import local settings if they exist
 # TODO: improve hardcoded load of community settings (which are this community settings?)

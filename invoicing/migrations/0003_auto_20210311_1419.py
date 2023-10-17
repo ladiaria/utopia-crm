@@ -16,9 +16,4 @@ class Migration(migrations.Migration):
             model_name='invoice',
             name='old_pk',
         ),
-        migrations.AlterField(
-            model_name='invoice',
-            name='pdf',
-            field=models.FileField(blank=True, editable=False, null=True, upload_to=b'path/to/folder/in/media/'),
-        ),
     ]

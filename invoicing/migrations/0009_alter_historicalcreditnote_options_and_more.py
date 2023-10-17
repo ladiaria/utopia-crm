@@ -19,11 +19,6 @@ class Migration(migrations.Migration):
             options={'get_latest_by': ('history_date', 'history_id'), 'ordering': ('-history_date', '-history_id'), 'verbose_name': 'historical invoice', 'verbose_name_plural': 'historical invoices'},
         ),
         migrations.AlterField(
-            model_name='billing',
-            name='payment_type',
-            field=models.CharField(blank=True, choices=[], max_length=2, null=True),
-        ),
-        migrations.AlterField(
             model_name='historicalcreditnote',
             name='history_date',
             field=models.DateTimeField(db_index=True),
@@ -32,20 +27,5 @@ class Migration(migrations.Migration):
             model_name='historicalinvoice',
             name='history_date',
             field=models.DateTimeField(db_index=True),
-        ),
-        migrations.AlterField(
-            model_name='historicalinvoice',
-            name='payment_type',
-            field=models.CharField(choices=[('M', 'Mastercard'), ('V', 'Visa'), ('C', 'Cash')], max_length=2, verbose_name='Payment type'),
-        ),
-        migrations.AlterField(
-            model_name='invoice',
-            name='payment_type',
-            field=models.CharField(choices=[('M', 'Mastercard'), ('V', 'Visa'), ('C', 'Cash')], max_length=2, verbose_name='Payment type'),
-        ),
-        migrations.AlterField(
-            model_name='invoice',
-            name='pdf',
-            field=models.FileField(blank=True, editable=False, null=True, upload_to='path/to/folder/in/media/'),
         ),
     ]

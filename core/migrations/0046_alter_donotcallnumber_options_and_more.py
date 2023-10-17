@@ -129,11 +129,6 @@ class Migration(migrations.Migration):
             field=models.DateTimeField(db_index=True),
         ),
         migrations.AlterField(
-            model_name='historicalsubscription',
-            name='payment_type',
-            field=models.CharField(blank=True, choices=[], max_length=2, null=True, verbose_name='Payment type'),
-        ),
-        migrations.AlterField(
             model_name='pricerule',
             name='choose_one_product',
             field=models.ForeignKey(blank=True, limit_choices_to={'offerable': True, 'type': 'S'}, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='chosen_product', to='core.product'),
@@ -152,11 +147,6 @@ class Migration(migrations.Migration):
             model_name='pricerule',
             name='resulting_product',
             field=models.ForeignKey(blank=True, limit_choices_to={'offerable': False}, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='resulting_product', to='core.product'),
-        ),
-        migrations.AlterField(
-            model_name='subscription',
-            name='payment_type',
-            field=models.CharField(blank=True, choices=[], max_length=2, null=True, verbose_name='Payment type'),
         ),
         migrations.AlterField(
             model_name='subscriptionnewsletter',

@@ -14,11 +14,6 @@ class Migration(migrations.Migration):
     operations = [
         migrations.AlterField(
             model_name='subscription',
-            name='payment_type',
-            field=models.CharField(blank=True, max_length=2, null=True, verbose_name='Payment type'),
-        ),
-        migrations.AlterField(
-            model_name='subscription',
             name='send_bill_copy_by_email',
             field=models.BooleanField(default=True, verbose_name='Send bill copy by email'),
         ),

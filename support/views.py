@@ -64,6 +64,7 @@ from .filters import (
 from .forms import (
     NewPauseScheduledTaskForm,
     PartialPauseTaskForm,
+    AdditionalProductForm,
     NewAddressChangeScheduledTaskForm,
     NewPromoForm,
     NewSubscriptionForm,
@@ -253,20 +254,13 @@ def seller_console_list_campaigns(request):
         return HttpResponseRedirect(reverse("main_menu"))
 
     special_routes = {}
-    if getattr(settings, "SPECIAL_ROUTES_FOR_SELLERS_LIST", None):
-        route_ids = settings.SPECIAL_ROUTES_FOR_SELLERS_LIST
-        for route_id in route_ids:
-            route = Route.objects.get(pk=route_id)
-            special_routes[route_id] = (
-                route.name,
-                SubscriptionProduct.objects.filter(
-                    seller=seller, route_id=route_id, subscription__active=True
-                ).count(),
-            )
-    else:
-        special_routes = None
-    if special_routes and all(value[1] == 0 for value in list(special_routes.values())):
-        special_routes = None
+    for route_id in settings.SPECIAL_ROUTES_FOR_SELLERS_LIST:
+        route = Route.objects.get(pk=route_id)
+        counter = SubscriptionProduct.objects.filter(
+            seller=seller, route_id=route_id, subscription__active=True
+        ).count()
+        if counter:
+            special_routes[route_id] = (route.name, counter)
 
     # We'll make these lists so we can append the sub count to each campaign
     campaigns_with_not_contacted, campaigns_with_activities_to_do = [], []
@@ -800,15 +794,6 @@ def new_subscription(request, contact_id):
                 contact.email = email
             contact.save()
 
-            gigantes_name = form.cleaned_data["gigantes_name"]
-            gigantes_id = form.cleaned_data["gigantes_id"]
-            if gigantes_id:
-                gigantes_contact = Contact.objects.get(pk=gigantes_id)
-            elif gigantes_name:
-                gigantes_contact = Contact.objects.create(name=gigantes_name)
-            else:
-                gigantes_contact = None
-
             if upgrade_subscription:
                 # We will end the old subscription here.
                 form_subscription.end_date = form.cleaned_data["start_date"]
@@ -867,7 +852,10 @@ def new_subscription(request, contact_id):
                     product = Product.objects.get(pk=product_id)
                     new_products_list.append(product)
                     address_id = request.POST.get("address-{}".format(product_id))
-                    address = Address.objects.get(pk=address_id)
+                    try:
+                        address = Address.objects.get(pk=address_id)
+                    except Address.DoesNotExist:
+                        address = None
                     copies = request.POST.get("copies-{}".format(product_id))
                     message = request.POST.get("message-{}".format(product_id))
                     instructions = request.POST.get("instructions-{}".format(product_id))
@@ -900,9 +888,6 @@ def new_subscription(request, contact_id):
                             instructions=instructions,
                             seller_id=seller_id,
                         )
-                        if product.slug == "gigantes" and gigantes_contact:
-                            sp.label_contact = gigantes_contact
-                            sp.save()
                     elif (
                         request.GET.get("edit_subscription", None)
                         and SubscriptionProduct.objects.filter(subscription=subscription, product=product).exists()
@@ -2516,8 +2501,7 @@ def product_change(request, subscription_id):
 @login_required
 def book_additional_product(request, subscription_id):
     old_subscription = get_object_or_404(Subscription, pk=subscription_id)
-    if request.POST.get("url", None):
-        from_seller_console = True
+    from_seller_console = "url" in request.GET
     if old_subscription.frequency != 1:
         messages.error(request, "La periodicidad de la suscripción debe ser mensual")
         return HttpResponseRedirect(reverse("contact_detail", args=[old_subscription.contact_id]))

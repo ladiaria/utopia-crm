@@ -5,9 +5,6 @@
 [![Issues][issues-shield]][issues-url]
 [![BSD License][license-shield]][license-url]
 
-
-
-
 <!-- PROJECT LOGO -->
 <br />
 <p align="center">
@@ -18,20 +15,9 @@
   <h3 align="center">Utopía CRM</h3>
 
   <p align="center">
-    Open Customer Relationship Manager
-    <br />
-    <a href="https://github.com/ladiaria/utopia-crm"><strong>Explore the docs »</strong></a>
-    <br />
-    <br />
-    <a href="https://github.com/ladiaria/utopia-crm">View Demo</a>
-    ·
-    <a href="https://github.com/ladiaria/utopia-crm/issues">Report Bug</a>
-    ·
-    <a href="https://github.com/ladiaria/utopia-crm/issues">Request Feature</a>
+    Open Source Customer Relationship Manager (CRM) written in Python using Django framework.
   </p>
 </p>
-
-
 
 <!-- TABLE OF CONTENTS -->
 <details open="open">
@@ -46,7 +32,6 @@
     <li>
       <a href="#getting-started">Getting Started</a>
       <ul>
-        <li><a href="#prerequisites">Prerequisites</a></li>
         <li><a href="#installation">Installation</a></li>
       </ul>
     </li>
@@ -59,61 +44,33 @@
   </ol>
 </details>
 
-
-
 <!-- ABOUT THE PROJECT -->
 ## About Utopia
 
 [![Utopía is an open source platform for community based newsrooms to manage their subscriptions](utopia-screenshot.png)](https://utopia.ladiaria.com.uy)
 
+### Built With (latest supported versions)
 
-### Built With
-
-* [Python 2.7](https://www.python.org/)
-* [Django 1.11](https://www.djangoproject.com/)
-* [PostgreSQL](https://www.postgresql.org/)
+* [Python 3.11.5](https://www.python.org/)
+* [Django 4.1.4](https://www.djangoproject.com/)
+* [PostgreSQL 15.4](https://www.postgresql.org/)
 
 <!-- GETTING STARTED -->
 ## Getting Started
 
-To get a local copy up and running follow these simple steps.
-
-### Prerequisites
-
-There is a requirements.txt file with all the libraries you need to have installed:
-
-* ``pip install -r requirements.txt``
-
 ### Installation
 
-1. Clone the repo
-   ```sh
-   git clone git@github.com:ladiaria/utopia-crm.git
-   ```
-2. Follow our [INSTALL](INSTALL.md) instructions in this repository to install requirements, setup the database and modify configuration.
-
-3. Start the server by running
-   ```sh
-   python manage.py runserver
-   ```
-
-4. Go to the following URL in your browser
-
-  ```sh
-  http://127.0.0.1:8000/
-  ```
+Follow our [INSTALL](INSTALL.md) instructions in this repository to install requirements, setup the database, modify configuration and start the server and its web front-end.
 
 <!-- USAGE EXAMPLES -->
 ## Usage
 
 _For CRM's features, please refer to the [Documentation](docs/en/features.md)_
 
-
 <!-- ROADMAP -->
 ## Roadmap
 
 See the [open issues](https://github.com/ladiaria/utopia-crm/issues) for a list of proposed features (and known issues).
-
 
 <!-- CONTRIBUTING -->
 ## Contributing
@@ -139,7 +96,6 @@ Utopia is an Open Source project, and as such it is important to La Diaria that 
 
 Distributed under the 3-clause BSD License. See `LICENSE` for more information.
 
-
 <!-- CONTACT -->
 ## Contact
 
@@ -147,12 +103,10 @@ la diaria - [@ladiaria](https://twitter.com/ladiaria)
 
 Project Link: [https://github.com/ladiaria/utopia-crm](https://github.com/ladiaria/utopia-crm)
 
-
 <!-- ACKNOWLEDGEMENTS -->
 ## Acknowledgements
 
-Utopia was developed at [La Diaria](https://ladiaria.com.uy) and it has been opened in 2020 thanks to the support of [Google News Initiative](https://newsinitiative.withgoogle.com/).
-
+Utopia is developed at [la diaria](https://ladiaria.com.uy/) and it has been released open source in 2020 thanks to the support of [Google News Initiative](https://newsinitiative.withgoogle.com/).
 
 
 <!-- MARKDOWN LINKS & IMAGES -->

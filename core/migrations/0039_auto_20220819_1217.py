@@ -73,11 +73,6 @@ class Migration(migrations.Migration):
             field=models.PositiveSmallIntegerField(blank=True, choices=[(1, 'E-Mail'), (2, 'Phone')], null=True, verbose_name='Unsubscription channel'),
         ),
         migrations.AlterField(
-            model_name='subscription',
-            name='unsubscription_reason',
-            field=models.PositiveSmallIntegerField(blank=True, choices=[(1, 'Does not like content'), (2, 'Economical reasons'), (3, 'Other')], null=True, verbose_name='Unsubscription reason'),
-        ),
-        migrations.AlterField(
             model_name='variable',
             name='type',
             field=models.CharField(blank=True, choices=[('impresion', 'Impression'), ('impresion_fs', 'Imperssion Weekend')], max_length=255, verbose_name='type'),

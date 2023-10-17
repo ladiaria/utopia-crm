@@ -15,7 +15,8 @@ YESNO_CHOICES = (
 
 class ContactFilter(django_filters.FilterSet):
     filter_multiple = django_filters.CharFilter(method="by_phone_and_email")
-    state = django_filters.ChoiceFilter(choices=settings.STATES, method="by_state")
+    if settings.USE_STATES_CHOICE:
+        state = django_filters.ChoiceFilter(choices=settings.STATES, method="by_state")
     active_subscriptions = django_filters.ChoiceFilter(
         choices=YESNO_CHOICES, method="with_active_subscription"
     )

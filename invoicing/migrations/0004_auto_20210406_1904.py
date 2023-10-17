@@ -11,10 +11,4 @@ class Migration(migrations.Migration):
         ('invoicing', '0003_auto_20210311_1419'),
     ]
 
-    operations = [
-        migrations.AlterField(
-            model_name='invoice',
-            name='pdf',
-            field=models.FileField(blank=True, editable=False, null=True, upload_to=b'facturas/%Y/%m/%d/'),
-        ),
-    ]
+    operations = []
