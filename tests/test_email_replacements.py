@@ -1,4 +1,7 @@
 # coding=utf-8
+import warnings
+
+from django.conf import settings
 from django.test import TestCase
 
 from util.email_typosquash import clean_email
@@ -9,6 +12,10 @@ class TestEmailReplacements(TestCase):
     fixtures = ['email_replacements']
 
     def test1(self):
+
+        if not getattr(settings, "CORE_VALIDATE_EMAIL_CHECK_MX", True):
+            warnings.warn("CORE_VALIDATE_EMAIL_CHECK_MX is False, skipping.")
+            return
 
         # 1. no valid and no suggestions
         self.assertEqual(clean_email("address@gmalis.com"), {'valid': False, 'email': 'address@gmalis.com'})
