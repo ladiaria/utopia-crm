@@ -131,7 +131,7 @@ def bill_subscription(subscription_id, billing_date=None, dpp=10, check_route=Fa
     # First we're going to form all the invoiceitems from the processed products the subscription has.
     # This gives a dictionary with product_id and copies so we need to call the items of said dictionary
     percentage_discount_product = None
-    product_summary = subscription.product_summary()
+    product_summary = subscription.product_summary(with_pauses=True)
     all_list, discount_list, non_discount_list, advanced_discount_list = product_summary.items(), [], [], []
 
     # 1. partition the input by discount products / non discount products
