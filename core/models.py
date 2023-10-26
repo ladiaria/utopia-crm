@@ -1217,7 +1217,7 @@ class Subscription(models.Model):
 
         return invoiceitem_list
 
-    def product_summary(self):
+    def product_summary(self, with_pauses=False):
         """
         Takes each product for this subscription and returns a list with the copies for each.
         """
@@ -1225,6 +1225,8 @@ class Subscription(models.Model):
         from .utils import process_products
 
         subscription_products = SubscriptionProduct.objects.filter(subscription=self)
+        if with_pauses:
+            subscription_products = subscription_products.filter(active=True)
         dict_all_products = {}
         for sp in subscription_products:
             dict_all_products[str(sp.product.id)] = str(sp.copies)
@@ -1244,6 +1246,14 @@ class Subscription(models.Model):
         from .utils import calc_price_from_products
 
         return calc_price_from_products(self.product_summary(), self.frequency, debug_id)
+
+    def get_price_for_full_period_with_pauses(self, debug_id=""):
+        """
+        Same as the previous one, but uses the pauses. repeated some code just to use it directly on templates.
+        """
+        from .utils import calc_price_from_products
+
+        return calc_price_from_products(self.product_summary(with_pauses=True), self.frequency, debug_id)
 
     def period_start(self):
         if not self.next_billing:
@@ -1563,6 +1573,9 @@ class Subscription(models.Model):
             subscription = subscription.updated_from
             months_count += subscription.invoice_set.count() * subscription.frequency
         return months_count
+
+    def has_paused_products(self):
+        return self.subscriptionproduct_set.filter(active=False).exists()
 
     class Meta:
         verbose_name = _("subscription")
