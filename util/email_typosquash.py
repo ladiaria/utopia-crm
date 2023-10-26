@@ -46,7 +46,7 @@ def clean_email(email):
         whitelisted_domains = locate(whitelisted_domains)()
     whitelisted = domain in whitelisted_domains
 
-    valid = whitelisted or bool(validate_email(email, True))
+    valid = whitelisted or bool(validate_email(email, getattr(settings, "CORE_VALIDATE_EMAIL_CHECK_MX", True)))
     result = {"valid": valid, "email": email}
 
     if not whitelisted:
