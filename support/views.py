@@ -187,7 +187,7 @@ def import_contacts(request):
                             for tag in tag_list_in_campaign:
                                 c.tags.add(tag)
                     elif c.has_active_subscription():
-                        active_contacts.append(C.id)
+                        active_contacts.append(c.id)
                         if tag_list_active:
                             for tag in tag_list_active:
                                 c.tags.add(tag)
