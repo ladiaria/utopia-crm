@@ -197,6 +197,6 @@ SPECIAL_ROUTES_FOR_SELLERS_LIST = []
 # Import local settings if they exist
 # TODO: improve hardcoded load of community settings (which are this community settings?)
 try:
-    from local_settings import *
+    from local_settings import *  # noqa
 except ImportError:
     pass

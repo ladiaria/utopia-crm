@@ -27,6 +27,8 @@ class TestCoreContact(TestCase):
         contact = Contact.objects.all().last()
         self.assertTrue(isinstance(contact, Contact))  # Check if it is a contact
         self.assertEqual(contact.name, 'Contact 1')  # Check if its name is Contact 1
+        # a way to make this test fail by settings (may be useful to know if you get noticed when tests are failing)
+        self.assertFalse(getattr(settings, "TESTS_FIRST_TEST_SHOULD_FAIL", False))
 
     def test2_rename_contact_name(self):
         """
