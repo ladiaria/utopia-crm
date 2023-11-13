@@ -57,19 +57,6 @@ $( function() {
           <div class="row">
             <div class="col-6">
               <div class="form-group">
-                <label>Desactivar estos productos</label>
-                {% for subscriptionproduct in subscription.get_subscriptionproducts %}
-                  <div class="form-check">
-                    <input id="id-{{subscriptionproduct.id}}" class="form-check-input disable-product" type="checkbox" name="sp-{{subscriptionproduct.id}}">
-                    <label class="form-check-label" for="id-{{subscriptionproduct.id}}">{{subscriptionproduct.product.name}}</label>
-                  </div>
-                {% endfor %}
-              </div>
-            </div>
-          </div>
-          <div class="row">
-            <div class="col-6">
-              <div class="form-group">
                 <label for="id_end_date">{{form.end_date.label}}</label>
                 {{form.end_date}}
                 <span class="error invalid-feedback">{{form.end_date.errors}}</span>
@@ -77,12 +64,13 @@ $( function() {
             </div>
             <div class="col-6">
               <div class="form-group">
-                <label for="id_unsubscription_requested">{{form.unsubscription_requested.label}}</label>
-                <div class="form-check">
-                    {{form.unsubscription_requested}}
-                    <label class="form-check-label" for="id_unsubscription_requested">Baja a pedido del cliente</label>
-                </div>
-                <span class="error invalid-feedback">{{form.unsubscription_requested.errors}}</span>
+                <label>Desactivar estos productos</label>
+                {% for subscriptionproduct in subscription.get_subscriptionproducts %}
+                  <div class="form-check">
+                    <input id="id-{{subscriptionproduct.id}}" class="form-check-input disable-product" type="checkbox" name="sp-{{subscriptionproduct.id}}">
+                    <label class="form-check-label" for="id-{{subscriptionproduct.id}}">{{subscriptionproduct.product.name}}</label>
+                  </div>
+                {% endfor %}
               </div>
             </div>
           </div>

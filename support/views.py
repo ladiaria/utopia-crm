@@ -2841,28 +2841,37 @@ def unsubscription_statistics(request):
     unsubscriptions_filter = UnsubscribedSubscriptionsByEndDateFilter(request.GET, queryset=unsubscriptions_queryset)
 
     executed_unsubscriptions_requested = (
-        unsubscriptions_filter.qs.filter(end_date__lte=date.today(), unsubscription_requested=True)
+        unsubscriptions_filter.qs.filter(
+            end_date__lte=date.today()
+        ).exclude(unsubscription_reason=settings.UNSUBSCRIPTION_OVERDUE_REASON)
         .values("unsubscription_products__name")
         .annotate(total=Count("unsubscription_products"))
         .order_by("unsubscription_products__billing_priority", "unsubscription_products__name")
     )
 
     executed_unsubscriptions_not_requested = (
-        unsubscriptions_filter.qs.filter(end_date__lte=date.today(), unsubscription_requested=False)
+        unsubscriptions_filter.qs.filter(
+            end_date__lte=date.today(),
+            unsubscription_reason=settings.UNSUBSCRIPTION_OVERDUE_REASON
+        )
         .values("unsubscription_products__name")
         .annotate(total=Count("unsubscription_products"))
         .order_by("unsubscription_products__billing_priority", "unsubscription_products__name")
     )
 
     programmed_unsubscriptions_requested = (
-        unsubscriptions_filter.qs.filter(end_date__gt=date.today(), unsubscription_requested=True)
+        unsubscriptions_filter.qs.filter(
+            end_date__gt=date.today()
+        ).exclude(unsubscription_reason=settings.UNSUBSCRIPTION_OVERDUE_REASON)
         .values("unsubscription_products__name")
         .annotate(total=Count("unsubscription_products"))
         .order_by("unsubscription_products__billing_priority", "unsubscription_products__name")
     )
 
     programmed_unsubscriptions_not_requested = (
-        unsubscriptions_filter.qs.filter(end_date__gt=date.today(), unsubscription_requested=False)
+        unsubscriptions_filter.qs.filter(
+            end_date__gt=date.today(), unsubscription_reason=settings.UNSUBSCRIPTION_OVERDUE_REASON
+        )
         .values("unsubscription_products__name")
         .annotate(total=Count("unsubscription_products"))
         .order_by("unsubscription_products__billing_priority", "unsubscription_products__name")
@@ -2896,9 +2905,9 @@ def unsubscription_statistics(request):
         # Probably very bad solution to convert choices to displays, someone help me with a better way!
         item["unsubscription_reason"] = choices.get(item["unsubscription_reason"], None)
 
-    total_requested_unsubscriptions_count = unsubscriptions_filter.qs.filter(unsubscription_requested=True).count()
+    total_requested_unsubscriptions_count = unsubscriptions_filter.qs.exclude(unsubscription_reason=settings.UNSUBSCRIPTION_OVERDUE_REASON).count()
     total_not_requested_unsubscriptions_count = unsubscriptions_filter.qs.filter(
-        unsubscription_requested=False
+        unsubscription_reason=settings.UNSUBSCRIPTION_OVERDUE_REASON
     ).count()
     total_unsubscriptions_count = unsubscriptions_filter.qs.count()
 
