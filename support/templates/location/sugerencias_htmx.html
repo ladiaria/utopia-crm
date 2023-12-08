@@ -7,7 +7,7 @@
         class="form-control" placeholder="Dirección validada">
         <option value="-1">{{ sugerencias|length }} sugerencias...</option>
         {% for sugerencia in sugerencias  %}
-        <option value="{{sugerencia.direccion}}/{{sugerencia.idCalle}}/{{sugerencia.idLocalidad}}/{{sugerencia.portalNumber}}"
+        <option value="{{sugerencia.direccion}}|{{sugerencia.idCalle}}|{{sugerencia.idLocalidad}}|{{sugerencia.portalNumber}}"
             class="w-full truncate">{{sugerencia.resumen}}</option>
         {% endfor %}
     </select>

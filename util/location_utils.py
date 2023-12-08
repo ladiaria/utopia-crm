@@ -3,6 +3,7 @@ from django.conf import settings
 import re
 import pandas as pd
 from django.contrib.gis.geos import Point
+from django.utils import timezone
 
 import logging
 
@@ -14,7 +15,7 @@ def buscar_localidades(state):
     Devuelve localidades a partir del nombre del departamento
     """
     url = settings.SERVICIO_LOCALIDADES
-    params = {"departamento": departamento, "alias": True}
+    params = {"departamento": state, "alias": True}
     response = requests.get(url, params=params)
     if response.status_code == 200:
         return response.json()
@@ -211,7 +212,7 @@ def save_address(address):
             address.latitude = address.latitude.replace(",", ".")
         address.latitude = float(address.latitude)
         if type(address.longitude) == str:
-            address.longitude =addressself.longitude.replace(",", ".")
+            address.longitude = address.longitude.replace(",", ".")
         address.longitude = float(address.longitude)
         address.punto_geografico = Point(address.longitude, address.latitude)
     if address.punto_geografico and not (address.latitude and address.longitude):
