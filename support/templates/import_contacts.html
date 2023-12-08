@@ -28,6 +28,7 @@
     {% endif %}
     {% if active_contacts %}<p>{{active_contacts}} contactos estaban activos.</p>{% endif %}
     {% if existing_inactive_contacts %}<p>{{existing_inactive_contacts}} contactos estaban inactivos.</p>{% endif %}
+    <p>{{added_emails}} emails fueron agregados a contactos existentes.</p>
 
     {% if errors_list %}
     <h4>{% trans 'Import has encountered some errors' %}:</h4>
