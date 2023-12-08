@@ -205,8 +205,8 @@ def import_contacts(request):
                                 c.email = row[2]
                                 c.save()
                                 added_emails += 1
-                            except Exception:
-                                pass
+                            except Exception as e:
+                                errors_list.append(f"No se pudo agregar el email {row[2]} al contacto {c.id}: {e}")
             else:
                 try:
                     new_contact = Contact.objects.create(
