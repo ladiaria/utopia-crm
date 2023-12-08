@@ -110,6 +110,7 @@ def import_contacts(request):
         active_contacts = []
         existing_inactive_contacts = []
         errors_list = []
+        added_emails = 0
         tag_list, tag_list_in_campaign, tag_list_active, tag_list_existing = [], [], [], []
         tags = request.POST.get("tags", None)
         if tags:
@@ -145,6 +146,8 @@ def import_contacts(request):
                 name = row[0]
                 phone = row[1] or None
                 email = row[2] or None
+                if email:
+                    email = email.lower()
                 mobile = row[3] or None
                 work_phone = row[4] or None
                 notes = row[5].strip() or None
@@ -196,6 +199,14 @@ def import_contacts(request):
                         if tag_list_existing:
                             for tag in tag_list_existing:
                                 c.tags.add(tag)
+                    if matches.count() == 1:
+                        if c.email == None and row[2] and not Contact.objects.filter(email=row[2]).exists():
+                            try:
+                                c.email = row[2]
+                                c.save()
+                                added_emails += 1
+                            except Exception:
+                                pass
             else:
                 try:
                     new_contact = Contact.objects.create(
@@ -226,6 +237,7 @@ def import_contacts(request):
                 "in_active_campaign": len(in_active_campaign),
                 "active_contacts": len(active_contacts),
                 "existing_inactive_contacts": len(existing_inactive_contacts),
+                "added_emails": added_emails,
                 "errors_list": errors_list,
                 "tag_list": tag_list,
             },
@@ -2559,7 +2571,7 @@ def book_additional_product(request, subscription_id):
                 product = Product.objects.get(pk=product_id)
                 if product not in new_subscription.products.all():
                     if old_subscription.contact.address_set.exists():
-                        default_address = old_Subscription.contact.address_set.first()
+                        default_address = old_subscription.contact.address_set.first()
                     else:
                         default_address = None
                     new_subscription.add_product(
@@ -2981,7 +2993,7 @@ def scheduled_task_filter(request):
     if request.GET.get("export"):
         response = HttpResponse(content_type="text/csv")
         response["Content-Disposition"] = 'attachment; filename="scheduled_tasks_export.csv"'
-        writer = unicodecsv.writer(response)
+        writer = csv.writer(response)
         header = [
             _("Contact ID"),
             _("Contact name"),
