@@ -110,6 +110,7 @@ def import_contacts(request):
         active_contacts = []
         existing_inactive_contacts = []
         errors_list = []
+        added_emails = 0
         tag_list, tag_list_in_campaign, tag_list_active, tag_list_existing = [], [], [], []
         tags = request.POST.get("tags", None)
         if tags:
@@ -145,6 +146,8 @@ def import_contacts(request):
                 name = row[0]
                 phone = row[1] or None
                 email = row[2] or None
+                if email:
+                    email = email.lower()
                 mobile = row[3] or None
                 work_phone = row[4] or None
                 notes = row[5].strip() or None
@@ -187,7 +190,7 @@ def import_contacts(request):
                             for tag in tag_list_in_campaign:
                                 c.tags.add(tag)
                     elif c.has_active_subscription():
-                        active_contacts.append(C.id)
+                        active_contacts.append(c.id)
                         if tag_list_active:
                             for tag in tag_list_active:
                                 c.tags.add(tag)
@@ -196,6 +199,14 @@ def import_contacts(request):
                         if tag_list_existing:
                             for tag in tag_list_existing:
                                 c.tags.add(tag)
+                    if matches.count() == 1:
+                        if c.email == None and row[2] and not Contact.objects.filter(email=row[2]).exists():
+                            try:
+                                c.email = row[2]
+                                c.save()
+                                added_emails += 1
+                            except Exception as e:
+                                errors_list.append(f"No se pudo agregar el email {row[2]} al contacto {c.id}: {e}")
             else:
                 try:
                     new_contact = Contact.objects.create(
@@ -226,6 +237,7 @@ def import_contacts(request):
                 "in_active_campaign": len(in_active_campaign),
                 "active_contacts": len(active_contacts),
                 "existing_inactive_contacts": len(existing_inactive_contacts),
+                "added_emails": added_emails,
                 "errors_list": errors_list,
                 "tag_list": tag_list,
             },
@@ -2559,7 +2571,7 @@ def book_additional_product(request, subscription_id):
                 product = Product.objects.get(pk=product_id)
                 if product not in new_subscription.products.all():
                     if old_subscription.contact.address_set.exists():
-                        default_address = old_Subscription.contact.address_set.first()
+                        default_address = old_subscription.contact.address_set.first()
                     else:
                         default_address = None
                     new_subscription.add_product(
@@ -2841,28 +2853,37 @@ def unsubscription_statistics(request):
     unsubscriptions_filter = UnsubscribedSubscriptionsByEndDateFilter(request.GET, queryset=unsubscriptions_queryset)
 
     executed_unsubscriptions_requested = (
-        unsubscriptions_filter.qs.filter(end_date__lte=date.today(), unsubscription_requested=True)
+        unsubscriptions_filter.qs.filter(
+            end_date__lte=date.today()
+        ).exclude(unsubscription_reason=settings.UNSUBSCRIPTION_OVERDUE_REASON)
         .values("unsubscription_products__name")
         .annotate(total=Count("unsubscription_products"))
         .order_by("unsubscription_products__billing_priority", "unsubscription_products__name")
     )
 
     executed_unsubscriptions_not_requested = (
-        unsubscriptions_filter.qs.filter(end_date__lte=date.today(), unsubscription_requested=False)
+        unsubscriptions_filter.qs.filter(
+            end_date__lte=date.today(),
+            unsubscription_reason=settings.UNSUBSCRIPTION_OVERDUE_REASON
+        )
         .values("unsubscription_products__name")
         .annotate(total=Count("unsubscription_products"))
         .order_by("unsubscription_products__billing_priority", "unsubscription_products__name")
     )
 
     programmed_unsubscriptions_requested = (
-        unsubscriptions_filter.qs.filter(end_date__gt=date.today(), unsubscription_requested=True)
+        unsubscriptions_filter.qs.filter(
+            end_date__gt=date.today()
+        ).exclude(unsubscription_reason=settings.UNSUBSCRIPTION_OVERDUE_REASON)
         .values("unsubscription_products__name")
         .annotate(total=Count("unsubscription_products"))
         .order_by("unsubscription_products__billing_priority", "unsubscription_products__name")
     )
 
     programmed_unsubscriptions_not_requested = (
-        unsubscriptions_filter.qs.filter(end_date__gt=date.today(), unsubscription_requested=False)
+        unsubscriptions_filter.qs.filter(
+            end_date__gt=date.today(), unsubscription_reason=settings.UNSUBSCRIPTION_OVERDUE_REASON
+        )
         .values("unsubscription_products__name")
         .annotate(total=Count("unsubscription_products"))
         .order_by("unsubscription_products__billing_priority", "unsubscription_products__name")
@@ -2896,9 +2917,9 @@ def unsubscription_statistics(request):
         # Probably very bad solution to convert choices to displays, someone help me with a better way!
         item["unsubscription_reason"] = choices.get(item["unsubscription_reason"], None)
 
-    total_requested_unsubscriptions_count = unsubscriptions_filter.qs.filter(unsubscription_requested=True).count()
+    total_requested_unsubscriptions_count = unsubscriptions_filter.qs.exclude(unsubscription_reason=settings.UNSUBSCRIPTION_OVERDUE_REASON).count()
     total_not_requested_unsubscriptions_count = unsubscriptions_filter.qs.filter(
-        unsubscription_requested=False
+        unsubscription_reason=settings.UNSUBSCRIPTION_OVERDUE_REASON
     ).count()
     total_unsubscriptions_count = unsubscriptions_filter.qs.count()
 
@@ -2972,7 +2993,7 @@ def scheduled_task_filter(request):
     if request.GET.get("export"):
         response = HttpResponse(content_type="text/csv")
         response["Content-Disposition"] = 'attachment; filename="scheduled_tasks_export.csv"'
-        writer = unicodecsv.writer(response)
+        writer = csv.writer(response)
         header = [
             _("Contact ID"),
             _("Contact name"),

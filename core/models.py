@@ -884,10 +884,6 @@ class Subscription(models.Model):
         null=True,
         verbose_name=_("Unsubscription type"),
     )
-    unsubscription_requested = models.BooleanField(
-        default=False,
-        verbose_name=_("Requested unsubscription"),
-    )
     unsubscription_addendum = models.TextField(blank=True, null=True, verbose_name=_("Unsubscription addendum"))
     unsubscription_products = models.ManyToManyField(
         Product,
@@ -1548,8 +1544,7 @@ class Subscription(models.Model):
             return None
 
     def get_permanency_invoice_set(self):
-        invoice_set = None
-        invoice_set += self.invoice_set.all()
+        invoice_set = self.invoice_set.all()
         subscription = self
         while subscription.updated_from:
             subscription = subscription.updated_from
@@ -1573,6 +1568,14 @@ class Subscription(models.Model):
             subscription = subscription.updated_from
             months_count += subscription.invoice_set.count() * subscription.frequency
         return months_count
+
+    def get_original_start_date(self):
+        start_date = self.start_date
+        subscription = self
+        while subscription.updated_from:
+            subscription = subscription.updated_from
+            start_date = subscription.start_date
+        return start_date
 
     def has_paused_products(self):
         return self.subscriptionproduct_set.filter(active=False).exists()

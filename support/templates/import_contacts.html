@@ -28,6 +28,7 @@
     {% endif %}
     {% if active_contacts %}<p>{{active_contacts}} contactos estaban activos.</p>{% endif %}
     {% if existing_inactive_contacts %}<p>{{existing_inactive_contacts}} contactos estaban inactivos.</p>{% endif %}
+    <p>{{added_emails}} emails fueron agregados a contactos existentes.</p>
 
     {% if errors_list %}
     <h4>{% trans 'Import has encountered some errors' %}:</h4>
@@ -55,16 +56,16 @@
       <div class="form-group">
         <label for="tags">Etiqueta para los contactos existentes, fuera de campaña, inactivos, y sin deuda (Dejar en
           blanco si no es requerido):</label>
-        <input type="text" id="tags" name="tags_existing" class="form-control" required />
+        <input type="text" id="tags" name="tags_existing" class="form-control" />
       </div>
       <div class="form-group">
         <label for="tags">Etiqueta para los contactos existentes, activos (Dejar en blanco si no es requerido):</label>
-        <input type="text" id="tags" name="tags_active" class="form-control" required />
+        <input type="text" id="tags" name="tags_active" class="form-control" />
       </div>
       <div class="form-group">
         <label for="tags">Etiqueta para los contactos existentes, en campañas (Dejar en blanco si no es
           requerido):</label>
-        <input type="text" id="tags" name="tags_in_campaign" class="form-control" required />
+        <input type="text" id="tags" name="tags_in_campaign" class="form-control" />
       </div>
 
       <div class="form-group text-right">

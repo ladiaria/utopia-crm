@@ -29,6 +29,9 @@ SECRET_KEY = ""
 # Example values for many settings, uncomment and change as your needs.
 # (the uncommented variables are required, an error can be generated if not defined)
 
+# Override to True if you want to make the first test (according to runtests.sh) fail
+# TESTS_FIRST_TEST_SHOULD_FAIL = False
+
 # Default state and city used on the Address model. If it is not set, it will be None by default.
 # DEFAULT_STATE = "Montevideo"
 # DEFAULT_CITY = "Montevideo"
