@@ -1,6 +1,6 @@
 from pydoc import locate
 
-from validate_email_address import validate_email
+from pyisemail import is_email
 from pymailcheck import split_email, suggest
 
 from django.conf import settings
@@ -46,7 +46,7 @@ def clean_email(email):
         whitelisted_domains = locate(whitelisted_domains)()
     whitelisted = domain in whitelisted_domains
 
-    valid = whitelisted or bool(validate_email(email, getattr(settings, "CORE_VALIDATE_EMAIL_CHECK_MX", True)))
+    valid = whitelisted or is_email(email, check_dns=getattr(settings, "CORE_VALIDATE_EMAIL_CHECK_MX", True))
     result = {"valid": valid, "email": email}
 
     if not whitelisted:
