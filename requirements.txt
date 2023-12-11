@@ -21,7 +21,7 @@ postgis
 progress
 psycopg2
 py3DNS
-validate_email_address
+pyIsEmail
 pymailcheck
 PyPDF2
 python-dateutil
