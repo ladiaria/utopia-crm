@@ -8,6 +8,11 @@ class Advertiser(models.Model):
         PUBLIC = "PU", _("Public")
         PRIVATE = "PR", _("Private")
         AGENCY = "AG", _("Agency")
+    
+    class Priority(models.TextChoices):
+        HIGH = "HI", _("High")
+        MID = "MD", _("Mid")
+        LOW = "LO", _("Low")
 
     name = models.CharField(_("Name"), max_length=100)
     main_contact = models.ForeignKey(
@@ -17,6 +22,7 @@ class Advertiser(models.Model):
     other_contacts = models.ManyToManyField("core.Contact", verbose_name=_("Other contacts"))
     email = models.EmailField(_("Email"), max_length=254, null=True, blank=True)
     phone = models.CharField(_("Phone"), max_length=50, null=True, blank=True)
+    priority = models.CharField(_("Priority"), max_length=2, choices=Priority.choices, default=Priority.MID)
 
     # Billing data
     billing_name = models.CharField(_("Billing name"), max_length=50, null=True, blank=True)
@@ -60,6 +66,8 @@ class AdType(models.Model):
     name = models.CharField(_("Name"), max_length=50)
     description = models.TextField(_("Description"))
     reference_price = models.PositiveIntegerField(_("Reference price"), null=True, blank=True)
+    advertise_in_products = models.ManyToManyField("core.product", verbose_name=_("Advertise in these products"))
+
 
     class Meta:
         verbose_name = _("Ad type")
@@ -78,7 +86,6 @@ class Ad(models.Model):
     price = models.PositiveIntegerField(_("Price"))
     start_date = models.DateField(_("Start date"), blank=True, null=True)
     end_date = models.DateField(_("End date"), blank=True, null=True)
-    advertise_in_products = models.ManyToManyField("core.product", verbose_name=_("Advertise in these products"))
 
     class Meta:
         verbose_name = _("Ad")
@@ -99,6 +106,7 @@ class AdPurchaseOrder(models.Model):
     advertiser = models.ForeignKey("advertisement.advertiser", verbose_name=_("Advertiser"), on_delete=models.CASCADE)
     taxes = models.PositiveIntegerField(_("Taxes"), blank=True, null=True)
     total_price = models.PositiveIntegerField(_("Total price"), blank=True, null=True)
+    notes = models.TextField(_("Notes"))
 
     # Option 1: Bill to existing advertiser (IE: Agency)
     bill_to = models.ForeignKey(
@@ -128,7 +136,22 @@ class AdPurchaseOrder(models.Model):
         verbose_name_plural = _("Ad purchase orders")
 
     def __str__(self):
-        return f"Order at {self.date_created} for {self.advertiser}"
+        return _("Order created at %(d)s for %(a)s") % {"d": self.date_created, "a": self.advertiser}
 
     def get_absolute_url(self):
         return reverse("AdPurchaseOrder_detail", kwargs={"pk": self.pk})
+
+
+class AdvertisementActivity(models.Model):
+
+    date_created = models.DateTimeField(_("Creation date"), auto_now=False, auto_now_add=False)    
+
+    class Meta:
+        verbose_name = _("Advertisement activity")
+        verbose_name_plural = _("Advertisement activities")
+
+    def __str__(self):
+        return self.name
+
+    def get_absolute_url(self):
+        return reverse("AdvertisementActivity_detail", kwargs={"pk": self.pk})
