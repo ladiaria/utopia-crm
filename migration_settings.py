@@ -106,6 +106,7 @@ INSTALLED_APPS = [
     "logistics",
     "community",
     "invoicing",
+    "advertisement",
 ]
 
 DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'

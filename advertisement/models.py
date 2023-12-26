@@ -1,5 +1,5 @@
 from django.db import models
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from django.urls import reverse
 
 
@@ -8,7 +8,7 @@ class Advertiser(models.Model):
         PUBLIC = "PU", _("Public")
         PRIVATE = "PR", _("Private")
         AGENCY = "AG", _("Agency")
-    
+
     class Priority(models.TextChoices):
         HIGH = "HI", _("High")
         MID = "MD", _("Mid")
@@ -19,7 +19,7 @@ class Advertiser(models.Model):
         "core.Contact", verbose_name=_("Main contact"), on_delete=models.CASCADE, null=True, blank=True
     )
     type = models.CharField(_("Type"), choices=AdvertiserType.choices, max_length=2)
-    other_contacts = models.ManyToManyField("core.Contact", verbose_name=_("Other contacts"))
+    other_contacts = models.ManyToManyField("core.Contact", verbose_name=_("Other contacts"), related_name="other_advertisements")
     email = models.EmailField(_("Email"), max_length=254, null=True, blank=True)
     phone = models.CharField(_("Phone"), max_length=50, null=True, blank=True)
     priority = models.CharField(_("Priority"), max_length=2, choices=Priority.choices, default=Priority.MID)
@@ -34,7 +34,12 @@ class Advertiser(models.Model):
     )
     billing_email = models.EmailField(_("Billing email field"), max_length=254, null=True, blank=True)
     main_seller = models.ForeignKey(
-        "advertisement.advertisementseller", verbose_name=_("Seller"), on_delete=models.CASCADE, blank=True, null=True
+        "advertisement.advertisementseller",
+        verbose_name=_("Seller"),
+        on_delete=models.CASCADE,
+        blank=True,
+        null=True,
+        related_name="advertiser_main_seller",
     )
 
     class Meta:
@@ -68,7 +73,6 @@ class AdType(models.Model):
     reference_price = models.PositiveIntegerField(_("Reference price"), null=True, blank=True)
     advertise_in_products = models.ManyToManyField("core.product", verbose_name=_("Advertise in these products"))
 
-
     class Meta:
         verbose_name = _("Ad type")
         verbose_name_plural = _("Ad types")
@@ -100,8 +104,13 @@ class Ad(models.Model):
 
 class AdPurchaseOrder(models.Model):
     date_created = models.DateField(_("Date created"), auto_now_add=True)
-    seller = models.ForeignKey("advertisement.advertisementseller", verbose_name=_("Seller"), on_delete=models.CASCADE)
-    adlines = models.ManyToManyField("advertisement.adline", verbose_name=_("Ad lines"))
+    seller = models.ForeignKey(
+        "advertisement.advertisementseller",
+        verbose_name=_("Seller"),
+        on_delete=models.CASCADE,
+        related_name="order_seller",
+    )
+    ads = models.ManyToManyField("advertisement.ad", verbose_name=_("Ad lines"))
     billed = models.BooleanField(_("billed"), default=False)
     advertiser = models.ForeignKey("advertisement.advertiser", verbose_name=_("Advertiser"), on_delete=models.CASCADE)
     taxes = models.PositiveIntegerField(_("Taxes"), blank=True, null=True)
@@ -143,15 +152,45 @@ class AdPurchaseOrder(models.Model):
 
 
 class AdvertisementActivity(models.Model):
+    class Directions(models.TextChoices):
+        IN = "I", _("In")
+        OUT = "O", _("Out")
 
-    date_created = models.DateTimeField(_("Creation date"), auto_now=False, auto_now_add=False)    
+    class Types(models.TextChoices):
+        VISIT = "V", _("Visit")
+        EMAIL = "E", _("Email")
+        PHONE_CALL = "P", _("Phone call")
+        INSTANT_MESSAGING = "M", _("Instant messaging")
+
+    class Status(models.TextChoices):
+        PENDING = "P", _("Pending")
+        COMPLETED = "C", _("Completed")
+
+    date_created = models.DateTimeField(_("Creation date"), auto_now=False, auto_now_add=False)
+    advertiser = models.ForeignKey("advertisement.advertiser", verbose_name=_("Advertiser"), on_delete=models.CASCADE)
+    direction = models.CharField(choices=Directions.choices, default="O", max_length=1)
+    type = models.CharField(choices=Types.choices, max_length=1, null=True, blank=True)
+    notes = models.TextField(blank=True, null=True)
+    seller = models.ForeignKey("advertisement.advertisementseller", verbose_name=_("Seller"), on_delete=models.CASCADE)
+    status = models.CharField(choices=Status.choices, default="P", max_length=1)
+    purchase_order = models.ForeignKey(
+        "advertisement.adpurchaseorder",
+        verbose_name=_("Purchase order"),
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+    )
 
     class Meta:
         verbose_name = _("Advertisement activity")
         verbose_name_plural = _("Advertisement activities")
 
     def __str__(self):
-        return self.name
+        return _("Activity of type %(t)s for %(a)s at %(d)s") % {
+            "t": self.get_type_display(),
+            "a": self.advertiser,
+            "d": self.date_created,
+        }
 
     def get_absolute_url(self):
         return reverse("AdvertisementActivity_detail", kwargs={"pk": self.pk})
