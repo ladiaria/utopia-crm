@@ -19,7 +19,9 @@ class Advertiser(models.Model):
         "core.Contact", verbose_name=_("Main contact"), on_delete=models.CASCADE, null=True, blank=True
     )
     type = models.CharField(_("Type"), choices=AdvertiserType.choices, max_length=2)
-    other_contacts = models.ManyToManyField("core.Contact", verbose_name=_("Other contacts"), related_name="other_advertisements")
+    other_contacts = models.ManyToManyField(
+        "core.Contact", verbose_name=_("Other contacts"), related_name="other_advertisements"
+    )
     email = models.EmailField(_("Email"), max_length=254, null=True, blank=True)
     phone = models.CharField(_("Phone"), max_length=50, null=True, blank=True)
     priority = models.CharField(_("Priority"), max_length=2, choices=Priority.choices, default=Priority.MID)
