@@ -233,6 +233,7 @@ class ContactAdmin(SimpleHistoryAdmin):
                     ("phone", "mobile"),
                     "work_phone",
                     ("gender", "education"),
+                    # TODO: include "occupation" right here after its name got fixed from single "c" to "cc"
                     ("birthdate", "private_birthdate"),
                     "protected",
                     "protection_reason",
@@ -242,10 +243,9 @@ class ContactAdmin(SimpleHistoryAdmin):
         ),
     )
     list_display = ("id", "name", "id_document", "subtype", "tag_list")
-    raw_id_fields = "subtype"
+    raw_id_fields = ("subtype", "referrer")  # TODO: add "occupation" after its name got fixed from single "c" to "cc"
     list_filter = ("subtype", TaggitListFilter)
-    ordering = ("id",)
-    raw_id_fields = ("subtype", "referrer")
+    ordering = ("id", )
 
     class Media:
         # jquery loaded again (admin uses custom js namespaces and we use jquery-ui)
