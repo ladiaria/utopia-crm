@@ -1,5 +1,4 @@
 # coding=utf-8
-
 from importlib import import_module
 from datetime import date, datetime, timedelta
 from dateutil.relativedelta import relativedelta
@@ -19,7 +18,6 @@ from django.utils.html import mark_safe
 from taggit.managers import TaggableManager
 from simple_history.models import HistoricalRecords
 
-from util import space_join
 from util.dates import get_default_next_billing, get_default_start_date, diff_month
 
 from .managers import ProductManager
@@ -455,7 +453,7 @@ class Contact(models.Model):
             contact=self, product=Product.objects.get(id=newsletter_id, type="N")
         )
         if not created and not sn.active:
-            sn.active=True
+            sn.active = True
             sn.save()
 
     def add_newsletter_by_slug(self, newsletter_slug):
@@ -464,7 +462,7 @@ class Contact(models.Model):
                 contact=self, product=Product.objects.get(slug=newsletter_slug, type="N")
             )
             if not created and not sn.active:
-                sn.active=True
+                sn.active = True
                 sn.save()
         except (Product.DoesNotExist, SubscriptionNewsletter.MultipleObjectsReturned):
             pass
