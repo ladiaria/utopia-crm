@@ -537,6 +537,7 @@ class AddressComplementaryInformationForm(forms.ModelForm):
         model = Address
         fields = ("picture", "google_maps_url")
 
+
 class SugerenciaGeorefForm(forms.ModelForm):
     class Meta:
         model = Address

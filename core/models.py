@@ -1,5 +1,6 @@
 # coding=utf-8
 from importlib import import_module
+from pydoc import locate
 from datetime import date, datetime, timedelta
 from dateutil.relativedelta import relativedelta
 
@@ -288,18 +289,40 @@ class Contact(models.Model):
                 {"email": "El email '%s' registra exceso de rebotes, no se permite su utilización" % email}
             )
         if getattr(settings, "WEB_UPDATE_USER_ENABLED", False) and email and self.id:
-            custom_module = getattr(settings, "WEB_UPDATE_USER_VALIDATION_MODULE", None)
-            if custom_module:
-                msg = __import__(custom_module, fromlist=["validateEmailOnWeb"]).validateEmailOnWeb(self.id, email)
-                if msg in ("TIMEOUT", "ERROR"):
-                    # TODO: Alert user about web timeout or error
-                    if debug:
-                        print(("%s validating email on CMS for contact %d" % (msg, self.id)))
-                elif msg != "OK":
+            custom_module_name = getattr(settings, "WEB_UPDATE_USER_VALIDATION_MODULE", None)
+            if custom_module_name:
+                self.custom_clean(locate(custom_module_name), email, debug)
+
+    def custom_clean(self, validation_module, email, debug):
+        # TODO: a good improvement will be to receive also the old_email and include it in the api call for trying to
+        #       dedupe this scneario: no subscriber has my contact_id but there are two subscribers with two different
+        #       contact ids, one with the old email and the other with the new email.
+        resp = validation_module.validateEmailOnWeb(self.id, email)
+        if resp in ("TIMEOUT", "ERROR"):
+            # TODO: Alert user about web timeout or error
+            if debug:
+                print("%s calling validatiion email CMS api for contact %d" % (resp, self.id))
+        else:
+            msg = resp.get("msg")
+            if msg != "OK":
+                retval = resp.get("retval")
+                if retval > 0:
+                    dedupe_resp = validation_module.dedupeOnWeb(self.id, retval, email)
+                    if dedupe_resp in ("TIMEOUT", "ERROR"):
+                        # TODO: Alert user about web timeout or error
+                        if debug:
+                            print("%s calling dedupe CMS api with: %d, %d, %s" % (dedupe_resp, self.id, retval, email))
+                        raise ValidationError({"email": msg})
+                    elif dedupe_resp.get("retval") != 1:
+                        raise ValidationError({"email": msg})
+                    else:
+                        # calling "me" again for security reasons (maybe another user in web can be in conflict)
+                        self.custom_clean(validation_module, email, debug)
+                else:
                     raise ValidationError({"email": msg})
 
     def save(self, *args, **kwargs):
-        if not getattr(self, "updatefromweb", False):
+        if not getattr(self, "updatefromweb", False) and not getattr(self, "_skip_clean", False):
             self.clean()
         return super().save(*args, **kwargs)
 
