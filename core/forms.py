@@ -142,12 +142,11 @@ class ContactAdminForm(EmailValidationForm, forms.ModelForm):
             # no_email validation:
             validate_no_email(self, cleaned_data.get("no_email"), email)
 
-
     def clean_id_document(self):
         id_document = self.cleaned_data.get("id_document")
 
         if id_document and not id_document.isdigit():
-            msg = _("This only admits numeric characters")
+            msg = _("This field only admits numeric characters")
             raise forms.ValidationError(msg)
 
         if id_document and self.instance:

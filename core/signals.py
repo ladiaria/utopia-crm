@@ -5,10 +5,7 @@ try:
     import simplejson as json
 except ImportError:
     import json  # noqa
-from datetime import date
-from dateutil.relativedelta import relativedelta
 
-from django.utils.translation import gettext as _
 from django.db.models.signals import pre_save, post_save
 from django.dispatch import receiver
 from django.forms import ValidationError
