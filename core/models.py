@@ -150,6 +150,7 @@ class Product(models.Model):
     """
     Products that a subscription can have. (They must have a billing priority to be billed).
     """
+
     name = models.CharField(max_length=50, verbose_name=_("Name"), db_index=True)
     slug = AutoSlugField(populate_from="name", null=True, blank=True)
     active = models.BooleanField(default=False, verbose_name=_("Active"))
@@ -175,7 +176,7 @@ class Product(models.Model):
         return "%s" % name
 
     def natural_key(self):
-        return (self.slug, )
+        return (self.slug,)
 
     def get_type(self):
         """
@@ -205,7 +206,7 @@ class EmailBounceActionLog(models.Model):
 
     @staticmethod
     def email_is_bouncer(email):
-        """ Returns last created date iff the email given has a 'bounce detection' in the past 90 days """
+        """Returns last created date iff the email given has a 'bounce detection' in the past 90 days"""
         if email:
             email = email.lower()
         return (
@@ -221,7 +222,7 @@ class EmailBounceActionLog(models.Model):
 
 
 class Contact(models.Model):
-    """ Holds people personal information """
+    """Holds people personal information"""
 
     subtype = models.ForeignKey(
         Subtype,
@@ -511,7 +512,7 @@ class Contact(models.Model):
             self.get_active_newsletters().filter(product=newsletter).delete()
 
     def remove_newsletters(self):
-        """ Remove all contac's active newsletters """
+        """Remove all contac's active newsletters"""
         self.get_active_newsletters().delete()
 
     def has_newsletter(self, newsletter_id):
@@ -1388,11 +1389,11 @@ class Subscription(models.Model):
 
     def has_all_days(self):
         return (
-            self.has_monday() and
-            self.has_tuesday() and
-            self.has_wednesday() and
-            self.has_thursday() and
-            self.has_friday()
+            self.has_monday()
+            and self.has_tuesday()
+            and self.has_wednesday()
+            and self.has_thursday()
+            and self.has_friday()
         )
 
     def has_weekend(self):
@@ -1600,6 +1601,100 @@ class Subscription(models.Model):
 
     def has_paused_products(self):
         return self.subscriptionproduct_set.filter(active=False).exists()
+
+    def merge_other_contact_into_this(
+        self,
+        source,
+        name=None,
+        id_document=None,
+        phone=None,
+        mobile=None,
+        work_phone=None,
+        email=None,
+        gender=None,
+        subtype_id=None,
+        education=None,
+        ocupation_id=None,
+        birthdate=None,
+    ):
+        """Takes a source contact and merges it within this one. It allows the manual overriding of data.
+
+        Args:
+            source (Contact): The contact whose data is going to be deleted and merged into this one.
+            name (str, optional): Override name. Defaults to None.
+            id_document (str, optional): Override id document. Defaults to None.
+            phone (str, optional): Override phone. Defaults to None.
+            mobile (str, optional): Override mobie. Defaults to None.
+            work_phone (str, optional): Override work phone. Defaults to None.
+            email (str, optional): Override email address. Defaults to None.
+            gender (str, optional): Override gender. Defaults to None.
+            subtype_id (str, optional): Override subtype_id. Defaults to None.
+            education (str, optional): Override education choice. Defaults to None.
+            ocupation_id (str, optional): Override ocupation_id. Defaults to None.
+            birthdate (str, optional): Override birthdate. Defaults to None.
+        """
+        errors = []
+        try:
+            if email:
+                source.email = None
+                source.no_email = True
+                source.save()
+            if not email or email == "":
+                self.email = None
+                self.not_email = True
+            else:
+                self.email = email.strip()
+                self.not_email = False
+            self.save(commit=False)  # check for the try
+            if name:
+                self.name = name.strip()
+            if id_document:
+                if source.id_document == id_document.strip():
+                    source.id_document = None
+                    source.save()
+                self.id_document = id_document.strip()
+            if self.id_document == "":
+                self.id_document = None
+            if phone:
+                self.phone = phone.strip()
+            if work_phone:
+                self.work_phone = phone.strip()
+            if mobile:
+                self.mobile = mobile.strip()
+            if gender:
+                self.gender = gender.strip()
+            if subtype_id:
+                self.subtype_id = int(subtype_id.strip())
+            if education:
+                self.education = education.strip()
+            if ocupation_id:
+                self.ocupation_id = int(ocupation_id.strip())
+            if birthdate:
+                self.birthdate = birthdate.strip()
+            self.notes = (
+                f"Combined from {source.id} - {source.name} at {date.today()}\n"
+                + self.notes
+                + "\n\n"
+                + f"Notes imported from {source.id} - {source.name}\n\n"
+                + source.notes
+            )
+            for tag in source.tags.all():
+                self.tags.add(tag.name)
+            self.save()
+            source.addresses.update(contact=self)
+            source.subscriptions.update(contact=self)
+            source.invoice_set.update(contact=self)
+            source.activity_set.update(contact=self)
+            source.issue_set.update(contact=self)
+            source.contactcampaignstatus_set.update(contact=self)
+            source.contactproducthistory_set.update(contact=self)
+            source.contactproductstatus_set.update(contact=self)
+            source.tags.add(_("Delete"))
+
+        except Exception as e:
+            errors.append(e)
+
+        return errors
 
     class Meta:
         verbose_name = _("subscription")
