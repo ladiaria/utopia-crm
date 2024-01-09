@@ -4,7 +4,9 @@ from django.http import HttpResponseRedirect
 from django.contrib.admin import SimpleListFilter
 from django.utils.translation import gettext_lazy as _
 from django.contrib import admin
+from django.contrib.messages import constants as messages
 from django.urls import resolve, reverse
+from django.forms import ValidationError
 
 from leaflet.admin import LeafletGeoAdmin
 from taggit.models import TaggedItem
@@ -233,6 +235,7 @@ class ContactAdmin(SimpleHistoryAdmin):
                     ("phone", "mobile"),
                     "work_phone",
                     ("gender", "education"),
+                    # TODO: include "occupation" right here after its name got fixed from single "c" to "cc"
                     ("birthdate", "private_birthdate"),
                     "protected",
                     "protection_reason",
@@ -242,10 +245,9 @@ class ContactAdmin(SimpleHistoryAdmin):
         ),
     )
     list_display = ("id", "name", "id_document", "subtype", "tag_list")
-    raw_id_fields = "subtype"
+    raw_id_fields = ("subtype", "referrer")  # TODO: add "occupation" after its name got fixed from single "c" to "cc"
     list_filter = ("subtype", TaggitListFilter)
-    ordering = ("id",)
-    raw_id_fields = ("subtype", "referrer")
+    ordering = ("id", )
 
     class Media:
         # jquery loaded again (admin uses custom js namespaces and we use jquery-ui)
@@ -269,6 +271,30 @@ class ContactAdmin(SimpleHistoryAdmin):
         if obj.offer_default_newsletters_condition():
             return default_newsletters_dialog_redirect(request, obj, "id")
         return super(ContactAdmin, self).response_change(request, obj)
+
+    def change_view(self, request, object_id, form_url='', extra_context=None):
+        result = None
+        try:
+            result = super().change_view(request, object_id, form_url, extra_context)
+        except ValidationError as ve:
+            self.message_user(request, ve.args[0], level=messages.ERROR)
+            result = HttpResponseRedirect(request.get_full_path())
+        return result
+
+    def save_model(self, request, obj, form, change):
+        # rising a flag (only on change) to skip call Contact.clean method again (called already in form validation)
+        skip_clean_set = False
+        if change and not getattr(obj, "_skip_clean", False):
+            obj._skip_clean, skip_clean_set = True, True
+        try:
+            super().save_model(request, obj, form, change)
+        except ValidationError:
+            if skip_clean_set:
+                del obj._skip_clean
+            raise
+        else:
+            if skip_clean_set:
+                del obj._skip_clean
 
 
 @admin.register(Product)

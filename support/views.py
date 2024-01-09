@@ -18,6 +18,7 @@ from django.http import (
     HttpResponseRedirect,
     HttpResponse,
     JsonResponse,
+    Http404,
 )
 from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
@@ -43,7 +44,6 @@ from core.models import (
     SubscriptionProduct,
     ContactCampaignStatus,
     SubscriptionNewsletter,
-    Subtype,
     DynamicContactFilter,
     DoNotCallNumber,
 )
@@ -200,7 +200,7 @@ def import_contacts(request):
                             for tag in tag_list_existing:
                                 c.tags.add(tag)
                     if matches.count() == 1:
-                        if c.email == None and row[2] and not Contact.objects.filter(email=row[2]).exists():
+                        if c.email is None and row[2] and not Contact.objects.filter(email=row[2]).exists():
                             try:
                                 c.email = row[2]
                                 c.save()
@@ -567,7 +567,10 @@ def send_promo(request, contact_id):
     """
     Shows a form that the sellers can use to send promotions to the contact.
     """
-    url = request.GET.get("url")
+    url, act, new = request.GET.get("url"), request.GET.get("act"), request.GET.get("new")
+    if not (act or new):
+        raise Http404
+
     offset = request.GET.get("offset", 0)
     contact = Contact.objects.get(pk=contact_id)
     result = request.POST.get("result")
@@ -575,12 +578,12 @@ def send_promo(request, contact_id):
     offerable_products = Product.objects.filter(offerable=True)
     start_date = date.today()
 
-    if request.GET.get("act", None):
-        activity = Activity.objects.get(pk=request.GET.get("act"))
+    if act:
+        activity = Activity.objects.get(pk=act)
         campaign = activity.campaign
         ccs = ContactCampaignStatus.objects.get(contact=contact, campaign=campaign)
-    elif request.GET.get("new", None):
-        ccs = ContactCampaignStatus.objects.get(pk=request.GET["new"])
+    elif new:
+        ccs = ContactCampaignStatus.objects.get(pk=new)
         campaign = ccs.campaign
 
     seller = ccs.seller
@@ -614,72 +617,72 @@ def send_promo(request, contact_id):
         form = NewPromoForm(request.POST)
         if form.is_valid():
             # First we need to save all the new contact data if necessary
-            name = form.cleaned_data["name"]
-            if contact.name != name:
-                contact.name = name
-            phone = form.cleaned_data["phone"]
-            if contact.phone != phone:
-                contact.phone = phone
-            mobile = form.cleaned_data["mobile"]
-            if contact.mobile != mobile:
-                contact.mobile = mobile
-            notes = form.cleaned_data["notes"]
-            if contact.notes != notes:
-                contact.notes = notes
-            contact.save()
-            # After this we will create the subscription
-            start_date = form.cleaned_data["start_date"]
-            end_date = form.cleaned_data["end_date"]
-            subscription = Subscription.objects.create(
-                contact=contact,
-                type="P",
-                start_date=start_date,
-                end_date=end_date,
-                campaign=campaign,
-            )
-            for key, value in list(request.POST.items()):
-                if key.startswith("check"):
-                    product_id = key.split("-")[1]
-                    product = Product.objects.get(pk=product_id)
-                    address_id = request.POST.get("address-{}".format(product_id))
-                    address = Address.objects.get(pk=address_id)
-                    copies = request.POST.get("copies-{}".format(product_id))
-                    label_message = request.POST.get("message-{}".format(product_id))
-                    special_instructions = request.POST.get("instruction-{}".format(product_id))
-                    subscription.add_product(
-                        product=product,
-                        address=address,
-                        copies=copies,
-                        message=label_message,
-                        instructions=special_instructions,
-                        seller_id=seller.id,
-                    )
+            changed = False
+            for attr in ("name", "phone", "mobile", "email", "notes"):
+                val = form.cleaned_data.get(attr)
+                if getattr(contact, attr) != val:
+                    changed = True
+                    setattr(contact, attr, val)
+            if changed:
+                try:
+                    contact.save()
+                except forms.ValidationError as ve:
+                    form.add_error(None, ve)
 
-            if request.GET.get("act", None):
-                # the instance is somehow an activity and we needed to send a promo again, or has been scheduled
-                activity.status = "C"  # completed activity
-                activity.save()
-                ccs.campaign_resolution = "SP"
-                ccs.status = 2  # Contacted this person
-                ccs.save()
-            elif request.GET.get("new", None):
-                ccs.status = 2  # contacted this person
-                ccs.campaign_resolution = "SP"  # Sent promo to this c c ustomer
-                ccs.save()
+            if not form.errors:
+                # After this we will create the subscription
+                start_date = form.cleaned_data["start_date"]
+                end_date = form.cleaned_data["end_date"]
+                subscription = Subscription.objects.create(
+                    contact=contact,
+                    type="P",
+                    start_date=start_date,
+                    end_date=end_date,
+                    campaign=campaign,
+                )
+                for key, value in list(request.POST.items()):
+                    if key.startswith("check"):
+                        product_id = key.split("-")[1]
+                        product = Product.objects.get(pk=product_id)
+                        address_id = request.POST.get("address-{}".format(product_id))
+                        address = Address.objects.get(pk=address_id)
+                        copies = request.POST.get("copies-{}".format(product_id))
+                        label_message = request.POST.get("message-{}".format(product_id))
+                        special_instructions = request.POST.get("instruction-{}".format(product_id))
+                        subscription.add_product(
+                            product=product,
+                            address=address,
+                            copies=copies,
+                            message=label_message,
+                            instructions=special_instructions,
+                            seller_id=seller.id,
+                        )
 
-            # Afterwards we need to make an activity to ask the customer how it went.
-            # The activity will show up in the menu after the datetime has passed.
-            Activity.objects.create(
-                contact=contact,
-                campaign=campaign,
-                direction="O",
-                datetime=end_date + timedelta(1),
-                activity_type="C",
-                status="P",
-                seller=seller,
-            )
+                if request.GET.get("act", None):
+                    # the instance is somehow an activity and we needed to send a promo again, or has been scheduled
+                    activity.status = "C"  # completed activity
+                    activity.save()
+                    ccs.campaign_resolution = "SP"
+                    ccs.status = 2  # Contacted this person
+                    ccs.save()
+                elif request.GET.get("new", None):
+                    ccs.status = 2  # contacted this person
+                    ccs.campaign_resolution = "SP"  # Sent promo to this c c ustomer
+                    ccs.save()
 
-            return HttpResponseRedirect("{}?offset={}".format(url, offset))
+                # Afterwards we need to make an activity to ask the customer how it went.
+                # The activity will show up in the menu after the datetime has passed.
+                Activity.objects.create(
+                    contact=contact,
+                    campaign=campaign,
+                    direction="O",
+                    datetime=end_date + timedelta(1),
+                    activity_type="C",
+                    status="P",
+                    seller=seller,
+                )
+
+                return HttpResponseRedirect("{}?offset={}".format(url, offset))
 
     return render(
         request,
@@ -789,189 +792,186 @@ def new_subscription(request, contact_id):
         form = NewSubscriptionForm(request.POST)
         if form.is_valid():
             # First we need to save all the new contact data if necessary
-            name = form.cleaned_data["name"]
-            if contact.name != name:
-                contact.name = name
-            phone = form.cleaned_data["phone"]
-            if contact.phone != phone:
-                contact.phone = phone
-            mobile = form.cleaned_data["mobile"]
-            if contact.mobile != mobile:
-                contact.mobile = mobile
-            id_document = form.cleaned_data["id_document"]
-            if contact.id_document != id_document:
-                contact.id_document = id_document
-            email = form.cleaned_data["email"]
-            if contact.email != email:
-                contact.email = email
-            contact.save()
+            changed = False
+            for attr in ("name", "phone", "mobile", "email", "id_document"):
+                val = form.cleaned_data.get(attr)
+                if getattr(contact, attr) != val:
+                    changed = True
+                    setattr(contact, attr, val)
+            if changed:
+                try:
+                    contact.save()
+                except forms.ValidationError as ve:
+                    form.add_error(None, ve)
 
-            if upgrade_subscription:
-                # We will end the old subscription here.
-                form_subscription.end_date = form.cleaned_data["start_date"]
-                form_subscription.active = False
-                form_subscription.inactivity_reason = 3  # Upgraded
-                form_subscription.unsubscription_type = 4  # Upgraded
-                form_subscription.save()
+            if not form.errors:
 
-            if edit_subscription:
-                # this means we are editing the subscription, and we don't need to create a new one
-                subscription = form_subscription
-                # We're not going to change start_date
-                subscription.payment_type = form.cleaned_data["payment_type"]
-                subscription.billing_address = form.cleaned_data["billing_address"]
-                subscription.billing_name = form.cleaned_data["billing_name"]
-                subscription.billing_id_doc = form.cleaned_data["billing_id_document"]
-                subscription.rut = form.cleaned_data["billing_rut"]
-                subscription.billing_phone = form.cleaned_data["billing_phone"]
-                subscription.billing_email = form.cleaned_data["billing_email"]
-                subscription.frequency = form.cleaned_data["frequency"]
-                subscription.end_date = form.cleaned_data["end_date"]
-                subscription.send_bill_copy_by_email = form.cleaned_data["send_bill_copy_by_email"]
-                subscription.save()
-            else:
-                subscription = Subscription.objects.create(
-                    contact=contact,
-                    type="N",
-                    start_date=form.cleaned_data["start_date"],
-                    next_billing=form.cleaned_data["start_date"],
-                    payment_type=form.cleaned_data["payment_type"],
-                    billing_address=form.cleaned_data["billing_address"],
-                    billing_name=form.cleaned_data["billing_name"],
-                    billing_id_doc=form.cleaned_data["billing_id_document"],
-                    rut=form.cleaned_data["billing_rut"],
-                    billing_phone=form.cleaned_data["billing_phone"],
-                    billing_email=form.cleaned_data["billing_email"],
-                    frequency=form.cleaned_data["frequency"],
-                    end_date=form.cleaned_data["end_date"],
-                    send_bill_copy_by_email=form.cleaned_data["send_bill_copy_by_email"],
-                )
-            if upgrade_subscription:
-                # Then, the amount that was not paid in the period but was not used due to closing the
-                # old subscription will be added as a discount.
-                subscription.balance = form_subscription.amount_to_pay_in_period()
-                subscription.updated_from = form_subscription
+                if upgrade_subscription:
+                    # We will end the old subscription here.
+                    form_subscription.end_date = form.cleaned_data["start_date"]
+                    form_subscription.active = False
+                    form_subscription.inactivity_reason = 3  # Upgraded
+                    form_subscription.unsubscription_type = 4  # Upgraded
+                    form_subscription.save()
 
-            # We need to decide what we do with the status of the subscription, for now it will be normal
-            subscription.status = "OK"
-            subscription.save()
-
-            # After this, we set all the products we sold
-            new_products_list = []
-            for key, value in list(request.POST.items()):
-                if key.startswith("check"):
-                    product_id = key.split("-")[1]
-                    product = Product.objects.get(pk=product_id)
-                    new_products_list.append(product)
-                    address_id = request.POST.get("address-{}".format(product_id))
-                    try:
-                        address = Address.objects.get(pk=address_id)
-                    except Address.DoesNotExist:
-                        address = None
-                    copies = request.POST.get("copies-{}".format(product_id))
-                    message = request.POST.get("message-{}".format(product_id))
-                    instructions = request.POST.get("instructions-{}".format(product_id))
-                    seller_id = user_seller_id  # We'll reset seller_id every time to whatever the user seller is
-                    # This is to make sure we don't overwrite the original seller for this subscription.
-                    if not SubscriptionProduct.objects.filter(subscription=subscription, product=product).exists():
-                        # First we're going to check if this is an upgrade and the previous product existed and had a
-                        # seller. If it hadn't then the seller will still be None
-                        if (
-                            form_subscription
-                            and SubscriptionProduct.objects.filter(
-                                subscription=form_subscription, product=product
-                            ).exists()
-                        ):
-                            seller = (
-                                SubscriptionProduct.objects.filter(subscription=form_subscription, product=product)
-                                .first()
-                                .seller
-                            )
-                            if seller:
-                                seller_id = seller.id
-                            else:
-                                seller_id = None
-                        # For each product, if it is a product that this subscription didn't have, then we'll add it.
-                        sp = subscription.add_product(
-                            product=product,
-                            address=address,
-                            copies=copies,
-                            message=message,
-                            instructions=instructions,
-                            seller_id=seller_id,
-                        )
-                    elif (
-                        request.GET.get("edit_subscription", None)
-                        and SubscriptionProduct.objects.filter(subscription=subscription, product=product).exists()
-                    ):
-                        sp = SubscriptionProduct.objects.get(subscription=subscription, product=product)
-                        sp.address = address
-                        sp.copies = copies
-                        sp.label_message = message
-                        sp.special_instructions = instructions
-                        sp.save()
-
-            for subscriptionproduct in SubscriptionProduct.objects.filter(subscription=subscription):
-                if subscriptionproduct.product not in new_products_list:
-                    subscription.remove_product(subscriptionproduct.product)
-
-            if request.GET.get("new", None):
-                # This means this is a direct sale
-                ccs.campaign_resolution = "S2"  # this is a success with direct sale
-                ccs.status = 4  # Ended with contact
-                ccs.save()
-                # We also need to register the activity as just started
-                activity_notes = "{}\n{}".format(
-                    _("Success with direct sale on {}").format(datetime.now().strftime("%Y-%m-%d %H:%M")),
-                    form.cleaned_data["register_activity"],
-                )
-                Activity.objects.create(
-                    activity_type="C",
-                    seller=ccs.seller,
-                    contact=contact,
-                    status="C",
-                    direction="O",
-                    datetime=datetime.now(),
-                    campaign=ccs.campaign,
-                    notes=activity_notes,
-                )
-                subscription.campaign = ccs.campaign
-                subscription.save()
-                redirect_to = url
-                if offset:
-                    redirect_to += f"?offset={offset}"
-            elif request.GET.get("act", None):
-                # This means this is a sale from an activity
-                activity.status = "C"
-                activity_notes = "{}\n{}".format(
-                    _("Success with promotion on {}").format(datetime.now().strftime("%Y-%m-%d %H:%M")),
-                    form.cleaned_data["register_activity"],
-                )
-                if activity.notes:
-                    activity.notes = activity.notes + "\n" + activity_notes
+                if edit_subscription:
+                    # this means we are editing the subscription, and we don't need to create a new one
+                    subscription = form_subscription
+                    # We're not going to change start_date
+                    subscription.payment_type = form.cleaned_data["payment_type"]
+                    subscription.billing_address = form.cleaned_data["billing_address"]
+                    subscription.billing_name = form.cleaned_data["billing_name"]
+                    subscription.billing_id_doc = form.cleaned_data["billing_id_document"]
+                    subscription.rut = form.cleaned_data["billing_rut"]
+                    subscription.billing_phone = form.cleaned_data["billing_phone"]
+                    subscription.billing_email = form.cleaned_data["billing_email"]
+                    subscription.frequency = form.cleaned_data["frequency"]
+                    subscription.end_date = form.cleaned_data["end_date"]
+                    subscription.send_bill_copy_by_email = form.cleaned_data["send_bill_copy_by_email"]
+                    subscription.save()
                 else:
-                    activity.notes = activity_notes
-                activity.save()
-                ccs = ContactCampaignStatus.objects.get(campaign=campaign, contact=contact)
-                ccs.campaign_resolution = "S1"  # success after a promo
-                ccs.status = 4  # Ended with contact
-                ccs.save()
-                subscription.campaign = campaign
+                    subscription = Subscription.objects.create(
+                        contact=contact,
+                        type="N",
+                        start_date=form.cleaned_data["start_date"],
+                        next_billing=form.cleaned_data["start_date"],
+                        payment_type=form.cleaned_data["payment_type"],
+                        billing_address=form.cleaned_data["billing_address"],
+                        billing_name=form.cleaned_data["billing_name"],
+                        billing_id_doc=form.cleaned_data["billing_id_document"],
+                        rut=form.cleaned_data["billing_rut"],
+                        billing_phone=form.cleaned_data["billing_phone"],
+                        billing_email=form.cleaned_data["billing_email"],
+                        frequency=form.cleaned_data["frequency"],
+                        end_date=form.cleaned_data["end_date"],
+                        send_bill_copy_by_email=form.cleaned_data["send_bill_copy_by_email"],
+                    )
+                if upgrade_subscription:
+                    # Then, the amount that was not paid in the period but was not used due to closing the
+                    # old subscription will be added as a discount.
+                    subscription.balance = form_subscription.amount_to_pay_in_period()
+                    subscription.updated_from = form_subscription
+
+                # We need to decide what we do with the status of the subscription, for now it will be normal
+                subscription.status = "OK"
                 subscription.save()
-                redirect_to = url
-                if offset:
-                    redirect_to += f"?offset={offset}"
-            else:
-                redirect_to = reverse("contact_detail", args=[contact.id])
 
-            # if needed, redirect_to default_newsletters_dialog:
-            if contact.offer_default_newsletters_condition():
-                redirect_to = "%s?next_page=%s" % (
-                    reverse("default_newsletters_dialog", kwargs={"contact_id": contact.id}),
-                    redirect_to,
-                )
+                # After this, we set all the products we sold
+                new_products_list = []
+                for key, value in list(request.POST.items()):
+                    if key.startswith("check"):
+                        product_id = key.split("-")[1]
+                        product = Product.objects.get(pk=product_id)
+                        new_products_list.append(product)
+                        address_id = request.POST.get("address-{}".format(product_id))
+                        try:
+                            address = Address.objects.get(pk=address_id)
+                        except Address.DoesNotExist:
+                            address = None
+                        copies = request.POST.get("copies-{}".format(product_id))
+                        message = request.POST.get("message-{}".format(product_id))
+                        instructions = request.POST.get("instructions-{}".format(product_id))
+                        seller_id = user_seller_id  # We'll reset seller_id every time to whatever the user seller is
+                        # This is to make sure we don't overwrite the original seller for this subscription.
+                        if not SubscriptionProduct.objects.filter(subscription=subscription, product=product).exists():
+                            # First we're going to check if this is an upgrade and the previous product existed and had
+                            # a seller. If it hadn't then the seller will still be None
+                            if (
+                                form_subscription
+                                and SubscriptionProduct.objects.filter(
+                                    subscription=form_subscription, product=product
+                                ).exists()
+                            ):
+                                seller = (
+                                    SubscriptionProduct.objects.filter(subscription=form_subscription, product=product)
+                                    .first()
+                                    .seller
+                                )
+                                if seller:
+                                    seller_id = seller.id
+                                else:
+                                    seller_id = None
+                            # For each product, if is a product that this subscription didn't have, then we'll add it.
+                            sp = subscription.add_product(
+                                product=product,
+                                address=address,
+                                copies=copies,
+                                message=message,
+                                instructions=instructions,
+                                seller_id=seller_id,
+                            )
+                        elif (
+                            request.GET.get("edit_subscription", None)
+                            and SubscriptionProduct.objects.filter(subscription=subscription, product=product).exists()
+                        ):
+                            sp = SubscriptionProduct.objects.get(subscription=subscription, product=product)
+                            sp.address = address
+                            sp.copies = copies
+                            sp.label_message = message
+                            sp.special_instructions = instructions
+                            sp.save()
 
-            return HttpResponseRedirect(redirect_to)
+                for subscriptionproduct in SubscriptionProduct.objects.filter(subscription=subscription):
+                    if subscriptionproduct.product not in new_products_list:
+                        subscription.remove_product(subscriptionproduct.product)
+
+                if request.GET.get("new", None):
+                    # This means this is a direct sale
+                    ccs.campaign_resolution = "S2"  # this is a success with direct sale
+                    ccs.status = 4  # Ended with contact
+                    ccs.save()
+                    # We also need to register the activity as just started
+                    activity_notes = "{}\n{}".format(
+                        _("Success with direct sale on {}").format(datetime.now().strftime("%Y-%m-%d %H:%M")),
+                        form.cleaned_data["register_activity"],
+                    )
+                    Activity.objects.create(
+                        activity_type="C",
+                        seller=ccs.seller,
+                        contact=contact,
+                        status="C",
+                        direction="O",
+                        datetime=datetime.now(),
+                        campaign=ccs.campaign,
+                        notes=activity_notes,
+                    )
+                    subscription.campaign = ccs.campaign
+                    subscription.save()
+                    redirect_to = url
+                    if offset:
+                        redirect_to += f"?offset={offset}"
+                elif request.GET.get("act", None):
+                    # This means this is a sale from an activity
+                    activity.status = "C"
+                    activity_notes = "{}\n{}".format(
+                        _("Success with promotion on {}").format(datetime.now().strftime("%Y-%m-%d %H:%M")),
+                        form.cleaned_data["register_activity"],
+                    )
+                    if activity.notes:
+                        activity.notes = activity.notes + "\n" + activity_notes
+                    else:
+                        activity.notes = activity_notes
+                    activity.save()
+                    ccs = ContactCampaignStatus.objects.get(campaign=campaign, contact=contact)
+                    ccs.campaign_resolution = "S1"  # success after a promo
+                    ccs.status = 4  # Ended with contact
+                    ccs.save()
+                    subscription.campaign = campaign
+                    subscription.save()
+                    redirect_to = url
+                    if offset:
+                        redirect_to += f"?offset={offset}"
+                else:
+                    redirect_to = reverse("contact_detail", args=[contact.id])
+
+                # if needed, redirect_to default_newsletters_dialog:
+                if contact.offer_default_newsletters_condition():
+                    redirect_to = "%s?next_page=%s" % (
+                        reverse("default_newsletters_dialog", kwargs={"contact_id": contact.id}),
+                        redirect_to,
+                    )
+
+                return HttpResponseRedirect(redirect_to)
 
     return render(
         request,
@@ -1024,7 +1024,7 @@ def assign_campaigns(request):
         for tag in tag_list:
             try:
                 Tag.objects.get(name=tag)
-            except:
+            except Tag.DoesNotExist:
                 messages.error(request, f"El tag {tag} no existe.")
                 return HttpResponseRedirect(reverse("assign_campaigns"))
         contacts = Contact.objects.filter(tags__name__in=tag_list)
@@ -1040,7 +1040,7 @@ def assign_campaigns(request):
                         continue
                 contact.add_to_campaign(campaign)
                 count += 1
-            except Exception as e:
+            except Exception:
                 errors += 1
         messages.success(request, f"{count} contactos fueron agregados a la campaña con éxito.")
         if errors:
@@ -1160,7 +1160,6 @@ def release_seller_contacts(request, seller_id=None):
     """
     Releases all the unworked contacts from a seller to allow them to be assigned to other sellers.
     """
-    seller_list = []
     seller_qs = (
         Seller.objects.filter(contactcampaignstatus__status=1)
         .annotate(campaign_contacts=Count("contactcampaignstatus"))
@@ -1177,6 +1176,7 @@ def release_seller_contacts(request, seller_id=None):
             seller.contacts_not_worked = seller.contactcampaignstatus_set.filter(status__lt=4).count()
         return render(request, "release_seller_contacts.html", {"seller_list": seller_qs})
 
+
 def release_seller_contacts_by_campaign(request, seller_id, campaign_id=None):
     seller_obj = get_object_or_404(Seller, pk=seller_id)
     active_campaigns = seller_obj.get_unfinished_campaigns()
@@ -1187,8 +1187,14 @@ def release_seller_contacts_by_campaign(request, seller_id, campaign_id=None):
         return HttpResponseRedirect(reverse("release_seller_contacts"))
     else:
         for campaign in active_campaigns:
-            campaign.contacts_not_worked = campaign.contactcampaignstatus_set.filter(status__lt=4, seller=seller_obj).count()
-        return render(request, "release_seller_contacts_by_campaign.html", {"active_campaigns": active_campaigns, "seller": seller_obj})
+            campaign.contacts_not_worked = campaign.contactcampaignstatus_set.filter(
+                status__lt=4, seller=seller_obj
+            ).count()
+        return render(
+            request,
+            "release_seller_contacts_by_campaign.html",
+            {"active_campaigns": active_campaigns, "seller": seller_obj},
+        )
 
 
 @login_required
@@ -1727,6 +1733,7 @@ def api_dynamic_prices(request):
     else:
         return HttpResponseNotFound()
 
+
 @csrf_exempt
 def api_get_addresses(request, contact_id):
     if request.method == "POST" and request.META.get('HTTP_X_REQUESTED_WITH') == "XMLHttpRequest":
@@ -2012,11 +2019,19 @@ def edit_contact(request, contact_id):
     if request.POST:
         form = ContactAdminForm(request.POST, instance=contact)
         if form.is_valid():
+            # rising a flag to skip call Contact.clean method again (just called on form.is_valid call)
+            skip_clean_set = False
+            if not getattr(contact, "_skip_clean", False):
+                contact._skip_clean, skip_clean_set = True, True
             try:
                 form.save()
             except Exception as e:
+                if skip_clean_set:
+                    del contact._skip_clean
                 messages.error(request, "Error: {}".format(e))
             else:
+                if skip_clean_set:
+                    del contact._skip_clean
                 messages.success(request, _("Contact saved successfully"))
                 return HttpResponseRedirect(reverse("edit_contact", args=[contact_id]))
     return render(
@@ -2917,7 +2932,9 @@ def unsubscription_statistics(request):
         # Probably very bad solution to convert choices to displays, someone help me with a better way!
         item["unsubscription_reason"] = choices.get(item["unsubscription_reason"], None)
 
-    total_requested_unsubscriptions_count = unsubscriptions_filter.qs.exclude(unsubscription_reason=settings.UNSUBSCRIPTION_OVERDUE_REASON).count()
+    total_requested_unsubscriptions_count = unsubscriptions_filter.qs.exclude(
+        unsubscription_reason=settings.UNSUBSCRIPTION_OVERDUE_REASON
+    ).count()
     total_not_requested_unsubscriptions_count = unsubscriptions_filter.qs.filter(
         unsubscription_reason=settings.UNSUBSCRIPTION_OVERDUE_REASON
     ).count()

@@ -2,6 +2,7 @@
 from settings import *  # noqa
 from local_settings import *  # noqa
 
+
 ALLOWED_HOSTS = ['testserver', ]
 IGNORE_WEB_UPDATE_NEWSLETTERS = True
 
