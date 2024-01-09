@@ -18,7 +18,6 @@ class Command(BaseCommand):
             start_date__gte=date.today(),
             start_date__lte=date.today() + timedelta(1),
             status="OK",
-            end_date__isnull=True,
         )
         if verbose3:
             print("Starting process of starting subscriptions that have reached their start date...")
