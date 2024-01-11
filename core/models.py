@@ -755,7 +755,6 @@ class Contact(models.Model):
             source.issue_set.update(contact=self)
             source.contactcampaignstatus_set.update(contact=self)
             source.contactproducthistory_set.update(contact=self)
-            source.contactproductstatus_set.update(contact=self)
             source.tags.add("eliminar")
 
         except Exception as e:
