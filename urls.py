@@ -50,6 +50,11 @@ if 'logistics' in settings.INSTALLED_APPS:
         path('logistics/', include('logistics.urls')),
     ]
 
+if 'advertisement' in settings.INSTALLED_APPS:
+    urlpatterns += [
+        path('advertisement/', include('advertisement.urls')),
+    ]
+
 # test
 urlpatterns += [path('test/', TemplateView.as_view(template_name='tests/index.html'))]
 

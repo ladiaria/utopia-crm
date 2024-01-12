@@ -134,6 +134,20 @@
   </ul>
 </li>
 {% endif %}
+{% if request.user|in_group:"Advertisement" %}
+<li class="nav-item has-treeview">
+  <a href="#" class="nav-link">
+    <p>
+      {% trans 'Advertisement' %}
+      <i class="fas fa-angle-down right"></i>
+    </p>
+  </a>
+  <ul class="nav nav-treeview">
+    <li class="nav-item"><a href="#" class="nav-link {% if request.path == "placeholder" %}active{% endif %}">{% trans 'My advertisers' %}</a></li>
+    <li class="nav-item"><a href="#" class="nav-link {% if request.path == "placeholder" %}active{% endif %}">{% trans 'List advertisers' %}</a></li>
+  </ul>
+</li>
+{% endif %}
 {% if request.user|in_group:"Managers" %}
 <li class="nav-item">
   <a href="{% url 'admin:index' %}" class="nav-link">{% trans "Admin panel" %}</a>
