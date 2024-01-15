@@ -44,6 +44,8 @@
 {% url "upload_do_not_call_numbers" as upload_do_not_call_numbers %}
 {% url "tag_contacts" as tag_contacts %}
 {% url "mass_georef_address" as mass_georef_address %}
+{% url "advertiser_list" as advertiser_list %}
+{% url "my_advertisers" as my_advertisers %}
 
 <li class="nav-item">
   <a href="{{contact_list}}" class="nav-link {% if request.path == contact_list  %}active{% endif %}">{% trans "Contacts" %}</a>
@@ -143,8 +145,8 @@
     </p>
   </a>
   <ul class="nav nav-treeview">
-    <li class="nav-item"><a href="#" class="nav-link {% if request.path == "placeholder" %}active{% endif %}">{% trans 'My advertisers' %}</a></li>
-    <li class="nav-item"><a href="#" class="nav-link {% if request.path == "placeholder" %}active{% endif %}">{% trans 'List advertisers' %}</a></li>
+    <li class="nav-item"><a href="{{my_advertisers}}" class="nav-link {% if request.path == my_advertisers %}active{% endif %}">{% trans 'My advertisers' %}</a></li>
+    <li class="nav-item"><a href="{{advertiser_list}}" class="nav-link {% if request.path == advertiser_list %}active{% endif %}">{% trans 'List advertisers' %}</a></li>
   </ul>
 </li>
 {% endif %}

@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.auth.models import User
 from django.utils.translation import gettext_lazy as _
 from django.urls import reverse
 
@@ -10,9 +11,9 @@ class Advertiser(models.Model):
         AGENCY = "AG", _("Agency")
 
     class Priority(models.TextChoices):
-        HIGH = "HI", _("High")
-        MID = "MD", _("Mid")
-        LOW = "LO", _("Low")
+        HIGH = "1", _("High")
+        MID = "2", _("Mid")
+        LOW = "3", _("Low")
 
     name = models.CharField(_("Name"), max_length=100)
     main_contact = models.ForeignKey(
@@ -20,7 +21,7 @@ class Advertiser(models.Model):
     )
     type = models.CharField(_("Type"), choices=AdvertiserType.choices, max_length=2)
     other_contacts = models.ManyToManyField(
-        "core.Contact", verbose_name=_("Other contacts"), related_name="other_advertisements"
+        "core.Contact", verbose_name=_("Other contacts"), related_name="other_advertisements", blank=True
     )
     email = models.EmailField(_("Email"), max_length=254, null=True, blank=True)
     phone = models.CharField(_("Phone"), max_length=50, null=True, blank=True)
@@ -54,9 +55,31 @@ class Advertiser(models.Model):
     def get_absolute_url(self):
         return reverse("Advertiser_detail", kwargs={"pk": self.pk})
 
+    def get_advertisement_activies(self, status=None):
+        if self.advertisementactivity_set.exists():
+            qs = self.advertisementactivity_set.all()
+            if type:
+                qs = qs.filter(status=status)
+            return qs
+        else:
+            return None
+
+    def get_latest_pending_activities(self):
+        if self.advertisementactivity_set.exists():
+            return self.get_advertisement_activies("P").latest()
+        else:
+            return None
+
+    def get_latest_completed_activities(self):
+        if self.advertisementactivity_set.exists():
+            return self.get_advertisement_activies("C").latest()
+        else:
+            return None
+
 
 class AdvertisementSeller(models.Model):
     name = models.CharField(_("Name"), max_length=50)
+    user = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True)
 
     class Meta:
         verbose_name = _("Advertisement seller")
@@ -169,6 +192,7 @@ class AdvertisementActivity(models.Model):
         COMPLETED = "C", _("Completed")
 
     date_created = models.DateTimeField(_("Creation date"), auto_now=False, auto_now_add=False)
+    date = models.DateTimeField(_("Date"), null=True, blank=True)
     advertiser = models.ForeignKey("advertisement.advertiser", verbose_name=_("Advertiser"), on_delete=models.CASCADE)
     direction = models.CharField(choices=Directions.choices, default="O", max_length=1)
     type = models.CharField(choices=Types.choices, max_length=1, null=True, blank=True)
@@ -186,6 +210,7 @@ class AdvertisementActivity(models.Model):
     class Meta:
         verbose_name = _("Advertisement activity")
         verbose_name_plural = _("Advertisement activities")
+        get_latest_by = "id"
 
     def __str__(self):
         return _("Activity of type %(t)s for %(a)s at %(d)s") % {

@@ -1,0 +1,109 @@
+{% extends 'adminlte/base.html' %}
+{% load i18n %}
+
+{% block title %}
+{{advertiser.name}}
+{% endblock title %}
+
+{% block no_heading %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-9"><h1><a href="#">{% trans 'Advertisement' %}</a> &raquo; {% trans "Advertisers" %} &raquo; {{advertiser.name}}</h1></div>
+    <div class="col"></div>
+    <div class="text-right col">
+      <a href="{% url 'admin:advertisement_advertiser_change' advertiser.id %}" target="_blank" class="btn btn-primary">{% trans "Edit info" %}</a>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    <div class="row">
+
+      <div class="col">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">{% trans "General information" %}</h3>
+          </div>
+          <div class="card-body">
+            <dl>
+              <dt>{% trans "Name" %}</dt>
+              <dd>{{advertiser.name}}</dd>
+              {% if advertiser.main_contact %}
+              <dt>{% trans "Main contact" %}</dt>
+              <dd><a href="{% url 'contact_detail' advertiser.main_contact.id %}">{{advertiser.main_contact.name}}</a></dd>
+              {% endif %}
+              <dt>{% trans "Phone" %}</dt>
+              <dd>{{advertiser.phone|default_if_none:"-"}}</dd>
+              <dt>{% trans "Email" %}</dt>
+              <dd>{{advertiser.email|default_if_none:"-"}}</dd>
+              <dt>{% trans "Priority" %}</dt>
+              <dd>{{advertiser.get_priority_display}}</dd>
+              <dt>{% trans "Seller" %}</dt>
+              <dd>{{advertiser.main_seller|default_if_none:"-"}}</dd>
+              <div class="card">
+                <div class="card-header">
+                  {% trans "Billing data" %}
+                </div>
+                <div class="card-body">
+                  <dt>{% trans "Billing name" %}</dt>
+                  <dd>{{advertiser.billing_name|default_if_none:"-"}}</dd>
+                  <dt>{% trans "Billing id document" %}</dt>
+                  <dd>{{advertiser.billing_id_document|default_if_none:"-"}}</dd>
+                  <dt>{% trans "Unique taxpayer registry" %}</dt>
+                  <dd>{{advertiser.utr|default_if_none:"-"}}</dd>
+                  <dt>{% trans "Billing phone" %}</dt>
+                  <dd>{{advertiser.billing_phone|default_if_none:"-"}}</dd>
+                  <dt>{% trans "Billing address" %}</dt>
+                  {% if advertiser.billing_address.exists %}
+                  <dd>{{advertiser.billing_address_set.first}}</dd>
+                  {% else %}
+                  <dd>-</dd>
+                  {% endif %}
+                </div>
+              </div>
+              
+            </dl>
+          </div>
+        </div>
+      </div>
+
+      <div class="col">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <h3 class="card-title">{% trans "Scheduled and completed activities" %}</h3>
+            </div>
+            <div class="card-tools">
+              <a href="#" class="btn-sm btn-success">{% trans "Add activity" %}</a>
+            </div>
+          </div>
+          
+          <div class="card-body">
+            {% if advertiser.advertisementactivity_set.exists %}
+            {% else %}
+            {% trans "No activities to show" %}
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="col">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">{% trans "Purchase orders" %}</h3>
+          </div>
+          <div class="card-body">
+            <p class="card-text">In construction...</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+{% endblock %}
