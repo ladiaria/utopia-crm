@@ -10,7 +10,7 @@ class AdvertiserAdmin(admin.ModelAdmin):
 
 @admin.register(AdvertisementActivity)
 class AdvertisementActivityAdmin(admin.ModelAdmin):
-    raw_id_fields = ("advertiser", "seller")
+    raw_id_fields = ("advertiser", "seller", "purchase_order")
 
 
 admin.site.register(AdType)

@@ -78,12 +78,26 @@
               <h3 class="card-title">{% trans "Scheduled and completed activities" %}</h3>
             </div>
             <div class="card-tools">
-              <a href="#" class="btn-sm btn-success">{% trans "Add activity" %}</a>
+              <a href="{% url 'add_advertisement_activity' advertiser.id %}" class="btn-sm btn-success">{% trans "Add activity" %}</a>
             </div>
           </div>
           
           <div class="card-body">
-            {% if advertiser.advertisementactivity_set.exists %}
+            {% if activities %}
+            <table class="table table-bordered table-striped">
+              <tr role="row">
+                <th>{% trans "Type" %}</th>
+                <th>{% trans "Status" %}</th>
+                <th>{% trans "Date" %}</th>
+              </tr>
+              {% for a in activities %}
+                <tr role="row">
+                  <td>{{a.get_type_display}}</td>
+                  <td>{{a.get_status_display}}</td>
+                  <td>{{a.date|date:"d/m/Y H:m"}}</td>
+                </tr>
+              {% endfor %}
+            </table>
             {% else %}
             {% trans "No activities to show" %}
             {% endif %}

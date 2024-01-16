@@ -1,0 +1,33 @@
+{% extends 'adminlte/base.html' %}
+{% load i18n widget_tweaks %}
+
+{% block title %}
+{{advertiser.name}}
+{% endblock title %}
+
+{% block no_heading %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-9"><h1><a href="#">{% trans 'Advertisement' %}</a> &raquo; {% trans "Advertisers" %} &raquo; {{advertiser.name}} &raquo; {% trans "Add activity" %}</h1></div>
+    <div class="col"></div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    <form method="post">
+      {% csrf_token %}
+      <div class="form-group">
+        {{form.as_p}}
+      </div>
+      <div class="text-right">
+        <button class="btn btn-primary" type="submit">{% trans "Save" %}</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}

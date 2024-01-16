@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 
 from django.utils.translation import gettext_lazy as _
 from django.shortcuts import render, get_object_or_404
@@ -8,7 +8,7 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.http import HttpResponseRedirect
 from django.urls import reverse
 
-from advertisement.models import Advertiser, AdvertisementSeller
+from advertisement.models import Advertiser, AdvertisementSeller, AdvertisementActivity
 from advertisement.filters import AdvertiserFilter
 from advertisement.forms import AdvertisementActivityForm
 
@@ -51,19 +51,39 @@ def my_advertisers(request):
     high = seller.advertiser_main_seller.filter(priority="1")
     mid = seller.advertiser_main_seller.filter(priority="2")
     low = seller.advertiser_main_seller.filter(priority__in=["3", None])
-    return render(request, "my_advertisers.html", {"seller": seller, "high": high, "mid": mid, "low": low})
+    upcoming_activities = AdvertisementActivity.objects.filter(
+        advertiser__main_seller=seller, status="P", date__gte=datetime.now()
+    ).order_by("date")
+    overdue_activities = AdvertisementActivity.objects.filter(
+        advertiser__main_seller=seller, status="P", date__lt=datetime.now()
+    ).order_by("date")
+
+    return render(
+        request,
+        "my_advertisers.html",
+        {
+            "seller": seller,
+            "high": high,
+            "mid": mid,
+            "low": low,
+            "upcoming": upcoming_activities,
+            "overdue": overdue_activities,
+        },
+    )
 
 
 @staff_member_required
 def advertiser_detail(request, advertiser_id):
     advertiser_obj = get_object_or_404(Advertiser, pk=advertiser_id)
-    return render(request, "advertiser_detail.html", {"advertiser": advertiser_obj})
+    activities = advertiser_obj.advertisementactivity_set.all().order_by("-date")
+    return render(request, "advertiser_detail.html", {"advertiser": advertiser_obj, "activities": activities})
 
 
 @staff_member_required
 def add_advertisement_activity(request, advertiser_id):
     advertiser_obj = get_object_or_404(Advertiser, pk=advertiser_id)
     if request.POST:
+        print("POST")
         form = AdvertisementActivityForm(request.POST)
         if form.is_valid():
             form.save()
@@ -74,8 +94,9 @@ def add_advertisement_activity(request, advertiser_id):
             seller = AdvertisementSeller.objects.filter(user=request.user)
         form = AdvertisementActivityForm(
             initial={
-                "date": date.today(),
+                "date": datetime.now(),
                 "seller": seller,
+                "advertiser": advertiser_obj,
             }
         )
     return render(request, "add_advertisement_activity.html", {"advertiser": advertiser_obj, "form": form})

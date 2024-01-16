@@ -64,13 +64,13 @@ class Advertiser(models.Model):
         else:
             return None
 
-    def get_latest_pending_activities(self):
+    def get_latest_pending_activity(self):
         if self.advertisementactivity_set.exists():
             return self.get_advertisement_activies("P").latest()
         else:
             return None
 
-    def get_latest_completed_activities(self):
+    def get_latest_completed_activity(self):
         if self.advertisementactivity_set.exists():
             return self.get_advertisement_activies("C").latest()
         else:
@@ -191,7 +191,7 @@ class AdvertisementActivity(models.Model):
         PENDING = "P", _("Pending")
         COMPLETED = "C", _("Completed")
 
-    date_created = models.DateTimeField(_("Creation date"), auto_now=False, auto_now_add=False)
+    date_created = models.DateTimeField(_("Creation date"), auto_now_add=True)
     date = models.DateTimeField(_("Date"), null=True, blank=True)
     advertiser = models.ForeignKey("advertisement.advertiser", verbose_name=_("Advertiser"), on_delete=models.CASCADE)
     direction = models.CharField(choices=Directions.choices, default="O", max_length=1)
