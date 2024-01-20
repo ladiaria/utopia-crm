@@ -2378,8 +2378,6 @@ def partial_unsubscription(request, subscription_id):
                 next_billing=old_subscription.next_billing,
                 frequency=old_subscription.frequency,
                 updated_from=old_subscription,
-                card_id=old_subscription.card_id,
-                customer_id=old_subscription.customer_id,
             )
             for key, value in list(request.POST.items()):
                 if key.startswith("sp"):
@@ -2460,8 +2458,6 @@ def product_change(request, subscription_id):
                 next_billing=old_subscription.next_billing,
                 frequency=old_subscription.frequency,
                 updated_from=old_subscription,
-                card_id=old_subscription.card_id,
-                customer_id=old_subscription.customer_id,
             )
             for key, value in list(request.POST.items()):
                 if key.startswith("sp"):
@@ -2557,8 +2553,6 @@ def book_additional_product(request, subscription_id):
                 next_billing=old_subscription.next_billing,
                 frequency=old_subscription.frequency,
                 updated_from=old_subscription,
-                card_id=old_subscription.card_id,
-                customer_id=old_subscription.customer_id,
             )
             for key, value in list(request.POST.items()):
                 # These are the new products
