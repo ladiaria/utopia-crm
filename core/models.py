@@ -58,7 +58,7 @@ from .choices import (
 from .utils import delete_email_from_mailtrain_list, subscribe_email_to_mailtrain_list, get_emails_from_mailtrain_list
 
 
-regex_alphanumeric = "^[@A-Za-z0-9ñüáéíóúÑÜÁÉÍÓÚ _'.\-]*$"  # noqa
+regex_alphanumeric = r"^[@A-Za-z0-9ñüáéíóúÑÜÁÉÍÓÚ _'.\-]*$"  # noqa
 regex_alphanumeric_msg = _(
     "This name only supports alphanumeric characters, at, apostrophes, spaces, hyphens, underscores, and periods."
 )
@@ -1702,13 +1702,22 @@ class Campaign(models.Model):
     Model that controls sales campaigns, in which sellers can call contacts to offer your product.
     """
 
+    class Priorities(models.IntegerChoices):
+        HIGHEST = 1, _("1 - Highest")
+        HIGH = 2, _("2 - High")
+        MID = 3, _("3 - Mid")
+        LOW = 4, _("4 - Low")
+        LOWEST = 5, _("5 - Lowest")
+
     name = models.CharField(max_length=255, verbose_name=_("name"))
     active = models.BooleanField(default=True)
     description = models.TextField(blank=True, null=True, verbose_name=_("Description"))
     product = models.ForeignKey(Product, null=True, blank=True, on_delete=models.SET_NULL)
     start_date = models.DateField(null=True, blank=True)
     end_date = models.DateField(null=True, blank=True)
-    priority = models.PositiveSmallIntegerField(default=1, blank=True, null=True, verbose_name=_("Priority"))
+    priority = models.PositiveSmallIntegerField(
+        default=3, blank=True, null=True, verbose_name=_("Priority"), choices=Priorities.choices
+    )
     days = models.PositiveSmallIntegerField(default=5, blank=True, null=True)
 
     def __str__(self):
@@ -1732,7 +1741,13 @@ class Campaign(models.Model):
         """
         Returns the ContactCampaignStatus objects for all Contacts that have not been called yet (status=1)
         """
-        return self.contactcampaignstatus_set.filter(seller_id=seller_id, status__in=[1, 3])
+        higher_priority_contacts = Contact.objects.filter(
+            contactcampaignstatus__campaign__priority__lt=self.priority, contactcampaignstatus__campaign__active=True
+        )
+        print(higher_priority_contacts.values('pk'))
+        return self.contactcampaignstatus_set.filter(seller_id=seller_id, status__in=[1, 3]).exclude(
+            contact__id__in=higher_priority_contacts.values('pk')
+        )
 
     def get_not_contacted_count(self, seller_id):
         """
@@ -1759,7 +1774,11 @@ class Campaign(models.Model):
     class Meta:
         verbose_name = _("campaign")
         verbose_name_plural = _("campaigns")
-        ordering = ("name",)
+        ordering = (
+            "-active",
+            "priority",
+            "name",
+        )
 
 
 class Activity(models.Model):

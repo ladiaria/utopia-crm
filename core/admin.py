@@ -337,7 +337,7 @@ class AddressAdmin(SimpleHistoryAdmin, LeafletGeoAdmin):
 
 @admin.register(Campaign)
 class CampaignAdmin(admin.ModelAdmin):
-    list_display = ("name", "start_date", "end_date")
+    list_display = ("name", "start_date", "end_date", "active", "priority")
     list_editable = ("start_date", "end_date")
 
 
