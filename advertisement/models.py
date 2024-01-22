@@ -25,7 +25,7 @@ class Advertiser(models.Model):
     )
     email = models.EmailField(_("Email"), max_length=254, null=True, blank=True)
     phone = models.CharField(_("Phone"), max_length=50, null=True, blank=True)
-    priority = models.CharField(_("Priority"), max_length=2, choices=Priority.choices, default=Priority.MID)
+    priority = models.CharField(_("Importance"), max_length=2, choices=Priority.choices, default=Priority.MID)
 
     # Billing data
     billing_name = models.CharField(_("Billing name"), max_length=50, null=True, blank=True)
@@ -164,6 +164,9 @@ class AdPurchaseOrder(models.Model):
     main_seller = models.ForeignKey(
         "advertisement.advertisementseller", verbose_name=_("Seller"), on_delete=models.CASCADE, blank=True, null=True
     )
+    seller_commission = models.PositiveSmallIntegerField(null=True, blank=True)
+    agency = models.ForeignKey("advertisement.advertiser", null=True, blank=True, verbose_name=_("Agency"), on_delete=models.CASCADE, related_name="ad_order_agency")
+    agency_commission = models.PositiveSmallIntegerField(null=True, blank=True)
 
     class Meta:
         verbose_name = _("Ad purchase order")
