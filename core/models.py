@@ -1742,9 +1742,10 @@ class Campaign(models.Model):
         Returns the ContactCampaignStatus objects for all Contacts that have not been called yet (status=1)
         """
         higher_priority_contacts = Contact.objects.filter(
-            contactcampaignstatus__campaign__priority__lt=self.priority, contactcampaignstatus__campaign__active=True
+            contactcampaignstatus__campaign__priority__lt=self.priority,
+            contactcampaignstatus__campaign__active=True,
+            contactcampaignstatus__status=1,
         )
-        print(higher_priority_contacts.values('pk'))
         return self.contactcampaignstatus_set.filter(seller_id=seller_id, status__in=[1, 3]).exclude(
             contact__id__in=higher_priority_contacts.values('pk')
         )

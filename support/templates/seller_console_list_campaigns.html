@@ -61,6 +61,7 @@
       </thead>
       <tbody>
         {% for campaign in campaigns_with_not_contacted %}
+        {% if not campaign.count == 0 or not campaign.successful == 0 %}
         <tr>
           <td>{{campaign.name}}</td>
           <td>{{campaign.count}}</td>
@@ -68,6 +69,7 @@
           <td>{{campaign.successful}}</td>
           <td><a class="btn btn-primary btn-sm" href="/support/seller_console/new/{{campaign.id}}/"><i class="fas fa-eye"></i> {% trans 'View' %}</a></td>
         </tr>
+        {% endif %}
         {% endfor %}
       </tbody>
     </table>
