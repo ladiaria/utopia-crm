@@ -54,6 +54,7 @@ from .choices import (
     EMAIL_REPLACEMENT_STATUS_CHOICES,
     EMAIL_BOUNCE_ACTIONLOG_CHOICES,
     EMAIL_BOUNCE_ACTION_MAXREACH,
+    FreeSubscriptionRequestedBy,
 )
 from .utils import delete_email_from_mailtrain_list, subscribe_email_to_mailtrain_list, get_emails_from_mailtrain_list
 
@@ -1019,6 +1020,14 @@ class Subscription(models.Model):
     updated_from = models.OneToOneField("core.Subscription", on_delete=models.SET_NULL, blank=True, null=True)
     payment_certificate = models.FileField(upload_to="certificates/", blank=True, null=True)
 
+    free_subscription_requested_by = models.CharField(
+        max_length=2,
+        choices=FreeSubscriptionRequestedBy.choices,
+        null=True,
+        blank=True,
+        verbose_name=_("Free subscription requested by"),
+    )
+
     history = HistoricalRecords()
 
     def __str__(self):
@@ -1695,6 +1704,9 @@ class Subscription(models.Model):
     class Meta:
         verbose_name = _("subscription")
         verbose_name_plural = _("subscriptions")
+        permissions = [
+            ("can_add_free_subscription", _("Can add free subscription"))
+        ]
 
 
 class Campaign(models.Model):
@@ -1753,9 +1765,11 @@ class Campaign(models.Model):
             contactcampaignstatus__status=1,
         ).exclude(pk=self.pk)
 
-        return self.contactcampaignstatus_set.filter(seller_id=seller_id, status__in=[1, 3]).exclude(
-            contact__id__in=higher_priority_contacts.values('pk')
-        ).exclude(contact__id__in=same_priority_contacts.values('pk'))
+        return (
+            self.contactcampaignstatus_set.filter(seller_id=seller_id, status__in=[1, 3])
+            .exclude(contact__id__in=higher_priority_contacts.values('pk'))
+            .exclude(contact__id__in=same_priority_contacts.values('pk'))
+        )
 
     def get_not_contacted_count(self, seller_id):
         """
@@ -1854,6 +1868,7 @@ class Activity(models.Model):
     class Meta:
         verbose_name = _("activity")
         verbose_name_plural = _("activities")
+
 
 
 class ContactProductHistory(models.Model):
