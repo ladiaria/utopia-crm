@@ -486,23 +486,7 @@ def seller_console(request, category, campaign_id):
         else:
             i = 0
             console_instance = console_instances[i]
-        while (
-            Campaign.objects.filter(
-                id__gt=campaign.id,
-                contactcampaignstatus__contact=console_instance.contact,
-                priority=campaign.priority,
-            )
-            .exclude(pk=campaign.id)
-            .exists()
-        ):
-            i += 1
-            try:
-                console_instance = console_instances[i]
-            except IndexError:
-                messages.success(
-                    request, _("You've reached the end of this list due to contacts in newer campaigns")
-                )
-                return HttpResponseRedirect(reverse("seller_console_list_campaigns"))
+
 
         contact = console_instance.contact
         times_contacted = contact.activity_set.filter(activity_type="C", status="C", campaign=campaign).count()
