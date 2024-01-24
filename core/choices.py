@@ -1,4 +1,5 @@
 # coding=utf-8
+from django.db.models import TextChoices
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 
@@ -203,3 +204,11 @@ EMAIL_BOUNCE_ACTIONLOG_CHOICES = (
     (EMAIL_BOUNCE_ACTION_INVALID, _("invalid email")),
     (EMAIL_BOUNCE_ACTION_MAXREACH, _("max bounce reached")),
 )
+
+
+class FreeSubscriptionRequestedBy(TextChoices):
+    HR = "HR", _("Human resources")
+    ADVERTISEMENT = "AD", _("Advertisement")
+    MANAGEMENT = "MA", _("Management")
+    JOURNALISM_DIRECTOR = "JD", _("Journalism direction")
+    PROMOTION = "PR", _("Promotion")
