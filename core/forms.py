@@ -193,11 +193,23 @@ class SubscriptionAdminForm(forms.ModelForm):
     def clean(self):
         cleaned_data = super().clean()
         user = self.request.user
+        subscription_type = cleaned_data.get('type')
+        free_subscription_requested_by = cleaned_data.get('free_subscription_requested_by')
+        end_date = cleaned_data.get('end_date')
         if not user.has_perm('core.can_add_free_subscription'):
-            subscription_type = cleaned_data.get('type')
             original_type = self.instance.type if self.instance else None
             if subscription_type in ("F", "S") and original_type != subscription_type:
                 self.add_error("type", _("You don't have permission to set this subscription as free"))
+        if subscription_type in ("F", "S") and not free_subscription_requested_by:
+            self.add_error(
+                "free_subscription_requested_by",
+                _("You need to select who requested the subscription if it's free")
+            )
+        if subscription_type in ("F", "S") and not end_date:
+            self.add_error(
+                "end_date",
+                _("Free subscriptions must have an end date")
+            )
         return cleaned_data
 
     def __init__(self, *args, **kwargs):
