@@ -129,6 +129,13 @@ class SubscriptionAdmin(SimpleHistoryAdmin):
     model = Subscription
     inlines = [SubscriptionProductInline]
     form = SubscriptionAdminForm
+
+    def get_form(self, request, obj=None, **kwargs):
+        # Store the request as an attribute of the form
+        form = super().get_form(request, obj, **kwargs)
+        form.request = request
+        return form
+
     fieldsets = (
         ("Contact data", {"fields": ("contact",)}),
         (
@@ -142,6 +149,7 @@ class SubscriptionAdmin(SimpleHistoryAdmin):
                     ("status", "send_bill_copy_by_email", "send_pdf"),
                     ("payment_certificate"),
                     ("updated_from", "campaign"),
+                    ("free_subscription_requested_by"),
                 )
             },
         ),
@@ -240,12 +248,13 @@ class ContactAdmin(SimpleHistoryAdmin):
                     "protected",
                     "protection_reason",
                     "notes",
+                    "institution",
                 ),
             },
         ),
     )
     list_display = ("id", "name", "id_document", "subtype", "tag_list")
-    raw_id_fields = ("subtype", "referrer")  # TODO: add "occupation" after its name got fixed from single "c" to "cc"
+    raw_id_fields = ("subtype", "referrer", "institution")  # TODO: add "occupation" after its name got fixed from single "c" to "cc"
     list_filter = ("subtype", TaggitListFilter)
     ordering = ("id", )
 
@@ -337,7 +346,7 @@ class AddressAdmin(SimpleHistoryAdmin, LeafletGeoAdmin):
 
 @admin.register(Campaign)
 class CampaignAdmin(admin.ModelAdmin):
-    list_display = ("name", "start_date", "end_date")
+    list_display = ("name", "start_date", "end_date", "active", "priority")
     list_editable = ("start_date", "end_date")
 
 

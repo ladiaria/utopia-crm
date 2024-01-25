@@ -481,9 +481,12 @@ def seller_console(request, category, campaign_id):
                 messages.error(request, _("An error has occurred with activity number {}".format(activity_id)))
                 return HttpResponseRedirect(reverse("seller_console_list_campaigns"))
         elif offset - 1 > 0:
-            console_instance = console_instances[int(offset) - 1]
+            i = offset
+            console_instance = console_instances[int(i) - 1]
         else:
-            console_instance = console_instances[0]
+            i = 0
+            console_instance = console_instances[i]
+
 
         contact = console_instance.contact
         times_contacted = contact.activity_set.filter(activity_type="C", status="C", campaign=campaign).count()
@@ -805,7 +808,6 @@ def new_subscription(request, contact_id):
                     form.add_error(None, ve)
 
             if not form.errors:
-
                 if upgrade_subscription:
                     # We will end the old subscription here.
                     form_subscription.end_date = form.cleaned_data["start_date"]
@@ -2596,9 +2598,7 @@ def book_additional_product(request, subscription_id):
             old_subscription.unsubscription_manager = request.user
             old_subscription.save()
             new_sub_url = reverse("new_subscription", args=[old_subscription.contact.id])
-            return HttpResponseRedirect(
-                f"{new_sub_url}?edit_subscription={new_subscription.id}"
-            )
+            return HttpResponseRedirect(f"{new_sub_url}?edit_subscription={new_subscription.id}")
     else:
         if old_subscription.end_date:
             messages.warning(request, _("WARNING: This subscription already has an end date"))
@@ -2862,9 +2862,8 @@ def unsubscription_statistics(request):
     unsubscriptions_filter = UnsubscribedSubscriptionsByEndDateFilter(request.GET, queryset=unsubscriptions_queryset)
 
     executed_unsubscriptions_requested = (
-        unsubscriptions_filter.qs.filter(
-            end_date__lte=date.today()
-        ).exclude(unsubscription_reason=settings.UNSUBSCRIPTION_OVERDUE_REASON)
+        unsubscriptions_filter.qs.filter(end_date__lte=date.today())
+        .exclude(unsubscription_reason=settings.UNSUBSCRIPTION_OVERDUE_REASON)
         .values("unsubscription_products__name")
         .annotate(total=Count("unsubscription_products"))
         .order_by("unsubscription_products__billing_priority", "unsubscription_products__name")
@@ -2872,8 +2871,7 @@ def unsubscription_statistics(request):
 
     executed_unsubscriptions_not_requested = (
         unsubscriptions_filter.qs.filter(
-            end_date__lte=date.today(),
-            unsubscription_reason=settings.UNSUBSCRIPTION_OVERDUE_REASON
+            end_date__lte=date.today(), unsubscription_reason=settings.UNSUBSCRIPTION_OVERDUE_REASON
         )
         .values("unsubscription_products__name")
         .annotate(total=Count("unsubscription_products"))
@@ -2881,9 +2879,8 @@ def unsubscription_statistics(request):
     )
 
     programmed_unsubscriptions_requested = (
-        unsubscriptions_filter.qs.filter(
-            end_date__gt=date.today()
-        ).exclude(unsubscription_reason=settings.UNSUBSCRIPTION_OVERDUE_REASON)
+        unsubscriptions_filter.qs.filter(end_date__gt=date.today())
+        .exclude(unsubscription_reason=settings.UNSUBSCRIPTION_OVERDUE_REASON)
         .values("unsubscription_products__name")
         .annotate(total=Count("unsubscription_products"))
         .order_by("unsubscription_products__billing_priority", "unsubscription_products__name")
@@ -3193,11 +3190,5 @@ def not_contacted_campaign(request, campaign_id):
     ]
     writer.writerow(header)
     for c in contacts.order_by('id'):
-        writer.writerow([
-            c.id,
-            c.name,
-            c.email,
-            c.phone,
-            c.mobile
-        ])
+        writer.writerow([c.id, c.name, c.email, c.phone, c.mobile])
     return response
