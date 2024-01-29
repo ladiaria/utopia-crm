@@ -4,7 +4,7 @@
 {% trans "Advertisers" %}
 
 {% block no_heading %}
-<h1><a href="#">{% trans 'Advertisement' %}</a> &raquo; {% trans "Advertisers for" %} {{seller}}</h1>
+<h1><a href="{% url 'advertiser_list' %}">{% trans "All advertisers" %}</a> &raquo; {% trans "Advertisers for" %} {{seller}}</h1>
 <p>{% trans 'Manage my advertisers' %}</p>
 {% endblock %}
 
@@ -66,7 +66,7 @@
                 <tr role="row">
                   <td>{{a.name}}</td>
                   <td>{{a.get_latest_completed_activity.date|date:"d/m/Y H:m"}}</td>
-                  <th>Placeholder</th>
+                  <td><a class="btn-sm btn-primary" href="{% url 'advertiser_detail' a.id %}">{% trans "Go" %}</a> <a class="btn-sm btn-primary" href="{% url "admin:advertisement_advertiser_change" a.id %}" target="_blank">{% trans "Edit" %}</a></td>
                 </tr>
                 {% endfor %}
               </tbody>
@@ -95,7 +95,7 @@
                 <tr role="row">
                   <td>{{a.name}}</td>
                   <td>{{a.get_latest_completed_activity.date|date:"d/m/Y H:m"}}</td>
-                  <th>Placeholder</th>
+                  <td><a class="btn-sm btn-primary" href="{% url 'advertiser_detail' a.id %}">{% trans "Go" %}</a> <a class="btn-sm btn-primary" href="{% url "admin:advertisement_advertiser_change" a.id %}" target="_blank">{% trans "Edit" %}</a></td>
                 </tr>
                 {% endfor %}
               </tbody>
