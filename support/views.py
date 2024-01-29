@@ -137,6 +137,9 @@ def import_contacts(request):
             reader = csv_sreader(request.FILES["file"].read().decode("utf-8"))
             # consume header
             next(reader)
+        except UnicodeDecodeError:
+            messages.error(request, _("The file is not compatible. Check that the encoding is UTF-8"))
+            return HttpResponseRedirect(reverse("import_contacts"))
         except csv.Error:
             messages.error(request, _("No delimiters found in csv file. Please check the delimiters for csv files."))
             return HttpResponseRedirect(reverse("import_contacts"))
