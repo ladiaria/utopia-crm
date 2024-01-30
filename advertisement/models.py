@@ -77,6 +77,11 @@ class Advertiser(models.Model):
 
 
 class Agency(models.Model):
+    class Priority(models.TextChoices):
+        HIGH = "1", _("High")
+        MID = "2", _("Mid")
+        LOW = "3", _("Low")
+
     name = models.CharField(_("Name"), max_length=100)
     agency_contact = models.ForeignKey(
         "core.Contact", verbose_name=_("Main contact"), on_delete=models.CASCADE, null=True, blank=True
@@ -84,6 +89,7 @@ class Agency(models.Model):
     other_contacts = models.ManyToManyField(
         "core.Contact", verbose_name=_("Other contacts"), related_name="other_agencies", blank=True
     )
+    priority = models.CharField(_("Importance"), max_length=2, choices=Priority.choices, default=Priority.MID)
     email = models.EmailField(_("Email"), max_length=254, null=True, blank=True)
     phone = models.CharField(_("Phone"), max_length=50, null=True, blank=True)
 
@@ -174,23 +180,14 @@ class AdPurchaseOrder(models.Model):
 
     # Option 1: Bill to existing advertiser (IE: Agency)
     bill_to = models.ForeignKey(
-        "advertisement.advertiser",
-        verbose_name=_("Bill to advertiser"),
-        on_delete=models.CASCADE,
+        "advertisement.agency",
+        verbose_name=_("Bill to agency"),
+        on_delete=models.SET_NULL,
         blank=True,
         null=True,
-        related_name="billing_advertiser",
+        related_name="billing_agency",
     )
 
-    # Option 2: Bill manually
-    billing_name = models.CharField(_("Billing name"), max_length=50, null=True, blank=True)
-    billing_id_document = models.CharField(_("Billing ID document"), max_length=20, blank=True, null=True)
-    utr = models.CharField(_("Unique taxpayer reference"), max_length=50, blank=True, null=True)
-    billing_phone = models.CharField(_("Billing phone"), max_length=50, null=True, blank=True)
-    billing_address = models.ForeignKey(
-        "core.Address", verbose_name=_("Billing address"), on_delete=models.CASCADE, blank=True, null=True
-    )
-    billing_email = models.EmailField(_("Billing email field"), max_length=254, null=True, blank=True)
     seller = models.ForeignKey(
         "advertisement.advertisementseller", verbose_name=_("Seller"), on_delete=models.CASCADE, blank=True, null=True
     )

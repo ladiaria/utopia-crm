@@ -26,7 +26,7 @@ class AdInline(admin.StackedInline):
 @admin.register(AdPurchaseOrder)
 class AdPurchaseOrderAdmin(admin.ModelAdmin):
     inlines = [AdInline]
-    raw_id_fields = ("advertiser", "bill_to", "billing_address", "seller")
+    raw_id_fields = ("advertiser", "bill_to", "seller")
 
 
 admin.site.register(AdType)
