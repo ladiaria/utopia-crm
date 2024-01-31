@@ -11,4 +11,5 @@ urlpatterns = [
         name="add_advertisement_activity",
     ),
     path("my_advertisers/", views.my_advertisers, name="my_advertisers"),
+    path("advertisers/add/", views.add_advertiser, name="add_advertiser"),
 ]

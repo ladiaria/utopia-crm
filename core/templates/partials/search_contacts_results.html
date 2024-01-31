@@ -1,0 +1,7 @@
+{% load static i18n %}
+<label for="contact_id">{% trans "Select contact" %}:</label>
+<select id="contact_id" name="contact" class="form-control">
+  {% for contact in contacts %}
+    <option value="{{contact.id}}">{{contact.id}} - {{contact.name}}</option>
+  {% endfor %}
+</select>

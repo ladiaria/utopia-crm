@@ -10,6 +10,7 @@ from django.contrib.auth.decorators import login_required
 from django.conf.urls import handler404
 from django.conf.urls import handler403
 from django.conf.urls import handler500
+from core import views
 
 # from core.views import updateuserfromweb, createinvoicefromweb
 
@@ -33,6 +34,11 @@ urlpatterns += [
     path('admin/doc/', include('django.contrib.admindocs.urls')),
     re_path(r'^admin/', admin.site.urls),
     path('', login_required(TemplateView.as_view(template_name='main_menu.html')), name="main_menu"),
+]
+
+# Core views
+urlpatterns += [
+    path('api/search_contacts/', views.search_contacts_htmx, name="htmx_search_contacts"),
 ]
 
 if 'support' in settings.INSTALLED_APPS:

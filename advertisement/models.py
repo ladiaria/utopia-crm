@@ -52,7 +52,7 @@ class Advertiser(models.Model):
         return self.name
 
     def get_absolute_url(self):
-        return reverse("Advertiser_detail", kwargs={"pk": self.pk})
+        return reverse("advertiser_detail", kwargs={"pk": self.pk})
 
     def get_advertisement_activies(self, status=None):
         if self.advertisementactivity_set.exists():

@@ -10,7 +10,7 @@ from django.urls import reverse
 
 from advertisement.models import Advertiser, AdvertisementSeller, AdvertisementActivity
 from advertisement.filters import AdvertiserFilter
-from advertisement.forms import AdvertisementActivityForm
+from advertisement.forms import AdvertisementActivityForm, AddAdvertiserForm
 
 
 @staff_member_required
@@ -100,3 +100,7 @@ def add_advertisement_activity(request, advertiser_id):
             }
         )
     return render(request, "add_advertisement_activity.html", {"advertiser": advertiser_obj, "form": form})
+
+def add_advertiser(request):
+    form = AddAdvertiserForm()
+    return render(request, "add_edit_advertiser.html", {"form": form})

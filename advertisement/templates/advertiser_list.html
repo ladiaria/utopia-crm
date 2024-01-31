@@ -25,8 +25,15 @@
 {% endblock title %}
 
 {% block no_heading %}
-<h1><a href="{% url 'advertiser_list' %}">{% trans "All advertisers" %}</a></h1>
-<p>{% trans 'Manage all advertisers in the database.' %}</p>
+<div class="row">
+  <div class="col">
+    <h1><a href="{% url 'advertiser_list' %}">{% trans "All advertisers" %}</a></h1>
+    <p>{% trans 'Manage all advertisers in the database.' %}</p>
+  </div>
+  <div class="col text-right">
+    <a href="{% url 'add_advertiser' %}" class="btn btn-primary">{% trans "Add advertiser" %}</a>
+  </div>
+</div>
 {% endblock %}
 
 {% block content %}
