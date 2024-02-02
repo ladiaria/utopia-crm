@@ -21,7 +21,7 @@ def handler500(request):
 @login_required
 def search_contacts_htmx(request):
     """
-    View to handle asynchronous contact search requests.
+    View to handle asynchronous contact search requests, to be used with HTMX.
 
     Args:
     - `request`: Django HttpRequest object.
@@ -29,12 +29,14 @@ def search_contacts_htmx(request):
     Expected GET Parameters:
     - `q` (optional): Search term for filtering contacts.
     - `user_id` (optional): User ID to filter contacts by user (current user by default).
+
+    Returns an html with a select dropdown with the filtered contacts with a limit of 100 results.
     """
-    from icecream import ic
-    ic(request.GET)
     if request.GET:
         q = request.GET.get("contact_id")
         contacts = get_list_or_404(Contact, pk__icontains=q)
+        # limit this only to the first 100 results
+        contacts = contacts[:100]
         context = {'contacts': contacts}
         return render(request, "partials/search_contacts_results.html", context)
     else:

@@ -6,7 +6,8 @@ from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.http import HttpResponseRedirect
-from django.urls import reverse
+from django.urls import reverse, reverse_lazy
+from django.views.generic.edit import CreateView, UpdateView
 
 from advertisement.models import Advertiser, AdvertisementSeller, AdvertisementActivity
 from advertisement.filters import AdvertiserFilter
@@ -101,6 +102,46 @@ def add_advertisement_activity(request, advertiser_id):
         )
     return render(request, "add_advertisement_activity.html", {"advertiser": advertiser_obj, "form": form})
 
-def add_advertiser(request):
-    form = AddAdvertiserForm()
-    return render(request, "add_edit_advertiser.html", {"form": form})
+
+class AdvertiserAddView(CreateView):
+    model = Advertiser
+    form_class = AddAdvertiserForm
+    template_name = "add_edit_advertiser.html"
+    success_url = reverse_lazy("advertiser_list")
+    success_message = _("Advertiser has been added")
+
+    def get_success_url(self):
+        # Redirect to the detail view of the newly created object
+        return reverse_lazy('advertiser_detail', kwargs={'advertiser_id': self.object.pk})
+
+    def form_valid(self, form):
+        messages.success(self.request, self.success_message)
+        return super().form_valid(form)
+
+    def form_invalid(self, form):
+        messages.error(self.request, _("There was an error"))
+        return super().form_invalid(form)
+
+
+class AdvertiserEditView(UpdateView):
+    model = Advertiser
+    form_class = AddAdvertiserForm
+    template_name = "add_edit_advertiser.html"
+    success_url = reverse_lazy("advertiser_list")
+    success_message = _("Advertiser has been updated")
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["advertiser"] = self.object
+        if self.object.main_contact:
+            context["main_contact"] = self.object.main_contact
+        return context
+
+    def form_valid(self, form):
+        messages.success(self.request, self.success_message)
+        self.success_url = reverse("advertiser_detail", args=[form.instance.id])
+        return super().form_valid(form)
+
+    def form_invalid(self, form):
+        messages.error(self.request, _("There was an error: %(error_message)s") % {"error_message": form.errors})
+        return super().form_invalid(form)

@@ -11,5 +11,7 @@ urlpatterns = [
         name="add_advertisement_activity",
     ),
     path("my_advertisers/", views.my_advertisers, name="my_advertisers"),
-    path("advertisers/add/", views.add_advertiser, name="add_advertiser"),
+    # path("advertisers/add/", views.add_advertiser, name="add_advertiser"),
+    path("advertisers/add/", views.AdvertiserAddView.as_view(), name="add_advertiser"),
+    path("advertisers/<int:pk>/edit/", views.AdvertiserEditView.as_view(), name="edit_advertiser"),
 ]

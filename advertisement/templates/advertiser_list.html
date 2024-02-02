@@ -92,7 +92,11 @@
               <td>{{advertiser.name}}</td>
               <td>{{advertiser.email|default_if_none:""}}</td>
               <td>{{advertiser.phone|default_if_none:""}}</td>
+              {% if advertiser.main_contact %}
               <td><a href="{% url 'contact_detail' advertiser.main_contact.id %}" target="_blank">{{advertiser.main_contact.name}}</a></td>
+              {% else %}
+              <td>-</td>
+              {% endif %}
               <td>{{advertiser.main_seller|default_if_none:""}}</td>
               <td>{{advertiser.get_priority_display}}</td>
               <td><a class="btn-sm btn-primary" href="{% url 'advertiser_detail' advertiser.id %}">{% trans "Go" %}</a> <a class="btn-sm btn-primary" href="{% url "admin:advertisement_advertiser_change" advertiser.id %}" target="_blank">{% trans "Edit" %}</a></td>

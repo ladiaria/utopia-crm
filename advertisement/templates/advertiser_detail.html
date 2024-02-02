@@ -11,7 +11,7 @@
     <div class="col-9"><h1><a href="{% url 'advertiser_list' %}">{% trans "All advertisers" %}</a> &raquo; {{advertiser.name}}</h1></div>
     <div class="col"></div>
     <div class="text-right col">
-      <a href="{% url 'admin:advertisement_advertiser_change' advertiser.id %}" target="_blank" class="btn btn-primary">{% trans "Edit info" %}</a>
+      <a href="{% url 'edit_advertiser' advertiser.id %}" class="btn btn-primary">{% trans "Edit info" %}</a>
     </div>
   </div>
 </div>

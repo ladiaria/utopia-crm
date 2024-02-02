@@ -5,12 +5,12 @@ from .models import Advertiser, AdvertisementActivity, AdvertisementSeller, AdPu
 
 @admin.register(Advertiser)
 class AdvertiserAdmin(admin.ModelAdmin):
-    raw_id_fields = ("main_contact", "other_contacts", "billing_address", "main_seller")
+    raw_id_fields = ("main_contact", "other_contacts", "main_seller")
 
 
 @admin.register(Agency)
 class AgencyAdmin(admin.ModelAdmin):
-    raw_id_fields = ("agency_contact", "other_contacts", "billing_address", "main_seller")
+    raw_id_fields = ("agency_contact", "other_contacts", "main_seller")
 
 
 @admin.register(AdvertisementActivity)

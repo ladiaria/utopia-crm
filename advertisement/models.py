@@ -31,9 +31,7 @@ class Advertiser(models.Model):
     billing_id_document = models.CharField(_("Billing ID document"), max_length=20, blank=True, null=True)
     utr = models.CharField(_("Unique taxpayer reference"), max_length=50, blank=True, null=True)
     billing_phone = models.CharField(_("Billing phone"), max_length=50, null=True, blank=True)
-    billing_address = models.ForeignKey(
-        "core.Address", verbose_name=_("Billing address"), on_delete=models.CASCADE, blank=True, null=True
-    )
+    billing_address = models.CharField(_("Billing address"), max_length=50, null=True, blank=True)
     billing_email = models.EmailField(_("Billing email field"), max_length=254, null=True, blank=True)
     main_seller = models.ForeignKey(
         "advertisement.advertisementseller",
@@ -98,9 +96,7 @@ class Agency(models.Model):
     billing_id_document = models.CharField(_("Billing ID document"), max_length=20, blank=True, null=True)
     utr = models.CharField(_("Unique taxpayer reference"), max_length=50, blank=True, null=True)
     billing_phone = models.CharField(_("Billing phone"), max_length=50, null=True, blank=True)
-    billing_address = models.ForeignKey(
-        "core.Address", verbose_name=_("Billing address"), on_delete=models.CASCADE, blank=True, null=True
-    )
+    billing_address = models.CharField(_("Billing address"), max_length=50, null=True, blank=True)
     billing_email = models.EmailField(_("Billing email field"), max_length=254, null=True, blank=True)
     main_seller = models.ForeignKey(
         "advertisement.advertisementseller",
