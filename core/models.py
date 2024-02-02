@@ -15,6 +15,7 @@ from django.forms import ValidationError
 from django.utils.translation import gettext_lazy as _
 from django_extensions.db.fields import AutoSlugField
 from django.utils.html import mark_safe
+from django.urls import reverse
 
 from taggit.managers import TaggableManager
 from simple_history.models import HistoricalRecords
@@ -278,6 +279,9 @@ class Contact(models.Model):
 
     def __str__(self):
         return self.name
+
+    def get_absolute_url(self):
+        return reverse('contact_detail', args=[str(self.id)])
 
     def clean(self, debug=False):
         email = self.email
