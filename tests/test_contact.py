@@ -95,7 +95,9 @@ class TestCoreContact(TestCase):
         response = contact.add_to_campaign(campaign.id)
 
         # This command returns a text, we have to see if the text has been correctly returned
-        self.assertEqual(response, _("Contact %s (ID: %s) added to campaign") % (contact.name, contact.id))
+        self.assertEqual(
+            response, _("Contact %(name)s (ID: %(id)s) added to campaign") % {'name': contact.name, 'id': contact.id}
+        )
 
         # We have to check if a ContactCampaignStatus with campaign.id and contact.id exists
         self.assertTrue(ContactCampaignStatus.objects.filter(contact=contact, campaign=campaign).exists())
