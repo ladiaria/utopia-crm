@@ -10,7 +10,7 @@ class AdvertiserAdmin(admin.ModelAdmin):
 
 @admin.register(Agency)
 class AgencyAdmin(admin.ModelAdmin):
-    raw_id_fields = ("agency_contact", "other_contacts", "main_seller")
+    raw_id_fields = ("main_contact", "other_contacts", "main_seller")
 
 
 @admin.register(AdvertisementActivity)

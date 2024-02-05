@@ -45,6 +45,7 @@
 {% url "tag_contacts" as tag_contacts %}
 {% url "mass_georef_address" as mass_georef_address %}
 {% url "advertiser_list" as advertiser_list %}
+{% url "agency_list" as agency_list %}
 {% url "my_advertisers" as my_advertisers %}
 
 <li class="nav-item">
@@ -147,6 +148,8 @@
   <ul class="nav nav-treeview">
     <li class="nav-item"><a href="{{my_advertisers}}" class="nav-link {% if request.path == my_advertisers %}active{% endif %}">{% trans 'My advertisers' %}</a></li>
     <li class="nav-item"><a href="{{advertiser_list}}" class="nav-link {% if request.path == advertiser_list %}active{% endif %}">{% trans 'List advertisers' %}</a></li>
+    <li class="nav-item"><a href="{{agency_list}}" class="nav-link {% if request.path == agency_list %}active{% endif %}">{% trans "List agencies" %}</a></li>
+    {% include_if_exists "advertisement_sidebar_extra.html" %}
   </ul>
 </li>
 {% endif %}

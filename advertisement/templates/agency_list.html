@@ -21,17 +21,17 @@
 {% endblock %}
 
 {% block title %}
-{% trans "Advertisers" %}
+{% trans "Agencies" %}
 {% endblock title %}
 
 {% block no_heading %}
 <div class="row">
   <div class="col">
-    <h1><a href="{% url 'advertiser_list' %}">{% trans "All advertisers" %}</a></h1>
-    <p>{% trans 'Manage all advertisers in the database.' %}</p>
+    <h1><a href="{% url 'agency_list' %}">{% trans "All agencies" %}</a></h1>
+    <p>{% trans 'Manage all agencies in the database.' %}</p>
   </div>
   <div class="col text-right">
-    <a href="{% url 'add_advertiser' %}" class="btn btn-primary">{% trans "Add advertiser" %}</a>
+    <a href="{% url 'add_agency' %}" class="btn btn-primary">{% trans "Add agency" %}</a>
   </div>
 </div>
 {% endblock %}
@@ -73,7 +73,7 @@
   <div class="col-md-12">
     <div class="card">
       <div class="card-body">
-        <h3>{% trans "All advertisers" %}</h3>
+        <h3>{% trans "All agencies" %}</h3>
         <table id="table1" class="table table-bordered table-striped">
           <thead>
             <tr role="row">
@@ -87,19 +87,19 @@
             </tr>
           </thead>
           <tbody>
-            {% for advertiser in object_list %}
+            {% for agency in object_list %}
             <tr role="row">
-              <td>{{advertiser.name}}</td>
-              <td>{{advertiser.email|default_if_none:""}}</td>
-              <td>{{advertiser.phone|default_if_none:""}}</td>
-              {% if advertiser.main_contact %}
-              <td><a href="{% url 'contact_detail' advertiser.main_contact.id %}" target="_blank">{{advertiser.main_contact.name}}</a></td>
+              <td>{{agency.name}}</td>
+              <td>{{agency.email|default_if_none:""}}</td>
+              <td>{{agency.phone|default_if_none:""}}</td>
+              {% if agency.main_contact %}
+              <td><a href="{% url 'contact_detail' agency.main_contact.id %}" target="_blank">{{agency.main_contact.name}}</a></td>
               {% else %}
               <td>-</td>
               {% endif %}
-              <td>{{advertiser.main_seller|default_if_none:""}}</td>
-              <td>{{advertiser.get_priority_display}}</td>
-              <td><a class="btn-sm btn-primary" href="{% url 'advertiser_detail' advertiser.id %}">{% trans "Go" %}</a> <a class="btn-sm btn-primary" href="{% url "admin:advertisement_advertiser_change" advertiser.id %}" target="_blank">{% trans "Edit" %}</a></td>
+              <td>{{agency.main_seller|default_if_none:""}}</td>
+              <td>{{agency.get_priority_display}}</td>
+              <td><a class="btn-sm btn-primary" href="{% url 'agency_detail' agency.id %}">{% trans "Go" %}</a> <a class="btn-sm btn-primary" href="{% url "admin:advertisement_agency_change" agency.id %}" target="_blank">{% trans "Edit" %}</a></td>
             </tr>
             {% endfor %}
           </tbody>

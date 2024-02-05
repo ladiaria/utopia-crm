@@ -4,43 +4,40 @@ from django.utils.translation import gettext_lazy as _
 from django.shortcuts import render, get_object_or_404
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
-from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.http import HttpResponseRedirect
 from django.urls import reverse, reverse_lazy
 from django.views.generic.edit import CreateView, UpdateView
+from django.views.generic import DetailView
+from django.utils.decorators import method_decorator
+from django_filters.views import FilterView
 
-from advertisement.models import Advertiser, AdvertisementSeller, AdvertisementActivity
+from advertisement.models import Advertiser, AdvertisementSeller, AdvertisementActivity, Agency
 from advertisement.filters import AdvertiserFilter
-from advertisement.forms import AdvertisementActivityForm, AddAdvertiserForm
+from advertisement.forms import AdvertisementActivityForm, AddAdvertiserForm, AddAgencyForm
+
+from icecream import ic
 
 
-@staff_member_required
-def advertiser_list(request):
-    """Shows a very simple advertiser list."""
-    page = request.GET.get("p")
-    advertiser_qs = Advertiser.objects.all().order_by("priority", "-id")
-    contact_filter = AdvertiserFilter(request.GET, queryset=advertiser_qs)
-    paginator = Paginator(contact_filter.qs, 50)
-    try:
-        advertisers = paginator.page(page)
-    except PageNotAnInteger:
-        # If page is not an integer, deliver first page.
-        advertisers = paginator.page(1)
-    except EmptyPage:
-        # If page is out of range (e.g. 9999), deliver last page of results.
-        advertisers = paginator.page(paginator.num_pages)
-    return render(
-        request,
-        "advertiser_list.html",
-        {
-            "paginator": paginator,
-            "advertisers": advertisers,
-            "page": page,
-            "total_pages": paginator.num_pages,
-            "filter": contact_filter,
-            "count": contact_filter.qs.count(),
-        },
-    )
+@method_decorator(staff_member_required, name='dispatch')
+class AdvertiserFilterView(FilterView):
+    model = Advertiser
+    template_name = "advertiser_list.html"
+    paginate_by = 50
+    filterset_class = AdvertiserFilter
+
+    def get_queryset(self):
+        return Advertiser.objects.all().order_by("priority", "-id")
+
+
+@method_decorator(staff_member_required, name='dispatch')
+class AgencyFilterView(FilterView):
+    model = Agency
+    template_name = "agency_list.html"
+    paginate_by = 50
+    filterset_class = AdvertiserFilter
+
+    def get_queryset(self):
+        return Agency.objects.all().order_by("priority", "-id")
 
 
 @staff_member_required
@@ -74,13 +71,6 @@ def my_advertisers(request):
 
 
 @staff_member_required
-def advertiser_detail(request, advertiser_id):
-    advertiser_obj = get_object_or_404(Advertiser, pk=advertiser_id)
-    activities = advertiser_obj.advertisementactivity_set.all().order_by("-date")
-    return render(request, "advertiser_detail.html", {"advertiser": advertiser_obj, "activities": activities})
-
-
-@staff_member_required
 def add_advertisement_activity(request, advertiser_id):
     advertiser_obj = get_object_or_404(Advertiser, pk=advertiser_id)
     if request.POST:
@@ -103,6 +93,7 @@ def add_advertisement_activity(request, advertiser_id):
     return render(request, "add_advertisement_activity.html", {"advertiser": advertiser_obj, "form": form})
 
 
+@method_decorator(staff_member_required, name='dispatch')
 class AdvertiserAddView(CreateView):
     model = Advertiser
     form_class = AddAdvertiserForm
@@ -123,6 +114,7 @@ class AdvertiserAddView(CreateView):
         return super().form_invalid(form)
 
 
+@method_decorator(staff_member_required, name='dispatch')
 class AdvertiserEditView(UpdateView):
     model = Advertiser
     form_class = AddAdvertiserForm
@@ -145,3 +137,74 @@ class AdvertiserEditView(UpdateView):
     def form_invalid(self, form):
         messages.error(self.request, _("There was an error: %(error_message)s") % {"error_message": form.errors})
         return super().form_invalid(form)
+
+
+@method_decorator(staff_member_required, name='dispatch')
+class AdvertiserDetailView(DetailView):
+    model = Advertiser
+    template_name = "advertiser_detail.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["activities"] = self.object.advertisementactivity_set.all().order_by("-date")
+        return context
+
+
+@method_decorator(staff_member_required, name='dispatch')
+class AgencyAddView(CreateView):
+    model = Agency
+    form_class = AddAgencyForm
+    template_name = "add_edit_agency.html"
+    success_url = reverse_lazy("agency_list")
+    success_message = _("Agency has been added")
+
+    def get_success_url(self):
+        # Redirect to the detail view of the newly created object
+        return reverse_lazy('agency_detail', kwargs={'pk': self.object.pk})
+
+    def form_valid(self, form):
+        messages.success(self.request, self.success_message)
+        return super().form_valid(form)
+
+    def form_invalid(self, form):
+        messages.error(self.request, _("There was an error"))
+        return super().form_invalid(form)
+
+
+@method_decorator(staff_member_required, name='dispatch')
+class AgencyEditView(UpdateView):
+    model = Agency
+    form_class = AddAgencyForm
+    template_name = "add_edit_agency.html"
+    success_url = reverse_lazy("agency_list")
+    success_message = _("Agency has been updated")
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["agency"] = self.object
+        if self.object.main_contact:
+            context["main_contact"] = self.object.main_contact
+        return context
+
+    def form_valid(self, form):
+        messages.success(self.request, self.success_message)
+        self.success_url = reverse("agency_detail", args=[form.instance.id])
+        if self.request.POST.get("contact", None):
+            form.cleaned_data["main_contact"] = self.request.POST.get("contact")
+            form.save()
+        return super().form_valid(form)
+
+    def form_invalid(self, form):
+        messages.error(self.request, _("There was an error: %(error_message)s") % {"error_message": form.errors})
+        return super().form_invalid(form)
+
+
+@method_decorator(staff_member_required, name='dispatch')
+class AgencyDetailView(DetailView):
+    model = Agency
+    template_name = "agency_detail.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["activities"] = self.object.advertisementactivity_set.all().order_by("-date")
+        return context

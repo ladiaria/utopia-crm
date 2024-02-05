@@ -81,8 +81,13 @@ class Agency(models.Model):
         LOW = "3", _("Low")
 
     name = models.CharField(_("Name"), max_length=100)
-    agency_contact = models.ForeignKey(
-        "core.Contact", verbose_name=_("Main contact"), on_delete=models.CASCADE, null=True, blank=True
+    main_contact = models.ForeignKey(
+        "core.Contact",
+        verbose_name=_("Main contact"),
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="agency_main_contact",
     )
     other_contacts = models.ManyToManyField(
         "core.Contact", verbose_name=_("Other contacts"), related_name="other_agencies", blank=True
@@ -256,3 +261,19 @@ class AdvertisementActivity(models.Model):
 
     def get_absolute_url(self):
         return reverse("AdvertisementActivity_detail", kwargs={"pk": self.pk})
+
+
+class Agent(models.Model):
+    # This model is used to store the relationship between an agency, an advertiser and a contact
+
+    agency = models.ForeignKey("advertisement.agency", on_delete=models.CASCADE)
+    advertiser = models.ForeignKey("advertisement.advertiser", on_delete=models.CASCADE)
+    contact = models.ForeignKey("core.Contact", on_delete=models.CASCADE)
+    email = models.EmailField(_("Email"), max_length=254, null=True, blank=True)
+
+    class Meta:
+        verbose_name = _("Agent")
+        verbose_name_plural = _("Agents")
+
+    def __str__(self):
+        return f"{self.contact} - {self.agency} - {self.advertiser}"
