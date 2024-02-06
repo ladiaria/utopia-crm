@@ -1,0 +1,49 @@
+{% extends 'adminlte/base.html' %}
+{% load static i18n widget_tweaks %}
+
+{% block extra_head %}
+  <link rel="stylesheet" type="text/css" href="{% static 'css/email_suggestion_dialog.css' %}">
+{% endblock %}
+
+{% block extra_js %}
+  <script src="{% static 'js/htmx.min.js' %}" defer></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      var adFormTemplate = "{{ ad_form_template|escapejs }}";
+    
+      document.getElementById('add_ad_button').addEventListener('click', function() {
+        var adFormsContainer = document.getElementById('ad_forms_container');
+        var newAdFormIndex = adFormsContainer.getElementsByClassName('ad-form').length;
+        var newAdFormHtml = adFormTemplate.replace(/ad_placeholder/g, 'ad_' + newAdFormIndex);
+        var newAdFormDiv = document.createElement('div');
+        newAdFormDiv.classList.add('ad-form');
+        newAdFormDiv.innerHTML = newAdFormHtml;
+        adFormsContainer.appendChild(newAdFormDiv);
+      });
+    });
+    </script>
+{% endblock extra_js %}
+
+{% block no_heading %}
+<div class="col-9"><h1><a href="{% url 'agency_list' %}">{% trans "All agencies" %}</a> &raquo; {% if form.instance.id %}<a href="{% url 'agency_detail' form.instance.id %}">{{form.instance.name}}</a> &raquo; {% trans "Edit" %}{% else %}{% trans "New" %}{% endif %}</h1></div>
+{% endblock no_heading %}
+
+{% block content %}
+  <section class="content">
+    <form action="" method="post">
+    {% csrf_token %}
+    {{form.as_p}}
+    </form>
+    <div id="ad_forms_container">
+      <div class="ad-form">
+        <form id="ad_form_0">TEST
+          {{ad_form_template|safe}}
+        </form>
+      </div>
+    </div>
+    <button type="button" id="add_ad_button">{% trans "Add Ad" %}</button>
+    <button type="submit">{% trans "Create Purchase Order" %}</button>
+  
+  
+  </section>
+{% endblock %}

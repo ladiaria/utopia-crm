@@ -1,6 +1,7 @@
 from django import forms
+from django.forms import inlineformset_factory
 
-from advertisement.models import AdvertisementActivity, Advertiser, Agency
+from advertisement.models import AdvertisementActivity, Advertiser, AdPurchaseOrder, Agency, Ad
 
 
 class AdvertisementActivityForm(forms.ModelForm):
@@ -47,3 +48,29 @@ class AddAgencyForm(forms.ModelForm):
             "billing_email",
             "main_seller",
         ]
+
+class AdPurchaseOrderForm(forms.ModelForm):
+    class Meta:
+        model = AdPurchaseOrder
+        fields = [
+            "advertiser",
+            "seller",
+            "bill_to",
+            "notes",
+        ]
+        widgets = {
+            "start_date": forms.DateInput(attrs={"type": "date"}),
+            "end_date": forms.DateInput(attrs={"type": "date"}),
+            "advertiser": forms.HiddenInput(),
+        }
+
+class AdForm(forms.ModelForm):
+    class Meta:
+        model = Ad
+        fields = ["order", "adtype", "description", "price"]
+        widgets = {
+            "order": forms.HiddenInput(),
+        }
+
+
+AdFormSet = inlineformset_factory(AdPurchaseOrder, Ad, form=AdForm, extra=1)

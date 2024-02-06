@@ -7,13 +7,19 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.http import HttpResponseRedirect
 from django.urls import reverse, reverse_lazy
 from django.views.generic.edit import CreateView, UpdateView
-from django.views.generic import DetailView
+from django.views.generic import DetailView, TemplateView
 from django.utils.decorators import method_decorator
 from django_filters.views import FilterView
 
-from advertisement.models import Advertiser, AdvertisementSeller, AdvertisementActivity, Agency
+from advertisement.models import Advertiser, AdvertisementSeller, AdvertisementActivity, Agency, AdPurchaseOrder, Ad
 from advertisement.filters import AdvertiserFilter
-from advertisement.forms import AdvertisementActivityForm, AddAdvertiserForm, AddAgencyForm
+from advertisement.forms import (
+    AdvertisementActivityForm,
+    AddAdvertiserForm,
+    AddAgencyForm,
+    AdPurchaseOrderForm,
+    AdForm,
+)
 
 from icecream import ic
 
@@ -94,7 +100,7 @@ def add_advertisement_activity(request, advertiser_id):
 
 
 @method_decorator(staff_member_required, name='dispatch')
-class AdvertiserAddView(CreateView):
+class AdvertiserCreateView(CreateView):
     model = Advertiser
     form_class = AddAdvertiserForm
     template_name = "add_edit_advertiser.html"
@@ -151,7 +157,7 @@ class AdvertiserDetailView(DetailView):
 
 
 @method_decorator(staff_member_required, name='dispatch')
-class AgencyAddView(CreateView):
+class AgencyCreateView(CreateView):
     model = Agency
     form_class = AddAgencyForm
     template_name = "add_edit_agency.html"
@@ -208,3 +214,48 @@ class AgencyDetailView(DetailView):
         context = super().get_context_data(**kwargs)
         context["activities"] = self.object.advertisementactivity_set.all().order_by("-date")
         return context
+
+@method_decorator(staff_member_required, name='dispatch')
+class AdFormTemplateView(TemplateView):
+    model = Ad
+    template_name = "partials/ad_form.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["ad_form"] = AdForm()
+        return context
+
+@method_decorator(staff_member_required, name='dispatch')
+class AdPurchaseOrderCreateView(CreateView):
+    model = AdPurchaseOrder
+    form_class = AdPurchaseOrderForm
+    template_name = "add_edit_ad_purchase_order.html"
+    success_url = reverse_lazy("advertiser_list")
+    success_message = _("Purchase Order has been added")
+
+    def get_success_url(self):
+        # Redirect to the detail view of the newly created object
+        return reverse_lazy("advertiser_detail", kwargs={'pk': self.object.advertiser.id})
+        # return reverse_lazy('ad_purchase_order_detail', kwargs={'pk': self.object.pk})
+
+    def form_valid(self, form):
+        messages.success(self.request, self.success_message)
+        return super().form_valid(form)
+
+    def form_invalid(self, form):
+        messages.error(self.request, _("There was an error"))
+        return super().form_invalid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["advertiser"] = self.kwargs.get("advertiser_id")
+        context['ad_form_template'] = str(AdForm(prefix='ad_placeholder'))
+        return context
+
+    def get_initial(self):
+        initial = super().get_initial()
+        advertiser_id = self.kwargs.get("advertiser_id")
+        if advertiser_id:
+            advertiser = get_object_or_404(Advertiser, pk=advertiser_id)
+            initial['advertiser'] = advertiser
+        return initial
