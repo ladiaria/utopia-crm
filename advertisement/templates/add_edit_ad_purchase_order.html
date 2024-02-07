@@ -9,41 +9,79 @@
   <script src="{% static 'js/htmx.min.js' %}" defer></script>
   <script>
     document.addEventListener('DOMContentLoaded', function() {
-      var adFormTemplate = "{{ ad_form_template|escapejs }}";
-    
-      document.getElementById('add_ad_button').addEventListener('click', function() {
-        var adFormsContainer = document.getElementById('ad_forms_container');
-        var newAdFormIndex = adFormsContainer.getElementsByClassName('ad-form').length;
-        var newAdFormHtml = adFormTemplate.replace(/ad_placeholder/g, 'ad_' + newAdFormIndex);
-        var newAdFormDiv = document.createElement('div');
-        newAdFormDiv.classList.add('ad-form');
-        newAdFormDiv.innerHTML = newAdFormHtml;
-        adFormsContainer.appendChild(newAdFormDiv);
+      document.getElementById('add-ad').addEventListener('click', function() {
+        var formCount = parseInt(document.getElementById('id_ad_set-TOTAL_FORMS').value);
+        var adForm = document.getElementById('ad-forms').querySelector('.ad-form').cloneNode(true);
+        adForm.innerHTML = adForm.innerHTML.replace(/ad_set-(\d+)-/g, 'ad_set-' + formCount + '-');
+        document.getElementById('ad-forms').appendChild(adForm);
+        document.getElementById('id_ad_set-TOTAL_FORMS').setAttribute('value', formCount + 1);
       });
     });
-    </script>
+  </script>
 {% endblock extra_js %}
 
 {% block no_heading %}
-<div class="col-9"><h1><a href="{% url 'agency_list' %}">{% trans "All agencies" %}</a> &raquo; {% if form.instance.id %}<a href="{% url 'agency_detail' form.instance.id %}">{{form.instance.name}}</a> &raquo; {% trans "Edit" %}{% else %}{% trans "New" %}{% endif %}</h1></div>
+<div class="col-9"><h1><a href="{% url 'agency_list' %}">{% trans "All agencies" %}</a> &raquo; <a href="{% url 'advertiser_detail' advertiser.id %}">{{advertiser.name}}</a> &raquo; {% trans "New Purchase Order" %}</h1></div>
 {% endblock no_heading %}
 
 {% block content %}
   <section class="content">
-    <form action="" method="post">
-    {% csrf_token %}
-    {{form.as_p}}
-    </form>
-    <div id="ad_forms_container">
-      <div class="ad-form">
-        <form id="ad_form_0">TEST
-          {{ad_form_template|safe}}
-        </form>
+    {% if form.errors %}
+    {{form.errors}}
+    {% endif %}
+    <form method="post">
+      {% csrf_token %}
+      {% render_field form.advertiser %}
+      <div class="row">
+        <div class="col-3">
+          <label for="id_total_price">{% trans "Total price" %}</label>
+          {% render_field form.total_price class="form-control" %}
+        </div>
+        <div class="col-3">
+          <label for="id_taxes">{% trans "Taxes" %}</label>
+          {% render_field form.taxes class="form-control" %}
+        </div>
+        <div class="col-3">
+          <label for="id_seller">{% trans "Seller" %}</label>
+          {% render_field form.seller class="form-control" %}
+        </div>
+        <div class="col-3">
+          <label for="{{ form.bill_to.id_for_label }}">{% trans "Bill To" %}:</label>
+          {{ form.bill_to|add_class:"form-control" }}
+        </div>
       </div>
-    </div>
-    <button type="button" id="add_ad_button">{% trans "Add Ad" %}</button>
-    <button type="submit">{% trans "Create Purchase Order" %}</button>
-  
-  
+      <div class="row mt-2">
+        <div class="col-12">
+          <label for="id_notes">{% trans "Notes" %}</label>
+          {% render_field form.notes class="form-control" %}
+        </div>
+      </div>
+      {{ ads_formset.management_form }}
+      <div id="ad-forms">
+        {% for form in ads_formset.forms %}
+          <div class="ad-form row mt-2">
+            <div class="col-4">
+              {{ form.adtype.errors }}
+              <label for="{{ form.adtype.id_for_label }}" class="control-label">{% trans "Ad Type" %}:</label>
+              {{ form.adtype|add_class:"form-control" }}
+            </div>
+            <div class="col-4">
+              {{ form.description.errors }}
+              <label for="{{ form.description.id_for_label }}" class="control-label">{% trans "Description" %}:</label>
+              {{ form.description|add_class:"form-control" }}
+            </div>
+            <div class="col-4">
+              {{ form.price.errors }}
+              <label for="{{ form.price.id_for_label }}" class="control-label">{% trans "Price" %}:</label>
+              {{ form.price|add_class:"form-control" }}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+      <div class="text-right mt-4">
+        <button type="button" id="add-ad" class="btn btn-primary">{% trans "Add Ad" %}</button>
+        <button type="submit" class="btn btn-primary">{% trans "Submit" %}</button>
+      </div>
+    </form>
   </section>
 {% endblock %}

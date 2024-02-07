@@ -29,5 +29,6 @@ class AdPurchaseOrderAdmin(admin.ModelAdmin):
     raw_id_fields = ("advertiser", "bill_to", "seller")
 
 
+admin.site.register(Ad)
 admin.site.register(AdType)
 admin.site.register(AdvertisementSeller)

@@ -22,5 +22,4 @@ urlpatterns = [
         views.AdPurchaseOrderCreateView.as_view(),
         name="add_ad_purchase_order",
     ),
-    path("htmx/add_ad_form/", views.AdFormTemplateView.as_view(), name="add_ad_form"),
 ]

@@ -4,12 +4,14 @@ from django.utils.translation import gettext_lazy as _
 from django.shortcuts import render, get_object_or_404
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, JsonResponse
 from django.urls import reverse, reverse_lazy
 from django.views.generic.edit import CreateView, UpdateView
 from django.views.generic import DetailView, TemplateView
 from django.utils.decorators import method_decorator
 from django_filters.views import FilterView
+from django.template.loader import render_to_string
+from django.utils.safestring import mark_safe
 
 from advertisement.models import Advertiser, AdvertisementSeller, AdvertisementActivity, Agency, AdPurchaseOrder, Ad
 from advertisement.filters import AdvertiserFilter
@@ -18,7 +20,7 @@ from advertisement.forms import (
     AddAdvertiserForm,
     AddAgencyForm,
     AdPurchaseOrderForm,
-    AdForm,
+    AdFormSet,
 )
 
 from icecream import ic
@@ -215,6 +217,7 @@ class AgencyDetailView(DetailView):
         context["activities"] = self.object.advertisementactivity_set.all().order_by("-date")
         return context
 
+
 @method_decorator(staff_member_required, name='dispatch')
 class AdFormTemplateView(TemplateView):
     model = Ad
@@ -225,6 +228,7 @@ class AdFormTemplateView(TemplateView):
         context["ad_form"] = AdForm()
         return context
 
+
 @method_decorator(staff_member_required, name='dispatch')
 class AdPurchaseOrderCreateView(CreateView):
     model = AdPurchaseOrder
@@ -233,29 +237,45 @@ class AdPurchaseOrderCreateView(CreateView):
     success_url = reverse_lazy("advertiser_list")
     success_message = _("Purchase Order has been added")
 
+    def dispatch(self, request, *args, **kwargs):
+        self.advertiser_id = kwargs.get("advertiser_id")
+        if self.advertiser_id:
+            self.advertiser = get_object_or_404(Advertiser, pk=self.advertiser_id)
+        return super().dispatch(request, *args, **kwargs)
+
     def get_success_url(self):
-        # Redirect to the detail view of the newly created object
         return reverse_lazy("advertiser_detail", kwargs={'pk': self.object.advertiser.id})
-        # return reverse_lazy('ad_purchase_order_detail', kwargs={'pk': self.object.pk})
 
     def form_valid(self, form):
-        messages.success(self.request, self.success_message)
-        return super().form_valid(form)
+        context = self.get_context_data()
+        ads_formset = context['ads_formset']
+        if ads_formset.is_valid():
+            self.object = form.save()
+            ads_formset.instance = self.object
+            ads_formset.save()
+            msg = _("Purchase order for %(advertiser)s with a total value of %(price)s has been added") % {
+                "advertiser": self.object.advertiser,
+                "price": self.object.total_price,
+            }
+            messages.success(self.request, msg)
+            return HttpResponseRedirect(self.get_success_url())
+        else:
+            return self.render_to_response(self.get_context_data(form=form))
 
     def form_invalid(self, form):
         messages.error(self.request, _("There was an error"))
         return super().form_invalid(form)
 
     def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["advertiser"] = self.kwargs.get("advertiser_id")
-        context['ad_form_template'] = str(AdForm(prefix='ad_placeholder'))
-        return context
+        data = super().get_context_data(**kwargs)
+        if self.request.POST:
+            data['ads_formset'] = AdFormSet(self.request.POST)
+        else:
+            data['ads_formset'] = AdFormSet()
+        data['advertiser'] = self.advertiser
+        return data
 
     def get_initial(self):
         initial = super().get_initial()
-        advertiser_id = self.kwargs.get("advertiser_id")
-        if advertiser_id:
-            advertiser = get_object_or_404(Advertiser, pk=advertiser_id)
-            initial['advertiser'] = advertiser
+        initial['advertiser'] = self.advertiser
         return initial

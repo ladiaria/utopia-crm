@@ -49,7 +49,9 @@ class AddAgencyForm(forms.ModelForm):
             "main_seller",
         ]
 
+
 class AdPurchaseOrderForm(forms.ModelForm):
+
     class Meta:
         model = AdPurchaseOrder
         fields = [
@@ -57,12 +59,17 @@ class AdPurchaseOrderForm(forms.ModelForm):
             "seller",
             "bill_to",
             "notes",
+            "total_price",
+            "taxes",
         ]
+
         widgets = {
             "start_date": forms.DateInput(attrs={"type": "date"}),
             "end_date": forms.DateInput(attrs={"type": "date"}),
             "advertiser": forms.HiddenInput(),
+            "total_price": forms.NumberInput(attrs={"required": True}),
         }
+
 
 class AdForm(forms.ModelForm):
     class Meta:
