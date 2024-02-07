@@ -1768,11 +1768,17 @@ class Campaign(models.Model):
             contactcampaignstatus__campaign__active=True,
             contactcampaignstatus__status=1,
         ).exclude(pk=self.pk)
+        contacts_with_current_activities = Contact.objects.filter(
+            activity__campaign__isnull=False,
+            activity__campaign__active=True,
+            activity__status="P",
+        )
 
         return (
             self.contactcampaignstatus_set.filter(seller_id=seller_id, status__in=[1, 3])
             .exclude(contact__id__in=higher_priority_contacts.values('pk'))
             .exclude(contact__id__in=same_priority_contacts.values('pk'))
+            .exclude(contact__id__in=contacts_with_current_activities.values('pk'))
         )
 
     def get_not_contacted_count(self, seller_id):
