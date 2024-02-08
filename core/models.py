@@ -439,7 +439,9 @@ class Contact(models.Model):
         return self.subscriptions.filter(active=True)
 
     def get_active_subscriptionproducts(self):
-        return SubscriptionProduct.objects.filter(subscription__active=True, subscription__contact=self)
+        return SubscriptionProduct.objects.filter(
+            subscription__active=True, subscription__contact=self
+        ).order_by("product__billing_priority", "product__id")
 
     def get_subscriptions_with_expired_invoices(self):
         """
