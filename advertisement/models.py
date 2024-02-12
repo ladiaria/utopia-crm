@@ -5,6 +5,7 @@ from django.urls import reverse
 
 
 class Advertiser(models.Model):
+    # This model is used to store the advertisers
     class AdvertiserType(models.TextChoices):
         PUBLIC = "PU", _("Public")
         PRIVATE = "PR", _("Private")
@@ -75,6 +76,7 @@ class Advertiser(models.Model):
 
 
 class Agency(models.Model):
+    # This model is used to store the advertisement agencies
     class Priority(models.TextChoices):
         HIGH = "1", _("High")
         MID = "2", _("Mid")
@@ -121,6 +123,7 @@ class Agency(models.Model):
 
 
 class AdvertisementSeller(models.Model):
+    # This model is used to store the sellers of advertisements
     name = models.CharField(_("Name"), max_length=50)
     user = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True)
 
@@ -136,6 +139,7 @@ class AdvertisementSeller(models.Model):
 
 
 class AdType(models.Model):
+    # This model is used to store the types of advertisements
     name = models.CharField(_("Name"), max_length=50)
     description = models.TextField(_("Description"))
     reference_price = models.PositiveIntegerField(_("Reference price"), null=True, blank=True)
@@ -153,6 +157,7 @@ class AdType(models.Model):
 
 
 class Ad(models.Model):
+    # This model is used to store the advertisements
     order = models.ForeignKey("advertisement.adpurchaseorder", null=True, blank=True, on_delete=models.CASCADE)
     adtype = models.ForeignKey("advertisement.adtype", verbose_name=_("Advertisement type"), on_delete=models.CASCADE)
     description = models.CharField(_("Description"), max_length=200)
@@ -172,6 +177,7 @@ class Ad(models.Model):
 
 
 class AdPurchaseOrder(models.Model):
+    # This model is used to store the purchase orders for advertisements
     date_created = models.DateField(_("Date created"), auto_now_add=True)
     billed = models.BooleanField(_("billed"), default=False)
     advertiser = models.ForeignKey("advertisement.advertiser", verbose_name=_("Advertiser"), on_delete=models.CASCADE)
@@ -214,6 +220,7 @@ class AdPurchaseOrder(models.Model):
 
 
 class AdvertisementActivity(models.Model):
+    # This model is used to store the activities related to an advertisement
     class Directions(models.TextChoices):
         IN = "I", _("In")
         OUT = "O", _("Out")
@@ -268,8 +275,9 @@ class Agent(models.Model):
 
     agency = models.ForeignKey("advertisement.agency", on_delete=models.CASCADE)
     advertiser = models.ForeignKey("advertisement.advertiser", on_delete=models.CASCADE)
-    contact = models.ForeignKey("core.Contact", on_delete=models.CASCADE)
+    contact = models.ForeignKey("core.Contact", on_delete=models.CASCADE, null=True, blank=True)
     email = models.EmailField(_("Email"), max_length=254, null=True, blank=True)
+    notes = models.TextField(_("Notes"), null=True, blank=True)
 
     class Meta:
         verbose_name = _("Agent")
