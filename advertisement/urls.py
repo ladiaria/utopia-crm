@@ -9,8 +9,13 @@ urlpatterns = [
     path("agencies/<int:pk>/edit/", views.AgencyEditView.as_view(), name="edit_agency"),
     path(
         "advertisers/<int:advertiser_id>/activity/add/",
-        views.add_advertisement_activity,
+        views.AdvertisementActivityCreateView.as_view(),
         name="add_advertisement_activity",
+    ),
+    path(
+        "advertisers/<int:advertiser_id>/activity/<int:pk>/edit/",
+        views.AdvertisementActivityEditView.as_view(),
+        name="edit_advertisement_activity",
     ),
     path("my_advertisers/", views.my_advertisers, name="my_advertisers"),
     path("advertisers/", views.AdvertiserFilterView.as_view(), name="advertiser_list"),
@@ -22,4 +27,5 @@ urlpatterns = [
         views.AdPurchaseOrderCreateView.as_view(),
         name="add_ad_purchase_order",
     ),
+    path("advertisers/<int:agency_id>/add_agent/", views.AgentCreateView.as_view(), name="add_agent"),
 ]

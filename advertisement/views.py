@@ -1,19 +1,26 @@
-from datetime import date, datetime
+from datetime import datetime
 
 from django.utils.translation import gettext_lazy as _
 from django.shortcuts import render, get_object_or_404
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
-from django.http import HttpResponseRedirect, JsonResponse
+from django.http import HttpResponseRedirect
 from django.urls import reverse, reverse_lazy
 from django.views.generic.edit import CreateView, UpdateView
 from django.views.generic import DetailView, TemplateView
 from django.utils.decorators import method_decorator
 from django_filters.views import FilterView
-from django.template.loader import render_to_string
-from django.utils.safestring import mark_safe
 
-from advertisement.models import Advertiser, AdvertisementSeller, AdvertisementActivity, Agency, AdPurchaseOrder, Ad
+
+from advertisement.models import (
+    Advertiser,
+    AdvertisementSeller,
+    AdvertisementActivity,
+    Agency,
+    AdPurchaseOrder,
+    Ad,
+    Agent,
+)
 from advertisement.filters import AdvertiserFilter
 from advertisement.forms import (
     AdvertisementActivityForm,
@@ -21,6 +28,7 @@ from advertisement.forms import (
     AddAgencyForm,
     AdPurchaseOrderForm,
     AdFormSet,
+    AddAgentForm,
 )
 
 from icecream import ic
@@ -76,29 +84,6 @@ def my_advertisers(request):
             "overdue": overdue_activities,
         },
     )
-
-
-@staff_member_required
-def add_advertisement_activity(request, advertiser_id):
-    advertiser_obj = get_object_or_404(Advertiser, pk=advertiser_id)
-    if request.POST:
-        print("POST")
-        form = AdvertisementActivityForm(request.POST)
-        if form.is_valid():
-            form.save()
-            messages.success(request, _("Activity has been registered"))
-            return HttpResponseRedirect(reverse("advertiser_detail", args=[advertiser_obj.id]))
-    else:
-        if AdvertisementSeller.objects.filter(user=request.user).exists():
-            seller = AdvertisementSeller.objects.filter(user=request.user)
-        form = AdvertisementActivityForm(
-            initial={
-                "date": datetime.now(),
-                "seller": seller,
-                "advertiser": advertiser_obj,
-            }
-        )
-    return render(request, "add_advertisement_activity.html", {"advertiser": advertiser_obj, "form": form})
 
 
 @method_decorator(staff_member_required, name='dispatch')
@@ -279,3 +264,126 @@ class AdPurchaseOrderCreateView(CreateView):
         initial = super().get_initial()
         initial['advertiser'] = self.advertiser
         return initial
+
+
+@method_decorator(staff_member_required, name='dispatch')
+class AgentCreateView(CreateView):
+    model = Agent
+    form_class = AddAgentForm
+    template_name = "add_edit_agent.html"
+    success_url = reverse_lazy("agent_list")
+    success_message = _("Agent has been added")
+
+    def dispatch(self, request, *args, **kwargs):
+        self.agency_id = kwargs.get("agency_id")
+        if self.agency_id:
+            self.agency_obj = get_object_or_404(Agency, pk=self.agency_id)
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_success_url(self):
+        return reverse_lazy("agency_detail", kwargs={'pk': self.agency_id})
+
+    def form_valid(self, form):
+        messages.success(self.request, self.success_message)
+        return super().form_valid(form)
+
+    def form_invalid(self, form):
+        messages.error(self.request, _("There was an error"))
+        return super().form_invalid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["agency"] = self.agency_obj
+        return context
+
+    def get_initial(self):
+        initial = super().get_initial()
+        initial['agency'] = self.agency_obj
+        return initial
+
+
+@staff_member_required
+def add_advertisement_activity(request, advertiser_id):
+    advertiser_obj = get_object_or_404(Advertiser, pk=advertiser_id)
+    if request.POST:
+        print("POST")
+        form = AdvertisementActivityForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, _("Activity has been registered"))
+            return HttpResponseRedirect(reverse("advertiser_detail", args=[advertiser_obj.id]))
+    else:
+        if AdvertisementSeller.objects.filter(user=request.user).exists():
+            seller = AdvertisementSeller.objects.filter(user=request.user)
+        form = AdvertisementActivityForm(
+            initial={
+                "date": datetime.now(),
+                "seller": seller,
+                "advertiser": advertiser_obj,
+            }
+        )
+    return render(request, "add_advertisement_activity.html", {"advertiser": advertiser_obj, "form": form})
+
+
+@method_decorator(staff_member_required, name='dispatch')
+class AdvertisementActivityCreateView(CreateView):
+    model = AdvertisementActivity
+    form_class = AdvertisementActivityForm
+    template_name = "add_edit_advertisement_activity.html"
+    success_url = reverse_lazy("advertiser_list")
+    success_message = _("Activity has been registered")
+
+    def dispatch(self, request, *args, **kwargs):
+        self.advertiser_id = kwargs.get("advertiser_id")
+        if self.advertiser_id:
+            self.advertiser_obj = get_object_or_404(Advertiser, pk=self.advertiser_id)
+        if AdvertisementSeller.objects.filter(user=request.user).exists():
+            self.seller = AdvertisementSeller.objects.filter(user=request.user)
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_success_url(self):
+        return reverse_lazy("advertiser_detail", kwargs={'pk': self.advertiser_id})
+
+    def form_valid(self, form):
+        messages.success(self.request, self.success_message)
+        return super().form_valid(form)
+
+    def form_invalid(self, form):
+        messages.error(self.request, _("There was an error"))
+        return super().form_invalid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["advertiser"] = self.advertiser_obj
+        return context
+
+    def get_initial(self):
+        initial = super().get_initial()
+        initial['advertiser'] = self.advertiser_obj
+        if self.seller:
+            initial['seller'] = self.seller
+        initial['date'] = datetime.now()
+        return initial
+
+
+@method_decorator(staff_member_required, name='dispatch')
+class AdvertisementActivityEditView(UpdateView):
+    model = AdvertisementActivity
+    form_class = AdvertisementActivityForm
+    template_name = "add_edit_advertisement_activity.html"
+    success_url = reverse_lazy("advertiser_list")
+    success_message = _("Activity has been updated")
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["advertiser"] = self.object.advertiser
+        return context
+
+    def form_valid(self, form):
+        messages.success(self.request, self.success_message)
+        self.success_url = reverse("advertiser_detail", args=[form.instance.advertiser.id])
+        return super().form_valid(form)
+
+    def form_invalid(self, form):
+        messages.error(self.request, _("There was an error: %(error_message)s") % {"error_message": form.errors})
+        return super().form_invalid(form)

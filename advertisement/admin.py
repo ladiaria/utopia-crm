@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Advertiser, AdvertisementActivity, AdvertisementSeller, AdPurchaseOrder, AdType, Ad, Agency
+from .models import Advertiser, AdvertisementActivity, AdvertisementSeller, AdPurchaseOrder, AdType, Ad, Agency, Agent
 
 
 @admin.register(Advertiser)
@@ -27,6 +27,11 @@ class AdInline(admin.StackedInline):
 class AdPurchaseOrderAdmin(admin.ModelAdmin):
     inlines = [AdInline]
     raw_id_fields = ("advertiser", "bill_to", "seller")
+
+
+@admin.register(Agent)
+class AgentAdmin(admin.ModelAdmin):
+    raw_id_fields = ("agency", "contact")
 
 
 admin.site.register(Ad)

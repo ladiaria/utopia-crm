@@ -1,7 +1,7 @@
 from django import forms
 from django.forms import inlineformset_factory
 
-from advertisement.models import AdvertisementActivity, Advertiser, AdPurchaseOrder, Agency, Ad
+from advertisement.models import AdvertisementActivity, Advertiser, AdPurchaseOrder, Agency, Ad, Agent
 
 
 class AdvertisementActivityForm(forms.ModelForm):
@@ -81,3 +81,18 @@ class AdForm(forms.ModelForm):
 
 
 AdFormSet = inlineformset_factory(AdPurchaseOrder, Ad, form=AdForm, extra=1)
+
+
+class AddAgentForm(forms.ModelForm):
+    class Meta:
+        model = Agent
+        fields = [
+            "agency",
+            "advertiser",
+            "contact",
+            "email",
+            "notes",
+        ]
+        widgets = {
+            "agency": forms.HiddenInput(),
+        }

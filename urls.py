@@ -39,6 +39,7 @@ urlpatterns += [
 # Core views
 urlpatterns += [
     path('api/search_contacts/', views.search_contacts_htmx, name="htmx_search_contacts"),
+    path('api/search_contacts/<str:name>/', views.search_contacts_htmx, name="htmx_search_contacts_alt"),
 ]
 
 if 'support' in settings.INSTALLED_APPS:

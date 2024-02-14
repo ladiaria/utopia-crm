@@ -19,7 +19,7 @@ def handler500(request):
 
 
 @login_required
-def search_contacts_htmx(request):
+def search_contacts_htmx(request, name="contact"):
     """
     View to handle asynchronous contact search requests, to be used with HTMX.
 
@@ -37,7 +37,7 @@ def search_contacts_htmx(request):
         contacts = get_list_or_404(Contact, pk__icontains=q)
         # limit this only to the first 100 results
         contacts = contacts[:100]
-        context = {'contacts': contacts}
+        context = {'contacts': contacts, 'name': name}
         return render(request, "partials/search_contacts_results.html", context)
     else:
         return HttpResponse()
