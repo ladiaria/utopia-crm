@@ -204,17 +204,6 @@ class AgencyDetailView(DetailView):
 
 
 @method_decorator(staff_member_required, name='dispatch')
-class AdFormTemplateView(TemplateView):
-    model = Ad
-    template_name = "partials/ad_form.html"
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["ad_form"] = AdForm()
-        return context
-
-
-@method_decorator(staff_member_required, name='dispatch')
 class AdPurchaseOrderCreateView(CreateView):
     model = AdPurchaseOrder
     form_class = AdPurchaseOrderForm
