@@ -1,3 +1,4 @@
+from django.utils import timezone
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils.translation import gettext_lazy as _
@@ -179,6 +180,7 @@ class Ad(models.Model):
 class AdPurchaseOrder(models.Model):
     # This model is used to store the purchase orders for advertisements
     date_created = models.DateField(_("Date created"), auto_now_add=True)
+    date_billed = models.DateField(_("Date billed"), blank=True, null=True)
     billed = models.BooleanField(_("billed"), default=False)
     advertiser = models.ForeignKey("advertisement.advertiser", verbose_name=_("Advertiser"), on_delete=models.CASCADE)
     taxes = models.PositiveIntegerField(_("Taxes"), blank=True, null=True)
@@ -217,6 +219,11 @@ class AdPurchaseOrder(models.Model):
 
     def get_absolute_url(self):
         return reverse("AdPurchaseOrder_detail", kwargs={"pk": self.pk})
+
+    def set_billed(self):
+        self.billed = True
+        self.date_billed = timezone.now()
+        self.save()
 
 
 class AdvertisementActivity(models.Model):

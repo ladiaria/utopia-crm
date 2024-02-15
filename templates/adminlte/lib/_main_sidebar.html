@@ -47,7 +47,9 @@
 {% url "advertiser_list" as advertiser_list %}
 {% url "agency_list" as agency_list %}
 {% url "my_advertisers" as my_advertisers %}
+{% url "ad_purchase_order_list" as ad_purchase_order_list %}
 
+{# TODO: Add if ... in INSTALLED_APPS for each menu #}
 <li class="nav-item">
   <a href="{{contact_list}}" class="nav-link {% if request.path == contact_list  %}active{% endif %}">{% trans "Contacts" %}</a>
 </li>
@@ -149,6 +151,7 @@
     <li class="nav-item"><a href="{{my_advertisers}}" class="nav-link {% if request.path == my_advertisers %}active{% endif %}">{% trans 'My advertisers' %}</a></li>
     <li class="nav-item"><a href="{{advertiser_list}}" class="nav-link {% if request.path == advertiser_list %}active{% endif %}">{% trans 'List advertisers' %}</a></li>
     <li class="nav-item"><a href="{{agency_list}}" class="nav-link {% if request.path == agency_list %}active{% endif %}">{% trans "List agencies" %}</a></li>
+    <li class="nav-item"><a href="{{ad_purchase_order_list}}" class="nav-link {% if request.path == ad_purchase_order_list %}active{% endif %}">{% trans "Purchase Orders List" %}</a></li>
     {% include_if_exists "advertisement_sidebar_extra.html" %}
   </ul>
 </li>

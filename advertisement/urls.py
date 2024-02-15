@@ -27,5 +27,6 @@ urlpatterns = [
         views.AdPurchaseOrderCreateView.as_view(),
         name="add_ad_purchase_order",
     ),
+    path("ad_purchase_orders/", views.AdPurchaseOrderFilterView.as_view(), name="ad_purchase_order_list"),
     path("advertisers/<int:agency_id>/add_agent/", views.AgentCreateView.as_view(), name="add_agent"),
 ]
