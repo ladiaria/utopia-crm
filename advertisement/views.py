@@ -10,7 +10,7 @@ from django.views.generic.edit import CreateView, UpdateView
 from django.views.generic import DetailView, TemplateView
 from django.utils.decorators import method_decorator
 from django_filters.views import FilterView
-
+from django.contrib.auth.decorators import permission_required
 
 from advertisement.models import (
     Advertiser,
@@ -29,8 +29,6 @@ from advertisement.forms import (
     AdFormSet,
     AddAgentForm,
 )
-
-from icecream import ic
 
 
 @method_decorator(staff_member_required, name='dispatch')
@@ -373,11 +371,16 @@ class AdPurchaseOrderDetailView(DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["ads"] = self.object.ad_set.all()
+        if self.object.bill_to:
+            context["bill_to"] = self.object.bill_to
+        else:
+            context["bill_to"] = self.object.advertiser
         return context
 
 
+@permission_required("adpurchaseorder.can_set_billed", raise_exception=True)
 @staff_member_required
-def ad_purchase_order_set_billed(request, pk):
+def ad_purchase_order_set_billed(request, agency_id, pk):
     ad_purchase_order = get_object_or_404(AdPurchaseOrder, pk=pk)
     ad_purchase_order.set_billed()
     messages.success(request, _("Purchase order has been marked as billed"))

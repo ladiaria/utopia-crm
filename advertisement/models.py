@@ -213,6 +213,9 @@ class AdPurchaseOrder(models.Model):
     class Meta:
         verbose_name = _("Ad purchase order")
         verbose_name_plural = _("Ad purchase orders")
+        permissions = [
+            ("can_set_billed", "Can set the purchase order as billed"),
+        ]
 
     def __str__(self):
         return _("Order created at %(d)s for %(a)s") % {"d": self.date_created, "a": self.advertiser}

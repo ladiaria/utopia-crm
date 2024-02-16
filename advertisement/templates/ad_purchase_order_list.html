@@ -108,13 +108,13 @@
             {% for ad_purchase_order in object_list %}
             <tr role="row">
               <td>{{ ad_purchase_order.advertiser }}</td>
-              <td>{{ ad_purchase_order.billed_to }}</td>
+              <td>{{ ad_purchase_order.bill_to|default_if_none:ad_purchase_order.advertiser }}</td>
               <td>{{ ad_purchase_order.date_created }}</td>
               <td>{{ ad_purchase_order.total_price|default_if_none:"" }}</td>
-              <td>{{ ad_purchase_order.billed }}</td>
               <td>{{ ad_purchase_order.seller|default_if_none:"" }}</td>
+              <td>{{ ad_purchase_order.billed }}</td>
               <td>
-                <a href="#" class="btn btn-primary">{% trans "View" %}</a>
+                <a href="{% url 'ad_purchase_order_detail' ad_purchase_order.advertiser.id ad_purchase_order.id %}" class="btn btn-primary">{% trans "View" %}</a>
               </td>
             </tr>
             {% endfor %}
