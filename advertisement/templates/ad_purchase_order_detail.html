@@ -1,0 +1,113 @@
+{% extends 'adminlte/base.html' %}
+{% load i18n core_tags %}
+
+{% block title %}
+{{advertiser.name}}
+{% endblock title %}
+
+{% block no_heading %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-9"><h1><a href="{% url 'advertiser_list' %}">{% trans "All Advertisers" %}</a> &raquo; <a href="{% url 'advertiser_detail' object.advertiser.id %}">{{object.advertiser.name}}</a> &raquo; {% trans "Purchase order" %} #{{adpurchaseorder.id}}</h1></div>
+    <div class="text-right col">
+      <a href="{% url 'admin:advertisement_adpurchaseorder_change' object.id %}" class="btn btn-primary" target="_blank">{% trans "Edit" %} <i class="fas fa-external-link-alt"></i></a>
+      {% if request.user|in_group:"Advertisement" %}
+      <a href="{% url 'ad_purchase_order_set_billed' object.advertiser.id object.id %}" class="btn btn-primary">{% trans "Set Billed" %}</a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-body row">
+    <div class="card col m-2">
+      <div class="card-body">
+        <dt>{% trans "Advertiser" %}</dt>
+        <dd><a href="{% url 'advertiser_detail' object.advertiser.id %}">{{object.advertiser.name}} <i class="fas fa-external-link-alt"></i></a></dd>
+        {% if object.bill_to %}
+        <dt>{% trans "Bill to" %}</dt>
+        <dd><a href="{% url 'agency_detail' object.bill_to.id %}">{{object.bill_to.name}} <i class="fas fa-external-link-alt"></i></a></dd>
+        {% endif %}
+        <dt>{% trans "Date Created" %}</dt>
+        <dd>{{object.date_created}}</dd>
+        {% if object.date_billed %}
+        <dt>{% trans "Date Billed" %}</dt>
+        <dd>{{object.date_billed}}</dd>
+        {% endif %}
+        <dt>{% trans "Notes" %}</dt>
+        <dd>{{object.notes}}</dd>
+        <dt>{% trans "Seller" %}</dt>
+        <dd>{{object.seller}}</dd>
+        {% if object.agency_commission %}
+        <dt>{% trans "Agency Commission" %}</dt>
+        <dd>{{object.agency_commission}}</dd>
+        {% endif %}
+        {% if object.seller_commission %}
+        <dt>{% trans "Seller Commission" %}</dt>
+        <dd>{{object.seller_commission}}</dd>
+        {% endif %}
+      </div>
+    </div>
+    <div class="card col m-2">
+      <div class="card-header">
+        <h3 class="card-title">
+          {% trans "Billing data" %}
+        </h3>
+      </div>
+      <div class="card-body">
+        <dl>
+          <dt>{% trans "Billing Name" %}</dt>
+          <dd>{{bill_to.billing_name|default_if_none:bill_to.name}}</dd>
+          <dt>{% trans "Billing ID Document" %}</dt>
+          <dd>{{bill_to.billing_id_document|default_if_none:"N/A"}}</dd>
+          <dt>{% trans "Unique Taxpayer Reference" %}</dt>
+          <dd>{{bill_to.utr|default_if_none:"N/A"}}</dd>
+          <dt>{% trans "Billing Phone" %}</dt>
+          <dd>{{bill_to.billing_phone|default_if_none:"-"}}</dd>
+          <dt>{% trans "Billing Address" %}</dt>
+          <dd>{{bill_to.billing_address|default_if_none:"-"}}</dd>
+          <dt>{% trans "Billing Email" %}</dt>
+          <dd>{{bill_to.billing_email|default_if_none:"-"}}</dd>
+        </dl>
+      </div>
+    </div>
+    <div class="card col m-2"> 
+      <div class="card-header">
+        <h3 class="card-title">{% trans "Ads Purchased" %}</h3>
+      </div>
+      <div class="card-body">
+        {% for ad in ads %}
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">{{ad.adtype}}</h3>
+          </div>
+          <div class="card-body">
+            <dl>
+              <dt>{% trans "Description" %}</dt>
+              <dd>{{ad.description}}</dd>
+              <dt>{% trans "Price" %}</dt>
+              <dd>{{ad.price}}</dd>
+              {% if ad.start_date %}
+              <dt>{% trans "Start Date" %}</dt>
+              <dd>{{ad.start_date}}</dd>
+              {% endif %}
+              {% if ad.end_date %}
+              <dt>{% trans "End Date" %}</dt>
+              <dd>{{ad.end_date}}</dd>
+              {% endif %}
+            </dl>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+<div class="card">
+  <div class="card-body text-right">
+    <h3>{% trans "Taxes" %}: ${{object.taxes|default_if_none:0}}. {% trans "Total price" %}: ${{object.total_price}}</h3>
+  </div>
+</div>
+{% endblock %}

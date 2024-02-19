@@ -106,6 +106,7 @@ INSTALLED_APPS = [
     "logistics",
     "community",
     "invoicing",
+    "advertisement",
 ]
 
 # Password storage and validators

@@ -10,6 +10,7 @@ from django.contrib.auth.decorators import login_required
 from django.conf.urls import handler404
 from django.conf.urls import handler403
 from django.conf.urls import handler500
+from core import views
 
 # from core.views import updateuserfromweb, createinvoicefromweb
 
@@ -35,6 +36,12 @@ urlpatterns += [
     path('', login_required(TemplateView.as_view(template_name='main_menu.html')), name="main_menu"),
 ]
 
+# Core views
+urlpatterns += [
+    path('api/search_contacts/', views.search_contacts_htmx, name="htmx_search_contacts"),
+    path('api/search_contacts/<str:name>/', views.search_contacts_htmx, name="htmx_search_contacts_alt"),
+]
+
 if 'support' in settings.INSTALLED_APPS:
     urlpatterns += [
         path('support/', include('support.urls'), name='support_menu'),
@@ -48,6 +55,11 @@ if 'invoicing' in settings.INSTALLED_APPS:
 if 'logistics' in settings.INSTALLED_APPS:
     urlpatterns += [
         path('logistics/', include('logistics.urls')),
+    ]
+
+if 'advertisement' in settings.INSTALLED_APPS:
+    urlpatterns += [
+        path('advertisement/', include('advertisement.urls')),
     ]
 
 # test
