@@ -1,0 +1,73 @@
+{% extends 'adminlte/base.html' %}
+{% load i18n static widget_tweaks %}
+
+{% block title %}
+{{advertiser.name}}
+{% endblock title %}
+
+{% block no_heading %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-9"><h1><a href="{% url 'advertiser_list' %}">{% trans "All advertisers" %}</a> &raquo; <a href="{% url 'advertiser_detail' advertiser.id %}">{{advertiser.name}}</a> &raquo; {% trans "Add activity" %}</h1></div>
+    <div class="col"></div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'admin-lte/plugins/tempusdominus-bootstrap-4/css/tempusdominus-bootstrap-4.min.css' %}">
+{% endblock extra_head %}
+
+{% block extra_js %}
+<script type="text/javascript" src="{% static 'admin-lte/plugins/tempusdominus-bootstrap-4/js/tempusdominus-bootstrap-4.min.js' %}"></script>
+{% endblock extra_js %}
+
+{% block content %}
+<div class="container-fluid">
+
+  <div class="card">
+    <div class="card-body">
+      <form method="post">
+        {% csrf_token %}
+        {% render_field form.advertiser hidden="true" %}
+        <div class="row">
+          <div class="col">
+            <label for="id_type">{% trans "Type" %}</label>
+            {% render_field form.type class="form-control" %}
+          </div>
+          <div class="col">
+            <label for="id_direction">{% trans "Direction" %}</label>
+            {% render_field form.direction class="form-control" %}
+          </div>
+          <div class="col">
+            <label for="id_date">{% trans "Date" %}</label>
+            {% render_field form.date class="form-control datetimepicker" %}
+          </div>
+        </div>
+        <div class="row mt-2">
+          <div class="col">
+            <label for="id_seller">{% trans "Seller" %}</label>
+            {% render_field form.seller class="form-control" %}
+          </div>
+          <div class="col">
+            <label for="id_status">{% trans "Status" %}</label>
+            {% render_field form.status class="form-control" %}
+          </div>
+        </div>
+        <div class="row mt-2">
+          <div class="col">
+            <label for="id_notes">{% trans "Notes" %}</label>
+            {% render_field form.notes class="form-control" %}
+          </div>
+        </div>
+        <div class="text-right mt-2">
+          <button class="btn btn-primary" type="submit">{% trans "Save" %}</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+</div>
+
+{% endblock %}

@@ -1,0 +1,172 @@
+{% extends 'adminlte/base.html' %}
+{% load i18n %}
+
+{% trans "Advertisers" %}
+
+{% block no_heading %}
+<h1><a href="{% url 'advertiser_list' %}">{% trans "All advertisers" %}</a> &raquo; {% trans "Advertisers for" %} {{seller}}</h1>
+<p>{% trans 'Manage my advertisers' %}</p>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    <div class="row flex">
+      <div class="col">
+
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">{% trans "High priority" %}</h3>
+          </div>
+          <div class="card-body">
+            
+            <table class="table table-bordered table-striped">
+              <thead>
+                <tr role="row">
+                  <th>{% trans "Name" %}</th>
+                  <th>{% trans "Latest completed activity" %}</th>
+                  <th>{% trans "Latest pending activity" %}</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for a in high %}
+                <tr role="row">
+                  <td>{{a.name}}</td>
+                  <td>{{a.get_latest_completed_activity.date|date:"d/m/Y H:m"}}</td>
+                  <td>{{a.get_latest_pending_activity.date|date:"d/m/Y H:m"}}</td>
+                  <td><a class="btn-sm btn-primary" href="{% url 'advertiser_detail' a.id %}">{% trans "Go" %}</a> <a class="btn-sm btn-primary" href="{% url "admin:advertisement_advertiser_change" a.id %}" target="_blank">{% trans "Edit" %}</a></td>
+                </tr>
+                {% endfor %}
+              </tbody>
+
+            </table>
+
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="row flex">
+      <div class="col">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">{% trans "Mid priority" %}</h3>
+          </div>
+          <div class="card-body">
+            <table class="table table-bordered table-striped">
+              <thead>
+                <tr role="row">
+                  <th>{% trans "Name" %}</th>
+                  <th>{% trans "Latest completed activity" %}</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for a in mid %}
+                <tr role="row">
+                  <td>{{a.name}}</td>
+                  <td>{{a.get_latest_completed_activity.date|date:"d/m/Y H:m"}}</td>
+                  <td><a class="btn-sm btn-primary" href="{% url 'advertiser_detail' a.id %}">{% trans "Go" %}</a> <a class="btn-sm btn-primary" href="{% url "admin:advertisement_advertiser_change" a.id %}" target="_blank">{% trans "Edit" %}</a></td>
+                </tr>
+                {% endfor %}
+              </tbody>
+
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="col">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">{% trans "Low priority" %}</h3>
+          </div>
+          <div class="card-body">
+            <table class="table table-bordered table-striped">
+              <thead>
+                <tr role="row">
+                  <th>{% trans "Name" %}</th>
+                  <th>{% trans "Latest completed activity" %}</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for a in low %}
+                <tr role="row">
+                  <td>{{a.name}}</td>
+                  <td>{{a.get_latest_completed_activity.date|date:"d/m/Y H:m"}}</td>
+                  <td><a class="btn-sm btn-primary" href="{% url 'advertiser_detail' a.id %}">{% trans "Go" %}</a> <a class="btn-sm btn-primary" href="{% url "admin:advertisement_advertiser_change" a.id %}" target="_blank">{% trans "Edit" %}</a></td>
+                </tr>
+                {% endfor %}
+              </tbody>
+
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+<div class="row">
+  <div class="col-6">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">{% trans 'Upcoming activities' %}</h3>
+      </div>
+      <div class="card-body">
+        <table class="table table-bordered table-striped">
+          <thead>
+            <tr role="row">
+              <th>{% trans "Advertiser" %}</th>
+              <th>{% trans "Type" %}</th>
+              <th>{% trans "Date" %}</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in upcoming %}
+            <tr role="row">
+              <td>{{row.advertiser}}</td>
+              <td>{{row.get_type_display}}</td>
+              <td>{{row.date|date:"d/m/Y H:m"}}</td>
+              <td><a class="btn-sm btn-primary" href="{% url 'admin:advertisement_advertisementactivity_change' row.id %}">{% trans "Go" %}</a></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="col-6">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">{% trans 'Overdue activities' %}</h3>
+      </div>
+      <div class="card-body">
+        <table class="table table-bordered table-striped">
+          <thead>
+            <tr role="row">
+              <th>{% trans "Advertiser" %}</th>
+              <th>{% trans "Type" %}</th>
+              <th>{% trans "Date" %}</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in overdue %}
+            <tr role="row">
+              <td>{{row.advertiser}}</td>
+              <td>{{row.get_type_display}}</td>
+              <td>{{row.date|date:"d/m/Y H:m"}}</td>
+              <td><a class="btn-sm btn-primary" href="{% url 'admin:advertisement_advertisementactivity_change' row.id %}">{% trans "Go" %}</a></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
