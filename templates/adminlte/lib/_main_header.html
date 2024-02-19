@@ -1,5 +1,5 @@
 {% extends 'adminlte/original/_main_header.html' %}
-{% load adminlte_helpers i18n %}
+{% load adminlte_helpers i18n core_tags %}
 {% load static %}
 <nav class="main-header navbar navbar-expand navbar-gray navbar-light">
 {% block nav_bar %}
@@ -14,6 +14,11 @@
     </ul>
   {% if request.user.is_authenticated %}
   <ul class="navbar-nav ml-auto">
+    {% if "advertisement"|is_app_installed %}
+    <li class="nav-item">
+      {% if request.user|in_group:"Finances" %}{% show_unbilled_ad_purchase_orders %}{% endif %}
+    </li>
+    {% endif %}
     <li class="nav-item dropdown user-menu">
           <a class="nav-link" data-toggle="dropdown" href="#">
             <img src="{% avatar_url size=64 %}" alt="User Avatar" class="user-image elevation-2 img-circle">
