@@ -41,6 +41,16 @@ def in_group(user, group_name):
     return False
 
 
+@register.filter(is_safe=True)
+def in_group_exclusive(user, group_name):
+    # Same as the previous one, but it doesn't check for the Admins group
+    if user.is_superuser:
+        return True
+    if user.groups.filter(name=group_name).exists():
+        return True
+    return False
+
+
 @register.filter('get_address_id_from_subscription')
 def get_address_id_from_subscription(subscription_id, product_slug):
     try:
@@ -72,12 +82,16 @@ def include_if_exists(parser, token):
     silent_node.render = wrapped_render
     return silent_node
 
+
 @register.simple_tag
 def show_unbilled_ad_purchase_orders():
     # This is primarily used in finances to show the number of unbilled ad purchase orders
     if 'advertisement' in settings.INSTALLED_APPS:
         from advertisement.models import AdPurchaseOrder
+
         orders = AdPurchaseOrder.objects.filter(billed=False).count()
+        if orders == 0:
+            return ""
         orders_span = f'<span class="badge badge-light">{orders}</span>'
         button_label = _('Unbilled Ad Purchase Orders')
         button_url = reverse('ad_purchase_order_list') + '?billed=False'
@@ -85,6 +99,7 @@ def show_unbilled_ad_purchase_orders():
         return mark_safe(html_button)
     else:
         return ""
+
 
 @register.filter(is_safe=True)
 def is_app_installed(app_name):
