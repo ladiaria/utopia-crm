@@ -57,7 +57,7 @@ class AgencyFilterView(FilterView):
 def my_advertisers(request):
     if not AdvertisementSeller.objects.filter(user=request.user).exists():
         messages.error(request, _("User has no seller set"))
-        return HttpResponseRedirect(reverse("list_advertisers"))
+        return HttpResponseRedirect(reverse("advertiser_list"))
     seller = request.user.advertisementseller
     high = seller.advertiser_main_seller.filter(priority="1")
     mid = seller.advertiser_main_seller.filter(priority="2")
