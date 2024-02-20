@@ -16,7 +16,7 @@
   <ul class="navbar-nav ml-auto">
     {% if "advertisement"|is_app_installed %}
     <li class="nav-item">
-      {% if request.user|in_group:"Finances" %}{% show_unbilled_ad_purchase_orders %}{% endif %}
+      {% if request.user|in_group_exclusive:"Finances" %}{% show_unbilled_ad_purchase_orders %}{% endif %}
     </li>
     {% endif %}
     <li class="nav-item dropdown user-menu">
