@@ -439,9 +439,9 @@ class Contact(models.Model):
         return self.subscriptions.filter(active=True)
 
     def get_active_subscriptionproducts(self):
-        return SubscriptionProduct.objects.filter(
-            subscription__active=True, subscription__contact=self
-        ).order_by("product__billing_priority", "product__id")
+        return SubscriptionProduct.objects.filter(subscription__active=True, subscription__contact=self).order_by(
+            "product__billing_priority", "product__id"
+        )
 
     def get_subscriptions_with_expired_invoices(self):
         """
@@ -1713,9 +1713,7 @@ class Subscription(models.Model):
     class Meta:
         verbose_name = _("subscription")
         verbose_name_plural = _("subscriptions")
-        permissions = [
-            ("can_add_free_subscription", _("Can add free subscription"))
-        ]
+        permissions = [("can_add_free_subscription", _("Can add free subscription"))]
 
 
 class Campaign(models.Model):
@@ -1761,8 +1759,23 @@ class Campaign(models.Model):
     def get_not_contacted(self, seller_id):
         """
         Returns the ContactCampaignStatus objects for all Contacts that have not been called yet (status=1)
+
+        lower_priority_contacts are those that have a campaign with a priority lower than the current one
+
+        same_priority_contacts are those that have a campaign with the same priority as the current one
+
+        contacts_with_current_activities are those that have an activity with a campaign that is active and has a
+        status of "P" (Pending)
+
+        contacts_with_lower_priority_activities are those that have an activity with a campaign that is active and has
+        a priority lower than the current one
+
+        contacts_with_same_priority_activities are those that have an activity with a campaign that is active and has
+        the same priority as the current one
+
+        All of those are excluded from the final queryset
         """
-        higher_priority_contacts = Contact.objects.filter(
+        lower_priority_contacts = Contact.objects.filter(
             contactcampaignstatus__campaign__priority__lt=self.priority,
             contactcampaignstatus__campaign__active=True,
             contactcampaignstatus__status=1,
@@ -1772,18 +1785,30 @@ class Campaign(models.Model):
             contactcampaignstatus__campaign__priority=self.priority,
             contactcampaignstatus__campaign__active=True,
             contactcampaignstatus__status=1,
-        ).exclude(pk=self.pk)
+        ).exclude(contactcampaignstatus__campaign__pk=self.pk)
         contacts_with_current_activities = Contact.objects.filter(
             activity__campaign__isnull=False,
             activity__campaign__active=True,
             activity__status="P",
         )
+        contacts_with_lower_priority_activities = Contact.objects.filter(
+            activity__campaign=self,
+            activity__campaign__priority__lt=self.priority,
+            activity__campaign__active=True,
+        )
+        contacts_with_same_priority_activities = Contact.objects.filter(
+            activity__campaign=self,
+            activity__campaign__priority=self.priority,
+            activity__campaign__active=True,
+        ).exclude(activity__campaign__pk=self.pk)
 
         return (
             self.contactcampaignstatus_set.filter(seller_id=seller_id, status__in=[1, 3])
-            .exclude(contact__id__in=higher_priority_contacts.values('pk'))
+            .exclude(contact__id__in=lower_priority_contacts.values('pk'))
             .exclude(contact__id__in=same_priority_contacts.values('pk'))
             .exclude(contact__id__in=contacts_with_current_activities.values('pk'))
+            .exclude(contact__id__in=contacts_with_lower_priority_activities.values('pk'))
+            .exclude(contact__id__in=contacts_with_same_priority_activities.values('pk'))
         )
 
     def get_not_contacted_count(self, seller_id):
@@ -1883,7 +1908,6 @@ class Activity(models.Model):
     class Meta:
         verbose_name = _("activity")
         verbose_name_plural = _("activities")
-
 
 
 class ContactProductHistory(models.Model):
