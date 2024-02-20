@@ -760,7 +760,10 @@ class Contact(models.Model):
             source.invoice_set.update(contact=self)
             source.activity_set.update(contact=self)
             source.issue_set.update(contact=self)
-            source.contactcampaignstatus_set.update(contact=self)
+            # ContactCampaignStatus have a unique constraint on (contact, campaign)
+            # so we need to delete the source's ContactCampaignStatus and keep the ones from the target if they exist.
+            if self.contactcampaignstatus_set.exists():
+                source.contactcampaignstatus_set.all().delete()
             source.contactproducthistory_set.update(contact=self)
             source.tags.add("eliminar")
 
