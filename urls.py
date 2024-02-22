@@ -40,6 +40,7 @@ urlpatterns += [
 urlpatterns += [
     path('api/search_contacts/', views.search_contacts_htmx, name="htmx_search_contacts"),
     path('api/search_contacts/<str:name>/', views.search_contacts_htmx, name="htmx_search_contacts_alt"),
+    path('api/subscribe_to_mailtrain/', views.add_email_to_mailtrain_list, name="subscribe_to_mailtrain"),
 ]
 
 if 'support' in settings.INSTALLED_APPS:

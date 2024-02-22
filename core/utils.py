@@ -20,21 +20,23 @@ def addMonth(d, n=1):
 
 
 def subscribe_email_to_mailtrain_list(email, mailtrain_list_id):
-    print(("sending email {} to {}".format(email, mailtrain_list_id)))
+    if settings.DEBUG:
+        print(("sending email {} to {}".format(email, mailtrain_list_id)))
     url = '{}subscribe/{}'.format(settings.MAILTRAIN_API_URL, mailtrain_list_id)
     params = {'access_token': settings.MAILTRAIN_API_KEY}
     data = {'EMAIL': email}
     r = requests.post(url=url, params=params, data=data)
-    print(r)
+    return r
 
 
 def delete_email_from_mailtrain_list(email, mailtrain_list_id):
-    print(("deleting email {} from {}".format(email, mailtrain_list_id)))
+    if settings.DEBUG:
+        print(("deleting email {} from {}".format(email, mailtrain_list_id)))
     url = '{}delete/{}'.format(settings.MAILTRAIN_API_URL, mailtrain_list_id)
     params = {'access_token': settings.MAILTRAIN_API_KEY}
     data = {'EMAIL': email}
     r = requests.post(url=url, params=params, data=data)
-    print(r)
+    return r
 
 
 def get_emails_from_mailtrain_list(mailtrain_list_id):
