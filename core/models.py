@@ -1781,7 +1781,7 @@ class Campaign(models.Model):
             contactcampaignstatus__status=1,
         )
         same_priority_contacts = Contact.objects.filter(
-            contactcampaignstatus__campaign__pk__gt=self.pk,
+            contactcampaignstatus__campaign__pk__lt=self.pk,
             contactcampaignstatus__campaign__priority=self.priority,
             contactcampaignstatus__campaign__active=True,
             contactcampaignstatus__status=1,
@@ -1807,8 +1807,8 @@ class Campaign(models.Model):
             .exclude(contact__id__in=lower_priority_contacts.values('pk'))
             .exclude(contact__id__in=same_priority_contacts.values('pk'))
             .exclude(contact__id__in=contacts_with_current_activities.values('pk'))
-            .exclude(contact__id__in=contacts_with_lower_priority_activities.values('pk'))
-            .exclude(contact__id__in=contacts_with_same_priority_activities.values('pk'))
+            # .exclude(contact__id__in=contacts_with_lower_priority_activities.values('pk'))
+            # .exclude(contact__id__in=contacts_with_same_priority_activities.values('pk'))
         )
 
     def get_not_contacted_count(self, seller_id):
