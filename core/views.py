@@ -1,6 +1,6 @@
 # coding: utf-8
 from django.conf import settings
-from django.http import JsonResponse, HttpResponse, HttpResponseForbidden
+from django.http import JsonResponse, HttpResponse, HttpResponseForbidden, HttpResponseNotFound
 from django.shortcuts import render, get_list_or_404
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
@@ -71,4 +71,4 @@ def add_email_to_mailtrain_list(request):
         result = subscribe_email_to_mailtrain_list(email, list_id)
         return HttpResponse(result, content_type="application/json")
     else:
-        return HttpResponse()
+        return HttpResponseNotFound()
