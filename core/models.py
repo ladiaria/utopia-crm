@@ -1710,6 +1710,13 @@ class Subscription(models.Model):
     def has_paused_products(self):
         return self.subscriptionproduct_set.filter(active=False).exists()
 
+    def has_subscriptionproduct_in_special_route(self):
+        if not hasattr(self, 'subscriptionproduct_set'):
+            return False
+        if not hasattr(settings, 'SPECIAL_ROUTES_FOR_SELLERS_LIST'):
+            return False
+        return self.subscriptionproduct_set.filter(route__pk__in=settings.SPECIAL_ROUTES_FOR_SELLERS_LIST).exists()
+
     class Meta:
         verbose_name = _("subscription")
         verbose_name_plural = _("subscriptions")
