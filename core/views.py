@@ -4,6 +4,8 @@ from django.http import JsonResponse, HttpResponse, HttpResponseForbidden, HttpR
 from django.shortcuts import render, get_list_or_404
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
+from django.core.validators import validate_email
+from django.core.exceptions import ValidationError
 
 from core.models import Contact
 from core.utils import subscribe_email_to_mailtrain_list
@@ -67,6 +69,12 @@ def add_email_to_mailtrain_list(request):
         if request.POST["api_key"] != getattr(settings, "CRM_API_KEY", None):
             return HttpResponseForbidden()
         email = request.POST.get("email")
+        # validate that the variable email is a valid email
+        try:
+            validate_email(email)
+        except ValidationError:
+            return JsonResponse({"status": "error", "message": f"{email} is not a valid email address."})
+
         list_id = request.POST.get("list_id")
         result = subscribe_email_to_mailtrain_list(email, list_id)
         return HttpResponse(result, content_type="application/json")
