@@ -68,14 +68,16 @@ def add_email_to_mailtrain_list(request):
             return HttpResponseForbidden()
         if request.POST["api_key"] != getattr(settings, "CRM_API_KEY", None):
             return HttpResponseForbidden()
-        email = request.POST.get("email")
-        # validate that the variable email is a valid email
+        email = request.POST.get("email", None)
+        list_id = request.POST.get("list_id", None)
+        if not email:
+            return JsonResponse({"status": "error", "message": "Email is required."}, status=400)
+        if not list_id:
+            return JsonResponse({"status": "error", "message": "List ID is required."}, status=400)
         try:
             validate_email(email)
-        except ValidationError:
-            return JsonResponse({"status": "error", "message": f"{email} is not a valid email address."})
-
-        list_id = request.POST.get("list_id")
+        except Exception:
+            return JsonResponse({"status": "error", "message": f"{email} is not a valid email address."}, status=400)
         result = subscribe_email_to_mailtrain_list(email, list_id)
         return HttpResponse(result, content_type="application/json")
     else:
