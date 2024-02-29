@@ -279,6 +279,10 @@ def seller_console_list_campaigns(request):
 
     # We'll make these lists so we can append the sub count to each campaign
     campaigns_with_not_contacted, campaigns_with_activities_to_do = [], []
+    issues_never_paid = Issue.objects.filter(
+        sub_category__slug=settings.ISSUE_SUBCATEGORY_NEVER_PAID,
+        assigned_to=user,
+    ).exclude(status__slug__in=settings.ISSUE_STATUS_FINISHED_LIST)
 
     not_contacted_campaigns = seller.get_campaigns_by_status([1, 3])
     all_campaigns = seller.get_unfinished_campaigns()
@@ -309,6 +313,7 @@ def seller_console_list_campaigns(request):
             "total_pending_activities": total_pending_activities,
             "upcoming_activity": upcoming_activity,
             "special_routes": special_routes,
+            "issues_never_paid": issues_never_paid,
         },
     )
 
