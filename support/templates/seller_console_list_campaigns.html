@@ -43,6 +43,34 @@
 </div>
 {% endif %}
 
+{% if issues_never_paid %}
+<div class="card">
+  <div class="card-header">
+    <h3 class="card-title">{% trans "Contacts that never paid their first invoice" %}</h3>
+  </div>
+  <div class="card-body">
+    <table class="table table-borderd">
+      <thead>
+        <tr>
+          <th>{% trans "Contact" %}</th>
+          <th>{% trans "Go" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for issue in issues_never_paid %}
+            <tr>
+              <td>{{issue.contact.name}}</td>
+              <td>
+                <a class="btn btn-primary btn-sm" href="{% url 'view_issue' issue.id %}"><i class="fas fa-eye"></i> {% trans 'View' %}</a>
+              </td>
+            </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
 <div class="card">
   <div class="card-header">
     <h3 class="card-title">{% trans 'Not contacted' %}</h3>

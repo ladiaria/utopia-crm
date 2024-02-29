@@ -1717,6 +1717,21 @@ class Subscription(models.Model):
             return False
         return self.subscriptionproduct_set.filter(route__pk__in=settings.SPECIAL_ROUTES_FOR_SELLERS_LIST).exists()
 
+    def never_paid_first_invoice(self):
+        # Used to check if the user has never paid a single invoice in this subscription and its ancestors
+        invoices = self.get_permanency_invoice_set()
+        # Check if all invoices are overdue
+        return invoices.filter(
+            expiration_date__lt=date.today(), paid=False, debited=False, canceled=False, uncollectible=False
+        ).count() == invoices.count()
+
+    def get_first_seller(self):
+        # Used to retrieve the first seller that sold this subscription
+        if self.subscriptionproduct_set.filter(seller__isnull=False).exists():
+            return self.subscriptionproduct_set.filter(seller__isnull=False).first().seller
+        else:
+            return None
+
     class Meta:
         verbose_name = _("subscription")
         verbose_name_plural = _("subscriptions")
