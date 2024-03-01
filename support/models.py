@@ -184,6 +184,27 @@ class Issue(models.Model):
         answers = dict(ISSUE_ANSWERS)
         return answers.get(self.answer_1, "N/A")
 
+    @staticmethod
+    def create_issue(contact, subcategory, notes):
+        # Factory method to create an issue
+        from core.models import Contact
+        from support.models import IssueSubcategory
+
+        if not Contact.objects.filter(id=contact).exists():
+            raise ValueError("Contact does not exist")
+
+        if not IssueSubcategory.objects.filter(slug=subcategory).exists():
+            raise ValueError("Subcategory does not exist")
+
+        subcategory = IssueSubcategory.objects.get(slug=subcategory)
+        category = subcategory.category
+        return Issue(
+            contact=contact,
+            category=category,
+            sub_category=subcategory,
+            notes=notes,
+        )
+
     def __str__(self):
         return str(
             _(

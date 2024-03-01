@@ -55,6 +55,7 @@ from support.views import (
     not_contacted_campaign,
     api_get_addresses,
 )
+from . import apis
 
 from django.urls import path, re_path
 
@@ -182,4 +183,9 @@ urlpatterns = [
         location.sugerir_direccion_autocompletar,
         name="ajax_sugerir_direccion_autocompletar",
     ),
+]
+
+# Api views
+urlpatterns += [
+    path("api/create_issue/", apis.create_issue_api, name="create_issue_api"),
 ]
