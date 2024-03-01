@@ -1753,7 +1753,7 @@ class Campaign(models.Model):
     name = models.CharField(max_length=255, verbose_name=_("name"))
     active = models.BooleanField(default=True)
     description = models.TextField(blank=True, null=True, verbose_name=_("Description"))
-    product = models.ForeignKey(Product, null=True, blank=True, on_delete=models.SET_NULL)
+    product = models.ForeignKey('core.product', null=True, blank=True, on_delete=models.SET_NULL)
     start_date = models.DateField(null=True, blank=True)
     end_date = models.DateField(null=True, blank=True)
     priority = models.PositiveSmallIntegerField(
@@ -1871,9 +1871,9 @@ class Activity(models.Model):
     visits or comments on a website.
     """
 
-    contact = models.ForeignKey(Contact, on_delete=models.CASCADE, null=True, blank=True)
-    campaign = models.ForeignKey(Campaign, on_delete=models.CASCADE, null=True, blank=True)
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, null=True, blank=True)
+    contact = models.ForeignKey('core.contact', on_delete=models.CASCADE, null=True, blank=True)
+    campaign = models.ForeignKey('core.campaign', on_delete=models.CASCADE, null=True, blank=True)
+    product = models.ForeignKey('core.product', on_delete=models.CASCADE, null=True, blank=True)
     seller = models.ForeignKey(
         "support.Seller", on_delete=models.CASCADE, blank=True, null=True, verbose_name=_("Seller")
     )
@@ -1939,10 +1939,10 @@ class ContactProductHistory(models.Model):
           when the subscription is deleted (with the on_cascade option).
     """
 
-    contact = models.ForeignKey(Contact, on_delete=models.CASCADE)
-    subscription = models.ForeignKey(Subscription, null=True, blank=True, on_delete=models.SET_NULL)
-    product = models.ForeignKey(Product, on_delete=models.CASCADE)
-    campaign = models.ForeignKey(Campaign, null=True, blank=True, on_delete=models.SET_NULL)
+    contact = models.ForeignKey('core.contact', on_delete=models.CASCADE)
+    subscription = models.ForeignKey('core.subscription', null=True, blank=True, on_delete=models.SET_NULL)
+    product = models.ForeignKey('core.product', on_delete=models.CASCADE)
+    campaign = models.ForeignKey('core.campaign', null=True, blank=True, on_delete=models.SET_NULL)
     status = models.CharField(max_length=1, choices=PRODUCTHISTORY_CHOICES)
     seller = models.ForeignKey(
         "support.seller",
@@ -1965,8 +1965,8 @@ class ContactCampaignStatus(models.Model):
     Controls what's the status of a contact inside of a campaign, so we can take statistics of them in the future.
     """
 
-    contact = models.ForeignKey(Contact, on_delete=models.CASCADE)
-    campaign = models.ForeignKey(Campaign, on_delete=models.CASCADE)
+    contact = models.ForeignKey('core.contact', on_delete=models.CASCADE)
+    campaign = models.ForeignKey('core.campaign', on_delete=models.CASCADE)
     status = models.SmallIntegerField(choices=CAMPAIGN_STATUS_CHOICES, default=1)
     campaign_resolution = models.CharField(choices=CAMPAIGN_RESOLUTION_CHOICES, null=True, blank=True, max_length=2)
     seller = models.ForeignKey("support.Seller", on_delete=models.CASCADE, null=True, blank=True)
@@ -2045,7 +2045,7 @@ class PriceRule(models.Model):
 
     # Select one product from the pool that will be replaced. This is only used in the 'replace one' mode.
     choose_one_product = models.ForeignKey(
-        Product,
+        'core.Product',
         on_delete=models.CASCADE,
         null=True,
         blank=True,
@@ -2060,7 +2060,7 @@ class PriceRule(models.Model):
     # price when selected together, or to add a discount instead of changing those products. Combine this with the
     # not_pool so you make sure you add the specific product you want.
     resulting_product = models.ForeignKey(
-        Product,
+        'core.Product',
         on_delete=models.CASCADE,
         null=True,
         blank=True,
@@ -2216,8 +2216,8 @@ class ProductBundle(models.Model):
 
 class AdvancedDiscount(models.Model):
     # TODO: analize if "limit choices" should be set in fk and m2m fields
-    discount_product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="discount", null=True)
-    find_products = models.ManyToManyField(Product, related_name="find_products_discount")
+    discount_product = models.ForeignKey('core.product', on_delete=models.CASCADE, related_name="discount", null=True)
+    find_products = models.ManyToManyField('core.product', related_name="find_products_discount")
     products_mode = models.PositiveSmallIntegerField(choices=DISCOUNT_PRODUCT_MODE_CHOICES)
     value_mode = models.PositiveSmallIntegerField(choices=DISCOUNT_VALUE_MODE_CHOICES)
     value = models.PositiveSmallIntegerField(default=0)

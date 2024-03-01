@@ -9,7 +9,7 @@ from django.db.models import Sum, Q
 from django.contrib.auth.models import User
 from django.utils.translation import gettext_lazy as _
 
-from core.models import Subscription, Contact
+from core.models import Subscription
 from invoicing.choices import INVOICEITEM_TYPE_CHOICES, INVOICEITEM_DR_TYPE_CHOICES, BILLING_STATUS
 
 
@@ -200,7 +200,7 @@ class Billing(models.Model):
     completed = models.BooleanField(default=False)
     billing_date = models.DateField()
     dpp = models.PositiveSmallIntegerField(default=10)
-    exclude = models.ManyToManyField(Contact)
+    exclude = models.ManyToManyField('core.contact')
     status = models.CharField(max_length=1, default="P", choices=BILLING_STATUS)
 
     # Used to generate an accurate progress
