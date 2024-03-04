@@ -111,14 +111,7 @@
                                                   {% if subscription.balance %}<dd><b>{% trans "Balance" %}:</b> {{ subscription.balance }}</dd>{% endif %}
                                                   {% if request.user|in_group:"Support" or request.user|in_group:"Managers" %}
                                                   <div class="row">
-                                                    {% if subscription.is_obsolete == False %}
-                                                      {% if subscription.frequency == 1 %}
-                                                        <a href="{% url 'additional_product' subscription.id %}" class="btn btn-success">{% trans "Add" %}</a>
-                                                      {% else %}
-                                                        <a href="{% url 'new_subscription' contact.id %}?upgrade_subscription={{ subscription.id }}" class="btn btn-success">{% trans "Upgrade" %}</a>
-                                                      {% endif %}
-                                                    {% endif %}
-                                                    <a href="{% url 'new_subscription' contact.id %}?edit_subscription={{ subscription.id }}" class="btn btn-success">{% trans "Edit" %}</a>
+                                                    <a href="{% url 'edit_subscription' contact.id subscription.id %}" class="btn btn-success">{% trans "Edit" %}</a>
                                                     {% if not subscription.end_date %}
                                                     <a href="{% url 'book_unsubscription' subscription.id %}" class="btn btn-danger">{% trans "Unsubscription" %}</a>
                                                     {% endif %}

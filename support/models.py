@@ -253,3 +253,34 @@ class IssueSubcategory(models.Model):
 
     class Meta:
         ordering = ["category", "name"]
+
+
+class SalesRecord(models.Model):
+    """
+    Description: This model is used to store the sales records of the contacts, and the seller who made the sale.
+    It stores all the products that were sold to the contact, the seller, the date of the sale, and
+    the subscription.
+    """
+
+    seller = models.ForeignKey("support.Seller", on_delete=models.CASCADE, verbose_name=_("Seller"))
+    subscription = models.ForeignKey("core.Subscription", on_delete=models.CASCADE, verbose_name=_("Subscription"))
+    date_time = models.DateTimeField(auto_now_add=True, verbose_name=_("Date and time"))
+    products = models.ManyToManyField("core.Product", verbose_name=_("Products"))
+    # This is the price at the moment of the sale, because it can change in the future.
+    price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name=_("Price"))
+
+    class Meta:
+        verbose_name = _("Sales record")
+        verbose_name_plural = _("Sales records")
+        ordering = ["-date_time"]
+
+    def __str__(self):
+        return f"{self.seller.name} - {self.subscription.contact.name} - {self.date_time}"
+
+    def show_products(self):
+        return ", ".join([p.name for p in self.products.all()])
+    show_products.short_description = _("Products")
+
+    def get_contact(self):
+        return self.subscription.contact
+    get_contact.short_description = _("Contact")

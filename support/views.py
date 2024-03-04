@@ -717,20 +717,13 @@ def send_promo(request, contact_id):
 
 
 @staff_member_required
-def new_subscription(request, contact_id):
+def new_subscription(request, contact_id, subscription_id=None):
     """
     Makes a new subscription for the selected contact. If you pass a subscription id on a get parameter, it will
     attempt to change that subscription for a new one.
     """
     contact = get_object_or_404(Contact, pk=contact_id)
-    if request.GET.get("upgrade_subscription", None):
-        subscription_id = request.GET.get("upgrade_subscription")
-        form_subscription = get_object_or_404(Subscription, pk=subscription_id)
-        if form_subscription.contact != contact:
-            return HttpResponseServerError(_("Wrong data"))
-        upgrade_subscription, edit_subscription = True, False
-    elif request.GET.get("edit_subscription", None):
-        subscription_id = request.GET.get("edit_subscription")
+    if subscription_id:
         form_subscription = get_object_or_404(Subscription, pk=subscription_id)
         if form_subscription.contact != contact:
             return HttpResponseServerError(_("Wrong data"))
