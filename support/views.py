@@ -253,12 +253,20 @@ def import_contacts(request):
 
 
 @staff_member_required
-def seller_console_list_campaigns(request):
+def seller_console_list_campaigns(request, seller_id=None):
     """
     List all campaigns on a dashboard style list for sellers to use, so they can see which campaigns they have contacts
     in to call.
     """
-    user = User.objects.get(username=request.user.username)
+    if seller_id:
+        # Check that the user is a manager
+        if not request.user.is_staff and not request.user.groups.filter(name="Managers").exists():
+            messages.error(request, _("You are not authorized to see this page"))
+            return HttpResponseRedirect(reverse("main_menu"))
+        seller = Seller.objects.get(pk=seller_id)
+        user = seller.user
+    else:
+        user = User.objects.get(username=request.user.username)
     try:
         seller = Seller.objects.get(user=user)
     except Seller.DoesNotExist:

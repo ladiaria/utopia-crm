@@ -68,6 +68,11 @@ urlpatterns = [
         seller_console_list_campaigns,
         name="seller_console_list_campaigns",
     ),
+    path(
+        "seller_console_manager/<int:seller_id>/",
+        seller_console_list_campaigns,
+        name="seller_console_list_campaigns_manager",
+    ),
     re_path(r"^seller_console/(\w+)/(\d+)/$", seller_console, name="seller_console"),
     re_path(r"^special_routes/(\d+)/$", seller_console_special_routes, name="seller_console_special_routes"),
     path("scheduled_activities/", scheduled_activities, name="scheduled_activities"),
