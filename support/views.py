@@ -30,6 +30,8 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.conf import settings
+from django_filters.views import FilterView
+from django.utils.decorators import method_decorator
 
 from util.dates import add_business_days
 from core.filters import ContactFilter
@@ -60,6 +62,7 @@ from .filters import (
     UnsubscribedSubscriptionsByEndDateFilter,
     ScheduledTaskFilter,
     CampaignFilter,
+    SalesRecordFilter
 )
 from .forms import (
     NewPauseScheduledTaskForm,
@@ -3216,3 +3219,12 @@ def not_contacted_campaign(request, campaign_id):
     for c in contacts.order_by('id'):
         writer.writerow([c.id, c.name, c.email, c.phone, c.mobile])
     return response
+
+
+@method_decorator(staff_member_required, name="dispatch")
+class SalesRecordFilterView(FilterView):
+    filterset_class = SalesRecordFilter
+    template_name = "sales_record_filter.html"
+    paginate_by = 100
+    extra_context = {"title": _("Sales Records")}
+    queryset = SalesRecord.objects.all().order_by("-date_time")

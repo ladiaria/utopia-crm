@@ -7,7 +7,7 @@ from django.contrib.auth.models import User
 from django.db.models import Q
 
 from core.models import Activity, ContactCampaignStatus, Subscription, Campaign
-from .models import Issue, IssueSubcategory, Seller, ScheduledTask
+from .models import Issue, IssueSubcategory, Seller, ScheduledTask, SalesRecord
 
 
 CREATION_CHOICES = (
@@ -155,3 +155,10 @@ class CampaignFilter(django_filters.FilterSet):
         fields = {"active": ["exact"],
                   "name": ["icontains"]
                   }
+
+
+class SalesRecordFilter(django_filters.FilterSet):
+
+    class Meta:
+        model = SalesRecord
+        fields = ['date_time', 'seller', 'sale_type']

@@ -1,0 +1,65 @@
+{% extends 'adminlte/base.html' %}
+{% load static i18n widget_tweaks %}
+
+{% block title %}{% trans "List issues" %}{% endblock title %}
+
+{% block stylesheets %}
+    {{block.super}}
+    <link rel="stylesheet" href="{% static '/admin-lte/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css' %}" />
+{% endblock %}
+
+{% block extra_js %}
+<script type="text/javascript" src="{% static '/admin-lte/plugins/datatables/jquery.dataTables.min.js' %}"></script>
+<script src="{% static '/admin-lte/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js' %}"></script>
+<script>
+  $(function() {
+    $('.datepicker').datepicker({ dateFormat: 'yy-mm-dd' });
+  });
+</script>
+{% endblock %}
+
+{% block no_heading %}
+<h1>{% trans "Campaign Management" %} &raquo; {% trans 'Sales Records' %}</h1>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+        <div class="card-body">
+          <form method="GET" id="form">
+            <div class="row">
+                {% comment "Here goes the filter form" %}{% endcomment %}
+            </div>
+            <div class="text-right">
+              {{paginator.count}} {% trans "sales records" %}
+              <input type="submit" class="btn bg-gradient-primary ml-3" value="{% trans 'Export to CSV' %}" name="export" />
+              <input type="submit" class="btn bg-gradient-primary ml-3" value="{% trans 'Search' %}" />
+            </div>
+          </form>
+        </div>
+      </div>
+        <div class="card">
+          <div class="card-body">
+            <table id="table1" class="table table-bordered table-striped">
+              <thead>
+                  <tr role="row">
+                    <th>{% trans "Id" %}</th>
+                  </tr>
+              </thead>
+              <tbody>
+                {% for sr in object_list %}
+                <tr role="row">
+                    <td><a href='#'>{{sr.id}}</a></td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+  </div>
+  {% if page_obj.has_other_pages %}
+  {% include "partials/pagination.html" %}
+  {% endif %}
+{% endblock %}

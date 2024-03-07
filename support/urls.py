@@ -188,4 +188,9 @@ urlpatterns = [
         location.sugerir_direccion_autocompletar,
         name="ajax_sugerir_direccion_autocompletar",
     ),
+    path(
+        "sales_record_filter/",
+        views.SalesRecordFilterView.as_view(),
+        name="sales_record_filter",
+    )
 ]
