@@ -262,12 +262,17 @@ class SalesRecord(models.Model):
     the subscription.
     """
 
+    class SALE_TYPE(models.TextChoices):
+        FULL = "F", _("Full")
+        PARTIAL = "P", _("Partial")
+
     seller = models.ForeignKey("support.Seller", on_delete=models.CASCADE, verbose_name=_("Seller"))
     subscription = models.ForeignKey("core.Subscription", on_delete=models.CASCADE, verbose_name=_("Subscription"))
     date_time = models.DateTimeField(auto_now_add=True, verbose_name=_("Date and time"))
     products = models.ManyToManyField("core.Product", verbose_name=_("Products"))
     # This is the price at the moment of the sale, because it can change in the future.
     price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name=_("Price"))
+    sale_type = models.CharField(max_length=1, choices=SALE_TYPE.choices, default=SALE_TYPE.FULL)
 
     class Meta:
         verbose_name = _("Sales record")
@@ -284,3 +289,7 @@ class SalesRecord(models.Model):
     def get_contact(self):
         return self.subscription.contact
     get_contact.short_description = _("Contact")
+
+    def set_generic_seller(self):
+        self.seller = Seller.objects.get(name=settings.GENERIC_SELLER_NAME)
+        self.save()

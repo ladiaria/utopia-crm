@@ -73,4 +73,3 @@ class SalesRecordAdmin(admin.ModelAdmin):
     save_on_top = True
     save_as = True
     save_as_continue = True
-    save_on_top

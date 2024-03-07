@@ -80,7 +80,7 @@ from .forms import (
     AddressComplementaryInformationForm,
     SugerenciaGeorefForm,
 )
-from .models import Seller, ScheduledTask, IssueStatus, Issue, IssueSubcategory
+from .models import Seller, ScheduledTask, IssueStatus, Issue, IssueSubcategory, SalesRecord
 from .choices import ISSUE_CATEGORIES, ISSUE_ANSWERS
 
 
@@ -2544,6 +2544,7 @@ def book_additional_product(request, subscription_id):
     )
     new_products_ids_list = []
     if request.POST:
+        seller_id = request.user.seller_set.first().id if request.user.seller_set.exists() else None
         form = AdditionalProductForm(request.POST, instance=old_subscription)
         if form.is_valid():
             form.save()
@@ -2587,6 +2588,7 @@ def book_additional_product(request, subscription_id):
                         new_sp.order = sp.order
                     new_sp.save()
             # after this, we need to add the new products, that will have to be reviewed by an agent
+            new_products_list = []
             for product_id in new_products_ids_list:
                 product = Product.objects.get(pk=product_id)
                 if product not in new_subscription.products.all():
@@ -2597,7 +2599,20 @@ def book_additional_product(request, subscription_id):
                     new_subscription.add_product(
                         product=product,
                         address=default_address,
+                        seller_id=seller_id,
                     )
+                    new_products_list.append(product)
+            # If there was a seller we have to add a new SalesRecord.
+            # We will add the difference in price between the old and the new subscription, when it's a partial sale.
+            sf = SalesRecord.objects.create(
+                subscription=new_subscription,
+                seller=seller_id,
+                price=new_subscription.get_price_for_full_period() - old_subscription.get_price_for_full_period(),
+                sale_type=SalesRecord.TYPES.PARTIAL,
+            )
+            sf.objects.add(*new_products_list)
+            if not seller_id:
+                sf.set_generic_seller()
             # After that, we'll set the unsubscription date to this new subscription
             success_text = format_lazy("New product(s) booked for {end_date}", end_date=old_subscription.end_date)
             messages.success(request, success_text)
