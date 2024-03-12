@@ -7,7 +7,10 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
+from django.utils.safestring import mark_safe
 from autoslug import AutoSlugField
+
+
 from core.models import Campaign
 
 from simple_history.models import HistoricalRecords
@@ -273,6 +276,7 @@ class SalesRecord(models.Model):
     # This is the price at the moment of the sale, because it can change in the future.
     price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name=_("Price"))
     sale_type = models.CharField(max_length=1, choices=SALE_TYPE.choices, default=SALE_TYPE.FULL)
+    campaign = models.ForeignKey("core.Campaign", on_delete=models.CASCADE, verbose_name=_("Campaign"), null=True)
 
     class Meta:
         verbose_name = _("Sales record")
@@ -285,6 +289,10 @@ class SalesRecord(models.Model):
     def show_products(self):
         return ", ".join([p.name for p in self.products.all()])
     show_products.short_description = _("Products")
+
+    def show_products_per_line(self):
+        # Show an html list of products
+        return mark_safe("<br>".join([p.name for p in self.products.all()]))
 
     def get_contact(self):
         return self.subscription.contact

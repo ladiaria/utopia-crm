@@ -2548,6 +2548,8 @@ def book_additional_product(request, subscription_id):
     new_products_ids_list = []
     if request.POST:
         seller_id = request.user.seller_set.first().id if request.user.seller_set.exists() else None
+        campaign = request.GET.get("campaign", None)
+        campaign_obj = Campaign.objects.get(pk=campaign) if campaign else None
         form = AdditionalProductForm(request.POST, instance=old_subscription)
         if form.is_valid():
             form.save()
@@ -2612,8 +2614,9 @@ def book_additional_product(request, subscription_id):
                 seller=seller_id,
                 price=new_subscription.get_price_for_full_period() - old_subscription.get_price_for_full_period(),
                 sale_type=SalesRecord.TYPES.PARTIAL,
+                campaign=campaign_obj,
             )
-            sf.objects.add(*new_products_list)
+            sf.products.add(*new_products_list)
             if not seller_id:
                 sf.set_generic_seller()
             # After that, we'll set the unsubscription date to this new subscription
@@ -3226,5 +3229,4 @@ class SalesRecordFilterView(FilterView):
     filterset_class = SalesRecordFilter
     template_name = "sales_record_filter.html"
     paginate_by = 100
-    extra_context = {"title": _("Sales Records")}
     queryset = SalesRecord.objects.all().order_by("-date_time")

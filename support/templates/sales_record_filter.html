@@ -41,20 +41,36 @@
       </div>
         <div class="card">
           <div class="card-body">
-            <table id="table1" class="table table-bordered table-striped">
-              <thead>
-                  <tr role="row">
-                    <th>{% trans "Id" %}</th>
-                  </tr>
-              </thead>
-              <tbody>
-                {% for sr in object_list %}
-                <tr role="row">
-                    <td><a href='#'>{{sr.id}}</a></td>
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
+            <div class="row">
+              <div class="col-9">
+                <table id="table1" class="table table-bordered table-striped">
+                  <thead>
+                      <tr role="row">
+                        <th>{% trans "Contact" %}</th>
+                        <th>{% trans "Seller" %}</th>
+                        <th>{% trans "Transaction date" %}</th>
+                        <th>{% trans "Start date" %}</th>
+                        <th>{% trans "Payment Method" %}</th>
+                        <th>{% trans "Products" %}</th>
+                        <th>{% trans "Amount" %}</th>
+                      </tr>
+                  </thead>
+                  <tbody>
+                    {% for sr in page_obj %}
+                    <tr role="row">
+                        <td><a href='#'>{{sr.subscription.contact.id}}</a></td>
+                        <td>{{sr.seller.name}}</td>
+                        <td>{{sr.date_time|date:"d/m/Y H:m"}}</td>
+                        <td>{{sr.subscription.start_date|date:"d/m/Y"}}</td>
+                        <td>{{sr.subscription.get_payment_type_display}}</td>
+                        <td>{{sr.show_products_per_line}}</td>
+                        <td>{{sr.price}}</td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         </div>
       </div>
