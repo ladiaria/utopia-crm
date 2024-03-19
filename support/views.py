@@ -5,6 +5,7 @@ import csv
 import collections
 from datetime import date, timedelta, datetime
 
+from django.db.models.query import QuerySet
 from taggit.models import Tag
 
 from django import forms
@@ -62,7 +63,8 @@ from .filters import (
     UnsubscribedSubscriptionsByEndDateFilter,
     ScheduledTaskFilter,
     CampaignFilter,
-    SalesRecordFilter
+    SalesRecordFilter,
+    SalesRecordFilterForSeller
 )
 from .forms import (
     NewPauseScheduledTaskForm,
@@ -3225,8 +3227,39 @@ def not_contacted_campaign(request, campaign_id):
 
 
 @method_decorator(staff_member_required, name="dispatch")
-class SalesRecordFilterView(FilterView):
+class SalesRecordFilterManagersView(FilterView):
+    # This view is only for managers to see the sales records of all sellers.
     filterset_class = SalesRecordFilter
     template_name = "sales_record_filter.html"
     paginate_by = 100
     queryset = SalesRecord.objects.all().order_by("-date_time")
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_staff and not request.user.groups.filter(name="Managers").exists():
+            messages.error(request, _("You are not authorized to see this page"))
+            return HttpResponseRedirect(reverse("main_menu"))
+        return super().dispatch(request, *args, **kwargs)
+
+
+@method_decorator(staff_member_required, name="dispatch")
+class SalesRecordFilterSellersView(FilterView):
+    # This view is similar to the previous one but for the seller to see what sales they have made.
+    filterset_class = SalesRecordFilterForSeller
+    template_name = "sales_record_filter.html"
+    paginate_by = 100
+    queryset = SalesRecord.objects.all().order_by("-date_time")
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        return queryset.filter(seller=self.request.user.seller_set.first())
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["seller"] = self.request.user.seller_set.first()
+        return context
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.seller_set.exists():
+            messages.error(request, _("You are not a seller."))
+            return HttpResponseRedirect(reverse("main_menu"))
+        return super().dispatch(request, *args, **kwargs)

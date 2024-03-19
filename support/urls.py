@@ -190,7 +190,12 @@ urlpatterns = [
     ),
     path(
         "sales_record_filter/",
-        views.SalesRecordFilterView.as_view(),
+        views.SalesRecordFilterManagersView.as_view(),
         name="sales_record_filter",
+    ),
+    path(
+        "my_sales/",
+        views.SalesRecordFilterSellersView.as_view(),
+        name="my_sales",
     )
 ]

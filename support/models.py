@@ -12,6 +12,7 @@ from autoslug import AutoSlugField
 
 
 from core.models import Campaign
+from core.utils import process_products
 
 from simple_history.models import HistoricalRecords
 
@@ -277,6 +278,15 @@ class SalesRecord(models.Model):
     price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name=_("Price"))
     sale_type = models.CharField(max_length=1, choices=SALE_TYPE.choices, default=SALE_TYPE.FULL)
     campaign = models.ForeignKey("core.Campaign", on_delete=models.CASCADE, verbose_name=_("Campaign"), null=True)
+    commission_for_payment_type = models.DecimalField(
+        max_digits=10, decimal_places=2, verbose_name=_("Commission for payment type"), default=0
+    )
+    commission_for_products_sold = models.DecimalField(
+        max_digits=10, decimal_places=2, verbose_name=_("Commission for products sold"), default=0
+    )
+    commission_for_subscription_frequency = models.DecimalField(
+        max_digits=10, decimal_places=2, verbose_name=_("Commission for subscription frequency"), default=0
+    )
 
     class Meta:
         verbose_name = _("Sales record")
@@ -288,6 +298,7 @@ class SalesRecord(models.Model):
 
     def show_products(self):
         return ", ".join([p.name for p in self.products.all()])
+
     show_products.short_description = _("Products")
 
     def show_products_per_line(self):
@@ -296,8 +307,52 @@ class SalesRecord(models.Model):
 
     def get_contact(self):
         return self.subscription.contact
+
     get_contact.short_description = _("Contact")
 
     def set_generic_seller(self):
         self.seller = Seller.objects.get(name=settings.GENERIC_SELLER_NAME)
+        self.save()
+
+    def add_products(self) -> None:
+        product_list = self.subscription.product_summary_list()
+        self.products.add(*product_list)
+
+    def set_commission_for_products_sold(self, save=False) -> None:
+        # For amount of products sold. Doesn't save unless specified
+        if hasattr(settings, "SELLER_COMMISSION_PRODUCTS_COUNT"):
+            products_count = self.products.filter(type="S").count()
+            if hasattr(settings, "SPECIAL_PRODUCT_FOR_COMMISSION_SLUG"):
+                special_product_slug = settings.SPECIAL_PRODUCT_FOR_COMMISSION_SLUG
+                if self.products.filter(slug=special_product_slug).exists():
+                    products_count += 1
+            max_count = max(settings.SELLER_COMMISSION_PRODUCTS_COUNT.keys())
+            if products_count > max_count:
+                products_count = max_count
+            self.commission_for_products_sold = settings.SELLER_COMMISSION_PRODUCTS_COUNT.get(products_count, 0)
+            if save:
+                self.save()
+
+    def set_commission_for_payment_type(self, save=False) -> None:
+        # For payment type
+        if hasattr(settings, "SELLER_COMMISSION_PAYMENT_TYPE"):
+            payment_type = self.subscription.payment_type
+            self.commission_for_payment_type = settings.SELLER_COMMISSION_PAYMENT_TYPE.get(payment_type, 0)
+            if save:
+                self.save()
+
+    def set_commission_for_subscription_frequency(self, save=False) -> None:
+        # For subscription frequency
+        if hasattr(settings, "SELLER_COMMISSION_SUBSCRIPTION_FREQUENCY"):
+            frequency = self.subscription.frequency
+            self.commission_for_subscription_frequency = settings.SELLER_COMMISSION_SUBSCRIPTION_FREQUENCY.get(
+                frequency, 0
+            )
+            if save:
+                self.save()
+
+    def set_commissions(self) -> None:
+        self.set_commission_for_products_sold(self)
+        self.set_commission_for_payment_type(self)
+        self.set_commission_for_subscription_frequency(self)
         self.save()

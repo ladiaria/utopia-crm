@@ -1369,6 +1369,12 @@ class Subscription(models.Model):
             dict_all_products[str(sp.product.id)] = str(sp.copies)
         return process_products(dict_all_products)
 
+    def product_summary_list(self, with_pauses=False) -> list:
+        summary = self.product_summary(with_pauses)
+        # Return a list with these products in the queryset without the copies. The objects of the list
+        # are the products themselves and not the ids.
+        return [Product.objects.get(id=product_id) for product_id in summary.keys()]
+
     def render_product_summary(self):
         output = "<ul>"
         for product_id, copies in list(self.product_summary().items()):
