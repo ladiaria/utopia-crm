@@ -5,14 +5,15 @@ import csv
 import collections
 from datetime import date, timedelta, datetime
 
+from django.db.models import F, Q, Count, Sum, Min, Count, Case, When, Value, IntegerField
 from django.db.models.query import QuerySet
+from django.db.models.functions import Coalesce
 from taggit.models import Tag
 
 from django import forms
 from django.contrib import messages
 from django.contrib.auth.models import User
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-from django.db.models import Q, Count, Sum, Min
 from django.http import (
     HttpResponseServerError,
     HttpResponseNotFound,
@@ -26,6 +27,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django.utils.text import format_lazy
+from django.views.generic import UpdateView
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
@@ -64,7 +66,7 @@ from .filters import (
     ScheduledTaskFilter,
     CampaignFilter,
     SalesRecordFilter,
-    SalesRecordFilterForSeller
+    SalesRecordFilterForSeller,
 )
 from .forms import (
     NewPauseScheduledTaskForm,
@@ -87,6 +89,8 @@ from .forms import (
 )
 from .models import Seller, ScheduledTask, IssueStatus, Issue, IssueSubcategory, SalesRecord
 from .choices import ISSUE_CATEGORIES, ISSUE_ANSWERS
+from core import choices as core_choices
+import pandas as pd
 
 
 now = datetime.now()
@@ -507,7 +511,6 @@ def seller_console(request, category, campaign_id):
         else:
             i = 0
             console_instance = console_instances[i]
-
 
         contact = console_instance.contact
         times_contacted = contact.activity_set.filter(activity_type="C", status="C", campaign=campaign).count()
@@ -3227,39 +3230,123 @@ def not_contacted_campaign(request, campaign_id):
 
 
 @method_decorator(staff_member_required, name="dispatch")
-class SalesRecordFilterManagersView(FilterView):
-    # This view is only for managers to see the sales records of all sellers.
-    filterset_class = SalesRecordFilter
-    template_name = "sales_record_filter.html"
-    paginate_by = 100
-    queryset = SalesRecord.objects.all().order_by("-date_time")
-
-    def dispatch(self, request, *args, **kwargs):
-        if not request.user.is_staff and not request.user.groups.filter(name="Managers").exists():
-            messages.error(request, _("You are not authorized to see this page"))
-            return HttpResponseRedirect(reverse("main_menu"))
-        return super().dispatch(request, *args, **kwargs)
-
-
-@method_decorator(staff_member_required, name="dispatch")
 class SalesRecordFilterSellersView(FilterView):
     # This view is similar to the previous one but for the seller to see what sales they have made.
     filterset_class = SalesRecordFilterForSeller
     template_name = "sales_record_filter.html"
     paginate_by = 100
-    queryset = SalesRecord.objects.all().order_by("-date_time")
+    queryset = (
+        SalesRecord.objects.all()
+        .prefetch_related("products")
+        .select_related("subscription__contact")
+        .order_by("-date_time")
+    )
+    seller = None
 
     def get_queryset(self):
         queryset = super().get_queryset()
-        return queryset.filter(seller=self.request.user.seller_set.first())
+        self.seller = self.request.user.seller_set.first()
+        self.queryset = queryset.filter(seller=self.seller)
+        return self.queryset
+
+    def get_sales_distribution_by_product(self, queryset) -> dict:
+        # Assuming you have a list of dictionaries with each sale record's id and total_products
+        # This queryset fetches all sales records with their product counts
+        sales_records = queryset.annotate(total_products=Count('products')).values('id', 'total_products')
+        df = pd.DataFrame(sales_records)
+        special_product_sales_ids = list(
+            queryset.filter(products__slug='la-diaria-5-dias').values_list('id', flat=True)
+        )
+        # Mark rows that contain the special product
+        df['has_special_product'] = df['id'].isin(special_product_sales_ids)
+        # Adjust counts
+        df['adjusted_count'] = df['total_products'] + df['has_special_product']
+        # Ensure counts do not exceed 4
+        df['adjusted_count'] = df['adjusted_count'].clip(upper=4)
+        # Create the distribution
+        distribution = df['adjusted_count'].value_counts().sort_index().to_dict()
+        return distribution
+
+    def get_sales_distribution_by_payment_type(self, queryset) -> dict:
+        sales_records = queryset.values('subscription__payment_type')
+        df = pd.DataFrame(sales_records)
+        # Only show values whose keys are in settings.SELLER_COMMISSION_PAYMENT_METHODS keys, if the setting exists
+        if hasattr(settings, 'SELLER_COMMISSION_PAYMENT_METHODS'):
+            df = df[df['subscription__payment_type'].isin(settings.SELLER_COMMISSION_PAYMENT_METHODS.keys())]
+        if hasattr(settings, 'SUBSCRIPTION_PAYMENT_METHODS'):
+            # Convert choices to a dictionary
+            payment_type_dict = dict(settings.SUBSCRIPTION_PAYMENT_METHODS)
+            # Map the payment types to their display values in the DataFrame
+            df['payment_type_display'] = df['subscription__payment_type'].map(payment_type_dict)
+            distribution = df["payment_type_display"].value_counts().sort_index().to_dict()
+        else:
+            distribution = df["subscription__payment_type"].value_counts().to_dict()
+        return distribution
+
+    def get_sales_distribution_by_subscription_frequency(self, queryset) -> dict:
+        sales_records = queryset.values('subscription__frequency')
+        df = pd.DataFrame(sales_records)
+        frequencies_dict = dict(core_choices.FREQUENCY_CHOICES)
+        df['frequency_display'] = df['subscription__frequency'].map(frequencies_dict)
+        distribution = df['frequency_display'].value_counts().sort_index().to_dict()
+        return distribution
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["seller"] = self.request.user.seller_set.first()
+        context["seller"] = self.seller
+        queryset = self.get_queryset()
+        context["sales_distribution_product_count"] = self.get_sales_distribution_by_product(queryset)
+        context["sales_distribution_payment_type"] = self.get_sales_distribution_by_payment_type(
+            queryset.filter(sale_type=SalesRecord.SALE_TYPE.FULL)
+        )
+        context["sales_distribution_by_subscription_frequency"] = (
+            self.get_sales_distribution_by_subscription_frequency(queryset)
+        )
         return context
 
     def dispatch(self, request, *args, **kwargs):
         if not request.user.seller_set.exists():
             messages.error(request, _("You are not a seller."))
+            return HttpResponseRedirect(reverse("main_menu"))
+        return super().dispatch(request, *args, **kwargs)
+
+
+@method_decorator(staff_member_required, name="dispatch")
+class SalesRecordFilterManagersView(SalesRecordFilterSellersView):
+    # This view is only for managers to see the sales records of all sellers.
+    filterset_class = SalesRecordFilter
+    template_name = "sales_record_filter.html"
+    paginate_by = 100
+    queryset = (
+        SalesRecord.objects.all()
+        .prefetch_related("products")
+        .select_related("subscription__contact")
+        .order_by("-date_time")
+    )
+    seller = None
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_staff and not request.user.groups.filter(name="Managers").exists():
+            messages.error(request, _("You are not authorized to see this page"))
+            return HttpResponseRedirect(reverse("main_menu"))
+        self.is_manager = True
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_queryset(self):
+        return self.queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["is_manager"] = self.is_manager
+        return context
+
+
+@method_decorator(staff_member_required, name="dispatch")
+class ValidateSubscription(UpdateView):
+    # This view is only available to managers. It allows them to validate a subscription and set if the
+    # SaleRecord can be used for commission.
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_staff and not request.user.groups.filter(name="Managers").exists():
+            messages.error(request, _("You are not authorized to see this page"))
             return HttpResponseRedirect(reverse("main_menu"))
         return super().dispatch(request, *args, **kwargs)

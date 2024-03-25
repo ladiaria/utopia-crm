@@ -287,6 +287,7 @@ class SalesRecord(models.Model):
     commission_for_subscription_frequency = models.DecimalField(
         max_digits=10, decimal_places=2, verbose_name=_("Commission for subscription frequency"), default=0
     )
+    can_be_commissioned = models.BooleanField(default=True, verbose_name=_("Can be commissioned"))
 
     class Meta:
         verbose_name = _("Sales record")
@@ -297,7 +298,7 @@ class SalesRecord(models.Model):
         return f"{self.seller.name} - {self.subscription.contact.name} - {self.date_time}"
 
     def show_products(self):
-        return ", ".join([p.name for p in self.products.all()])
+        return ", ".join([p.name for p in self.products.filter(type="S")])
 
     show_products.short_description = _("Products")
 
@@ -335,7 +336,7 @@ class SalesRecord(models.Model):
 
     def set_commission_for_payment_type(self, save=False) -> None:
         # For payment type
-        if hasattr(settings, "SELLER_COMMISSION_PAYMENT_TYPE"):
+        if hasattr(settings, "SELLER_COMMISSION_PAYMENT_TYPE") and self.sale_type == self.SALE_TYPE.FULL:
             payment_type = self.subscription.payment_type
             self.commission_for_payment_type = settings.SELLER_COMMISSION_PAYMENT_TYPE.get(payment_type, 0)
             if save:
@@ -351,8 +352,22 @@ class SalesRecord(models.Model):
             if save:
                 self.save()
 
-    def set_commissions(self) -> None:
-        self.set_commission_for_products_sold(self)
-        self.set_commission_for_payment_type(self)
-        self.set_commission_for_subscription_frequency(self)
-        self.save()
+    def set_commissions(self, force=False) -> None:
+        if (force or self.sale_type == self.SALE_TYPE.FULL) and self.can_be_commissioned:
+            self.set_commission_for_products_sold()
+            self.set_commission_for_payment_type()
+            self.set_commission_for_subscription_frequency()
+            self.save()
+
+    def has_special_product(self):
+        if hasattr(settings, "SPECIAL_PRODUCT_FOR_COMMISSION_SLUG"):
+            special_product_slug = settings.SPECIAL_PRODUCT_FOR_COMMISSION_SLUG
+            if self.products.filter(slug=special_product_slug).exists():
+                return True
+        return False
+
+    def get_payment_type(self):
+        if self.sale_type == self.SALE_TYPE.FULL:
+            return self.subscription.get_payment_type_display()
+        else:
+            return _("N/A")
