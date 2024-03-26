@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block title %}
+{% trans "Validate subscription" %}
+{% endblock title %}
+
+{% block no_heading %}
+<h1><a href="{% url 'contact_list' %}">{% trans "Contacts" %}</a> &raquo; <a
+    href="{% url 'contact_detail' object.subscription.contact.id %}">{{object.subscription.contact.id}} - {{object.subscription.contact.name}}</a> &raquo;
+  {% trans "Validate Subscription" %}</h1>
+{% endblock %}
+
+{% block content %}
+<section class="content">
+
+</section>
+{% endblock content %}
