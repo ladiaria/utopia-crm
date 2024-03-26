@@ -86,6 +86,7 @@ from .forms import (
     SubscriptionPaymentCertificateForm,
     AddressComplementaryInformationForm,
     SugerenciaGeorefForm,
+    ValidateSubscriptionForm,
 )
 from .models import Seller, ScheduledTask, IssueStatus, Issue, IssueSubcategory, SalesRecord
 from .choices import ISSUE_CATEGORIES, ISSUE_ANSWERS
@@ -3342,11 +3343,29 @@ class SalesRecordFilterManagersView(SalesRecordFilterSellersView):
 
 
 @method_decorator(staff_member_required, name="dispatch")
-class ValidateSubscription(UpdateView):
+class ValidateSubscriptionSalesRecord(UpdateView):
     # This view is only available to managers. It allows them to validate a subscription and set if the
     # SaleRecord can be used for commission.
+    model = SalesRecord
+    form_class = ValidateSubscriptionForm
+    template_name = "validate_subscription_sales_record.html"
+
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_staff and not request.user.groups.filter(name="Managers").exists():
             messages.error(request, _("You are not authorized to see this page"))
             return HttpResponseRedirect(reverse("main_menu"))
         return super().dispatch(request, *args, **kwargs)
+
+    def get_success_url(self):
+        return reverse("sales_record_filter_managers")
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["subscription"] = self.object.subscription
+        return context
+
+    def form_valid(self, form):
+        messages.success(self.request, _("The sale and subscription have been validated."))
+        subscription = form.cleaned_data["subscription"]
+        subscription.validate()
+        return super().form_valid(form)

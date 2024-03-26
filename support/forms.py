@@ -554,3 +554,9 @@ class SugerenciaGeorefForm(forms.ModelForm):
             "verified",
             "address_type",
         ]
+
+class ValidateSubscriptionForm(forms.ModelForm):
+
+    class Meta:
+        model = Subscription
+        fields = ("can_be_commisioned", "subscription")
