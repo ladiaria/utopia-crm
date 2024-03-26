@@ -1,14 +1,18 @@
 # coding: utf-8
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework_api_key.permissions import HasAPIKey
+
 from django.conf import settings
-from django.http import JsonResponse, HttpResponse, HttpResponseForbidden, HttpResponseNotFound
+from django.db import IntegrityError
+from django.http import JsonResponse, HttpResponse, HttpResponseForbidden, HttpResponseBadRequest
 from django.shortcuts import render, get_list_or_404
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
 from django.core.validators import validate_email
-from django.core.exceptions import ValidationError
 
-from core.models import Contact
-from core.utils import subscribe_email_to_mailtrain_list
+from .models import Contact, update_customer
+from .utils import subscribe_email_to_mailtrain_list
 
 
 def handler404(request, exception):
@@ -21,6 +25,41 @@ def handler403(request, exception):
 
 def handler500(request):
     return render(request, '500.html', status=500)
+
+
+@api_view(['POST'])
+@permission_classes([HasAPIKey])
+def updateuserfromweb(request):
+    """
+    Updates a contact. Sets updatefromweb flag to the contact to avoid ws loop.
+    """
+    # TODO: change name to update_contact_api (or similiar)
+    try:
+        contact_id = request.POST.get("contact_id", 0)
+        mail = request.POST.get("email")
+        newmail = request.POST.get("newemail")
+        field = request.POST.get("field")
+        value = request.POST.get("value")
+    except KeyError:
+        return HttpResponseBadRequest()
+
+    try:
+        c = Contact.objects.get(pk=contact_id)
+        update_customer(c, newmail, field, value)
+    except Contact.DoesNotExist:
+        if mail:
+            try:
+                c = Contact.objects.get(email=mail)
+                update_customer(c, newmail, field, value)
+            except Contact.DoesNotExist:
+                pass
+            except (Contact.MultipleObjectsReturned, IntegrityError) as m_ie_exc:
+                # TODO Notificar por mail a los managers
+                return HttpResponseBadRequest(m_ie_exc)
+    except IntegrityError as ie_exc:
+        # TODO Notificar por mail a los managers
+        return HttpResponseBadRequest(ie_exc)
+    return HttpResponse("OK", content_type="application/json")
 
 
 @login_required
@@ -48,6 +87,7 @@ def search_contacts_htmx(request, name="contact"):
         return HttpResponse()
 
 
+@require_POST
 @csrf_exempt
 def add_email_to_mailtrain_list(request):
     """
@@ -63,22 +103,19 @@ def add_email_to_mailtrain_list(request):
 
     Returns a JSON response with the result of the operation.
     """
-    if request.POST:
-        if not request.POST.get("api_key", None):
-            return HttpResponseForbidden()
-        if request.POST["api_key"] != getattr(settings, "CRM_API_KEY", None):
-            return HttpResponseForbidden()
-        email = request.POST.get("email", None)
-        list_id = request.POST.get("list_id", None)
-        if not email:
-            return JsonResponse({"status": "error", "message": "Email is required."}, status=400)
-        if not list_id:
-            return JsonResponse({"status": "error", "message": "List ID is required."}, status=400)
-        try:
-            validate_email(email)
-        except Exception:
-            return JsonResponse({"status": "error", "message": f"{email} is not a valid email address."}, status=400)
-        result = subscribe_email_to_mailtrain_list(email, list_id)
-        return HttpResponse(result, content_type="application/json")
-    else:
-        return HttpResponseNotFound()
+    if not request.POST.get("api_key", None):
+        return HttpResponseForbidden()
+    if request.POST["api_key"] != getattr(settings, "CRM_API_KEY", None):
+        return HttpResponseForbidden()
+    email = request.POST.get("email", None)
+    list_id = request.POST.get("list_id", None)
+    if not email:
+        return JsonResponse({"status": "error", "message": "Email is required."}, status=400)
+    if not list_id:
+        return JsonResponse({"status": "error", "message": "List ID is required."}, status=400)
+    try:
+        validate_email(email)
+    except Exception:
+        return JsonResponse({"status": "error", "message": f"{email} is not a valid email address."}, status=400)
+    result = subscribe_email_to_mailtrain_list(email, list_id)
+    return HttpResponse(result, content_type="application/json")

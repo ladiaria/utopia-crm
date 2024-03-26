@@ -8,7 +8,9 @@ LOGIN_URL = "/user/login/"
 LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/"
 
-DEBUG_INVOICING = False  # when enabled prints debug data for invoicing in uwsgi log
+# debug for special parts, override to True to print debug data
+DEBUG_CONTACT_CLEAN = False
+DEBUG_INVOICING = False
 
 ALLOWED_HOSTS = ["localhost"]
 
@@ -93,6 +95,7 @@ INSTALLED_APPS = [
     "corsheaders",
     "rest_framework",
     "rest_framework.authtoken",
+    "rest_framework_api_key",
     "django_filters",
     "widget_tweaks",
     "simple_history",
@@ -184,6 +187,9 @@ BILLING_EXTRA_DAYS = 2
 ISSUE_STATUS_SOLVED = "solved"
 ISSUE_STATUS_FINISHED_LIST = [ISSUE_STATUS_SOLVED, "not-solved"]
 
+# logistics
+LOGISTICS_LABEL_INVOICE_PAYMENT_TYPES = []
+
 # Override to True if route for billing is required.
 # Useful when you explicitly require to send the invoices via logistics.
 REQUIRE_ROUTE_FOR_BILLING = False
@@ -194,6 +200,9 @@ EXCLUDE_ROUTES_FROM_BILLING_LIST = []
 # Route numbers to allow sellers to have contacts with products having these particular routes.
 # We usually use the same ones than we use at EXCLUDE_ROUTES_FROM_BILLING_LIST.
 SPECIAL_ROUTES_FOR_SELLERS_LIST = []
+
+# utopia-cms integration. TODO: s/WEB_/UTOPIACMS_/
+WEB_UPDATE_NEWSLETTER_MAP = {}
 
 # Import local settings if they exist
 # TODO: improve hardcoded load of community settings (which are this community settings?)

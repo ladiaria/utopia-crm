@@ -1,6 +1,9 @@
 from datetime import date, timedelta
-from csv import reader
-import requests, collections
+import collections
+import requests
+from requests.auth import HTTPBasicAuth
+from requests.exceptions import ReadTimeout, RequestException
+import html2text
 
 from django.conf import settings
 
@@ -56,7 +59,7 @@ def calc_price_from_products(products_with_copies, frequency, debug_id=""):
     """
     from core.models import Product, AdvancedDiscount
 
-    total_price, discount_pct, frequency_discount_amount, frequency = 0, 0, 0, int(frequency)
+    total_price, discount_pct, frequency = 0, 0, int(frequency)
 
     percentage_discount, debug = None, getattr(settings, 'DEBUG_PRODUCTS', False)
     if debug and debug_id:
@@ -265,3 +268,68 @@ def process_products(input_product_dict):
     for product in input_products:
         output_dict[product.id] = input_product_dict[str(product.id)]
     return output_dict
+
+
+def updatewebuser(id, email, newemail, field, value):
+    """
+    Esta es la funcion que hace el POST hacia la web, siempre recibe el mail actual y el nuevo (el que se esta
+    actualizando) porque son necesarios para buscar la ficha en la web.
+    Ademas recibe el nombre de campo y el nuevo valor actualizado, son utiles cuando se quiere sincronizar otros
+    campos.
+    ATENCION: No se sincroniza cuando el nuevo valor del campo es None
+    """
+    # TODO: translate docstring to english
+    data = {
+        "contact_id": id,
+        "email": email,
+        "newemail": newemail,
+        "field": field,
+        "value": value,
+    }
+    post_kwargs = {
+        "headers": {'Authorization': 'Api-Key ' + settings.LDSOCIAL_API_KEY},
+        "data": data,
+        "timeout": (5, 20),
+        "verify": getattr(settings, "WEB_UPDATE_USER_VERIFY_SSL", True),
+    }
+    http_basic_auth = getattr(settings, "WEB_UPDATE_HTTP_BASIC_AUTH", None)
+    if http_basic_auth:
+        post_kwargs["auth"] = HTTPBasicAuth(*http_basic_auth)
+    r = requests.post(settings.WEB_UPDATE_USER_URI, **post_kwargs)
+    if settings.DEBUG:
+        print("DEBUG: updatewebuser api response content: " + html2text.html2text(r.content.decode()).strip())
+    r.raise_for_status()  # TODO: is there a way to "attach" the exception content (if any) to this call?
+
+
+def post_to_cms_rest_api(api_name, api_uri, post_data):
+    if not api_uri:
+        return "ERROR"
+    post_kwargs = {
+        "headers": {'Authorization': 'Api-Key ' + settings.LDSOCIAL_API_KEY},
+        "data": post_data,
+        "timeout": (5, 20),
+        "verify": getattr(settings, "WEB_UPDATE_USER_VERIFY_SSL", True),
+    }
+    http_basic_auth = getattr(settings, "WEB_UPDATE_HTTP_BASIC_AUTH", None)
+    if http_basic_auth:
+        post_kwargs["auth"] = HTTPBasicAuth(*http_basic_auth)
+    try:
+        if settings.DEBUG:
+            print("DEBUG: %s to %s with post_data='%s'" % (api_name, api_uri, post_data))
+        r = requests.post(api_uri, **post_kwargs)
+        r.raise_for_status()
+    except ReadTimeout:
+        return "TIMEOUT"
+    except RequestException:
+        return "ERROR"
+    else:
+        result = r.json()
+        if settings.DEBUG:
+            print("DEBUG: %s POST result: %s" % (api_name, result))
+        return result
+
+
+def validateEmailOnWeb(contact_id, email):
+    return post_to_cms_rest_api(
+        "validateEmailOnWeb", settings.WEB_EMAIL_CHECK_URI, {"contact_id": contact_id, "email": email}
+    )
