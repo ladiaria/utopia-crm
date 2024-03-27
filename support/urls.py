@@ -197,5 +197,15 @@ urlpatterns = [
         "my_sales/",
         views.SalesRecordFilterSellersView.as_view(),
         name="my_sales",
-    )
+    ),
+    path(
+        "validate_sale/<int:pk>/",
+        views.ValidateSubscriptionSalesRecord.as_view(),
+        name="validate_sale",
+    ),
+    path(
+        "validate_subscription/<int:pk>/",
+        views.ValidateSubscriptionRedirectView.as_view(),
+        name="validate_subscription",
+    ),
 ]

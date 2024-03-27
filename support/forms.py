@@ -8,7 +8,7 @@ from core.models import Contact, Product, Subscription, Address, DynamicContactF
 from core.forms import EmailValidationForm
 from core.choices import ADDRESS_TYPE_CHOICES, FREQUENCY_CHOICES, ACTIVITY_TYPES
 
-from .models import Seller, Issue, IssueStatus, IssueSubcategory
+from .models import Seller, Issue, IssueStatus, IssueSubcategory, SalesRecord
 from .choices import ISSUE_CATEGORIES
 
 
@@ -558,5 +558,9 @@ class SugerenciaGeorefForm(forms.ModelForm):
 class ValidateSubscriptionForm(forms.ModelForm):
 
     class Meta:
-        model = Subscription
-        fields = ("can_be_commisioned", "subscription")
+        model = SalesRecord
+        fields = ("can_be_commissioned", "subscription")
+        widgets = {
+            "can_be_commissioned": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "subscription": forms.HiddenInput(attrs={"class": "form-control"}),
+        }

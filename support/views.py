@@ -27,7 +27,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django.utils.text import format_lazy
-from django.views.generic import UpdateView
+from django.views.generic import UpdateView, RedirectView
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
@@ -3369,3 +3369,16 @@ class ValidateSubscriptionSalesRecord(UpdateView):
         subscription = form.cleaned_data["subscription"]
         subscription.validate()
         return super().form_valid(form)
+
+@method_decorator(staff_member_required, name="dispatch")
+class ValidateSubscriptionRedirectView(RedirectView):
+    def get_redirect_url(self, *args, **kwargs):
+        subscription = get_object_or_404(Subscription, pk=kwargs["pk"])
+        sales_record = subscription.salesrecord_set.first()
+        if not sales_record:
+            messages.error(self.request, _("This subscription has no sales record."))
+            return reverse("sales_record_filter_managers")
+        if subscription.validated:
+            messages.error(self.request, _("This subscription has already been validated."))
+            return reverse("sales_record_filter_managers")
+        return reverse("validate_sale", args=[sales_record.id])

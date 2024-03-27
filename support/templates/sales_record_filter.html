@@ -99,7 +99,7 @@
                         {% trans "OK" %}
                         {% else %}
                         {% if is_manager %}
-                          <a href="#" class="btn btn-sm btn-success">{% trans "Validate" %}
+                          <a href="{% url 'validate_sale' sr.pk %}" class="btn btn-sm btn-success">{% trans "Validate" %}
                         {% else %}
                         {% trans "No" %}
                         {% endif %}
