@@ -2,17 +2,15 @@
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework_api_key.permissions import HasAPIKey
 
-from django.conf import settings
 from django.db import IntegrityError
-from django.http import JsonResponse, HttpResponse, HttpResponseForbidden, HttpResponseBadRequest
+from django.http import JsonResponse, HttpResponse, HttpResponseBadRequest
 from django.shortcuts import render, get_list_or_404
+from django.views.decorators.cache import never_cache
 from django.contrib.auth.decorators import login_required
-from django.views.decorators.http import require_POST
-from django.views.decorators.csrf import csrf_exempt
 from django.core.validators import validate_email
 
 from .models import Contact, update_customer
-from .utils import subscribe_email_to_mailtrain_list
+from .utils import subscribe_email_to_mailtrain_list, get_emails_from_mailtrain_list
 
 
 def handler404(request, exception):
@@ -27,20 +25,20 @@ def handler500(request):
     return render(request, '500.html', status=500)
 
 
-@api_view(['POST'])
+@api_view(['POST', "PUT"])
 @permission_classes([HasAPIKey])
 def updateuserfromweb(request):
     """
-    Updates a contact. Sets updatefromweb flag to the contact to avoid ws loop.
+    Updates or Inserts a contact. Sets updatefromweb flag to the contact to avoid ws loop.
     """
     # TODO: change name to update_contact_api (or similiar)
     try:
-        contact_id = request.POST.get("contact_id", 0)
-        mail = request.POST.get("email")
-        newmail = request.POST.get("newemail")
-        field = request.POST.get("field")
-        value = request.POST.get("value")
-    except KeyError:
+        contact_id = request.data.get("contact_id", 0)
+        mail = request.data.get("email")
+        newmail = request.data.get("newemail")
+        field = request.data.get("field")
+        value = request.data.get("value")
+    except AttributeError:
         return HttpResponseBadRequest()
 
     try:
@@ -52,7 +50,9 @@ def updateuserfromweb(request):
                 c = Contact.objects.get(email=mail)
                 update_customer(c, newmail, field, value)
             except Contact.DoesNotExist:
-                pass
+                if request.method == "POST":  # create
+                    c = Contact.objects.create(name=request.data.get("name"))
+                    update_customer(c, mail, field, value)
             except (Contact.MultipleObjectsReturned, IntegrityError) as m_ie_exc:
                 # TODO Notificar por mail a los managers
                 return HttpResponseBadRequest(m_ie_exc)
@@ -87,8 +87,31 @@ def search_contacts_htmx(request, name="contact"):
         return HttpResponse()
 
 
-@require_POST
-@csrf_exempt
+@never_cache
+@api_view(['GET'])
+@permission_classes([HasAPIKey])
+def get_mailtrain_list_subscribed_emails(request, list_id):
+    """
+    Returns a JSON object containing the email addresses of all subscribers in a Mailtrain list having status set to
+    "Subscribed".
+
+    Returns:
+        dict: A JSON object with a list of email addresses.
+
+    Example:
+        {
+            "subscribed_emails": [
+                "email1@example.com",
+                "email2@example.com",
+                ...
+            ]
+        }
+    """
+    return JsonResponse({"subscribed_emails": get_emails_from_mailtrain_list(list_id, 1)})
+
+
+@api_view(['POST'])
+@permission_classes([HasAPIKey])
 def add_email_to_mailtrain_list(request):
     """
     View to handle adding emails to a mailtrain list.
@@ -103,10 +126,6 @@ def add_email_to_mailtrain_list(request):
 
     Returns a JSON response with the result of the operation.
     """
-    if not request.POST.get("api_key", None):
-        return HttpResponseForbidden()
-    if request.POST["api_key"] != getattr(settings, "CRM_API_KEY", None):
-        return HttpResponseForbidden()
     email = request.POST.get("email", None)
     list_id = request.POST.get("list_id", None)
     if not email:

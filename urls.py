@@ -13,7 +13,9 @@ from django.conf.urls import handler404
 from django.conf.urls import handler403
 from django.conf.urls import handler500
 
-from core.views import updateuserfromweb, search_contacts_htmx, add_email_to_mailtrain_list
+from core.views import (
+    updateuserfromweb, search_contacts_htmx, add_email_to_mailtrain_list, get_mailtrain_list_subscribed_emails
+)
 
 
 # TODO: explain this 3 handlers
@@ -40,6 +42,7 @@ urlpatterns += [
     path('api/search_contacts/', search_contacts_htmx, name="htmx_search_contacts"),
     path('api/search_contacts/<str:name>/', search_contacts_htmx, name="htmx_search_contacts_alt"),
     path('api/subscribe_to_mailtrain/', add_email_to_mailtrain_list, name="subscribe_to_mailtrain"),
+    path("api/mailtrain_subscribers/list/<str:list_id>/", get_mailtrain_list_subscribed_emails),
 ]
 
 if 'support' in settings.INSTALLED_APPS:

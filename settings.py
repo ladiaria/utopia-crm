@@ -1,4 +1,4 @@
-# Django settings for utopia-crm project.
+# Django settings for utopia-crm project
 import os
 
 from django.utils.translation import gettext_lazy as _
@@ -151,7 +151,7 @@ GRAPH_MODELS = {
     "group_models": True,
 }
 
-# Predefined states in Address model. If you don't want to use a choice for the states, override this to False.
+# Predefined states in Address model. If you don't want to use a choice for the states, override this to False
 USE_STATES_CHOICE = True
 # The values to use if the previous setting is True
 STATES = (("State 1", "State 1"), ("State 2", "State 2"))
@@ -163,7 +163,7 @@ UNSUBSCRIPTION_REASON_CHOICES = (
     (3, "Other"),
 )
 
-# Same as the previous, but for where you received the unsubscription request.
+# Same as the previous, but for where you received the unsubscription request
 UNSUBSCRIPTION_CHANNEL_CHOICES = (
     (1, "E-Mail"),
     (2, "Phone"),
@@ -190,19 +190,34 @@ ISSUE_STATUS_FINISHED_LIST = [ISSUE_STATUS_SOLVED, "not-solved"]
 # logistics
 LOGISTICS_LABEL_INVOICE_PAYMENT_TYPES = []
 
-# Override to True if route for billing is required.
-# Useful when you explicitly require to send the invoices via logistics.
+# Override to True if route for billing is required
+# Useful when you explicitly require to send the invoices via logistics
 REQUIRE_ROUTE_FOR_BILLING = False
 
-# Route numbers to ignore the billing of subscriptions which main route is included in this list.
+# Route numbers to ignore the billing of subscriptions which main route is included in this list
 EXCLUDE_ROUTES_FROM_BILLING_LIST = []
 
-# Route numbers to allow sellers to have contacts with products having these particular routes.
-# We usually use the same ones than we use at EXCLUDE_ROUTES_FROM_BILLING_LIST.
+# Route numbers to allow sellers to have contacts with products having these particular routes
+# We usually use the same ones than we use at EXCLUDE_ROUTES_FROM_BILLING_LIST
 SPECIAL_ROUTES_FOR_SELLERS_LIST = []
 
-# utopia-cms integration. TODO: s/WEB_/UTOPIACMS_/
-WEB_UPDATE_NEWSLETTER_MAP = {}
+# utopia-cms integration (override this in your local_settings.py). TODO: s/(WEB_|LDSOCIAL_)/UTOPIACMS_/
+WEB_UPDATE_USER_ENABLED = False  # TODO: write analogous systemcheck made in CMS when this is True and "no url"
+LDSOCIAL_URL = ""  # The SITE_URL setting of the "associated" utopia-cms deplyment (CMS)
+LDSOCIAL_API_KEY = ""  # A key generated in the CMS using "rest_framework_api_key" app
+WEB_UPDATE_USER_VERIFY_SSL = True
+WEB_UPDATE_HTTP_BASIC_AUTH = None  # Override to tuple (user, pass) if the CMS is also restricted using basic auth
+# Subscriptions to publication and area newsletters sync (to find usage, do not grep literally, use "_MEWSLETTER_MAP")
+WEB_UPDATE_NEWSLETTER_MAP = {
+    # Override to sync CMS Publication newsletters subscriptions, format: key: CMS Publication.id, value: product.slug
+}
+WEB_UPDATE_AREA_NEWSLETTER_MAP = {
+    # Override to sync CMS Area newsletters subscriptions, format: key: CMS Category.id, value: product.slug
+}
+# Api uris which their default value will be assigned after local_settings import, if not overrided there
+WEB_UPDATE_USER_URI = None
+WEB_EMAIL_CHECK_URI = None
+
 
 # Import local settings if they exist
 # TODO: improve hardcoded load of community settings (which are this community settings?)
@@ -210,3 +225,9 @@ try:
     from local_settings import *  # noqa
 except ImportError:
     pass
+
+
+# utopia-cms interoperability default urls. TODO: s/(WEB_|LDSOCIAL_)/UTOPIACMS_/
+if LDSOCIAL_URL:
+    WEB_UPDATE_USER_URI = WEB_UPDATE_USER_URI or (LDSOCIAL_URL + 'usuarios/fromcrm')
+    WEB_EMAIL_CHECK_URI = WEB_EMAIL_CHECK_URI or (LDSOCIAL_URL + 'usuarios/api/email_check/')

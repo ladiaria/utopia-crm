@@ -300,7 +300,7 @@ class Contact(models.Model):
             raise ValidationError(
                 {"email": "El email '%s' registra exceso de rebotes, no se permite su utilización" % email}
             )
-        if getattr(settings, "WEB_UPDATE_USER_ENABLED", False) and email and self.id:
+        if settings.WEB_UPDATE_USER_ENABLED and email and self.id:
             self.custom_clean(email, debug)
 
     def custom_clean(self, email, debug):
