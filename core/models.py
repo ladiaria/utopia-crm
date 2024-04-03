@@ -4,6 +4,7 @@ from pydoc import locate
 from datetime import date, datetime, timedelta
 from dateutil.relativedelta import relativedelta
 import json
+from requests.exceptions import RequestException
 
 from django.contrib.auth.models import User
 from django.contrib.gis.db import models as gismodels
@@ -63,6 +64,7 @@ from .utils import (
     subscribe_email_to_mailtrain_list,
     get_emails_from_mailtrain_list,
     validateEmailOnWeb,
+    updatewebuser,
 )
 
 
@@ -935,6 +937,9 @@ class SubscriptionNewsletter(models.Model):
     product = models.ForeignKey("core.Product", on_delete=models.CASCADE, limit_choices_to={"type": "N"})
     contact = models.ForeignKey("core.Contact", on_delete=models.CASCADE)
     active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return str(self.product)
 
 
 class Subscription(models.Model):
@@ -2315,3 +2320,31 @@ def update_customer(cust, newmail, field, value):
     else:
         cust.email = newmail or None
     cust.save()
+
+
+def update_web_user(contact, newsletter_data=None, area_newsletters=False):
+    """
+    Sincroniza algunos campos del contact con su respectiva ficha de suscriptor en la web.
+    If newsletter_data is given, newsletters will be sent to websync.
+    """
+    # TODO: rename better and translate docstring to en.
+    if settings.WEB_UPDATE_USER_ENABLED and not getattr(contact, "updatefromweb", False) and contact.id:
+        if newsletter_data:
+            try:
+                field = ("area_" if area_newsletters else "") + "newsletters"
+                updatewebuser(contact.id, contact.email, contact.email, field, newsletter_data)
+            except RequestException:
+                raise ValidationError(_("CMS sync error"))
+        else:
+            try:
+                current_contact = Contact.objects.get(pk=contact.id)
+                # TODO: change this 1-field-per-request approach to a new 1-request-only approach with all chanmges
+                for f in getattr(settings, "WEB_UPDATE_USER_CHECKED_FIELDS", []):
+                    newvalue = getattr(contact, f)
+                    if newvalue is not None and getattr(current_contact, f) != newvalue:
+                        try:
+                            updatewebuser(contact.id, current_contact.email, contact.email, f, newvalue)
+                        except RequestException as e:
+                            raise ValidationError("{}: {}".format(_("CMS sync error"), e))
+            except Contact.DoesNotExist:
+                pass
