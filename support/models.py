@@ -332,7 +332,7 @@ class SalesRecord(models.Model):
             max_count = max(settings.SELLER_COMMISSION_PRODUCTS_COUNT.keys())
             if products_count > max_count:
                 products_count = max_count
-            return max_count
+            return products_count
         return self.subscription.subscriptionproduct_set.filter(type="S").count()
 
     def set_commission_for_products_sold(self, save=False, return_value=False):

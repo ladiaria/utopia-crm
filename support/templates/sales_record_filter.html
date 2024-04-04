@@ -90,7 +90,7 @@
                 </thead>
                 <tbody>
                   {% for sr in page_obj %}
-                  <tr role="row" {% if sr.subscription.validated %}class="bg-success"{% endif %}>
+                  <tr role="row" {% if sr.subscription.validated %}class="bg-very-light-green"{% endif %}>
                       <td><a href='#'>{{sr.subscription.contact.id}}</a></td>
                       {% if not seller %}
                       <td>{{sr.seller.name}}</td>
