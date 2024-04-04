@@ -171,6 +171,16 @@
                 <div class="card-body">
                   <dt>{% trans "Seller" %}</dt>
                   <dd>{{object.seller}}</dd>
+                  <dt>{% trans "Date and Time" %}</dt>
+                  <dd>{{object.date_time}}</dd>
+                  <dt>{% trans "Added Products" %}</dt>
+                  <dd>{{object.show_products_per_line}}</dd>
+                  <dt>{% trans "Price" %}</dt>
+                  <dd>{{object.price}}</dd>
+                  <dt>{% trans "Sale Type" %}</dt>
+                  <dd>{{object.get_sale_type_display}}</dd>
+                  <dt>{% trans "Calculated Commission" %}</dt>
+                  <dd>{{object.calculate_commission}}</dd>
                 </div>
               </div>
             </div>
@@ -179,9 +189,13 @@
         <div class="card-footer text-right">
           <form method="POST">
             {% csrf_token %}
-            <div class="form-check">
-              {% render_field form.can_be_commissioned class="form-check-input" %}
-              <label for="can_be_commissioned_id" class="form-check-label">{% trans "Can be commissioned" %}</label>
+            <div class="d-flex flex-row justify-content-start">
+              <label for="override" class="form-check-label m-2 w-25">{% trans "Add Commission Value Manually" %}</label>
+              {% render_field form.override_commission_value class="form-control w-25 m-2" %}
+              <div class="form-check m-2">
+                <label for="can_be_commissioned_id" class="form-check-label m-2">{% trans "Can be commissioned" %}</label>
+                {% render_field form.can_be_commissioned class="form-check-input m-2" %}
+              </div>
             </div>
             <button type="submit" class="btn btn-success"><i class="fas fa-check"></i> {% trans "Validate" %}</button>
 

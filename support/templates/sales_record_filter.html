@@ -52,6 +52,12 @@
                     {% render_field filter.form.seller class="form-control" %}
                   </div>
                 </div>
+                <div class="col-md-3">
+                  <div class="form-group">
+                    <label for="validated_id">{% trans "Validated" %}</label>
+                    {% render_field filter.form.validated class="form-control" %}
+                  </div>
+                </div>
                 {% endif %}
             </div>
             <div class="text-right">
@@ -78,12 +84,13 @@
                       <th>{% trans "Products" %}</th>
                       <th>{% trans "Campaign" %}</th>
                       <th>{% trans "Type" %}</th>
+                      <th>{% trans "Commission" %}</th>
                       <th>{% trans "Valid" %}</th>
                     </tr>
                 </thead>
                 <tbody>
                   {% for sr in page_obj %}
-                  <tr role="row">
+                  <tr role="row" {% if sr.subscription.validated %}class="bg-success"{% endif %}>
                       <td><a href='#'>{{sr.subscription.contact.id}}</a></td>
                       {% if not seller %}
                       <td>{{sr.seller.name}}</td>
@@ -94,6 +101,11 @@
                       <td>{{sr.show_products_per_line}}</td>
                       <td>{{sr.campaign|default_if_none:""}}</td>
                       <td>{{sr.get_sale_type_display}}</td>
+                      {% if sr.subscription.validated %}
+                      <td>{{sr.total_commission_value}}</td>
+                      {% else %}
+                      <td>{{sr.calculate_total_commission}}</td>
+                      {% endif %}
                       <td>
                         {% if sr.subscription.validated %}
                         {% trans "OK" %}

@@ -158,6 +158,9 @@ class CampaignFilter(django_filters.FilterSet):
 
 
 class SalesRecordFilter(django_filters.FilterSet):
+    validated = django_filters.BooleanFilter(
+        field_name='subscription__validated'
+    )
     date_time__gte = django_filters.DateFilter(
         field_name='date_time__date', lookup_expr='gte', widget=forms.TextInput(attrs={'autocomplete': 'off'}))
     date_time__lte = django_filters.DateFilter(

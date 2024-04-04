@@ -3356,8 +3356,15 @@ class ValidateSubscriptionSalesRecord(UpdateView):
             return HttpResponseRedirect(reverse("main_menu"))
         return super().dispatch(request, *args, **kwargs)
 
+    def get_initial(self):
+        initial = super().get_initial()
+        if self.object.sale_type != SalesRecord.SALE_TYPE.FULL:
+            initial["can_be_commissioned"] = False
+            initial["subscription"] = self.object.subscription
+        return initial
+
     def get_success_url(self):
-        return reverse("sales_record_filter_managers")
+        return reverse("sales_record_filter")
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -3366,9 +3373,24 @@ class ValidateSubscriptionSalesRecord(UpdateView):
 
     def form_valid(self, form):
         messages.success(self.request, _("The sale and subscription have been validated."))
-        subscription = form.cleaned_data["subscription"]
-        subscription.validate()
+        subscription = self.object.subscription
+        sales_record = form.instance
+        subscription.validate(user=self.request.user)
+        if form.cleaned_data["can_be_commissioned"]:
+            sales_record.can_be_commisioned = True
+            if form.cleaned_data["override_commission_value"]:
+                sales_record.total_commission_value = form.cleaned_data["override_commission_value"]
+            else:
+                sales_record.set_commissions(force=True)
         return super().form_valid(form)
+
+    def form_invalid(self, form):
+        messages.error(self.request, _("There was an error validating the sale and subscription."))
+        # Show errors
+        for field, errors in form.errors.items():
+            for error in errors:
+                messages.error(self.request, f"{field}: {error}")
+        return super().form_invalid(form)
 
 @method_decorator(staff_member_required, name="dispatch")
 class ValidateSubscriptionRedirectView(RedirectView):
@@ -3377,8 +3399,8 @@ class ValidateSubscriptionRedirectView(RedirectView):
         sales_record = subscription.salesrecord_set.first()
         if not sales_record:
             messages.error(self.request, _("This subscription has no sales record."))
-            return reverse("sales_record_filter_managers")
+            return reverse("sales_record_filter")
         if subscription.validated:
             messages.error(self.request, _("This subscription has already been validated."))
-            return reverse("sales_record_filter_managers")
+            return reverse("sales_record_filter")
         return reverse("validate_sale", args=[sales_record.id])

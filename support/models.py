@@ -287,6 +287,9 @@ class SalesRecord(models.Model):
     commission_for_subscription_frequency = models.DecimalField(
         max_digits=10, decimal_places=2, verbose_name=_("Commission for subscription frequency"), default=0
     )
+    total_commission_value = models.DecimalField(
+        max_digits=10, decimal_places=2, verbose_name=_("Total commission value"), default=0
+    )
     can_be_commissioned = models.BooleanField(default=True, verbose_name=_("Can be commissioned"))
 
     class Meta:
@@ -319,8 +322,7 @@ class SalesRecord(models.Model):
         product_list = self.subscription.product_summary_list()
         self.products.add(*product_list)
 
-    def set_commission_for_products_sold(self, save=False) -> None:
-        # For amount of products sold. Doesn't save unless specified
+    def max_products_count(self):
         if hasattr(settings, "SELLER_COMMISSION_PRODUCTS_COUNT"):
             products_count = self.products.filter(type="S").count()
             if hasattr(settings, "SPECIAL_PRODUCT_FOR_COMMISSION_SLUG"):
@@ -330,25 +332,57 @@ class SalesRecord(models.Model):
             max_count = max(settings.SELLER_COMMISSION_PRODUCTS_COUNT.keys())
             if products_count > max_count:
                 products_count = max_count
-            self.commission_for_products_sold = settings.SELLER_COMMISSION_PRODUCTS_COUNT.get(products_count, 0)
+            return max_count
+        return self.subscription.subscriptionproduct_set.filter(type="S").count()
+
+    def set_commission_for_products_sold(self, save=False, return_value=False):
+        # For amount of products sold. Doesn't save unless specified
+        if hasattr(settings, "SELLER_COMMISSION_PRODUCTS_COUNT"):
+            products_count = self.max_products_count()
+            commission = settings.SELLER_COMMISSION_PRODUCTS_COUNT.get(products_count, 0)
+            if return_value:
+                return commission
+            self.commission_for_products_sold = commission
+            if save:
+                self.save()
+        else:
+            if return_value:
+                return 0
+            self.commission_for_products_sold = 0
             if save:
                 self.save()
 
-    def set_commission_for_payment_type(self, save=False) -> None:
+    def set_commission_for_payment_type(self, save=False, return_value=False):
         # For payment type
-        if hasattr(settings, "SELLER_COMMISSION_PAYMENT_TYPE") and self.sale_type == self.SALE_TYPE.FULL:
+        if hasattr(settings, "SELLER_COMMISSION_PAYMENT_METHODS") and self.sale_type == self.SALE_TYPE.FULL:
             payment_type = self.subscription.payment_type
-            self.commission_for_payment_type = settings.SELLER_COMMISSION_PAYMENT_TYPE.get(payment_type, 0)
+            commission = settings.SELLER_COMMISSION_PAYMENT_METHODS.get(payment_type, 0)
+            if return_value:
+                return commission
+            self.commission_for_payment_type = commission
+            if save:
+                self.save()
+        else:
+            if return_value:
+                return 0
+            self.commission_for_payment_type = 0
             if save:
                 self.save()
 
-    def set_commission_for_subscription_frequency(self, save=False) -> None:
+    def set_commission_for_subscription_frequency(self, save=False, return_value=False):
         # For subscription frequency
         if hasattr(settings, "SELLER_COMMISSION_SUBSCRIPTION_FREQUENCY"):
             frequency = self.subscription.frequency
-            self.commission_for_subscription_frequency = settings.SELLER_COMMISSION_SUBSCRIPTION_FREQUENCY.get(
-                frequency, 0
-            )
+            commission = settings.SELLER_COMMISSION_SUBSCRIPTION_FREQUENCY.get(frequency, 0)
+            if return_value:
+                return commission
+            self.commission_for_subscription_frequency = commission
+            if save:
+                self.save()
+        else:
+            if return_value:
+                return 0
+            self.commission_for_subscription_frequency = 0
             if save:
                 self.save()
 
@@ -357,6 +391,11 @@ class SalesRecord(models.Model):
             self.set_commission_for_products_sold()
             self.set_commission_for_payment_type()
             self.set_commission_for_subscription_frequency()
+            self.total_commission_value = (
+                self.commission_for_products_sold
+                + self.commission_for_payment_type
+                + self.commission_for_subscription_frequency
+            )
             self.save()
 
     def has_special_product(self):
@@ -371,3 +410,20 @@ class SalesRecord(models.Model):
             return self.subscription.get_payment_type_display()
         else:
             return _("N/A")
+
+    def calculate_commission(self):
+        # Show all these in a separate line with a label
+        cpt = f"{self.set_commission_for_payment_type(return_value=True)} ({self.subscription.get_payment_type_display()})"
+        cfp = f"{self.set_commission_for_products_sold(return_value=True)} ({self.max_products_count()})"
+        cfs = f"{self.set_commission_for_subscription_frequency(return_value=True)} ({self.subscription.get_frequency_display()})"
+        return f"{cpt} + {cfp} + {cfs} = {self.calculate_total_commission()}"
+
+    def calculate_total_commission(self):
+        if self.sale_type == self.SALE_TYPE.FULL:
+            value = (
+                    self.set_commission_for_payment_type(return_value=True)
+                    + self.set_commission_for_products_sold(return_value=True)
+                    + self.set_commission_for_subscription_frequency(return_value=True)
+                )
+            return value
+        return 0

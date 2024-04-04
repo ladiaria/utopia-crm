@@ -555,12 +555,16 @@ class SugerenciaGeorefForm(forms.ModelForm):
             "address_type",
         ]
 
+
 class ValidateSubscriptionForm(forms.ModelForm):
+    override_commission_value = forms.IntegerField(
+        required=False,
+        widget=forms.NumberInput(attrs={"class": "form-control", "placeholder": _("Override amount"), "min": 0}),
+    )
 
     class Meta:
         model = SalesRecord
-        fields = ("can_be_commissioned", "subscription")
+        fields = ("can_be_commissioned", "override_commission_value")
         widgets = {
             "can_be_commissioned": forms.CheckboxInput(attrs={"class": "form-check-input"}),
-            "subscription": forms.HiddenInput(attrs={"class": "form-control"}),
         }
