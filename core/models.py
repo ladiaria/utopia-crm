@@ -3,6 +3,8 @@ from importlib import import_module
 from pydoc import locate
 from datetime import date, datetime, timedelta
 from dateutil.relativedelta import relativedelta
+import json
+from requests.exceptions import RequestException
 
 from django.contrib.auth.models import User
 from django.contrib.gis.db import models as gismodels
@@ -58,7 +60,13 @@ from .choices import (
     EMAIL_BOUNCE_ACTION_MAXREACH,
     FreeSubscriptionRequestedBy,
 )
-from .utils import delete_email_from_mailtrain_list, subscribe_email_to_mailtrain_list, get_emails_from_mailtrain_list
+from .utils import (
+    delete_email_from_mailtrain_list,
+    subscribe_email_to_mailtrain_list,
+    get_emails_from_mailtrain_list,
+    validateEmailOnWeb,
+    updatewebuser,
+)
 
 
 regex_alphanumeric = r"^[@A-Za-z0-9ñüáéíóúÑÜÁÉÍÓÚ _'.\-]*$"  # noqa
@@ -295,16 +303,14 @@ class Contact(models.Model):
             raise ValidationError(
                 {"email": "El email '%s' registra exceso de rebotes, no se permite su utilización" % email}
             )
-        if getattr(settings, "WEB_UPDATE_USER_ENABLED", False) and email and self.id:
-            custom_module_name = getattr(settings, "WEB_UPDATE_USER_VALIDATION_MODULE", None)
-            if custom_module_name:
-                self.custom_clean(locate(custom_module_name), email, debug)
+        if settings.WEB_UPDATE_USER_ENABLED and email and self.id:
+            self.custom_clean(email, debug)
 
-    def custom_clean(self, validation_module, email, debug):
+    def custom_clean(self, email, debug):
         # TODO: a good improvement will be to receive also the old_email and include it in the api call for trying to
         #       dedupe this scneario: no subscriber has my contact_id but there are two subscribers with two different
         #       contact ids, one with the old email and the other with the new email.
-        resp = validation_module.validateEmailOnWeb(self.id, email)
+        resp = validateEmailOnWeb(self.id, email)
         if resp in ("TIMEOUT", "ERROR"):
             # TODO: Alert user about web timeout or error
             if debug:
@@ -313,8 +319,10 @@ class Contact(models.Model):
             msg = resp.get("msg")
             if msg != "OK":
                 retval = resp.get("retval")
-                if retval > 0:
-                    dedupe_resp = validation_module.dedupeOnWeb(self.id, retval, email)
+                # calling a "dedupe" custom api if available (not opensourced yet in utopia-cms)
+                custom_validation_module_name = getattr(settings, "WEB_UPDATE_USER_VALIDATION_MODULE", None)
+                if custom_validation_module_name and retval > 0:
+                    dedupe_resp = locate(custom_validation_module_name).dedupeOnWeb(self.id, retval, email)
                     if dedupe_resp in ("TIMEOUT", "ERROR"):
                         # TODO: Alert user about web timeout or error
                         if debug:
@@ -324,13 +332,13 @@ class Contact(models.Model):
                         raise ValidationError({"email": msg})
                     else:
                         # calling "me" again for security reasons (maybe another user in web can be in conflict)
-                        self.custom_clean(validation_module, email, debug)
+                        self.custom_clean(email, debug)
                 else:
                     raise ValidationError({"email": msg})
 
     def save(self, *args, **kwargs):
         if not getattr(self, "updatefromweb", False) and not getattr(self, "_skip_clean", False):
-            self.clean()
+            self.clean(debug=settings.DEBUG_CONTACT_CLEAN)
         return super().save(*args, **kwargs)
 
     def is_debtor(self):
@@ -930,6 +938,9 @@ class SubscriptionNewsletter(models.Model):
     product = models.ForeignKey("core.Product", on_delete=models.CASCADE, limit_choices_to={"type": "N"})
     contact = models.ForeignKey("core.Contact", on_delete=models.CASCADE)
     active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return str(self.product)
 
 
 class Subscription(models.Model):
@@ -1836,6 +1847,8 @@ class Campaign(models.Model):
             activity__campaign__active=True,
             activity__status="P",
         )
+        """
+        # TODO: remove or explain why not used
         contacts_with_lower_priority_activities = Contact.objects.filter(
             activity__campaign=self,
             activity__campaign__priority__lt=self.priority,
@@ -1846,12 +1859,14 @@ class Campaign(models.Model):
             activity__campaign__priority=self.priority,
             activity__campaign__active=True,
         ).exclude(activity__campaign__pk=self.pk)
+        """
 
         return (
             self.contactcampaignstatus_set.filter(seller_id=seller_id, status__in=[1, 3])
             .exclude(contact__id__in=lower_priority_contacts.values('pk'))
             .exclude(contact__id__in=same_priority_contacts.values('pk'))
             .exclude(contact__id__in=contacts_with_current_activities.values('pk'))
+            # TODO: @ prev TODO
             # .exclude(contact__id__in=contacts_with_lower_priority_activities.values('pk'))
             # .exclude(contact__id__in=contacts_with_same_priority_activities.values('pk'))
         )
@@ -2292,3 +2307,67 @@ class EmailReplacement(models.Model):
 
     class Meta:
         ordering = ("status", "domain")
+
+
+def update_customer(cust, newmail, field, value):
+    # TODO: rename to update_contact or similar, rename cust arg accordingly also
+    if settings.DEBUG:
+        print("DEBUG: update_customer(%s, %s, %s, %s)" % (cust, newmail, field, value))
+    cust.updatefromweb = True
+    if field:
+        if field in ("newsletters", "area_newsletters", "newsletters_remove", "area_newsletters_remove"):
+            map_setting = getattr(
+                settings, "WEB_UPDATE_%sNEWSLETTER_MAP" % ("AREA_" if field.startswith("area_") else "")
+            )
+            if field in ("newsletters", "area_newsletters"):
+                if not value:
+                    # delete only those that are mapped (newsletters only)
+                    cust.subscriptionnewsletter_set.filter(product__slug__in=list(map_setting.values())).delete()
+                else:
+                    for obj_id in json.loads(value):
+                        try:
+                            cust.add_newsletter_by_slug(map_setting[obj_id])
+                        except KeyError:
+                            pass
+            else:
+                # special call for only remove one newsletter
+                obj_id = json.loads(value)[0]
+                try:
+                    cust.subscriptionnewsletter_set.filter(product__slug=map_setting[obj_id]).delete()
+                except (KeyError, SubscriptionNewsletter.DoesNotExist):
+                    pass
+        else:
+            mfield = getattr(settings, "WEB_UPDATE_SUBSCRIBER_MAP", {}).get(field, None)
+            if mfield:
+                setattr(cust, mfield, eval(value) if type(getattr(cust, mfield)) is bool else value)
+    else:
+        cust.email = newmail or None
+    cust.save()
+
+
+def update_web_user(contact, newsletter_data=None, area_newsletters=False):
+    """
+    Sincroniza algunos campos del contact con su respectiva ficha de suscriptor en la web.
+    If newsletter_data is given, newsletters will be sent to websync.
+    """
+    # TODO: rename better and translate docstring to en.
+    if settings.WEB_UPDATE_USER_ENABLED and not getattr(contact, "updatefromweb", False) and contact.id:
+        if newsletter_data:
+            try:
+                field = ("area_" if area_newsletters else "") + "newsletters"
+                updatewebuser(contact.id, contact.email, contact.email, field, newsletter_data)
+            except RequestException:
+                raise ValidationError(_("CMS sync error"))
+        else:
+            try:
+                current_contact = Contact.objects.get(pk=contact.id)
+                # TODO: change this 1-field-per-request approach to a new 1-request-only approach with all chanmges
+                for f in getattr(settings, "WEB_UPDATE_USER_CHECKED_FIELDS", []):
+                    newvalue = getattr(contact, f)
+                    if newvalue is not None and getattr(current_contact, f) != newvalue:
+                        try:
+                            updatewebuser(contact.id, current_contact.email, contact.email, f, newvalue)
+                        except RequestException as e:
+                            raise ValidationError("{}: {}".format(_("CMS sync error"), e))
+            except Contact.DoesNotExist:
+                pass

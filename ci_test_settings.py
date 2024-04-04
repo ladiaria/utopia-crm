@@ -1,5 +1,5 @@
 # coding=utf-8
-from settings import *
+from settings import *  # noqa
 
 
 DEBUG = True
@@ -16,6 +16,6 @@ DATABASES = {
 }
 
 try:
-    from local_ci_test_settings import *
+    from local_ci_test_settings import *  # noqa
 except ImportError:
     pass

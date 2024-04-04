@@ -1,11 +1,6 @@
 # coding=utf-8
 import re
 
-try:
-    import simplejson as json
-except ImportError:
-    import json  # noqa
-
 from django.db.models.signals import pre_save, post_save
 from django.dispatch import receiver
 from django.forms import ValidationError
@@ -19,7 +14,7 @@ alphanumeric = re.compile(regex_alphanumeric)
 
 @receiver(pre_save, sender=Contact)
 def contact_pre_save_signal(sender, instance, **kwargs):
-    # These validations should be consistent with the ones defined in the model attrs.
+    # TODO: These validations should be consistent with the ones defined in the model attrs.
 
     if instance.no_email and instance.email:
         raise ValidationError(no_email_validation_msg)

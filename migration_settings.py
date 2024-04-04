@@ -15,7 +15,9 @@ LOGIN_URL = "/user/login/"
 LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/"
 
-DEBUG_INVOICING = False  # when enabled prints debug data for invoicing in uwsgi log
+# debug for special parts, override to True to print debug data
+DEBUG_CONTACT_CLEAN = False
+DEBUG_INVOICING = False
 
 ALLOWED_HOSTS = ["localhost"]
 
@@ -93,6 +95,7 @@ INSTALLED_APPS = [
     "corsheaders",
     "rest_framework",
     "rest_framework.authtoken",
+    "rest_framework_api_key",
     "django_filters",
     "widget_tweaks",
     "simple_history",
@@ -133,7 +136,7 @@ UNSUBSCRIPTION_REASON_CHOICES = (
     (3, "Other"),
 )
 
-# Same as the previous, but for where you received the unsubscription request.
+# Same as the previous, but for where you received the unsubscription request
 UNSUBSCRIPTION_CHANNEL_CHOICES = (
     (1, "E-Mail"),
     (2, "Phone"),

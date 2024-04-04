@@ -181,7 +181,7 @@ def bill_subscription(subscription_id, billing_date=None, dpp=10, check_route=Fa
                 item_discount.type_dr = 1
                 affectable_delta -= float(item_discount.price * item_discount.copies)
             elif discount_product.type == "P":
-                affectable_delta_discount = (affectable_delta * discount_product.price) / 100
+                affectable_delta_discount = (affectable_delta * float(discount_product.price)) / 100
                 affectable_delta -= affectable_delta_discount
             item_discount.amount = item_discount.price * item_discount.copies
             subtotal_affectable += affectable_delta

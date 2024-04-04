@@ -463,7 +463,7 @@ def print_labels(request, page="Roll", list_type="", route_list="", product_id=N
             if sp.route is None:
                 continue
 
-            # If the subscription_product has no address, continue. There should be a way to control this doesn't happen
+            # If the subscription_product has no address, continue. TODO: precond validation to prevent this situation
             if sp.address is None:
                 continue
 
@@ -474,11 +474,9 @@ def print_labels(request, page="Roll", list_type="", route_list="", product_id=N
                 old_route = sp.route
 
             # Here we'll show an icon if the contact has one of the payment types marked on settings.
-            label_invoice_payment_types = getattr(settings, "LABEL_INVOICE_PAYMENT_TYPES", [])
             has_invoice = (
-                label_invoice_payment_types
-                and sp.subscription.payment_type
-                and sp.subscription.payment_type in label_invoice_payment_types
+                sp.subscription.payment_type
+                and sp.subscription.payment_type in settings.LOGISTICS_LABEL_INVOICE_PAYMENT_TYPES
                 and not sp.subscription.billing_address
                 and sp.subscription.contact.invoice_set.filter(print_date__gte=date.today() - timedelta(6)).exists()
             )
@@ -489,7 +487,7 @@ def print_labels(request, page="Roll", list_type="", route_list="", product_id=N
 
                 # TODO: take in account also here the time of execution from 0:00 to 2:59 (after midnight)
                 #       maybe next_day.isoweekday() instead of tomorrow.isoweekday() is the solution, make tests cases.
-                #       Another improvement (for performance) is to make the route_suffix assignment before the first loop.
+                #       Another improvement (for performance) is to make the route_suffix assignment before first loop.
                 #       And yet another: it's also possible to obtain locale and get the day name localized,
                 #                        google this: "django get locale", "python get day name localized".
                 tomorrow_isoweekday = tomorrow.isoweekday()
@@ -600,7 +598,7 @@ def print_labels_for_day(request):
             if sp.route is None:
                 continue
 
-            # If the subscription_product has no address, continue. There should be a way to control this doesn't happen
+            # If the subscription_product has no address, continue. TODO: precond validation to prevent this situation
             if sp.address is None:
                 continue
 
@@ -611,11 +609,9 @@ def print_labels_for_day(request):
                 old_route = sp.route
 
             # Here we'll show an icon if the contact has one of the payment types marked on settings.
-            label_invoice_payment_types = getattr(settings, "LABEL_INVOICE_PAYMENT_TYPES", [])
             has_invoice = (
-                label_invoice_payment_types
-                and sp.subscription.payment_type
-                and sp.subscription.payment_type in label_invoice_payment_types
+                sp.subscription.payment_type
+                and sp.subscription.payment_type in settings.LOGISTICS_LABEL_INVOICE_PAYMENT_TYPES
                 and not sp.subscription.billing_address
                 and sp.subscription.contact.invoice_set.filter(print_date__gte=date.today() - timedelta(6)).exists()
             )
@@ -731,12 +727,9 @@ def print_labels_for_product(request, page="Roll", product_id=None, list_type=""
             old_route = sp.route
 
         # Here we'll show an icon if the contact has one of the payment types marked on settings.
-        label_invoice_payment_types = getattr(settings, "LABEL_INVOICE_PAYMENT_TYPES", [])
-
         has_invoice = (
-            label_invoice_payment_types
-            and sp.subscription.payment_type
-            and sp.subscription.payment_type in label_invoice_payment_types
+            sp.subscription.payment_type
+            and sp.subscription.payment_type in settings.LOGISTICS_LABEL_INVOICE_PAYMENT_TYPES
             and not sp.subscription.billing_address
             and sp.subscription.contact.invoice_set.filter(print_date__gte=date.today() - timedelta(30)).exists()
         )
@@ -1359,12 +1352,9 @@ def print_labels_for_product_date(request):
                 old_route = sp.route
 
             # Here we'll show an icon if the contact has one of the payment types marked on settings.
-            label_invoice_payment_types = getattr(settings, "LABEL_INVOICE_PAYMENT_TYPES", [])
-
             has_invoice = (
-                label_invoice_payment_types
-                and sp.subscription.payment_type
-                and sp.subscription.payment_type in label_invoice_payment_types
+                sp.subscription.payment_type
+                and sp.subscription.payment_type in settings.LOGISTICS_LABEL_INVOICE_PAYMENT_TYPES
                 and not sp.subscription.billing_address
                 and sp.subscription.contact.invoice_set.filter(print_date__gte=date.today() - timedelta(30)).exists()
             )

@@ -29,9 +29,6 @@ SECRET_KEY = ""
 # Example values for many settings, uncomment and change as your needs.
 # (the uncommented variables are required, an error can be generated if not defined)
 
-# Override to True if you want to make the first test (according to runtests.sh) fail
-# TESTS_FIRST_TEST_SHOULD_FAIL = False
-
 # Default state and city used on the Address model. If it is not set, it will be None by default.
 # DEFAULT_STATE = "Montevideo"
 # DEFAULT_CITY = "Montevideo"
@@ -48,7 +45,7 @@ SECRET_KEY = ""
 INVOICE_PAYMENT_METHODS = (("M", "Mastercard"), ("V", "Visa"), ("C", "Cash"))
 
 # Set the payment types that you want to track on labels in this list. (NOTE: this example matches "R" or "I")
-# LABEL_INVOICE_PAYMENT_TYPES = "RI"
+# LOGISTICS_LABEL_INVOICE_PAYMENT_TYPES = "RI"
 
 # Show only one item per subscription in subscription invoices, instead of one item per invoiceitem. (default=False)
 # USE_SQUASHED_SUBSCRIPTION_INVOICEITEMS = False
