@@ -10,7 +10,12 @@ from django.contrib.auth.decorators import login_required
 from django.core.validators import validate_email
 
 from .models import Contact, update_customer
-from .utils import subscribe_email_to_mailtrain_list, get_emails_from_mailtrain_list
+from .utils import (
+    get_emails_from_mailtrain_list,
+    get_mailtrain_lists,
+    subscribe_email_to_mailtrain_list,
+    delete_email_from_mailtrain_list,
+)
 
 
 def handler404(request, exception):
@@ -112,29 +117,44 @@ def get_mailtrain_list_subscribed_emails(request, list_id):
 
 @api_view(['POST'])
 @permission_classes([HasAPIKey])
-def add_email_to_mailtrain_list(request):
+def mailtrain_lists(request):
     """
-    View to handle adding emails to a mailtrain list.
+    Retrieve the lists that the user with :email (in POST data) has subscribed to.
+    """
+    email = request.POST.get("email", None)
+    if not email:
+        return JsonResponse({"status": "error", "message": "Email is required."}, status=400)
+    result = get_mailtrain_lists(email)
+    return JsonResponse({"lists": result})
+
+
+@api_view(['POST', "DELETE"])
+@permission_classes([HasAPIKey])
+def mailtrain_list_subscription(request):
+    """
+    View to handle adding/remove an email to/from a mailtrain list.
 
     Args:
     - `request`: Django HttpRequest object.
 
-    Expected POST Parameters:
-    - `email`: Email to be added to the list.
-    - `list_id`: ID of the mailtrain list to add the email to.
-    - `api_key`: Our API key to use for the operation.
+    Expected "data" Parameters:
+    - `email`: Email to be added/removed.
+    - `list_id`: ID of the mailtrain list.
 
     Returns a JSON response with the result of the operation.
     """
-    email = request.POST.get("email", None)
-    list_id = request.POST.get("list_id", None)
+    email = request.data.get("email", None)
+    list_id = request.data.get("list_id", None)
     if not email:
         return JsonResponse({"status": "error", "message": "Email is required."}, status=400)
     if not list_id:
         return JsonResponse({"status": "error", "message": "List ID is required."}, status=400)
-    try:
-        validate_email(email)
-    except Exception:
-        return JsonResponse({"status": "error", "message": f"{email} is not a valid email address."}, status=400)
-    result = subscribe_email_to_mailtrain_list(email, list_id)
+    if request.method == "POST":
+        try:
+            validate_email(email)
+        except Exception:
+            return JsonResponse({"status": "error", "message": f"{email} is not a valid email address."}, status=400)
+        result = subscribe_email_to_mailtrain_list(email, list_id)
+    else:
+        result = delete_email_from_mailtrain_list(email, list_id)
     return HttpResponse(result, content_type="application/json")

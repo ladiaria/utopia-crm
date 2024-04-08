@@ -22,14 +22,13 @@ def addMonth(d, n=1):
     return eom.replace(day=d.day)
 
 
+# TODO: handle cases of setting missconf for the next 4 functions (mailtrain api calls)
 def subscribe_email_to_mailtrain_list(email, mailtrain_list_id):
     if settings.DEBUG:
         print(("sending email {} to {}".format(email, mailtrain_list_id)))
     url = '{}subscribe/{}'.format(settings.MAILTRAIN_API_URL, mailtrain_list_id)
     params = {'access_token': settings.MAILTRAIN_API_KEY}
-    data = {'EMAIL': email}
-    r = requests.post(url=url, params=params, data=data)
-    return r
+    return requests.post(url, params=params, data={'EMAIL': email})
 
 
 def delete_email_from_mailtrain_list(email, mailtrain_list_id):
@@ -37,9 +36,13 @@ def delete_email_from_mailtrain_list(email, mailtrain_list_id):
         print(("deleting email {} from {}".format(email, mailtrain_list_id)))
     url = '{}delete/{}'.format(settings.MAILTRAIN_API_URL, mailtrain_list_id)
     params = {'access_token': settings.MAILTRAIN_API_KEY}
-    data = {'EMAIL': email}
-    r = requests.post(url=url, params=params, data=data)
-    return r
+    return requests.post(url, params=params, data={'EMAIL': email})
+
+
+def get_mailtrain_lists(email):
+    url = '{}lists/{}'.format(settings.MAILTRAIN_API_URL, email)
+    params = {'access_token': settings.MAILTRAIN_API_KEY}
+    return [mlist["cid"] for mlist in requests.get(url, params=params).json()["data"]]
 
 
 def get_emails_from_mailtrain_list(mailtrain_list_id, status=None, limit=None):
@@ -51,7 +54,7 @@ def get_emails_from_mailtrain_list(mailtrain_list_id, status=None, limit=None):
     params = {'access_token': settings.MAILTRAIN_API_KEY}
     if limit:
         params['limit'] = limit
-    r = requests.get(url=url, params=params)
+    r = requests.get(url, params=params)
     data = r.json()
     for subscription in data['data']['subscriptions']:
         if not status or subscription["status"] == status:
