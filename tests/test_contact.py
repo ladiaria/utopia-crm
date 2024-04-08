@@ -166,7 +166,7 @@ class TestCoreContact(TestCase):
         """
         - Email change will not raise any error.
         - Adding or removing a newsletter whose pub_id is not defined in settings will not raise any error.
-        - TODO: Adding correct NL should impact in the associated CMS.
+        - TODO: Adding correct NL should impact in the associated CMS (use CMS's /api/subscribers/?contact_id=XX)
         """
         email = "contact@fakemail.com.uy"
         contact = create_contact("Digital", 29000808, email)
