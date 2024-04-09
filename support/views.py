@@ -3299,7 +3299,7 @@ class SalesRecordFilterSellersView(FilterView):
         queryset = self.get_queryset()
         if not queryset.exists():
             messages.error(self.request, _("You have no sales records."))
-            return HttpResponseRedirect(reverse("main_menu"))
+            return context
         context["sales_distribution_product_count"] = self.get_sales_distribution_by_product(queryset)
         context["sales_distribution_payment_type"] = self.get_sales_distribution_by_payment_type(
             queryset.filter(sale_type=SalesRecord.SALE_TYPE.FULL)
