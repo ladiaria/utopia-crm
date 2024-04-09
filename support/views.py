@@ -27,7 +27,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django.utils.text import format_lazy
-from django.views.generic import UpdateView, RedirectView
+from django.views.generic import UpdateView, RedirectView, CreateView
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
@@ -81,6 +81,7 @@ from .forms import (
     NewAddressForm,
     NewDynamicContactFilterForm,
     NewActivityForm,
+    SalesRecordCreateForm,
     UnsubscriptionForm,
     ContactCampaignStatusByDateForm,
     SubscriptionPaymentCertificateForm,
@@ -3392,6 +3393,7 @@ class ValidateSubscriptionSalesRecord(UpdateView):
                 messages.error(self.request, f"{field}: {error}")
         return super().form_invalid(form)
 
+
 @method_decorator(staff_member_required, name="dispatch")
 class ValidateSubscriptionRedirectView(RedirectView):
     def get_redirect_url(self, *args, **kwargs):
@@ -3404,3 +3406,37 @@ class ValidateSubscriptionRedirectView(RedirectView):
             messages.error(self.request, _("This subscription has already been validated."))
             return reverse("sales_record_filter")
         return reverse("validate_sale", args=[sales_record.id])
+
+
+@method_decorator(staff_member_required, name="dispatch")
+class SalesRecordCreateView(CreateView):
+    model = SalesRecord
+    form_class = SalesRecordCreateForm
+    template_name = "sales_record_create.html"
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["subscription"] = self.subscription
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["subscription"] = self.subscription
+        return context
+
+    def dispatch(self, request, *args, **kwargs):
+        self.subscription = get_object_or_404(Subscription, pk=self.kwargs["subscription_id"])
+        if self.subscription.salesrecord_set.exists():
+            messages.error(self.request, _("This subscription already has a sales record."))
+            return HttpResponseRedirect(reverse("sales_record_filter"))
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_success_url(self):
+        return reverse("sales_record_filter")
+
+    def form_valid(self, form: forms.BaseModelForm) -> HttpResponse:
+        sales_record_obj = form.save()
+        sales_record_obj.products.set(self.subscription.products.filter(type="S"))
+        sales_record_obj.price = self.subscription.get_price_for_full_period()
+        self.subscription.validate(user=self.request.user)
+        return super().form_valid(form)

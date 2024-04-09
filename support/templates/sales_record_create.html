@@ -8,7 +8,7 @@
 
 {% block no_heading %}
   <h1>
-    <a href="{% url 'contact_list' %}">{% trans "Contacts" %}</a> » <a href="{% url 'contact_detail' object.subscription.contact.id %}">{{ object.subscription.contact.id }} - {{ object.subscription.contact.name }}</a> »
+    <a href="{% url 'contact_list' %}">{% trans "Contacts" %}</a> » <a href="{% url 'contact_detail' subscription.contact.id %}">{{ subscription.contact.id }} - {{ subscription.contact.name }}</a> »
     {% trans "Validate Subscription" %}
   </h1>
 {% endblock no_heading %}
@@ -215,30 +215,27 @@
                     <h3 class="card-title">{% trans "Sales Record" %}</h3>
                   </div>
                   <div class="card-body">
-                    <dt>{% trans "Seller" %}</dt>
-                    <dd>
-                      {{ object.seller }}
-                    </dd>
-                    <dt>{% trans "Date and Time" %}</dt>
-                    <dd>
-                      {{ object.date_time }}
-                    </dd>
-                    <dt>{% trans "Added Products" %}</dt>
-                    <dd>
-                      {{ object.show_products_per_line }}
-                    </dd>
-                    <dt>{% trans "Price" %}</dt>
-                    <dd>
-                      {{ object.price }}
-                    </dd>
-                    <dt>{% trans "Sale Type" %}</dt>
-                    <dd>
-                      {{ object.get_sale_type_display }}
-                    </dd>
-                    <dt>{% trans "Calculated Commission" %}</dt>
-                    <dd>
-                      {{ object.calculate_commission }}
-                    </dd>
+                    <form method="post">
+                      {% csrf_token %}
+                      {% render_field form.subscription %}
+                      <div class="form-group">
+                        <label for="seller">{% trans "Seller" %}</label>
+                        {% render_field form.seller class="form-control" %}
+                      </div>
+                      <div class="form-group">
+                        <label for="total_commission_value">{% trans "Commission" %}</label>
+                        {% render_field form.total_commission_value class="form-control" %}
+                      </div>
+                      <div class="form-group">
+                        <div class="form-check">
+                          {% render_field form.can_be_commissioned class="form-check-input" %}
+                          <label for="can_be_commissioned" class="form-check-label">{% trans "Can Be Commissioned" %}</label>
+                        </div>
+                      </div>
+                      <button type="submit" class="btn btn-success">
+                        <i class="fas fa-check"></i> {% trans "Add this sale manually" %}
+                      </button>
+                    </form>
                   </div>
                 </div>
               </div>
@@ -246,30 +243,16 @@
           </div>
         </div>
         <div class="card-footer text-right">
-          <form method="post">
-            {% csrf_token %}
-            <div class="d-flex flex-row justify-content-start">
-              <label for="override" class="form-check-label m-2 w-25">{% trans "Add Commission Value Manually" %}</label>
-              {% render_field form.override_commission_value class="form-control w-25 m-2" %}
-              <div class="form-check m-2">
-                <label for="can_be_commissioned_id" class="form-check-label m-2">{% trans "Can be commissioned" %}</label>
-                {% render_field form.can_be_commissioned class="form-check-input m-2" %}
-              </div>
-            </div>
-            <button type="submit" class="btn btn-success">
-              <i class="fas fa-check"></i> {% trans "Validate" %}
-            </button>
-            <a href="{% url 'edit_subscription' subscription.contact.id subscription.id %}"
-               class="btn  btn-success">{% trans "Edit" %}</a>
-            <a href="{% url 'admin:core_subscription_change' subscription.id %}"
-               class="btn btn-info"
-               target="_blank">{% trans "View in admin" %}</a>
-            <a href="{% url 'edit_envelopes' subscription.id %}"
-               class="btn btn-info"><i class="fas fa-envelope"></i></a>
-            <a href="{% url 'upload_payment_certificate' subscription.id %}"
-               class="btn btn-info">
-              <i class="fas fa-file-invoice-dollar"></i></a>
-          </form>
+          <a href="{% url 'edit_subscription' subscription.contact.id subscription.id %}"
+              class="btn  btn-success">{% trans "Edit" %}</a>
+          <a href="{% url 'admin:core_subscription_change' subscription.id %}"
+              class="btn btn-info"
+              target="_blank">{% trans "View in admin" %}</a>
+          <a href="{% url 'edit_envelopes' subscription.id %}"
+              class="btn btn-info"><i class="fas fa-envelope"></i></a>
+          <a href="{% url 'upload_payment_certificate' subscription.id %}"
+              class="btn btn-info">
+            <i class="fas fa-file-invoice-dollar"></i></a>
         </div>
       </div>
     </div>

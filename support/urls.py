@@ -208,4 +208,9 @@ urlpatterns = [
         views.ValidateSubscriptionRedirectView.as_view(),
         name="validate_subscription",
     ),
+    path(
+        "subscription/<int:subscription_id>/add_sales_record/",
+        views.SalesRecordCreateView.as_view(),
+        name="add_sales_record",
+    )
 ]

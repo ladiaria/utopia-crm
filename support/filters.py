@@ -165,6 +165,10 @@ class SalesRecordFilter(django_filters.FilterSet):
         field_name='date_time__date', lookup_expr='gte', widget=forms.TextInput(attrs={'autocomplete': 'off'}))
     date_time__lte = django_filters.DateFilter(
         field_name='date_time__date', lookup_expr='lte', widget=forms.TextInput(attrs={'autocomplete': 'off'}))
+    seller = django_filters.ModelChoiceFilter(
+        queryset=Seller.objects.filter(salesrecord__isnull=False).distinct(),
+        field_name='seller'
+    )
 
     class Meta:
         model = SalesRecord

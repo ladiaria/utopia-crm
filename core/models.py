@@ -1048,7 +1048,7 @@ class Subscription(models.Model):
         blank=True,
         verbose_name=_("Free subscription requested by"),
     )
-    validated = models.BooleanField(default=False, verbose_name=_("Validated"))
+    validated = models.BooleanField(default=True, verbose_name=_("Validated"))
     validated_by = models.ForeignKey(
         User,
         null=True,
@@ -1758,6 +1758,9 @@ class Subscription(models.Model):
             return self.subscriptionproduct_set.filter(seller__isnull=False).first().seller
         else:
             return None
+
+    def has_sales_record(self):
+        return self.salesrecord_set.exists()
 
     def validate(self, user):
         self.validated = True
