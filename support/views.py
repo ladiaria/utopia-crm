@@ -5,13 +5,15 @@ import csv
 import collections
 from datetime import date, timedelta, datetime
 
+from django.db.models import F, Q, Count, Sum, Min, Count, Case, When, Value, IntegerField
+from django.db.models.query import QuerySet
+from django.db.models.functions import Coalesce
 from taggit.models import Tag
 
 from django import forms
 from django.contrib import messages
 from django.contrib.auth.models import User
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-from django.db.models import Q, Count, Sum, Min
 from django.http import (
     HttpResponseServerError,
     HttpResponseNotFound,
@@ -25,11 +27,14 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django.utils.text import format_lazy
+from django.views.generic import UpdateView, RedirectView, CreateView
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.conf import settings
+from django_filters.views import FilterView
+from django.utils.decorators import method_decorator
 
 from util.dates import add_business_days
 from core.filters import ContactFilter
@@ -60,6 +65,8 @@ from .filters import (
     UnsubscribedSubscriptionsByEndDateFilter,
     ScheduledTaskFilter,
     CampaignFilter,
+    SalesRecordFilter,
+    SalesRecordFilterForSeller,
 )
 from .forms import (
     NewPauseScheduledTaskForm,
@@ -74,14 +81,18 @@ from .forms import (
     NewAddressForm,
     NewDynamicContactFilterForm,
     NewActivityForm,
+    SalesRecordCreateForm,
     UnsubscriptionForm,
     ContactCampaignStatusByDateForm,
     SubscriptionPaymentCertificateForm,
     AddressComplementaryInformationForm,
     SugerenciaGeorefForm,
+    ValidateSubscriptionForm,
 )
-from .models import Seller, ScheduledTask, IssueStatus, Issue, IssueSubcategory
+from .models import Seller, ScheduledTask, IssueStatus, Issue, IssueSubcategory, SalesRecord
 from .choices import ISSUE_CATEGORIES, ISSUE_ANSWERS
+from core import choices as core_choices
+import pandas as pd
 
 
 now = datetime.now()
@@ -503,7 +514,6 @@ def seller_console(request, category, campaign_id):
             i = 0
             console_instance = console_instances[i]
 
-
         contact = console_instance.contact
         times_contacted = contact.activity_set.filter(activity_type="C", status="C", campaign=campaign).count()
         all_activities = Activity.objects.filter(contact=contact).order_by("-datetime", "id")
@@ -717,20 +727,13 @@ def send_promo(request, contact_id):
 
 
 @staff_member_required
-def new_subscription(request, contact_id):
+def new_subscription(request, contact_id, subscription_id=None):
     """
     Makes a new subscription for the selected contact. If you pass a subscription id on a get parameter, it will
     attempt to change that subscription for a new one.
     """
     contact = get_object_or_404(Contact, pk=contact_id)
-    if request.GET.get("upgrade_subscription", None):
-        subscription_id = request.GET.get("upgrade_subscription")
-        form_subscription = get_object_or_404(Subscription, pk=subscription_id)
-        if form_subscription.contact != contact:
-            return HttpResponseServerError(_("Wrong data"))
-        upgrade_subscription, edit_subscription = True, False
-    elif request.GET.get("edit_subscription", None):
-        subscription_id = request.GET.get("edit_subscription")
+    if subscription_id:
         form_subscription = get_object_or_404(Subscription, pk=subscription_id)
         if form_subscription.contact != contact:
             return HttpResponseServerError(_("Wrong data"))
@@ -2551,6 +2554,9 @@ def book_additional_product(request, subscription_id):
     )
     new_products_ids_list = []
     if request.POST:
+        seller_id = request.user.seller_set.first().id if request.user.seller_set.exists() else None
+        campaign = request.GET.get("campaign", None)
+        campaign_obj = Campaign.objects.get(pk=campaign) if campaign else None
         form = AdditionalProductForm(request.POST, instance=old_subscription)
         if form.is_valid():
             form.save()
@@ -2594,6 +2600,7 @@ def book_additional_product(request, subscription_id):
                         new_sp.order = sp.order
                     new_sp.save()
             # after this, we need to add the new products, that will have to be reviewed by an agent
+            new_products_list = []
             for product_id in new_products_ids_list:
                 product = Product.objects.get(pk=product_id)
                 if product not in new_subscription.products.all():
@@ -2604,7 +2611,21 @@ def book_additional_product(request, subscription_id):
                     new_subscription.add_product(
                         product=product,
                         address=default_address,
+                        seller_id=seller_id,
                     )
+                    new_products_list.append(product)
+            # If there was a seller we have to add a new SalesRecord.
+            # We will add the difference in price between the old and the new subscription, when it's a partial sale.
+            sf = SalesRecord.objects.create(
+                subscription=new_subscription,
+                seller=seller_id,
+                price=new_subscription.get_price_for_full_period() - old_subscription.get_price_for_full_period(),
+                sale_type=SalesRecord.TYPES.PARTIAL,
+                campaign=campaign_obj,
+            )
+            sf.products.add(*new_products_list)
+            if not seller_id:
+                sf.set_generic_seller()
             # After that, we'll set the unsubscription date to this new subscription
             success_text = format_lazy("New product(s) booked for {end_date}", end_date=old_subscription.end_date)
             messages.success(request, success_text)
@@ -3208,3 +3229,214 @@ def not_contacted_campaign(request, campaign_id):
     for c in contacts.order_by('id'):
         writer.writerow([c.id, c.name, c.email, c.phone, c.mobile])
     return response
+
+
+@method_decorator(staff_member_required, name="dispatch")
+class SalesRecordFilterSellersView(FilterView):
+    # This view is similar to the previous one but for the seller to see what sales they have made.
+    filterset_class = SalesRecordFilterForSeller
+    template_name = "sales_record_filter.html"
+    paginate_by = 100
+    queryset = (
+        SalesRecord.objects.all()
+        .prefetch_related("products")
+        .select_related("subscription__contact")
+        .order_by("-date_time")
+    )
+    seller = None
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        self.seller = self.request.user.seller_set.first()
+        self.queryset = queryset.filter(seller=self.seller)
+        return self.queryset
+
+    def get_sales_distribution_by_product(self, queryset) -> dict:
+        # Assuming you have a list of dictionaries with each sale record's id and total_products
+        # This queryset fetches all sales records with their product counts
+        sales_records = queryset.annotate(total_products=Count('products')).values('id', 'total_products')
+        df = pd.DataFrame(sales_records)
+        special_product_sales_ids = list(
+            queryset.filter(products__slug='la-diaria-5-dias').values_list('id', flat=True)
+        )
+        # Mark rows that contain the special product
+        df['has_special_product'] = df['id'].isin(special_product_sales_ids)
+        # Adjust counts
+        df['adjusted_count'] = df['total_products'] + df['has_special_product']
+        # Ensure counts do not exceed 4
+        df['adjusted_count'] = df['adjusted_count'].clip(upper=4)
+        # Create the distribution
+        distribution = df['adjusted_count'].value_counts().sort_index().to_dict()
+        return distribution
+
+    def get_sales_distribution_by_payment_type(self, queryset) -> dict:
+        sales_records = queryset.values('subscription__payment_type')
+        df = pd.DataFrame(sales_records)
+        # Only show values whose keys are in settings.SELLER_COMMISSION_PAYMENT_METHODS keys, if the setting exists
+        if hasattr(settings, 'SELLER_COMMISSION_PAYMENT_METHODS'):
+            df = df[df['subscription__payment_type'].isin(settings.SELLER_COMMISSION_PAYMENT_METHODS.keys())]
+        if hasattr(settings, 'SUBSCRIPTION_PAYMENT_METHODS'):
+            # Convert choices to a dictionary
+            payment_type_dict = dict(settings.SUBSCRIPTION_PAYMENT_METHODS)
+            # Map the payment types to their display values in the DataFrame
+            df['payment_type_display'] = df['subscription__payment_type'].map(payment_type_dict)
+            distribution = df["payment_type_display"].value_counts().sort_index().to_dict()
+        else:
+            distribution = df["subscription__payment_type"].value_counts().to_dict()
+        return distribution
+
+    def get_sales_distribution_by_subscription_frequency(self, queryset) -> dict:
+        sales_records = queryset.values('subscription__frequency')
+        df = pd.DataFrame(sales_records)
+        frequencies_dict = dict(core_choices.FREQUENCY_CHOICES)
+        df['frequency_display'] = df['subscription__frequency'].map(frequencies_dict)
+        distribution = df['frequency_display'].value_counts().sort_index().to_dict()
+        return distribution
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["seller"] = self.seller
+        queryset = self.get_queryset()
+        context["sales_distribution_product_count"] = self.get_sales_distribution_by_product(queryset)
+        context["sales_distribution_payment_type"] = self.get_sales_distribution_by_payment_type(
+            queryset.filter(sale_type=SalesRecord.SALE_TYPE.FULL)
+        )
+        context["sales_distribution_by_subscription_frequency"] = (
+            self.get_sales_distribution_by_subscription_frequency(queryset)
+        )
+        return context
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.seller_set.exists():
+            messages.error(request, _("You are not a seller."))
+            return HttpResponseRedirect(reverse("main_menu"))
+        return super().dispatch(request, *args, **kwargs)
+
+
+@method_decorator(staff_member_required, name="dispatch")
+class SalesRecordFilterManagersView(SalesRecordFilterSellersView):
+    # This view is only for managers to see the sales records of all sellers.
+    filterset_class = SalesRecordFilter
+    template_name = "sales_record_filter.html"
+    paginate_by = 100
+    queryset = (
+        SalesRecord.objects.all()
+        .prefetch_related("products")
+        .select_related("subscription__contact")
+        .order_by("-date_time")
+    )
+    seller = None
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_staff and not request.user.groups.filter(name="Managers").exists():
+            messages.error(request, _("You are not authorized to see this page"))
+            return HttpResponseRedirect(reverse("main_menu"))
+        self.is_manager = True
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_queryset(self):
+        return self.queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["is_manager"] = self.is_manager
+        return context
+
+
+@method_decorator(staff_member_required, name="dispatch")
+class ValidateSubscriptionSalesRecord(UpdateView):
+    # This view is only available to managers. It allows them to validate a subscription and set if the
+    # SaleRecord can be used for commission.
+    model = SalesRecord
+    form_class = ValidateSubscriptionForm
+    template_name = "validate_subscription_sales_record.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_staff and not request.user.groups.filter(name="Managers").exists():
+            messages.error(request, _("You are not authorized to see this page"))
+            return HttpResponseRedirect(reverse("main_menu"))
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_initial(self):
+        initial = super().get_initial()
+        if self.object.sale_type != SalesRecord.SALE_TYPE.FULL:
+            initial["can_be_commissioned"] = False
+            initial["subscription"] = self.object.subscription
+        return initial
+
+    def get_success_url(self):
+        return reverse("sales_record_filter")
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["subscription"] = self.object.subscription
+        return context
+
+    def form_valid(self, form):
+        messages.success(self.request, _("The sale and subscription have been validated."))
+        subscription = self.object.subscription
+        sales_record = form.instance
+        subscription.validate(user=self.request.user)
+        if form.cleaned_data["can_be_commissioned"]:
+            sales_record.can_be_commisioned = True
+            if form.cleaned_data["override_commission_value"]:
+                sales_record.total_commission_value = form.cleaned_data["override_commission_value"]
+            else:
+                sales_record.set_commissions(force=True)
+        return super().form_valid(form)
+
+    def form_invalid(self, form):
+        messages.error(self.request, _("There was an error validating the sale and subscription."))
+        # Show errors
+        for field, errors in form.errors.items():
+            for error in errors:
+                messages.error(self.request, f"{field}: {error}")
+        return super().form_invalid(form)
+
+
+@method_decorator(staff_member_required, name="dispatch")
+class ValidateSubscriptionRedirectView(RedirectView):
+    def get_redirect_url(self, *args, **kwargs):
+        subscription = get_object_or_404(Subscription, pk=kwargs["pk"])
+        sales_record = subscription.salesrecord_set.first()
+        if not sales_record:
+            messages.error(self.request, _("This subscription has no sales record."))
+            return reverse("sales_record_filter")
+        if subscription.validated:
+            messages.error(self.request, _("This subscription has already been validated."))
+            return reverse("sales_record_filter")
+        return reverse("validate_sale", args=[sales_record.id])
+
+
+@method_decorator(staff_member_required, name="dispatch")
+class SalesRecordCreateView(CreateView):
+    model = SalesRecord
+    form_class = SalesRecordCreateForm
+    template_name = "sales_record_create.html"
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["subscription"] = self.subscription
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["subscription"] = self.subscription
+        return context
+
+    def dispatch(self, request, *args, **kwargs):
+        self.subscription = get_object_or_404(Subscription, pk=self.kwargs["subscription_id"])
+        if self.subscription.salesrecord_set.exists():
+            messages.error(self.request, _("This subscription already has a sales record."))
+            return HttpResponseRedirect(reverse("sales_record_filter"))
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_success_url(self):
+        return reverse("sales_record_filter")
+
+    def form_valid(self, form: forms.BaseModelForm) -> HttpResponse:
+        sales_record_obj = form.save()
+        sales_record_obj.products.set(self.subscription.products.filter(type="S"))
+        sales_record_obj.price = self.subscription.get_price_for_full_period()
+        self.subscription.validate(user=self.request.user)
+        return super().form_valid(form)

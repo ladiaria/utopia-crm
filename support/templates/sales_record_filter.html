@@ -1,0 +1,208 @@
+{% extends "adminlte/base.html" %}
+{% load static i18n widget_tweaks %}
+{% block title %}
+  {% trans "Sales Records" %}
+{% endblock title %}
+{% block stylesheets %}
+  {{ block.super }}
+  <link rel="stylesheet"
+        href="{% static '/admin-lte/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css' %}" />
+{% endblock stylesheets %}
+{% block extra_js %}
+  <script type="text/javascript"
+          src="{% static '/admin-lte/plugins/datatables/jquery.dataTables.min.js' %}"></script>
+  <script src="{% static '/admin-lte/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js' %}"></script>
+  <script>
+  $(function() {
+    $('.datepicker').datepicker({ dateFormat: 'yy-mm-dd' });
+  });
+  </script>
+{% endblock extra_js %}
+{% block no_heading %}
+  {% if seller %}
+    <h1>
+      <a href="{% url "seller_console_list_campaigns" %}">{% trans "Seller console" %} {{ seller.name }}</a> » {% trans "My Sales" %}
+    </h1>
+  {% else %}
+    <h1>{% trans "Campaign Management" %} » {% trans "Sales Record" %}</h1>
+  {% endif %}
+{% endblock no_heading %}
+{% block content %}
+  <div class="row">
+    <div class="col-md-12">
+      <div class="card">
+        <div class="card-body">
+          <form method="get" id="form">
+            <div class="row">
+              <div class="col-md-3">
+                <div class="form-group">
+                  <label for="date_time__date__gte_id">{% trans "Min. Date" %}</label>
+                  {% render_field filter.form.date_time__gte class="form-control datepicker" %}
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="form-group">
+                  <label for="date_time__date__lte_id">{% trans "Max. Date" %}</label>
+                  {% render_field filter.form.date_time__lte class="form-control datepicker" %}
+                </div>
+              </div>
+              {% if not seller %}
+                <div class="col-md-3">
+                  <div class="form-group">
+                    <label for="seller_id">{% trans "Seller" %}</label>
+                    {% render_field filter.form.seller class="form-control" %}
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="form-group">
+                    <label for="validated_id">{% trans "Validated" %}</label>
+                    {% render_field filter.form.validated class="form-control" %}
+                  </div>
+                </div>
+              {% endif %}
+            </div>
+            <div class="text-right">
+              {{ paginator.count }} {% trans "sales records" %}
+              <input type="submit"
+                     class="btn bg-gradient-primary ml-3"
+                     value='{% trans "Search" %}' />
+            </div>
+          </form>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-10">
+              <table id="table1" class="table table-bordered table-striped">
+                <thead>
+                  <tr role="row">
+                    <th>{% trans "Contact" %}</th>
+                    {% if not seller %}
+                      <th>{% trans "Seller" %}</th>
+                    {% endif %}
+                    <th>{% trans "Transaction date" %}</th>
+                    <th>{% trans "Start date" %}</th>
+                    <th>{% trans "Payment Method" %}</th>
+                    <th>{% trans "Products" %}</th>
+                    <th>{% trans "Campaign" %}</th>
+                    <th>{% trans "Type" %}</th>
+                    <th>{% trans "Commission" %}</th>
+                    <th>{% trans "Valid" %}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for sr in page_obj %}
+                    <tr role="row"
+                        {% if sr.subscription.validated %}class="bg-very-light-green"{% endif %}>
+                      <td>
+                        <a href="{% url "contact_detail" sr.subscription.contact.id %}">{{ sr.subscription.contact.id }}</a>
+                      </td>
+                      {% if not seller %}<td>{{ sr.seller.name }}</td>{% endif %}
+                      <td>{{ sr.date_time|date:"d/m/Y H:m" }}</td>
+                      <td>{{ sr.subscription.start_date|date:"d/m/Y" }}</td>
+                      <td>{{ sr.get_payment_type }}</td>
+                      <td>{{ sr.show_products_per_line }}</td>
+                      <td>{{ sr.campaign|default_if_none:"" }}</td>
+                      <td>{{ sr.get_sale_type_display }}</td>
+                      {% if sr.subscription.validated %}
+                        <td>{{ sr.total_commission_value }}</td>
+                      {% else %}
+                        <td>{{ sr.calculate_total_commission }}</td>
+                      {% endif %}
+                      <td>
+                        {% if sr.subscription.validated %}
+                          {% trans "OK" %}
+                        {% else %}
+                          {% if is_manager %}
+                            <a href='{% url "validate_sale" sr.pk %}' class="btn btn-sm btn-success">{% trans "Validate" %}</a>
+                          {% else %}
+                            {% trans "No" %}
+                          {% endif %}
+                        {% endif %}
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+            <div class="col-md-2">
+              <article class="card">
+                <div class="card-header">
+                  <h3 class="card-title">{% trans "Totals by product amount" %}</h3>
+                </div>
+                <div class="card-body">
+                  <table class="table table-bordered table-striped">
+                    <thead>
+                      <tr>
+                        <th>{% trans "Products" %}</th>
+                        <th>{% trans "Quantity" %}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for product, amount in sales_distribution_product_count.items %}
+                        <tr>
+                          <td>{{ product }}</td>
+                          <td>{{ amount }}</td>
+                        </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+              </article>
+              <article class="card">
+                <div class="card-header">
+                  <h3 class="card-title">{% trans "Totals by payment type" %}</h3>
+                </div>
+                <div class="card-body">
+                  <table class="table table-bordered table-striped">
+                    <thead>
+                      <tr>
+                        <th>{% trans "Payment type" %}</th>
+                        <th>{% trans "Quantity" %}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for payment_type, amount in sales_distribution_payment_type.items %}
+                        <tr>
+                          <td>{{ payment_type }}</td>
+                          <td>{{ amount }}</td>
+                        </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+              </article>
+              <article class="card">
+                <div class="card-header">
+                  <h3 class="card-title">{% trans "Totals by subscription frequency" %}</h3>
+                </div>
+                <div class="card-body">
+                  <table class="table table-bordered table-striped">
+                    <thead>
+                      <tr>
+                        <th>{% trans "Frequency" %}</th>
+                        <th>{% trans "Quantity" %}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for frequency, amount in sales_distribution_by_subscription_frequency.items %}
+                        <tr>
+                          <td>{{ frequency }}</td>
+                          <td>{{ amount }}</td>
+                        </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+              </article>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% if page_obj.has_other_pages %}
+    {% include "partials/pagination.html" %}
+  {% endif %}
+{% endblock content %}

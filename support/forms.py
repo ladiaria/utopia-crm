@@ -8,7 +8,7 @@ from core.models import Contact, Product, Subscription, Address, DynamicContactF
 from core.forms import EmailValidationForm
 from core.choices import ADDRESS_TYPE_CHOICES, FREQUENCY_CHOICES, ACTIVITY_TYPES
 
-from .models import Seller, Issue, IssueStatus, IssueSubcategory
+from .models import Seller, Issue, IssueStatus, IssueSubcategory, SalesRecord
 from .choices import ISSUE_CATEGORIES
 
 
@@ -554,3 +554,41 @@ class SugerenciaGeorefForm(forms.ModelForm):
             "verified",
             "address_type",
         ]
+
+
+class ValidateSubscriptionForm(forms.ModelForm):
+    override_commission_value = forms.IntegerField(
+        required=False,
+        widget=forms.NumberInput(attrs={"class": "form-control", "placeholder": _("Override amount"), "min": 0}),
+    )
+
+    class Meta:
+        model = SalesRecord
+        fields = ("can_be_commissioned", "override_commission_value")
+        widgets = {
+            "can_be_commissioned": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+        }
+
+
+class SalesRecordCreateForm(forms.ModelForm):
+    override_commission_value = forms.IntegerField(
+        required=False,
+        widget=forms.NumberInput(attrs={"class": "form-control", "placeholder": _("Override amount"), "min": 0}),
+    )
+
+    class Meta:
+        model = SalesRecord
+        fields = ("total_commission_value", "can_be_commissioned", "seller", "subscription")
+        widgets = {
+            "can_be_commissioned": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "subscription": forms.HiddenInput(),
+        }
+
+    def __init__(self, *args, **kwargs):
+        subscription = kwargs.pop('subscription', None)
+        super().__init__(*args, **kwargs)
+        self.fields['seller'].queryset = Seller.objects.filter(internal=True)
+        # Use subscription_id to initialize fields or set initial values
+        if subscription:
+            # Assuming you have a field named 'subscription' to hold the subscription_id
+            self.fields['subscription'].initial = subscription
