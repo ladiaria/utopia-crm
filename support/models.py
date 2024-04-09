@@ -270,7 +270,9 @@ class SalesRecord(models.Model):
         FULL = "F", _("Full")
         PARTIAL = "P", _("Partial")
 
-    seller = models.ForeignKey("support.Seller", on_delete=models.CASCADE, verbose_name=_("Seller"))
+    seller = models.ForeignKey(
+        "support.Seller", on_delete=models.CASCADE, verbose_name=_("Seller"), null=True, blank=True
+    )
     subscription = models.ForeignKey("core.Subscription", on_delete=models.CASCADE, verbose_name=_("Subscription"))
     date_time = models.DateTimeField(auto_now_add=True, verbose_name=_("Date and time"))
     products = models.ManyToManyField("core.Product", verbose_name=_("Products"))
