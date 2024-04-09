@@ -3307,10 +3307,10 @@ class SalesRecordFilterSellersView(FilterView):
         return context
 
     def dispatch(self, request, *args, **kwargs):
-        if not request.user.seller_set.exists():
-            messages.error(request, _("You are not a seller."))
+        if not request.user.seller_set.exists() and not request.user.groups.filter(name="Managers").exists():
+            messages.error(request, _("You don't have permission to see this."))
             return HttpResponseRedirect(reverse("main_menu"))
-        else:
+        elif request.user.seller_set.exists():
             seller = request.user.seller_set.first()
             if not seller.salesrecord_set.exists():
                 messages.error(request, _("You have no sales records."))
