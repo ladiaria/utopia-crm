@@ -10,8 +10,7 @@ from django.forms import ValidationError
 
 from leaflet.admin import LeafletGeoAdmin
 from taggit.models import TaggedItem
-# TODO: explain or remove next commented line
-# from tabbed_admin import TabbedModelAdmin
+
 from simple_history.admin import SimpleHistoryAdmin
 from community.models import ProductParticipation, Supporter
 
@@ -105,7 +104,7 @@ class SubscriptionProductInline(admin.TabularInline):
 
 
 def response_add_or_change_next_url(request, obj):
-    """ Returns the next_url to be used in the response_add and response_change method redefinitions """
+    """Returns the next_url to be used in the response_add and response_change method redefinitions"""
     opts = obj._meta
     reverse_begin = "admin:%s_%s_" % (opts.app_label, opts.model_name)
     if "_continue" in request.POST:
@@ -114,7 +113,7 @@ def response_add_or_change_next_url(request, obj):
 
 
 def default_newsletters_dialog_redirect(request, obj, contact_id_attr_name):
-    """ Returns the redirect to be used for the default newsletters dialog page """
+    """Returns the redirect to be used for the default newsletters dialog page"""
     return HttpResponseRedirect(
         "%s?next_page=%s"
         % (
@@ -150,6 +149,7 @@ class SubscriptionAdmin(SimpleHistoryAdmin):
                     ("payment_certificate"),
                     ("updated_from", "campaign"),
                     ("free_subscription_requested_by"),
+                    ("validated", "validated_by", "validated_date"),
                 )
             },
         ),
@@ -186,7 +186,14 @@ class SubscriptionAdmin(SimpleHistoryAdmin):
     list_display = ("contact", "active", "payment_type", "campaign", "product_summary")
     list_editable = ("active", "payment_type")
     list_filter = ("campaign", "active", "payment_type")
-    readonly_fields = ("contact", "edit_products_field", "campaign", "updated_from", "unsubscription_products")
+    readonly_fields = (
+        "contact",
+        "edit_products_field",
+        "campaign",
+        "updated_from",
+        "unsubscription_products",
+        "validated_by",
+    )
 
     def response_add(self, request, obj, post_url_continue=None):
         if obj.contact.offer_default_newsletters_condition():
@@ -254,9 +261,13 @@ class ContactAdmin(SimpleHistoryAdmin):
         ),
     )
     list_display = ("id", "name", "id_document", "subtype", "tag_list")
-    raw_id_fields = ("subtype", "referrer", "institution")  # TODO: add "occupation" after its name got fixed from single "c" to "cc"
+    raw_id_fields = (
+        "subtype",
+        "referrer",
+        "institution",
+    )  # TODO: add "occupation" after its name got fixed from single "c" to "cc"
     list_filter = ("subtype", TaggitListFilter)
-    ordering = ("id", )
+    ordering = ("id",)
 
     class Media:
         # jquery loaded again (admin uses custom js namespaces and we use jquery-ui)
@@ -332,7 +343,7 @@ class ProductAdmin(admin.ModelAdmin):
         "edition_frequency",
         "temporary_discount_months",
     ]
-    readonly_fields = ("slug", )
+    readonly_fields = ("slug",)
 
 
 class PlanAdmin(admin.ModelAdmin):
@@ -341,7 +352,7 @@ class PlanAdmin(admin.ModelAdmin):
 
 @admin.register(Address)
 class AddressAdmin(SimpleHistoryAdmin, LeafletGeoAdmin):
-    raw_id_fields = ("contact", )
+    raw_id_fields = ("contact",)
 
 
 @admin.register(Campaign)
@@ -432,13 +443,13 @@ class SubscriptionProductAdmin(admin.ModelAdmin):
 @admin.register(EmailReplacement)
 class EmailReplacementAdmin(admin.ModelAdmin):
     list_display = ("domain", "replacement", "status")
-    list_editable = ("status", )
+    list_editable = ("status",)
     list_filter = ("status", "replacement")
     search_fields = ("domain", "replacement")
 
 
 class DeleteOnlyModelAdmin(admin.ModelAdmin):
-    """ A delete-only modeladmin, only see and delete is allowed """
+    """A delete-only modeladmin, only see and delete is allowed"""
 
     def changelist_view(self, request, extra_context=None):
         extra_context = extra_context or {}
@@ -458,7 +469,8 @@ class DeleteOnlyModelAdmin(admin.ModelAdmin):
 
 
 class ReadOnlyModelAdmin(DeleteOnlyModelAdmin):
-    """ A read-only modeladmin, no action can be performed, only see the object list """
+    """A read-only modeladmin, no action can be performed, only see the object list"""
+
     list_display_links = None
     actions = None
 
@@ -469,10 +481,10 @@ class ReadOnlyModelAdmin(DeleteOnlyModelAdmin):
 @admin.register(EmailBounceActionLog)
 class EmailBounceActionLogAdmin(DeleteOnlyModelAdmin):
     list_display = ("created", "contact", "email", "action")
-    list_filter = ("action", )
-    search_fields = ("email", )
+    list_filter = ("action",)
+    search_fields = ("email",)
     date_hierarchy = "created"
-    fieldsets = ((_("Bounce action log details"), {"fields": (("created", "action"), ("contact", "email"))}), )
+    fieldsets = ((_("Bounce action log details"), {"fields": (("created", "action"), ("contact", "email"))}),)
 
 
 admin.site.register(DynamicContactFilter)
