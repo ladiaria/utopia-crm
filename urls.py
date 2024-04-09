@@ -14,7 +14,11 @@ from django.conf.urls import handler403
 from django.conf.urls import handler500
 
 from core.views import (
-    updateuserfromweb, search_contacts_htmx, add_email_to_mailtrain_list, get_mailtrain_list_subscribed_emails
+    updateuserfromweb,
+    search_contacts_htmx,
+    mailtrain_list_subscription,
+    mailtrain_lists,
+    get_mailtrain_list_subscribed_emails,
 )
 
 
@@ -41,7 +45,8 @@ urlpatterns += [
     path("api/updateuserweb/", updateuserfromweb),
     path('api/search_contacts/', search_contacts_htmx, name="htmx_search_contacts"),
     path('api/search_contacts/<str:name>/', search_contacts_htmx, name="htmx_search_contacts_alt"),
-    path('api/subscribe_to_mailtrain/', add_email_to_mailtrain_list, name="subscribe_to_mailtrain"),
+    path('api/mailtrain_list_subscription/', mailtrain_list_subscription, name="mailtrain_list_subscription"),
+    path('api/mailtrain_lists/', mailtrain_lists, name="mailtrain_lists"),
     path("api/mailtrain_subscribers/list/<str:list_id>/", get_mailtrain_list_subscribed_emails),
 ]
 
