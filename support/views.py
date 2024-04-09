@@ -3310,6 +3310,11 @@ class SalesRecordFilterSellersView(FilterView):
         if not request.user.seller_set.exists():
             messages.error(request, _("You are not a seller."))
             return HttpResponseRedirect(reverse("main_menu"))
+        else:
+            seller = request.user.seller_set.first()
+            if not seller.salesrecord_set.exists():
+                messages.error(request, _("You have no sales records."))
+                return HttpResponseRedirect(reverse("main_menu"))
         return super().dispatch(request, *args, **kwargs)
 
 
@@ -3330,6 +3335,9 @@ class SalesRecordFilterManagersView(SalesRecordFilterSellersView):
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_staff and not request.user.groups.filter(name="Managers").exists():
             messages.error(request, _("You are not authorized to see this page"))
+            return HttpResponseRedirect(reverse("main_menu"))
+        if not SalesRecord.objects.exists():
+            messages.error(request, _("There are no sales records."))
             return HttpResponseRedirect(reverse("main_menu"))
         self.is_manager = True
         return super().dispatch(request, *args, **kwargs)
