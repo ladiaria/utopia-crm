@@ -7,7 +7,7 @@ from django.contrib.auth.models import User
 from django.db.models import Q
 
 from core.models import Activity, ContactCampaignStatus, Subscription, Campaign
-from .models import Issue, IssueSubcategory, Seller, ScheduledTask
+from .models import Issue, IssueSubcategory, Seller, ScheduledTask, SalesRecord
 
 
 CREATION_CHOICES = (
@@ -155,3 +155,32 @@ class CampaignFilter(django_filters.FilterSet):
         fields = {"active": ["exact"],
                   "name": ["icontains"]
                   }
+
+
+class SalesRecordFilter(django_filters.FilterSet):
+    validated = django_filters.BooleanFilter(
+        field_name='subscription__validated'
+    )
+    date_time__gte = django_filters.DateFilter(
+        field_name='date_time__date', lookup_expr='gte', widget=forms.TextInput(attrs={'autocomplete': 'off'}))
+    date_time__lte = django_filters.DateFilter(
+        field_name='date_time__date', lookup_expr='lte', widget=forms.TextInput(attrs={'autocomplete': 'off'}))
+    seller = django_filters.ModelChoiceFilter(
+        queryset=Seller.objects.filter(salesrecord__isnull=False).distinct(),
+        field_name='seller'
+    )
+
+    class Meta:
+        model = SalesRecord
+        fields = ['date_time', 'seller', 'sale_type']
+
+
+class SalesRecordFilterForSeller(django_filters.FilterSet):
+    date_time__gte = django_filters.DateFilter(
+        field_name='date_time__date', lookup_expr='gte', widget=forms.TextInput(attrs={'autocomplete': 'off'}))
+    date_time__lte = django_filters.DateFilter(
+        field_name='date_time__date', lookup_expr='lte', widget=forms.TextInput(attrs={'autocomplete': 'off'}))
+    class Meta:
+        model = SalesRecord
+        fields = ['date_time', 'sale_type']
+        exclude = ['seller']

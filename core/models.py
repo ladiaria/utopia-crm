@@ -18,6 +18,7 @@ from django.utils.translation import gettext_lazy as _
 from django_extensions.db.fields import AutoSlugField
 from django.utils.html import mark_safe
 from django.urls import reverse
+from django.utils import timezone
 
 from taggit.managers import TaggableManager
 from simple_history.models import HistoricalRecords
@@ -1047,6 +1048,16 @@ class Subscription(models.Model):
         blank=True,
         verbose_name=_("Free subscription requested by"),
     )
+    validated = models.BooleanField(default=True, verbose_name=_("Validated"))
+    validated_by = models.ForeignKey(
+        User,
+        null=True,
+        blank=True,
+        verbose_name=_("Validated by"),
+        on_delete=models.SET_NULL,
+        related_name="validated_subscriptions",
+    )
+    validated_date = models.DateTimeField(blank=True, null=True, verbose_name=_("Validated date"))
 
     history = HistoricalRecords()
 
@@ -1368,6 +1379,11 @@ class Subscription(models.Model):
         for sp in subscription_products:
             dict_all_products[str(sp.product.id)] = str(sp.copies)
         return process_products(dict_all_products)
+
+    def product_summary_list(self, with_pauses=False) -> list:
+        summary = self.product_summary(with_pauses)
+        filtered_products = Product.objects.filter(pk__in=summary.keys(), type="S")
+        return filtered_products
 
     def render_product_summary(self):
         output = "<ul>"
@@ -1742,6 +1758,15 @@ class Subscription(models.Model):
             return self.subscriptionproduct_set.filter(seller__isnull=False).first().seller
         else:
             return None
+
+    def has_sales_record(self):
+        return self.salesrecord_set.exists()
+
+    def validate(self, user):
+        self.validated = True
+        self.validated_by = user
+        self.validated_date = timezone.now()
+        self.save()
 
     class Meta:
         verbose_name = _("subscription")

@@ -81,7 +81,8 @@ urlpatterns = [
     re_path(r"^edit_address/(\d+)/(\d+)/$", edit_address),
     path("import/", import_contacts, name="import_contacts"),
     re_path(r"^send_promo/(\d+)/$", send_promo, name="send_promo"),
-    re_path(r"^new_subscription/(\d+)/$", new_subscription, name="new_subscription"),
+    path("contacts/<int:contact_id>/new_subscription/", new_subscription, name="new_subscription"),
+    path("contacts/<int:contact_id>/edit_subscription/<int:subscription_id>/", new_subscription, name="edit_subscription"),
     path(
         "default_newsletters_dialog/<int:contact_id>/",
         default_newsletters_dialog,
@@ -188,6 +189,31 @@ urlpatterns = [
         location.sugerir_direccion_autocompletar,
         name="ajax_sugerir_direccion_autocompletar",
     ),
+    path(
+        "sales_record_filter/",
+        views.SalesRecordFilterManagersView.as_view(),
+        name="sales_record_filter",
+    ),
+    path(
+        "my_sales/",
+        views.SalesRecordFilterSellersView.as_view(),
+        name="my_sales",
+    ),
+    path(
+        "validate_sale/<int:pk>/",
+        views.ValidateSubscriptionSalesRecord.as_view(),
+        name="validate_sale",
+    ),
+    path(
+        "validate_subscription/<int:pk>/",
+        views.ValidateSubscriptionRedirectView.as_view(),
+        name="validate_subscription",
+    ),
+    path(
+        "subscription/<int:subscription_id>/add_sales_record/",
+        views.SalesRecordCreateView.as_view(),
+        name="add_sales_record",
+    )
 ]
 
 # Api views

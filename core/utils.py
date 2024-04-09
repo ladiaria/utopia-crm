@@ -174,7 +174,7 @@ def calc_price_from_products(products_with_copies, frequency, debug_id=""):
     return round(total_price)
 
 
-def process_products(input_product_dict):
+def process_products(input_product_dict: dict) -> dict:
     """
     Takes products from a product list (for example from a subscription products list) and turns them into new products
     that are already bundled. These will be executed in order of priority, from smallest to greatest.
