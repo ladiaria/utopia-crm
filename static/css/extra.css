@@ -18,8 +18,13 @@ input::-webkit-inner-spin-button {
 /* Firefox */
 input[type=number] {
   -moz-appearance: textfield;
+  appearance: textfield;
 }
 
 body{
   zoom: 80%;
+}
+
+.bg-very-light-green{
+  background-color: #ddffdd !important;
 }

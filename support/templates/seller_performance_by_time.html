@@ -85,6 +85,7 @@ Rendimiento de vendedores por tiempo
               <th title="Porcentaje rechazado" data-toggle="tooltip">%</th>
               <th title="Inubicable" data-toggle="tooltip">Inubic.</th>
               <th title="Porcentaje inubicable" data-toggle="tooltip">%</th>
+              <th>{% trans "View console" %}</th>
             </tr>
           </thead>
           <tbody>
@@ -104,6 +105,7 @@ Rendimiento de vendedores por tiempo
               <td>{{seller.rejected_pct|floatformat:0}}%</td>
               <td>{{seller.unreachable_count}}</td>
               <td>{{seller.unreachable_pct|floatformat:0}}%</td>
+              <td><a class="btn btn-primary" href="{% url 'seller_console_list_campaigns_manager' seller.id %}">{% trans "View console" %}</a></td>
             </tr>
             {% endfor %}
           </tbody>
