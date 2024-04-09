@@ -3297,6 +3297,9 @@ class SalesRecordFilterSellersView(FilterView):
         context = super().get_context_data(**kwargs)
         context["seller"] = self.seller
         queryset = self.get_queryset()
+        if not queryset.exists():
+            messages.error(self.request, _("You have no sales records."))
+            return HttpResponseRedirect(reverse("main_menu"))
         context["sales_distribution_product_count"] = self.get_sales_distribution_by_product(queryset)
         context["sales_distribution_payment_type"] = self.get_sales_distribution_by_payment_type(
             queryset.filter(sale_type=SalesRecord.SALE_TYPE.FULL)
@@ -3305,20 +3308,6 @@ class SalesRecordFilterSellersView(FilterView):
             self.get_sales_distribution_by_subscription_frequency(queryset)
         )
         return context
-
-    def dispatch(self, request, *args, **kwargs):
-        if not(
-            request.user.seller_set.exists()
-            or request.user.groups.filter(name__in=["Managers", "Admins"]).exists()
-        ):
-            messages.error(request, _("You don't have permission to see this."))
-            return HttpResponseRedirect(reverse("main_menu"))
-        elif request.user.seller_set.exists():
-            seller = request.user.seller_set.first()
-            if not seller.salesrecord_set.exists():
-                messages.error(request, _("You have no sales records."))
-                return HttpResponseRedirect(reverse("main_menu"))
-        return super().dispatch(request, *args, **kwargs)
 
 
 @method_decorator(staff_member_required, name="dispatch")
