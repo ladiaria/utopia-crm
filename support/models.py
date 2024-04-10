@@ -12,7 +12,6 @@ from autoslug import AutoSlugField
 
 
 from core.models import Campaign
-from core.utils import process_products
 
 from simple_history.models import HistoricalRecords
 
@@ -317,8 +316,13 @@ class SalesRecord(models.Model):
     get_contact.short_description = _("Contact")
 
     def set_generic_seller(self):
-        self.seller = Seller.objects.get(name=settings.GENERIC_SELLER_NAME)
-        self.save()
+        # TODO: try to remove this "generic" required data
+        try:
+            self.seller = Seller.objects.get(name=getattr(settings, "GENERIC_SELLER_NAME", "Generic Seller"))
+        except Seller.DoesNotExist:
+            pass
+        else:
+            self.save()
 
     def add_products(self) -> None:
         product_list = self.subscription.product_summary_list()
