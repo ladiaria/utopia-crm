@@ -182,10 +182,15 @@ class SalesRecordFilter(django_filters.FilterSet):
 
 
 class SalesRecordFilterForSeller(django_filters.FilterSet):
+    payment_method_choices = getattr(settings, 'SUBSCRIPTION_PAYMENT_METHODS', ())
     date_time__gte = django_filters.DateFilter(
         field_name='date_time__date', lookup_expr='gte', widget=forms.TextInput(attrs={'autocomplete': 'off'}))
     date_time__lte = django_filters.DateFilter(
         field_name='date_time__date', lookup_expr='lte', widget=forms.TextInput(attrs={'autocomplete': 'off'}))
+    payment_method = django_filters.MultipleChoiceFilter(
+        choices=payment_method_choices,
+        field_name="subscription__payment_type"
+    )
     class Meta:
         model = SalesRecord
         fields = ['date_time', 'sale_type']
