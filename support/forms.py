@@ -561,10 +561,14 @@ class ValidateSubscriptionForm(forms.ModelForm):
         required=False,
         widget=forms.NumberInput(attrs={"class": "form-control", "placeholder": _("Override amount"), "min": 0}),
     )
+    seller = forms.ModelChoiceField(
+        queryset=Seller.objects.filter(internal=True),
+        widget=forms.Select(attrs={"class": "form-control"}),
+    )
 
     class Meta:
         model = SalesRecord
-        fields = ("can_be_commissioned", "override_commission_value")
+        fields = ("can_be_commissioned", "override_commission_value", "seller")
         widgets = {
             "can_be_commissioned": forms.CheckboxInput(attrs={"class": "form-check-input"}),
         }

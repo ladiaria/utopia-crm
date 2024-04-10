@@ -249,7 +249,9 @@
           <form method="post">
             {% csrf_token %}
             <div class="d-flex flex-row justify-content-start">
-              <label for="override" class="form-check-label m-2 w-25">{% trans "Add Commission Value Manually" %}</label>
+              <label for="seller_id" class="form-label m-2 w-10">{% trans "Seller" %}</label>
+              {% render_field form.seller class="form-control w-25 m-2" %}
+              <label for="override" class="form-label m-2 w-25">{% trans "Add Commission Value Manually" %}</label>
               {% render_field form.override_commission_value class="form-control w-25 m-2" %}
               <div class="form-check m-2">
                 <label for="can_be_commissioned_id" class="form-check-label m-2">{% trans "Can be commissioned" %}</label>

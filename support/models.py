@@ -12,7 +12,6 @@ from autoslug import AutoSlugField
 
 
 from core.models import Campaign
-from core.utils import process_products
 
 from simple_history.models import HistoricalRecords
 
@@ -295,7 +294,9 @@ class SalesRecord(models.Model):
         FULL = "F", _("Full")
         PARTIAL = "P", _("Partial")
 
-    seller = models.ForeignKey("support.Seller", on_delete=models.CASCADE, verbose_name=_("Seller"))
+    seller = models.ForeignKey(
+        "support.Seller", on_delete=models.CASCADE, verbose_name=_("Seller"), null=True, blank=True
+    )
     subscription = models.ForeignKey("core.Subscription", on_delete=models.CASCADE, verbose_name=_("Subscription"))
     date_time = models.DateTimeField(auto_now_add=True, verbose_name=_("Date and time"))
     products = models.ManyToManyField("core.Product", verbose_name=_("Products"))
@@ -340,8 +341,13 @@ class SalesRecord(models.Model):
     get_contact.short_description = _("Contact")
 
     def set_generic_seller(self):
-        self.seller = Seller.objects.get(name=settings.GENERIC_SELLER_NAME)
-        self.save()
+        # TODO: try to remove this "generic" required data
+        try:
+            self.seller = Seller.objects.get(name=getattr(settings, "GENERIC_SELLER_NAME", "Generic Seller"))
+        except Seller.DoesNotExist:
+            pass
+        else:
+            self.save()
 
     def add_products(self) -> None:
         product_list = self.subscription.product_summary_list()

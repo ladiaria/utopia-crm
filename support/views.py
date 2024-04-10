@@ -3293,10 +3293,17 @@ class SalesRecordFilterSellersView(FilterView):
         distribution = df['frequency_display'].value_counts().sort_index().to_dict()
         return distribution
 
+    def get_commissions(self, queryset):
+        return queryset.aggregate(total_commission=Sum('total_commission_value'))["total_commission"]
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["seller"] = self.seller
-        queryset = self.get_queryset()
+        context["total_commission"] = self.get_commissions(self.filterset.qs)
+        queryset = self.filterset.qs
+        if not queryset.exists():
+            messages.error(self.request, _("You have no sales records."))
+            return context
         context["sales_distribution_product_count"] = self.get_sales_distribution_by_product(queryset)
         context["sales_distribution_payment_type"] = self.get_sales_distribution_by_payment_type(
             queryset.filter(sale_type=SalesRecord.SALE_TYPE.FULL)
@@ -3305,12 +3312,6 @@ class SalesRecordFilterSellersView(FilterView):
             self.get_sales_distribution_by_subscription_frequency(queryset)
         )
         return context
-
-    def dispatch(self, request, *args, **kwargs):
-        if not request.user.seller_set.exists():
-            messages.error(request, _("You are not a seller."))
-            return HttpResponseRedirect(reverse("main_menu"))
-        return super().dispatch(request, *args, **kwargs)
 
 
 @method_decorator(staff_member_required, name="dispatch")
@@ -3330,6 +3331,9 @@ class SalesRecordFilterManagersView(SalesRecordFilterSellersView):
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_staff and not request.user.groups.filter(name="Managers").exists():
             messages.error(request, _("You are not authorized to see this page"))
+            return HttpResponseRedirect(reverse("main_menu"))
+        if not SalesRecord.objects.exists():
+            messages.error(request, _("There are no sales records."))
             return HttpResponseRedirect(reverse("main_menu"))
         self.is_manager = True
         return super().dispatch(request, *args, **kwargs)
@@ -3362,6 +3366,7 @@ class ValidateSubscriptionSalesRecord(UpdateView):
         if self.object.sale_type != SalesRecord.SALE_TYPE.FULL:
             initial["can_be_commissioned"] = False
             initial["subscription"] = self.object.subscription
+            initial["seller"] = self.object.seller
         return initial
 
     def get_success_url(self):
@@ -3379,6 +3384,9 @@ class ValidateSubscriptionSalesRecord(UpdateView):
         subscription.validate(user=self.request.user)
         if form.cleaned_data["can_be_commissioned"]:
             sales_record.can_be_commisioned = True
+            SubscriptionProduct.objects.filter(subscription=subscription, product_type="S").update(
+                seller=sales_record.seller
+            )
             if form.cleaned_data["override_commission_value"]:
                 sales_record.total_commission_value = form.cleaned_data["override_commission_value"]
             else:
@@ -3438,5 +3446,9 @@ class SalesRecordCreateView(CreateView):
         sales_record_obj = form.save()
         sales_record_obj.products.set(self.subscription.products.filter(type="S"))
         sales_record_obj.price = self.subscription.get_price_for_full_period()
+        subscription = sales_record_obj.subscription
+        SubscriptionProduct.objects.filter(subscription=subscription, product_type="S").update(
+            seller=sales_record_obj.seller
+        )
         self.subscription.validate(user=self.request.user)
         return super().form_valid(form)

@@ -34,18 +34,25 @@
         <div class="card-body">
           <form method="get" id="form">
             <div class="row">
-              <div class="col-md-3">
+              <div class="col-md-2">
                 <div class="form-group">
                   <label for="date_time__date__gte_id">{% trans "Min. Date" %}</label>
                   {% render_field filter.form.date_time__gte class="form-control datepicker" %}
                 </div>
               </div>
-              <div class="col-md-3">
+              <div class="col-md-2">
                 <div class="form-group">
                   <label for="date_time__date__lte_id">{% trans "Max. Date" %}</label>
                   {% render_field filter.form.date_time__lte class="form-control datepicker" %}
                 </div>
               </div>
+              <div class="col-md-2">
+                <div class="form-group">
+                  <label for="payment_method">{% trans "Payment Method" %}</label>
+                  {% render_field filter.form.payment_method class="form-control datepicker" %}
+                </div>
+              </div>
+
               {% if not seller %}
                 <div class="col-md-3">
                   <div class="form-group">
@@ -127,6 +134,16 @@
               </table>
             </div>
             <div class="col-md-2">
+              {% if seller %}
+              <article class="card">
+                <div class="card-header">
+                  <h3 class="card-title">{% trans "My commissions" %}</h3>
+                </div>
+                <div class="card-body">
+                  {{ total_commission }}
+                </div>
+              </article>
+              {% endif %}
               <article class="card">
                 <div class="card-header">
                   <h3 class="card-title">{% trans "Totals by product amount" %}</h3>

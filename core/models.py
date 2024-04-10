@@ -1048,7 +1048,7 @@ class Subscription(models.Model):
         blank=True,
         verbose_name=_("Free subscription requested by"),
     )
-    validated = models.BooleanField(default=True, verbose_name=_("Validated"))
+    validated = models.BooleanField(default=False, verbose_name=_("Validated"))
     validated_by = models.ForeignKey(
         User,
         null=True,
