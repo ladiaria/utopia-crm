@@ -3248,8 +3248,10 @@ class SalesRecordFilterSellersView(FilterView):
     def get_queryset(self):
         queryset = super().get_queryset()
         self.seller = self.request.user.seller_set.first()
-        self.queryset = queryset.filter(seller=self.seller)
-        return self.queryset
+        if self.seller:
+            self.queryset = queryset.filter(seller=self.seller)
+        filterset = self.filterset_class(self.request.GET, queryset=self.queryset)
+        return filterset.qs
 
     def get_sales_distribution_by_product(self, queryset) -> dict:
         # Assuming you have a list of dictionaries with each sale record's id and total_products
@@ -3298,9 +3300,9 @@ class SalesRecordFilterSellersView(FilterView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        queryset = self.get_queryset()
         context["seller"] = self.seller
-        context["total_commission"] = self.get_commissions(self.filterset.qs)
-        queryset = self.filterset.qs
+        context["total_commission"] = self.get_commissions(queryset)
         if not queryset.exists():
             messages.error(self.request, _("You have no sales records."))
             return context
@@ -3318,15 +3320,7 @@ class SalesRecordFilterSellersView(FilterView):
 class SalesRecordFilterManagersView(SalesRecordFilterSellersView):
     # This view is only for managers to see the sales records of all sellers.
     filterset_class = SalesRecordFilter
-    template_name = "sales_record_filter.html"
-    paginate_by = 100
-    queryset = (
-        SalesRecord.objects.all()
-        .prefetch_related("products")
-        .select_related("subscription__contact")
-        .order_by("-date_time")
-    )
-    seller = None
+    is_manager = False
 
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_staff and not request.user.groups.filter(name="Managers").exists():
@@ -3337,9 +3331,6 @@ class SalesRecordFilterManagersView(SalesRecordFilterSellersView):
             return HttpResponseRedirect(reverse("main_menu"))
         self.is_manager = True
         return super().dispatch(request, *args, **kwargs)
-
-    def get_queryset(self):
-        return self.queryset
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
