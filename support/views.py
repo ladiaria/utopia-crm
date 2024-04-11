@@ -3375,7 +3375,7 @@ class ValidateSubscriptionSalesRecord(UpdateView):
         subscription.validate(user=self.request.user)
         if form.cleaned_data["can_be_commissioned"]:
             sales_record.can_be_commisioned = True
-            SubscriptionProduct.objects.filter(subscription=subscription, product_type="S").update(
+            SubscriptionProduct.objects.filter(subscription=subscription, product__type="S").update(
                 seller=sales_record.seller
             )
             if form.cleaned_data["override_commission_value"]:
@@ -3438,7 +3438,7 @@ class SalesRecordCreateView(CreateView):
         sales_record_obj.products.set(self.subscription.products.filter(type="S"))
         sales_record_obj.price = self.subscription.get_price_for_full_period()
         subscription = sales_record_obj.subscription
-        SubscriptionProduct.objects.filter(subscription=subscription, product_type="S").update(
+        SubscriptionProduct.objects.filter(subscription=subscription, product__type="S").update(
             seller=sales_record_obj.seller
         )
         self.subscription.validate(user=self.request.user)
