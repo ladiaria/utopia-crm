@@ -1,5 +1,4 @@
-{% load proper_paginate %}
-{% load url_replace %}
+{% load proper_paginate i18n url_replace %}
 <ul class="pagination">
   {% if page.number == 1 %}
   <li class="page-item disabled"><span class="page-link">{% trans "first" %}</span></li>

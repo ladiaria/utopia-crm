@@ -139,7 +139,7 @@
               </table>
             </div>
             <div class="col-md-2">
-              {% if seller %}
+              {% if not is_manager %}
                 <article class="card">
                   <div class="card-header">
                     <h3 class="card-title">{% trans "My commissions" %}</h3>
