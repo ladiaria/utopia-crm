@@ -1,29 +1,28 @@
-{% load proper_paginate %}
-{% load url_replace %}
+{% load proper_paginate i18n url_replace %}
 <ul class="pagination">
-  {% if page.number == 1 %}
+  {% if page_obj.number == 1 %}
   <li class="page-item disabled"><span class="page-link">{% trans "first" %}</span></li>
   {% else %}
   <li><a class="page-link" href="?{% url_replace request 'p' 1 %}">{% trans "first" %}</a></li>
   {% endif %}
-  {% if page.has_previous %}
-  <li><a class="page-link" href="?{% url_replace request 'p' page.previous_page_number %}">&laquo;</a></li>
+  {% if page_obj.has_previous %}
+  <li><a class="page-link" href="?{% url_replace request 'p' page_obj.previous_page_number %}">&laquo;</a></li>
   {% else %}
   <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
   {% endif %}
-  {% for i in paginator|proper_paginate:page.number %}
-  {% if page.number == i %}
+  {% for i in paginator|proper_paginate:page_obj.number %}
+  {% if page_obj.number == i %}
   <li class="page-item active"><span class="page-link">{{ i }} <span class="sr-only">(current)</span></span></li>
   {% else %}
   <li><a class="page-link" href="?{% url_replace request 'p' i %}">{{ i }}</a></li>
   {% endif %}
   {% endfor %}
-  {% if page.has_next %}
-  <li><a class="page-link" href="?{% url_replace request 'p' page.next_page_number %}">&raquo;</a></li>
+  {% if page_obj.has_next %}
+  <li><a class="page-link" href="?{% url_replace request 'p' page_obj.next_page_number %}">&raquo;</a></li>
   {% else %}
   <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
   {% endif %}
-  {% if page.number == paginator.num_pages %}
+  {% if page_obj.number == paginator.num_pages %}
   <li class="page-item disabled"><span class="page-link">{% trans "last" %}</span></li>
   {% else %}
   <li><a class="page-link" href="?{% url_replace request 'p' paginator.num_pages %}">{% trans "last" %}</a></li>

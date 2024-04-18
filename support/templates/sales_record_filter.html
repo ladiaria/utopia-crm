@@ -1,13 +1,17 @@
 {% extends "adminlte/base.html" %}
+
 {% load static i18n widget_tweaks %}
+
 {% block title %}
   {% trans "Sales Records" %}
 {% endblock title %}
+
 {% block stylesheets %}
   {{ block.super }}
   <link rel="stylesheet"
         href="{% static '/admin-lte/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css' %}" />
 {% endblock stylesheets %}
+
 {% block extra_js %}
   <script type="text/javascript"
           src="{% static '/admin-lte/plugins/datatables/jquery.dataTables.min.js' %}"></script>
@@ -18,6 +22,7 @@
   });
   </script>
 {% endblock extra_js %}
+
 {% block no_heading %}
   {% if seller %}
     <h1>
@@ -27,6 +32,7 @@
     <h1>{% trans "Campaign Management" %} » {% trans "Sales Record" %}</h1>
   {% endif %}
 {% endblock no_heading %}
+
 {% block content %}
   <div class="row">
     <div class="col-md-12">
@@ -52,8 +58,7 @@
                   {% render_field filter.form.payment_method class="form-control datepicker" %}
                 </div>
               </div>
-
-              {% if not seller %}
+              {% if is_manager %}
                 <div class="col-md-3">
                   <div class="form-group">
                     <label for="seller_id">{% trans "Seller" %}</label>
@@ -134,15 +139,13 @@
               </table>
             </div>
             <div class="col-md-2">
-              {% if seller %}
-              <article class="card">
-                <div class="card-header">
-                  <h3 class="card-title">{% trans "My commissions" %}</h3>
-                </div>
-                <div class="card-body">
-                  {{ total_commission }}
-                </div>
-              </article>
+              {% if not is_manager %}
+                <article class="card">
+                  <div class="card-header">
+                    <h3 class="card-title">{% trans "My commissions" %}</h3>
+                  </div>
+                  <div class="card-body">{{ total_commission }}</div>
+                </article>
               {% endif %}
               <article class="card">
                 <div class="card-header">
@@ -221,5 +224,6 @@
   </div>
   {% if page_obj.has_other_pages %}
     {% include "partials/pagination.html" %}
+
   {% endif %}
 {% endblock content %}

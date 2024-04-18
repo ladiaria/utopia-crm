@@ -2524,9 +2524,7 @@ def product_change(request, subscription_id):
             old_subscription.unsubscription_manager = request.user
             old_subscription.save()
             return HttpResponseRedirect(
-                "{}?edit_subscription={}".format(
-                    reverse("new_subscription", args=[old_subscription.contact.id]), new_subscription.id
-                )
+                reverse("edit_subscription", args=[new_subscription.contact.id, new_subscription.id])
             )
     else:
         messages.warning(request, _("WARNING: This subscription already has an end date"))
@@ -2634,8 +2632,8 @@ def book_additional_product(request, subscription_id):
             old_subscription.unsubscription_date = date.today()
             old_subscription.unsubscription_manager = request.user
             old_subscription.save()
-            new_sub_url = reverse("new_subscription", args=[old_subscription.contact.id])
-            return HttpResponseRedirect(f"{new_sub_url}?edit_subscription={new_subscription.id}")
+            edit_subscription_url = reverse("edit_subscription", args=[new_subscription.contact.id, new_subscription.id])
+            return HttpResponseRedirect(edit_subscription_url)
     else:
         if old_subscription.end_date:
             messages.warning(request, _("WARNING: This subscription already has an end date"))
