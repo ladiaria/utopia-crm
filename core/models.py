@@ -259,7 +259,7 @@ class Contact(models.Model):
     )
     name = models.CharField(max_length=100, validators=[alphanumeric], verbose_name=_("Name"))
     id_document = models.CharField(max_length=20, blank=True, null=True, verbose_name=_("Identifcation Document"))
-    phone = models.CharField(max_length=20, verbose_name=_("Phone"))
+    phone = models.CharField(max_length=20, verbose_name=_("Phone"), blank=True, null=True)
     work_phone = models.CharField(max_length=20, blank=True, null=True, verbose_name=_("Work phone"))
     mobile = models.CharField(max_length=20, blank=True, null=True, verbose_name=_("Mobile"))
     email = models.EmailField(blank=True, null=True, unique=True, verbose_name=_("Email"))
