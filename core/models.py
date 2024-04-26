@@ -687,19 +687,19 @@ class Contact(models.Model):
 
     def merge_other_contact_into_this(
         self,
-        source,
-        name=None,
-        id_document=None,
-        phone=None,
-        mobile=None,
-        work_phone=None,
-        email=None,
-        gender=None,
-        subtype_id=None,
-        education=None,
-        ocupation_id=None,
-        birthdate=None,
-    ):
+        source: "Contact",
+        name: str = None,
+        id_document: str = None,
+        phone: str = None,
+        mobile: str = None,
+        work_phone: str = None,
+        email: str = None,
+        gender: str = None,
+        subtype_id: str = None,
+        education: str = None,
+        ocupation_id: str = None,
+        birthdate: str = None,
+    ) -> list:
         """Takes a source contact and merges it within this one. It allows the manual overriding of data.
 
         Args:
@@ -755,12 +755,12 @@ class Contact(models.Model):
             if birthdate:
                 self.birthdate = birthdate.strip()
             self.notes = (
-                f"Combined from {source.id} - {source.name} at {date.today()}\n"
-                + self.notes
-                + "\n\n"
-                + f"Notes imported from {source.id} - {source.name}\n\n"
-                + source.notes
+                f"Combined from {source.id} - {source.name} at {date.today()}"
+                + f"\n{self.notes or ''}"
             )
+            if source.notes:
+                self.notes += f"\n\nNotes imported from {source.id} - {source.name}\n\n"
+                self.notes += source.notes
             for tag in source.tags.all():
                 self.tags.add(tag.name)
             self.save()
