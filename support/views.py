@@ -51,6 +51,7 @@ from core.models import (
     SubscriptionNewsletter,
     DynamicContactFilter,
     DoNotCallNumber,
+    MailtrainList,
 )
 from core.choices import CAMPAIGN_RESOLUTION_REASONS_CHOICES
 from core.utils import calc_price_from_products, process_products
@@ -92,7 +93,7 @@ from .forms import (
 from .models import Seller, ScheduledTask, IssueStatus, Issue, IssueSubcategory, SalesRecord
 from .choices import ISSUE_CATEGORIES, ISSUE_ANSWERS
 from core import choices as core_choices
-from core.utils import user_mailtrain_lists
+from core.utils import user_mailtrain_lists, get_mailtrain_lists
 import pandas as pd
 
 
@@ -2038,7 +2039,9 @@ def edit_contact(request, contact_id):
     form = ContactAdminForm(instance=contact)
     all_newsletters = Product.objects.filter(type="N", active=True)
     contact_newsletters = contact.get_newsletter_products()
-    mailtrain_lists = user_mailtrain_lists(contact.email)
+    mailtrain_lists = MailtrainList.objects.filter(is_active=True)
+    # mailtrain_lists = user_mailtrain_lists(contact.email)
+    # mailtrain_lists_2 = get_mailtrain_lists(contact.email)
 
     if request.POST:
         form = ContactAdminForm(request.POST, instance=contact)

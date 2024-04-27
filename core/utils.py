@@ -50,7 +50,7 @@ def delete_email_from_mailtrain_list(email, mailtrain_list_id):
 def toggle_email_subscription(email, mailtrain_list_id):
     status = user_in_mailtrain_list_status(email, mailtrain_list_id)
     if status == 1:
-        return unsubscribe_email_from_mailtrain_list(email, mailtrain_list_id)
+        return delete_email_from_mailtrain_list(email, mailtrain_list_id)
     elif status == 2:
         return subscribe_email_to_mailtrain_list(email, mailtrain_list_id)
     else:

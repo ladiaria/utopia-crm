@@ -2373,3 +2373,24 @@ def update_web_user(contact, newsletter_data=None, area_newsletters=False):
                             raise ValidationError("{}: {}".format(_("CMS sync error"), e))
             except Contact.DoesNotExist:
                 pass
+
+class MailtrainList(models.Model):
+    """MailtrainList
+
+    Stores Mailtrain lists to use when updating contacts in the Mailtrain system. This is also used in the CMS
+    and should be synced to the model in the CMS.
+
+    In the future this could be used to sync the lists to Mailtrain, but for now it's only used to store the list id.
+    """
+    list_id = models.CharField(max_length=9, unique=True)
+    name = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = _("Mailtrain List")
+        verbose_name_plural = _("Mailtrain Lists")
+
