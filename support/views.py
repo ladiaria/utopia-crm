@@ -92,6 +92,7 @@ from .forms import (
 from .models import Seller, ScheduledTask, IssueStatus, Issue, IssueSubcategory, SalesRecord
 from .choices import ISSUE_CATEGORIES, ISSUE_ANSWERS
 from core import choices as core_choices
+from core.utils import user_mailtrain_lists
 import pandas as pd
 
 
@@ -2037,6 +2038,8 @@ def edit_contact(request, contact_id):
     form = ContactAdminForm(instance=contact)
     all_newsletters = Product.objects.filter(type="N", active=True)
     contact_newsletters = contact.get_newsletter_products()
+    mailtrain_lists = user_mailtrain_lists(contact.email)
+
     if request.POST:
         form = ContactAdminForm(request.POST, instance=contact)
         if form.is_valid():
@@ -2057,12 +2060,13 @@ def edit_contact(request, contact_id):
                 return HttpResponseRedirect(reverse("edit_contact", args=[contact_id]))
     return render(
         request,
-        "create_contact.html",
+        "create_contact/create_contact.html",
         {
             "form": form,
             "contact": contact,
             "all_newsletters": all_newsletters,
             "contact_newsletters": contact_newsletters,
+            "mailtrain_lists": mailtrain_lists,
         },
     )
 
@@ -2082,6 +2086,12 @@ def edit_newsletters(request, contact_id):
                     contact.remove_newsletter(newsletter.id)
         messages.success(request, _("Newsletters edited successfully"))
         return HttpResponseRedirect(reverse("edit_contact", args=[contact_id]))
+
+
+@staff_member_required
+def toggle_mailtrain_subscription(request, contact_id, list):
+    contact = get_object_or_404(Contact, pk=contact_id)
+    return HttpResponseRedirect(reverse("edit_contact", args=[contact_id]))
 
 
 @staff_member_required

@@ -31,12 +31,30 @@ def subscribe_email_to_mailtrain_list(email, mailtrain_list_id):
     return requests.post(url, params=params, data={'EMAIL': email})
 
 
+def unsubscribe_email_from_mailtrain_list(email, mailtrain_list_id):
+    if settings.DEBUG:
+        print(("sending email {} to {}".format(email, mailtrain_list_id)))
+    url = '{}unsubscribe/{}'.format(settings.MAILTRAIN_API_URL, mailtrain_list_id)
+    params = {'access_token': settings.MAILTRAIN_API_KEY}
+    return requests.post(url, params=params, data={'EMAIL': email})
+
+
 def delete_email_from_mailtrain_list(email, mailtrain_list_id):
     if settings.DEBUG:
         print(("deleting email {} from {}".format(email, mailtrain_list_id)))
     url = '{}delete/{}'.format(settings.MAILTRAIN_API_URL, mailtrain_list_id)
     params = {'access_token': settings.MAILTRAIN_API_KEY}
     return requests.post(url, params=params, data={'EMAIL': email})
+
+
+def toggle_email_subscription(email, mailtrain_list_id):
+    status = user_in_mailtrain_list_status(email, mailtrain_list_id)
+    if status == 1:
+        return unsubscribe_email_from_mailtrain_list(email, mailtrain_list_id)
+    elif status == 2:
+        return subscribe_email_to_mailtrain_list(email, mailtrain_list_id)
+    else:
+        return False
 
 
 def get_mailtrain_lists(email):
@@ -60,6 +78,32 @@ def get_emails_from_mailtrain_list(mailtrain_list_id, status=None, limit=None):
         if not status or subscription["status"] == status:
             emails.append(subscription['email'])
     return emails
+
+
+def user_mailtrain_lists(email):
+    url = f'{settings.MAILTRAIN_API_URL}/lists/{email}'
+    params = {'access_token': settings.MAILTRAIN_API_KEY}
+    r = requests.get(url, params=params)
+    try:
+        r.raise_for_status()
+        json_response = r.json()
+        items = json_response["data"]
+        # make a dictionary with list_ids, names, and status for each list
+        mailtrain_lists = [
+            {'name': item.get('name'), 'status': item.get('status'), 'cid': item.get('cid')} for item in items
+        ]
+        return mailtrain_lists
+    except Exception:
+        raise
+
+
+def user_in_mailtrain_list_status(email, mailtrain_list_id):
+    mailtrain_lists = user_mailtrain_lists(email)
+    for item in mailtrain_lists:
+        print(item, mailtrain_list_id)
+        if item["cid"] == mailtrain_list_id:
+            return item["status"]
+    return False
 
 
 def calc_price_from_products(products_with_copies, frequency, debug_id=""):
@@ -241,9 +285,8 @@ def process_products(input_product_dict: dict) -> dict:
             if pricerule.wildcard_mode == "pool_or_any":
                 # consider also non discount products that have been added to the output_dict by previous rules
                 list_and_pool_len += non_discount_added - non_discount_added_ignore
-            if (
-                (pricerule.amount_to_pick_condition == "eq" and list_and_pool_len == pricerule.amount_to_pick)
-                or (pricerule.amount_to_pick_condition == "gt" and list_and_pool_len > pricerule.amount_to_pick)
+            if (pricerule.amount_to_pick_condition == "eq" and list_and_pool_len == pricerule.amount_to_pick) or (
+                pricerule.amount_to_pick_condition == "gt" and list_and_pool_len > pricerule.amount_to_pick
             ):
 
                 if pricerule.mode == 1:
