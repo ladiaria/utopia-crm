@@ -15,6 +15,7 @@ from .utils import (
     get_mailtrain_lists,
     subscribe_email_to_mailtrain_list,
     delete_email_from_mailtrain_list,
+    manage_mailtrain_subscription,
 )
 
 
@@ -145,16 +146,15 @@ def mailtrain_list_subscription(request):
     """
     email = request.data.get("email", None)
     list_id = request.data.get("list_id", None)
-    if not email:
-        return JsonResponse({"status": "error", "message": "Email is required."}, status=400)
-    if not list_id:
-        return JsonResponse({"status": "error", "message": "List ID is required."}, status=400)
-    if request.method == "POST":
-        try:
-            validate_email(email)
-        except Exception:
-            return JsonResponse({"status": "error", "message": f"{email} is not a valid email address."}, status=400)
-        result = subscribe_email_to_mailtrain_list(email, list_id)
-    else:
-        result = delete_email_from_mailtrain_list(email, list_id)
-    return HttpResponse(result, content_type="application/json")
+    if not email or not list_id:
+        return JsonResponse({"status": "error", "message": "Both email and list_id are required."}, status=400)
+
+    action = "subscribe" if request.method == "POST" else "unsubscribe"  # DELETE method is used for unsubscribing
+
+    try:
+        result = manage_mailtrain_subscription(email, list_id, action=action)
+        return JsonResponse(result)
+    except ValueError as e:
+        return JsonResponse({"status": "error", "message": str(e)}, status=400)
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": str(e)}, status=500)

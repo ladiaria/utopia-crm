@@ -4,8 +4,12 @@ import requests
 from requests.auth import HTTPBasicAuth
 from requests.exceptions import ReadTimeout, RequestException
 import html2text
+from typing import Literal
+
 
 from django.conf import settings
+from django.core.validators import validate_email
+from django.core.exceptions import ValidationError
 
 
 dnames = ('monday', 'tuesday', 'wednesday', 'thursday', 'friday')
@@ -47,16 +51,6 @@ def delete_email_from_mailtrain_list(email, mailtrain_list_id):
     return requests.post(url, params=params, data={'EMAIL': email})
 
 
-def toggle_email_subscription(email, mailtrain_list_id):
-    status = user_in_mailtrain_list_status(email, mailtrain_list_id)
-    if status == 1:
-        return delete_email_from_mailtrain_list(email, mailtrain_list_id)
-    elif status == 2:
-        return subscribe_email_to_mailtrain_list(email, mailtrain_list_id)
-    else:
-        return False
-
-
 def get_mailtrain_lists(email):
     url = '{}lists/{}'.format(settings.MAILTRAIN_API_URL, email)
     params = {'access_token': settings.MAILTRAIN_API_KEY}
@@ -95,15 +89,6 @@ def user_mailtrain_lists(email):
         return mailtrain_lists
     except Exception:
         raise
-
-
-def user_in_mailtrain_list_status(email, mailtrain_list_id):
-    mailtrain_lists = user_mailtrain_lists(email)
-    for item in mailtrain_lists:
-        print(item, mailtrain_list_id)
-        if item["cid"] == mailtrain_list_id:
-            return item["status"]
-    return False
 
 
 def calc_price_from_products(products_with_copies, frequency, debug_id=""):
@@ -389,3 +374,24 @@ def validateEmailOnWeb(contact_id, email):
     return post_to_cms_rest_api(
         "validateEmailOnWeb", settings.WEB_EMAIL_CHECK_URI, {"contact_id": contact_id, "email": email}
     )
+
+
+def manage_mailtrain_subscription(email: str, list_id: str, action: Literal["subscribe", "unsubscribe"]) -> dict:
+    """
+    Service function to add or remove an email from a Mailtrain list.
+    """
+    try:
+        validate_email(email)
+    except ValidationError:
+        raise ValueError(f"{email} is not a valid email address.")  # Using ValueError for invalid input
+
+    if action not in ["subscribe", "unsubscribe"]:
+        raise ValueError("Invalid action specified.")  # Same here for invalid action
+
+    if action == "subscribe":
+        result = subscribe_email_to_mailtrain_list(email, list_id)
+    else:  # 'unsubscribe' action
+        result = delete_email_from_mailtrain_list(email, list_id)
+
+    return result
+
