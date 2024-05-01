@@ -2092,7 +2092,7 @@ def edit_newsletters(request, contact_id):
 @staff_member_required
 def toggle_mailtrain_subscription(request, contact_id, list):
     contact = get_object_or_404(Contact, pk=contact_id)
-    return HttpResponseRedirect(reverse("edit_contact", args=[contact_id]))
+    return HttpResponseRedirect(reverse("edit_contact", args=[contact_id]) + "#newsletters")
 
 
 @staff_member_required
