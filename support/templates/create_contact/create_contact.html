@@ -1,0 +1,77 @@
+{% extends "adminlte/base.html" %}
+{% load static i18n widget_tweaks %}
+{% block extra_head %}
+  <link rel="stylesheet"
+        type="text/css"
+        href="{% static 'css/email_suggestion_dialog.css' %}">
+{% endblock %}
+
+{% block extra_js %}
+  <script type="text/javascript" src="{% static 'js/datepicker-es.js' %}"></script>
+  <script type="text/javascript">
+    $(function(){
+      $(".datepicker").datepicker({ dateFormat: 'yy-mm-dd' });
+      {% include 'email_suggestion_dialog_js.html' %}
+    });
+  </script>
+{% endblock extra_js %}
+
+{% block no_heading %}
+  {% if contact %}
+    <h1>
+      <a href="{% url 'contact_list' %}">{% trans "Contacts" %}</a> /
+      <a href="{% url 'contact_detail' contact.id %}">{{ contact.id }} - {{ contact.name }}</a> /
+      {% trans "Edit contact" %}
+    </h1>
+  {% else %}
+    <h1>{% trans "Contacts" %} / {% trans "New contact" %}</h1>
+  {% endif %}
+{% endblock no_heading %}
+
+{% block content %}
+  <section class="content">
+    <div class="container-fluid">
+      <div class="row">
+        <div class="col-md-12">
+          <div class="card">
+            <div class="card-header p-2">
+              <ul class="nav nav-pills">
+                <li class="nav-item">
+                  <a class="nav-link active" href="#data" data-toggle="tab">{% trans "Contact data" %}</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="#newsletters" data-toggle="tab">{% trans "Newsletters and communications" %}</a>
+                </li>
+              </ul>
+            </div>
+            <div class="card-body">
+              {% include "email_suggestion_dialog.html" %}
+              {% if form.errors %}
+                {% for field in form %}
+                  {% for error in field.errors %}
+                    <div class="alert alert-danger">
+                      <strong>{{ error|escape }}</strong>
+                    </div>
+                  {% endfor %}
+                {% endfor %}
+                {% for error in form.non_field_errors %}
+                  <div class="alert alert-danger">
+                    <strong>{{ error|escape }}</strong>
+                  </div>
+                {% endfor %}
+              {% endif %}
+              <div class="tab-content">
+                <div class="active tab-pane" id="data">
+                  {% include "create_contact/tabs/_data.html" %}
+                </div>
+                <div class="tab-pane" id="newsletters">
+                  {% include "create_contact/tabs/_newsletters.html" %}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+{% endblock %}

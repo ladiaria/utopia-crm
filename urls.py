@@ -19,6 +19,7 @@ from core.views import (
     mailtrain_list_subscription,
     mailtrain_lists,
     get_mailtrain_list_subscribed_emails,
+    toggle_mailtrain_subscription,
 )
 
 
@@ -48,6 +49,11 @@ urlpatterns += [
     path('api/mailtrain_list_subscription/', mailtrain_list_subscription, name="mailtrain_list_subscription"),
     path('api/mailtrain_lists/', mailtrain_lists, name="mailtrain_lists"),
     path("api/mailtrain_subscribers/list/<str:list_id>/", get_mailtrain_list_subscribed_emails),
+    path(
+        "mailtrain/toggle_subscription/<int:contact_id>/<str:cid>/",
+        toggle_mailtrain_subscription,
+        name="toggle_mailtrain_subscription",
+    ),
 ]
 
 if 'support' in settings.INSTALLED_APPS:

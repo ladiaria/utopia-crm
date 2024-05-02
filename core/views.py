@@ -3,18 +3,22 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework_api_key.permissions import HasAPIKey
 
 from django.db import IntegrityError
-from django.http import JsonResponse, HttpResponse, HttpResponseBadRequest
-from django.shortcuts import render, get_list_or_404
+from django.http import JsonResponse, HttpResponse, HttpResponseBadRequest, HttpResponseRedirect
+from django.shortcuts import render, get_list_or_404, get_object_or_404
 from django.views.decorators.cache import never_cache
+from django.contrib import messages
+from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
 from django.core.validators import validate_email
+from django.utils.translation import gettext_lazy as _
 
-from .models import Contact, update_customer
+from .models import Contact, MailtrainList, update_customer
 from .utils import (
     get_emails_from_mailtrain_list,
     get_mailtrain_lists,
     subscribe_email_to_mailtrain_list,
     delete_email_from_mailtrain_list,
+    manage_mailtrain_subscription,
 )
 
 
@@ -145,16 +149,40 @@ def mailtrain_list_subscription(request):
     """
     email = request.data.get("email", None)
     list_id = request.data.get("list_id", None)
-    if not email:
-        return JsonResponse({"status": "error", "message": "Email is required."}, status=400)
-    if not list_id:
-        return JsonResponse({"status": "error", "message": "List ID is required."}, status=400)
-    if request.method == "POST":
-        try:
-            validate_email(email)
-        except Exception:
-            return JsonResponse({"status": "error", "message": f"{email} is not a valid email address."}, status=400)
-        result = subscribe_email_to_mailtrain_list(email, list_id)
+    if not email or not list_id:
+        return JsonResponse({"status": "error", "message": "Both email and list_id are required."}, status=400)
+
+    action = "subscribe" if request.method == "POST" else "unsubscribe"  # DELETE method is used for unsubscribing
+
+    try:
+        result = manage_mailtrain_subscription(email, list_id, action=action)
+        return JsonResponse(result)
+    except ValueError as e:
+        return JsonResponse({"status": "error", "message": str(e)}, status=400)
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": str(e)}, status=500)
+
+
+@staff_member_required
+def toggle_mailtrain_subscription(request, contact_id: int, cid: str) -> HttpResponse:
+    """For internal use only. Toggles the subscription of a contact to a Mailtrain list.
+
+    Args:
+        request (HttpRequest): The request object.
+        contact_id (int): The ID of the contact.
+        cid (str): The ID of the Mailtrain list. It's found in the ID column in the Mailtrain lists page.
+
+    Returns:
+        HttpResponse: A redirect response to the previous page.
+    """
+    mailtrain_list_obj = get_object_or_404(MailtrainList, cid=cid)
+    contact_obj = get_object_or_404(Contact, pk=contact_id)
+    contact_mailtrain_lists = get_mailtrain_lists(contact_obj.email)
+    if cid in contact_mailtrain_lists:
+        delete_email_from_mailtrain_list(contact_obj.email, cid)
+        msg = _()
+        messages.success(request, f"Se ha eliminado el contacto {contact_obj.email} de la lista {mailtrain_list_obj}")
     else:
-        result = delete_email_from_mailtrain_list(email, list_id)
-    return HttpResponse(result, content_type="application/json")
+        subscribe_email_to_mailtrain_list(contact_obj.email, cid)
+        messages.success(request, f"Se ha agregado el contacto {contact_obj.email} a la lista {mailtrain_list_obj}")
+    return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
