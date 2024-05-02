@@ -2040,6 +2040,7 @@ def edit_contact(request, contact_id):
     all_newsletters = Product.objects.filter(type="N", active=True)
     contact_newsletters = contact.get_newsletter_products()
     mailtrain_lists = MailtrainList.objects.filter(is_active=True)
+    contact_mailtrain_lists = get_mailtrain_lists(contact.email)
 
     if request.POST:
         form = ContactAdminForm(request.POST, instance=contact)
@@ -2068,6 +2069,7 @@ def edit_contact(request, contact_id):
             "all_newsletters": all_newsletters,
             "contact_newsletters": contact_newsletters,
             "mailtrain_lists": mailtrain_lists,
+            "contact_mailtrain_lists": contact_mailtrain_lists,
         },
     )
 

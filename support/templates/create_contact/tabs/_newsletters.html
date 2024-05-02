@@ -34,7 +34,26 @@
       </div>
       <div class="card-body">
         {% for item in mailtrain_lists %}
-        {{ item.name }} - {% if item.status == 1 %}{% trans "Subscribed" %}{% else %}{% trans "Unsubscribed" %}{% endif %}
+            <div class="row align-items-center">
+              <div class="col">{{ item }}</div>
+              <div class="col">
+                {% if item.cid in contact_mailtrain_lists %}
+                  {% trans "Subscribed" %}
+                {% else %}
+                  {% trans "Not subscribed" %}
+                {% endif %}
+              </div>
+              <div class="col">
+                <a href="{% url "toggle_mailtrain_subscription" contact.id item.cid %}"
+                   class="btn {% if item.cid in contact_mailtrain_lists %}btn-danger{% else %}btn-success{% endif %}">
+                  {% if item.cid in contact_mailtrain_lists %}
+                    {% trans "Unsubscribe" %}
+                  {% else %}
+                    {% trans "Subscribe" %}
+                  {% endif %}
+                </a>
+              </div>
+            </div>
         {% endfor %}
       </div>
     </div>

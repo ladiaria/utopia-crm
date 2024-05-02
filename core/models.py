@@ -2382,7 +2382,7 @@ class MailtrainList(models.Model):
 
     In the future this could be used to sync the lists to Mailtrain, but for now it's only used to store the list id.
     """
-    list_id = models.CharField(max_length=9, unique=True)
+    cid = models.CharField(max_length=10, unique=True)
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True)
     is_active = models.BooleanField(default=True)
