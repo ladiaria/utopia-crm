@@ -36,6 +36,7 @@ from .models import (
     DoNotCallNumber,
     EmailReplacement,
     EmailBounceActionLog,
+    MailtrainList,
 )
 from .forms import SubscriptionAdminForm, ContactAdminForm
 
@@ -491,3 +492,4 @@ admin.site.register(DynamicContactFilter)
 admin.site.register(ProductBundle)
 admin.site.register(AdvancedDiscount)
 admin.site.register(DoNotCallNumber)
+admin.site.register(MailtrainList)

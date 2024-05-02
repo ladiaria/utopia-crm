@@ -4,8 +4,12 @@ import requests
 from requests.auth import HTTPBasicAuth
 from requests.exceptions import ReadTimeout, RequestException
 import html2text
+from typing import Literal
+
 
 from django.conf import settings
+from django.core.validators import validate_email
+from django.core.exceptions import ValidationError
 
 
 dnames = ('monday', 'tuesday', 'wednesday', 'thursday', 'friday')
@@ -31,6 +35,14 @@ def subscribe_email_to_mailtrain_list(email, mailtrain_list_id):
     return requests.post(url, params=params, data={'EMAIL': email})
 
 
+def unsubscribe_email_from_mailtrain_list(email, mailtrain_list_id):
+    if settings.DEBUG:
+        print(("sending email {} to {}".format(email, mailtrain_list_id)))
+    url = '{}unsubscribe/{}'.format(settings.MAILTRAIN_API_URL, mailtrain_list_id)
+    params = {'access_token': settings.MAILTRAIN_API_KEY}
+    return requests.post(url, params=params, data={'EMAIL': email})
+
+
 def delete_email_from_mailtrain_list(email, mailtrain_list_id):
     if settings.DEBUG:
         print(("deleting email {} from {}".format(email, mailtrain_list_id)))
@@ -42,7 +54,7 @@ def delete_email_from_mailtrain_list(email, mailtrain_list_id):
 def get_mailtrain_lists(email):
     url = '{}lists/{}'.format(settings.MAILTRAIN_API_URL, email)
     params = {'access_token': settings.MAILTRAIN_API_KEY}
-    return [mlist["cid"] for mlist in requests.get(url, params=params).json()["data"]]
+    return [mlist["cid"] for mlist in requests.get(url, params=params).json()["data"] if mlist["status"] == 1]
 
 
 def get_emails_from_mailtrain_list(mailtrain_list_id, status=None, limit=None):
@@ -60,6 +72,23 @@ def get_emails_from_mailtrain_list(mailtrain_list_id, status=None, limit=None):
         if not status or subscription["status"] == status:
             emails.append(subscription['email'])
     return emails
+
+
+def user_mailtrain_lists(email):
+    url = f'{settings.MAILTRAIN_API_URL}/lists/{email}'
+    params = {'access_token': settings.MAILTRAIN_API_KEY}
+    r = requests.get(url, params=params)
+    try:
+        r.raise_for_status()
+        json_response = r.json()
+        items = json_response["data"]
+        # make a dictionary with list_ids, names, and status for each list
+        mailtrain_lists = [
+            {'name': item.get('name'), 'status': item.get('status'), 'cid': item.get('cid')} for item in items
+        ]
+        return mailtrain_lists
+    except Exception:
+        raise
 
 
 def calc_price_from_products(products_with_copies, frequency, debug_id=""):
@@ -241,9 +270,8 @@ def process_products(input_product_dict: dict) -> dict:
             if pricerule.wildcard_mode == "pool_or_any":
                 # consider also non discount products that have been added to the output_dict by previous rules
                 list_and_pool_len += non_discount_added - non_discount_added_ignore
-            if (
-                (pricerule.amount_to_pick_condition == "eq" and list_and_pool_len == pricerule.amount_to_pick)
-                or (pricerule.amount_to_pick_condition == "gt" and list_and_pool_len > pricerule.amount_to_pick)
+            if (pricerule.amount_to_pick_condition == "eq" and list_and_pool_len == pricerule.amount_to_pick) or (
+                pricerule.amount_to_pick_condition == "gt" and list_and_pool_len > pricerule.amount_to_pick
             ):
 
                 if pricerule.mode == 1:
@@ -346,3 +374,24 @@ def validateEmailOnWeb(contact_id, email):
     return post_to_cms_rest_api(
         "validateEmailOnWeb", settings.WEB_EMAIL_CHECK_URI, {"contact_id": contact_id, "email": email}
     )
+
+
+def manage_mailtrain_subscription(email: str, list_id: str, action: Literal["subscribe", "unsubscribe"]) -> dict:
+    """
+    Service function to add or remove an email from a Mailtrain list.
+    """
+    try:
+        validate_email(email)
+    except ValidationError:
+        raise ValueError(f"{email} is not a valid email address.")  # Using ValueError for invalid input
+
+    if action not in ["subscribe", "unsubscribe"]:
+        raise ValueError("Invalid action specified.")  # Same here for invalid action
+
+    if action == "subscribe":
+        result = subscribe_email_to_mailtrain_list(email, list_id)
+    else:  # 'unsubscribe' action
+        result = delete_email_from_mailtrain_list(email, list_id)
+
+    return result
+
