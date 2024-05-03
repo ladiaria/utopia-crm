@@ -156,7 +156,7 @@ def mailtrain_list_subscription(request):
 
     try:
         result = manage_mailtrain_subscription(email, list_id, action=action)
-        return JsonResponse(result)
+        return HttpResponse(result, content_type="application/json")
     except ValueError as e:
         return JsonResponse({"status": "error", "message": str(e)}, status=400)
     except Exception as e:
