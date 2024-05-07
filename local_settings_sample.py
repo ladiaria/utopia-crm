@@ -81,3 +81,8 @@ ISSUE_SUBCATEGORY_GENERIC_DEBT = 'generic-debt'
 # Temporary discounts: A dict map of product slug, months.
 # Use for products (discounts) that have to disappear from the subscription after a set amount of months.
 # TEMPORARY_DISCOUNT = {'product-slug': 3}
+
+# Settings for GDAL and GEOS for MacOS. Only uncomment if necessary, or delete if not needed.
+# GDAL_LIBRARY_PATH = "/opt/homebrew/opt/gdal/lib/libgdal.dylib"
+# GEOS_LIBRARY_PATH = "/opt/homebrew/opt/geos/lib/libgeos_c.dylib"
+
