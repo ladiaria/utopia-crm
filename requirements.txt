@@ -11,6 +11,7 @@ django-rest-framework
 djangorestframework-api-key
 django-simple-history
 django-taggit
+django-markdownify
 django-test-without-migrations
 django-widget-tweaks
 Django==4.1.4
@@ -18,10 +19,11 @@ html2text
 ipython
 luhn
 lxml
+pandas
 postgis
 progress
 psycopg2
-py3DNS
+py3dns
 pyIsEmail
 pymailcheck
 PyPDF2

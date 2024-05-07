@@ -62,6 +62,19 @@ sudo -u postgres psql -c "CREATE EXTENSION postgis;" utopiadev
 
 Copy `local_settings_sample.py` to `local_settings.py` and configure the database in the new file by modifiying the `DATABASE` variable with the values created in the previous step. And also fill the `SECRET_KEY` variable using any string or a more secure one generated for example with [this web tool](https://djecrety.ir/).
 
+### Extra configuration for macOS
+
+In the case that you're using macOS, it is necessary that you specify where "gdal" and "geos" are located. You'll have to install them through brew and then locate where the files are stored to add the following settings. Please note that these settings are for the last version of ARM MacOS computers. Your homebrew folder can differ for intel based MacOS computers. These settings will be commented in local_settings_sample.py.
+
+```
+GDAL_LIBRARY_PATH = "/opt/homebrew/opt/gdal/lib/libgdal.dylib"
+GEOS_LIBRARY_PATH = "/opt/homebrew/opt/geos/lib/libgeos_c.dylib"
+```
+
+To install these packages refer to the following websites.
+[geos homebrew](https://formulae.brew.sh/formula/geos)
+[gdal homebrew](https://formulae.brew.sh/formula/gdal)
+
 ### Create the database structure
 
 Run "migrate":
@@ -111,3 +124,11 @@ Start the development server by running:
 ```
 
 and go to the following URL in your browser: http://127.0.0.1:8000/
+
+### Known issues for MacOS
+
+It is possible that you encounter this error when running the server for the first time:
+
+`ModuleNotFoundError: No module named 'dns'`
+
+To solve this issue, navigate to where your virtualenv is located and find the site-packages folder under the folder lib/pythonX.XX/ where X.XX is your python version. There you might find an uppercase DNS folder that you can safely rename to lowercase "dns". In the case your error shows that the module not found is an uppercase DNS, you can do the opposite.
