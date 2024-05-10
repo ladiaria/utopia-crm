@@ -1,2 +1,2 @@
-/static/admin-lte/* linguist-vendored
-/static/js/jquery-3.6.0.min.js linguist-vendored
+static/admin-lte/* linguist-vendored
+static/js/jquery-3.6.0.min.js linguist-vendored
