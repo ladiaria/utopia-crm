@@ -1,0 +1,29 @@
+{% load i18n core_tags %}
+
+{% url 'print_invoices' as print_invoices %}
+{% url 'debtor_contacts' as debtor_contacts %}
+{% url 'invoice_filter' as invoice_filter %}
+
+<li class="nav-item has-treeview">
+  <a href="#" class="nav-link">
+    <p>
+      {% trans "Finances" %}
+      <i class="fas fa-angle-down right"></i>
+    </p>
+  </a>
+  <ul class="nav nav-treeview">
+    <li class="nav-item">
+      <a href="{{ print_invoices }}"
+         class="nav-link {% if request.path == print_invoices %}active{% endif %}">{% trans "Print invoices" %}</a>
+    </li>
+    <li class="nav-item">
+      <a href="{{ debtor_contacts }}"
+         class="nav-link {% if request.path == debtor_contacts %}active{% endif %}">{% trans "Debtor contacts" %}</a>
+    </li>
+    <li class="nav-item">
+      <a href="{{ invoice_filter }}"
+         class="nav-link {% if request.path == invoice_filter %}active{% endif %}">{% trans "Invoice filter" %}</a>
+    </li>
+    {% include_if_exists "finances_sidebar_extra.html" %}
+  </ul>
+</li>

@@ -1,0 +1,61 @@
+{% extends "adminlte/lib/_main_sidebar.html" %}
+{% load static core_tags setting %}
+{% load i18n %}
+{% block logo %}
+  <a href="{% url "main_menu" %}" class="brand-link">
+    <img src="/{% setting LOGO %}" alt="utopia" class="brand-image" height="auto" width="auto">
+    {% block logo_text %}<span class="transparent-logo">Utopia CRM</span>{% endblock %}
+  </a>
+{% endblock %}
+
+{% block nav_links %}
+  {% url 'contact_list' as contact_list %}
+  {% url 'seller_console_list_campaigns' as seller_console_list_campaigns %}
+  {% url "my_sales" as my_sales %}
+  {# TODO: Add if ... in INSTALLED_APPS for each menu #}
+  <li class="nav-item">
+    <a href="{{ contact_list }}"
+       class="nav-link {% if request.path == contact_list %}active{% endif %}">{% trans "Contacts" %}</a>
+  </li>
+  {% if request.user|in_group:"Support" %}
+    {% include "components/sidebar_items/_support.html" %}
+  {% endif %}
+  {% if request.user|in_group:"Managers" %}
+    {% include "components/sidebar_items/_campaign_management.html" %}
+  {% endif %}
+  {% if request.user|in_group:"Finances" %}
+    {% include "components/sidebar_items/_finances.html" %}
+  {% endif %}
+  {% if request.user|in_group:"Logistics" %}
+    {% include "components/sidebar_items/_logistics.html" %}
+  {% endif %}
+  {% if request.user|in_group:"Advertisement" %}
+    {% include "components/sidebar_items/_advertisement.html" %}
+  {% endif %}
+  {% if request.user|in_group:"Managers" %}
+    <li class="nav-item">
+      <a href="{% url "admin:index" %}" class="nav-link">{% trans "Admin panel" %}</a>
+    </li>
+  {% endif %}
+  {% if request.user|in_group:"Sellers" %}
+    <li class="nav-item">
+      <a href="{{ seller_console_list_campaigns }}"
+         class="nav-link {% if request.path == seller_console_list_campaigns %}active{% endif %}">{% trans "Seller console" %}</a>
+    </li>
+    <li class="nav-item">
+      <a href="{{ my_sales }}"
+         class="nav-link {% if request.path == my_sales %}active{% endif %}">{% trans "My Sales" %}</a>
+    </li>
+  {% endif %}
+  {% include_if_exists "sidebar_extra.html" %}
+  <li class="nav-item">
+    <a href="{% url "logout" %}" class="nav-link">{% trans "Logout" %}</a>
+  </li>
+  <!-- Sticky collapse button at the bottom -->
+  <li class="nav-item collapse-button">
+    <a href="#" class="nav-link" id="sidebarCollapse">
+      <i class="fas fa-angle-left"></i>
+      <span>{% trans "Collapse Sidebar" %}</span>
+    </a>
+  </li>
+{% endblock nav_links %}

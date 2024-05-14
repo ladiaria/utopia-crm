@@ -22,9 +22,71 @@ input[type=number] {
 }
 
 body{
-  zoom: 80%;
+  /* zoom: 80%; */
+  font-size: 0.75rem;
+  overflow: auto;
+  height: 100%;
+}
+
+
+h1,
+.content-header h1{
+  font-size: 1.4rem;
+}
+
+h2,
+.content-header h2{
+  font-size: 1.2rem;
+}
+
+h3,
+.content-header h3{
+  font-size: 1.0rem;
+}
+
+h4,
+h5,
+.content-header h4,
+.content-header h5{
+  font-size: 0.8rem;
+}
+
+.card-title{
+    font-size: 1.0rem;
+}
+
+.form-control{
+    height: 2rem;
+    font-size: 0.75rem;
+}
+
+.btn{
+    font-size: 0.75rem;
+}
+
+.card-body{
+    padding: 1rem;
 }
 
 .bg-very-light-green{
   background-color: #ddffdd !important;
+}
+
+.collapse-button {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    background: #343a40; /* Adjust background as needed */
+    text-align: center;
+}
+
+.collapse-button .nav-link {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 10px;
+}
+
+.transparent-logo {
+    color:transparent;
 }

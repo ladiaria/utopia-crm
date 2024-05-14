@@ -1,14 +1,14 @@
 {% extends "adminlte/base.html" %}
 {% load i18n static %}
 
-{% block body_class %}login-page{% endblock %}
+{% block bodyclass %}login-page{% endblock %}
 
 {% block body %}
     <div class="login-box">
         {% block logo %}
         <div class="login-logo">
             {# Mirrors block names used in _main_header.html #}
-            <img src="{% static 'img/logo-utopia.png' %}" alt="utopia" class="brand-image">
+            <img src="{% static 'img/logo-utopia.png' %}" alt="utopia" class="brand-image" width="auto" height="auto">
             <a href="{% block logo_href %}/{% endblock %}">{% block logo_text %}<p>{% trans "Log In" %}</p>{% endblock %}</a>
         </div>
         {% endblock %}
@@ -35,14 +35,14 @@
                 <form action="" method="post">
                     {% csrf_token %}
                     {% if message %}
-                        <p class="login-box-msg" style="color: red;">{{ message }}</p>
+                        <p class="login-box-msg">{{ message }}</p>
                     {% endif %}
                     <div class="form-group has-feedback">
-                        <input name="username" class="form-control" placeholder="{% trans 'Username' %}">
+                        <input name="username" class="form-control" placeholder="{% trans "Username" %}">
                         <span class="glyphicon glyphicon-user form-control-feedback"></span>
                     </div>
                     <div class="form-group has-feedback">
-                        <input type="password" name="password" class="form-control" placeholder="{% trans 'Password' %}">
+                        <input type="password" name="password" class="form-control" placeholder="{% trans "Password" %}">
                         <span class="glyphicon glyphicon-lock form-control-feedback"></span>
                     </div>
                     <div class="row">
@@ -51,7 +51,7 @@
                             {% endblock %}
                         </div>
                         <div class="col-xs-4">
-                            <button type="submit" class="btn btn-primary btn-block btn-flat">{% trans 'Login' %}</button>
+                            <button type="submit" class="btn btn-primary btn-block btn-flat">{% trans "Login" %}</button>
                         </div>
                     </div>
                 </form>

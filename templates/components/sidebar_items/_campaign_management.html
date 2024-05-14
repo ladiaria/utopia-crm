@@ -1,0 +1,58 @@
+{% load i18n core_tags %}
+
+{% url 'import_contacts' as import_contacts %}
+{% url 'tag_contacts' as tag_contacts %}
+{% url 'assign_campaigns' as assign_campaigns %}
+{% url 'assign_to_seller' as assign_to_seller %}
+{% url 'core_campaign_add' as core_campaign_add %}
+{% url 'campaign_statistics_list' as campaign_statistics_list %}
+{% url 'seller_performance_by_time' as seller_performance_by_time %}
+{% url 'release_seller_contacts' as release_seller_contacts %}
+{% url 'upload_do_not_call_numbers' as upload_do_not_call_numbers %}
+{% url 'sales_record_filter' as sales_record_filter %}
+
+<li class="nav-item has-treeview">
+  <a href="#" class="nav-link">
+    <p>
+      {% trans "Campaign Management" %}
+      <i class="fas fa-angle-down right"></i>
+    </p>
+  </a>
+  <ul class="nav nav-treeview">
+    <li class="nav-item">
+      <a href="{{ import_contacts }}"
+         class="nav-link {% if request.path == import_contacts %}active{% endif %}">Importar nuevos contactos por CSV</a>
+    </li>
+    <li class="nav-item">
+      <a href="{{ tag_contacts }}"
+         class="nav-link {% if request.path == tag_contacts %}active{% endif %}">Etiquetar contactos por CSV</a>
+    </li>
+    <li class="nav-item">
+      <a href="{{ assign_campaigns }}"
+         class="nav-link {% if request.path == assign_campaigns %}active{% endif %}">Asignar contactos a campaña por etiqueta</a>
+    </li>
+    <li class="nav-item">
+      <a href="{{ assign_to_seller }}"
+         class="nav-link {% if request.path == assign_to_seller %}active{% endif %}">{% trans "Assign contacts to sellers" %}</a>
+    </li>
+    <li class="nav-item">
+      <a href="{{ core_campaign_add }}" target="_blank" class="nav-link">{% trans "New campaign" %}</a>
+    </li>
+    <li class="nav-item">
+      <a href="{{ campaign_statistics_list }}?active=true" class="nav-link">{% trans "Campaign statistics" %}</a>
+    </li>
+    <li class="nav-item">
+      <a href="{{ seller_performance_by_time }}" class="nav-link">{% trans "Sellers performance" %}</a>
+    </li>
+    <li class="nav-item">
+      <a href="{{ release_seller_contacts }}" class="nav-link">{% trans "Release seller contacts" %}</a>
+    </li>
+    <li class="nav-item">
+      <a href="{{ upload_do_not_call_numbers }}" class="nav-link">{% trans "Upload do not call list" %}</a>
+    </li>
+    <li class="nav-item">
+      <a href="{{ sales_record_filter }}" class="nav-link">{% trans "Sales Records" %}</a>
+    </li>
+    {% include_if_exists "campaign_management_sidebar_extra.html" %}
+  </ul>
+</li>

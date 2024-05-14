@@ -1,0 +1,34 @@
+{% load i18n core_tags %}
+
+{% url 'my_advertisers' as my_advertisers %}
+{% url 'advertiser_list' as advertiser_list %}
+{% url 'agency_list' as agency_list %}
+{% url 'ad_purchase_order_list' as ad_purchase_order_list %}
+
+<li class="nav-item has-treeview">
+  <a href="#" class="nav-link">
+    <p>
+      {% trans "Advertisement" %}
+      <i class="fas fa-angle-down right"></i>
+    </p>
+  </a>
+  <ul class="nav nav-treeview">
+    <li class="nav-item">
+      <a href="{{ my_advertisers }}"
+         class="nav-link {% if request.path == my_advertisers %}active{% endif %}">{% trans "My advertisers" %}</a>
+    </li>
+    <li class="nav-item">
+      <a href="{{ advertiser_list }}"
+         class="nav-link {% if request.path == advertiser_list %}active{% endif %}">{% trans "List advertisers" %}</a>
+    </li>
+    <li class="nav-item">
+      <a href="{{ agency_list }}"
+         class="nav-link {% if request.path == agency_list %}active{% endif %}">{% trans "List agencies" %}</a>
+    </li>
+    <li class="nav-item">
+      <a href="{{ ad_purchase_order_list }}"
+         class="nav-link {% if request.path == ad_purchase_order_list %}active{% endif %}">{% trans "Purchase Orders List" %}</a>
+    </li>
+    {% include_if_exists "advertisement_sidebar_extra.html" %}
+  </ul>
+</li>
