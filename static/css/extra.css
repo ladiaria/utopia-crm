@@ -25,7 +25,7 @@ body{
   /* zoom: 80%; */
   font-size: 0.75rem;
   overflow: auto;
-  height: 100%;
+  height: 100vh;
 }
 
 
@@ -72,21 +72,39 @@ h5,
   background-color: #ddffdd !important;
 }
 
-.collapse-button {
-    position: absolute;
-    bottom: 0;
-    width: 100%;
-    background: #343a40; /* Adjust background as needed */
-    text-align: center;
-}
-
-.collapse-button .nav-link {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 10px;
-}
-
 .transparent-logo {
     color:transparent;
+}
+
+body:not(.layout-fixed) .main-sidebar {
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    height: calc(100% - 3.5rem); /* Adjust the height to exclude the header */
+    overflow-y: auto;
+}
+
+.main-sidebar.collapsed{
+    width: 80px; /* Adjust this value for collapsed width */
+}
+.main-header.collapsed,
+.main-footer.collapsed,
+.content-wrapper.collapsed {
+    margin-left: 80px !important; /* Adjust this value for collapsed width */
+}
+
+.main-sidebar.collapsed:hover {
+    width: 250px; /* Expand width on hover */
+}
+
+.sidebar {
+    overflow: hidden;
+}
+
+.sidebar-menu {
+    overflow-y: auto;
+}
+
+.collapse-button {
+    margin-top: auto;
 }
