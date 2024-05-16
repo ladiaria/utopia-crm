@@ -1,11 +1,10 @@
 {% load core_tags i18n %}
-
 {% url 'assign_routes' as assign_routes %}
 {% url 'assign_routes_future' as assign_routes_future %}
 {% url 'order_route_list' as order_route_list %}
 {% url 'print_unordered_subscriptions' as print_unordered_subscriptions %}
 {% url 'change_route_default' as change_route_default %}
-{% url 'print_labels_page_roll' as print_labels_page_roll %}
+{% url "print_labels" page="Roll" as print_labels_page_roll %}
 {% url 'print_labels_for_day' as print_labels_for_day %}
 {% url 'print_labels_from_csv' as print_labels_from_csv %}
 {% url 'issues_labels' as issues_labels %}
@@ -15,12 +14,12 @@
 {% url 'list_routes_detailed' as list_routes_detailed %}
 {% url 'addresses_with_complementary_information' as addresses_with_complementary_information %}
 {% url 'mass_georef_address' as mass_georef_address %}
-
 <li class="nav-item has-treeview">
   <a href="#" class="nav-link">
+    <i class="nav-icon fas fa-truck"></i>
     <p>
       {% trans "Logistics" %}
-      <i class="fas fa-angle-down right"></i>
+      <i class="fas fa-angle-left right"></i>
     </p>
   </a>
   <ul class="nav nav-treeview">
@@ -44,13 +43,22 @@
       <a href='{{ change_route_default }}'
          class="nav-link {% if request.path == change_route_default %}active{% endif %}">{% blocktrans %}Change route of subscriptions<br /> on routes{% endblocktrans %}</a>
     </li>
-    <li class="nav-item">
-      <a href='{{ print_labels_page_roll }}'
-         class="nav-link {% if request.path == print_labels_page_roll %}active{% endif %}">{% trans "Print all labels for tomorrow" %}</a>
-    </li>
-    <li class="nav-item">
-      <a href='{{ print_labels_for_day }}'
-         class="nav-link {% if request.path == print_labels_for_day %}active{% endif %}">{% trans "Print all labels for specific day" %}</a>
+    <li class="nav-item has-treeview">
+      <a href="#" class="nav-link">{% trans "Print labels" %}
+        <i class="fas fa-angle-left right"></i>
+      </a>
+      <ul class="nav nav-treeview">
+        <li class="nav-item">
+          <a href='{{ print_labels_page_roll }}' class="nav-link">
+            <p>{% trans "For tomorrow" %}</p>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href='{{ print_labels_for_day }}' class="nav-link">
+            <p>{% trans "Specific day" %}</p>
+          </a>
+        </li>
+      </ul>
     </li>
     <li class="nav-item">
       <a href='{{ print_labels_from_csv }}'
@@ -78,11 +86,11 @@
     </li>
     <li class="nav-item">
       <a href='{{ addresses_with_complementary_information }}'
-         class="nav-link {% if request.path == addresses_with_complementary_information %}active{% endif %}">{% trans "Addresses complementary information" %}</a>
+         class="nav-link {% if request.path == addresses_with_complementary_information %}active{% endif %}">{% trans "Complementary information" %}</a>
     </li>
     <li class="nav-item">
       <a href="{{ mass_georef_address }}"
-         class="nav-link {% if request.path == mass_georef_address %}active{% endif %}">Normalizar direcciones sin verificar</a>
+         class="nav-link {% if request.path == mass_georef_address %}active{% endif %}">Normalizar direcciones</a>
     </li>
     {% include_if_exists "logistics_sidebar_extra.html" %}
   </ul>

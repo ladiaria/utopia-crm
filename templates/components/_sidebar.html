@@ -22,12 +22,12 @@
       <div class="user-panel mt-3 pb-3 mb-3 d-flex">
         <div class="image">
           <img src="{% avatar_url size=90 %}"
-               class="img-circle elevation-2"
+               class="img-circle elevation-2 utopia-logo"
                alt="User Image"
                width="auto"
                height="auto">
         </div>
-        <div class="info">
+        <div class="info username-show">
           <a href="#" class="d-block">{% firstof request.user.get_full_name request.user.username %}</a>
         </div>
       </div>
@@ -38,7 +38,7 @@
     <!-- sidebar menu: : style can be found in sidebar.less -->
     <div class="sidebar-menu flex-grow-1">
       {% block nav_links_ul %}
-        <nav class="mt-2">
+        <nav class="mt-2 height-100">
           <ul class="nav nav-pills nav-sidebar flex-column"
               data-widget="treeview"
               role="menu"
@@ -51,7 +51,10 @@
                 {# TODO: Add if ... in INSTALLED_APPS for each menu #}
                 <li class="nav-item">
                   <a href="{{ contact_list }}"
-                     class="nav-link {% if request.path == contact_list %}active{% endif %}">{% trans "Contacts" %}</a>
+                     class="nav-link {% if request.path == contact_list %}active{% endif %}">
+                    <i class="nav-icon fas fa-address-book"></i>
+                    <p>{% trans "Contacts" %}</p>
+                  </a>
                 </li>
                 {% if request.user|in_group:"Support" %}
                   {% include "components/sidebar_items/_support.html" %}
@@ -70,39 +73,41 @@
                 {% endif %}
                 {% if request.user|in_group:"Managers" %}
                   <li class="nav-item">
-                    <a href="{% url "admin:index" %}" class="nav-link">{% trans "Admin panel" %}</a>
+                    <a href="{% url "admin:index" %}" class="nav-link">
+                      <i class="nav-icon fas fa-cogs"></i>
+                      <p>{% trans "Admin panel" %}</p>
+                    </a>
                   </li>
                 {% endif %}
                 {% if request.user|in_group:"Sellers" %}
                   <li class="nav-item">
                     <a href="{{ seller_console_list_campaigns }}"
-                       class="nav-link {% if request.path == seller_console_list_campaigns %}active{% endif %}">{% trans "Seller console" %}</a>
+                       class="nav-link {% if request.path == seller_console_list_campaigns %}active{% endif %}">
+                      <i class="nav-icon fas fa-bullhorn"></i>
+                      <p>{% trans "Seller console" %}</p>
+                    </a>
                   </li>
                   <li class="nav-item">
                     <a href="{{ my_sales }}"
-                       class="nav-link {% if request.path == my_sales %}active{% endif %}">{% trans "My Sales" %}</a>
+                       class="nav-link {% if request.path == my_sales %}active{% endif %}">
+                      <i class="nav-icon fas fa-dollar-sign"></i>
+                      <p>{% trans "My Sales" %}</p>
+                    </a>
                   </li>
                 {% endif %}
                 {% include_if_exists "sidebar_extra.html" %}
                 <li class="nav-item">
-                  <a href="{% url "logout" %}" class="nav-link">{% trans "Logout" %}</a>
+                  <a href="{% url "logout" %}" class="nav-link">
+                    <i class="nav-icon fas fa-sign-out-alt"></i>
+                    <p>{% trans "Logout" %}</p>
+                  </a>
                 </li>
-                <!-- Sticky collapse button at the bottom -->
-
               {% endblock nav_links %}
             {% endblock nav_links_outer %}
-
           </ul>
         </nav>
       {% endblock nav_links_ul %}
-    </div>
-    <div class="collapse-button mb-2">
-      <li class="nav-item">
-        <a href="#" class="nav-link" id="sidebarCollapse">
-          <i class="fas fa-angle-left"></i>
-          <span>{% trans "Collapse Sidebar" %}</span>
-        </a>
-      </li>
+
     </div>
   </div>
 </aside>

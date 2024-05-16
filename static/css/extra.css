@@ -5,9 +5,6 @@
 [class*="sidebar-dark-"] .nav-sidebar > .nav-item.menu-open > .nav-link, [class*="sidebar-dark-"] .nav-sidebar > .nav-item:hover > .nav-link, [class*="sidebar-dark-"] .nav-sidebar > .nav-item > .nav-link:focus {
   background-color: rgba(255, 255, 255, .2);
 }
-.sidebar-mini .nav-sidebar, .sidebar-mini .nav-sidebar .nav-link, .sidebar-mini .nav-sidebar>.nav-header {
-  white-space: normal;
-}
 /* Chrome, Safari, Edge, Opera */
 input::-webkit-outer-spin-button,
 input::-webkit-inner-spin-button {
@@ -80,7 +77,7 @@ body:not(.layout-fixed) .main-sidebar {
     position: fixed !important;
     top: 0;
     left: 0;
-    height: calc(100% - 3.5rem); /* Adjust the height to exclude the header */
+    height: calc(100% - 3.5rem + 1px);
     overflow-y: auto;
 }
 
@@ -93,13 +90,9 @@ body:not(.layout-fixed) .main-sidebar {
     margin-left: 80px !important; /* Adjust this value for collapsed width */
 }
 
-.main-sidebar.collapsed:hover {
-    width: 250px; /* Expand width on hover */
-}
-
-.sidebar {
-    overflow: hidden;
-}
+/* .main-sidebar.collapsed:hover {
+    width: 250px;
+} */
 
 .sidebar-menu {
     overflow-y: auto;
@@ -107,4 +100,13 @@ body:not(.layout-fixed) .main-sidebar {
 
 .collapse-button {
     margin-top: auto;
+}
+
+.nav-link {
+    display: flex;
+    align-items: center;
+}
+
+ul.nav-pills{
+    height: 100%;
 }
