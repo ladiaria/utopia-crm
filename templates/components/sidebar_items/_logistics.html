@@ -25,26 +25,45 @@
   <ul class="nav nav-treeview">
     <li class="nav-item">
       <a href='{{ assign_routes }}'
-         class="nav-link {% if request.path == assign_routes %}active{% endif %}">{% trans "Assign subscriptions to routes" %}</a>
+         class="nav-link {% if request.path == assign_routes %}active{% endif %}">
+        <i class="nav-icon fas fa-list"></i>
+        <p>{% trans "Assign subscriptions to routes" %}</p>
+      </a>
     </li>
     <li class="nav-item">
       <a href='{{ assign_routes_future }}'
-         class="nav-link {% if request.path == assign_routes_future %}active{% endif %}">{% trans "Assign future subscriptions to routes" %}</a>
+         class="nav-link {% if request.path == assign_routes_future %}active{% endif %}">
+        <i class="nav-icon fas fa-list"></i>
+        <p>{% trans "Assign future subscriptions to routes" %}</p>
+      </a>
     </li>
     <li class="nav-item">
       <a href='{{ order_route_list }}'
-         class="nav-link {% if request.path == order_route_list %}active{% endif %}">{% trans "Order subscriptions in route" %}</a>
+         class="nav-link {% if request.path == order_route_list %}active{% endif %}">
+        <i class="nav-icon fas fa-list"></i>
+        <p>{% trans "Order subscriptions in route" %}</p>
+      </a>
     </li>
     <li class="nav-item">
       <a href='{{ print_unordered_subscriptions }}'
-         class="nav-link {% if request.path == print_unordered_subscriptions %}active{% endif %}">{% trans "Print unordered subscriptions" %}</a>
+         class="nav-link {% if request.path == print_unordered_subscriptions %}active{% endif %}">
+        <i class="nav-icon fas fa-print"></i>
+        <p>{% trans "Print unordered subscriptions" %}</p>
+      </a>
     </li>
     <li class="nav-item">
       <a href='{{ change_route_default }}'
-         class="nav-link {% if request.path == change_route_default %}active{% endif %}">{% blocktrans %}Change route of subscriptions<br /> on routes{% endblocktrans %}</a>
+         class="nav-link {% if request.path == change_route_default %}active{% endif %}">
+        <i class="nav-icon fas fa-route"></i>
+        <p>
+          {% blocktrans %}Change route of subscriptions<br /> on routes{% endblocktrans %}
+        </p>
+      </a>
     </li>
     <li class="nav-item has-treeview">
-      <a href="#" class="nav-link">{% trans "Print labels" %}
+      <a href="#" class="nav-link">
+        <i class="nav-icon fas fa-print"></i>
+        <p>{% trans "Print labels" %}</p>
         <i class="fas fa-angle-left right"></i>
       </a>
       <ul class="nav nav-treeview">
@@ -58,39 +77,61 @@
             <p>{% trans "Specific day" %}</p>
           </a>
         </li>
+        <li class="nav-item">
+          <a href="{{ print_labels_from_csv }}" class="nav-link">
+            <p>{% trans "From CSV file" %}</p>
+          </a>
+        </li>
       </ul>
     </li>
     <li class="nav-item">
-      <a href='{{ print_labels_from_csv }}'
-         class="nav-link {% if request.path == print_labels_from_csv %}active{% endif %}">{% trans "Print labels from CSV file" %}</a>
-    </li>
-    <li class="nav-item">
       <a href='{{ issues_labels }}'
-         class="nav-link {% if request.path == issues_labels %}active{% endif %}">{% trans "Issues labels" %}</a>
+         class="nav-link {% if request.path == issues_labels %}active{% endif %}">
+        <i class="nav-icon fas fa-tags"></i>
+        <p>{% trans "Issues labels" %}</p>
+      </a>
     </li>
     <li class="nav-item">
       <a href='{{ edition_time_departure }}'
-         class="nav-link {% if request.path == edition_time_departure %}active{% endif %}">{% trans "Edition departure time" %}</a>
+         class="nav-link {% if request.path == edition_time_departure %}active{% endif %}">
+        <i class="nav-icon fas fa-clock"></i>
+        <p>{% trans "Edition departure time" %}</p>
+      </a>
     </li>
     <li class="nav-item">
       <a href='{{ edition_time_arrival }}'
-         class="nav-link {% if request.path == edition_time_arrival %}active{% endif %}">{% trans "Edition arrival time" %}</a>
+         class="nav-link {% if request.path == edition_time_arrival %}active{% endif %}">
+        <i class="nav-icon fas fa-clock"></i>
+        <p>{% trans "Edition arrival time" %}</p>
+      </a>
     </li>
     <li class="nav-item">
       <a href="{{ list_routes }}"
-         class="nav-link {% if request.path == list_routes %}active{% endif %}">{% trans "List all routes" %} ({% trans "Simple" %})</a>
+         class="nav-link {% if request.path == list_routes %}active{% endif %}">
+        <i class="nav-icon fas fa-list"></i>
+        <p>{% trans "List all routes" %} ({% trans "Simple" %})</p>
+      </a>
     </li>
     <li class="nav-item">
       <a href='{{ list_routes_detailed }}'
-         class="nav-link {% if request.path == list_routes_detailed %}active{% endif %}">{% trans "List all routes" %} ({% trans "Detailed" %})</a>
+         class="nav-link {% if request.path == list_routes_detailed %}active{% endif %}">
+        <i class="nav-icon fas fa-list"></i>
+        <p>{% trans "List all routes" %} ({% trans "Detailed" %})</p>
+      </a>
     </li>
     <li class="nav-item">
       <a href='{{ addresses_with_complementary_information }}'
-         class="nav-link {% if request.path == addresses_with_complementary_information %}active{% endif %}">{% trans "Complementary information" %}</a>
+         class="nav-link {% if request.path == addresses_with_complementary_information %}active{% endif %}">
+        <i class="nav-icon fas fa-info"></i>
+        <p>{% trans "Complementary information" %}</p>
+      </a>
     </li>
     <li class="nav-item">
       <a href="{{ mass_georef_address }}"
-         class="nav-link {% if request.path == mass_georef_address %}active{% endif %}">Normalizar direcciones</a>
+         class="nav-link {% if request.path == mass_georef_address %}active{% endif %}">
+        <i class="nav-icon fas fa-map-marker-alt"></i>
+        <p>Normalizar direcciones</p>
+      </a>
     </li>
     {% include_if_exists "logistics_sidebar_extra.html" %}
   </ul>
