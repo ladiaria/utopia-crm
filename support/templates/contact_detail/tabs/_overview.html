@@ -1,4 +1,4 @@
-{% load i18n core_tags ladiaria_tags %}
+{% load i18n core_tags %}
 <div class="row">
   <div class="col-md-4">
     <div class="card">
@@ -71,9 +71,7 @@
       </div>
       <div class="card-body">
         <dl>
-          {% autoescape off %}
-            {% render_payment_requests contact.id %}
-          {% endautoescape %}
+          {% block payment_requests %}{% endblock payment_requests %}
           {% if last_paid_invoice or contact.get_debt %}
             <dt>{% trans "Latest payment" %}</dt>
             {% if last_paid_invoice %}
@@ -117,9 +115,7 @@
           {% if subscriptions %}({{ subscriptions|length }}){% endif %}
         </h3>
         <div class="card-tools">
-          <h3 class="bg-success font-weight-bold rounded d-inline-block p-1"
-              title="Productos activos"
-              data-toggle="tooltip">{% get_products_amount contact %}</h3>
+          {% block products_amount %}{% endblock products_amount %}
           {% if contact.invoice_set.exists %}
             <h3 class="bg-success font-weight-bold rounded d-inline-block p-1"
                 title="Año de primera factura"
