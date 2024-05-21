@@ -1,0 +1,927 @@
+{% load i18n ladiaria_tags core_tags %}
+  <div class="row">
+    <div class="card col-12">
+      <div class="card-header">
+        <h3 class="card-title">
+          {% trans "Active subscriptions" %}
+          {% if subscriptions %}({{ subscriptions|length }}){% endif %}
+        </h3>
+      </div>
+      <div class="card-body">
+        {% if subscriptions %}
+          {% for subscription in subscriptions %}
+            <div class="card  {% if subscription.status == "PA" %}bg-secondary{% endif %}">
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-6">
+                    <dt>{% trans "Products" %}:</dt>
+                    <dd class="border-bottom pb-3">
+                      {% for sp in subscription.get_subscriptionproducts %}
+                        <div class="row">
+                          <div class="col-5">
+                            {% if sp.product.digital %}
+                              <i class="fas fa-desktop" title="{% trans "Digital Product" %}" data-toggle="tooltip"></i>
+                            {% elif sp.product.type == "D" or sp.product.type == "A" %}
+                              <i class="fas fa-wallet" title="{% trans "Discount" %}" data-toggle="tooltip"></i>
+                            {% else %}
+                              <i class="fas fa-newspaper"
+                                 title="{% trans "Paper Product" %}"
+                                 data-toggle="tooltip"></i>
+                            {% endif %}
+                            {% if sp.has_envelope == 1 %}
+                              <i class="fas fa-envelope"
+                                 title="{% trans "Paid envelope" %}"
+                                 data-toggle="tooltip"></i>
+                            {% elif sp.has_envelope == 2 %}
+                              <i class="far fa-envelope"
+                                 title="{% trans "Free envelope" %}"
+                                 data-toggle="tooltip"></i>
+                            {% endif %}
+                            {% if sp.active == False %}
+                              <i class="fas fa-pause"
+                                 title="{% trans "Paused" %}"
+                                 data-toggle="tooltip"></i>
+                            {% endif %}
+                            &nbsp;{{ sp.product.name }}
+                            {% if sp.label_contact %}({{ sp.label_contact.name }}){% endif %}
+                          </div>
+                          <div class="col-6">{{ sp.address.address_1 }}</div>
+                          <div class="col-1">
+                            {% if sp.route %}R{{ sp.route.number }}{% endif %}
+                          </div>
+                        </div>
+                      {% endfor %}
+                    </dd>
+                    {% if subscription.type == "N" %}
+                      <div class="row">
+                        <div class="col-6">
+                          <dt>{% trans "Frequency" %}:</dt>
+                          <dd>
+                            {{ subscription.get_frequency }}
+                          </dd>
+                        </div>
+                        <div class="col-6">
+                          <dt>{% trans "Price" %}:</dt>
+                          <dd>
+                            {{ subscription.get_price_for_full_period }}
+                            {% if subscription.has_paused_products %}
+                              (${{ subscription.get_price_for_full_period_with_pauses }} {% trans "because of Pause" %})
+                            {% endif %}
+                          </dd>
+                        </div>
+                      </div>
+                    {% endif %}
+                    {% if subscription.campaign %}
+                      <dt>{% trans "Campaign" %}:</dt>
+                      <dd>
+                        {{ subscription.campaign }}
+                      </dd>
+                    {% endif %}
+                  </div>
+                  <div class="col-3">
+                    <div class="row">
+                      <div class="col-6">
+                        <dt>{% trans "Type" %}:</dt>
+                        <dd>
+                          {{ subscription.get_type }}
+                        </dd>
+                      </div>
+                      <div class="col-6">
+                        {% if status != "OK" %}
+                          <dt>{% trans "Status" %}:</dt>
+                          <dd>
+                            {{ subscription.get_status_display }}
+                          </dd>
+                          {% if subscription.status == "PA" %}
+                            {% trans "until" %}
+                            {{ subscription.paused_until|date:"d/m/Y" }}
+                          {% endif %}
+                        {% endif %}
+                      </div>
+                    </div>
+                    <dt>{% trans "Start date" %}:</dt>
+                    <dd>
+                      {{ subscription.start_date }}
+                    </dd>
+                    {% if subscription.end_date %}
+                      <dt>{% trans "End date" %}:</dt>
+                      <dd>
+                        {{ subscription.end_date }}
+                      </dd>
+                    {% endif %}
+                    {% if subscription.type == "N" %}
+                      <dt>{% trans "Next billing" %}:</dt>
+                      <dd>
+                        {{ subscription.next_billing }}
+                      </dd>
+                    {% endif %}
+                    {% if subscription.balance %}
+                      <dt>{% trans "Balance" %}:</dt>
+                      <dd>
+                        {{ subscription.balance }}
+                      </dd>
+                    {% endif %}
+                  </div>
+                  <div class="col-3">
+                    {% if subscription.inactivity_reason %}
+                      <dt>{% trans "Inactivity reason" %}</dt>
+                      <dd>
+                        {{ subscription.get_inactivity_reason }}
+                      </dd>
+                    {% endif %}
+                    {% if subscription.unsubscription_reason %}
+                      <dt>{% trans "Unsubscription reason" %}</dt>
+                      <dd>
+                        {{ subscription.get_unsubscription_reason }}
+                      </dd>
+                    {% endif %}
+                    {% if subscription.unsubscription_type %}
+                      <dt>{% trans "Unsubscription type" %}</dt>
+                      <dd>
+                        {{ subscription.get_unsubscription_type }}
+                      </dd>
+                    {% endif %}
+                    {% if subscription.unsubscription_date %}
+                      <dt>{% trans "Unsubscription date" %}</dt>
+                      <dd>
+                        {{ subscription.unsubscription_date }}
+                      </dd>
+                    {% endif %}
+                    {% if subscription.unsubscription_channel %}
+                      <dt>{% trans "Unsubscription channel" %}</dt>
+                      <dd>
+                        {{ subscription.get_unsubscription_channel }}
+                      </dd>
+                    {% endif %}
+                    {% if subscription.unsubscription_addendum %}
+                      <dt>{% trans "Unsubscription addendum" %}</dt>
+                      <dd>
+                        {{ subscription.unsubscription_addendum|linebreaks }}
+                      </dd>
+                    {% endif %}
+                    {% if subscription.unsubscription_manager %}
+                      <dt>{% trans "Unsubscription manager" %}</dt>
+                      <dd>
+                        {{ subscription.unsubscription_manager }}
+                      </dd>
+                    {% endif %}
+                  </div>
+                </div>
+                <div class="row">
+                  {% if subscription.type == "N" %}
+                    <div class="card  {% if subscription.status == "PA" %}bg-secondary{% endif %} col-12">
+                      <div class="card-header">
+                        <h4 class="card-title">{% trans "Billing information" %}</h4>
+                      </div>
+                      <div class="card-body">
+                        <div class="row">
+                          <div class="col-4">
+                            <dt>{% trans "Payment type" %}:</dt>
+                            <dd>
+                              {{ subscription.get_payment_type }}
+                              {% block extrapayment_1 %}{% endblock extrapayment_1 %}
+                            </dd>
+                            {% if subscription.billing_address %}
+                              <dt>{% trans "Billing address" %}:</dt>
+                              <dd>
+                                {{ subscription.billing_address }}
+                              </dd>
+                            {% endif %}
+                          </div>
+                          <div class="col-4">
+                            {% if subscription.billing_name %}
+                              <dt>{% trans "Billing name" %}:</dt>
+                              <dd>
+                                {{ subscription.billing_name }}
+                              </dd>
+                            {% endif %}
+                            {% if subscription.billing_id_doc %}
+                              <dt>{% trans "Billing ID" %}:</dt>
+                              <dd>
+                                {{ subscription.billing_id_doc }}
+                              </dd>
+                            {% endif %}
+                          </div>
+                          <div class="col-4">
+                            {% if subscription.rut %}
+                              <dt>{% trans "RUT" %}:</dt>
+                              <dd>
+                                {{ subscription.rut }}
+                              </dd>
+                            {% endif %}
+                            {% if subscription.billing_phone %}
+                              <dt>{% trans "Billing phone" %}:</dt>
+                              <dd>
+                                {{ subscription.billing_phone }}
+                              </dd>
+                            {% endif %}
+                            {% if subscription.billing_email %}
+                              <dt>{% trans "Billing email" %}:</dt>
+                              <dd>
+                                {{ subscription.billing_email }}
+                              </dd>
+                            {% endif %}
+                            {% if subscription.balance %}
+                              <dt>{% trans "Balance" %}:</dt>
+                              <dd>
+                                {{ subscription.balance }}
+                              </dd>
+                            {% endif %}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  {% endif %}
+                </div>
+              </div>
+              <div class="card-footer text-right">
+                {% if request.user|in_group:"Support" or request.user|in_group:"Managers" %}
+                  {% if not subscription.is_obsolete %}
+                    <a href="{% url "additional_product" subscription.id %}"
+                       class="btn btn-success">{% trans "Add" %}</a>
+                  {% endif %}
+                  <a href="{% url "edit_subscription" contact.id subscription.id %}"
+                     class="btn  btn-success">{% trans "Edit" %}</a>
+                  <a href="{% url "admin:core_subscription_change" subscription.id %}"
+                     class="btn btn-info"
+                     target="_blank">{% trans "Advanced" %}</a>
+                  {% if subscription.is_obsolete %}
+                    <a href="{% url "admin:core_subscription_change" subscription.get_updated_subscription.id %}"
+                       class="btn btn-info"
+                       target="_blank">{% trans "Replaced Subscription" %}</a>
+                  {% else %}
+                    <a href="{% url "book_unsubscription" subscription.id %}"
+                       class="btn btn-danger">{% trans "Unsubscribe" %}</a>
+                  {% endif %}
+                {% endif %}
+                <a href="{% url "edit_envelopes" subscription.id %}"
+                   class="btn btn-info"><i class="fas fa-envelope"></i></a>
+                <a href="{% url "upload_payment_certificate" subscription.id %}"
+                   class="btn btn-info"><i class="fas fa-file-invoice-dollar"></i></i></a>
+              </div>
+            </div>
+          {% endfor %}
+        {% else %}
+          <b>{% trans "This contact has no active subscriptions" %}</b>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% if future_subscriptions %}
+    <div class="row">
+      <div class="card col-12">
+        <div class="card-header">
+          <h3 class="card-title">{% trans "Future subscriptions" %}</h3>
+          <div class="card-tools">
+            <button type="button" class="btn btn-tool" data-card-widget="collapse">
+              <i class="fas fa-plus"></i>
+            </button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            {% for subscription in future_subscriptions %}
+              <div class="card col-12">
+                <div class="card-body">
+                  <div class="row">
+                    <div class="col-12">
+                      <dt>{% trans "Products" %}:</dt>
+                      <dd class="border-bottom pb-3">
+                        {% for sp in subscription.get_subscriptionproducts %}
+                          <div class="row">
+                            <div class="col-5">
+                              {% if sp.product.digital %}
+                                <i class="fas fa-desktop" title="Producto digital" data-toggle="tooltip"></i>
+                              {% elif sp.product.type == "D" or sp.product.type == "A" %}
+                                <i class="fas fa-wallet" title="Descuento" data-toggle="tooltip"></i>
+                              {% else %}
+                                <i class="fas fa-newspaper"
+                                   title="Producto en papel"
+                                   data-toggle="tooltip"></i>
+                              {% endif %}
+                              {% if sp.has_envelope == 1 %}
+                                <i class="fas fa-envelope"
+                                   title="{% trans "Paid envelope" %}"
+                                   data-toggle="tooltip"></i>
+                              {% elif sp.has_envelope == 2 %}
+                                <i class="far fa-envelope"
+                                   title="{% trans "Free envelope" %}"
+                                   data-toggle="tooltip"></i>
+                              {% endif %}
+                              {% if sp.active == False %}
+                                <i class="fas fa-pause"
+                                   title="{% trans "Paused" %}"
+                                   data-toggle="tooltip"></i>
+                              {% endif %}
+                              &nbsp;{{ sp.product.name }}
+                              {% if sp.label_contact %}({{ sp.label_contact.name }}){% endif %}
+                            </div>
+                            <div class="col-6">{{ sp.address.address_1 }}</div>
+                            <div class="col-1">
+                              {% if sp.route %}R{{ sp.route.number }}{% endif %}
+                            </div>
+                          </div>
+                        {% endfor %}
+                      </dd>
+                      <dt>{% trans "Frequency" %}:</dt>
+                      <dd>
+                        {{ subscription.get_frequency }}
+                      </dd>
+                      <dt>{% trans "Price" %}:</dt>
+                      <dd>
+                        {{ subscription.get_price_for_full_period }}
+                      </dd>
+                    </div>
+                    <div class="col-4">
+                      <dt>{% trans "Type" %}:</dt>
+                      <dd>
+                        {{ subscription.get_type }}
+                      </dd>
+                      <dt>{% trans "Payment type" %}:</dt>
+                      <dd>
+                        {{ subscription.get_payment_type }}
+                        {% block extrapayment_2 %}{% endblock extrapayment_2 %}
+                      </dd>
+                      <dt>{% trans "Start date" %}:</dt>
+                      <dd>
+                        {{ subscription.start_date }}
+                      </dd>
+                      {% if subscription.end_date %}
+                        <dt>{% trans "End date" %}:</dt>
+                        <dd>
+                          {{ subscription.end_date }}
+                        </dd>
+                      {% endif %}
+                      {% if subscription.balance %}
+                        <dt>{% trans "Balance" %}:</dt>
+                        <dd>
+                          {{ subscription.balance }}
+                        </dd>
+                      {% endif %}
+                    </div>
+                    <div class="col-4">
+                      {% if subscription.inactivity_reason %}
+                        <dt>{% trans "Inactivity reason" %}</dt>
+                        <dd>
+                          {{ subscription.get_inactivity_reason }}
+                        </dd>
+                      {% endif %}
+                      {% if subscription.unsubscription_reason %}
+                        <dt>{% trans "Unsubscription reason" %}</dt>
+                        <dd>
+                          {{ subscription.get_unsubscription_reason }}
+                        </dd>
+                      {% endif %}
+                      {% if subscription.unsubscription_type %}
+                        <dt>{% trans "Unsubscription type" %}</dt>
+                        <dd>
+                          {{ subscription.get_unsubscription_type }}
+                        </dd>
+                      {% endif %}
+                      {% if subscription.unsubscription_date %}
+                        <dt>{% trans "Unsubscription date" %}</dt>
+                        <dd>
+                          {{ subscription.unsubscription_date }}
+                        </dd>
+                      {% endif %}
+                      {% if subscription.unsubscription_channel %}
+                        <dt>{% trans "Unsubscription channel" %}</dt>
+                        <dd>
+                          {{ subscription.get_unsubscription_channel }}
+                        </dd>
+                      {% endif %}
+                      {% if subscription.unsubscription_addendum %}
+                        <dt>{% trans "Unsubscription addendum" %}</dt>
+                        <dd>
+                          {{ subscription.unsubscription_addendum|linebreaks }}
+                        </dd>
+                      {% endif %}
+                      {% if subscription.unsubscription_manager %}
+                        <dt>{% trans "Unsubscription manager" %}</dt>
+                        <dd>
+                          {{ subscription.unsubscription_manager }}
+                        </dd>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+                <div class="card-footer text-right">
+                  {% if request.user|in_group:"Support" or request.user|in_group:"Managers" %}
+                    {% if not subscription.is_obsolete %}
+                      <a href="{% url "additional_product" subscription.id %}"
+                         class="btn btn-success">{% trans "Add" %}</a>
+                    {% endif %}
+                    <a href="{% url "edit_subscription" contact.id subscription.id %}"
+                       class="btn  btn-success">{% trans "Edit" %}</a>
+                    <a href="{% url "admin:core_subscription_change" subscription.id %}"
+                       class="btn btn-info"
+                       target="_blank">{% trans "Advanced" %}</a>
+                    {% if subscription.is_obsolete %}
+                      <a href="{% url "admin:core_subscription_change" subscription.get_updated_subscription.id %}"
+                         class="btn btn-info"
+                         target="_blank">{% trans "Replaced subscription" %}</a>
+                    {% else %}
+                      <a href="{% url "book_unsubscription" subscription.id %}"
+                         class="btn btn-danger">{% trans "Unsubscribe" %}</a>
+                    {% endif %}
+                  {% endif %}
+                  <a href="{% url "edit_envelopes" subscription.id %}"
+                     class="btn btn-info"><i class="fas fa-envelope"></i></a>
+                  <a href="{% url "upload_payment_certificate" subscription.id %}"
+                     class="btn btn-info"><i class="fas fa-file-invoice-dollar"></i></i></a>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+  {% if awaiting_payment_subscriptions %}
+    <div class="row">
+      <div class="card col-sm-12">
+        <div class="card-header">
+          <h3 class="card-title">{% trans "Subscriptions awaiting payment" %}</h3>
+          <div class="card-tools">
+            <button type="button" class="btn btn-tool" data-card-widget="collapse">
+              <i class="fas fa-plus"></i>
+            </button>
+          </div>
+        </div>
+        <div class="card-body">
+          {% for subscription in awaiting_payment_subscriptions %}
+            <div class="card">
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-6">
+                    <dt {% if forloop.counter != 1 %}class="border-top mt-4 pt-3"{% endif %}>{% trans "Products" %}:</dt>
+                    <dd class="border-bottom pb-3">
+                      {% for sp in subscription.get_subscriptionproducts %}
+                        <div class="row">
+                          <div class="col-5">
+                            {% if sp.product.digital %}
+                              <i class="fas fa-desktop" title="Producto digital" data-toggle="tooltip"></i>
+                            {% elif sp.product.type == "D" or sp.product.type == "A" %}
+                              <i class="fas fa-wallet" title="Descuento" data-toggle="tooltip"></i>
+                            {% else %}
+                              <i class="fas fa-newspaper"
+                                 title="Producto en papel"
+                                 data-toggle="tooltip"></i>
+                            {% endif %}
+                            {% if sp.has_envelope == 1 %}
+                              <i class="fas fa-envelope"
+                                 title="{% trans "Paid envelope" %}"
+                                 data-toggle="tooltip"></i>
+                            {% elif sp.has_envelope == 2 %}
+                              <i class="far fa-envelope"
+                                 title="{% trans "Free envelope" %}"
+                                 data-toggle="tooltip"></i>
+                            {% endif %}
+                            {% if sp.active == False %}
+                              <i class="fas fa-pause"
+                                 title="{% trans "Paused" %}"
+                                 data-toggle="tooltip"></i>
+                            {% endif %}
+                            &nbsp;{{ sp.product.name }}
+                            {% if sp.label_contact %}({{ sp.label_contact.name }}){% endif %}
+                          </div>
+                          <div class="col-6">{{ sp.address.address_1 }}</div>
+                          <div class="col-1">
+                            {% if sp.route %}R{{ sp.route.number }}{% endif %}
+                          </div>
+                        </div>
+                      {% endfor %}
+                    </dd>
+                    <dt>{% trans "Frequency" %}:</dt>
+                    <dd>
+                      {{ subscription.get_frequency }}
+                    </dd>
+                    <dt>{% trans "Price" %}:</dt>
+                    <dd>
+                      {{ subscription.get_price_for_full_period }}
+                    </dd>
+                  </div>
+                  <div class="col-6">
+                    <dt>{% trans "Type" %}:</dt>
+                    <dd>
+                      {{ subscription.get_type }}
+                    </dd>
+                    <dt>{% trans "Payment type" %}:</dt>
+                    <dd>
+                      {{ subscription.get_payment_type }}
+                      {% block extrapayment_3 %}{% endblock extrapayment_3 %}
+                    </dd>
+                    <dt>{% trans "Start date" %}:</dt>
+                    <dd>
+                      {{ subscription.start_date }}
+                    </dd>
+                    {% if subscription.end_date %}
+                      <dt>{% trans "End date" %}:</dt>
+                      <dd>
+                        {{ subscription.end_date }}
+                      </dd>
+                    {% endif %}
+                    {% if subscription.balance %}
+                      <dt>{% trans "Balance" %}:</dt>
+                      <dd>
+                        {{ subscription.balance }}
+                      </dd>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+              {% if request.user|in_group:"Support" or request.user|in_group:"Managers" %}
+                <div class="card-footer text-right">
+                  <a href="{% url "edit_subscription" contact.id subscription.id %}"
+                     class="btn btn-success">{% trans "Edit" %}</a>
+                </div>
+              {% endif %}
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  {% endif %}
+  {% if subscriptions_with_error %}
+    <div class="row">
+      <div class="card col-sm-12">
+        <div class="card-header">
+          <h3 class="card-title">{% trans "Subscriptions with errors" %}</h3>
+          <div class="card-tools">
+            <button type="button" class="btn btn-tool" data-card-widget="collapse">
+              <i class="fas fa-plus"></i>
+            </button>
+          </div>
+        </div>
+        <div class="card-body">
+          {% for subscription in subscriptions_with_error %}
+            <div class="card">
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-6">
+                    <dt {% if forloop.counter != 1 %}class="border-top mt-4 pt-3"{% endif %}>{% trans "Products" %}:</dt>
+                    <dd class="border-bottom pb-3">
+                      {% for sp in subscription.get_subscriptionproducts %}
+                        <div class="row">
+                          <div class="col-5">
+                            {% if sp.product.digital %}
+                              <i class="fas fa-desktop" title="Producto digital" data-toggle="tooltip"></i>
+                            {% elif sp.product.type == "D" or sp.product.type == "A" %}
+                              <i class="fas fa-wallet" title="Descuento" data-toggle="tooltip"></i>
+                            {% else %}
+                              <i class="fas fa-newspaper"
+                                 title="Producto en papel"
+                                 data-toggle="tooltip"></i>
+                            {% endif %}
+                            {% if sp.has_envelope == 1 %}
+                              <i class="fas fa-envelope"
+                                 title="{% trans "Paid envelope" %}"
+                                 data-toggle="tooltip"></i>
+                            {% elif sp.has_envelope == 2 %}
+                              <i class="far fa-envelope"
+                                 title="{% trans "Free envelope" %}"
+                                 data-toggle="tooltip"></i>
+                            {% endif %}
+                            {% if sp.active == False %}
+                              <i class="fas fa-pause"
+                                 title="{% trans "Paused" %}"
+                                 data-toggle="tooltip"></i>
+                            {% endif %}
+                            &nbsp;{{ sp.product.name }}
+                            {% if sp.label_contact %}({{ sp.label_contact.name }}){% endif %}
+                          </div>
+                          <div class="col-6">{{ sp.address.address_1 }}</div>
+                          <div class="col-1">
+                            {% if sp.route %}R{{ sp.route.number }}{% endif %}
+                          </div>
+                        </div>
+                      {% endfor %}
+                    </dd>
+                    <dt>{% trans "Frequency" %}:</dt>
+                    <dd>
+                      {{ subscription.get_frequency }}
+                    </dd>
+                    <dt>{% trans "Price" %}:</dt>
+                    <dd>
+                      {{ subscription.get_price_for_full_period }}
+                    </dd>
+                  </div>
+                  <div class="col-6">
+                    <dt>{% trans "Type" %}:</dt>
+                    <dd>
+                      {{ subscription.get_type }}
+                    </dd>
+                    <dt>{% trans "Payment type" %}:</dt>
+                    <dd>
+                      {{ subscription.get_payment_type }}
+                      {% block extrapayment_4 %}{% endblock extrapayment_4 %}
+                    </dd>
+                    <dt>{% trans "Start date" %}:</dt>
+                    <dd>
+                      {{ subscription.start_date }}
+                    </dd>
+                    {% if subscription.end_date %}
+                      <dt>{% trans "End date" %}:</dt>
+                      <dd>
+                        {{ subscription.end_date }}
+                      </dd>
+                    {% endif %}
+                    {% if subscription.balance %}
+                      <dt>{% trans "Balance" %}:</dt>
+                      <dd>
+                        {{ subscription.balance }}
+                      </dd>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+              {% if request.user|in_group:"Support" or request.user|in_group:"Managers" %}
+                <div class="card-footer text-right">
+                  <a href="{% url "admin:core_subscription_change" subscription.id %}"
+                     class="btn btn-info"
+                     target="_blank">{% trans "Advanced" %}</a>
+                  {% if subscription.is_obsolete %}
+                    <a href="{% url "admin:core_subscription_change" subscription.get_updated_subscription.id %}"
+                       class="btn btn-info"
+                       target="_blank">{% trans "Replaced Subscription" %}</a>
+                  {% endif %}
+                </div>
+              {% endif %}
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  {% endif %}
+  {% if paused_subscriptions %}
+    <div class="row">
+      <div class="card col-sm-12">
+        <div class="card-header">
+          <h3 class="card-title">{% trans "Paused Subscriptions" %}</h3>
+          <div class="card-tools">
+            <button type="button" class="btn btn-tool" data-card-widget="collapse">
+              <i class="fas fa-plus"></i>
+            </button>
+          </div>
+        </div>
+        <div class="card-body">
+          {% for subscription in paused_subscriptions %}
+            <div class="card">
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-6">
+                    <dt {% if forloop.counter != 1 %}class="border-top mt-4 pt-3"{% endif %}>{% trans "Products" %}:</dt>
+                    <dd class="border-bottom pb-3">
+                      {% for sp in subscription.get_subscriptionproducts %}
+                        <div class="row">
+                          <div class="col-5">
+                            {% if sp.product.digital %}
+                              <i class="fas fa-desktop" title="Producto digital" data-toggle="tooltip"></i>
+                            {% elif sp.product.type == "D" or sp.product.type == "A" %}
+                              <i class="fas fa-wallet" title="Descuento" data-toggle="tooltip"></i>
+                            {% else %}
+                              <i class="fas fa-newspaper"
+                                 title="Producto en papel"
+                                 data-toggle="tooltip"></i>
+                            {% endif %}
+                            {% if sp.has_envelope == 1 %}
+                              <i class="fas fa-envelope"
+                                 title="{% trans "Paid envelope" %}"
+                                 data-toggle="tooltip"></i>
+                            {% elif sp.has_envelope == 2 %}
+                              <i class="far fa-envelope"
+                                 title="{% trans "Free envelope" %}"
+                                 data-toggle="tooltip"></i>
+                            {% endif %}
+                            {% if sp.active == False %}
+                              <i class="fas fa-pause"
+                                 title="{% trans "Paused" %}"
+                                 data-toggle="tooltip"></i>
+                            {% endif %}
+                            &nbsp;{{ sp.product.name }}
+                            {% if sp.label_contact %}({{ sp.label_contact.name }}){% endif %}
+                          </div>
+                          <div class="col-6">{{ sp.address.address_1 }}</div>
+                          <div class="col-1">
+                            {% if sp.route %}R{{ sp.route.number }}{% endif %}
+                          </div>
+                        </div>
+                      {% endfor %}
+                    </dd>
+                    <dt>{% trans "Frequency" %}:</dt>
+                    <dd>
+                      {{ subscription.get_frequency }}
+                    </dd>
+                    <dt>{% trans "Price" %}:</dt>
+                    <dd>
+                      {{ subscription.get_price_for_full_period }}
+                    </dd>
+                  </div>
+                  <div class="col-6">
+                    <dt>{% trans "Type" %}:</dt>
+                    <dd>
+                      {{ subscription.get_type }}
+                    </dd>
+                    <dt>{% trans "Payment type" %}:</dt>
+                    <dd>
+                      {{ subscription.get_payment_type }}
+                      {% block extrapayment_5 %}{% endblock extrapayment_5 %}
+                    </dd>
+                    <dt>{% trans "Start date" %}:</dt>
+                    <dd>
+                      {{ subscription.start_date }}
+                    </dd>
+                    {% if subscription.end_date %}
+                      <dt>{% trans "End date" %}:</dt>
+                      <dd>
+                        {{ subscription.end_date }}
+                      </dd>
+                    {% endif %}
+                    {% if subscription.balance %}
+                      <dt>{% trans "Balance" %}:</dt>
+                      <dd>
+                        {{ subscription.balance }}
+                      </dd>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+              {% if request.user|in_group:"Support" or request.user|in_group:"Managers" %}
+                <div class="card-footer text-right">
+                  <a href="{% url "admin:core_subscription_change" subscription.id %}"
+                     class="btn btn-info"
+                     target="_blank">{% trans "Advanced" %}</a>
+                  {% if subscription.is_obsolete %}
+                    <a href="{% url "admin:core_subscription_change" subscription.get_updated_subscription.id %}"
+                       class="btn btn-info"
+                       target="_blank">{% trans "Replaced Subscription" %}</a>
+                  {% endif %}
+                </div>
+              {% endif %}
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  {% endif %}
+  {% if inactive_subscriptions %}
+    <div class="row">
+      <div class="card col-sm-12 collapsed-card">
+        <div class="card-header">
+          <h3 class="card-title">{% trans "Old subscriptions" %}</h3>
+          <div class="card-tools">
+            <button type="button" class="btn btn-tool" data-card-widget="collapse">
+              <i class="fas fa-plus"></i>
+            </button>
+          </div>
+        </div>
+        <div class="card-body">
+          {% for subscription in inactive_subscriptions %}
+            <div class="card">
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-4">
+                    <dt>{% trans "Products" %}:</dt>
+                    <dd class="border-bottom pb-3">
+                      {% for sp in subscription.get_subscriptionproducts %}
+                        <div class="row">
+                          <div class="col-5">
+                            {% if sp.product.digital %}
+                              <i class="fas fa-desktop" title="Producto digital" data-toggle="tooltip"></i>
+                            {% elif sp.product.type == "D" or sp.product.type == "A" %}
+                              <i class="fas fa-wallet" title="{% trans "Discount" %}" data-toggle="tooltip"></i>
+                            {% else %}
+                              <i class="fas fa-newspaper"
+                                 title="Producto en papel"
+                                 data-toggle="tooltip"></i>
+                            {% endif %}
+                            {% if sp.has_envelope == 1 %}
+                              <i class="fas fa-envelope"
+                                 title="{% trans "Paid envelope" %}"
+                                 data-toggle="tooltip"></i>
+                            {% elif sp.has_envelope == 2 %}
+                              <i class="far fa-envelope"
+                                 title="{% trans "Free envelope" %}"
+                                 data-toggle="tooltip"></i>
+                            {% endif %}
+                            {% if sp.active == False %}
+                              <i class="fas fa-pause"
+                                 title="{% trans "Paused" %}"
+                                 data-toggle="tooltip"></i>
+                            {% endif %}
+                            &nbsp;{{ sp.product.name }}
+                            {% if sp.label_contact %}({{ sp.label_contact.name }}){% endif %}
+                          </div>
+                          <div class="col-6">{{ sp.address.address_1 }}</div>
+                          <div class="col-1">
+                            {% if sp.route %}R{{ sp.route.number }}{% endif %}
+                          </div>
+                        </div>
+                      {% endfor %}
+                    </dd>
+                    <dt>{% trans "Frequency" %}:</dt>
+                    <dd>
+                      {{ subscription.get_frequency }}
+                    </dd>
+                    <dt>{% trans "Price" %}:</dt>
+                    <dd>
+                      {{ subscription.get_price_for_full_period }}
+                    </dd>
+                  </div>
+                  <div class="col-4">
+                    <dt>{% trans "Type" %}:</dt>
+                    <dd>
+                      {{ subscription.get_type }}
+                    </dd>
+                    <dt>{% trans "Payment type" %}:</dt>
+                    <dd>
+                      {{ subscription.get_payment_type }}
+                      {% block extrapayment_6 %}{% endblock extrapayment_6 %}
+                    </dd>
+                    <dt>{% trans "Start date" %}:</dt>
+                    <dd>
+                      {{ subscription.start_date }}
+                    </dd>
+                    {% if subscription.end_date %}
+                      <dt>{% trans "End date" %}:</dt>
+                      <dd>
+                        {{ subscription.end_date }}
+                      </dd>
+                    {% endif %}
+                    {% if subscription.balance %}
+                      <dt>{% trans "Balance" %}:</dt>
+                      <dd>
+                        {{ subscription.balance }}
+                      </dd>
+                    {% endif %}
+                  </div>
+                  <div class="col-4">
+                    {% if subscription.inactivity_reason %}
+                      <dt>{% trans "Inactivity reason" %}</dt>
+                      <dd>
+                        {{ subscription.get_inactivity_reason }}
+                      </dd>
+                    {% endif %}
+                    {% if subscription.unsubscription_reason %}
+                      <dt>{% trans "Unsubscription reason" %}</dt>
+                      <dd>
+                        {{ subscription.get_unsubscription_reason }}
+                      </dd>
+                    {% endif %}
+                    {% if subscription.unsubscription_type %}
+                      <dt>{% trans "Unsubscription type" %}</dt>
+                      <dd>
+                        {{ subscription.get_unsubscription_type }}
+                      </dd>
+                    {% endif %}
+                    {% if subscription.unsubscription_date %}
+                      <dt>{% trans "Unsubscription date" %}</dt>
+                      <dd>
+                        {{ subscription.unsubscription_date }}
+                      </dd>
+                    {% endif %}
+                    {% if subscription.unsubscription_channel %}
+                      <dt>{% trans "Unsubscription channel" %}</dt>
+                      <dd>
+                        {{ subscription.get_unsubscription_channel }}
+                      </dd>
+                    {% endif %}
+                    {% if subscription.unsubscription_addendum %}
+                      <dt>{% trans "Unsubscription addendum" %}</dt>
+                      <dd>
+                        {{ subscription.unsubscription_addendum|linebreaks }}
+                      </dd>
+                    {% endif %}
+                    {% if subscription.unsubscription_manager %}
+                      <dt>{% trans "Unsubscription manager" %}</dt>
+                      <dd>
+                        {{ subscription.unsubscription_manager }}
+                      </dd>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+              {% if request.user|in_group:"Support" or request.user|in_group:"Managers" %}
+                <div class="card-footer text-right">
+                  <a href="{% url "admin:core_subscription_change" subscription.id %}"
+                     class="btn btn-info"
+                     target="_blank">{% trans "Advanced" %}</a>
+                  {% if subscription.is_obsolete %}
+                    <a href="{% url "admin:core_subscription_change" subscription.get_updated_subscription.id %}"
+                       class="btn btn-info"
+                       target="_blank">{% trans "Replaced Subscription" %}</a>
+                  {% endif %}
+                </div>
+              {% endif %}
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  {% endif %}
+  {% if request.user|in_group:"Support" or request.user|in_group:"Managers" %}
+    <div class="text-right">
+      <a href="{% url "new_subscription" contact.id %}"
+         class="btn btn-primary float-right">{% trans "Add subscription" %}</a>
+    </div>
+  {% endif %}

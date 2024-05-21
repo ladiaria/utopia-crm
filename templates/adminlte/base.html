@@ -58,8 +58,13 @@
                     {% endblock %}
 
                   </h1>
-                  {% block breadcrumbs %}{# Breadcrumb implementation left to developers #}{% endblock %}
                 {% endblock no_heading %}
+
+                {% block breadcrumbs %}
+                  {% if breadcrumbs %}
+                    {% include "components/_breadcrumbs.html" %}
+                  {% endif %}
+                {% endblock %}
 
               </section>
             {% endblock %}

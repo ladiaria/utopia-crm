@@ -110,3 +110,27 @@ body:not(.layout-fixed) .main-sidebar {
 ul.nav-pills{
     height: 100%;
 }
+
+.btn-group-sm>.btn, .btn-sm{
+    font-size: 0.75rem;
+}
+
+body.contact-detail .card-footer{
+    gap: 4px;
+}
+
+body.contact-detail .card-footer::after{
+    display: none;
+}
+
+.nav{
+    row-gap: 4px;
+}
+
+.gap-4{
+    gap: 4px;
+}
+
+.breadcrumb-item + .breadcrumb-item::before {
+    content: ">";
+}

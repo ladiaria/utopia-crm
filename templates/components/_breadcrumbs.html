@@ -1,0 +1,15 @@
+{% load i18n %}
+<!-- templates/includes/breadcrumbs.html -->
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb">
+    {% for breadcrumb in breadcrumbs %}
+      {% if forloop.last %}
+        <li class="breadcrumb-item active" aria-current="page">{{ breadcrumb.label }}</li>
+      {% else %}
+        <li class="breadcrumb-item">
+          <a href="{{ breadcrumb.url }}">{{ breadcrumb.label }}</a>
+        </li>
+      {% endif %}
+    {% endfor %}
+  </ol>
+</nav>

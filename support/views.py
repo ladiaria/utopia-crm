@@ -23,7 +23,7 @@ from django.http import (
     Http404,
 )
 from django.shortcuts import get_object_or_404, render
-from django.urls import reverse
+from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django.utils.text import format_lazy
@@ -55,6 +55,7 @@ from core.models import (
 )
 from core.choices import CAMPAIGN_RESOLUTION_REASONS_CHOICES
 from core.utils import calc_price_from_products, process_products
+from core.decorators import add_breadcrumbs
 from logistics.models import Route
 from support.management.commands.run_scheduled_tasks import run_address_change, run_start_of_total_pause
 
@@ -1691,9 +1692,14 @@ def contact_detail(request, contact_id):
     awaiting_payment_subscriptions = contact.subscriptions.filter(status="AP")
     subscriptions_with_error = contact.subscriptions.filter(status="ER")
 
+    breadcrumbs = [
+        {"label": _("Contact list"), "url": reverse("contact_list")},
+        {"label": contact.name, "url": reverse("contact_detail", args=[contact.id])},
+    ]
+
     return render(
         request,
-        "contact_detail.html",
+        "contact_detail/detail.html",
         {
             "contact": contact,
             "addresses": addresses,
@@ -1711,6 +1717,7 @@ def contact_detail(request, contact_id):
             "all_issues": all_issues,
             "all_scheduled_tasks": all_scheduled_tasks,
             "all_campaigns": all_campaigns,
+            "breadcrumbs": breadcrumbs,
         },
     )
 
