@@ -1,5 +1,5 @@
 {% extends "adminlte/base.html" %}
-{% load static i18n ladiaria_tags core_tags %}
+{% load static i18n core_tags %}
 {% block extra_js %}
   <script type="text/javascript">
   $(function () {
@@ -107,7 +107,7 @@
               </li>
               <li class="nav-item">
                 <a class="nav-link" href="#whatsapp_messages" data-toggle="tab">{% trans "WhatsApp Messages" %}
-                ({% get_witty_messages_count contact.id %})</a>
+                {% block whatsapp_messages_count %}{% endblock whatsapp_messages_count %}</a>
               </li>
               <li class="nav-item">
                 <a class="text-light nav-link {% if contact.expired_invoices_count > 0 %}btn-danger{% else %}btn-success{% endif %}"
