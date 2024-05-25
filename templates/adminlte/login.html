@@ -2,6 +2,13 @@
 {% load i18n static %}
 
 {% block body_class %}login-page{% endblock %}
+{% block extra_head %}
+<style>
+  .login-box-red{
+    color: red;
+  }
+</style>
+{% endblock extra_head %}
 
 {% block body %}
     <div class="login-box">
@@ -34,14 +41,14 @@
                 <form action="" method="post">
                     {% csrf_token %}
                     {% if message %}
-                        <p class="login-box-msg" style="color: red;">{{ message }}</p>
+                        <p class="login-box-msg login-box-red">{{ message }}</p>
                     {% endif %}
                     <div class="form-group has-feedback">
-                        <input name="username" class="form-control" placeholder="{% trans 'Username' %}">
+                        <input name="username" class="form-control" placeholder="{% trans "Username" %}">
                         <span class="glyphicon glyphicon-user form-control-feedback"></span>
                     </div>
                     <div class="form-group has-feedback">
-                        <input type="password" name="password" class="form-control" placeholder="{% trans 'Password' %}">
+                        <input type="password" name="password" class="form-control" placeholder="{% trans "Password" %}">
                         <span class="glyphicon glyphicon-lock form-control-feedback"></span>
                     </div>
                     <div class="row">
@@ -50,7 +57,7 @@
                             {% endblock %}
                         </div>
                         <div class="col-xs-4">
-                            <button type="submit" class="btn btn-primary btn-block btn-flat">{% trans 'Login' %}</button>
+                            <button type="submit" class="btn btn-primary btn-block btn-flat">{% trans "Login" %}</button>
                         </div>
                     </div>
                 </form>
