@@ -72,14 +72,17 @@ class Seller(models.Model):
             Q(campaign__end_date__isnull=True) | Q(campaign__end_date__gte=timezone.now()),
             status="P",
             activity_type="C",
-        )
+        ).order_by("datetime")
 
     def total_pending_activities_count(self):
-        return self.activity_set.filter(
+        activity_qs = self.activity_set.filter(
             Q(campaign__end_date__isnull=True) | Q(campaign__end_date__gte=timezone.now()),
             status="P",
             activity_type="C",
-        ).count()
+            datetime__lte=timezone.now(),
+        )
+
+        return activity_qs.count()
 
     class Meta:
         verbose_name = _("seller")

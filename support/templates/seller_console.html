@@ -32,9 +32,6 @@
   <script type="text/javascript" src="{% static "js/datepicker-es.js" %}"></script>
   <script type="text/javascript">
   $(function () {
-    $("#call_date").datepicker({
-      dateFormat: 'yy-mm-dd'
-    });
 
     var rejectHandler = function (e) {
       if ($.trim(this.value)) {
@@ -294,10 +291,11 @@
                   </div>
                   <div class="col-sm-9">
                     <input id="call_date"
-                           type="text"
+                           type="date"
                            name="call_date"
                            class="form-control form-control-sm"
-                           value="{{ call_date }}" />
+                           value="{{ call_date }}"
+                           min="{% now "Y-m-d" %}" />
                   </div>
                 </div>
                 <div class="form-group row">
