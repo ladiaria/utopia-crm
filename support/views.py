@@ -5,9 +5,7 @@ import csv
 import collections
 from datetime import date, timedelta, datetime
 
-from django.db.models import F, Q, Count, Sum, Min, Count, Case, When, Value, IntegerField
-from django.db.models.query import QuerySet
-from django.db.models.functions import Coalesce
+from django.db.models import Q, Count, Sum, Min, Count
 from taggit.models import Tag
 
 from django import forms
