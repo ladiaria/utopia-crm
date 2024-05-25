@@ -1,0 +1,37 @@
+{% load i18n core_tags %}
+
+{% url 'print_invoices' as print_invoices %}
+{% url 'debtor_contacts' as debtor_contacts %}
+{% url 'invoice_filter' as invoice_filter %}
+
+<li class="nav-item has-treeview">
+  <a href="#" class="nav-link">
+    <i class="nav-icon fas fa-money-bill-wave"></i>
+    <p>
+      {% trans "Finances" %}
+      <i class="fas fa-angle-left right"></i>
+    </p>
+  </a>
+  <ul class="nav nav-treeview">
+    <li class="nav-item">
+      <a href="{{ print_invoices }}"
+         class="nav-link {% if request.path == print_invoices %}active{% endif %}">
+        <i class="nav-icon fas fa-print"></i>
+         <p>{% trans "Print invoices" %}</p></a>
+    </li>
+    <li class="nav-item">
+      <a href="{{ debtor_contacts }}"
+         class="nav-link {% if request.path == debtor_contacts %}active{% endif %}">
+         <i class="nav-icon far fa-circle"></i>
+         <p>{% trans "Debtor contacts" %}</p></a>
+    </li>
+    <li class="nav-item">
+      <a href="{{ invoice_filter }}"
+         class="nav-link {% if request.path == invoice_filter %}active{% endif %}">
+        <i class="nav-icon fas fa-filter"></i>
+         <p>{% trans "Invoice filter" %}</p>
+        </a>
+    </li>
+    {% include_if_exists "finances_sidebar_extra.html" %}
+  </ul>
+</li>

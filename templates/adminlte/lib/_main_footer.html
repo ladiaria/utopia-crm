@@ -1,9 +1,18 @@
-{% extends 'adminlte/original/_main_footer.html' %}
-{% block footer_right %}
-    <b>Utopía CRM</b> {% block version %}version 0.4.7{% endblock %}
-{% endblock %}
-{% block footer_left %}
-  {% block legal %}
-    <a href="http://utopia.ladiaria.com.uy/">Utopía CRM</a>
-  {% endblock %}
-{% endblock %}
+<footer class="main-footer">
+        <div class="float-right d-none d-sm-block">
+        {% block footer_right %}
+            <b>Version</b> {% block version %}0.1{% endblock %}
+        {% endblock %}
+    </div>
+
+    {% block footer_left %}
+    {% block legal %}
+    <strong>Copyright &copy; {% now "Y" %}{% if not site %}.{% endif %}
+        {% if site %}
+            <a href="http://{{ site.domain }}">{{ site.name }}</a>
+        {% endif %}
+    </strong> All rights
+    reserved.
+    {% endblock %}
+    {% endblock %}
+</footer>

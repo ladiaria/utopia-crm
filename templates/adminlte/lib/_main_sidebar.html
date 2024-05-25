@@ -1,179 +1,89 @@
-{% extends 'adminlte/original/_main_sidebar.html' %}
-{% load static core_tags setting %}
-{% load i18n %}
-{% block logo %}
-        <a href="/" class="brand-link">
-            <img src="/{% setting LOGO %}" alt="utopia" class="brand-image">
-            {% block logo_text %}<span style="color:transparent;">.</span>{% endblock %}
-        </a>
-{% endblock %}
+{% load static core_tags setting adminlte_helpers i18n %}
+<!-- Left side column. contains the sidebar -->
+<aside class="main-sidebar sidebar-dark-primary elevation-4">
+  <!-- Brand Logo -->
+  {% block logo %}
+  <a href="{% url "main_menu" %}" class="brand-link">
+    <img src="/{% setting LOGO %}"
+         alt="utopia"
+         class="brand-image"
+         height="auto"
+         width="auto">
+    {% block logo_text %}<span class="transparent-logo">Utopia CRM</span>{% endblock %}
 
-{% block nav_links %}
+  </a>
+  {% endblock %}
 
-{% url 'contact_list' as contact_list %}
-{% url 'list_issues' as list_issues %}
-{% url 'import_contacts' as import_contacts %}
-{% url 'assign_campaigns' as assign_campaigns %}
-{% url 'assign_to_seller' as assign_to_seller %}
-{% url 'admin:core_campaign_add' as core_campaign_add %}
-{% url 'list_issues' as list_issues %}
-{% url 'seller_console_list_campaigns' as seller_console_list_campaigns %}
-{% url 'print_invoices' as print_invoices %}
-{% url 'invoice_filter' as invoice_filter %}
-{% url "assign_routes" as assign_routes %}
-{% url "assign_routes_future" as assign_routes_future %}
-{% url "order_route_list" as order_route_list %}
-{% url "print_unordered_subscriptions" as print_unordered_subscriptions %}
-{% url "change_route_default" as change_route_default %}
-{% url "list_routes" as list_routes %}
-{% url "list_routes_detailed" as list_routes_detailed %}
-{% url "print_labels" page="Roll" as print_labels_page_roll %}
-{% url "print_labels_from_csv" as print_labels_from_csv %}
-{% url "issues_labels" as issues_labels %}
-{% url "edition_time" direction="departure" as edition_time_departure %}
-{% url "edition_time" direction="arrival" as edition_time_arrival %}
-{% url "dynamic_contact_filter_list" as dynamic_contact_filter_list %}
-{% url "invoicing_issues" as collection_issues %}
-{% url "debtor_contacts" as debtor_contacts %}
-{% url "campaign_statistics_list" as campaign_statistics_list %}
-{% url "seller_performance_by_time" as seller_performance_by_time %}
-{% url "print_labels_for_day" as print_labels_for_day %}
-{% url "release_seller_contacts" as release_seller_contacts %}
-{% url "scheduled_task_filter" as scheduled_task_filter %}
-{% url 'addresses_with_complementary_information' as addresses_with_complementary_information %}
-{% url "upload_do_not_call_numbers" as upload_do_not_call_numbers %}
-{% url "tag_contacts" as tag_contacts %}
-{% url "mass_georef_address" as mass_georef_address %}
-{% url "advertiser_list" as advertiser_list %}
-{% url "agency_list" as agency_list %}
-{% url "my_advertisers" as my_advertisers %}
-{% url "ad_purchase_order_list" as ad_purchase_order_list %}
-{% url "sales_record_filter" as sales_record_filter %}
-{% url "my_sales" as my_sales %}
+  <!-- sidebar: style can be found in sidebar.less -->
+  <div class="sidebar">
+    <!-- Sidebar user panel -->
+    {% block user_panel %}
+      <!-- Sidebar user panel (optional) -->
+      <div class="user-panel mt-3 pb-3 mb-3 d-flex">
+        <div class="image">
+          <img src="{% avatar_url size=90 %}"
+               class="img-circle elevation-2"
+               alt="User Image"
+               width="auto"
+               height="auto">
+        </div>
+        <div class="info">
+          <a href="#" class="d-block">{% firstof request.user.get_full_name request.user.username %}</a>
+        </div>
+      </div>
+    {% endblock %}
 
-{# TODO: Add if ... in INSTALLED_APPS for each menu #}
-<li class="nav-item">
-  <a href="{{contact_list}}" class="nav-link {% if request.path == contact_list  %}active{% endif %}">{% trans "Contacts" %}</a>
-</li>
-{% if request.user|in_group:"Support" %}
-<li class="nav-item has-treeview" id="hagda">
-  <a href="#" class="nav-link">
-    <p>
-      {% trans 'Support' %}
-      <i class="fas fa-angle-down right"></i>
-    </p>
-  </a>
-  <ul class="nav nav-treeview">
-    <li class="nav-item"><a href="{{list_issues}}" class="nav-link {% if request.path == list_issues %}active{% endif %}">{% trans 'List issues' %}</a></li>
-    <li class="nav-item"><a href="{{collection_issues}}" class="nav-link {% if request.path == collection_issues %}active{% endif %}">{% trans 'Collection issues' %}</a></li>
-    <li class="nav-item"><a href="{{dynamic_contact_filter_list}}" class="nav-link {% if request.path == dynamic_contact_filter_list %}active{% endif %}">{% trans 'Dynamic contact filter list' %}</a></li>
-    <li class="nav-item"><a href="{{list_routes}}" class="nav-link {% if request.path == list_routes %}active{% endif %}">{% trans 'List all routes' %}</a></li>
-    <li class="nav-item"><a href="{{scheduled_task_filter}}" class="nav-link">{% trans "Scheduled task filter" %}</a></li>
-    {% include_if_exists "support_sidebar_extra.html" %}
-  </ul>
-</li>
-{% endif %}
+    {% block form %}{% endblock %}
 
-{% if request.user|in_group:"Managers" %}
-<li class="nav-item has-treeview" id="hagda">
-  <a href="#" class="nav-link">
-    <p>
-      {% trans 'Campaign Management' %}
-      <i class="fas fa-angle-down right"></i>
-    </p>
-  </a>
-  <ul class="nav nav-treeview">
-    <li class="nav-item"><a href="{{import_contacts}}" class="nav-link {% if request.path == import_contacts %}active{% endif %}">Importar nuevos contactos por CSV</a></li>
-    <li class="nav-item"><a href="{{tag_contacts}}" class="nav-link {% if request.path == tag_contacts %}active{% endif %}">Etiquetar contactos por CSV</a></li>
-    <li class="nav-item"><a href="{{assign_campaigns}}" class="nav-link {% if request.path == assign_campaigns %}active{% endif %}">Asignar contactos a campaña por etiqueta</a></li>
-    <li class="nav-item"><a href="{{assign_to_seller}}" class="nav-link {% if request.path == assign_to_seller %}active{% endif %}">{% trans 'Assign contacts to sellers' %}</a></li>
-    <li class="nav-item"><a href="{{core_campaign_add}}" target="_blank" class="nav-link">{% trans "New campaign" %}</a></li>
-    <li class="nav-item"><a href="{{campaign_statistics_list}}?active=true" class="nav-link">{% trans "Campaign statistics" %}</a></li>
-    <li class="nav-item"><a href="{{seller_performance_by_time}}" class="nav-link">{% trans "Sellers performance" %}</a></li>
-    <li class="nav-item"><a href="{{release_seller_contacts}}" class="nav-link">{% trans "Release seller contacts" %}</a></li>
-    <li class="nav-item"><a href="{{upload_do_not_call_numbers}}" class="nav-link">{% trans "Upload do not call list" %}</a></li>
-    <li class="nav-item"><a href="{{sales_record_filter}}" class="nav-link">{% trans "Sales Records" %}</a></li>
-    {% include_if_exists "campaign_management_sidebar_extra.html" %}
-  </ul>
-</li>
-{% endif %}
+    <!-- sidebar menu: : style can be found in sidebar.less -->
+    {% block nav_links_ul %}
+      <nav class="mt-2">
+        <ul class="nav nav-pills nav-sidebar flex-column"
+            data-widget="treeview"
+            role="menu"
+            data-accordion="false">
+          {% block nav_links_outer %}
+            {% block nav_links %}
+              <li class="nav-item">
+                <a href="#" class="nav-link">
+                  <i class="nav-icon fas fa-tachometer-alt"></i>
+                  <p>Example link</p>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a href="#" class="nav-link active">
+                  <i class="nav-icon fas fa-tachometer-alt"></i>
+                  <p>Example link active</p>
+                </a>
+              </li>
+              <li class="nav-item has-tree-view ">
+                <a href="#" class="nav-link">
+                  <i class="nav-icon fas fa-object-group"></i>
+                  <p>Sub menu</p>
+                  <p>
+                    <i class="right fas fa-angle-left"></i>
+                  </p>
+                </a>
+                <ul class="nav nav-treeview menu-open">
+                  <li class="nav-item">
+                    <a href="#" class="nav-link">
+                      <i class="nav-icon fas fa-circle"></i> link
+                    </a>
+                  </li>
+                  <li class="nav-item">
+                    <a href="#" class="nav-link active">
+                      <i class="nav-icon fas fa-user"></i> Another link
+                    </a>
+                  </li>
+                </ul>
+              </li>
+            {% endblock nav_links %}
+          {% endblock nav_links_outer %}
 
-{% if request.user|in_group:"Finances" %}
-<li class="nav-item has-treeview">
-  <a href="#" class="nav-link">
-    <p>
-      {% trans 'Finances' %}
-      <i class="fas fa-angle-down right"></i>
-    </p>
-  </a>
-  <ul class="nav nav-treeview">
-    <li class="nav-item"><a href="{{print_invoices}}" class="nav-link {% if request.path == print_invoices %}active{% endif %}">{% trans 'Print invoices' %}</a></li>
-    <li class="nav-item"><a href="{{debtor_contacts}}" class="nav-link {% if request.path == debtor_contacts %}active{% endif %}">{% trans 'Debtor contacts' %}</a></li>
-    <li class="nav-item"><a href="{{invoice_filter}}" class="nav-link {% if request.path == invoice_filter %}active{% endif %}">{% trans 'Invoice filter' %}</a></li>
-    {% include_if_exists "finances_sidebar_extra.html" %}
-  </ul>
-</li>
-{% endif %}
-{% if request.user|in_group:"Logistics" %}
-<li class="nav-item has-treeview">
-  <a href="#" class="nav-link">
-    <p>
-      {% trans 'Logistics' %}
-      <i class="fas fa-angle-down right"></i>
-    </p>
-  </a>
-  <ul class="nav nav-treeview">
-    <li class="nav-item"><a href='{{assign_routes}}' class="nav-link {% if request.path == assign_routes %}active{% endif %}">{% trans 'Assign subscriptions to routes' %}</a></li>
-    <li class="nav-item"><a href='{{assign_routes_future}}' class="nav-link {% if request.path == assign_routes_future %}active{% endif %}">{% trans 'Assign future subscriptions to routes' %}</a></li>
-    <li class="nav-item"><a href='{{order_route_list}}' class="nav-link {% if request.path == order_route_list %}active{% endif %}">{% trans 'Order subscriptions in route' %}</a></li>
-    <li class="nav-item"><a href='{{print_unordered_subscriptions}}' class="nav-link {% if request.path == print_unordered_subscriptions %}active{% endif %}">{% trans 'Print unordered subscriptions' %}</a></li>
-    <li class="nav-item"><a href='{{change_route_default}}' class="nav-link {% if request.path == change_route_default %}active{% endif %}">{% blocktrans %}Change route of subscriptions<br/> on routes{% endblocktrans %}</a></li>
-    <li class="nav-item"><a href='{{print_labels_page_roll}}' class="nav-link {% if request.path == print_labels_page_roll %}active{% endif %}">{% trans 'Print all labels for tomorrow' %}</a></li>
-    <li class="nav-item"><a href='{{print_labels_for_day}}' class="nav-link {% if request.path == print_labels_for_day %}active{% endif %}">{% trans 'Print all labels for specific day' %}</a></li>
-    <li class="nav-item"><a href='{{print_labels_from_csv}}' class="nav-link {% if request.path == print_labels_from_csv %}active{% endif %}">{% trans 'Print labels from CSV file' %}</a></li>
-    <li class="nav-item"><a href='{{issues_labels}}' class="nav-link {% if request.path == issues_labels %}active{% endif %}">{% trans 'Issues labels' %}</a></li>
-    <li class="nav-item"><a href='{{edition_time_departure}}' class="nav-link {% if request.path == edition_time_departure %}active{% endif %}">{% trans 'Edition departure time' %}</a></li>
-    <li class="nav-item"><a href='{{edition_time_arrival}}' class="nav-link {% if request.path == edition_time_arrival %}active{% endif %}">{% trans 'Edition arrival time' %}</a></li>
-    <li class="nav-item"><a href="{{list_routes}}" class="nav-link {% if request.path == list_routes %}active{% endif %}">{% trans 'List all routes' %} ({% trans "Simple" %})</a></li>
-    <li class="nav-item"><a href='{{list_routes_detailed}}' class="nav-link {% if request.path == list_routes_detailed %}active{% endif %}">{% trans 'List all routes' %} ({% trans "Detailed" %})</a></li>
-    <li class="nav-item"><a href='{{addresses_with_complementary_information}}' class="nav-link {% if request.path == addresses_with_complementary_information %}active{% endif %}">{% trans 'Addresses complementary information' %}</a></li>
-    <li class="nav-item"><a href="{{mass_georef_address}}" class="nav-link {% if request.path == mass_georef_address %}active{% endif %}">Normalizar direcciones sin verificar</a></li>
-    {% include_if_exists "logistics_sidebar_extra.html" %}
-  </ul>
-</li>
-{% endif %}
-{% if request.user|in_group:"Advertisement" %}
-<li class="nav-item has-treeview">
-  <a href="#" class="nav-link">
-    <p>
-      {% trans 'Advertisement' %}
-      <i class="fas fa-angle-down right"></i>
-    </p>
-  </a>
-  <ul class="nav nav-treeview">
-    <li class="nav-item"><a href="{{my_advertisers}}" class="nav-link {% if request.path == my_advertisers %}active{% endif %}">{% trans 'My advertisers' %}</a></li>
-    <li class="nav-item"><a href="{{advertiser_list}}" class="nav-link {% if request.path == advertiser_list %}active{% endif %}">{% trans 'List advertisers' %}</a></li>
-    <li class="nav-item"><a href="{{agency_list}}" class="nav-link {% if request.path == agency_list %}active{% endif %}">{% trans "List agencies" %}</a></li>
-    <li class="nav-item"><a href="{{ad_purchase_order_list}}" class="nav-link {% if request.path == ad_purchase_order_list %}active{% endif %}">{% trans "Purchase Orders List" %}</a></li>
-    {% include_if_exists "advertisement_sidebar_extra.html" %}
-  </ul>
-</li>
-{% endif %}
-{% if request.user|in_group:"Managers" %}
-<li class="nav-item">
-  <a href="{% url 'admin:index' %}" class="nav-link">{% trans "Admin panel" %}</a>
-</li>
-{% endif %}
-{% if request.user|in_group:"Sellers" %}
-  <li class="nav-item">
-    <a href="{{seller_console_list_campaigns}}" class="nav-link {% if request.path == seller_console_list_campaigns %}active{% endif %}">{% trans 'Seller console' %}</a>
-  </li>
-  <li class="nav-item">
-    <a href="{{my_sales}}" class="nav-link {% if request.path == my_sales %}active{% endif %}">{% trans 'My Sales' %}</a>
-  </li>
-{% endif %}
-{% include_if_exists "sidebar_extra.html" %}
-<li class="nav-item">
-  <a href="{% url 'logout' %}" class="nav-link">{% trans "Logout" %}</a>
-</li>
-{% endblock nav_links %}
+        </ul>
+      </nav>
+    {% endblock nav_links_ul %}
+
+  </div>
+  <!-- /.sidebar -->
+</aside>

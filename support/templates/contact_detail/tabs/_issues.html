@@ -1,0 +1,42 @@
+{% load i18n %}
+<div class="row">
+  <div class="card col-sm-12">
+    <div class="card-header">
+      <h3 class="card-title">{% trans "Latest issues" %}</h3>
+    </div>
+    <div class="card-body">
+      {% if all_issues %}
+        <table class="table">
+          <thead>
+            <tr role="row">
+              <th>{% trans "ID" %}</th>
+              <th>{% trans "Date" %}</th>
+              <th>{% trans "Category" %}</th>
+              <th>{% trans "Subcategory" %}</th>
+              <th>{% trans "Status" %}</th>
+              <th>{% trans "Assigned to" %}</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for issue in all_issues %}
+              <tr role="row">
+                <td>{{ issue.id }}</td>
+                <td>{{ issue.date }}</td>
+                <td>{{ issue.get_category }}</td>
+                <td>{{ issue.get_subcategory }}</td>
+                <td>{{ issue.get_status }}</td>
+                <td>{{ issue.assigned_to }}</td>
+                <td>
+                  <a href="{% url "view_issue" issue.id %}" class="btn btn-primary btn-sm">{% trans "View" %}</a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        {% trans "This contact has no issues" %}
+      {% endif %}
+    </div>
+  </div>
+</div>

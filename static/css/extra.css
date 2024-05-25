@@ -5,9 +5,6 @@
 [class*="sidebar-dark-"] .nav-sidebar > .nav-item.menu-open > .nav-link, [class*="sidebar-dark-"] .nav-sidebar > .nav-item:hover > .nav-link, [class*="sidebar-dark-"] .nav-sidebar > .nav-item > .nav-link:focus {
   background-color: rgba(255, 255, 255, .2);
 }
-.sidebar-mini .nav-sidebar, .sidebar-mini .nav-sidebar .nav-link, .sidebar-mini .nav-sidebar>.nav-header {
-  white-space: normal;
-}
 /* Chrome, Safari, Edge, Opera */
 input::-webkit-outer-spin-button,
 input::-webkit-inner-spin-button {
@@ -22,9 +19,118 @@ input[type=number] {
 }
 
 body{
-  zoom: 80%;
+  /* zoom: 80%; */
+  font-size: 0.75rem;
+  overflow: auto;
+  height: 100vh;
+}
+
+
+h1,
+.content-header h1{
+  font-size: 1.4rem;
+}
+
+h2,
+.content-header h2{
+  font-size: 1.2rem;
+}
+
+h3,
+.content-header h3{
+  font-size: 1.0rem;
+}
+
+h4,
+h5,
+.content-header h4,
+.content-header h5{
+  font-size: 0.8rem;
+}
+
+.card-title{
+    font-size: 1.0rem;
+}
+
+.form-control{
+    height: 2rem;
+    font-size: 0.75rem;
+}
+
+.btn{
+    font-size: 0.75rem;
+}
+
+.card-body{
+    padding: 1rem;
 }
 
 .bg-very-light-green{
   background-color: #ddffdd !important;
+}
+
+.transparent-logo {
+    color:transparent;
+}
+
+body:not(.layout-fixed) .main-sidebar {
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    height: calc(100% - 3.5rem + 1px);
+    overflow-y: auto;
+}
+
+.main-sidebar.collapsed{
+    width: 80px; /* Adjust this value for collapsed width */
+}
+.main-header.collapsed,
+.main-footer.collapsed,
+.content-wrapper.collapsed {
+    margin-left: 80px !important; /* Adjust this value for collapsed width */
+}
+
+/* .main-sidebar.collapsed:hover {
+    width: 250px;
+} */
+
+.sidebar-menu {
+    overflow-y: auto;
+}
+
+.collapse-button {
+    margin-top: auto;
+}
+
+.nav-link {
+    display: flex;
+    align-items: center;
+}
+
+ul.nav-pills{
+    height: 100%;
+}
+
+.btn-group-sm>.btn, .btn-sm{
+    font-size: 0.75rem;
+}
+
+body.contact-detail .card-footer{
+    gap: 4px;
+}
+
+body.contact-detail .card-footer::after{
+    display: none;
+}
+
+.nav{
+    row-gap: 4px;
+}
+
+.gap-4{
+    gap: 4px;
+}
+
+.breadcrumb-item + .breadcrumb-item::before {
+    content: ">";
 }
