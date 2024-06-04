@@ -9,8 +9,6 @@ from django.views.decorators.cache import never_cache
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
-from django.core.validators import validate_email
-from django.utils.translation import gettext_lazy as _
 
 from .models import Contact, MailtrainList, update_customer
 from .utils import (
@@ -180,7 +178,6 @@ def toggle_mailtrain_subscription(request, contact_id: int, cid: str) -> HttpRes
     contact_mailtrain_lists = get_mailtrain_lists(contact_obj.email)
     if cid in contact_mailtrain_lists:
         delete_email_from_mailtrain_list(contact_obj.email, cid)
-        msg = _()
         messages.success(request, f"Se ha eliminado el contacto {contact_obj.email} de la lista {mailtrain_list_obj}")
     else:
         subscribe_email_to_mailtrain_list(contact_obj.email, cid)
