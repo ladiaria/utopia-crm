@@ -20,4 +20,32 @@
         $('a.active').parent('li').parent('ul').parent('li').addClass('menu-open');
       });
 </script>
+<script>
+  $(document).ready(function() {
+    // Function to toggle the collapsed state
+    function toggleCollapsed() {
+      $('.main-sidebar').toggleClass('collapsed');
+      $('.content-wrapper').toggleClass('collapsed');
+      $('.main-footer').toggleClass('collapsed');
+      $('.main-header').toggleClass('collapsed');
+
+      // Save the state to localStorage
+      const isCollapsed = $('.main-sidebar').hasClass('collapsed');
+      localStorage.setItem('sidebarCollapsed', isCollapsed);
+    }
+
+    // Click event handler for the collapse button
+    $('#sidebarCollapse').on('click', toggleCollapsed);
+
+    // Restore state from localStorage on page load
+    const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+    if (isCollapsed) {
+      $('.main-sidebar').addClass('collapsed');
+      $('.content-wrapper').addClass('collapsed');
+      $('.main-footer').addClass('collapsed');
+      $('.main-header').addClass('collapsed');
+    }
+  });
+</script>
+
 {% endblock %}

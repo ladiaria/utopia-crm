@@ -11,7 +11,7 @@ table .form-row { display: table-row; }
     vertical-align: middle;
     border: 1px solid #007bff;
     padding: .375rem .75rem;
-    font-size: 1rem;
+    font-size: .75rem;
     line-height: 1.5;
     border-radius: .25rem;
     transition: color .15s
@@ -20,9 +20,9 @@ table .form-row { display: table-row; }
 select:not([multiple]),
 input:not([type=checkbox]):not([type=radio]):not([type=submit]) {
 display: inline-block;
-height: calc(2.25rem + 2px);
+height: 2rem;
 padding: .375rem .75rem;
-font-size: 1rem;
+font-size: .75rem;
 font-weight: 400;
 line-height: 1.5;
 color: #495057;
@@ -84,7 +84,7 @@ select[multiple] {
 
 label,
 .form-row {
-    font-size: 16px;
+    font-size: 0.75rem;
 }
 
 .inline-group ul.tools a.add,

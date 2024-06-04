@@ -1,0 +1,79 @@
+{% load i18n %}
+<div class="row">
+  <div class="card col-sm-12">
+    <div class="card-header">
+      <h3 class="card-title">{% trans "Campaigns" %}</h3>
+    </div>
+    <div class="card-body">
+      {% if all_campaigns %}
+        {% for c in all_campaigns %}
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">
+                {{ c.campaign.name }}
+                {% if c.campaign.start_date %}
+                  ({{ c.campaign.start_date }} -
+                  {{ c.campaign.end_date|default_if_none:"-" }})
+                {% endif %}
+              </h3>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-4">
+                  <dt>{% trans "Seller" %}:</dt>
+                  <dd>
+                    {{ c.seller }}
+                  </dd>
+                </div>
+                <div class="col-4">
+                  <dt>{% trans "Date of last action" %}:</dt>
+                  <dd>
+                    {{ c.last_action_date }}
+                  </dd>
+                </div>
+                <div class="col-4">
+                  <dt>{% trans "Status" %}:</dt>
+                  <dd>
+                    {{ c.get_status_display }}
+                  </dd>
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-3">
+                  <dt>{% trans "Assigned to Campaign" %}:</dt>
+                  <dd>
+                    {{ c.date_created }}
+                  </dd>
+                </div>
+                <div class="col-3">
+                  <dt>{% trans "Assigned to Seller" %}:</dt>
+                  <dd>
+                    {{ c.date_assigned }}
+                  </dd>
+                </div>
+                {% if c.campaign_resolution %}
+                  <div class="col-3">
+                    <dt>{% trans "Resolution" %}:</dt>
+                    <dd>
+                      {{ c.get_campaign_resolution_display }}
+                    </dd>
+                  </div>
+                  {% if c.resolution_reason %}
+                    <div class="col-3">
+                      <dt>{% trans "Reason" %}:</dt>
+                      <dd>
+                        {{ c.get_resolution_reason_display }}
+                      </dd>
+                    </div>
+                  {% endif %}
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      {% else %}
+        {% trans "This contact is not present in any campaign" %}
+      {% endif %}
+    </div>
+  </div>
+</div>
