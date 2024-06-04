@@ -9,6 +9,7 @@
 {% url 'release_seller_contacts' as release_seller_contacts %}
 {% url 'upload_do_not_call_numbers' as upload_do_not_call_numbers %}
 {% url 'sales_record_filter' as sales_record_filter %}
+
 <li class="nav-item has-treeview">
   <a href="#" class="nav-link">
     <i class="nav-icon fas fa-bullhorn"></i>
@@ -21,7 +22,7 @@
     <li class="nav-item">
       <a href="{{ import_contacts }}"
          class="nav-link {% if request.path == import_contacts %}active{% endif %}">
-        <i class="nav-icon fas fa-upload"></i>
+        <i class="nav-icon fas fa-download"></i>
         <p>{% trans "Import Contacts" %}</p>
       </a>
     </li>
@@ -35,35 +36,35 @@
     <li class="nav-item">
       <a href="{{ assign_campaigns }}"
          class="nav-link {% if request.path == assign_campaigns %}active{% endif %}">
-        <i class="nav-icon fas fa-bullhorn"></i>
+        <i class="nav-icon fas fa-user-plus"></i>
         <p>{% trans "Assign contacts by tag" %}</p>
       </a>
     </li>
     <li class="nav-item">
       <a href="{{ assign_to_seller }}"
          class="nav-link {% if request.path == assign_to_seller %}active{% endif %}">
-        <i class="nav-icon fas fa-user"></i>
+        <i class="nav-icon fas fa-user-plus"></i>
         <p>{% trans "Assign contacts to sellers" %}</p>
       </a>
     </li>
     <li class="nav-item">
-      <a href="{{ core_campaign_add }}" target="_blank" class="nav-link">
-        <i class="nav-icon fas fa-plus"></i>
+      <a href="{% url "admin:core_campaign_add" %}" target="_blank" class="nav-link">
+        <i class="nav-icon fa fa-plus-circle"></i>
         <p>{% trans "New campaign" %}</p></a>
     </li>
     <li class="nav-item">
       <a href="{{ campaign_statistics_list }}?active=true" class="nav-link">
-        <i class="nav-icon fas fa-chart-line"></i>
+        <i class="nav-icon fas fa-chart-bar"></i>
         <p>{% trans "Campaign statistics" %}</p></a>
     </li>
     <li class="nav-item">
       <a href="{{ seller_performance_by_time }}" class="nav-link">
-        <i class="nav-icon fas fa-chart-line"></i>
+        <i class="nav-icon fas fa-chart-bar"></i>
         <p>{% trans "Sellers performance" %}</p></a>
     </li>
     <li class="nav-item">
       <a href="{{ release_seller_contacts }}" class="nav-link">
-        <i class="nav-icon fas fa-user-slash"></i>
+        <i class="nav-icon fas fa-user-check"></i>
         <p>{% trans "Release seller contacts" %}</p></a>
     </li>
     <li class="nav-item">
@@ -73,7 +74,7 @@
     </li>
     <li class="nav-item">
       <a href="{{ sales_record_filter }}" class="nav-link">
-        <i class="nav-icon fas fa-dollar-sign"></i>
+        <i class="nav-icon fas fa-file-invoice-dollar"></i>
         <p>{% trans "Sales Records" %}</p></a>
     </li>
     {% include_if_exists "campaign_management_sidebar_extra.html" %}
