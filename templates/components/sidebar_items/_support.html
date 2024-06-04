@@ -7,7 +7,7 @@
 {% url "scheduled_task_filter" as scheduled_task_filter %}
 <li class="nav-item has-treeview">
   <a href="#" class="nav-link">
-    <i class="nav-icon fas fa-question"></i>
+    <i class="nav-icon fas fa-headset"></i>
     <p>
       {% trans "Support" %}
       <i class="fas fa-angle-left right"></i>
@@ -18,7 +18,7 @@
       <a href="{{ list_issues }}"
          class="nav-link {% if request.path == list_issues %}active{% endif %}">
         <i class="nav-icon fas fa-list"></i>
-        <p>{% trans "List issues" %}</p>
+        <p>{% trans "Issues" %}</p>
       </a>
     </li>
     <li class="nav-item">
@@ -32,20 +32,20 @@
       <a href="{{ dynamic_contact_filter_list }}"
          class="nav-link {% if request.path == dynamic_contact_filter_list %}active{% endif %}">
         <i class="nav-icon fas fa-filter"></i>
-        <p>{% trans "Dynamic contact filters" %}</p>
+        <p>{% trans "Contact filters" %}</p>
       </a>
     </li>
     <li class="nav-item">
       <a href="{{ list_routes }}"
          class="nav-link {% if request.path == list_routes %}active{% endif %}">
         <i class="nav-icon fas fa-route"></i>
-        <p>{% trans "List all routes" %}</p>
+        <p>{% trans "Routes" %}</p>
       </a>
     </li>
     <li class="nav-item">
       <a href="{{ scheduled_task_filter }}" class="nav-link">
         <i class="nav-icon fas fa-clock"></i>
-        <p>{% trans "Scheduled task filter" %}</p>
+        <p>{% trans "Scheduled tasks" %}</p>
       </a>
     </li>
     {% include_if_exists "support_sidebar_extra.html" %}

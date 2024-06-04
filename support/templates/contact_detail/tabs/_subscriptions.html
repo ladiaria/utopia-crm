@@ -1,4 +1,4 @@
-{% load i18n ladiaria_tags core_tags %}
+{% load i18n core_tags %}
   <div class="row">
     <div class="card col-12">
       <div class="card-header">
@@ -257,7 +257,7 @@
                 <a href="{% url "edit_envelopes" subscription.id %}"
                    class="btn btn-info"><i class="fas fa-envelope"></i></a>
                 <a href="{% url "upload_payment_certificate" subscription.id %}"
-                   class="btn btn-info"><i class="fas fa-file-invoice-dollar"></i></i></a>
+                   class="btn btn-info"><i class="fas fa-file-invoice-dollar"></i></a>
               </div>
             </div>
           {% endfor %}
@@ -428,7 +428,7 @@
                   <a href="{% url "edit_envelopes" subscription.id %}"
                      class="btn btn-info"><i class="fas fa-envelope"></i></a>
                   <a href="{% url "upload_payment_certificate" subscription.id %}"
-                     class="btn btn-info"><i class="fas fa-file-invoice-dollar"></i></i></a>
+                     class="btn btn-info"><i class="fas fa-file-invoice-dollar"></i></a>
                 </div>
               </div>
             {% endfor %}

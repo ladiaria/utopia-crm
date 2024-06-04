@@ -1,6 +1,11 @@
 {% load i18n %}
 <div class="row">
-  {% block web_comments %}
-  {% trans "This is not configured" %}.
-  {% endblock web_comments %}
+  <div class="card col-sm-12">
+    <div class="card-header">
+      <h3 class="card-title">{% trans "Web Comments" %}</h3>
+    </div>
+    <div class="card-body">
+      {% trans "This is not configured" %}
+    </div>
+  </div>
 </div>
