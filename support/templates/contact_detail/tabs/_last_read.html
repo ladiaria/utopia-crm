@@ -2,13 +2,10 @@
 <div class="row">
   <div class="card col-sm-12">
     <div class="card-header">
-      <h3 class="card-title">{% trans "Most read articles" %}</h3>
+      <h3 class="card-title">{% trans "Last Read Articles" %}</h3>
     </div>
     <div class="card-body">
-      <div hx-get="{% url "last_read_articles" contact.id %}"
-           hx-trigger="load"
-           style="width:70%;
-                  height: 70%"></div>
+      {% trans "This is not configured" %}
     </div>
   </div>
 </div>
