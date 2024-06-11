@@ -58,16 +58,18 @@ class EmailValidationForm(forms.Form):
         if was_valid:
             if not replacement:
                 mail_managers(
-                    _("WARN: wrong email replcement risk"),
-                    "The email %s can be soon be overwritten by the emailfix management command." % email,
+                    _("WARN: wrong email replacement risk"),
+                    f"The email {email} can soon be overwritten by the emailfix management command.",
                     True,
                 )
             return email
         elif email:
             splitted = split_email(email)
-            if suggestion:
+            if suggestion: # TODO: Chk if this works well with the third attribute being None or do not validate the if
                 replacement_request_add(
-                    split_email(cleaned_data.get("email_replaced"))["domain"], splitted["domain"], self.instance
+                    split_email(cleaned_data.get("email_replaced"))["domain"],
+                    splitted["domain"],
+                    getattr(self, 'instance', None)
                 )
                 return email
             elif not replacement:
