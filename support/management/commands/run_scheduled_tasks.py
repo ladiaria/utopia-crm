@@ -3,10 +3,12 @@ from datetime import date, timedelta
 
 from django.utils.translation import gettext_lazy as _
 from django.core.management import BaseCommand
+from django.conf import settings
 
 from core.models import ContactProductHistory, SubscriptionProduct
 from support.models import ScheduledTask
-from logistics.models import RouteChange
+if not getattr(settings, "DISABLE_LOGISTICS", False):
+    from logistics.models import RouteChange
 
 
 def run_start_of_total_pause(task, debug=True):
@@ -100,7 +102,7 @@ def run_address_change(task, debug=False):
         print(_("Executing address change scheduled task for contact {}".format(contact.id)))
     for sp in task.subscription_products.all():
         # We need to change the address for said subscription_product
-        if sp.route:
+        if not getattr(settings, "DISABLE_LOGISTICS", False) and sp.route:
             rc = RouteChange.objects.create(
                 product=sp.product,
                 old_route=sp.route,

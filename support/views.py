@@ -54,7 +54,9 @@ from core.models import (
 from core.choices import CAMPAIGN_RESOLUTION_REASONS_CHOICES
 from core.utils import calc_price_from_products, process_products
 from core.decorators import add_breadcrumbs
-from logistics.models import Route
+
+if not getattr(settings, "DISABLE_LOGISTICS", False):
+    from logistics.models import Route
 from support.management.commands.run_scheduled_tasks import run_address_change, run_start_of_total_pause
 
 from .filters import (
@@ -288,14 +290,15 @@ def seller_console_list_campaigns(request, seller_id=None):
         messages.error(request, _("This seller is set in more than one user. Please contact your manager."))
         return HttpResponseRedirect(reverse("main_menu"))
 
-    special_routes = {}
-    for route_id in settings.SPECIAL_ROUTES_FOR_SELLERS_LIST:
-        route = Route.objects.get(pk=route_id)
-        counter = SubscriptionProduct.objects.filter(
-            seller=seller, route_id=route_id, subscription__active=True
-        ).count()
-        if counter:
-            special_routes[route_id] = (route.name, counter)
+    if not getattr(settings, "DISABLE_LOGISTICS", False):
+        special_routes = {}
+        for route_id in settings.SPECIAL_ROUTES_FOR_SELLERS_LIST:
+            route = Route.objects.get(pk=route_id)
+            counter = SubscriptionProduct.objects.filter(
+                seller=seller, route_id=route_id, subscription__active=True
+            ).count()
+            if counter:
+                special_routes[route_id] = (route.name, counter)
 
     # We'll make these lists so we can append the sub count to each campaign
     campaigns_with_not_contacted, campaigns_with_activities_to_do = [], []
@@ -323,18 +326,21 @@ def seller_console_list_campaigns(request, seller_id=None):
             campaigns_with_activities_to_do.append(campaign)
     upcoming_activity = seller.upcoming_activity()
     total_pending_activities = seller.total_pending_activities_count()
+
+    context = {
+        "campaigns_with_not_contacted": campaigns_with_not_contacted,
+        "campaigns_with_activities_to_do": campaigns_with_activities_to_do,
+        "seller": seller,
+        "total_pending_activities": total_pending_activities,
+        "upcoming_activity": upcoming_activity,
+        "issues_never_paid": issues_never_paid,
+    }
+    if not getattr(settings, "DISABLE_LOGISTICS", False):
+        context["special_routes"] = special_routes
     return render(
         request,
         "seller_console_list_campaigns.html",
-        {
-            "campaigns_with_not_contacted": campaigns_with_not_contacted,
-            "campaigns_with_activities_to_do": campaigns_with_activities_to_do,
-            "seller": seller,
-            "total_pending_activities": total_pending_activities,
-            "upcoming_activity": upcoming_activity,
-            "special_routes": special_routes,
-            "issues_never_paid": issues_never_paid,
-        },
+        context,
     )
 
 
@@ -1251,9 +1257,14 @@ def list_issues(request):
     """
     Shows a very basic list of issues.
     """
-    issues_queryset = Issue.objects.all().order_by(
-        "-date", "subscription_product__product", "-subscription_product__route__number", "-id"
-    )
+    if not getattr(settings, "DISABLE_LOGISTICS", False):
+        issues_queryset = Issue.objects.all().order_by(
+            "-date", "subscription_product__product", "-subscription_product__route__number", "-id"
+        )
+    else:
+        issues_queryset = Issue.objects.all().order_by(
+            "-date", "subscription_product__product", "-id"
+        )
     issues_filter = IssueFilter(request.GET, queryset=issues_queryset)
     page_number = request.GET.get("p")
     paginator = Paginator(issues_filter.qs, 100)
@@ -2434,11 +2445,12 @@ def partial_unsubscription(request, subscription_id):
                         instructions=sp.special_instructions,
                         seller_id=sp.seller_id,
                     )
-                    if sp.route:
-                        new_sp.route = sp.route
-                    if sp.order:
-                        new_sp.order = sp.order
-                    new_sp.save()
+                    if not getattr(settings, "DISABLE_LOGISTICS", False):
+                        if sp.route:
+                            new_sp.route = sp.route
+                        if sp.order:
+                            new_sp.order = sp.order
+                        new_sp.save()
 
             # After that, we'll set the unsubscription date to this new subscription
             success_text = format_lazy(
@@ -2517,11 +2529,12 @@ def product_change(request, subscription_id):
                         instructions=sp.special_instructions,
                         seller_id=sp.seller_id,
                     )
-                    if sp.route:
-                        new_sp.route = sp.route
-                    if sp.order:
-                        new_sp.order = sp.order
-                    new_sp.save()
+                    if not getattr(settings, "DISABLE_LOGISTICS", False):
+                        if sp.route:
+                            new_sp.route = sp.route
+                        if sp.order:
+                            new_sp.order = sp.order
+                        new_sp.save()
             # after this, we need to add the new products, that will have to be reviewed by an agent
             for product_id in new_products_ids_list:
                 product = Product.objects.get(pk=product_id)
@@ -2610,11 +2623,12 @@ def book_additional_product(request, subscription_id):
                         instructions=sp.special_instructions,
                         seller_id=sp.seller_id,
                     )
-                    if sp.route:
-                        new_sp.route = sp.route
-                    if sp.order:
-                        new_sp.order = sp.order
-                    new_sp.save()
+                    if not getattr(settings, "DISABLE_LOGISTICS", False):
+                        if sp.route:
+                            new_sp.route = sp.route
+                        if sp.order:
+                            new_sp.order = sp.order
+                        new_sp.save()
             # after this, we need to add the new products, that will have to be reviewed by an agent
             new_products_list = []
             for product_id in new_products_ids_list:
@@ -2650,7 +2664,9 @@ def book_additional_product(request, subscription_id):
             old_subscription.unsubscription_date = date.today()
             old_subscription.unsubscription_manager = request.user
             old_subscription.save()
-            edit_subscription_url = reverse("edit_subscription", args=[new_subscription.contact.id, new_subscription.id])
+            edit_subscription_url = reverse(
+                "edit_subscription", args=[new_subscription.contact.id, new_subscription.id]
+            )
             return HttpResponseRedirect(edit_subscription_url)
     else:
         if old_subscription.end_date:
@@ -3007,6 +3023,9 @@ def unsubscription_statistics(request):
 
 @staff_member_required
 def seller_console_special_routes(request, route_id):
+    if getattr(settings, "DISABLE_LOGISTICS", False):
+        messages.error(request, _("This function is not available."))
+        return HttpResponseRedirect(reverse("main_menu"))
     if not getattr(settings, "SPECIAL_ROUTES_FOR_SELLERS_LIST", None):
         messages.error(request, _("This function is not available."))
         return HttpResponseRedirect("/")
