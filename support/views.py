@@ -3353,6 +3353,45 @@ class SalesRecordFilterManagersView(SalesRecordFilterSellersView):
         context["is_manager"] = self.is_manager
         return context
 
+    def export_to_csv(self):
+        queryset = self.get_queryset()
+        response = HttpResponse(content_type="text/csv")
+        response["Content-Disposition"] = 'attachment; filename="sales_records_export.csv"'
+        writer = csv.writer(response, quoting=csv.QUOTE_NONNUMERIC)
+        header = [
+            _("Contact ID"),
+            _("Date"),
+            _("Seller"),
+            _("Subscription start date"),
+            _("Products"),
+            _("Campaign"),
+            _("Sale Type"),
+            _("Total Commission"),
+            _("Validated"),
+        ]
+        writer.writerow(header)
+        for sr in queryset:
+            writer.writerow(
+                [
+                    sr.subscription.contact.id,
+                    sr.date_time,
+                    sr.seller.name if sr.seller else "",
+                    sr.subscription.start_date,
+                    ", ".join([p.name for p in sr.products.all()]),
+                    sr.campaign.name if sr.campaign else "",
+                    sr.get_sale_type_display(),
+                    sr.calculate_total_commission(),
+                    sr.subscription.validated,
+                ]
+            )
+        return response
+
+
+    def get(self, request, *args, **kwargs):
+        if request.GET.get("export"):
+            return self.export_to_csv()
+        return super().get(request, *args, **kwargs)
+
 
 @method_decorator(staff_member_required, name="dispatch")
 class ValidateSubscriptionSalesRecord(UpdateView):
