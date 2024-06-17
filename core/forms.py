@@ -65,11 +65,11 @@ class EmailValidationForm(forms.Form):
             return email
         elif email:
             splitted = split_email(email)
-            if suggestion: # TODO: Chk if this works well with the third attribute being None or do not validate the if
+            if suggestion:
                 replacement_request_add(
                     split_email(cleaned_data.get("email_replaced"))["domain"],
                     splitted["domain"],
-                    getattr(self, 'instance', None)
+                    getattr(self, 'instance', None),
                 )
                 return email
             elif not replacement:
