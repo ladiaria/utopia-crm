@@ -738,7 +738,7 @@ def print_labels_for_product(request, page="Roll", product_id=None, list_type=""
 
             label = next(iterator)
 
-            if sp.subscription.envelope or sp.subscription.free_envelope:
+            if sp.has_envelope:
                 label.envelope = True
 
             if sp.subscription.start_date == next_business_day():
@@ -1363,7 +1363,7 @@ def print_labels_for_product_date(request):
 
                 label = next(iterator)
 
-                if sp.subscription.envelope or sp.subscription.free_envelope:
+                if sp.has_envelope:
                     label.envelope = True
 
                 if sp.subscription.start_date == next_business_day():
