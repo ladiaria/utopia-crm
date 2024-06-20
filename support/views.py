@@ -55,7 +55,7 @@ from core.choices import CAMPAIGN_RESOLUTION_REASONS_CHOICES
 from core.utils import calc_price_from_products, process_products
 from core.decorators import add_breadcrumbs
 
-if not getattr(settings, "DISABLE_LOGISTICS", False):
+if not "logistics" in getattr(settings, "DISABLED_APPS", []):
     from logistics.models import Route
 from support.management.commands.run_scheduled_tasks import run_address_change, run_start_of_total_pause
 
@@ -290,7 +290,7 @@ def seller_console_list_campaigns(request, seller_id=None):
         messages.error(request, _("This seller is set in more than one user. Please contact your manager."))
         return HttpResponseRedirect(reverse("main_menu"))
 
-    if not getattr(settings, "DISABLE_LOGISTICS", False):
+    if not "logistics" in getattr(settings, "DISABLED_APPS", []):
         special_routes = {}
         for route_id in settings.SPECIAL_ROUTES_FOR_SELLERS_LIST:
             route = Route.objects.get(pk=route_id)
@@ -335,7 +335,7 @@ def seller_console_list_campaigns(request, seller_id=None):
         "upcoming_activity": upcoming_activity,
         "issues_never_paid": issues_never_paid,
     }
-    if not getattr(settings, "DISABLE_LOGISTICS", False):
+    if not "logistics" in getattr(settings, "DISABLED_APPS", []):
         context["special_routes"] = special_routes
     return render(
         request,
@@ -1257,7 +1257,7 @@ def list_issues(request):
     """
     Shows a very basic list of issues.
     """
-    if not getattr(settings, "DISABLE_LOGISTICS", False):
+    if not "logistics" in getattr(settings, "DISABLED_APPS", []):
         issues_queryset = Issue.objects.all().order_by(
             "-date", "subscription_product__product", "-subscription_product__route__number", "-id"
         )
@@ -2445,7 +2445,7 @@ def partial_unsubscription(request, subscription_id):
                         instructions=sp.special_instructions,
                         seller_id=sp.seller_id,
                     )
-                    if not getattr(settings, "DISABLE_LOGISTICS", False):
+                    if not "logistics" in getattr(settings, "DISABLED_APPS", []):
                         if sp.route:
                             new_sp.route = sp.route
                         if sp.order:
@@ -2529,7 +2529,7 @@ def product_change(request, subscription_id):
                         instructions=sp.special_instructions,
                         seller_id=sp.seller_id,
                     )
-                    if not getattr(settings, "DISABLE_LOGISTICS", False):
+                    if not "logistics" in getattr(settings, "DISABLED_APPS", []):
                         if sp.route:
                             new_sp.route = sp.route
                         if sp.order:
@@ -2623,7 +2623,7 @@ def book_additional_product(request, subscription_id):
                         instructions=sp.special_instructions,
                         seller_id=sp.seller_id,
                     )
-                    if not getattr(settings, "DISABLE_LOGISTICS", False):
+                    if not "logistics" in getattr(settings, "DISABLED_APPS", []):
                         if sp.route:
                             new_sp.route = sp.route
                         if sp.order:
@@ -3023,7 +3023,7 @@ def unsubscription_statistics(request):
 
 @staff_member_required
 def seller_console_special_routes(request, route_id):
-    if getattr(settings, "DISABLE_LOGISTICS", False):
+    if "logistics" in getattr(settings, "DISABLED_APPS", []):
         messages.error(request, _("This function is not available."))
         return HttpResponseRedirect(reverse("main_menu"))
     if not getattr(settings, "SPECIAL_ROUTES_FOR_SELLERS_LIST", None):

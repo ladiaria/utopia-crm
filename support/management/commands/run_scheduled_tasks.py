@@ -7,7 +7,7 @@ from django.conf import settings
 
 from core.models import ContactProductHistory, SubscriptionProduct
 from support.models import ScheduledTask
-if not getattr(settings, "DISABLE_LOGISTICS", False):
+if not "logistics" in getattr(settings, "DISABLED_APPS", []):
     from logistics.models import RouteChange
 
 
@@ -102,7 +102,7 @@ def run_address_change(task, debug=False):
         print(_("Executing address change scheduled task for contact {}".format(contact.id)))
     for sp in task.subscription_products.all():
         # We need to change the address for said subscription_product
-        if not getattr(settings, "DISABLE_LOGISTICS", False) and sp.route:
+        if not "logistics" in getattr(settings, "DISABLED_APPS", []) and sp.route:
             rc = RouteChange.objects.create(
                 product=sp.product,
                 old_route=sp.route,
