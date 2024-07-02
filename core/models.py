@@ -83,7 +83,6 @@ min_year = MinValueValidator(
     _("Year is not valid, minimum value is %s" % datetime.now().year),
 )
 
-
 class Institution(models.Model):
     """
     If the contact comes from an institution. This holds the institutions.
@@ -950,6 +949,7 @@ class Subscription(models.Model):
     has a paid type.
     """
 
+
     campaign = models.ForeignKey(
         "core.Campaign", blank=True, null=True, verbose_name=_("Campaign"), on_delete=models.SET_NULL
     )
@@ -1000,6 +1000,7 @@ class Subscription(models.Model):
     pickup_point = models.ForeignKey(
         "logistics.PickupPoint", on_delete=models.CASCADE, blank=True, null=True, verbose_name=_("Pickup point")
     )
+
 
     # Unsubscription
     unsubscription_date = models.DateField(blank=True, null=True, verbose_name=_("Unsubscription date"))
