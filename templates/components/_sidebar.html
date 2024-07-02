@@ -1,5 +1,6 @@
 {% load static core_tags setting adminlte_helpers i18n %}
 <!-- Left side column. contains the sidebar -->
+{% is_app_hidden "logistics" as is_app_hidden_logistics %}
 <aside class="main-sidebar sidebar-dark-primary elevation-4">
   <!-- Brand Logo -->
   {% block logo %}
@@ -16,7 +17,6 @@
 
   <!-- sidebar: style can be found in sidebar.less -->
   <div class="sidebar d-flex flex-column">
-
     {% block form %}{% endblock %}
 
     <!-- sidebar menu: : style can be found in sidebar.less -->
@@ -49,7 +49,7 @@
                 {% if request.user|in_group:"Finances" %}
                   {% include "components/sidebar_items/_finances.html" %}
                 {% endif %}
-                {% if request.user|in_group:"Logistics" %}
+                {% if not is_app_hidden_logistics and request.user|in_group:"Logistics" %}
                   {% include "components/sidebar_items/_logistics.html" %}
                 {% endif %}
                 {% if request.user|in_group:"Advertisement" %}
@@ -88,6 +88,7 @@
                 </li>
               {% endblock nav_links %}
             {% endblock nav_links_outer %}
+
           </ul>
         </nav>
       {% endblock nav_links_ul %}

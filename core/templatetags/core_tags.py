@@ -105,3 +105,9 @@ def show_unbilled_ad_purchase_orders():
 def is_app_installed(app_name):
     # To check in a template if an app is installed
     return app_name in settings.INSTALLED_APPS
+
+
+@register.simple_tag
+def is_app_hidden(app_name):
+    hidden_apps = getattr(settings, 'DISABLED_APPS', [])
+    return app_name in hidden_apps
