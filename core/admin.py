@@ -86,6 +86,7 @@ class SubscriptionProductInline(admin.TabularInline):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if not "logistics" in getattr(settings, "DISABLED_APPS", []):
+            self.fields = list(self.fields)
             self.fields[1] = ("route", "order", "label_contact", "seller")
             self.raw_id_fields.insert(0, "route")
 
