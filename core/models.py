@@ -1968,6 +1968,26 @@ class Activity(models.Model):
         directions = dict(ACTIVITY_DIRECTION_CHOICES)
         return directions.get(self.direction, "N/A")
 
+    def mark_as_sale(self, register_activity, campaign, subscription=None):
+        # Update the activity
+        self.status = "C"
+        activity_notes = _("Success in sale after scheduling {}\n{}").format(
+            datetime.now().strftime("%Y-%m-%d %H:%M"),
+            register_activity
+        )
+        self.notes = self.notes + "\n" + activity_notes if self.notes else activity_notes
+        self.save()
+
+        # Update the related ContactCampaignStatus
+        ccs = ContactCampaignStatus.objects.get(campaign=campaign, contact=self.contact)
+        ccs.campaign_resolution = "S2"  # success with direct sale
+        ccs.status = 4  # Ended with contact
+        ccs.save()
+
+        if subscription:
+            subscription.campaign = campaign
+            subscription.save()
+
     class Meta:
         verbose_name = _("activity")
         verbose_name_plural = _("activities")
@@ -2042,6 +2062,33 @@ class ContactCampaignStatus(models.Model):
     def get_resolution_reason(self):
         campaign_resolution_reasons = dict(CAMPAIGN_RESOLUTION_REASONS_CHOICES)
         return campaign_resolution_reasons.get(self.resolution_reason, "N/A")
+
+    def handle_direct_sale(self, register_activity, subscription=None):
+        self.campaign_resolution = "S2"  # this is a success with direct sale
+        self.status = 4  # Ended with contact
+        self.save()
+
+        # Prepare the activity notes
+        activity_notes = _("Success in direct sale {}\n{}").format(
+            datetime.now().strftime("%Y-%m-%d %H:%M"),
+            register_activity
+        )
+
+        # Create the activity
+        Activity.objects.create(
+            activity_type="C",
+            seller=self.seller,
+            contact=self.contact,
+            status="C",
+            direction="O",
+            datetime=datetime.now(),
+            campaign=self.campaign,
+            notes=activity_notes,
+        )
+
+        if subscription:
+            subscription.campaign = self.campaign
+            subscription.save()
 
 
 class PriceRule(models.Model):
