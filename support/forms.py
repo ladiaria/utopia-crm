@@ -167,10 +167,80 @@ class NewPromoForm(EmailValidationForm):
         self.email_extra_clean(super().clean())
 
 
-class NewSubscriptionForm(EmailValidationForm):
-    cards_tuple = (('', 'Seleccionar'),) + settings.CARDS
+class NewSubscriptionForm(EmailValidationForm, forms.ModelForm):
 
-    contact_id = forms.CharField(required=False)
+    class Meta:
+        model = Subscription
+        fields = (
+            "contact",
+            "name",
+            "phone",
+            "mobile",
+            "notes",
+            "email",
+            "id_document",
+            "frequency",
+            "payment_type",
+            "start_date",
+            "end_date",
+            "billing_address",
+            "billing_name",
+            "billing_phone",
+            "billing_email",
+            "default_address",
+            "send_bill_copy_by_email",
+            "billing_id_doc",
+            "rut",
+        )
+        widgets = {
+            "contact": forms.HiddenInput(),
+            "name": forms.TextInput(attrs={"class": "form-control"}),
+            "phone": forms.TextInput(attrs={"class": "form-control"}),
+            "mobile": forms.TextInput(attrs={"class": "form-control"}),
+            "notes": forms.Textarea(attrs={"class": "form-control", "rows": "4"}),
+            "email": forms.EmailInput(attrs={"class": "form-control"}),
+            "id_document": forms.TextInput(attrs={"class": "form-control"}),
+            "frequency": forms.Select(attrs={"class": "form-control"}),
+            "payment_type": forms.Select(attrs={"class": "form-control"}),
+            "start_date": forms.DateInput(
+                format="%Y-%m-%d",
+                attrs={"class": "datepicker form-control", "autocomplete": "off"},
+            ),
+            "end_date": forms.DateInput(
+                format="%Y-%m-%d",
+                attrs={"class": "datepicker form-control", "autocomplete": "off"},
+            ),
+            "billing_address": forms.Select(attrs={"class": "form-control"}),
+            "billing_name": forms.TextInput(attrs={"class": "form-control"}),
+            "billing_id_doc": forms.TextInput(attrs={"class": "form-control"}),
+            "rut": forms.TextInput(attrs={"class": "form-control"}),
+            "billing_phone": forms.TextInput(attrs={"class": "form-control"}),
+            "billing_email": forms.TextInput(attrs={"class": "form-control"}),
+            "default_address": forms.Select(attrs={"class": "form-control"}),
+            "send_bill_copy_by_email": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+        }
+
+        labels = {
+            "name": _("Name"),
+            "phone": _("Phone"),
+            "mobile": _("Mobile"),
+            "notes": _("Notes"),
+            "email": _("Email"),
+            "id_document": _("ID Document"),
+            "frequency": _("Frequency"),
+            "payment_type": _("Payment type"),
+            "start_date": _("Start date"),
+            "end_date": _("End date"),
+            "billing_address": _("Billing address"),
+            "billing_name": _("Billing name"),
+            "rut": _("Unique Taxpayer ID"),
+            "billing_id_doc": _("Billing ID Document"),
+            "billing_phone": _("Billing phone"),
+            "billing_email": _("Billing email"),
+            "default_address": _("Default address"),
+            "send_bill_copy_by_email": _("Send bill copy by email"),
+        }
+
     name = forms.CharField(widget=forms.TextInput(attrs={"class": "form-control"}), label="Nombre")
     phone = forms.CharField(
         empty_value=None, widget=forms.TextInput(attrs={"class": "form-control"}), label="Teléfono"
@@ -202,66 +272,6 @@ class NewSubscriptionForm(EmailValidationForm):
         widget=forms.TextInput(attrs={"class": "form-control"}),
         label="Documento de identidad",
     )
-    frequency = forms.ChoiceField(
-        required=False,
-        choices=FREQUENCY_CHOICES,
-        widget=forms.Select(attrs={"class": "form-control"}),
-        label="Periodicidad",
-    )
-    payment_type = forms.ChoiceField(
-        required=False,
-        choices=settings.SUBSCRIPTION_PAYMENT_METHODS,
-        widget=forms.Select(attrs={"class": "form-control"}),
-        label="Forma de pago",
-    )
-    start_date = forms.DateField(
-        widget=forms.DateInput(
-            format="%Y-%m-%d",
-            attrs={"class": "datepicker form-control", "autocomplete": "off"},
-        ),
-        label="Fecha de inicio",
-    )
-    end_date = forms.DateField(
-        required=False,
-        widget=forms.DateInput(
-            format="%Y-%m-%d",
-            attrs={"class": "datepicker form-control", "autocomplete": "off"},
-        ),
-        label="Fecha de fin",
-    )
-    billing_address = forms.ModelChoiceField(
-        Address.objects.all(),
-        required=False,
-        widget=forms.Select(attrs={"class": "form-control"}),
-        label="Dirección de facturación",
-    )
-    billing_name = forms.CharField(
-        empty_value=None,
-        required=False,
-        widget=forms.TextInput(attrs={"class": "form-control"}),
-        label="Nombre de facturación",
-    )
-    billing_id_document = forms.CharField(
-        empty_value=None,
-        required=False,
-        widget=forms.TextInput(attrs={"class": "form-control"}),
-        label="Documento de facturación",
-    )
-    billing_rut = forms.CharField(
-        empty_value=None, required=False, widget=forms.TextInput(attrs={"class": "form-control"}), label="RUT"
-    )
-    billing_phone = forms.CharField(
-        empty_value=None,
-        required=False,
-        widget=forms.TextInput(attrs={"class": "form-control"}),
-        label="Teléfono de facturación",
-    )
-    billing_email = forms.CharField(
-        empty_value=None,
-        required=False,
-        widget=forms.TextInput(attrs={"class": "form-control"}),
-        label="Correo electrónico de facturación",
-    )
     default_address = forms.ModelChoiceField(
         Address.objects.all(),
         required=False,
@@ -290,7 +300,7 @@ class NewSubscriptionForm(EmailValidationForm):
         cleaned_data = super().clean()
         email = self.email_extra_clean(cleaned_data)
         if email:
-            contact_id, id_document = cleaned_data["contact_id"], cleaned_data["id_document"]
+            contact_id, id_document = cleaned_data["contact"].id, cleaned_data["id_document"]
 
             if Contact.objects.filter(email=email).exclude(id=contact_id).exists():
                 c = Contact.objects.filter(email=email).exclude(id=contact_id).first()

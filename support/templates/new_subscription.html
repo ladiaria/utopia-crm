@@ -90,8 +90,8 @@
           {% block contact_info %}
             <div class="row">
               <div class="form-group d-none">
-                <label for="id_contact_id">{{form.id.label}}</label>
-                {{form.contact_id}}
+                <label for="id_contact">{{form.contact.label}}</label>
+                {{form.contact}}
               </div>
               <div class="form-group col-sm-4">
                 <label for="id_name">{{form.name.label}}</label>
@@ -174,12 +174,12 @@
 
                 <div class="row">
                   <div class="form-group col-sm-6">
-                    <label for="id_billing_id_document">{{form.billing_id_document.label}}</label>
-                    {{form.billing_id_document}}
+                    <label for="id_billing_id_doc">{{form.billing_id_doc.label}}</label>
+                    {{form.billing_id_doc}}
                   </div>
                   <div class="form-group col-sm-6">
-                    <label for="id_billing_rut">{{form.billing_rut.label}}</label>
-                    {{form.billing_rut}}
+                    <label for="id_rut">{{form.rut.label}}</label>
+                    {{form.rut}}
                   </div>
                 </div>
 
@@ -219,14 +219,14 @@
                     <div class="col-5">
                       <div class="form-check">
                         <input value="{{product.id}}" type="checkbox" name="check-{{product.id}}" id="check-{{product.id}}"
-                              {% if product in form_subscription.products.all or product.id in form.checked_products %}checked="checked"{% endif %}
+                              {% if product in subscription.products.all or product.id in form.checked_products %}checked="checked"{% endif %}
                               class="product_checkbox form-check-input">
                         <label for="check-{{product.id}}">{{product.name}}</label>
                       </div>
                       <select name="address-{{product.id}}" class="address_selector form-control">
                         {% for address in contact_addresses %}
                           <option style="color:{% if address.verified %}green{% else %}red{% endif %};"
-                                  {% if form_subscription|get_address_id_from_subscription:product.slug == address.id or bound_product_values.address == address.id %}
+                                  {% if subscription|get_address_id_from_subscription:product.slug == address.id or bound_product_values.address == address.id %}
                                     selected="selected"
                                   {% endif %} value="{{address.id}}">
                             {{address.address_1}} {{address.city}} {{address.state}}
@@ -236,19 +236,19 @@
                     </div>
                     <div class="col-1">
                       <label for="copies-{{product.id}}"><small>{% trans 'Copies' %}</small></label>
-                      <input value="{% if form_subscription %}{% call_method form_subscription 'get_copies_for_product' product.id %}{% else %}{{ bound_product_values.copies|default:1 }}{% endif %}"
+                      <input value="{% if subscription %}{% call_method subscription 'get_copies_for_product' product.id %}{% else %}{{ bound_product_values.copies|default:1 }}{% endif %}"
                             type="text" id="copies-{{product.id}}" name="copies-{{product.id}}" class="form-control">
                     </div>
                     <div class="col-3">
                       <label for="message-{{product.id}}"><small>{% trans 'Label Message' %}</small></label>
                       <input maxlength="40" type="text" id="message-{{product.id}}" name="message-{{product.id}}"
-                            value="{% if form_subscription %}{% call_method form_subscription 'get_message_for_product' product.id %}{% else %}{{ bound_product_values.message }}{% endif %}"
+                            value="{% if subscription %}{% call_method subscription 'get_message_for_product' product.id %}{% else %}{{ bound_product_values.message }}{% endif %}"
                             class="form-control">
                     </div>
                     <div class="col-3">
                       <label for="instructions-{{product.id}}"><small>{% trans 'Special Instructions' %}</small></label>
                       <input type="text" id="instructions-{{product.id}}" name="instructions-{{product.id}}"
-                            value="{% if form_subscription %}{% call_method form_subscription 'get_instructions_for_product' product.id %}{% else %}{{ bound_product_values.instructions }}{% endif %}"
+                            value="{% if subscription %}{% call_method subscription 'get_instructions_for_product' product.id %}{% else %}{{ bound_product_values.instructions }}{% endif %}"
                             class="form-control">
                     </div>
                   </div>

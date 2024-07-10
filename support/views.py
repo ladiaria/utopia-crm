@@ -33,6 +33,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
+from django.views.generic import FormView
 from django.conf import settings
 from django_filters.views import FilterView
 from django.utils.decorators import method_decorator
@@ -736,44 +737,323 @@ def send_promo(request, contact_id):
     )
 
 
+class SubscriptionMixin:
+    def get_contact(self, contact_id):
+        self.contact = get_object_or_404(Contact, pk=contact_id)
+        return self.contact
+
+    def get_subscription(self, subscription_id):
+        self.subscription = get_object_or_404(Subscription, pk=subscription_id) if subscription_id else None
+        return self.subscription
+
+    def get_initial_data(self, contact):
+        contact_addresses = Address.objects.filter(contact=contact)
+        return {
+            "contact": contact,
+            "name": contact.name,
+            "phone": contact.phone,
+            "mobile": contact.mobile,
+            "email": contact.email,
+            "id_document": contact.id_document,
+            "default_address": contact_addresses,
+            "copies": 1,
+        }
+
+    def handle_form_errors(self, form):
+        if form.errors:
+            for field, error in form.errors.items():
+                messages.error(self.request, f"{field}: {error}")
+
+    def save_contact_changes(self, form, contact):
+        changed = False
+        for attr in ("name", "phone", "mobile", "email", "id_document"):
+            val = form.cleaned_data.get(attr)
+            if getattr(contact, attr) != val:
+                changed = True
+                setattr(contact, attr, val)
+        if changed:
+            try:
+                contact.save()
+            except (ValidationError, RequestException) as vre:
+                form.add_error(None, vre if isinstance(vre, ValidationError) else _("CMS sync error"))
+        return changed
+
+    def process_subscription_products(self, request, subscription, user_seller_id):
+        new_products_list = []
+        for key in request.POST.keys():
+            if key.startswith("check"):
+                product_id = key.split("-")[1]
+                product = Product.objects.get(pk=product_id)
+                new_products_list.append(product)
+                address_id = request.POST.get(f"address-{product_id}")
+                address = Address.objects.get(pk=address_id)
+                copies = request.POST.get(f"copies-{product_id}")
+                message = request.POST.get(f"message-{product_id}")
+                instructions = request.POST.get(f"instructions-{product_id}")
+                old_address, old_route, old_order = None, None, None
+                if not SubscriptionProduct.objects.filter(subscription=subscription, product=product).exists():
+                    if (
+                        subscription
+                        and SubscriptionProduct.objects.filter(subscription=subscription, product=product).exists()
+                    ):
+                        old_address = (
+                            SubscriptionProduct.objects.filter(subscription=subscription, product=product)
+                            .first()
+                            .address
+                        )
+                        if old_address == address:
+                            old_route = (
+                                SubscriptionProduct.objects.filter(subscription=subscription, product=product)
+                                .first()
+                                .route
+                            )
+                            old_order = (
+                                SubscriptionProduct.objects.filter(subscription=subscription, product=product)
+                                .first()
+                                .order
+                            )
+                    subscription.add_product(
+                        product=product,
+                        address=address,
+                        copies=copies,
+                        message=message,
+                        instructions=instructions,
+                        route=old_route,
+                        order=old_order,
+                    )
+                else:
+                    sp = SubscriptionProduct.objects.get(subscription=subscription, product=product)
+                    if sp.address != address:
+                        sp.route, sp.order = None, None
+                    sp.address = address
+                    sp.copies = copies
+                    sp.label_message = message
+                    sp.special_instructions = instructions
+                    sp.save()
+        return new_products_list
+
+    def handle_subscription_status(self, subscription):
+        if subscription.start_date > date.today() + timedelta(1):
+            subscription.active = False
+        subscription.status = "OK"
+        subscription.save()
+
+    def remove_unselected_products(self, subscription, new_products_list):
+        for subscriptionproduct in SubscriptionProduct.objects.filter(subscription=subscription):
+            if subscriptionproduct.product not in new_products_list:
+                subscription.remove_product(subscriptionproduct.product)
+
+    def save_subscription(self, form, subscription, contact, user_seller_id):
+        self.save_contact_changes(form, contact)
+        if not form.errors:
+            subscription = form.save()
+            new_products_list = self.process_subscription_products(self.request, subscription, user_seller_id)
+            self.handle_subscription_status(subscription)
+            self.remove_unselected_products(subscription, new_products_list)
+            return subscription
+        return None
+
+    def capture_variables(self):
+        self.url = self.request.GET.get("url", None)
+        self.offset = self.request.GET.get("offset", None)
+        self.is_new = self.request.GET.get("new", None)
+        self.is_activity = self.request.GET.get("act", None)
+        self.ccs = None
+        self.campaign = None
+        self.user_seller_id = None
+
+        if self.subscription:
+            if self.subscription.contact != self.contact:
+                return HttpResponseServerError(_("Wrong data"))
+            self.edit_subscription = True
+        else:
+            self.subscription, self.edit_subscription = None, False
+
+        if self.request.GET.get("act", None):
+            self.activity = Activity.objects.get(pk=self.request.GET["act"])
+            self.campaign = self.activity.campaign
+            try:
+                self.ccs = ContactCampaignStatus.objects.get(contact=self.contact, campaign=self.campaign)
+            except ContactCampaignStatus.DoesNotExist:
+                msg = _(
+                    "Activity {} is not in campaign {}. Please report this error!".format(
+                        self.activity.id, self.campaign.id
+                    )
+                )
+                messages.error(self.request, msg)
+                return HttpResponseRedirect(reverse("seller_console_list_campaigns"))
+            self.user_seller_id = self.ccs.seller.id
+        elif self.request.GET.get("new", None):
+            self.ccs = ContactCampaignStatus.objects.get(pk=self.request.GET["new"])
+            self.campaign = self.ccs.campaign
+            self.user_seller_id = self.ccs.seller.id
+        elif self.request.user.seller_set.exists():
+            self.user_seller_id = self.request.user.seller_set.first().id
+        else:
+            self.user_seller_id = None
+
+    def get_redirect_url_and_sales_record(self, form, subscription, contact, user_seller_id):
+        if self.is_new:
+            # This means this is a direct sale, we also need to register the activity as just started
+            self.ccs.handle_direct_sale(form.cleaned_data["register_activity"], subscription=subscription)
+            redirect_to = f"{self.url}?offset={self.offset}"
+        elif self.request.GET.get("act", None):
+            # This means this is a sale from an activity
+            self.activity.mark_as_sale(
+                form.cleaned_data["register_activity"], self.campaign, subscription=subscription
+            )
+            redirect_to = f"{self.url}?offset={self.offset}"
+        else:
+            if form.cleaned_data.get("register_activity", None):
+                Activity.objects.create(
+                    contact=contact,
+                    activity_type="C",
+                    datetime=datetime.now(),
+                    campaign=self.campaign,
+                    seller_id=self.user_seller_id,
+                    status="C",
+                    notes=form.cleaned_data["register_activity"],
+                )
+            redirect_to = reverse("contact_detail", args=[contact.id])
+        if not self.edit_subscription:
+            sf = SalesRecord.objects.create(
+                subscription=subscription,
+                seller_id=user_seller_id,
+                price=subscription.get_price_for_full_period(),
+                campaign=self.campaign,
+            )
+            sf.add_products()
+            if not user_seller_id:
+                sf.set_generic_seller()
+        self.redirect_to = redirect_to
+        return redirect_to
+
+    def get_success_url(self):
+        return self.redirect_to
+
+
+class SubscriptionCreateView(SubscriptionMixin, FormView):
+    template_name = 'new_subscription.html'
+    form_class = NewSubscriptionForm
+
+    def dispatch(self, request, *args, **kwargs):
+        self.contact = self.get_contact(kwargs['contact_id'])
+        self.subscription = None
+        self.capture_variables()
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_initial(self):
+        return self.get_initial_data(self.contact)
+
+    def form_valid(self, form):
+        self.subscription = self.save_subscription(form, self.subscription, self.contact, self.user_seller_id)
+        if self.subscription:
+            redirect_to = self.get_redirect_url_and_sales_record(
+                form, self.subscription, self.contact, self.user_seller_id
+            )
+            return HttpResponseRedirect(redirect_to)
+        return self.form_invalid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context.update(
+            {
+                "contact": self.contact,
+                "edit_subscription": self.edit_subscription,
+                "subscription": self.subscription,
+                "offerable_products": Product.objects.filter(offerable=True),
+                "contact_addresses": Address.objects.filter(contact=self.contact),
+                "other_active_normal_subscriptions": Subscription.objects.filter(
+                    contact=self.contact, active=True, type="N"
+                ),
+                "georef_activated": getattr(settings, "GEOREF_SERVICES", False),
+                "address_form": SugerenciaGeorefForm(),
+            }
+        )
+        return context
+
+
+class SubscriptionUpdateView(SubscriptionMixin, FormView):
+    template_name = 'new_subscription.html'
+    form_class = NewSubscriptionForm
+
+    def dispatch(self, request, *args, **kwargs):
+        self.contact = self.get_contact(kwargs['contact_id'])
+        self.subscription = self.get_subscription(kwargs['subscription_id'])
+        self.capture_variables()
+        if self.subscription and self.subscription.contact != self.contact:
+            return HttpResponseServerError(_("Wrong data"))
+        self.edit_subscription = bool(self.subscription)
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_initial(self):
+        initial_data = self.get_initial_data(self.contact)
+        if self.subscription:
+            initial_data.update(
+                {
+                    # Add any initial data from the subscription if needed
+                }
+            )
+        return initial_data
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['instance'] = self.subscription
+        return kwargs
+
+    def form_valid(self, form):
+        self.subscription = self.save_subscription(form, self.subscription, self.contact, self.user_seller_id)
+        if self.subscription:
+            redirect_to = self.get_redirect_url_and_sales_record(
+                form, self.subscription, self.contact, self.user_seller_id
+            )
+            return HttpResponseRedirect(redirect_to)
+        return self.form_invalid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context.update(
+            {
+                "contact": self.contact,
+                "edit_subscription": self.edit_subscription,
+                "subscription": self.subscription,
+                "offerable_products": Product.objects.filter(offerable=True),
+                "contact_addresses": Address.objects.filter(contact=self.contact),
+                "other_active_normal_subscriptions": Subscription.objects.filter(
+                    contact=self.contact, active=True, type="N"
+                ),
+                "georef_activated": getattr(settings, "GEOREF_SERVICES", False),
+                "address_form": SugerenciaGeorefForm(),
+            }
+        )
+        return context
+
+
 @staff_member_required
 def new_subscription(request, contact_id, subscription_id=None):
     """
-    Makes a new subscription for the selected contact. If you pass a subscription id on a get parameter, it will
-    attempt to change that subscription for a new one.
+    TODO: Delete
     """
     contact = get_object_or_404(Contact, pk=contact_id)
+    subscription = get_object_or_404(Subscription, pk=subscription_id) if subscription_id else None
     campaign = None
 
-    if not (request.user.groups.filter(Q(name="Admins") | Q(name="Support")).exists() or request.user.is_superuser):
-        if request.user.groups.filter(name="Sellers").exists():
-            try:
-                user_seller = Seller.objects.get(user=request.user)
-            except Seller.DoesNotExist:
-                messages.error(request, _("Your user has no seller selected. Please contact your manager."))
-                return HttpResponseRedirect(reverse("main_menu"))
-            except Seller.MultipleObjectsReturned:
-                messages.error(request, _("This seller is set in more than one user. Please contact your manager."))
-                return HttpResponseRedirect(reverse("main_menu"))
-            else:
-                if ContactCampaignStatus.objects.filter(contact=contact, seller=user_seller).exists() is False:
-                    return HttpResponseForbidden()
     # Vamos a tomar lo que venga de otras views
     url = request.GET.get("url", None)
     offset = request.GET.get("offset", None)
-    if subscription_id:
-        form_subscription = get_object_or_404(Subscription, pk=subscription_id)
-        if form_subscription.contact != contact:
+    if subscription:
+        if subscription.contact != contact:
             return HttpResponseServerError(_("Wrong data"))
         edit_subscription = True
     else:
-        form_subscription, edit_subscription = None, False
+        subscription, edit_subscription = None, False
 
     result = request.POST.get("result")
     contact_addresses = Address.objects.filter(contact=contact)
     offerable_products = Product.objects.filter(offerable=True)
     other_active_normal_subscriptions = Subscription.objects.filter(contact=contact, active=True, type="N")
     activity = None
+
     if request.GET.get("act", None):
         activity = Activity.objects.get(pk=request.GET["act"])
         campaign = activity.campaign
@@ -793,51 +1073,10 @@ def new_subscription(request, contact_id, subscription_id=None):
     else:
         user_seller_id = None
 
-    if form_subscription:
-        # If there's an old subscription, get their billing_data if necessary
-        initial_dict = {
-            "contact_id": contact.id,
-            "name": contact.name,
-            "phone": contact.phone,
-            "mobile": contact.mobile,
-            "email": contact.email,
-            "id_document": contact.id_document,
-            "default_address": contact_addresses,
-            "start_date": form_subscription.start_date,
-            "end_date": form_subscription.end_date,
-            "copies": 1,
-            "payment_type": form_subscription.payment_type,
-            "billing_address": form_subscription.billing_address,
-            "billing_name": form_subscription.billing_name,
-            "billing_id_document": form_subscription.billing_id_doc,
-            "billing_rut": form_subscription.rut,
-            "billing_phone": form_subscription.billing_phone,
-            "billing_email": form_subscription.billing_email,
-            "frequency": form_subscription.frequency,
-            "send_bill_copy_by_email": form_subscription.send_bill_copy_by_email,
-        }
-        form = NewSubscriptionForm(initial=initial_dict)
-        form.fields["start_date"].widget.attrs["readonly"] = True
-    else:
-        form = NewSubscriptionForm(
-            initial={
-                "contact_id": contact.id,
-                "name": contact.name,
-                "phone": contact.phone,
-                "mobile": contact.mobile,
-                "email": contact.email,
-                "id_document": contact.id_document,
-                "default_address": contact_addresses,
-                "start_date": date.today(),
-                "copies": 1,
-                "send_bill_copy_by_email": True,
-            }
-        )
-
     if result == _("Cancel"):
         return HttpResponseRedirect(reverse("contact_detail", args=[contact.id]))
     elif result == _("Send"):
-        form = NewSubscriptionForm(request.POST)
+        form = NewSubscriptionForm(request.POST, instance=subscription)
         if form.is_valid():
             # First we need to save all the new contact data if necessary
             changed = False
@@ -853,39 +1092,7 @@ def new_subscription(request, contact_id, subscription_id=None):
                 form.add_error(None, vre if type(vre) is ValidationError else _("CMS sync error"))
 
             if not form.errors:
-                if edit_subscription:
-                    # this means we are editing the subscription, and we don't need to create a new one
-                    subscription = form_subscription
-                    # We're not going to change start_date
-                    subscription.payment_type = form.cleaned_data["payment_type"]
-                    subscription.billing_address = form.cleaned_data["billing_address"]
-                    subscription.billing_name = form.cleaned_data["billing_name"]
-                    subscription.billing_id_doc = form.cleaned_data["billing_id_document"]
-                    subscription.rut = form.cleaned_data["billing_rut"]
-                    subscription.billing_phone = form.cleaned_data["billing_phone"]
-                    subscription.billing_email = form.cleaned_data["billing_email"]
-                    subscription.frequency = form.cleaned_data["frequency"]
-                    subscription.end_date = form.cleaned_data["end_date"]
-                    subscription.send_bill_copy_by_email = form.cleaned_data["send_bill_copy_by_email"]
-                    subscription.save()
-                else:
-                    subscription = Subscription.objects.create(
-                        contact=contact,
-                        type="N",
-                        start_date=form.cleaned_data["start_date"],
-                        next_billing=form.cleaned_data["start_date"],
-                        payment_type=form.cleaned_data["payment_type"],
-                        billing_address=form.cleaned_data["billing_address"],
-                        billing_name=form.cleaned_data["billing_name"],
-                        billing_id_doc=form.cleaned_data["billing_id_document"],
-                        rut=form.cleaned_data["billing_rut"],
-                        billing_phone=form.cleaned_data["billing_phone"],
-                        billing_email=form.cleaned_data["billing_email"],
-                        frequency=form.cleaned_data["frequency"],
-                        end_date=form.cleaned_data["end_date"],
-                        send_bill_copy_by_email=form.cleaned_data["send_bill_copy_by_email"],
-                        validated=False,
-                    )
+                subscription = form.save()
 
                 # After this, we set all the products we sold
                 new_products_list = []
@@ -903,21 +1110,17 @@ def new_subscription(request, contact_id, subscription_id=None):
                         # We'll reset seller_id every time to whatever the user seller is
                         seller_id = user_seller_id
                         # This is to make sure we don't overwrite the original seller for this subscription.
-                        if not SubscriptionProduct.objects.filter(
-                            subscription=subscription, product=product
-                        ).exists():
+                        if not SubscriptionProduct.objects.filter(subscription=subscription, product=product).exists():
                             # First we're going to check if this is an upgrade and the previous product existed and
                             # had a seller. If it hadn't then the seller will still be None
                             if (
-                                form_subscription
+                                subscription
                                 and SubscriptionProduct.objects.filter(
-                                    subscription=form_subscription, product=product
+                                    subscription=subscription, product=product
                                 ).exists()
                             ):
                                 seller = (
-                                    SubscriptionProduct.objects.filter(
-                                        subscription=form_subscription, product=product
-                                    )
+                                    SubscriptionProduct.objects.filter(subscription=subscription, product=product)
                                     .first()
                                     .seller
                                 )
@@ -928,25 +1131,19 @@ def new_subscription(request, contact_id, subscription_id=None):
                                 else:
                                     seller_id = None
                                 old_address = (
-                                    SubscriptionProduct.objects.filter(
-                                        subscription=form_subscription, product=product
-                                    )
+                                    SubscriptionProduct.objects.filter(subscription=subscription, product=product)
                                     .first()
                                     .address
                                 )
                                 if old_address == address:
                                     # Only keep the route and order if it's the same address
                                     old_route = (
-                                        SubscriptionProduct.objects.filter(
-                                            subscription=form_subscription, product=product
-                                        )
+                                        SubscriptionProduct.objects.filter(subscription=subscription, product=product)
                                         .first()
                                         .route
                                     )
                                     old_order = (
-                                        SubscriptionProduct.objects.filter(
-                                            subscription=form_subscription, product=product
-                                        )
+                                        SubscriptionProduct.objects.filter(subscription=subscription, product=product)
                                         .first()
                                         .order
                                     )
@@ -964,9 +1161,7 @@ def new_subscription(request, contact_id, subscription_id=None):
                             )
                         elif (
                             edit_subscription
-                            and SubscriptionProduct.objects.filter(
-                                subscription=subscription, product=product
-                            ).exists()
+                            and SubscriptionProduct.objects.filter(subscription=subscription, product=product).exists()
                         ):
                             sp = SubscriptionProduct.objects.get(subscription=subscription, product=product)
                             if sp.address != address:
@@ -1016,19 +1211,43 @@ def new_subscription(request, contact_id, subscription_id=None):
 
                 return HttpResponseRedirect(redirect_to)
 
+    initial_dict = {
+        "contact": contact,
+        "name": contact.name,
+        "phone": contact.phone,
+        "mobile": contact.mobile,
+        "email": contact.email,
+        "id_document": contact.id_document,
+        "default_address": contact_addresses,
+        "copies": 1,
+    }
+
+    if subscription:
+        # If there's an old subscription, get their billing_data if necessary
+        form = NewSubscriptionForm(instance=subscription, initial=initial_dict)
+        form.fields["start_date"].widget.attrs["readonly"] = True
+    else:
+        form = NewSubscriptionForm(
+            initial=initial_dict,
+        )
+
     form.fields["billing_address"].queryset = contact_addresses
     form.fields["default_address"].queryset = contact_addresses
     address_form = SugerenciaGeorefForm()
 
+    if form.errors:
+        for field, error in form.errors.items():
+            messages.error(request, f"{field}: {error}")
+
     return render(
         request,
-        "ladiaria_new_subscription.html",
+        "new_subscription.html",
         {
             "contact": contact,
             "edit_subscription": edit_subscription,
-            "form_subscription": form_subscription,
             "form": form,
             "address_form": address_form,
+            "subscription": subscription,
             "offerable_products": offerable_products,
             "contact_addresses": contact_addresses,
             "other_active_normal_subscriptions": other_active_normal_subscriptions,
