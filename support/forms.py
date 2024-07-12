@@ -257,7 +257,7 @@ class NewSubscriptionForm(EmailValidationForm, forms.ModelForm):
     register_activity = forms.CharField(
         empty_value=None,
         required=False,
-        widget=forms.Textarea(attrs={"class": "form-control", "rows": "4"}),
+        widget=forms.Textarea(attrs={"class": "form-control", "rows": "1"}),
         label="Registrar actividad",
     )
     email = forms.EmailField(
