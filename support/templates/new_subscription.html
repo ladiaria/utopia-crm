@@ -167,14 +167,27 @@
               </div>
             </div>
             {% block billing_info %}
-              <button class="btn btn-primary btn-sm"
-                      type="button"
-                      data-toggle="collapse"
-                      data-target="#collapse-billing-information"
-                      aria-expanded="false"
-                      aria-controls="collapseExample">
-                <i class="fas fa-plus"></i> {% trans "Show extra billing information" %}
-              </button>
+              <div class="row">
+                <div class="col">
+                  <button class="btn btn-primary btn-sm"
+                          type="button"
+                          data-toggle="collapse"
+                          data-target="#collapse-billing-information"
+                          aria-expanded="false"
+                          aria-controls="collapseExample">
+                    <i class="fas fa-plus"></i> {% trans "Show extra billing information" %}
+                  </button>
+                </div>
+                <div class="col">
+                  <div class="form-group mt-2">
+                    <a href="{% url 'agregar_direccion' contact.id %}?stayhere=True"
+                       id="add_address"
+                       class="btn bg-gradient-success"
+                       target="_blank"><i class="fas fa-plus"></i> Nueva dirección</a>
+                    <button type="button" class="btn bg-gradient-success" id="fetch-button">Recargar direcciones</button>
+                  </div>
+                </div>
+              </div>
               <div id="collapse-billing-information" class="collapse">
                 <div class="row">
                   <div class="form-group col-sm-6">
@@ -217,13 +230,6 @@
             {% endcomment %}
           {% endblock contact_info %}
 
-          <div class="form-group mt-2">
-            <a href="{% url 'agregar_direccion' contact.id %}?stayhere=True"
-               id="add_address"
-               class="btn bg-gradient-success"
-               target="_blank"><i class="fas fa-plus"></i> Nueva dirección</a>
-            <button type="button" class="btn bg-gradient-success" id="fetch-button">Recargar direcciones</button>
-          </div>
           {% block form_products %}
             <div class="mt-4">
               {% for product in offerable_products %}
@@ -288,11 +294,14 @@
           {% endblock form_products %}
 
           {% block form_send_controls %}
-            <div class="form-group text-right">
+            {% block total_price %}
               <h4 class="mb-4 mt-4">
                 {% trans "Total price is" %}: <span class="text-success" id="price_amount">$0</span>
                 <span id="custom_error_message" class="text-danger"></span>
               </h4>
+            {% endblock total_price %}
+
+            <div class="form-group text-right">
               <div style="float: right; margin-left: 10px;">
                 <input type="submit"
                        name="result"

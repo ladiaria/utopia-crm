@@ -52,6 +52,8 @@ def delete_email_from_mailtrain_list(email, mailtrain_list_id):
 
 
 def get_mailtrain_lists(email):
+    if not getattr(settings, 'MAILTRAIN_API_URL', None):
+        return []
     url = '{}lists/{}'.format(settings.MAILTRAIN_API_URL, email)
     params = {'access_token': settings.MAILTRAIN_API_KEY}
     return [mlist["cid"] for mlist in requests.get(url, params=params).json()["data"] if mlist["status"] == 1]
