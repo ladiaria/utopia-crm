@@ -9,16 +9,20 @@
         </div>
         <div class="card-body">
           <div class="form-group">
-            {% for newsletter in all_newsletters %}
-              <div class="form-check">
-                <input id="id-{{ newsletter.id }}"
-                       class="form-check-input"
-                       type="checkbox"
-                       name="{{ newsletter.id }}"
-                       {% if newsletter in contact_newsletters %}checked{% endif %}>
-                <label class="form-check-label" for="id-{{ newsletter.id }}">{{ newsletter.name }}</label>
-              </div>
-            {% endfor %}
+            {% if all_newsletters %}
+              {% for newsletter in all_newsletters %}
+                <div class="form-check">
+                  <input id="id-{{ newsletter.id }}"
+                         class="form-check-input"
+                         type="checkbox"
+                         name="{{ newsletter.id }}"
+                         {% if newsletter in contact_newsletters %}checked{% endif %}>
+                  <label class="form-check-label" for="id-{{ newsletter.id }}">{{ newsletter.name }}</label>
+                </div>
+              {% endfor %}
+            {% else %}
+              <p>{% trans "No newsletters to show" %}</p>
+            {% endif %}
           </div>
         </div>
       </div>
@@ -33,7 +37,8 @@
         <h2 class="card-title">{% trans "Mailtrain Newsletters" %}</h2>
       </div>
       <div class="card-body">
-        {% for item in mailtrain_lists %}
+        {% if mailtrain_lists %}
+          {% for item in mailtrain_lists %}
             <div class="row align-items-center">
               <div class="col">{{ item }}</div>
               <div class="col">
@@ -54,7 +59,10 @@
                 </a>
               </div>
             </div>
-        {% endfor %}
+          {% endfor %}
+        {% else %}
+          <p>{% trans "No mailtrain lists to show" %}</p>
+        {% endif %}
       </div>
     </div>
   </div>

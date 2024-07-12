@@ -83,6 +83,7 @@ min_year = MinValueValidator(
     _("Year is not valid, minimum value is %s" % datetime.now().year),
 )
 
+
 class Institution(models.Model):
     """
     If the contact comes from an institution. This holds the institutions.
@@ -753,10 +754,7 @@ class Contact(models.Model):
                 self.ocupation_id = int(ocupation_id.strip())
             if birthdate:
                 self.birthdate = birthdate.strip()
-            self.notes = (
-                f"Combined from {source.id} - {source.name} at {date.today()}"
-                + f"\n{self.notes or ''}"
-            )
+            self.notes = f"Combined from {source.id} - {source.name} at {date.today()}" + f"\n{self.notes or ''}"
             if source.notes:
                 self.notes += f"\n\nNotes imported from {source.id} - {source.name}\n\n"
                 self.notes += source.notes
@@ -949,6 +947,9 @@ class Subscription(models.Model):
     has a paid type.
     """
 
+    class RENEWAL_TYPE_CHOICES(models.TextChoices):
+        AUTOMATIC = "A", _("Auto-renewal")
+        MANUAL = "M", _("One-time")
 
     campaign = models.ForeignKey(
         "core.Campaign", blank=True, null=True, verbose_name=_("Campaign"), on_delete=models.SET_NULL
@@ -1000,7 +1001,6 @@ class Subscription(models.Model):
     pickup_point = models.ForeignKey(
         "logistics.PickupPoint", on_delete=models.CASCADE, blank=True, null=True, verbose_name=_("Pickup point")
     )
-
 
     # Unsubscription
     unsubscription_date = models.DateField(blank=True, null=True, verbose_name=_("Unsubscription date"))
@@ -1059,6 +1059,12 @@ class Subscription(models.Model):
         related_name="validated_subscriptions",
     )
     validated_date = models.DateTimeField(blank=True, null=True, verbose_name=_("Validated date"))
+    renewal_type = models.CharField(
+        max_length=2,
+        choices=RENEWAL_TYPE_CHOICES.choices,
+        default="A",
+        verbose_name=_("Renewal type"),
+    )
 
     history = HistoricalRecords()
 
@@ -1749,9 +1755,12 @@ class Subscription(models.Model):
         # Used to check if the user has never paid a single invoice in this subscription and its ancestors
         invoices = self.get_permanency_invoice_set()
         # Check if all invoices are overdue
-        return invoices.filter(
-            expiration_date__lt=date.today(), paid=False, debited=False, canceled=False, uncollectible=False
-        ).count() == invoices.count()
+        return (
+            invoices.filter(
+                expiration_date__lt=date.today(), paid=False, debited=False, canceled=False, uncollectible=False
+            ).count()
+            == invoices.count()
+        )
 
     def get_first_seller(self):
         # Used to retrieve the first seller that sold this subscription
@@ -1968,6 +1977,25 @@ class Activity(models.Model):
         directions = dict(ACTIVITY_DIRECTION_CHOICES)
         return directions.get(self.direction, "N/A")
 
+    def mark_as_sale(self, register_activity, campaign, subscription=None):
+        # Update the activity
+        self.status = "C"
+        activity_notes = _("Success in sale after scheduling {}\n{}").format(
+            datetime.now().strftime("%Y-%m-%d %H:%M"), register_activity
+        )
+        self.notes = self.notes + "\n" + activity_notes if self.notes else activity_notes
+        self.save()
+
+        # Update the related ContactCampaignStatus
+        ccs = ContactCampaignStatus.objects.get(campaign=campaign, contact=self.contact)
+        ccs.campaign_resolution = "S2"  # success with direct sale
+        ccs.status = 4  # Ended with contact
+        ccs.save()
+
+        if subscription:
+            subscription.campaign = campaign
+            subscription.save()
+
     class Meta:
         verbose_name = _("activity")
         verbose_name_plural = _("activities")
@@ -2042,6 +2070,32 @@ class ContactCampaignStatus(models.Model):
     def get_resolution_reason(self):
         campaign_resolution_reasons = dict(CAMPAIGN_RESOLUTION_REASONS_CHOICES)
         return campaign_resolution_reasons.get(self.resolution_reason, "N/A")
+
+    def handle_direct_sale(self, register_activity, subscription=None):
+        self.campaign_resolution = "S2"  # this is a success with direct sale
+        self.status = 4  # Ended with contact
+        self.save()
+
+        # Prepare the activity notes
+        activity_notes = _("Success in direct sale {}\n{}").format(
+            datetime.now().strftime("%Y-%m-%d %H:%M"), register_activity
+        )
+
+        # Create the activity
+        Activity.objects.create(
+            activity_type="C",
+            seller=self.seller,
+            contact=self.contact,
+            status="C",
+            direction="O",
+            datetime=datetime.now(),
+            campaign=self.campaign,
+            notes=activity_notes,
+        )
+
+        if subscription:
+            subscription.campaign = self.campaign
+            subscription.save()
 
 
 class PriceRule(models.Model):
@@ -2375,6 +2429,7 @@ def update_web_user(contact, newsletter_data=None, area_newsletters=False):
             except Contact.DoesNotExist:
                 pass
 
+
 class MailtrainList(models.Model):
     """MailtrainList
 
@@ -2383,6 +2438,7 @@ class MailtrainList(models.Model):
 
     In the future this could be used to sync the lists to Mailtrain, but for now it's only used to store the list id.
     """
+
     cid = models.CharField(max_length=10, unique=True)
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True)
@@ -2394,4 +2450,3 @@ class MailtrainList(models.Model):
     class Meta:
         verbose_name = _("Mailtrain List")
         verbose_name_plural = _("Mailtrain Lists")
-

@@ -79,14 +79,10 @@ if 'advertisement' in settings.INSTALLED_APPS:
 # test
 urlpatterns += [path('test/', TemplateView.as_view(template_name='tests/index.html'))]
 
-if 'rosetta' in settings.INSTALLED_APPS:
-    urlpatterns += [path('rosetta/', include('rosetta.urls'))]
-
 if settings.DEBUG:
     urlpatterns = [
         path('__debug__/', include(debug_toolbar.urls)),
     ] + urlpatterns
-
 
 if getattr(settings, 'SERVE_MEDIA', False):
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT) + static(
