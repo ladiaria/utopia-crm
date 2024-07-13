@@ -2374,6 +2374,7 @@ def update_web_user(contact, newsletter_data=None, area_newsletters=False):
             except Contact.DoesNotExist:
                 pass
 
+
 class MailtrainList(models.Model):
     """MailtrainList
 
@@ -2393,4 +2394,3 @@ class MailtrainList(models.Model):
     class Meta:
         verbose_name = _("Mailtrain List")
         verbose_name_plural = _("Mailtrain Lists")
-
