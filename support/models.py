@@ -302,7 +302,7 @@ class SalesRecord(models.Model):
         ordering = ["-date_time"]
 
     def __str__(self):
-        return f"{self.seller.name} - {self.subscription.contact.name} - {self.date_time}"
+        return f"{self.seller} - {self.subscription.contact.name} - {self.date_time}"
 
     def show_products(self):
         return ", ".join([p.name for p in self.products.filter(type="S")])

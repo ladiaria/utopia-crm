@@ -78,10 +78,18 @@ class SubscriptionProductInline(admin.TabularInline):
     model = SubscriptionProduct
     fields = (
         ("product", "copies", "address"),
-        ("route", "order", "label_contact", "seller"),
+        ("order", "label_contact", "seller"),
         ("has_envelope", "active"),
     )
-    raw_id_fields = ["route", "label_contact", "seller"]
+    raw_id_fields = ["label_contact", "seller"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not "logistics" in getattr(settings, "DISABLED_APPS", []):
+            self.fields = list(self.fields)
+            self.fields[1] = ("route", "order", "label_contact", "seller")
+            self.raw_id_fields.insert(0, "route")
+
     extra = 1
 
     def get_parent_object_from_request(self, request):
@@ -422,23 +430,6 @@ class PriceRuleAdmin(SimpleHistoryAdmin):
     list_display = ("id", "active", "priority", "amount_to_pick", "mode", "resulting_product")
     list_editable = ("active", "priority")
     ordering = ("priority",)
-
-
-@admin.register(SubscriptionProduct)
-class SubscriptionProductAdmin(admin.ModelAdmin):
-    # TODO: improve get_subscription_active UX
-    list_display = (
-        "subscription_id",
-        "get_subscription_active",
-        "active",
-        "product",
-        "copies",
-        "address",
-        "route",
-        "order",
-        "seller",
-    )
-    raw_id_fields = ("subscription", "address", "label_contact")
 
 
 @admin.register(EmailReplacement)
