@@ -341,6 +341,19 @@ class Contact(models.Model):
             self.clean(debug=settings.DEBUG_CONTACT_CLEAN)
         return super().save(*args, **kwargs)
 
+    def safe_to_delete(self, ignore_movable=False):
+        # TODO: "relevant" and "movable" vars should be taken from an utils function or thm like that
+        collector = Collector(use="default")
+        collector.collect([self])
+        collector_data = collector.data
+        safety = True
+        for key in collector_data:
+            key_count = len(collector_data[key])
+            if key not in non_relevant_data_max_amounts or key_count > non_relevant_data_max_amounts[key]:
+                if not ignore_movable or key not in movable:
+                    safety = False
+        return safety
+
     def is_debtor(self):
         """
         Checks if the contact has expired invoices, returns True or False
