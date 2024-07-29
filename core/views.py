@@ -3,7 +3,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework_api_key.permissions import HasAPIKey
 
 from django.db import IntegrityError
-from django.http import JsonResponse, HttpResponse, HttpResponseBadRequest, HttpResponseRedirect
+from django.http import JsonResponse, HttpResponse, HttpResponseBadRequest, HttpResponseRedirect, HttpResponseForbidden
 from django.shortcuts import render, get_list_or_404, get_object_or_404
 from django.views.decorators.cache import never_cache
 from django.contrib import messages
@@ -11,6 +11,7 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
 
 from .models import Contact, MailtrainList, update_customer
+from .admin import contact_is_safe_to_delete
 from .utils import (
     get_emails_from_mailtrain_list,
     get_mailtrain_lists,
@@ -32,13 +33,12 @@ def handler500(request):
     return render(request, '500.html', status=500)
 
 
-@api_view(['POST', "PUT"])
+@api_view(['POST', "PUT", "DELETE"])
 @permission_classes([HasAPIKey])
-def updateuserfromweb(request):
+def contact_api(request):
     """
-    Updates or Inserts a contact. Sets updatefromweb flag to the contact to avoid ws loop.
+    Delete, update or create a contact. Sets updatefromweb flag to the contact to avoid ws loop.
     """
-    # TODO: change name to update_contact_api (or similiar)
     try:
         contact_id = request.data.get("contact_id", 0)
         mail = request.data.get("email")
@@ -50,12 +50,24 @@ def updateuserfromweb(request):
 
     try:
         c = Contact.objects.get(pk=contact_id)
-        update_customer(c, newmail, field, value)
+        if request.method == "DELETE":
+            if contact_is_safe_to_delete(c):
+                c.delete()
+            else:
+                return HttpResponseForbidden()
+        else:
+            update_customer(c, newmail, field, value)
     except Contact.DoesNotExist:
         if mail:
             try:
                 c = Contact.objects.get(email=mail)
-                update_customer(c, newmail, field, value)
+                if request.method == "DELETE":
+                    if contact_is_safe_to_delete(c):
+                        c.delete()
+                    else:
+                        return HttpResponseForbidden()
+                else:
+                    update_customer(c, newmail, field, value)
             except Contact.DoesNotExist:
                 if request.method == "POST":  # create
                     c = Contact.objects.create(name=request.data.get("name"))
