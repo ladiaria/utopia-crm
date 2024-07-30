@@ -1,0 +1,48 @@
+{% load i18n %}
+<div class="row">
+  <div class="card col-sm-12">
+    <div class="card-header">
+      <h3 class="card-title">{% trans "Scheduled Tasks" %}</h3>
+    </div>
+    <div class="card-body">
+      {% if all_scheduled_tasks %}
+        <table class="table">
+          <thead>
+            <tr role="row">
+              <th>{% trans "Category" %}</th>
+              <th>{% trans "Creation date" %}</th>
+              <th>{% trans "Execution date" %}</th>
+              <th>{% trans "Completed" %}</th>
+              <th>{% trans "Linked task" %}</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for task in all_scheduled_tasks %}
+              <tr role="row">
+                <td>{{ task.get_category }}</td>
+                <td>{{ task.creation_date }}</td>
+                <td>{{ task.execution_date }}</td>
+                <td>{{ task.completed }}</td>
+                <td>
+                  {% if task.ends %}
+                    <a href='{% url "admin:support_scheduledtask_change" task.ends.id %}'
+                       class="btn btn-primary btn-sm">{% trans "View" %}</a>
+                  {% else %}
+                    -
+                  {% endif %}
+                </td>
+                <td>
+                  <a href='{% url "admin:support_scheduledtask_change" task.id %}'
+                     class="btn btn-primary btn-sm">{% trans "View" %}</a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        {% trans "This contact has no scheduled tasks" %}
+      {% endif %}
+    </div>
+  </div>
+</div>

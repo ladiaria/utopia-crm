@@ -4,6 +4,7 @@ from pymailcheck import split_email
 from django import forms
 from django.core.mail import mail_managers
 from django.utils.translation import gettext as _
+from django.utils.safestring import mark_safe
 
 from util.email_typosquash import clean_email as email_typosquash_clean, replacement_request_add
 
@@ -14,7 +15,6 @@ no_email_validation_msg = _('email must be left blank if the contact has no emai
 
 
 class EmailValidationError(forms.ValidationError):
-
     def __init__(self, *args, **kwargs):
         valid = kwargs.pop("valid", False)
         replacement = kwargs.pop("replacement", "")
@@ -53,14 +53,13 @@ class EmailValidationForm(forms.Form):
             return result
 
     def email_extra_clean(self, cleaned_data):
-
         email, was_valid = cleaned_data.get("email"), cleaned_data.get("email_was_valid")
         replacement, suggestion = cleaned_data.get("email_replacement"), cleaned_data.get("email_suggestion")
         if was_valid:
             if not replacement:
                 mail_managers(
-                    _("WARN: wrong email replcement risk"),
-                    "The email %s can be soon be overwritten by the emailfix management command." % email,
+                    _("WARN: wrong email replacement risk"),
+                    f"The email {email} can soon be overwritten by the emailfix management command.",
                     True,
                 )
             return email
@@ -68,11 +67,12 @@ class EmailValidationForm(forms.Form):
             splitted = split_email(email)
             if suggestion:
                 replacement_request_add(
-                    split_email(cleaned_data.get("email_replaced"))["domain"], splitted["domain"], self.instance
+                    split_email(cleaned_data.get("email_replaced"))["domain"],
+                    splitted["domain"],
+                    getattr(self, 'instance', None),
                 )
                 return email
             elif not replacement:
-
                 email_typosquash_clean_result = email_typosquash_clean(email)
                 valid = email_typosquash_clean_result["valid"]
                 replacement = email_typosquash_clean_result.get("replacement", "")
@@ -92,8 +92,10 @@ class EmailValidationForm(forms.Form):
                                 suggestion=suggestion,
                                 splitted=splitted,
                                 submit_btn_selector=(
-                                    ":submit[name='%s']" % admin_submit_btn_name
-                                ) if admin_submit_btn_name else "#send_form",
+                                    (":submit[name='%s']" % admin_submit_btn_name)
+                                    if admin_submit_btn_name
+                                    else "#send_form"
+                                ),
                             ),
                         )
                     else:
@@ -150,12 +152,15 @@ class ContactAdminForm(EmailValidationForm, forms.ModelForm):
             raise forms.ValidationError(msg)
 
         if id_document and self.instance:
-            s = Contact.objects.filter(id_document=id_document).exclude(
-                pk=self.instance.pk
-            )
-            if s:
-                msg = _(
-                    "Contact {} already has this id document number".format(s[0].id)
+            s = Contact.objects.filter(id_document=id_document).exclude(pk=self.instance.pk)
+            if s.exists():
+                contact = s[0]
+                url = contact.get_absolute_url()
+                link_label = _("Open in a new tab")
+                url_str = f'<a href="{url}" target="_blank">{link_label}</a>'
+                msg = mark_safe(
+                    _("Contact %(contact_id)s already has this document. %(url_str)s")
+                    % {"contact_id": contact.id, "url_str": url_str}
                 )
                 raise forms.ValidationError(msg)
 
@@ -185,8 +190,15 @@ class ContactAdminForm(EmailValidationForm, forms.ModelForm):
         if email and self.instance:
             email = email.lower()
             s = Contact.objects.filter(email=email).exclude(pk=self.instance.pk)
-            if s:
-                msg = _("Error: Contact {} already has this email".format(s[0].id))
+            if s.exists():
+                contact = s[0]
+                url = contact.get_absolute_url()
+                link_label = _("Open in a new tab")
+                url_str = f'<a href="{url}" target="_blank">{link_label}</a>'
+                msg = mark_safe(
+                    _("Contact %(contact_id)s already has this email. %(url_str)s")
+                    % {"contact_id": contact.id, "url_str": url_str}
+                )
                 raise forms.ValidationError(msg)
 
         return email
@@ -197,11 +209,28 @@ class SubscriptionAdminForm(forms.ModelForm):
         model = Subscription
         fields = "__all__"
 
+    def clean(self):
+        cleaned_data = super().clean()
+        user = self.request.user
+        subscription_type = cleaned_data.get('type')
+        free_subscription_requested_by = cleaned_data.get('free_subscription_requested_by')
+        end_date = cleaned_data.get('end_date')
+        if not user.has_perm('core.can_add_free_subscription'):
+            original_type = self.instance.type if self.instance else None
+            if subscription_type in ("F", "S") and original_type != subscription_type:
+                self.add_error("type", _("You don't have permission to set this subscription as free"))
+        if subscription_type in ("F", "S") and not free_subscription_requested_by:
+            self.add_error(
+                "free_subscription_requested_by", _("You need to select who requested the subscription if it's free")
+            )
+        if subscription_type in ("F", "S") and not end_date:
+            self.add_error("end_date", _("Free subscriptions must have an end date"))
+        return cleaned_data
+
     def __init__(self, *args, **kwargs):
         super(SubscriptionAdminForm, self).__init__(*args, **kwargs)
         if 'instance' in kwargs:
-            self.fields['billing_address'].queryset = Address.objects.filter(
-                contact=kwargs['instance'].contact)
+            self.fields['billing_address'].queryset = Address.objects.filter(contact=kwargs['instance'].contact)
 
 
 class AddressForm(forms.ModelForm):

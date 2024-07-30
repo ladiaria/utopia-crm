@@ -2,13 +2,26 @@
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 from django import forms
+from django.forms import ValidationError
 from django.contrib.auth.models import User
+from django.utils.safestring import mark_safe
 
-from core.models import Contact, Product, Subscription, Address, DynamicContactFilter, SubscriptionProduct, Activity
+from core.models import (
+    Contact,
+    Product,
+    Subscription,
+    Address,
+    DynamicContactFilter,
+    SubscriptionProduct,
+    Activity,
+    regex_alphanumeric_msg,
+)
 from core.forms import EmailValidationForm
 from core.choices import ADDRESS_TYPE_CHOICES, FREQUENCY_CHOICES, ACTIVITY_TYPES
+from core.signals import alphanumeric
 
-from .models import Seller, Issue, IssueStatus, IssueSubcategory
+
+from .models import Seller, Issue, IssueStatus, IssueSubcategory, SalesRecord
 from .choices import ISSUE_CATEGORIES
 
 
@@ -154,79 +167,152 @@ class NewPromoForm(EmailValidationForm):
         self.email_extra_clean(super().clean())
 
 
-class NewSubscriptionForm(EmailValidationForm):
-    contact_id = forms.CharField(required=False)
-    name = forms.CharField(widget=forms.TextInput(attrs={"class": "form-control"}))
-    phone = forms.CharField(empty_value=None, required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
-    mobile = forms.CharField(empty_value=None, required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
-    notes = forms.CharField(empty_value=None, required=False, widget=forms.Textarea(attrs={"class": "form-control"}))
-    register_activity = forms.CharField(
+class NewSubscriptionForm(EmailValidationForm, forms.ModelForm):
+
+    class Meta:
+        model = Subscription
+        fields = (
+            "contact",
+            "name",
+            "phone",
+            "mobile",
+            "notes",
+            "email",
+            "id_document",
+            "frequency",
+            "payment_type",
+            "start_date",
+            "end_date",
+            "billing_address",
+            "billing_name",
+            "billing_phone",
+            "billing_email",
+            "default_address",
+            "send_bill_copy_by_email",
+            "billing_id_doc",
+            "rut",
+        )
+        widgets = {
+            "contact": forms.HiddenInput(),
+            "name": forms.TextInput(attrs={"class": "form-control"}),
+            "phone": forms.TextInput(attrs={"class": "form-control"}),
+            "mobile": forms.TextInput(attrs={"class": "form-control"}),
+            "notes": forms.Textarea(attrs={"class": "form-control", "rows": "4"}),
+            "email": forms.EmailInput(attrs={"class": "form-control"}),
+            "id_document": forms.TextInput(attrs={"class": "form-control"}),
+            "frequency": forms.Select(attrs={"class": "form-control"}),
+            "payment_type": forms.Select(attrs={"class": "form-control"}),
+            "start_date": forms.DateInput(
+                format="%Y-%m-%d",
+                attrs={"class": "datepicker form-control", "autocomplete": "off"},
+            ),
+            "end_date": forms.DateInput(
+                format="%Y-%m-%d",
+                attrs={"class": "datepicker form-control", "autocomplete": "off"},
+            ),
+            "billing_address": forms.Select(attrs={"class": "form-control"}),
+            "billing_name": forms.TextInput(attrs={"class": "form-control"}),
+            "billing_id_doc": forms.TextInput(attrs={"class": "form-control"}),
+            "rut": forms.TextInput(attrs={"class": "form-control"}),
+            "billing_phone": forms.TextInput(attrs={"class": "form-control"}),
+            "billing_email": forms.TextInput(attrs={"class": "form-control"}),
+            "default_address": forms.Select(attrs={"class": "form-control"}),
+            "send_bill_copy_by_email": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+        }
+
+        labels = {
+            "name": _("Name"),
+            "phone": _("Phone"),
+            "mobile": _("Mobile"),
+            "notes": _("Notes"),
+            "email": _("Email"),
+            "id_document": _("ID Document"),
+            "frequency": _("Frequency"),
+            "payment_type": _("Payment type"),
+            "start_date": _("Start date"),
+            "end_date": _("End date"),
+            "billing_address": _("Billing address"),
+            "billing_name": _("Billing name"),
+            "rut": _("Unique Taxpayer ID"),
+            "billing_id_doc": _("Billing ID Document"),
+            "billing_phone": _("Billing phone"),
+            "billing_email": _("Billing email"),
+            "default_address": _("Default address"),
+            "send_bill_copy_by_email": _("Send bill copy by email"),
+        }
+
+    name = forms.CharField(widget=forms.TextInput(attrs={"class": "form-control"}), label="Nombre")
+    phone = forms.CharField(
+        empty_value=None, widget=forms.TextInput(attrs={"class": "form-control"}), label="Teléfono"
+    )
+    mobile = forms.CharField(
+        empty_value=None, required=False, widget=forms.TextInput(attrs={"class": "form-control"}), label="Celular"
+    )
+    notes = forms.CharField(
         empty_value=None,
         required=False,
         widget=forms.Textarea(attrs={"class": "form-control", "rows": "4"}),
+        label="Observaciones",
+    )
+    register_activity = forms.CharField(
+        empty_value=None,
+        required=False,
+        widget=forms.Textarea(attrs={"class": "form-control", "rows": "1"}),
+        label="Registrar actividad",
     )
     email = forms.EmailField(
-        empty_value=None, required=False, widget=forms.EmailInput(attrs={"class": "form-control"})
+        empty_value=None,
+        required=False,
+        widget=forms.EmailInput(attrs={"class": "form-control"}),
+        label="Correo electrónico",
     )
     id_document = forms.CharField(
-        empty_value=None, required=False, widget=forms.TextInput(attrs={"class": "form-control"})
-    )
-    frequency = forms.ChoiceField(
+        empty_value=None,
         required=False,
-        choices=FREQUENCY_CHOICES,
-        widget=forms.Select(attrs={"class": "form-control"}),
-    )
-    payment_type = forms.ChoiceField(
-        required=False,
-        choices=settings.SUBSCRIPTION_PAYMENT_METHODS,
-        widget=forms.Select(attrs={"class": "form-control"}),
-    )
-    start_date = forms.DateField(
-        widget=forms.DateInput(format="%Y-%m-%d", attrs={"class": "datepicker form-control", "autocomplete": "off"})
-    )
-    end_date = forms.DateField(
-        required=False,
-        widget=forms.DateInput(format="%Y-%m-%d", attrs={"class": "datepicker form-control", "autocomplete": "off"}),
-    )
-    billing_address = forms.ModelChoiceField(
-        Address.objects.all(),
-        required=False,
-        widget=forms.Select(attrs={"class": "form-control"}),
-    )
-    billing_name = forms.CharField(
-        empty_value=None, required=False, widget=forms.TextInput(attrs={"class": "form-control"})
-    )
-    billing_id_document = forms.CharField(
-        empty_value=None, required=False, widget=forms.TextInput(attrs={"class": "form-control"})
-    )
-    billing_rut = forms.CharField(
-        empty_value=None, required=False, widget=forms.TextInput(attrs={"class": "form-control"})
-    )
-    billing_phone = forms.CharField(
-        empty_value=None, required=False, widget=forms.TextInput(attrs={"class": "form-control"})
-    )
-    billing_email = forms.EmailField(
-        empty_value=None, required=False, widget=forms.EmailInput(attrs={"class": "form-control"})
+        widget=forms.TextInput(attrs={"class": "form-control"}),
+        label="Documento de identidad",
     )
     default_address = forms.ModelChoiceField(
         Address.objects.all(),
         required=False,
         widget=forms.Select(attrs={"class": "form-control"}),
+        label="Aplicar dirección a todos los productos. Podrás cambiarlas una por una luego.",
     )
     send_bill_copy_by_email = forms.BooleanField(
-        label=_("Send invoice copy by email"),
+        label="Enviar factura por correo electrónico",
         required=False,
         widget=forms.CheckboxInput(attrs={"class": "form-check-input"}),
     )
 
+    def clean_name(self):
+        data = self.cleaned_data["name"].strip()
+        if not alphanumeric.match(data):
+            raise ValidationError(regex_alphanumeric_msg)
+        return data
+
+    def clean_email(self):
+        email = self.cleaned_data.get("email")
+        if email:
+            email = email.lower()
+        return email
+
     def clean(self):
         cleaned_data = super().clean()
-        email, contact_id = self.email_extra_clean(cleaned_data), cleaned_data['contact_id']
-        if email and Contact.objects.filter(email=email).exclude(id=contact_id).exists():
-            raise forms.ValidationError(_("This email already exists in a different contact"))
-        id_document = cleaned_data['id_document']
-        if id_document and Contact.objects.filter(id_document=id_document).exclude(id=contact_id).exists():
-            raise forms.ValidationError(_("This id document already exists in a different contact"))
+        email = self.email_extra_clean(cleaned_data)
+        if email:
+            contact_id, id_document = cleaned_data["contact"].id, cleaned_data["id_document"]
+
+            if Contact.objects.filter(email=email).exclude(id=contact_id).exists():
+                c = Contact.objects.filter(email=email).exclude(id=contact_id).first()
+                url = f'<a href="{c.get_absolute_url()}" target="_blank">Abrir en otra pestaña</a>'
+                raise ValidationError(mark_safe(f"Este email ya existe en otro contacto (id: {c.id}). {url}"))
+
+            if id_document and Contact.objects.filter(id_document=id_document).exclude(id=contact_id).exists():
+                c = Contact.objects.filter(id_document=id_document).exclude(id=contact_id).first()
+                url = f'<a href="{c.get_absolute_url()}" target="_blank">Abrir en otra pestaña</a>'
+                raise ValidationError(
+                    mark_safe(f"Este documento de identidad ya existe en otro contacto (id: {c.id}). {url}")
+                )
 
 
 class IssueStartForm(forms.ModelForm):
@@ -554,3 +640,45 @@ class SugerenciaGeorefForm(forms.ModelForm):
             "verified",
             "address_type",
         ]
+
+
+class ValidateSubscriptionForm(forms.ModelForm):
+    override_commission_value = forms.IntegerField(
+        required=False,
+        widget=forms.NumberInput(attrs={"class": "form-control", "placeholder": _("Override amount"), "min": 0}),
+    )
+    seller = forms.ModelChoiceField(
+        queryset=Seller.objects.filter(internal=True),
+        widget=forms.Select(attrs={"class": "form-control"}),
+    )
+
+    class Meta:
+        model = SalesRecord
+        fields = ("can_be_commissioned", "override_commission_value", "seller")
+        widgets = {
+            "can_be_commissioned": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+        }
+
+
+class SalesRecordCreateForm(forms.ModelForm):
+    override_commission_value = forms.IntegerField(
+        required=False,
+        widget=forms.NumberInput(attrs={"class": "form-control", "placeholder": _("Override amount"), "min": 0}),
+    )
+
+    class Meta:
+        model = SalesRecord
+        fields = ("total_commission_value", "can_be_commissioned", "seller", "subscription")
+        widgets = {
+            "can_be_commissioned": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "subscription": forms.HiddenInput(),
+        }
+
+    def __init__(self, *args, **kwargs):
+        subscription = kwargs.pop('subscription', None)
+        super().__init__(*args, **kwargs)
+        self.fields['seller'].queryset = Seller.objects.filter(internal=True)
+        # Use subscription_id to initialize fields or set initial values
+        if subscription:
+            # Assuming you have a field named 'subscription' to hold the subscription_id
+            self.fields['subscription'].initial = subscription

@@ -1,5 +1,6 @@
 # coding=utf-8
 from datetime import timedelta
+import json
 
 from django.conf import settings
 from django.test import TestCase
@@ -10,7 +11,7 @@ from tests.factory import (
 )
 
 from util import space_join
-from core.models import Contact, Product, Campaign, ContactCampaignStatus
+from core.models import Contact, Product, Campaign, ContactCampaignStatus, update_customer
 from invoicing.models import Invoice
 
 
@@ -95,7 +96,9 @@ class TestCoreContact(TestCase):
         response = contact.add_to_campaign(campaign.id)
 
         # This command returns a text, we have to see if the text has been correctly returned
-        self.assertEqual(response, _("Contact %s (ID: %s) added to campaign") % (contact.name, contact.id))
+        self.assertEqual(
+            response, _("Contact %(name)s (ID: %(id)s) added to campaign") % {'name': contact.name, 'id': contact.id}
+        )
 
         # We have to check if a ContactCampaignStatus with campaign.id and contact.id exists
         self.assertTrue(ContactCampaignStatus.objects.filter(contact=contact, campaign=campaign).exists())
@@ -140,9 +143,6 @@ class TestCoreContact(TestCase):
         # contact.add_product_history(product, status)
 
     def test7_others_classes(self):
-        # ADDRESS_TYPE_CHOICES = (
-        # ('digital', _('Digital')),
-        # ('physical', _('Physical'))
         contact = create_contact(name='Contact 9', phone='12412455')
         address = create_address('Araucho 1390', contact, address_type='physical')
         self.assertEqual(
@@ -156,8 +156,34 @@ class TestCoreContact(TestCase):
         address_type = address.get_type()
         self.assertEqual(address_type, _('Physical'))
 
-    def test10_basic_print(self):
+    def test8_basic_print(self):
         from core.models import Institution
         institution = Institution.objects.create(name='inst')
         basic_print = str(institution)
         self.assertEqual(basic_print, 'inst')
+
+    def test9_update_contact(self):
+        """
+        - Email change will not raise any error.
+        - Adding or removing a newsletter whose pub_id is not defined in settings will not raise any error.
+        - TODO: Adding correct NL should impact in the associated CMS (use CMS's /api/subscribers/?contact_id=XX)
+        """
+        email = "contact@fakemail.com.uy"
+        contact = create_contact("Digital", 29000808, email)
+        # secure id check to prevent failures on "running" CMS databases
+        if contact.id > 999:  # TODO: a new local setting and only make this check if the setting is set
+            self.fail("contact_id secure limit reached, please drop your test db and try again")
+        contact.email = "newemail@fakemail.com.uy"
+        contact.save()
+        # change again, if not, next run of this test will fail (TODO: confirm this assumption)
+        contact.email = email
+        contact.save()
+        non_existing_key = max(settings.WEB_UPDATE_NEWSLETTER_MAP.keys() or [0]) + 1
+        try:
+            update_customer(contact, None, 'newsletters', json.dumps([non_existing_key]))
+        except Exception:
+            self.fail('update_customer call raised Exception')
+        try:
+            update_customer(contact, None, 'newsletters_remove', json.dumps([non_existing_key]))
+        except Exception:
+            self.fail('update_customer call raised Exception')

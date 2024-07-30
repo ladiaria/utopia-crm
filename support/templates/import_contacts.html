@@ -24,11 +24,14 @@
     <h4>{{new_contacts_count}} {% trans 'new contacts imported' %}:</h4>
     {% endif %}
 
-    {% if in_active_campaign %}<p>{{in_active_campaign}} contactos fueron encontrados en campañas activas.</p>
+    {% if in_active_campaign %}
+    <p>{{in_active_campaign}} contactos fueron encontrados en campañas activas.</p>
     {% endif %}
     {% if active_contacts %}<p>{{active_contacts}} contactos estaban activos.</p>{% endif %}
     {% if existing_inactive_contacts %}<p>{{existing_inactive_contacts}} contactos estaban inactivos.</p>{% endif %}
+    {% if added_emails %}
     <p>{{added_emails}} emails fueron agregados a contactos existentes.</p>
+    {% endif %}
 
     {% if errors_list %}
     <h4>{% trans 'Import has encountered some errors' %}:</h4>
@@ -47,7 +50,7 @@
           for="file">{% trans 'Choose file to send. It has to be a csv file with the following header and columns' %}:</label>
         <p>{% trans "name, phone, email, mobile, work_phone, notes, address_1, address_2, city, state" %}</p>
         <p>{% trans "All columns must be present in the header. Only name and phone are required in the content." %}</p>
-        <input type="file" name="file" id="file" class="form-control">
+        <input type="file" name="file" id="file" class="form-control" accept=".csv">
       </div>
       <div class="form-group">
         <label for="tags">Etiqueta para los contactos inexistentes:</label>

@@ -7,7 +7,10 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
+from django.utils.safestring import mark_safe
 from autoslug import AutoSlugField
+
+
 from core.models import Campaign
 
 from simple_history.models import HistoricalRecords
@@ -69,14 +72,17 @@ class Seller(models.Model):
             Q(campaign__end_date__isnull=True) | Q(campaign__end_date__gte=timezone.now()),
             status="P",
             activity_type="C",
-        )
+        ).order_by("datetime")
 
     def total_pending_activities_count(self):
-        return self.activity_set.filter(
+        activity_qs = self.activity_set.filter(
             Q(campaign__end_date__isnull=True) | Q(campaign__end_date__gte=timezone.now()),
             status="P",
             activity_type="C",
-        ).count()
+            datetime__lte=timezone.now(),
+        )
+
+        return activity_qs.count()
 
     class Meta:
         verbose_name = _("seller")
@@ -253,3 +259,180 @@ class IssueSubcategory(models.Model):
 
     class Meta:
         ordering = ["category", "name"]
+
+
+class SalesRecord(models.Model):
+    """
+    Description: This model is used to store the sales records of the contacts, and the seller who made the sale.
+    It stores all the products that were sold to the contact, the seller, the date of the sale, and
+    the subscription.
+    """
+
+    class SALE_TYPE(models.TextChoices):
+        FULL = "F", _("Full")
+        PARTIAL = "P", _("Partial")
+
+    seller = models.ForeignKey(
+        "support.Seller", on_delete=models.CASCADE, verbose_name=_("Seller"), null=True, blank=True
+    )
+    subscription = models.ForeignKey("core.Subscription", on_delete=models.CASCADE, verbose_name=_("Subscription"))
+    date_time = models.DateTimeField(auto_now_add=True, verbose_name=_("Date and time"))
+    products = models.ManyToManyField("core.Product", verbose_name=_("Products"))
+    # This is the price at the moment of the sale, because it can change in the future.
+    price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name=_("Price"), null=True, blank=True)
+    sale_type = models.CharField(max_length=1, choices=SALE_TYPE.choices, default=SALE_TYPE.FULL)
+    campaign = models.ForeignKey("core.Campaign", on_delete=models.CASCADE, verbose_name=_("Campaign"), null=True)
+    commission_for_payment_type = models.DecimalField(
+        max_digits=10, decimal_places=2, verbose_name=_("Commission for payment type"), default=0
+    )
+    commission_for_products_sold = models.DecimalField(
+        max_digits=10, decimal_places=2, verbose_name=_("Commission for products sold"), default=0
+    )
+    commission_for_subscription_frequency = models.DecimalField(
+        max_digits=10, decimal_places=2, verbose_name=_("Commission for subscription frequency"), default=0
+    )
+    total_commission_value = models.DecimalField(
+        max_digits=10, decimal_places=2, verbose_name=_("Total commission value"), default=0
+    )
+    can_be_commissioned = models.BooleanField(default=True, verbose_name=_("Can be commissioned"))
+
+    class Meta:
+        verbose_name = _("Sales record")
+        verbose_name_plural = _("Sales records")
+        ordering = ["-date_time"]
+
+    def __str__(self):
+        return f"{self.seller} - {self.subscription.contact.name} - {self.date_time}"
+
+    def show_products(self):
+        return ", ".join([p.name for p in self.products.filter(type="S")])
+
+    show_products.short_description = _("Products")
+
+    def show_products_per_line(self):
+        # Show an html list of products
+        return mark_safe("<br>".join([p.name for p in self.products.all()]))
+
+    def get_contact(self):
+        return self.subscription.contact
+
+    get_contact.short_description = _("Contact")
+
+    def set_generic_seller(self):
+        # TODO: try to remove this "generic" required data
+        try:
+            self.seller = Seller.objects.get(name=getattr(settings, "GENERIC_SELLER_NAME", "Generic Seller"))
+        except Seller.DoesNotExist:
+            pass
+        else:
+            self.save()
+
+    def add_products(self) -> None:
+        product_list = self.subscription.product_summary_list()
+        self.products.add(*product_list)
+
+    def max_products_count(self):
+        if hasattr(settings, "SELLER_COMMISSION_PRODUCTS_COUNT"):
+            products_count = self.products.filter(type="S").count()
+            if hasattr(settings, "SPECIAL_PRODUCT_FOR_COMMISSION_SLUG"):
+                special_product_slug = settings.SPECIAL_PRODUCT_FOR_COMMISSION_SLUG
+                if self.products.filter(slug=special_product_slug).exists():
+                    products_count += 1
+            max_count = max(settings.SELLER_COMMISSION_PRODUCTS_COUNT.keys())
+            if products_count > max_count:
+                products_count = max_count
+            return products_count
+        return self.subscription.subscriptionproduct_set.filter(type="S").count()
+
+    def set_commission_for_products_sold(self, save=False, return_value=False):
+        # For amount of products sold. Doesn't save unless specified
+        if hasattr(settings, "SELLER_COMMISSION_PRODUCTS_COUNT"):
+            products_count = self.max_products_count()
+            commission = settings.SELLER_COMMISSION_PRODUCTS_COUNT.get(products_count, 0)
+            if return_value:
+                return commission
+            self.commission_for_products_sold = commission
+            if save:
+                self.save()
+        else:
+            if return_value:
+                return 0
+            self.commission_for_products_sold = 0
+            if save:
+                self.save()
+
+    def set_commission_for_payment_type(self, save=False, return_value=False):
+        # For payment type
+        if hasattr(settings, "SELLER_COMMISSION_PAYMENT_METHODS") and self.sale_type == self.SALE_TYPE.FULL:
+            payment_type = self.subscription.payment_type
+            commission = settings.SELLER_COMMISSION_PAYMENT_METHODS.get(payment_type, 0)
+            if return_value:
+                return commission
+            self.commission_for_payment_type = commission
+            if save:
+                self.save()
+        else:
+            if return_value:
+                return 0
+            self.commission_for_payment_type = 0
+            if save:
+                self.save()
+
+    def set_commission_for_subscription_frequency(self, save=False, return_value=False):
+        # For subscription frequency
+        if hasattr(settings, "SELLER_COMMISSION_SUBSCRIPTION_FREQUENCY"):
+            frequency = self.subscription.frequency
+            commission = settings.SELLER_COMMISSION_SUBSCRIPTION_FREQUENCY.get(frequency, 0)
+            if return_value:
+                return commission
+            self.commission_for_subscription_frequency = commission
+            if save:
+                self.save()
+        else:
+            if return_value:
+                return 0
+            self.commission_for_subscription_frequency = 0
+            if save:
+                self.save()
+
+    def set_commissions(self, force=False) -> None:
+        if (force or self.sale_type == self.SALE_TYPE.FULL) and self.can_be_commissioned:
+            self.set_commission_for_products_sold()
+            self.set_commission_for_payment_type()
+            self.set_commission_for_subscription_frequency()
+            self.total_commission_value = (
+                self.commission_for_products_sold
+                + self.commission_for_payment_type
+                + self.commission_for_subscription_frequency
+            )
+            self.save()
+
+    def has_special_product(self):
+        if hasattr(settings, "SPECIAL_PRODUCT_FOR_COMMISSION_SLUG"):
+            special_product_slug = settings.SPECIAL_PRODUCT_FOR_COMMISSION_SLUG
+            if self.products.filter(slug=special_product_slug).exists():
+                return True
+        return False
+
+    def get_payment_type(self):
+        if self.sale_type == self.SALE_TYPE.FULL:
+            return self.subscription.get_payment_type_display()
+        else:
+            return _("N/A")
+
+    def calculate_commission(self):
+        # Show all these in a separate line with a label
+        cpt = f"{self.set_commission_for_payment_type(return_value=True)} ({self.subscription.get_payment_type_display()})"  # noqa
+        cfp = f"{self.set_commission_for_products_sold(return_value=True)} ({self.max_products_count()})"
+        cfs = f"{self.set_commission_for_subscription_frequency(return_value=True)} ({self.subscription.get_frequency_display()})"  # noqa
+        return f"{cpt} + {cfp} + {cfs} = {self.calculate_total_commission()}"
+
+    def calculate_total_commission(self):
+        if self.sale_type == self.SALE_TYPE.FULL:
+            value = (
+                    self.set_commission_for_payment_type(return_value=True)
+                    + self.set_commission_for_products_sold(return_value=True)
+                    + self.set_commission_for_subscription_frequency(return_value=True)
+                )
+            return value
+        return 0

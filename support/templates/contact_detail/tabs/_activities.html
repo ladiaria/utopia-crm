@@ -1,0 +1,54 @@
+{% load i18n %}
+<div class="row">
+  <div class="card col-sm-12">
+    <div class="card-header">
+      <h3 class="card-title">{% trans "Latest activities" %}</h3>
+    </div>
+    <div class="card-body">
+      {% if all_activities %}
+        <table class="table">
+          <thead>
+            <tr role="row">
+              <th>{% trans "Date" %}</th>
+              <th>{% trans "Activity type" %}</th>
+              <th>{% trans "Direction" %}</th>
+              <th>{% trans "Campaign" %}</th>
+              <th>{% trans "Product" %}</th>
+              <th>{% trans "Issue" %}</th>
+              <th>{% trans "Status" %}</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for activity in all_activities %}
+              <tr role="row">
+                <td>{{ activity.datetime }}</td>
+                <td>{{ activity.get_type }}</td>
+                <td>{{ activity.get_direction }}</td>
+                <td>{{ activity.campaign|default_if_none:"-" }}</td>
+                <td>{{ activity.product|default_if_none:"-" }}</td>
+                <td>
+                  {% if activity.issue %}
+                    <a href="{% url "view_issue" activity.issue.id %}"
+                       class="btn btn-primary btn-sm">{% trans "View" %}</a>
+                  {% else %}
+                    -
+                  {% endif %}
+                </td>
+                <td>{{ activity.get_status }}</td>
+                <td>
+                  <a href="#"
+                     class="btn btn-primary btn-sm"
+                     data-toggle="modal"
+                     data-target="#activityView-{{ activity.id }}">{% trans "View" %}</a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        {% trans "This contact has no activities" %}
+      {% endif %}
+    </div>
+  </div>
+</div>

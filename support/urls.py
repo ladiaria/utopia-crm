@@ -11,7 +11,6 @@ from support.views import (
     edit_address,
     import_contacts,
     send_promo,
-    new_subscription,
     default_newsletters_dialog,
     product_change,
     book_additional_product,
@@ -68,6 +67,11 @@ urlpatterns = [
         seller_console_list_campaigns,
         name="seller_console_list_campaigns",
     ),
+    path(
+        "seller_console_manager/<int:seller_id>/",
+        seller_console_list_campaigns,
+        name="seller_console_list_campaigns_manager",
+    ),
     re_path(r"^seller_console/(\w+)/(\d+)/$", seller_console, name="seller_console"),
     re_path(r"^special_routes/(\d+)/$", seller_console_special_routes, name="seller_console_special_routes"),
     path("scheduled_activities/", scheduled_activities, name="scheduled_activities"),
@@ -75,7 +79,14 @@ urlpatterns = [
     re_path(r"^edit_address/(\d+)/(\d+)/$", edit_address),
     path("import/", import_contacts, name="import_contacts"),
     re_path(r"^send_promo/(\d+)/$", send_promo, name="send_promo"),
-    re_path(r"^new_subscription/(\d+)/$", new_subscription, name="new_subscription"),
+    path(
+        "contacts/<int:contact_id>/new_subscription/", views.SubscriptionCreateView.as_view(), name="new_subscription"
+    ),
+    path(
+        "contacts/<int:contact_id>/edit_subscription/<int:subscription_id>/",
+        views.SubscriptionUpdateView.as_view(),
+        name="edit_subscription",
+    ),
     path(
         "default_newsletters_dialog/<int:contact_id>/",
         default_newsletters_dialog,
@@ -181,5 +192,30 @@ urlpatterns = [
         "ajax/sugerir_direccion_autocompletar/",
         location.sugerir_direccion_autocompletar,
         name="ajax_sugerir_direccion_autocompletar",
+    ),
+    path(
+        "sales_record_filter/",
+        views.SalesRecordFilterManagersView.as_view(),
+        name="sales_record_filter",
+    ),
+    path(
+        "my_sales/",
+        views.SalesRecordFilterSellersView.as_view(),
+        name="my_sales",
+    ),
+    path(
+        "validate_sale/<int:pk>/",
+        views.ValidateSubscriptionSalesRecord.as_view(),
+        name="validate_sale",
+    ),
+    path(
+        "validate_subscription/<int:pk>/",
+        views.ValidateSubscriptionRedirectView.as_view(),
+        name="validate_subscription",
+    ),
+    path(
+        "subscription/<int:subscription_id>/add_sales_record/",
+        views.SalesRecordCreateView.as_view(),
+        name="add_sales_record",
     ),
 ]

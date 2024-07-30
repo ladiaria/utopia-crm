@@ -1,0 +1,147 @@
+{% load i18n core_tags %}
+<div class="row">
+  <div class="card col-sm-9">
+    <div class="card-header">
+      <h3 class="card-title">{% trans "General information" %}</h3>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-4">
+          <dt>{% trans "Name" %}</dt>
+          <dd>
+            {{ contact.name }}
+          </dd>
+          <dt>{% trans "Documento" %}</dt>
+          <dd>
+            {{ contact.id_document|default_if_none:"N/A" }}
+          </dd>
+          <dt>{% trans "Email" %}</dt>
+          <dd>
+            {{ contact.email }}
+          </dd>
+        </div>
+        <div class="col-4">
+          <dt>{% trans "Phone" %}</dt>
+          <dd>
+            {{ contact.phone }}
+          </dd>
+          {% if contact.mobile %}
+            <dt>{% trans "Mobile" %}</dt>
+            <dd>
+              {{ contact.mobile }}
+            </dd>
+          {% endif %}
+          {% if contact.work_phone %}
+            <dt>{% trans "Work phone" %}</dt>
+            <dd>
+              {{ contact.work_phone }}
+            </dd>
+          {% endif %}
+          {% if contact.tags.all %}
+            <dt>{% trans "Tags" %}</dt>
+            <dd>
+              {% for tag in contact.tags.all %}<span class="btn btn-default btn-sm">{{ tag }}</span>{% endfor %}
+            </dd>
+          {% endif %}
+        </div>
+        <div class="col-4">
+          {% comment %}
+            TODO: ADD OTHER STUFF HERE
+          {% endcomment %}
+        </div>
+      </div>
+    </div>
+    <div class="card-footer text-right">
+      <a href="{% url "edit_contact" contact.id %}" class="btn btn-success">{% trans "Edit info and newsletters" %}</a>
+    </div>
+  </div>
+</div>
+<div class="row">
+  <div class="card col-sm-9">
+    <div class="card-header">
+      <h3 class="card-title">{% trans "Addresses" %}</h3>
+    </div>
+    <div class="card-body">
+      {% if addresses %}
+        {% for address in addresses %}
+          <div class="card">
+            <div class="card-header">
+              <h4 class="card-title">
+                {{ address }}
+                {% if address.verified %}
+                  <i class="fas fa-check-circle text-success"> {% trans "Verified" %}</i>
+                {% elif address.needs_georef %}
+                  <i class="fas fa-times-circle text-danger"> {% trans "Saved without Georef" %}</i>
+                {% endif %}
+              </h4>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col">
+                  <dl>
+                    <dt>{% trans "Address 1" %}</dt>
+                    <dd>
+                      {{ address.address_1 }}
+                    </dd>
+                  </dl>
+                  {% if address.address_2 %}
+                    <dt>{% trans "Address 2" %}</dt>
+                    <dd>
+                      {{ address.address_2 }}
+                    </dd>
+                  {% endif %}
+                </div>
+                <div class="col">
+                  <dt>{% trans "Address city" %}</dt>
+                  {% if not address.city %}<i class="fas fa-exclamation-triangle text-danger"></i>{% endif %}
+                  <dd>
+                    {{ address.city }}
+                  </dd>
+                </div>
+                <div class="col">
+                  <dt>{% trans "Address state" %}</dt>
+                  {% if not address.state %}<i class="fas fa-exclamation-triangle text-danger"></i>{% endif %}
+                  <dd>
+                    {{ address.state }}
+                  </dd>
+                </div>
+              </div>
+              <div class="row">
+                <div class="col">
+                  {% if address.notes %}
+                    <dt>{% trans "Address notes" %}</dt>
+                    <dd>
+                      {{ address.notes }}
+                    </dd>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+            <div class="card-footer text-right">
+              {% if not address.verified %}
+                <a href="{% url "normalizar_direccion" contact.id address.id %}"
+                   class="btn btn-gradient btn-primary">{% trans "Normalize" %}</a>
+              {% endif %}
+              <a href="{% url "editar_direccion" contact.id address.id %}"
+                 class="btn btn-gradient btn-primary">{% trans "Edit address" %}</a>
+              <a href="{% url "edit_address_complementary_information" address.id %}"
+                 class="btn btn-gradient btn-primary">{% trans "Complementary information" %}</a>
+              {% if request.user|in_group:"Support" or request.user|in_group:"Managers" %}
+                <a href="{% url "admin:core_address_change" address.id %}"
+                   class="btn btn-gradient btn-danger">{% trans "Admin" %}</a>
+                <a href="{% url "admin:core_address_delete" address.id %}"
+                   class="btn btn-gradient btn-danger">{% trans "Delete address" %}</a>
+              {% endif %}
+            </div>
+          </div>
+        {% endfor %}
+      {% else %}
+        {% trans "This contact has no addresses" %}
+      {% endif %}
+      <div class="text-right">
+        <a href="{% url "agregar_direccion" contact.id %}"
+           class="btn btn-gradient btn-primary">{% trans "Add Address" %}</a>
+      </div>
+    </div>
+  </div>
+</div>

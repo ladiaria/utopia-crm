@@ -1,0 +1,279 @@
+{% extends "adminlte/base.html" %}
+
+{% load i18n static core_tags widget_tweaks %}
+
+{% block title %}
+  {% trans "Validate subscription" %}
+{% endblock title %}
+
+{% block no_heading %}
+  <h1>
+    <a href="{% url 'contact_list' %}">{% trans "Contacts" %}</a> » <a href="{% url 'contact_detail' object.subscription.contact.id %}">{{ object.subscription.contact.id }} - {{ object.subscription.contact.name }}</a> »
+    {% trans "Validate Subscription" %}
+  </h1>
+{% endblock no_heading %}
+
+{% block content %}
+  <section class="content">
+    <div class="row">
+      <div class="col">
+        <div class="card">
+          <div class="card-body">
+            <div class="row">
+              <div class="col-9">
+                <div class="card {% if subscription.status == 'PA' %}bg-secondary{% endif %}">
+                  <div class="card-header">
+                    <h3 class="card-title">{% trans "Subscription" %}</h3>
+                  </div>
+                  <div class="card-body">
+                    <div class="row">
+                      <div class="col-6">
+                        <dt>{% trans "Products" %}:</dt>
+                        <dd class="border-bottom pb-3">
+                          {% for sp in subscription.get_subscriptionproducts %}
+                            <div class="row">
+                              <div class="col-5">
+                                {% if sp.product.digital %}
+                                  <i class="fas fa-desktop"
+                                     title="{% trans "Digital product" %}"
+                                     data-toggle="tooltip"></i>
+                                {% elif sp.product.type == "D" or sp.product.type == "A" %}
+                                  <i class="fas fa-wallet"
+                                     title="{% trans "Discount" %}"
+                                     data-toggle="tooltip"></i>
+                                {% else %}
+                                  <i class="fas fa-newspaper"
+                                     title="{% trans "Paper product" %}"
+                                     data-toggle="tooltip"></i>
+                                {% endif %}
+                                {% if sp.has_envelope == 1 %}
+                                    <i class="fas fa-envelope"
+                                     title="{% trans "Paid envelope" %}"
+                                     data-toggle="tooltip"></i>
+                                  {% elif sp.has_envelope == 2 %}
+                                    <i class="far fa-envelope"
+                                     title="{% trans "Free envelope" %}"
+                                     data-toggle="tooltip"></i>
+                                  {% endif %}
+                                  {% if sp.active == False %}
+                                    <i class="fas fa-pause"
+                                     title="{% trans "Paused" %}"
+                                     data-toggle="tooltip"></i>
+                                {% endif %}
+                                &nbsp;{{ sp.product.name }}
+                                {% if sp.label_contact %}({{ sp.label_contact.name }}){% endif %}
+                              </div>
+                              <div class="col-6">{{ sp.address.address_1 }}</div>
+                              <div class="col-1">
+                                {% if sp.route %} R {{ sp.route.number }}{% endif %}
+                              </div>
+                            </div>
+                          {% endfor %}
+                        </dd>
+                        {% if subscription.type == 'N' %}
+                          <div class="row">
+                            <div class="col-6">
+                              <dt>{% trans "Frequency" %}:</dt>
+                              <dd>
+                                {{ subscription.get_frequency }}
+                              </dd>
+                            </div>
+                            <div class="col-6">
+                              <dt>{% trans "Price" %}:</dt>
+                              <dd>
+                                {{ subscription.get_price_for_full_period }}
+                                {% if subscription.has_paused_products %}
+                                  (${{ subscription.get_price_for_full_period_with_pauses }} {% trans "for pause." %})
+                                {% endif %}
+                              </dd>
+                            </div>
+                          </div>
+                        {% endif %}
+                        {% if subscription.campaign %}
+                          <dt>{% trans "Campaign" %}:</dt>
+                          <dd>
+                            {{ subscription.campaign }}
+                          </dd>
+                        {% endif %}
+                      </div>
+                      <div class="col-3">
+                        <div class="row">
+                          <div class="col-6">
+                            <dt>{% trans "Type" %}:</dt>
+                            <dd>
+                              {{ subscription.get_type }}
+                            </dd>
+                          </div>
+                          <div class="col-6">
+                            {% if status != "OK" %}
+                              <dt>{% trans "Status" %}:</dt>
+                              <dd>
+                                {{ subscription.get_status_display }}
+                              </dd>
+                              {% if subscription.status == "PA" %}
+                                {% trans "paused until" %}
+                                {{ subscription.paused_until|date:"d/m/Y" }}
+                              {% endif %}
+                            {% endif %}
+                          </div>
+                        </div>
+                        <dt>{% trans "Start date" %}:</dt>
+                        <dd>
+                          {{ subscription.start_date }}
+                        </dd>
+                        {% if subscription.end_date %}
+                          <dt>{% trans "End date" %}:</dt>
+                          <dd>
+                            {{ subscription.end_date }}
+                          </dd>
+                        {% endif %}
+                        {% if subscription.type == 'N' %}
+                          <dt>{% trans "Next billing" %}:</dt>
+                          <dd>
+                            {{ subscription.next_billing }}
+                          </dd>
+                        {% endif %}
+                        {% if subscription.balance %}
+                          <dt>{% trans "Balance" %}:</dt>
+                          <dd>
+                            {{ subscription.balance }}
+                          </dd>
+                        {% endif %}
+                      </div>
+                    </div>
+                    <div class="row">
+                      {% if subscription.type == "N" %}
+                        <div class="card  {% if subscription.status == 'PA' %}bg-secondary{% endif %} col-12">
+                          <div class="card-header">
+                            <h4 class="card-title">{% trans "Billing information" %}</h4>
+                          </div>
+                          <div class="card-body">
+                            <div class="row">
+                              <div class="col-4">
+                                <dt>{% trans "Payment type" %}:</dt>
+                                <dd>
+                                  {{ subscription.get_payment_type }}
+                                </dd>
+                                {% if subscription.billing_address %}
+                                  <dt>{% trans "Billing address" %}:</dt>
+                                  <dd>
+                                    {{ subscription.billing_address }}
+                                  </dd>
+                                {% endif %}
+                              </div>
+                              <div class="col-4">
+                                {% if subscription.billing_name %}
+                                  <dt>{% trans "Billing name" %}:</dt>
+                                  <dd>
+                                    {{ subscription.billing_name }}
+                                  </dd>
+                                {% endif %}
+                                {% if subscription.billing_id_doc %}
+                                  <dt>{% trans "Billing ID" %}:</dt>
+                                  <dd>
+                                    {{ subscription.billing_id_doc }}
+                                  </dd>
+                                {% endif %}
+                              </div>
+                              <div class="col-4">
+                                {% if subscription.rut %}
+                                  <dt>{% trans "RUT" %}:</dt>
+                                  <dd>
+                                    {{ subscription.rut }}
+                                  </dd>
+                                {% endif %}
+                                {% if subscription.billing_phone %}
+                                  <dt>{% trans "Billing phone" %}:</dt>
+                                  <dd>
+                                    {{ subscription.billing_phone }}
+                                  </dd>
+                                {% endif %}
+                                {% if subscription.billing_email %}
+                                  <dt>{% trans "Billing email" %}:</dt>
+                                  <dd>
+                                    {{ subscription.billing_email }}
+                                  </dd>
+                                {% endif %}
+                                {% if subscription.balance %}
+                                  <dt>{% trans "Balance" %}:</dt>
+                                  <dd>
+                                    {{ subscription.balance }}
+                                  </dd>
+                                {% endif %}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-3">
+                <div class="card">
+                  <div class="card-header">
+                    <h3 class="card-title">{% trans "Sales Record" %}</h3>
+                  </div>
+                  <div class="card-body">
+                    <dt>{% trans "Seller" %}</dt>
+                    <dd>
+                      {{ object.seller }}
+                    </dd>
+                    <dt>{% trans "Date and Time" %}</dt>
+                    <dd>
+                      {{ object.date_time }}
+                    </dd>
+                    <dt>{% trans "Added Products" %}</dt>
+                    <dd>
+                      {{ object.show_products_per_line }}
+                    </dd>
+                    <dt>{% trans "Price" %}</dt>
+                    <dd>
+                      {{ object.price }}
+                    </dd>
+                    <dt>{% trans "Sale Type" %}</dt>
+                    <dd>
+                      {{ object.get_sale_type_display }}
+                    </dd>
+                    <dt>{% trans "Calculated Commission" %}</dt>
+                    <dd>
+                      {{ object.calculate_commission }}
+                    </dd>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card-footer text-right">
+          <form method="post">
+            {% csrf_token %}
+            <div class="d-flex flex-row justify-content-start">
+              <label for="seller_id" class="form-label m-2 w-10">{% trans "Seller" %}</label>
+              {% render_field form.seller class="form-control w-25 m-2" %}
+              <label for="override" class="form-label m-2 w-25">{% trans "Add Commission Value Manually" %}</label>
+              {% render_field form.override_commission_value class="form-control w-25 m-2" %}
+              <div class="form-check m-2">
+                <label for="can_be_commissioned_id" class="form-check-label m-2">{% trans "Can be commissioned" %}</label>
+                {% render_field form.can_be_commissioned class="form-check-input m-2" %}
+              </div>
+            </div>
+            <button type="submit" class="btn btn-success">
+              <i class="fas fa-check"></i> {% trans "Validate" %}
+            </button>
+            <a href="{% url 'edit_subscription' subscription.contact.id subscription.id %}"
+               class="btn  btn-success">{% trans "Edit" %}</a>
+            <a href="{% url 'admin:core_subscription_change' subscription.id %}"
+               class="btn btn-info"
+               target="_blank">{% trans "View in admin" %}</a>
+            <a href="{% url 'edit_envelopes' subscription.id %}"
+               class="btn btn-info"><i class="fas fa-envelope"></i></a>
+            <a href="{% url 'upload_payment_certificate' subscription.id %}"
+               class="btn btn-info">
+              <i class="fas fa-file-invoice-dollar"></i></a>
+          </form>
+        </div>
+      </div>
+    </div>
+  </section>
+{% endblock content %}

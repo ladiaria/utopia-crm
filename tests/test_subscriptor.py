@@ -17,13 +17,13 @@ from tests.factory import (
 
 class TestContact(TestCase):
 
-    def test_1_contact_is_active_and_is_not_debtor(self):
+    def test1_contact_is_active_and_is_not_debtor(self):
         contact = create_contact('cliente1', 21312)
         subscription = create_subscription(contact)
         self.assertTrue(subscription.active)
         self.assertFalse(contact.is_debtor())
 
-    def test_3cliente_que_no_tiene_email_debe_tener_email_en_blanco(self):
+    def test2_cliente_que_no_tiene_email_debe_tener_email_en_blanco(self):
         contact = create_contact('cliente1', 21312)
         contact.no_email, contact.email = True, 'cliente1@ladiaria.com.uy'
         # self.assertRaises(ValidationError, contact.save)
@@ -31,7 +31,7 @@ class TestContact(TestCase):
         contact.save()
 
     # hacer devuelta
-    def test_4cliente_activo_debe_tener_ejemplares(self):
+    def test3_cliente_activo_debe_tener_ejemplares(self):
 
         contact = create_contact('cliente2asd', 21312)
         contact.save()
@@ -49,11 +49,7 @@ class TestContact(TestCase):
         # subscription.copies = 1
         # subscription.save()
 
-    def test_5_metodos_simples(self):
-        # SUBSCRIPTION_PAYMENT_METHODS = (
-        # ('O', 'Other'),
-        # ('D', 'Debit'),
-        # ('S', 'Cash payment'),
+    def test4_metodos_simples(self):
         contact = create_contact('cliente11', 21312)
         first_act = contact.get_first_active_subscription()
         self.assertFalse(first_act)  # None

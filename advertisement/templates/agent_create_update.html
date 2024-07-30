@@ -1,0 +1,75 @@
+{% extends 'adminlte/base.html' %}
+{% load static i18n widget_tweaks %}
+
+{% block extra_head %}
+  <link rel="stylesheet" type="text/css" href="{% static 'css/email_suggestion_dialog.css' %}">
+{% endblock %}
+
+{% block extra_js %}
+  <script src="{% static 'js/htmx.min.js' %}" defer></script>
+  <script type="text/javascript" src="{% static 'js/datepicker-es.js' %}"></script>
+  <script type="text/javascript">
+    $(function(){
+      $(".datepicker").datepicker({ dateFormat: 'yy-mm-dd' });
+    });
+  </script>
+{% endblock extra_js %}
+
+{% block no_heading %}
+<div class="col-9"><h1><a href="{% url 'agency_list' %}">{% trans "All agencies" %}</a> &raquo; <a href="{% url 'agency_detail' agency.id %}">{{agency.name}}</a> &raquo; {% trans "New Agent" %}</h1></div>
+{% endblock no_heading %}
+
+{% block content %}
+  <section class="content">
+    <form action="" method="post">
+    {% csrf_token %}
+    {% render_field form.agency %}
+    <div class="container-fluid">
+      <div class="row">
+        <div class="col-md-12 form-group">
+          <div class="card">
+            <div class="card-body">
+              <div class="row mt-2">
+                <div class="col-4">
+                  <label for="id_name">{% trans "Advertiser" %}</label>
+                  {% render_field form.advertiser class="form-control" %}
+                </div>
+                <div class="col-4">
+                  <label for="id_priority">{% trans "Email" %}</label>
+                  {% render_field form.email class="form-control" %}
+                </div>
+              </div>
+
+              <div class="row mt-2">
+                <div class="col-4">
+                  <label for="contact">{% trans "Search contact by ID" %}:</label>
+                  <input type="text" id="contact_search" hx-get="{% url "htmx_search_contacts" %}" hx-trigger="keyup changed delay:500ms" hx-target="#select_contact" class="form-control" name="contact_id" {% if main_contact %}value="{{main_contact.id}}"{% endif %}>
+                </div>
+                <div class="col-4" id="select_contact">
+                  <label for="contact">{% trans "Current contact" %}:</label>
+                  <select id="id_contact" name="contact" class="form-control">
+                    {% if contact %}
+                    <option value="{{contact.id}}">{{contact.id}} - {{contact.name}}</option>
+                    {% endif %}
+                  </select>
+                </div>
+              </div>
+
+              <div class="row mt-2">
+                <div class="col-8">
+                  <label for="id_notes">{% trans "Notes" %}</label>
+                  {% render_field form.notes class="form-control" %}
+                </div>
+              </div>
+
+            </div>
+            <div class="card-footer text-right">
+              <button type="submit" class="btn btn-primary">{% trans "Submit" %}</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </form>
+  </section>
+{% endblock %}

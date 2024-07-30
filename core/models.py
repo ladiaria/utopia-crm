@@ -3,6 +3,8 @@ from importlib import import_module
 from pydoc import locate
 from datetime import date, datetime, timedelta
 from dateutil.relativedelta import relativedelta
+import json
+from requests.exceptions import RequestException
 
 from django.contrib.auth.models import User
 from django.contrib.gis.db import models as gismodels
@@ -15,6 +17,8 @@ from django.forms import ValidationError
 from django.utils.translation import gettext_lazy as _
 from django_extensions.db.fields import AutoSlugField
 from django.utils.html import mark_safe
+from django.urls import reverse
+from django.utils import timezone
 
 from taggit.managers import TaggableManager
 from simple_history.models import HistoricalRecords
@@ -54,11 +58,18 @@ from .choices import (
     EMAIL_REPLACEMENT_STATUS_CHOICES,
     EMAIL_BOUNCE_ACTIONLOG_CHOICES,
     EMAIL_BOUNCE_ACTION_MAXREACH,
+    FreeSubscriptionRequestedBy,
 )
-from .utils import delete_email_from_mailtrain_list, subscribe_email_to_mailtrain_list, get_emails_from_mailtrain_list
+from .utils import (
+    delete_email_from_mailtrain_list,
+    subscribe_email_to_mailtrain_list,
+    get_emails_from_mailtrain_list,
+    validateEmailOnWeb,
+    updatewebuser,
+)
 
 
-regex_alphanumeric = "^[@A-Za-z0-9ñüáéíóúÑÜÁÉÍÓÚ _'.\-]*$"  # noqa
+regex_alphanumeric = r"^[@A-Za-z0-9ñüáéíóúÑÜÁÉÍÓÚ _'.\-]*$"  # noqa
 regex_alphanumeric_msg = _(
     "This name only supports alphanumeric characters, at, apostrophes, spaces, hyphens, underscores, and periods."
 )
@@ -248,7 +259,7 @@ class Contact(models.Model):
     )
     name = models.CharField(max_length=100, validators=[alphanumeric], verbose_name=_("Name"))
     id_document = models.CharField(max_length=20, blank=True, null=True, verbose_name=_("Identifcation Document"))
-    phone = models.CharField(max_length=20, verbose_name=_("Phone"))
+    phone = models.CharField(max_length=20, verbose_name=_("Phone"), blank=True, null=True)
     work_phone = models.CharField(max_length=20, blank=True, null=True, verbose_name=_("Work phone"))
     mobile = models.CharField(max_length=20, blank=True, null=True, verbose_name=_("Mobile"))
     email = models.EmailField(blank=True, null=True, unique=True, verbose_name=_("Email"))
@@ -278,6 +289,9 @@ class Contact(models.Model):
     def __str__(self):
         return self.name
 
+    def get_absolute_url(self):
+        return reverse('contact_detail', args=[str(self.id)])
+
     def clean(self, debug=False):
         email = self.email
         if email:
@@ -289,16 +303,14 @@ class Contact(models.Model):
             raise ValidationError(
                 {"email": "El email '%s' registra exceso de rebotes, no se permite su utilización" % email}
             )
-        if getattr(settings, "WEB_UPDATE_USER_ENABLED", False) and email and self.id:
-            custom_module_name = getattr(settings, "WEB_UPDATE_USER_VALIDATION_MODULE", None)
-            if custom_module_name:
-                self.custom_clean(locate(custom_module_name), email, debug)
+        if settings.WEB_UPDATE_USER_ENABLED and email and self.id:
+            self.custom_clean(email, debug)
 
-    def custom_clean(self, validation_module, email, debug):
+    def custom_clean(self, email, debug):
         # TODO: a good improvement will be to receive also the old_email and include it in the api call for trying to
         #       dedupe this scneario: no subscriber has my contact_id but there are two subscribers with two different
         #       contact ids, one with the old email and the other with the new email.
-        resp = validation_module.validateEmailOnWeb(self.id, email)
+        resp = validateEmailOnWeb(self.id, email)
         if resp in ("TIMEOUT", "ERROR"):
             # TODO: Alert user about web timeout or error
             if debug:
@@ -307,8 +319,10 @@ class Contact(models.Model):
             msg = resp.get("msg")
             if msg != "OK":
                 retval = resp.get("retval")
-                if retval > 0:
-                    dedupe_resp = validation_module.dedupeOnWeb(self.id, retval, email)
+                # calling a "dedupe" custom api if available (not opensourced yet in utopia-cms)
+                custom_validation_module_name = getattr(settings, "WEB_UPDATE_USER_VALIDATION_MODULE", None)
+                if custom_validation_module_name and retval > 0:
+                    dedupe_resp = locate(custom_validation_module_name).dedupeOnWeb(self.id, retval, email)
                     if dedupe_resp in ("TIMEOUT", "ERROR"):
                         # TODO: Alert user about web timeout or error
                         if debug:
@@ -318,13 +332,13 @@ class Contact(models.Model):
                         raise ValidationError({"email": msg})
                     else:
                         # calling "me" again for security reasons (maybe another user in web can be in conflict)
-                        self.custom_clean(validation_module, email, debug)
+                        self.custom_clean(email, debug)
                 else:
                     raise ValidationError({"email": msg})
 
     def save(self, *args, **kwargs):
         if not getattr(self, "updatefromweb", False) and not getattr(self, "_skip_clean", False):
-            self.clean()
+            self.clean(debug=settings.DEBUG_CONTACT_CLEAN)
         return super().save(*args, **kwargs)
 
     def is_debtor(self):
@@ -434,7 +448,9 @@ class Contact(models.Model):
         return self.subscriptions.filter(active=True)
 
     def get_active_subscriptionproducts(self):
-        return SubscriptionProduct.objects.filter(subscription__active=True, subscription__contact=self)
+        return SubscriptionProduct.objects.filter(subscription__active=True, subscription__contact=self).order_by(
+            "product__billing_priority", "product__id"
+        )
 
     def get_subscriptions_with_expired_invoices(self):
         """
@@ -671,19 +687,19 @@ class Contact(models.Model):
 
     def merge_other_contact_into_this(
         self,
-        source,
-        name=None,
-        id_document=None,
-        phone=None,
-        mobile=None,
-        work_phone=None,
-        email=None,
-        gender=None,
-        subtype_id=None,
-        education=None,
-        ocupation_id=None,
-        birthdate=None,
-    ):
+        source: "Contact",
+        name: str = None,
+        id_document: str = None,
+        phone: str = None,
+        mobile: str = None,
+        work_phone: str = None,
+        email: str = None,
+        gender: str = None,
+        subtype_id: str = None,
+        education: str = None,
+        ocupation_id: str = None,
+        birthdate: str = None,
+    ) -> list:
         """Takes a source contact and merges it within this one. It allows the manual overriding of data.
 
         Args:
@@ -738,13 +754,10 @@ class Contact(models.Model):
                 self.ocupation_id = int(ocupation_id.strip())
             if birthdate:
                 self.birthdate = birthdate.strip()
-            self.notes = (
-                f"Combined from {source.id} - {source.name} at {date.today()}\n"
-                + self.notes
-                + "\n\n"
-                + f"Notes imported from {source.id} - {source.name}\n\n"
-                + source.notes
-            )
+            self.notes = f"Combined from {source.id} - {source.name} at {date.today()}" + f"\n{self.notes or ''}"
+            if source.notes:
+                self.notes += f"\n\nNotes imported from {source.id} - {source.name}\n\n"
+                self.notes += source.notes
             for tag in source.tags.all():
                 self.tags.add(tag.name)
             self.save()
@@ -753,7 +766,10 @@ class Contact(models.Model):
             source.invoice_set.update(contact=self)
             source.activity_set.update(contact=self)
             source.issue_set.update(contact=self)
-            source.contactcampaignstatus_set.update(contact=self)
+            # ContactCampaignStatus have a unique constraint on (contact, campaign)
+            # so we need to delete the source's ContactCampaignStatus and keep the ones from the target if they exist.
+            if self.contactcampaignstatus_set.exists():
+                source.contactcampaignstatus_set.all().delete()
             source.contactproducthistory_set.update(contact=self)
             source.tags.add("eliminar")
 
@@ -920,6 +936,9 @@ class SubscriptionNewsletter(models.Model):
     contact = models.ForeignKey("core.Contact", on_delete=models.CASCADE)
     active = models.BooleanField(default=True)
 
+    def __str__(self):
+        return str(self.product)
+
 
 class Subscription(models.Model):
     """
@@ -927,6 +946,10 @@ class Subscription(models.Model):
     SubscriptionProduct). This will allow you to bill the contact for this service (invoicing app) if the subscription
     has a paid type.
     """
+
+    class RENEWAL_TYPE_CHOICES(models.TextChoices):
+        AUTOMATIC = "A", _("Auto-renewal")
+        MANUAL = "M", _("One-time")
 
     campaign = models.ForeignKey(
         "core.Campaign", blank=True, null=True, verbose_name=_("Campaign"), on_delete=models.SET_NULL
@@ -1018,6 +1041,30 @@ class Subscription(models.Model):
 
     updated_from = models.OneToOneField("core.Subscription", on_delete=models.SET_NULL, blank=True, null=True)
     payment_certificate = models.FileField(upload_to="certificates/", blank=True, null=True)
+
+    free_subscription_requested_by = models.CharField(
+        max_length=2,
+        choices=FreeSubscriptionRequestedBy.choices,
+        null=True,
+        blank=True,
+        verbose_name=_("Free subscription requested by"),
+    )
+    validated = models.BooleanField(default=False, verbose_name=_("Validated"))
+    validated_by = models.ForeignKey(
+        User,
+        null=True,
+        blank=True,
+        verbose_name=_("Validated by"),
+        on_delete=models.SET_NULL,
+        related_name="validated_subscriptions",
+    )
+    validated_date = models.DateTimeField(blank=True, null=True, verbose_name=_("Validated date"))
+    renewal_type = models.CharField(
+        max_length=2,
+        choices=RENEWAL_TYPE_CHOICES.choices,
+        default="A",
+        verbose_name=_("Renewal type"),
+    )
 
     history = HistoricalRecords()
 
@@ -1339,6 +1386,11 @@ class Subscription(models.Model):
         for sp in subscription_products:
             dict_all_products[str(sp.product.id)] = str(sp.copies)
         return process_products(dict_all_products)
+
+    def product_summary_list(self, with_pauses=False) -> list:
+        summary = self.product_summary(with_pauses)
+        filtered_products = Product.objects.filter(pk__in=summary.keys(), type="S")
+        return filtered_products
 
     def render_product_summary(self):
         output = "<ul>"
@@ -1692,9 +1744,44 @@ class Subscription(models.Model):
     def has_paused_products(self):
         return self.subscriptionproduct_set.filter(active=False).exists()
 
+    def has_subscriptionproduct_in_special_route(self):
+        if not hasattr(self, 'subscriptionproduct_set'):
+            return False
+        if not hasattr(settings, 'SPECIAL_ROUTES_FOR_SELLERS_LIST'):
+            return False
+        return self.subscriptionproduct_set.filter(route__pk__in=settings.SPECIAL_ROUTES_FOR_SELLERS_LIST).exists()
+
+    def never_paid_first_invoice(self):
+        # Used to check if the user has never paid a single invoice in this subscription and its ancestors
+        invoices = self.get_permanency_invoice_set()
+        # Check if all invoices are overdue
+        return (
+            invoices.filter(
+                expiration_date__lt=date.today(), paid=False, debited=False, canceled=False, uncollectible=False
+            ).count()
+            == invoices.count()
+        )
+
+    def get_first_seller(self):
+        # Used to retrieve the first seller that sold this subscription
+        if self.subscriptionproduct_set.filter(seller__isnull=False).exists():
+            return self.subscriptionproduct_set.filter(seller__isnull=False).first().seller
+        else:
+            return None
+
+    def has_sales_record(self):
+        return self.salesrecord_set.exists()
+
+    def validate(self, user):
+        self.validated = True
+        self.validated_by = user
+        self.validated_date = timezone.now()
+        self.save()
+
     class Meta:
         verbose_name = _("subscription")
         verbose_name_plural = _("subscriptions")
+        permissions = [("can_add_free_subscription", _("Can add free subscription"))]
 
 
 class Campaign(models.Model):
@@ -1702,13 +1789,22 @@ class Campaign(models.Model):
     Model that controls sales campaigns, in which sellers can call contacts to offer your product.
     """
 
+    class Priorities(models.IntegerChoices):
+        HIGHEST = 1, _("1 - Highest")
+        HIGH = 2, _("2 - High")
+        MID = 3, _("3 - Mid")
+        LOW = 4, _("4 - Low")
+        LOWEST = 5, _("5 - Lowest")
+
     name = models.CharField(max_length=255, verbose_name=_("name"))
     active = models.BooleanField(default=True)
     description = models.TextField(blank=True, null=True, verbose_name=_("Description"))
     product = models.ForeignKey(Product, null=True, blank=True, on_delete=models.SET_NULL)
     start_date = models.DateField(null=True, blank=True)
     end_date = models.DateField(null=True, blank=True)
-    priority = models.PositiveSmallIntegerField(default=1, blank=True, null=True, verbose_name=_("Priority"))
+    priority = models.PositiveSmallIntegerField(
+        default=3, blank=True, null=True, verbose_name=_("Priority"), choices=Priorities.choices
+    )
     days = models.PositiveSmallIntegerField(default=5, blank=True, null=True)
 
     def __str__(self):
@@ -1731,8 +1827,61 @@ class Campaign(models.Model):
     def get_not_contacted(self, seller_id):
         """
         Returns the ContactCampaignStatus objects for all Contacts that have not been called yet (status=1)
+
+        lower_priority_contacts are those that have a campaign with a priority lower than the current one
+
+        same_priority_contacts are those that have a campaign with the same priority as the current one
+
+        contacts_with_current_activities are those that have an activity with a campaign that is active and has a
+        status of "P" (Pending)
+
+        contacts_with_lower_priority_activities are those that have an activity with a campaign that is active and has
+        a priority lower than the current one
+
+        contacts_with_same_priority_activities are those that have an activity with a campaign that is active and has
+        the same priority as the current one
+
+        All of those are excluded from the final queryset
         """
-        return self.contactcampaignstatus_set.filter(seller_id=seller_id, status__in=[1, 3])
+        lower_priority_contacts = Contact.objects.filter(
+            contactcampaignstatus__campaign__priority__lt=self.priority,
+            contactcampaignstatus__campaign__active=True,
+            contactcampaignstatus__status=1,
+        )
+        same_priority_contacts = Contact.objects.filter(
+            contactcampaignstatus__campaign__pk__lt=self.pk,
+            contactcampaignstatus__campaign__priority=self.priority,
+            contactcampaignstatus__campaign__active=True,
+            contactcampaignstatus__status=1,
+        ).exclude(contactcampaignstatus__campaign__pk=self.pk)
+        contacts_with_current_activities = Contact.objects.filter(
+            activity__campaign__isnull=False,
+            activity__campaign__active=True,
+            activity__status="P",
+        )
+        """
+        # TODO: remove or explain why not used
+        contacts_with_lower_priority_activities = Contact.objects.filter(
+            activity__campaign=self,
+            activity__campaign__priority__lt=self.priority,
+            activity__campaign__active=True,
+        )
+        contacts_with_same_priority_activities = Contact.objects.filter(
+            activity__campaign=self,
+            activity__campaign__priority=self.priority,
+            activity__campaign__active=True,
+        ).exclude(activity__campaign__pk=self.pk)
+        """
+
+        return (
+            self.contactcampaignstatus_set.filter(seller_id=seller_id, status__in=[1, 3])
+            .exclude(contact__id__in=lower_priority_contacts.values('pk'))
+            .exclude(contact__id__in=same_priority_contacts.values('pk'))
+            .exclude(contact__id__in=contacts_with_current_activities.values('pk'))
+            # TODO: @ prev TODO
+            # .exclude(contact__id__in=contacts_with_lower_priority_activities.values('pk'))
+            # .exclude(contact__id__in=contacts_with_same_priority_activities.values('pk'))
+        )
 
     def get_not_contacted_count(self, seller_id):
         """
@@ -1759,7 +1908,11 @@ class Campaign(models.Model):
     class Meta:
         verbose_name = _("campaign")
         verbose_name_plural = _("campaigns")
-        ordering = ("name",)
+        ordering = (
+            "-active",
+            "priority",
+            "name",
+        )
 
 
 class Activity(models.Model):
@@ -1823,6 +1976,25 @@ class Activity(models.Model):
         """
         directions = dict(ACTIVITY_DIRECTION_CHOICES)
         return directions.get(self.direction, "N/A")
+
+    def mark_as_sale(self, register_activity, campaign, subscription=None):
+        # Update the activity
+        self.status = "C"
+        activity_notes = _("Success in sale after scheduling {}\n{}").format(
+            datetime.now().strftime("%Y-%m-%d %H:%M"), register_activity
+        )
+        self.notes = self.notes + "\n" + activity_notes if self.notes else activity_notes
+        self.save()
+
+        # Update the related ContactCampaignStatus
+        ccs = ContactCampaignStatus.objects.get(campaign=campaign, contact=self.contact)
+        ccs.campaign_resolution = "S2"  # success with direct sale
+        ccs.status = 4  # Ended with contact
+        ccs.save()
+
+        if subscription:
+            subscription.campaign = campaign
+            subscription.save()
 
     class Meta:
         verbose_name = _("activity")
@@ -1898,6 +2070,32 @@ class ContactCampaignStatus(models.Model):
     def get_resolution_reason(self):
         campaign_resolution_reasons = dict(CAMPAIGN_RESOLUTION_REASONS_CHOICES)
         return campaign_resolution_reasons.get(self.resolution_reason, "N/A")
+
+    def handle_direct_sale(self, register_activity, subscription=None):
+        self.campaign_resolution = "S2"  # this is a success with direct sale
+        self.status = 4  # Ended with contact
+        self.save()
+
+        # Prepare the activity notes
+        activity_notes = _("Success in direct sale {}\n{}").format(
+            datetime.now().strftime("%Y-%m-%d %H:%M"), register_activity
+        )
+
+        # Create the activity
+        Activity.objects.create(
+            activity_type="C",
+            seller=self.seller,
+            contact=self.contact,
+            status="C",
+            direction="O",
+            datetime=datetime.now(),
+            campaign=self.campaign,
+            notes=activity_notes,
+        )
+
+        if subscription:
+            subscription.campaign = self.campaign
+            subscription.save()
 
 
 class PriceRule(models.Model):
@@ -2166,3 +2364,89 @@ class EmailReplacement(models.Model):
 
     class Meta:
         ordering = ("status", "domain")
+
+
+def update_customer(cust, newmail, field, value):
+    # TODO: rename to update_contact or similar, rename cust arg accordingly also
+    if settings.DEBUG:
+        print("DEBUG: update_customer(%s, %s, %s, %s)" % (cust, newmail, field, value))
+    cust.updatefromweb = True
+    if field:
+        if field in ("newsletters", "area_newsletters", "newsletters_remove", "area_newsletters_remove"):
+            map_setting = getattr(
+                settings, "WEB_UPDATE_%sNEWSLETTER_MAP" % ("AREA_" if field.startswith("area_") else "")
+            )
+            if field in ("newsletters", "area_newsletters"):
+                if not value:
+                    # delete only those that are mapped (newsletters only)
+                    cust.subscriptionnewsletter_set.filter(product__slug__in=list(map_setting.values())).delete()
+                else:
+                    for obj_id in json.loads(value):
+                        try:
+                            cust.add_newsletter_by_slug(map_setting[obj_id])
+                        except KeyError:
+                            pass
+            else:
+                # special call for only remove one newsletter
+                obj_id = json.loads(value)[0]
+                try:
+                    cust.subscriptionnewsletter_set.filter(product__slug=map_setting[obj_id]).delete()
+                except (KeyError, SubscriptionNewsletter.DoesNotExist):
+                    pass
+        else:
+            mfield = getattr(settings, "WEB_UPDATE_SUBSCRIBER_MAP", {}).get(field, None)
+            if mfield:
+                setattr(cust, mfield, eval(value) if type(getattr(cust, mfield)) is bool else value)
+    else:
+        cust.email = newmail or None
+    cust.save()
+
+
+def update_web_user(contact, newsletter_data=None, area_newsletters=False):
+    """
+    Sincroniza algunos campos del contact con su respectiva ficha de suscriptor en la web.
+    If newsletter_data is given, newsletters will be sent to websync.
+    """
+    # TODO: rename better and translate docstring to en.
+    if settings.WEB_UPDATE_USER_ENABLED and not getattr(contact, "updatefromweb", False) and contact.id:
+        if newsletter_data:
+            try:
+                field = ("area_" if area_newsletters else "") + "newsletters"
+                updatewebuser(contact.id, contact.email, contact.email, field, newsletter_data)
+            except RequestException:
+                raise ValidationError(_("CMS sync error"))
+        else:
+            try:
+                current_contact = Contact.objects.get(pk=contact.id)
+                # TODO: change this 1-field-per-request approach to a new 1-request-only approach with all chanmges
+                for f in getattr(settings, "WEB_UPDATE_USER_CHECKED_FIELDS", []):
+                    newvalue = getattr(contact, f)
+                    if newvalue is not None and getattr(current_contact, f) != newvalue:
+                        try:
+                            updatewebuser(contact.id, current_contact.email, contact.email, f, newvalue)
+                        except RequestException as e:
+                            raise ValidationError("{}: {}".format(_("CMS sync error"), e))
+            except Contact.DoesNotExist:
+                pass
+
+
+class MailtrainList(models.Model):
+    """MailtrainList
+
+    Stores Mailtrain lists to use when updating contacts in the Mailtrain system. This is also used in the CMS
+    and should be synced to the model in the CMS.
+
+    In the future this could be used to sync the lists to Mailtrain, but for now it's only used to store the list id.
+    """
+
+    cid = models.CharField(max_length=10, unique=True)
+    name = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = _("Mailtrain List")
+        verbose_name_plural = _("Mailtrain Lists")

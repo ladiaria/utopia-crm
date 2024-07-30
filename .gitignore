@@ -17,3 +17,4 @@ uwsgi.ini
 wsgi.py
 *.sqlite
 .DS_Store
+.vscode

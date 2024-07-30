@@ -2,12 +2,13 @@ from datetime import date, timedelta
 
 import django_filters
 from django import forms
+from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth.models import User
 from django.db.models import Q
 
 from core.models import Activity, ContactCampaignStatus, Subscription, Campaign
-from .models import Issue, IssueSubcategory, Seller, ScheduledTask
+from .models import Issue, IssueSubcategory, Seller, ScheduledTask, SalesRecord
 
 
 CREATION_CHOICES = (
@@ -155,3 +156,42 @@ class CampaignFilter(django_filters.FilterSet):
         fields = {"active": ["exact"],
                   "name": ["icontains"]
                   }
+
+
+class SalesRecordFilter(django_filters.FilterSet):
+    payment_method_choices = getattr(settings, 'SUBSCRIPTION_PAYMENT_METHODS', ())
+    validated = django_filters.BooleanFilter(
+        field_name='subscription__validated'
+    )
+    date_time__gte = django_filters.DateFilter(
+        field_name='date_time__date', lookup_expr='gte', widget=forms.TextInput(attrs={'autocomplete': 'off'}))
+    date_time__lte = django_filters.DateFilter(
+        field_name='date_time__date', lookup_expr='lte', widget=forms.TextInput(attrs={'autocomplete': 'off'}))
+    seller = django_filters.ModelMultipleChoiceFilter(
+        queryset=Seller.objects.filter(salesrecord__isnull=False).distinct(),
+        field_name='seller'
+    )
+    payment_method = django_filters.MultipleChoiceFilter(
+        choices=payment_method_choices,
+        field_name="subscription__payment_type"
+    )
+
+    class Meta:
+        model = SalesRecord
+        fields = ['date_time', 'seller', 'sale_type']
+
+
+class SalesRecordFilterForSeller(django_filters.FilterSet):
+    payment_method_choices = getattr(settings, 'SUBSCRIPTION_PAYMENT_METHODS', ())
+    date_time__gte = django_filters.DateFilter(
+        field_name='date_time__date', lookup_expr='gte', widget=forms.TextInput(attrs={'autocomplete': 'off'}))
+    date_time__lte = django_filters.DateFilter(
+        field_name='date_time__date', lookup_expr='lte', widget=forms.TextInput(attrs={'autocomplete': 'off'}))
+    payment_method = django_filters.MultipleChoiceFilter(
+        choices=payment_method_choices,
+        field_name="subscription__payment_type"
+    )
+    class Meta:
+        model = SalesRecord
+        fields = ['date_time', 'sale_type']
+        exclude = ['seller']

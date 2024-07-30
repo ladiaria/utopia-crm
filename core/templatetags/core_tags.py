@@ -1,7 +1,11 @@
 from django import template
-from core.models import SubscriptionProduct
 from django.template.loader_tags import do_include
-from django.template.defaulttags import CommentNode
+from django.conf import settings
+from django.utils.translation import gettext_lazy as _
+from django.urls import reverse
+from django.utils.safestring import mark_safe
+
+from core.models import SubscriptionProduct
 
 register = template.Library()
 
@@ -31,6 +35,16 @@ def in_group(user, group_name):
     if user.is_superuser:
         return True
     if user.groups.filter(name="Admins").exists():
+        return True
+    if user.groups.filter(name=group_name).exists():
+        return True
+    return False
+
+
+@register.filter(is_safe=True)
+def in_group_exclusive(user, group_name):
+    # Same as the previous one, but it doesn't check for the Admins group
+    if user.is_superuser:
         return True
     if user.groups.filter(name=group_name).exists():
         return True
@@ -67,3 +81,33 @@ def include_if_exists(parser, token):
 
     silent_node.render = wrapped_render
     return silent_node
+
+
+@register.simple_tag
+def show_unbilled_ad_purchase_orders():
+    # This is primarily used in finances to show the number of unbilled ad purchase orders
+    if 'advertisement' in settings.INSTALLED_APPS:
+        from advertisement.models import AdPurchaseOrder
+
+        orders = AdPurchaseOrder.objects.filter(billed=False).count()
+        if orders == 0:
+            return ""
+        orders_span = f'<span class="badge badge-light">{orders}</span>'
+        button_label = _('Unbilled Ad Purchase Orders')
+        button_url = reverse('ad_purchase_order_list') + '?billed=False'
+        html_button = f'<a href="{button_url}" class="btn btn-danger">{button_label} {orders_span}</a>'
+        return mark_safe(html_button)
+    else:
+        return ""
+
+
+@register.filter(is_safe=True)
+def is_app_installed(app_name):
+    # To check in a template if an app is installed
+    return app_name in settings.INSTALLED_APPS
+
+
+@register.simple_tag
+def is_app_hidden(app_name):
+    hidden_apps = getattr(settings, 'DISABLED_APPS', [])
+    return app_name in hidden_apps
