@@ -396,4 +396,3 @@ def manage_mailtrain_subscription(email: str, list_id: str, action: Literal["sub
         result = delete_email_from_mailtrain_list(email, list_id)
 
     return result
-

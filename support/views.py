@@ -6,7 +6,7 @@ import collections
 from requests import RequestException
 from datetime import date, timedelta, datetime
 
-from django.db.models import Q, Count, Sum, Min, Count
+from django.db.models import Q, Count, Sum, Min
 from taggit.models import Tag
 
 from django import forms
@@ -15,16 +15,10 @@ from django.contrib import messages
 from django.contrib.auth.models import User
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.http import (
-    HttpResponseServerError,
-    HttpResponseNotFound,
-    HttpResponseRedirect,
-    HttpResponseForbidden,
-    HttpResponse,
-    JsonResponse,
-    Http404,
+    HttpResponseServerError, HttpResponseNotFound, HttpResponseRedirect, HttpResponse, JsonResponse, Http404
 )
 from django.shortcuts import get_object_or_404, render
-from django.urls import reverse, reverse_lazy
+from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django.utils.text import format_lazy
@@ -57,9 +51,15 @@ from core.models import (
 )
 from core.choices import CAMPAIGN_RESOLUTION_REASONS_CHOICES
 from core.utils import calc_price_from_products, process_products
-from core.decorators import add_breadcrumbs
 
-if not "logistics" in getattr(settings, "DISABLED_APPS", []):
+
+# Repeat this line many times is not a good pattern because the default value in getattr becomes into something to
+# mantain on many places if for any reason we have to change it. Hint: make a bool function somewhere using the
+# "possitive pattern" like this:
+# >>> def logistics_is_installed():
+# >>>     return "logistics" in getattr(settings, "DISABLED_APPS", [])  # Default value then is set only here
+# >>> and then you can use it here like this "if not logistics_is_installed():"
+if "logistics" not in getattr(settings, "DISABLED_APPS", []):
     from logistics.models import Route
 from support.management.commands.run_scheduled_tasks import run_address_change, run_start_of_total_pause
 
@@ -98,7 +98,7 @@ from .forms import (
 from .models import Seller, ScheduledTask, IssueStatus, Issue, IssueSubcategory, SalesRecord
 from .choices import ISSUE_CATEGORIES, ISSUE_ANSWERS
 from core import choices as core_choices
-from core.utils import user_mailtrain_lists, get_mailtrain_lists
+from core.utils import get_mailtrain_lists
 import pandas as pd
 
 
@@ -294,7 +294,7 @@ def seller_console_list_campaigns(request, seller_id=None):
         messages.error(request, _("This seller is set in more than one user. Please contact your manager."))
         return HttpResponseRedirect(reverse("main_menu"))
 
-    if not "logistics" in getattr(settings, "DISABLED_APPS", []):
+    if "logistics" not in getattr(settings, "DISABLED_APPS", []):
         special_routes = {}
         for route_id in settings.SPECIAL_ROUTES_FOR_SELLERS_LIST:
             route = Route.objects.get(pk=route_id)
@@ -339,7 +339,7 @@ def seller_console_list_campaigns(request, seller_id=None):
         "upcoming_activity": upcoming_activity,
         "issues_never_paid": issues_never_paid,
     }
-    if not "logistics" in getattr(settings, "DISABLED_APPS", []):
+    if "logistics" not in getattr(settings, "DISABLED_APPS", []):
         context["special_routes"] = special_routes
     return render(
         request,
@@ -867,6 +867,7 @@ class SubscriptionMixin:
 
         if self.subscription:
             if self.subscription.contact != self.contact:
+                # TODO: change this to a better approach, it generates bad UX and an error email wo traceback (useless)
                 return HttpResponseServerError(_("Wrong data"))
             self.edit_subscription = True
         else:
@@ -981,6 +982,7 @@ class SubscriptionUpdateView(SubscriptionMixin, FormView):
         self.subscription = self.get_subscription(kwargs['subscription_id'])
         self.capture_variables()
         if self.subscription and self.subscription.contact != self.contact:
+            # TODO: change this to a better approach, it generates bad UX and an error email wo traceback (useless)
             return HttpResponseServerError(_("Wrong data"))
         self.edit_subscription = bool(self.subscription)
         return super().dispatch(request, *args, **kwargs)
@@ -1267,7 +1269,7 @@ def list_issues(request):
     """
     Shows a very basic list of issues.
     """
-    if not "logistics" in getattr(settings, "DISABLED_APPS", []):
+    if "logistics" not in getattr(settings, "DISABLED_APPS", []):
         issues_queryset = Issue.objects.all().order_by(
             "-date", "subscription_product__product", "-subscription_product__route__number", "-id"
         )
@@ -2117,7 +2119,7 @@ def edit_newsletters(request, contact_id):
 
 @staff_member_required
 def toggle_mailtrain_subscription(request, contact_id, list):
-    contact = get_object_or_404(Contact, pk=contact_id)
+    get_object_or_404(Contact, pk=contact_id)
     return HttpResponseRedirect(reverse("edit_contact", args=[contact_id]) + "#newsletters")
 
 
@@ -2453,7 +2455,7 @@ def partial_unsubscription(request, subscription_id):
                         instructions=sp.special_instructions,
                         seller_id=sp.seller_id,
                     )
-                    if not "logistics" in getattr(settings, "DISABLED_APPS", []):
+                    if "logistics" not in getattr(settings, "DISABLED_APPS", []):
                         if sp.route:
                             new_sp.route = sp.route
                         if sp.order:
@@ -2537,7 +2539,7 @@ def product_change(request, subscription_id):
                         instructions=sp.special_instructions,
                         seller_id=sp.seller_id,
                     )
-                    if not "logistics" in getattr(settings, "DISABLED_APPS", []):
+                    if "logistics" not in getattr(settings, "DISABLED_APPS", []):
                         if sp.route:
                             new_sp.route = sp.route
                         if sp.order:
@@ -2631,7 +2633,7 @@ def book_additional_product(request, subscription_id):
                         instructions=sp.special_instructions,
                         seller_id=sp.seller_id,
                     )
-                    if not "logistics" in getattr(settings, "DISABLED_APPS", []):
+                    if "logistics" not in getattr(settings, "DISABLED_APPS", []):
                         if sp.route:
                             new_sp.route = sp.route
                         if sp.order:

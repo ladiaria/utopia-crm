@@ -1,5 +1,6 @@
 # coding=utf-8
 from django.conf import settings
+from django.db.models.deletion import Collector
 from django.http import HttpResponseRedirect
 from django.contrib.admin import SimpleListFilter
 from django.utils.translation import gettext_lazy as _
@@ -9,10 +10,12 @@ from django.urls import resolve, reverse
 from django.forms import ValidationError
 
 from leaflet.admin import LeafletGeoAdmin
-from taggit.models import TaggedItem
-
+from taggit.models import TaggedItem, Tag
 from simple_history.admin import SimpleHistoryAdmin
+
 from community.models import ProductParticipation, Supporter
+from invoicing.models import Invoice
+from support.models import Issue
 
 from .models import (
     Subscription,
@@ -85,7 +88,7 @@ class SubscriptionProductInline(admin.TabularInline):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if not "logistics" in getattr(settings, "DISABLED_APPS", []):
+        if "logistics" not in getattr(settings, "DISABLED_APPS", []):
             self.fields = list(self.fields)
             self.fields[1] = ("route", "order", "label_contact", "seller")
             self.raw_id_fields.insert(0, "route")
@@ -130,6 +133,35 @@ def default_newsletters_dialog_redirect(request, obj, contact_id_attr_name):
             response_add_or_change_next_url(request, obj),
         )
     )
+
+
+def contact_is_safe_to_delete(contact, ignore_movable=False, print_unsafe=False):
+    if contact.has_active_subscription():
+        if print_unsafe:
+            print(contact.get_active_subscriptions())
+        return False
+
+    non_relevant_data_max_amounts = {
+        Contact: 1,
+        ContactCampaignStatus: 100,
+        Address: 1,
+        SubscriptionNewsletter: 20,
+    }
+    movable = [Tag, Address, Subscription, Invoice, Activity, Issue, ContactProductHistory]
+
+    collector = Collector(using="default")
+    collector.collect([contact])
+    collector_data = collector.data
+    safety = True
+    for key in collector_data:
+        key_count = len(collector_data[key])
+        if key not in non_relevant_data_max_amounts or key_count > non_relevant_data_max_amounts[key]:
+            if not ignore_movable or key not in movable:
+                safety = False
+                if print_unsafe:
+                    print((key, key_count))
+                break
+    return safety
 
 
 @admin.register(Subscription)
