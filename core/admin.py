@@ -11,6 +11,7 @@ from django.forms import ValidationError
 
 from leaflet.admin import LeafletGeoAdmin
 from taggit.models import TaggedItem, Tag
+from taggit.admin import TagAdmin, TaggedItemInline
 from simple_history.admin import SimpleHistoryAdmin
 
 from community.models import ProductParticipation, Supporter
@@ -44,6 +45,23 @@ from .models import (
 from .forms import SubscriptionAdminForm, ContactAdminForm
 
 
+# unregister default TagAdmin to remove inlines (avoid timeout when many taggetitems), register it again changed
+if Tag in admin.site._registry:
+    admin.site.unregister(Tag)
+
+
+class UtopiaTagAdmin(TagAdmin):
+    inlines = [i for i in TagAdmin.inlines if i != TaggedItemInline]
+    list_display = TagAdmin.list_display + ["item_count"]
+
+    def item_count(self, instance):
+        return instance.taggit_taggeditem_items.count()
+
+
+admin.site.register(Tag, UtopiaTagAdmin)
+
+
+# filters by tag
 class TaggitListFilter(SimpleListFilter):
     """
     A custom filter class that can be used to filter by taggit tags in the admin.
