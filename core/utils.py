@@ -309,7 +309,8 @@ def process_products(input_product_dict: dict) -> dict:
     return output_dict
 
 
-def updatewebuser(id, email, newemail, field, value):
+# def updatewebuser(id, name, email, newemail, field=None, value=None):
+def updatewebuser(id, name, email, newemail, fields_values={}):
     """
     Esta es la funcion que hace el POST hacia la web, siempre recibe el mail actual y el nuevo (el que se esta
     actualizando) porque son necesarios para buscar la ficha en la web.
@@ -317,31 +318,18 @@ def updatewebuser(id, email, newemail, field, value):
     campos.
     ATENCION: No se sincroniza cuando el nuevo valor del campo es None
     """
-    # TODO: translate docstring to english
-    # TODO: try to use the next function from here (DRY)
-    api_url, api_key = (getattr(settings, attr) for attr in ("WEB_UPDATE_USER_URI", "LDSOCIAL_API_KEY"))
-    if api_url and api_key:
-        data = {
+    data = {
             "contact_id": id,
+            "name": name,
             "email": email,
             "newemail": newemail,
-            "field": field,
-            "value": value,
+            "fields": fields_values
+            # "field": field,
+            # "value": value,
         }
-        post_kwargs = {
-            "headers": {'Authorization': 'Api-Key ' + api_key},
-            "data": data,
-            "timeout": (5, 20),
-            "verify": settings.WEB_UPDATE_USER_VERIFY_SSL,
-        }
-        http_basic_auth = settings.WEB_UPDATE_HTTP_BASIC_AUTH
-        if http_basic_auth:
-            post_kwargs["auth"] = HTTPBasicAuth(*http_basic_auth)
-        r = requests.post(api_url, **post_kwargs)
-        if settings.DEBUG:
-            print("DEBUG: updatewebuser api response content: " + html2text.html2text(r.content.decode()).strip())
-        r.raise_for_status()  # TODO: is there a way to "attach" the exception content (if any) to this call?
-
+    return post_to_cms_rest_api(
+        "updatewebuser", settings.WEB_UPDATE_USER_URI, data
+    )
 
 def post_to_cms_rest_api(api_name, api_uri, post_data):
     api_key = settings.LDSOCIAL_API_KEY
@@ -351,19 +339,24 @@ def post_to_cms_rest_api(api_name, api_uri, post_data):
         "headers": {'Authorization': 'Api-Key ' + api_key},
         "data": post_data,
         "timeout": (5, 20),
-        "verify": settings.WEB_UPDATE_USER_VERIFY_SSL,
+        "verify": False, #settings.WEB_UPDATE_USER_VERIFY_SSL,
     }
     http_basic_auth = settings.WEB_UPDATE_HTTP_BASIC_AUTH
     if http_basic_auth:
         post_kwargs["auth"] = HTTPBasicAuth(*http_basic_auth)
     try:
         if settings.DEBUG:
+            print("cms request headers", post_kwargs)
             print("DEBUG: %s to %s with post_data='%s'" % (api_name, api_uri, post_data))
         r = requests.post(api_uri, **post_kwargs)
         r.raise_for_status()
-    except ReadTimeout:
+    except ReadTimeout as rt:
+        if settings.DEBUG:
+            print("DEBUG: %s POST read timeout: %s" % (api_name, str(rt)))
         return "TIMEOUT"
-    except RequestException:
+    except RequestException as req_ex:
+        if settings.DEBUG:
+            print("DEBUG: %s POST request error: %s" % (api_name, str(req_ex)))
         return "ERROR"
     else:
         result = r.json()
