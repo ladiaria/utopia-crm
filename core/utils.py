@@ -11,6 +11,8 @@ from django.conf import settings
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
 
+from core.models import Contact
+
 
 dnames = ('monday', 'tuesday', 'wednesday', 'thursday', 'friday')
 
@@ -396,3 +398,17 @@ def manage_mailtrain_subscription(email: str, list_id: str, action: Literal["sub
         result = delete_email_from_mailtrain_list(email, list_id)
 
     return result
+
+
+def select_or_create_contact(email, name, phone):
+    """
+    Check if a contact exists in the CRM, if not, create it.
+
+    Returns the contact object.
+    """
+    contact_qs = Contact.objects.filter(email=email)
+    if contact_qs.exists():
+        contact_obj = contact_qs.first()
+    else:
+        contact_obj = Contact.objects.create(email=email, name=name, phone=phone)
+    return contact_obj
