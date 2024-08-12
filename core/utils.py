@@ -11,8 +11,6 @@ from django.conf import settings
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
 
-from core.models import Contact
-
 
 dnames = ('monday', 'tuesday', 'wednesday', 'thursday', 'friday')
 
@@ -406,6 +404,7 @@ def select_or_create_contact(email, name, phone):
 
     Returns the contact object.
     """
+    from core.models import Contact
     contact_qs = Contact.objects.filter(email=email)
     if contact_qs.exists():
         contact_obj = contact_qs.first()
