@@ -778,6 +778,30 @@ class Contact(models.Model):
 
         return errors
 
+    def add_single_invoice_with_products(
+        self, products, payment_type, payment_reference, expiration_days=30, paid=False
+    ):
+        from invoicing.models import Invoice
+
+        invoice = Invoice.objects.create(
+            contact=self,
+            payment_type=payment_type,
+            payment_reference=payment_reference,
+            creation_date=date.today(),
+            expiration_date=date.today() + timedelta(days=expiration_days),
+            service_to=date.today(),
+            service_from=date.today(),
+            amount=0,
+            paid=paid,
+        )
+        for product in products:
+            invoice.add_item(product)
+        if invoice.paid:
+            invoice.payment_date = date.today()
+        invoice.amount = invoice.get_total_amount()
+        invoice.save()
+        return invoice
+
     class Meta:
         verbose_name = _("contact")
         verbose_name_plural = _("contacts")
