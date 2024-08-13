@@ -324,8 +324,6 @@ def updatewebuser(id, name, email, newemail, fields_values={}):
             "email": email,
             "newemail": newemail,
             "fields": fields_values
-            # "field": field,
-            # "value": value,
         }
     return post_to_cms_rest_api(
         "updatewebuser", settings.WEB_UPDATE_USER_URI, data
