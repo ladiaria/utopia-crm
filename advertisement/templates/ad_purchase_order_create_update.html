@@ -27,7 +27,7 @@
 {% block content %}
   <section class="content">
     {% if form.errors %}
-    {{form.errors}}
+    {{ form.errors }}
     {% endif %}
     <form method="post">
       {% csrf_token %}

@@ -15,6 +15,9 @@ from django.shortcuts import get_object_or_404, render
 from django.http import HttpResponseRedirect, HttpResponse
 from django.utils.translation import gettext_lazy as _
 from django.utils.text import format_lazy
+from django.views.generic import CreateView
+from django.db import transaction
+from django.utils.decorators import method_decorator
 
 import reportlab
 from reportlab.pdfbase import pdfmetrics
@@ -24,6 +27,7 @@ from reportlab.pdfgen.canvas import Canvas
 from reportlab.platypus import Table, TableStyle
 
 from .filters import InvoiceFilter
+from .forms import InvoiceForm, InvoiceItemFormSet
 from invoicing.models import Invoice, InvoiceItem, Billing, CreditNote
 from core.models import Contact, Subscription, Product, SubscriptionProduct, AdvancedDiscount
 
@@ -695,3 +699,35 @@ def force_cancel_invoice(request, invoice_id):
         else:
             messages.error(request, _("Invoice can't be canceled"))
     return HttpResponseRedirect(reverse("admin:invoicing_invoice_change", args=[invoice_id]))
+
+@method_decorator(staff_member_required, name='dispatch')
+class InvoiceNonSubscriptionCreateView(CreateView):
+    model = Invoice
+    form_class = InvoiceForm
+    template_name = 'invoice_non_subscription_form.html'
+
+    def get_context_data(self, **kwargs):
+        data = super().get_context_data(**kwargs)
+        if self.request.POST:
+            data['formset'] = InvoiceItemFormSet(self.request.POST)
+        else:
+            data['formset'] = InvoiceItemFormSet()
+        return data
+
+    def get_initial(self):
+        initial = super().get_initial()
+        initial['contact_id'] = self.kwargs['contact_id']
+        return initial
+
+    def form_valid(self, form):
+        context = self.get_context_data()
+        formset = context['formset']
+        if form.is_valid() and formset.is_valid():
+            self.object = form.save(commit=False)
+            self.object.contact_id = self.kwargs['contact_id']  # Assign the contact ID
+            self.object.save()
+            formset.instance = self.object
+            formset.save()
+            return super().form_valid(form)
+        else:
+            return self.form_invalid(form)
