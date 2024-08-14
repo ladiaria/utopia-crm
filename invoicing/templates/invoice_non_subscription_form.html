@@ -1,0 +1,48 @@
+{% extends "adminlte/base.html" %}
+{% block content %}
+<form method="post">
+  {% csrf_token %}
+  {{ form.as_p }}
+
+  <table id="invoice-items-table">
+      {{ formset.management_form }}
+      {% for form in formset %}
+          <tr class="formset-row">
+              <td>{{ form.product }}</td>
+              <td>{{ form.copies }}</td>
+              <td><button type="button" class="remove-form-row">Remove</button></td>
+          </tr>
+      {% endfor %}
+  </table>
+
+  <button type="button" id="add-form-row">Add Product</button>
+  <button type="submit">Save Invoice</button>
+</form>
+
+<script type="text/javascript">
+  document.addEventListener('DOMContentLoaded', function() {
+      var formsetTable = document.getElementById('invoice-items-table');
+      var addFormButton = document.getElementById('add-form-row');
+      var totalForms = document.getElementById('invoiceitem_set-TOTAL_FORMS');
+      var formCount = parseInt(totalForms.value);
+
+      addFormButton.addEventListener('click', function() {
+          var newFormRow = formsetTable.querySelector('.formset-row').cloneNode(true);
+          var newFormIndex = formCount;
+          console.log("HOLA");
+          newFormRow.innerHTML = newFormRow.innerHTML.replace(/form-(\d+)-/g, 'form-' + newFormIndex + '-');
+          formsetTable.appendChild(newFormRow);
+          totalForms.value = newFormIndex + 1;
+          formCount++;
+      });
+
+      formsetTable.addEventListener('click', function(event) {
+          if (event.target.classList.contains('remove-form-row')) {
+              event.target.closest('.formset-row').remove();
+              formCount--;
+              totalForms.value = formCount;
+          }
+      });
+  });
+</script>
+{% endblock content %}

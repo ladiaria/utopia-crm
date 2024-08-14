@@ -779,14 +779,13 @@ class Contact(models.Model):
         return errors
 
     def add_single_invoice_with_products(
-        self, products, payment_type, payment_reference, expiration_days=30, paid=False
+        self, products, payment_type, expiration_days=30, paid=False
     ):
         from invoicing.models import Invoice
 
         invoice = Invoice.objects.create(
             contact=self,
             payment_type=payment_type,
-            payment_reference=payment_reference,
             creation_date=date.today(),
             expiration_date=date.today() + timedelta(days=expiration_days),
             service_to=date.today(),

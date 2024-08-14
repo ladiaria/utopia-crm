@@ -413,7 +413,7 @@ def select_or_create_contact(email, name, phone):
     return contact_obj
 
 
-def process_invoice_request(product_slugs, email, phone, name, payment_reference, payment_type):
+def process_invoice_request(product_slugs, email, phone, name, payment_type):
     from core.models import Product
     """
     Handles the core logic for processing an invoice request by selecting or creating a contact, retrieving
@@ -460,7 +460,7 @@ def process_invoice_request(product_slugs, email, phone, name, payment_reference
     if not product_objs:
         raise ValueError("No se encontraron productos")
 
-    invoice = contact_obj.add_single_invoice_with_products(product_objs, payment_type, payment_reference, paid=True)
+    invoice = contact_obj.add_single_invoice_with_products(product_objs, payment_type, paid=True)
 
     return {
         "invoice_id": invoice.id,
