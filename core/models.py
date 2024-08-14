@@ -779,7 +779,7 @@ class Contact(models.Model):
         return errors
 
     def add_single_invoice_with_products(
-        self, products, payment_type, expiration_days=30, paid=False
+        self, products, payment_type, expiration_days=30
     ):
         from invoicing.models import Invoice
 
@@ -791,12 +791,9 @@ class Contact(models.Model):
             service_to=date.today(),
             service_from=date.today(),
             amount=0,
-            paid=paid,
         )
         for product in products:
             invoice.add_item(product)
-        if invoice.paid:
-            invoice.payment_date = date.today()
         invoice.amount = invoice.get_total_amount()
         invoice.save()
         return invoice
