@@ -398,9 +398,15 @@ def manage_mailtrain_subscription(email: str, list_id: str, action: Literal["sub
     return result
 
 
-def select_or_create_contact(email, name, phone):
+def select_or_create_contact(email, name=None, phone=None, id_document=None):
     """
     Check if a contact exists in the CRM, if not, create it.
+
+    Args:
+        email (str): The email address of the contact.
+        name (str): The name of the contact.
+        phone (str): The phone number of the contact.
+        id_document (str): The identification document of the contact.
 
     Returns the contact object.
     """
@@ -409,11 +415,11 @@ def select_or_create_contact(email, name, phone):
     if contact_qs.exists():
         contact_obj = contact_qs.first()
     else:
-        contact_obj = Contact.objects.create(email=email, name=name, phone=phone)
+        contact_obj = Contact.objects.create(email=email, name=name, phone=phone, id_document=id_document)
     return contact_obj
 
 
-def process_invoice_request(product_slugs, email, phone, name, payment_type):
+def process_invoice_request(product_slugs, email, phone, name, id_document, payment_type):
     from core.models import Product
     """
     Handles the core logic for processing an invoice request by selecting or creating a contact, retrieving
@@ -454,13 +460,15 @@ def process_invoice_request(product_slugs, email, phone, name, payment_type):
       projects or environments) without affecting the core invoice creation logic. For example, additional steps
       can be added before or after the invoice creation based on specific business requirements.
     """
-    contact_obj = select_or_create_contact(email, name, phone)
+    contact_obj = select_or_create_contact(email, name, phone, id_document)
     product_objs = Product.objects.filter(slug__in=product_slugs.split(","))
 
     if not product_objs:
         raise ValueError("No se encontraron productos")
 
     invoice = contact_obj.add_single_invoice_with_products(product_objs, payment_type, paid=True)
+    for product in product_objs:
+        contact_obj.tags.add(product.slug + "-added")
 
     return {
         "invoice_id": invoice.id,
