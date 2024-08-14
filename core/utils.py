@@ -466,7 +466,7 @@ def process_invoice_request(product_slugs, email, phone, name, id_document, paym
     if not product_objs:
         raise ValueError("No se encontraron productos")
 
-    invoice = contact_obj.add_single_invoice_with_products(product_objs, payment_type, paid=True)
+    invoice = contact_obj.add_single_invoice_with_products(product_objs, payment_type, paid=False)
     for product in product_objs:
         contact_obj.tags.add(product.slug + "-added")
 
