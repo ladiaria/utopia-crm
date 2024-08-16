@@ -113,7 +113,7 @@ def calc_price_from_products(products_with_copies, frequency, debug_id=""):
         except Product.DoesNotExist:
             pass
         else:
-            (non_discount_list if product.type == 'S' else discount_list).append(product)
+            (non_discount_list if product.type in ('S', "O") else discount_list).append(product)
 
     # 2. obtain 2 total cost amounts: affectable/non-affectable by discounts
     total_affectable, total_non_affectable = 0, 0

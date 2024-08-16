@@ -145,7 +145,7 @@ def bill_subscription(subscription_id, billing_date=None, dpp=10, check_route=Fa
         except Product.DoesNotExist:
             pass
         else:
-            (non_discount_list if product.type == 'S' else discount_list).append(product)
+            (non_discount_list if product.type in ('S', 'O') else discount_list).append(product)
 
     # 2. obtain 2 total cost amounts: affectable/non-affectable by discounts
     subtotal_affectable, subtotal_non_affectable = 0.0, 0.0
@@ -158,11 +158,16 @@ def bill_subscription(subscription_id, billing_date=None, dpp=10, check_route=Fa
                 f"{product.price} = {'-' if product.type == 'D' else ''}{product.price * copies}"
             )
 
-        # For each product we're making an invoiceitem.
+        # For each product we're making an invoiceitem. Items of frequency 4 are one-shot products, so we'll remove
+        # them from the subscription after billing them. They also don't have a frequency, so we'll bill them once.
         item = InvoiceItem()
-        frequency_extra = _(' {} months'.format(subscription.frequency)) if subscription.frequency > 1 else ''
+        frequency_extra = (
+            _(' {} months'.format(subscription.frequency))
+            if subscription.frequency > 1 and product.edition_frequency != 4
+            else ''
+        )
         item.description = format_lazy('{} {}', product.name, frequency_extra)
-        item.price = product.price * subscription.frequency
+        item.price = product.price * subscription.frequency if product.edition_frequency != 4 else product.price
         item.product = product
         item.copies = copies
         item.type = 'I'  # This means this is a regular item on the invoice
@@ -702,6 +707,7 @@ def force_cancel_invoice(request, invoice_id):
         else:
             messages.error(request, _("Invoice can't be canceled"))
     return HttpResponseRedirect(reverse("admin:invoicing_invoice_change", args=[invoice_id]))
+
 
 @method_decorator(staff_member_required, name='dispatch')
 class InvoiceNonSubscriptionCreateView(CreateView):

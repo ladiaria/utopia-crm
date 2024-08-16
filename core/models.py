@@ -1160,6 +1160,8 @@ class Subscription(models.Model):
             seller=sp.seller,
             override_date=override_date,
         )
+        if product.edition_frequency == 4:
+            self.contact.tags.add(product.slug + "-added")
         return sp
 
     def remove_product(self, product):
