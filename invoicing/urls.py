@@ -20,6 +20,7 @@ urlpatterns = [
     re_path(r'^invoicing/force_cancel_invoice/(\d+)/$', force_cancel_invoice, name='force_cancel_invoice'),
     re_path(r'^download_invoice/(\d+)/$', download_invoice, name='download_invoice'),
     path('invoice_filter/', invoice_filter, name='invoice_filter'),
+    # WIP: UI for creating invoices, unfinished. Uncomment when ready.
     # path(
     #     'new_non_subscription/<int:contact_id>/',
     #     views.InvoiceNonSubscriptionCreateView.as_view(),
