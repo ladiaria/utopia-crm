@@ -2402,32 +2402,36 @@ def update_customer(cust, newmail, field, value):
     cust.save()
 
 
-def update_web_user(contact, newsletter_data=None, area_newsletters=False):
+def update_web_user(contact, target_email=None, newsletter_data=None, area_newsletters=False):
     """
-    Sincroniza algunos campos del contact con su respectiva ficha de suscriptor en la web.
+    Sync some fields from contact with the web CMS linked subscriptor target reference.
     If newsletter_data is given, newsletters will be sent to websync.
+    @param contact: Contact object store the previous state of the contact
+    @param target_email: Email used to set the connection. If not, use given contact's email
+    @param newsletter_data: field data for newsletters.
+    @param area_newsletters: field name for newsletters.
     """
-    # TODO: rename better and translate docstring to en.
     if settings.WEB_UPDATE_USER_ENABLED and not getattr(contact, "updatefromweb", False) and contact.id:
-        if newsletter_data:
-            try:
+        fields_to_update =  dict()
+        try:
+            if newsletter_data:
                 field = ("area_" if area_newsletters else "") + "newsletters"
-                updatewebuser(contact.id, contact.email, contact.email, field, newsletter_data)
-            except RequestException:
-                raise ValidationError(_("CMS sync error"))
-        else:
-            try:
-                current_contact = Contact.objects.get(pk=contact.id)
+                fields_to_update.update({field: newsletter_data})
+            else:
+                current_saved_contact = Contact.objects.get(pk=contact.id)
                 # TODO: change this 1-field-per-request approach to a new 1-request-only approach with all chanmges
                 for f in getattr(settings, "WEB_UPDATE_USER_CHECKED_FIELDS", []):
-                    newvalue = getattr(contact, f)
-                    if newvalue is not None and getattr(current_contact, f) != newvalue:
-                        try:
-                            updatewebuser(contact.id, current_contact.email, contact.email, f, newvalue)
-                        except RequestException as e:
-                            raise ValidationError("{}: {}".format(_("CMS sync error"), e))
-            except Contact.DoesNotExist:
-                pass
+                    before_saved_value = getattr(contact, f)
+                    current_saved_value = getattr(current_saved_contact, f)
+                    if before_saved_value is not None and current_saved_contact != before_saved_value:
+                        fields_to_update.update({f, current_saved_value})
+            # call for sync if there are fields to update
+            if fields_to_update:
+                updatewebuser(contact.id, contact.name, target_email, contact.email, fields_to_update)
+        except RequestException as e:
+            raise ValidationError("{}: {}".format(_("CMS sync error"), e))
+        except Contact.DoesNotExist:
+            pass
 
 
 class MailtrainList(models.Model):
