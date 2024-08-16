@@ -132,6 +132,33 @@ class Invoice(models.Model):
         else:
             return None
 
+    def add_item(self, product, amount=None, copies=1, description=None, price=None, discount=None, notes=None):
+        """
+        Adds a product to the invoice. If the product is a discount, the amount should be negative.
+        """
+        if not description:
+            description = product.name
+        if not price:
+            price = product.price
+        amount = price * copies if not amount else amount
+        item = InvoiceItem(
+            invoice=self,
+            amount=amount,
+            product=product,
+            copies=copies,
+            description=description,
+            price=price,
+            discount=discount,
+            notes=notes,
+        )
+        item.save()
+
+    def get_total_amount(self):
+        total = 0
+        for item in self.invoiceitem_set.all():
+            total += item.amount
+        return total
+
     class Meta:
         verbose_name = "invoice"
         verbose_name_plural = "invoices"

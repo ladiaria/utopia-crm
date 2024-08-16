@@ -778,6 +778,26 @@ class Contact(models.Model):
 
         return errors
 
+    def add_single_invoice_with_products(
+        self, products, payment_type, expiration_days=30
+    ):
+        from invoicing.models import Invoice
+
+        invoice = Invoice.objects.create(
+            contact=self,
+            payment_type=payment_type,
+            creation_date=date.today(),
+            expiration_date=date.today() + timedelta(days=expiration_days),
+            service_to=date.today(),
+            service_from=date.today(),
+            amount=0,
+        )
+        for product in products:
+            invoice.add_item(product)
+        invoice.amount = invoice.get_total_amount()
+        invoice.save()
+        return invoice
+
     class Meta:
         verbose_name = _("contact")
         verbose_name_plural = _("contacts")
@@ -1140,6 +1160,8 @@ class Subscription(models.Model):
             seller=sp.seller,
             override_date=override_date,
         )
+        if product.edition_frequency == 4:
+            self.contact.tags.add(product.slug + "-added")
         return sp
 
     def remove_product(self, product):
