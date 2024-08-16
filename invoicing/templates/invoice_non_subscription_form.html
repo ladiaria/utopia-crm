@@ -1,48 +1,47 @@
 {% extends "adminlte/base.html" %}
+{% load static i18n widget_tweaks %}
+
+{% block extra_head %}
+  <link rel="stylesheet" type="text/css" href="{% static 'css/email_suggestion_dialog.css' %}">
+{% endblock %}
+
+{% block no_heading %}
+<h3>{% trans "New invoice" %}</h3>
+{% endblock no_heading %}
+
 {% block content %}
-<form method="post">
-  {% csrf_token %}
-  {{ form.as_p }}
-
-  <table id="invoice-items-table">
+  <section class="content">
+    {% if form.errors %}
+    {{ form.errors }}
+    {% endif %}
+    <form method="post">
+      {% csrf_token %}
+      {% render_field form.invoice %}
+      <div class="row mt-2">
+        <div class="col-6">
+          <label for="id_active_subscriptions">{% trans "Use an active subscription payment type" %}</label>
+          {% render_field form.active_subscriptions class="form-control" %}
+        </div>
+        <div class="col-6">
+          <label for="id_payment_type">{% trans "Use new payment type" %}</label>
+          {% render_field form.payment_type class="form-control" %}
+        </div>
+      </div>
       {{ formset.management_form }}
-      {% for form in formset %}
-          <tr class="formset-row">
-              <td>{{ form.product }}</td>
-              <td>{{ form.copies }}</td>
-              <td><button type="button" class="remove-form-row">Remove</button></td>
-          </tr>
-      {% endfor %}
-  </table>
-
-  <button type="button" id="add-form-row">Add Product</button>
-  <button type="submit">Save Invoice</button>
-</form>
-
-<script type="text/javascript">
-  document.addEventListener('DOMContentLoaded', function() {
-      var formsetTable = document.getElementById('invoice-items-table');
-      var addFormButton = document.getElementById('add-form-row');
-      var totalForms = document.getElementById('invoiceitem_set-TOTAL_FORMS');
-      var formCount = parseInt(totalForms.value);
-
-      addFormButton.addEventListener('click', function() {
-          var newFormRow = formsetTable.querySelector('.formset-row').cloneNode(true);
-          var newFormIndex = formCount;
-          console.log("HOLA");
-          newFormRow.innerHTML = newFormRow.innerHTML.replace(/form-(\d+)-/g, 'form-' + newFormIndex + '-');
-          formsetTable.appendChild(newFormRow);
-          totalForms.value = newFormIndex + 1;
-          formCount++;
-      });
-
-      formsetTable.addEventListener('click', function(event) {
-          if (event.target.classList.contains('remove-form-row')) {
-              event.target.closest('.formset-row').remove();
-              formCount--;
-              totalForms.value = formCount;
-          }
-      });
-  });
-</script>
-{% endblock content %}
+      <div id="product-forms">
+        {% for form in formset.forms %}
+          <div class="product-form row mt-2">
+            <div class="col-4">
+              {{ form.product.errors }}
+              <label for="{{ form.product.id_for_label }}" class="control-label">{% trans "Product" %}:</label>
+              {{ form.product|add_class:"form-control" }}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+      <div class="text-right mt-4">
+        <button type="submit" class="btn btn-primary">{% trans "Submit" %}</button>
+      </div>
+    </form>
+  </section>
+{% endblock %}

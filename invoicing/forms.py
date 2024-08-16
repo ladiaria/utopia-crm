@@ -10,4 +10,4 @@ class InvoiceForm(forms.ModelForm):
         fields = ['payment_type']
 
 
-InvoiceItemFormSet = inlineformset_factory(Invoice, InvoiceItem, fields=['product', 'copies'])
+InvoiceItemFormSet = inlineformset_factory(Invoice, InvoiceItem, fields=['product'])

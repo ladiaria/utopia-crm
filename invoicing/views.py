@@ -387,12 +387,15 @@ def bill_subscription(subscription_id, billing_date=None, dpp=10, check_route=Fa
 
                 # When the invoice has finally been created and every date has been moved where it should have been,
                 # we're going to check if there's any temporary discounts, and remove them if it applies.
+                # We're also going to remove one-shot products
                 ii_qs = invoice.invoiceitem_set.filter(product__temporary_discount_months__gte=1)
                 for ii in ii_qs:
                     temporary_discount = ii.product
                     months = temporary_discount.temporary_discount_months
                     if invoice.subscription.months_in_invoices_with_product(temporary_discount.slug) >= months:
                         invoice.subscription.remove_product(temporary_discount)
+                    if ii.product.edition_frequency == 4:  # One-shot
+                        invoice.subscription.remove_product(ii.product)
 
             # Then finally we need to change everything on the subscription
             if subscription.balance:
@@ -706,6 +709,12 @@ class InvoiceNonSubscriptionCreateView(CreateView):
     form_class = InvoiceForm
     template_name = 'invoice_non_subscription_form.html'
 
+    def dispatch(self, request, *args, **kwargs):
+        self.contact_id = kwargs.get('contact_id')
+        if self.contact_id:
+            self.contact = get_object_or_404(Contact, pk=self.contact_id)
+        return super().dispatch(request, *args, **kwargs)
+
     def get_context_data(self, **kwargs):
         data = super().get_context_data(**kwargs)
         if self.request.POST:
@@ -714,20 +723,21 @@ class InvoiceNonSubscriptionCreateView(CreateView):
             data['formset'] = InvoiceItemFormSet()
         return data
 
-    def get_initial(self):
-        initial = super().get_initial()
-        initial['contact_id'] = self.kwargs['contact_id']
-        return initial
-
     def form_valid(self, form):
         context = self.get_context_data()
         formset = context['formset']
+        print(formset)
         if form.is_valid() and formset.is_valid():
-            self.object = form.save(commit=False)
-            self.object.contact_id = self.kwargs['contact_id']  # Assign the contact ID
-            self.object.save()
-            formset.instance = self.object
-            formset.save()
+            products = []
+            for sub_form in formset:
+                product = sub_form.cleaned_data.get('product')
+                if product:
+                    products.append(product)
+            self.object = self.contact.add_single_invoice_with_products(products)
             return super().form_valid(form)
         else:
+            print(form.errors)
             return self.form_invalid(form)
+
+    def get_success_url(self):
+        return reverse('contact_invoices', args=[self.contact_id])
