@@ -3,9 +3,7 @@ import collections
 import requests
 from requests.auth import HTTPBasicAuth
 from requests.exceptions import ReadTimeout, RequestException
-import html2text
 from typing import Literal
-
 
 from django.conf import settings
 from django.core.validators import validate_email
@@ -323,11 +321,12 @@ def updatewebuser(id, name, email, newemail, fields_values={}):
             "name": name,
             "email": email,
             "newemail": newemail,
-            "fields": fields_values
+            "fields": fields_values,
         }
     return post_to_cms_rest_api(
         "updatewebuser", settings.WEB_UPDATE_USER_URI, data
     )
+
 
 def post_to_cms_rest_api(api_name, api_uri, post_data):
     api_key = settings.LDSOCIAL_API_KEY
@@ -337,7 +336,7 @@ def post_to_cms_rest_api(api_name, api_uri, post_data):
         "headers": {'Authorization': 'Api-Key ' + api_key},
         "data": post_data,
         "timeout": (5, 20),
-        "verify": False, #settings.WEB_UPDATE_USER_VERIFY_SSL,
+        "verify": settings.WEB_UPDATE_USER_VERIFY_SSL,
     }
     http_basic_auth = settings.WEB_UPDATE_HTTP_BASIC_AUTH
     if http_basic_auth:
@@ -463,6 +462,5 @@ def process_invoice_request(product_slugs, email, phone, name, id_document, paym
 
     return {
         "invoice_id": invoice.id,
-        "contact_id": contact_obj.id
+        "contact_id": contact_obj.id,
     }
-
