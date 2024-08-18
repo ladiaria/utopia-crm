@@ -113,7 +113,7 @@ def calc_price_from_products(products_with_copies, frequency, debug_id=""):
         except Product.DoesNotExist:
             pass
         else:
-            (non_discount_list if product.type == 'S' else discount_list).append(product)
+            (non_discount_list if product.type in ('S', "O") else discount_list).append(product)
 
     # 2. obtain 2 total cost amounts: affectable/non-affectable by discounts
     total_affectable, total_non_affectable = 0, 0
@@ -387,3 +387,82 @@ def manage_mailtrain_subscription(email: str, list_id: str, action: Literal["sub
         result = delete_email_from_mailtrain_list(email, list_id)
 
     return result
+
+
+def select_or_create_contact(email, name=None, phone=None, id_document=None):
+    """
+    Check if a contact exists in the CRM, if not, create it.
+
+    Args:
+        email (str): The email address of the contact.
+        name (str): The name of the contact.
+        phone (str): The phone number of the contact.
+        id_document (str): The identification document of the contact.
+
+    Returns the contact object.
+    """
+    from core.models import Contact
+    contact_qs = Contact.objects.filter(email=email)
+    if contact_qs.exists():
+        contact_obj = contact_qs.first()
+    else:
+        contact_obj = Contact.objects.create(email=email, name=name, phone=phone, id_document=id_document)
+    return contact_obj
+
+
+def process_invoice_request(product_slugs, email, phone, name, id_document, payment_type):
+    from core.models import Product
+    """
+    Handles the core logic for processing an invoice request by selecting or creating a contact, retrieving
+    the specified products, and creating a one-time invoice.
+
+    This function encapsulates the process of validating input data, handling contact selection or creation,
+    and managing product retrieval before creating the invoice. It separates these steps from direct invoice
+    creation to allow for better code reusability, error handling, and potential pre- or post-processing logic,
+    such as logging, validation, or customization for different project requirements.
+
+    Args:
+        product_slugs (str): Comma-separated product slugs representing the items the user wants to purchase.
+        email (str): The email address of the user making the purchase, typically received from the CMS.
+        phone (str): The phone number of the user. If not provided, defaults to an empty string.
+        name (str): The name of the user. If not provided, defaults to an empty string.
+        payment_reference (str): A reference identifier for the payment transaction. This helps track payments.
+        payment_type (str): The type of payment used (e.g., credit card, PayPal).
+
+    Returns:
+        dict: A dictionary containing the invoice ID and contact ID, which can be used for further processing
+        or response.
+
+    Raises:
+        ValueError: If no products are found corresponding to the provided slugs.
+
+    Why This Function is Separate:
+    - Modularity: By separating this function from `add_single_invoice_with_products`, the logic for contact
+      and product handling is modular, making the code easier to maintain and extend. This separation allows the
+      function to be reused in different contexts where pre-processing of the invoice is needed before calling
+      the actual invoice creation method.
+    - Error Handling: The function includes input validation and error handling before the invoice is created,
+      ensuring that all necessary data is present and valid. This makes it easier to manage exceptions specific
+      to contact and product handling before attempting to create an invoice.
+    - CMS Integration: The function is designed to work with a CMS that may not know if the CRM already has a
+      contact for the provided email. Therefore, it is responsible for creating a new contact if one doesn't exist,
+      ensuring seamless integration between the CMS and CRM.
+    - Customization: This function can be customized or overridden in different contexts (e.g., different
+      projects or environments) without affecting the core invoice creation logic. For example, additional steps
+      can be added before or after the invoice creation based on specific business requirements.
+    """
+    contact_obj = select_or_create_contact(email, name, phone, id_document)
+    product_objs = Product.objects.filter(slug__in=product_slugs.split(","))
+
+    if not product_objs:
+        raise ValueError("No se encontraron productos")
+
+    invoice = contact_obj.add_single_invoice_with_products(product_objs, payment_type)
+    for product in product_objs:
+        contact_obj.tags.add(product.slug + "-added")
+
+    return {
+        "invoice_id": invoice.id,
+        "contact_id": contact_obj.id
+    }
+

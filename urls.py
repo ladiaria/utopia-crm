@@ -20,6 +20,7 @@ from core.views import (
     mailtrain_lists,
     get_mailtrain_list_subscribed_emails,
     toggle_mailtrain_subscription,
+    create_oneshot_invoice_from_web,
 )
 
 
@@ -54,6 +55,7 @@ urlpatterns += [
         toggle_mailtrain_subscription,
         name="toggle_mailtrain_subscription",
     ),
+    path("api/create_oneshot_invoice_from_web/", create_oneshot_invoice_from_web, name="create_oneshot_invoice_from_web"),
 ]
 
 if 'support' in settings.INSTALLED_APPS:

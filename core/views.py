@@ -1,16 +1,25 @@
 # coding: utf-8
+from time import sleep
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework_api_key.permissions import HasAPIKey
 
 from django.db import IntegrityError
-from django.http import JsonResponse, HttpResponse, HttpResponseBadRequest, HttpResponseRedirect, HttpResponseForbidden
+from django.http import (
+    JsonResponse,
+    HttpResponse,
+    HttpResponseBadRequest,
+    HttpResponseRedirect,
+    HttpResponseForbidden,
+    HttpResponseServerError,
+)
 from django.shortcuts import render, get_list_or_404, get_object_or_404
 from django.views.decorators.cache import never_cache
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
 
-from .models import Contact, MailtrainList, update_customer
+from .models import Contact, MailtrainList, Product, update_customer
 from .admin import contact_is_safe_to_delete
 from .utils import (
     get_emails_from_mailtrain_list,
@@ -18,6 +27,7 @@ from .utils import (
     subscribe_email_to_mailtrain_list,
     delete_email_from_mailtrain_list,
     manage_mailtrain_subscription,
+    process_invoice_request
 )
 
 
@@ -195,3 +205,57 @@ def toggle_mailtrain_subscription(request, contact_id: int, cid: str) -> HttpRes
         subscribe_email_to_mailtrain_list(contact_obj.email, cid)
         messages.success(request, f"Se ha agregado el contacto {contact_obj.email} a la lista {mailtrain_list_obj}")
     return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
+
+
+@api_view(['POST'])
+@permission_classes([HasAPIKey])
+def create_oneshot_invoice_from_web(request):
+    """
+    Handles the creation of a one-time invoice for a user purchasing one or more products through the website.
+
+    This view processes a POST request to create an invoice for a specified set of products,
+    using the provided user information and payment details. The invoice is created for a
+    single transaction, typically processed via an online payment gateway.
+
+    Expected POST Data:
+    - `product_slugs` (str): A comma-separated list of product slugs representing the products to be purchased.
+    - `email` (str): The email address of the user making the purchase. This field is required.
+    - `phone` (str, optional): The phone number of the user. If not provided, defaults to an empty string.
+    - `name` (str, optional): The name of the user. If not provided, defaults to an empty string.
+    - `payment_reference` (str, optional): A reference identifier for the payment transaction. Defaults to an empty string.
+    - `payment_type` (str, optional): The type of payment used (e.g., credit card, PayPal). Defaults to an empty string.
+
+    Process:
+    1. Validates the presence of the required `email` field.
+    2. Calls the `process_invoice_request` function to handle the core invoice creation logic:
+        - Creates or selects a contact based on the provided email, name, and phone.
+        - Retrieves the products associated with the provided slugs.
+        - Creates a single invoice for the user with the specified products and payment details.
+    3. Returns a JSON response containing the created `invoice_id` and `contact_id`.
+
+    Responses:
+    - `JsonResponse`: On success, returns a JSON object with the `invoice_id` and `contact_id`.
+    - `HttpResponseBadRequest`: Returns an error if the required `email` is missing or if the product slugs are invalid.
+    - `HttpResponseServerError`: Returns an error with the exception message if an unexpected issue occurs during processing.
+
+    Permissions:
+    - Requires a valid API key (`HasAPIKey`) to access this view.
+    """
+    try:
+        product_slugs = request.data.get("product_slugs", "")
+        email = request.data.get("email", "").strip()
+        phone = request.data.get("phone", "")
+        name = request.data.get("name", "")
+        payment_reference = request.data.get("payment_reference", "")
+        payment_type = request.data.get("payment_type", "")
+
+        if not email:
+            return HttpResponseBadRequest("Email requerido")
+
+        response_data = process_invoice_request(product_slugs, email, phone, name, payment_reference, payment_type)
+        return JsonResponse(response_data)
+
+    except ValueError as e:
+        return HttpResponseBadRequest(str(e))
+    except Exception as exc:
+        return HttpResponseServerError(str(exc))
