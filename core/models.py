@@ -1138,6 +1138,7 @@ class Subscription(models.Model):
         seller_id=None,
         override_date=None,
         label_contact=None,
+        tag_suffix=None,
     ):
         """
         Used to add products to the current subscription. It is encouraged to always use this method when you want
@@ -1165,7 +1166,9 @@ class Subscription(models.Model):
             override_date=override_date,
         )
         if product.edition_frequency == 4:
-            self.contact.tags.add(product.slug + "-added")
+            if tag_suffix:
+                tag_suffix = "-" + tag_suffix
+            self.contact.tags.add(product.slug + "-added" + (tag_suffix or ""))
         return sp
 
     def remove_product(self, product):
