@@ -258,7 +258,9 @@ class Contact(models.Model):
         on_delete=models.SET_NULL,
     )
     name = models.CharField(max_length=100, validators=[alphanumeric], verbose_name=_("Name"))
+    last_name = models.CharField(max_length=100, validators=[alphanumeric], blank=True, null=True, verbose_name=_("Last name"))
     id_document = models.CharField(max_length=20, blank=True, null=True, verbose_name=_("Identifcation Document"))
+    id_document_type = models.CharField(max_length=20, blank=True, null=True, verbose_name=_("Identification Document Type"))
     phone = models.CharField(max_length=20, verbose_name=_("Phone"), blank=True, null=True)
     work_phone = models.CharField(max_length=20, blank=True, null=True, verbose_name=_("Work phone"))
     mobile = models.CharField(max_length=20, blank=True, null=True, verbose_name=_("Mobile"))
@@ -284,6 +286,7 @@ class Contact(models.Model):
     allow_polls = models.BooleanField(default=True, verbose_name=_("Allows polls"))
     allow_promotions = models.BooleanField(default=True, verbose_name=_("Allows promotions"))
     cms_date_joined = models.DateTimeField(blank=True, null=True, verbose_name=_("CMS join date"))
+    ranking = models.PositiveSmallIntegerField(blank=True, null=True, verbose_name=_("Ranking"))
     history = HistoricalRecords()
 
     def __str__(self):
@@ -855,6 +858,7 @@ class Address(models.Model):
     address_georef_id = models.IntegerField(null=True, blank=True)
     state_id = models.IntegerField(null=True, blank=True)
     city_id = models.IntegerField(null=True, blank=True)
+    country = models.CharField(max_length=50, blank=True, null=True)
 
     def __str__(self):
         return ' '.join(filter(None, (self.address_1, self.address_2, self.city, self.state)))
