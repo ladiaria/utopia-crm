@@ -171,8 +171,8 @@ def import_contacts(request):
             try:
                 name = row[0]
                 last_name = row[1] or None
-                phone = row[2] or None
-                email = row[3] or None
+                email = row[2] or None
+                phone = row[3] or None
                 if email:
                     email = email.lower()
                 mobile = row[4] or None
