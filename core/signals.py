@@ -7,7 +7,6 @@ from django.forms import ValidationError
 
 from .models import Contact, Subscription, regex_alphanumeric, regex_alphanumeric_msg, update_web_user
 from .forms import no_email_validation_msg
-from .utils import updatewebuser
 
 
 alphanumeric = re.compile(regex_alphanumeric)
@@ -36,12 +35,12 @@ def contact_pre_save_signal(sender, instance, **kwargs):
 @receiver(post_save, sender=Contact)
 def contact_post_save_signal(sender, instance, created, **kwargs):
     if created:
-        # updatewebuser(instance.id, instance.name, instance.email, instance.email)
         update_web_user(instance.old_contact)
     else:
         target_email = instance.old_email if hasattr(instance, 'old_email') else None
         print(target_email, instance.old_contact.email, instance.email)
         update_web_user(instance.old_contact, target_email)
+
 
 @receiver(post_save, sender=Subscription)
 def subscription_post_save_signal(sender, instance, **kwargs):

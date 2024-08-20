@@ -1,5 +1,4 @@
 # coding: utf-8
-from time import sleep
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework_api_key.permissions import HasAPIKey
 
@@ -14,12 +13,11 @@ from django.http import (
 )
 from django.shortcuts import render, get_list_or_404, get_object_or_404
 from django.views.decorators.cache import never_cache
-from django.conf import settings
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
 
-from .models import Contact, MailtrainList, Product, update_customer
+from .models import Contact, MailtrainList, update_customer
 from .admin import contact_is_safe_to_delete
 from .utils import (
     get_emails_from_mailtrain_list,

@@ -314,7 +314,15 @@ def updatewebuser(id, name, email, newemail, fields_values={}):
     actualizando) porque son necesarios para buscar la ficha en la web.
     Ademas recibe el nombre de campo y el nuevo valor actualizado, son utiles cuando se quiere sincronizar otros
     campos.
-    ATENCION: No se sincroniza cuando el nuevo valor del campo es None
+    This function performs a POST to the WEB CMS app.
+    Those email arguments are necessary for find the user on WEB CMS app
+    @param id: ID of the contact in integer format
+    @param name: Name of the contact in string format
+    @param email: Current email of the contact in email format. This is used for find the user in WEB CMS app
+    @param newemail: New email for the contact, the email that will be set like updates on CMS app
+    @param fields_values: Field values to update into User/Subscriber the WEB CMS app in dict format like
+    {"field_name": "field_value"}
+    Warning: This not excecute the sync if the values to update are None
     """
     data = {
             "contact_id": id,
@@ -329,6 +337,12 @@ def updatewebuser(id, name, email, newemail, fields_values={}):
 
 
 def post_to_cms_rest_api(api_name, api_uri, post_data):
+    """
+    Performs a post request to the WEB CMS app.
+    @param api_name: Name of the function that is calling the API
+    @param api_uri: URL of the endpoint.
+    @param post_data: Request data to be sent.
+    """
     api_key = settings.LDSOCIAL_API_KEY
     if not (api_uri or api_key):
         return "ERROR"
