@@ -1,169 +1,189 @@
 {% extends "adminlte/base.html" %}
 {% load static i18n widget_tweaks core_tags %}
-
 {% block stylesheets %}
-{{ block.super }}
-<link rel="stylesheet" href="{% static "/admin-lte/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css" %}" />
+  {{ block.super }}
+  <link rel="stylesheet" href="{% static "/admin-lte/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css" %}" />
 {% endblock %}
 
 {% block title %}
-{% trans "Contacts" %}
+  {% trans "Contacts" %}
 {% endblock title %}
 
 {% block no_heading %}
-<h1>{% trans "Contacts" %}</h1>
-<p>{% trans "Manage all contacts in the database." %}</p>
+  <h1>{% trans "Contacts" %}</h1>
+  <p>{% trans "Manage all contacts in the database." %}</p>
 {% endblock %}
 
 {% block content %}
-<div class="row">
-  <div class="col-md-12">
-    <div class="card card-outline card-primary">
-      <div class="card-header">
-        <h3 class="card-title">{% trans "Search" %}</h3>
-        <div class="card-tools">
-          <button type="button" class="btn btn-tool" data-card-widget="collapse"><i class="fas fa-minus"></i>
-          </button>
+  <div class="row">
+    <div class="col-md-12">
+      <div class="card card-outline card-primary">
+        <div class="card-header">
+          <h3 class="card-title">{% trans "Search" %}</h3>
+          <div class="card-tools">
+            <button type="button" class="btn btn-tool" data-card-widget="collapse">
+              <i class="fas fa-minus"></i>
+            </button>
+          </div>
+        </div>
+        <div class="card-body">
+          <form method="get" id="form">
+            <div class="row">
+              <div class="form-group row col">
+                <label for="phone" class="col-sm-3 col-form-label">{% trans "Filter" %}</label>
+                <div class="col-sm-9">{% render_field filter.form.filter_multiple class="form-control" %}</div>
+              </div>
+              <div class="form-group row col">
+                <label for="state" class="col-sm-3 col-form-label">{% trans "State" %}</label>
+                <div class="col-sm-9">{% render_field filter.form.state class="form-control" %}</div>
+              </div>
+              <div class="form-group row col">
+                <label for="active_subscriptions" class="col-sm-3 col-form-label">{% trans "Active subscriptions" %}</label>
+                <div class="col-sm-9">{% render_field filter.form.active_subscriptions class="form-control" %}</div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="form-group row col-5">
+                <label for="tags" class="col-sm-3 col-form-label">{% trans "Tags" %}</label>
+                <div class="col-sm-9">{% render_field filter.form.tags class="form-control" %}</div>
+              </div>
+              <div class="form-group row col-5">
+                <label for="tags" class="col-sm-3 col-form-label">{% trans "Address" %}</label>
+                <div class="col-sm-9">{% render_field filter.form.address class="form-control" %}</div>
+              </div>
+              <div class="form-group col text-right">
+                <input type="submit"
+                       class="btn bg-gradient-primary"
+                       value="{% trans "Search" %}" />
+                {% if request.user|in_group:"Managers" %}
+                  <input type="submit"
+                         class="btn bg-gradient-primary"
+                         name="export"
+                         value="{% trans "Export to CSV" %}" />
+                {% endif %}
+                <p>{{ count }} {% trans "contacts" %}</p>
+              </div>
+            </div>
+          </form>
         </div>
       </div>
-      <div class="card-body">
-        <form method="get" id="form">
-          <div class="row">
-            <div class="form-group row col">
-              <label for="phone" class="col-sm-3 col-form-label">{% trans "Filter" %}</label>
-              <div class="col-sm-9">
-                {% render_field filter.form.filter_multiple class="form-control" %}
-              </div>
-            </div>
-            <div class="form-group row col">
-              <label for="state" class="col-sm-3 col-form-label">{% trans "State" %}</label>
-              <div class="col-sm-9">
-                {% render_field filter.form.state class="form-control" %}
-              </div>
-            </div>
-            <div class="form-group row col">
-              <label for="active_subscriptions"
-                class="col-sm-3 col-form-label">{% trans "Active subscriptions" %}</label>
-              <div class="col-sm-9">
-                {% render_field filter.form.active_subscriptions class="form-control" %}
-              </div>
-            </div>
-          </div>
-          <div class="row">
-            <div class="form-group row col-5">
-              <label for="tags" class="col-sm-3 col-form-label">{% trans "Tags" %}</label>
-              <div class="col-sm-9">
-                {% render_field filter.form.tags class="form-control" %}
-              </div>
-            </div>
-            <div class="form-group row col-5">
-              <label for="tags" class="col-sm-3 col-form-label">{% trans "Address" %}</label>
-              <div class="col-sm-9">
-                {% render_field filter.form.address class="form-control" %}
-              </div>
-            </div>
-            <div class="form-group col text-right">
-              <input type="submit" class="btn bg-gradient-primary" value="{% trans "Search" %}" />
-              {% if request.user|in_group:"Managers" %}
-              <input type="submit" class="btn bg-gradient-primary" name="export" value="{% trans "Export to CSV" %}" />
-              {% endif %}
-              <p>{{ count }} {% trans "contacts" %}</p>
-            </div>
-          </div>
-        </form>
-      </div>
     </div>
-  </div>
-  <div class="col-md-12">
-    <div class="card">
-      <div class="card-body">
-        <h3>{% trans "All contacts" %}</h3>
-        <table id="table1" class="table table-bordered table-striped">
-          <thead>
-            <tr role="row">
-              <th>{% trans "Id" %}</th>
-              <th>{% trans "Full name" %}</th>
-              <th>{% trans "Email" %}</th>
-              <th>{% trans "Phone" %}</th>
-              <th>{% trans "Subscription" %}</th>
-              <th>{% trans "Addresses" %}</th>
-              <th>{% trans "Tags" %}</th>
-              <th>{% trans "Last activity" %}</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for contact in contacts %}
-            <tr role="row">
-              <td><a href="{% url "contact_detail" contact.id %}">{{ contact.id }}</a></td>
-              <td>{{ contact.get_full_name|default_if_none:"" }}</td>
-              <td>{{ contact.email|default_if_none:"" }}</td>
-              <td>{{ contact.phone|default_if_none:"" }}</td>
-              <td>
-                {% for sp in contact.get_active_subscriptionproducts %}
-                {% if sp.has_envelope == 1 %}
-                <i class="fas fa-envelope" title="{% trans "Paid envelope" %}" data-toggle="tooltip"></i>
-                {% elif sp.has_envelope == 2 %}
-                <i class="far fa-envelope" title="{% trans "Free envelope" %}" data-toggle="tooltip"></i>
-                {% endif %} {{ sp.product.name }} {% if sp.label_contact %}({{ sp.label_contact.name }}){% endif %}<br>
-                {% endfor %}
-              </td>
-              <td>
-                <ul>
-                  {% for address in contact.addresses.all %}
-                  {{ address.address_1|default_if_none:"" }} {{ address.state|default_if_none:"" }}
-                  {% endfor %}
-                </ul>
-              </td>
-              <td>
-                {% for tag in contact.tags.all %}
-                  <span class="btn btn-default btn-sm">{{ tag }}</span>
-                {% endfor %}
-              </td>
-              <td>{{ contact.last_activity.datetime|date:"SHORT_DATE_FORMAT" }}
-                {% if contact.last_activity.activity_type %}/ {{ contact.last_activity.get_type }}{% endif %}</td>
-              <td>
-                <a href="{% url "contact_detail" contact.id %}" class="btn btn-primary"><i class="fa fa-eye"></i></a>
-              </td>
+    <div class="col-md-12">
+      <div class="card">
+        <div class="card-body">
+          <h3>{% trans "All contacts" %}</h3>
+          <table id="table1" class="table table-bordered table-striped">
+            <thead>
+              <tr role="row">
+                <th>{% trans "Full name" %}</th>
+                <th>{% trans "Email" %}</th>
+                <th>{% trans "Phone" %}</th>
+                <th>{% trans "Subscription" %}</th>
+                <th>{% trans "Addresses" %}</th>
+                <th>{% trans "Last activity" %}</th>
+                <th></th>
               </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {% for contact in contacts %}
+                <tr role="row">
+                  <td>
+                    <a href="{% url "contact_detail" contact.id %}">{{ contact.get_full_name|default_if_none:"" }}</a>
+                  </td>
+                  <td>{{ contact.email|default_if_none:"" }}</td>
+                  <td>{{ contact.phone|default_if_none:"" }}</td>
+                  <td>
+                    {% for sp in contact.get_active_subscriptionproducts %}
+                      {% if sp.has_envelope == 1 %}
+                        <i class="fas fa-envelope"
+                           title="{% trans "Paid envelope" %}"
+                           data-toggle="tooltip"></i>
+                      {% elif sp.has_envelope == 2 %}
+                        <i class="far fa-envelope"
+                           title="{% trans "Free envelope" %}"
+                           data-toggle="tooltip"></i>
+                      {% endif %}
+                      {{ sp.product.name }}
+                      {% if sp.label_contact %}({{ sp.label_contact.name }}){% endif %}
+                      <br>
+                    {% endfor %}
+                  </td>
+                  <td>
+                    <ul>
+                      {% for address in contact.addresses.all %}
+                        {{ address.address_1|default_if_none:"" }} {{ address.state|default_if_none:"" }}
+                      {% endfor %}
+                    </ul>
+                  </td>
+                  <td>
+                    {{ contact.last_activity.datetime|date:"SHORT_DATE_FORMAT" }}
+                    {% if contact.last_activity.activity_type %}/ {{ contact.last_activity.get_type }}{% endif %}
+                  </td>
+                  <td>
+                    <a href="{% url "contact_detail" contact.id %}" class="btn btn-primary"><i class="fa fa-eye"></i></a>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   </div>
-</div>
-{% if contacts.has_other_pages %}
-{% load proper_paginate %}
-{% load url_replace %}
-<ul class="pagination">
-  {% if contacts.number == 1 %}
-  <li class="page-item disabled"><span class="page-link">{% trans "first" %}</span></li>
-  {% else %}
-  <li><a class="page-link" href="?{% url_replace request "p" 1 %}">{% trans "first" %}</a></li>
+  {% if contacts.has_other_pages %}
+    {% load proper_paginate %}
+    {% load url_replace %}
+    <ul class="pagination">
+      {% if contacts.number == 1 %}
+        <li class="page-item disabled">
+          <span class="page-link">{% trans "first" %}</span>
+        </li>
+      {% else %}
+        <li>
+          <a class="page-link" href="?{% url_replace request "p" 1 %}">{% trans "first" %}</a>
+        </li>
+      {% endif %}
+      {% if contacts.has_previous %}
+        <li>
+          <a class="page-link"
+             href="?{% url_replace request "p" contacts.previous_page_number %}">&laquo;</a>
+        </li>
+      {% else %}
+        <li class="page-item disabled">
+          <span class="page-link">&laquo;</span>
+        </li>
+      {% endif %}
+      {% for i in paginator|proper_paginate:contacts.number %}
+        {% if contacts.number == i %}
+          <li class="page-item active">
+            <span class="page-link">{{ i }} <span class="sr-only">(current)</span></span>
+          </li>
+        {% else %}
+          <li>
+            <a class="page-link" href="?{% url_replace request "p" i %}">{{ i }}</a>
+          </li>
+        {% endif %}
+      {% endfor %}
+      {% if contacts.has_next %}
+        <li>
+          <a class="page-link"
+             href="?{% url_replace request "p" contacts.next_page_number %}">&raquo;</a>
+        </li>
+      {% else %}
+        <li class="page-item disabled">
+          <span class="page-link">&raquo;</span>
+        </li>
+      {% endif %}
+      {% if contacts.number == paginator.num_pages %}
+        <li class="page-item disabled">
+          <span class="page-link">{% trans "last" %}</span>
+        </li>
+      {% else %}
+        <li>
+          <a class="page-link"
+             href="?{% url_replace request "p" paginator.num_pages %}">{% trans "last" %}</a>
+        </li>
+      {% endif %}
+    </ul>
   {% endif %}
-  {% if contacts.has_previous %}
-  <li><a class="page-link" href="?{% url_replace request "p" contacts.previous_page_number %}">&laquo;</a></li>
-  {% else %}
-  <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
-  {% endif %}
-  {% for i in paginator|proper_paginate:contacts.number %}
-  {% if contacts.number == i %}
-  <li class="page-item active"><span class="page-link">{{ i }} <span class="sr-only">(current)</span></span></li>
-  {% else %}
-  <li><a class="page-link" href="?{% url_replace request "p" i %}">{{ i }}</a></li>
-  {% endif %}
-  {% endfor %}
-  {% if contacts.has_next %}
-  <li><a class="page-link" href="?{% url_replace request "p" contacts.next_page_number %}">&raquo;</a></li>
-  {% else %}
-  <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
-  {% endif %}
-  {% if contacts.number == paginator.num_pages %}
-  <li class="page-item disabled"><span class="page-link">{% trans "last" %}</span></li>
-  {% else %}
-  <li><a class="page-link" href="?{% url_replace request "p" paginator.num_pages %}">{% trans "last" %}</a></li>
-  {% endif %}
-</ul>
-{% endif %}
 {% endblock %}
