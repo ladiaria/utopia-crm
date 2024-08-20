@@ -87,6 +87,7 @@
               <th>{% trans "Phone" %}</th>
               <th>{% trans "Subscription" %}</th>
               <th>{% trans "Addresses" %}</th>
+              <th>{% trans "Tags" %}</th>
               <th>{% trans "Last activity" %}</th>
               <th></th>
             </tr>
@@ -113,6 +114,11 @@
                   {{ address.address_1|default_if_none:"" }} {{ address.state|default_if_none:"" }}
                   {% endfor %}
                 </ul>
+              </td>
+              <td>
+                {% for tag in contact.tags.all %}
+                  <span class="btn btn-default btn-sm">{{tag}}</span>
+                {% endfor %}
               </td>
               <td>{{ contact.last_activity.datetime|date:"SHORT_DATE_FORMAT" }}
                 {% if contact.last_activity.activity_type %}/ {{ contact.last_activity.get_type }}{% endif %}</td>
