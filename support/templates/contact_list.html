@@ -96,9 +96,9 @@
             {% for contact in contacts %}
             <tr role="row">
               <td><a href="{% url "contact_detail" contact.id %}">{{ contact.id }}</a></td>
-              <td>{{ contact.get_full_name }}</td>
+              <td>{{ contact.get_full_name|default_if_none:"" }}</td>
               <td>{{ contact.email|default_if_none:"" }}</td>
-              <td>{{ contact.phone }}</td>
+              <td>{{ contact.phone|default_if_none:"" }}</td>
               <td>
                 {% for sp in contact.get_active_subscriptionproducts %}
                 {% if sp.has_envelope == 1 %}
@@ -117,7 +117,7 @@
               </td>
               <td>
                 {% for tag in contact.tags.all %}
-                  <span class="btn btn-default btn-sm">{{tag}}</span>
+                  <span class="btn btn-default btn-sm">{{ tag }}</span>
                 {% endfor %}
               </td>
               <td>{{ contact.last_activity.datetime|date:"SHORT_DATE_FORMAT" }}
