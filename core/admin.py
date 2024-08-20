@@ -411,6 +411,7 @@ class PlanAdmin(admin.ModelAdmin):
 
 @admin.register(Address)
 class AddressAdmin(SimpleHistoryAdmin, LeafletGeoAdmin):
+    list_display = ("contact", "address_1", "city", "state", "country")
     raw_id_fields = ("contact",)
 
 
