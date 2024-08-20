@@ -302,30 +302,30 @@ class ContactAdmin(SimpleHistoryAdmin):
             _("Contact details"),
             {
                 "fields": (
-                    ("name", "tags"),
-                    "subtype",
+                    ("name", "last_name"),
+                    "tags",
                     ("email", "no_email"),
-                    "id_document",
+                    ("id_document_type", "id_document"),
                     ("phone", "mobile"),
                     "work_phone",
-                    ("gender", "education"),
+                    ("gender", "education", "ranking"),
                     # TODO: include "occupation" right here after its name got fixed from single "c" to "cc"
                     ("birthdate", "private_birthdate"),
-                    "protected",
-                    "protection_reason",
                     "notes",
                     "institution",
+                    ("protected", "protection_reason"),
                 ),
             },
         ),
     )
-    list_display = ("id", "name", "id_document", "subtype", "tag_list")
+    list_display = ("id", "get_full_name", "get_full_id_document", "email", "tag_list")
     raw_id_fields = (
         "subtype",
         "referrer",
         "institution",
     )  # TODO: add "occupation" after its name got fixed from single "c" to "cc"
-    list_filter = ("subtype", TaggitListFilter)
+    list_filter = (TaggitListFilter,)
+    search_fields = ("name", "last_name", "email", "id_document")
     ordering = ("id",)
 
     class Media:

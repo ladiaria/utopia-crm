@@ -33,6 +33,7 @@ class ContactFilter(django_filters.FilterSet):
             | Q(mobile__contains=value)
             | Q(work_phone__contains=value)
             | Q(name__icontains=value)
+            | Q(last_name__icontains=value)
             | Q(email__icontains=value)
             | Q(id_document__contains=value)
         )
