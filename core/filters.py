@@ -50,7 +50,7 @@ class ContactFilter(django_filters.FilterSet):
     def by_tags(self, queryset, name, value):
         tags = value.split(',')
         for tag in tags:
-            queryset = queryset.filter(tags__name__icontains=tag).distinct()
+            queryset = queryset.filter(tags__name=tag).distinct()
         return queryset
 
     def by_address(self, queryset, name, value):
