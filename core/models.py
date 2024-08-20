@@ -801,6 +801,14 @@ class Contact(models.Model):
         invoice.save()
         return invoice
 
+    def get_full_name(self):
+        return " ".join(filter(None, (self.name, self.last_name)))
+    get_full_name.short_description = _("Full name")
+
+    def get_full_id_document(self):
+        return " ".join(filter(None, (self.id_document_type, self.id_document)))
+    get_full_id_document.short_description = _("Full ID document")
+
     class Meta:
         verbose_name = _("contact")
         verbose_name_plural = _("contacts")
