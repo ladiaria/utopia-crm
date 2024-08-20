@@ -1271,7 +1271,7 @@ class Subscription(models.Model):
         """
         Returns the first product by priority
         """
-        products = self.products.filter(type="S").order_by("billing_priority")
+        products = self.products.filter(type__in="SO").order_by("billing_priority")
         if products.exists():
             return products.first()
         else:
@@ -1289,25 +1289,33 @@ class Subscription(models.Model):
         product = self.get_first_product_by_priority()
         if product:
             sp = self.subscriptionproduct_set.filter(product=product).first()
-            if sp.address and sp.address.address_1:
-                address = sp.address.address_1
-                state = sp.address.state
-                city = sp.address.city
-            elif sp.product.digital and self.contact.email:
+            if sp.product.edition_frequency == 4 and self.contact.email:
+                route = 56
                 address = self.contact.email
                 state = getattr(settings, "DEFAULT_STATE", None)
                 city = getattr(settings, "DEFAULT_CITY", None)
+            elif sp.product.digital and self.contact.email:
+                route = 56
+                address = self.contact.email
+                state = getattr(settings, "DEFAULT_STATE", None)
+                city = getattr(settings, "DEFAULT_CITY", None)
+            elif sp.address and sp.address.address_1:
+                address = sp.address.address_1
+                state = sp.address.state
+                city = sp.address.city
+                route = sp.route_id
             else:
-                address, state, city = None, None, None
+                route, address, state, city = None, None, None, None
             if address:
                 result = {
-                    "route": sp.route_id,
+                    "route": route,
                     "order": sp.order,
                     "address": address,
                     "state": state,
                     "city": city,
                     "name": self.get_billing_name(),
                 }
+                print(result)
             elif settings.DEBUG:
                 print(("DEBUG: No address found in the billing data for subscription %d." % self.id))
         elif settings.DEBUG:
