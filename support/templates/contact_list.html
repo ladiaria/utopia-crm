@@ -110,13 +110,14 @@
               <th>{% trans "Subscription" %}</th>
               <th>{% trans "Addresses" %}</th>
               <th>{% trans "Last activity" %}</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
             {% for contact in contacts %}
             <tr role="row">
               <td><a href='{% url "contact_detail" contact.id %}'>{{contact.id}}</a></td>
-              <td>{{contact.name}}</td>
+              <td>{{contact.get_full_name}}</td>
               <td>{{contact.email|default_if_none:""}}</td>
               <td>{{contact.phone}}</td>
               <td>
@@ -137,7 +138,10 @@
               </td>
               <td>{{contact.last_activity.datetime|date:"SHORT_DATE_FORMAT"}}
                 {% if contact.last_activity.activity_type %}/ {{contact.last_activity.get_type}}{% endif %}</td>
-            </tr>
+              <td>
+                <a href='{% url "contact_detail" contact.id %}' class="btn btn-primary"><i class="fa fa-eye"></i></a>
+              </td>
+              </tr>
             {% endfor %}
           </tbody>
         </table>
