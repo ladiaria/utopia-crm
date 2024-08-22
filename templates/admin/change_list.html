@@ -7,7 +7,7 @@
     <link rel="stylesheet" type="text/css" href="{% static "admin-lte/admin-css/forms.css" %}" />
   {% endif %}
   {% if cl.formset or action_form %}
-    <script type="text/javascript" src="{% url 'admin:jsi18n' %}"></script>
+    <script type="text/javascript" src="{% url "admin:jsi18n" %}"></script>
   {% endif %}
   {{ media.css }}
   {% if not actions_on_top and not actions_on_bottom %}
@@ -35,10 +35,10 @@
       <div class="col-sm-6">
         <ol class="breadcrumb float-sm-right">
           <li class="breadcrumb-item">
-            <a href="{% url 'admin:index' %}"><i class="fas fa-tachometer-alt"></i> {% trans 'Home' %}</a>
+            <a href="{% url "admin:index" %}"><i class="fas fa-tachometer-alt"></i> {% trans "Home" %}</a>
           </li>
           <li class="breadcrumb-item">
-            <a href="{% url 'admin:app_list' app_label=cl.opts.app_label %}">{{ cl.opts.app_config.verbose_name }}</a>
+            <a href="{% url "admin:app_list" app_label=cl.opts.app_label %}">{{ cl.opts.app_config.verbose_name }}</a>
           </li>
           <li class="breadcrumb-item active">{{ cl.opts.verbose_name_plural|capfirst }}</li>
         </ol>
@@ -64,7 +64,9 @@
     <div class="module{% if cl.has_filters %} filtered{% endif %}"
          id="changelist">
       <div class="row p-2">
-        {% block search %}{% endblock %}
+        {% block search %}
+          {% search_form cl %}
+        {% endblock %}
 
         <!--  -->
         {% block object-tools %}
@@ -78,14 +80,14 @@
                    aria-expanded="false"
                    aria-controls="changelist-filter">
                   <i class="fas fa-filter"></i>
-                  {% trans 'Filter' %}
+                  {% trans "Filter" %}
                 </a>
               </span>
             {% endif %}
             {% block object-tools-items %}
               {% if has_add_permission %}
                 <span class="float-sm-right">
-                  {% url cl.opts|admin_urlname:'add' as add_url %}
+                  {% url cl.opts|admin_urlname:"add" as add_url %}
                   <a href="{% add_preserved_filters add_url is_popup to_field %}"
                      class="btn btn-primary btn-sm text-light">
                     <i class="fas fa-plus"></i>
@@ -107,7 +109,7 @@
       {% block filters %}
         {% if cl.has_filters %}
           <div id="changelist-filter" class="collapse">
-            <h2>{% trans 'Filter' %}</h2>
+            <h2>{% trans "Filter" %}</h2>
             {% for spec in cl.filter_specs %}
               {% admin_list_filter cl spec %}
             {% endfor %}
@@ -134,8 +136,8 @@
         {% block pagination %}
           {% pagination cl %}
         {% endblock %}
+
       </form>
     </div>
   </div>
 {% endblock %}
-
