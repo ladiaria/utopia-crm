@@ -809,6 +809,17 @@ class Contact(models.Model):
         return " ".join(filter(None, (self.id_document_type, self.id_document)))
     get_full_id_document.short_description = _("Full ID document")
 
+    def create_address_from_email(self):
+        if self.email:
+            address = Address.objects.create(
+                address_1=self.email,
+                city=getattr(settings, "DEFAULT_CITY", None),
+                state=getattr(settings, "DEFAULT_STATE", None),
+                address_type="digital",
+                contact=self)
+            return address
+        return None
+
     class Meta:
         verbose_name = _("contact")
         verbose_name_plural = _("contacts")
