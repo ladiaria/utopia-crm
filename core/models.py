@@ -245,6 +245,7 @@ class Contact(models.Model):
     """Holds people personal information"""
 
     class ContactTypeChoices(models.TextChoices):
+        """Choices for the contact type"""
         PERSON = "P", _("Person")
         COMPANY = "C", _("Company")
 
