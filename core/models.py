@@ -285,7 +285,7 @@ class Contact(models.Model):
         blank=True,
     )
     id_document = models.CharField(max_length=20, blank=True, null=True, verbose_name=_("Identifcation Document"))
-    id_document_type = models.ForeignKey(
+    id_document_cat = models.ForeignKey(
         "core.IdDocumentType",
         blank=True,
         null=True,
