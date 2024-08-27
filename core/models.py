@@ -836,7 +836,7 @@ class Contact(models.Model):
     get_full_name.short_description = _("Full name")
 
     def get_full_id_document(self):
-        return " ".join(filter(None, (self.id_document_type, self.id_document)))
+        return " ".join(filter(None, (self.id_document_cat.name if self.id_document_cat else None, self.id_document)))
 
     get_full_id_document.short_description = _("Full ID document")
 
