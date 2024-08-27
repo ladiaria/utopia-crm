@@ -16,11 +16,11 @@ class Migration(migrations.Migration):
             name='country',
             field=models.CharField(blank=True, max_length=50, null=True),
         ),
-        migrations.AddField(
-            model_name='contact',
-            name='id_document_type',
-            field=models.CharField(blank=True, max_length=20, null=True, verbose_name='Identification Document Type'),
-        ),
+        # migrations.AddField(
+        #     model_name='contact',
+        #     name='id_document_type',
+        #     field=models.CharField(blank=True, max_length=20, null=True, verbose_name='Identification Document Type'),
+        # ),
         migrations.AddField(
             model_name='contact',
             name='last_name',
@@ -36,11 +36,11 @@ class Migration(migrations.Migration):
             name='country',
             field=models.CharField(blank=True, max_length=50, null=True),
         ),
-        migrations.AddField(
-            model_name='historicalcontact',
-            name='id_document_type',
-            field=models.CharField(blank=True, max_length=20, null=True, verbose_name='Identification Document Type'),
-        ),
+        # migrations.AddField(
+        #     model_name='historicalcontact',
+        #     name='id_document_type',
+        #     field=models.CharField(blank=True, max_length=20, null=True, verbose_name='Identification Document Type'),
+        # ),
         migrations.AddField(
             model_name='historicalcontact',
             name='last_name',

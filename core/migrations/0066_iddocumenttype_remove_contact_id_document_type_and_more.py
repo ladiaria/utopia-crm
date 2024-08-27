@@ -18,14 +18,14 @@ class Migration(migrations.Migration):
                 ('name', models.CharField(max_length=50)),
             ],
         ),
-        migrations.RemoveField(
-            model_name='contact',
-            name='id_document_type',
-        ),
-        migrations.RemoveField(
-            model_name='historicalcontact',
-            name='id_document_type',
-        ),
+        # migrations.RemoveField(
+        #     model_name='contact',
+        #     name='id_document_type',
+        # ),
+        # migrations.RemoveField(
+        #     model_name='historicalcontact',
+        #     name='id_document_type',
+        # ),
         migrations.AddField(
             model_name='contact',
             name='contact_type',

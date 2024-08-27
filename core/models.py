@@ -285,7 +285,7 @@ class Contact(models.Model):
         blank=True,
     )
     id_document = models.CharField(max_length=20, blank=True, null=True, verbose_name=_("Identifcation Document"))
-    id_document_cat = models.ForeignKey(
+    id_document_type = models.ForeignKey(
         "core.IdDocumentType",
         blank=True,
         null=True,
@@ -836,7 +836,7 @@ class Contact(models.Model):
     get_full_name.short_description = _("Full name")
 
     def get_full_id_document(self):
-        return " ".join(filter(None, (self.id_document_cat.name if self.id_document_cat else None, self.id_document)))
+        return " ".join(filter(None, (self.id_document_type.name if self.id_document_type else None, self.id_document)))
 
     get_full_id_document.short_description = _("Full ID document")
 
