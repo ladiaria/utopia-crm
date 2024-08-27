@@ -52,6 +52,8 @@ class Invoice(models.Model):
     # Fields for logistics
     route = models.PositiveIntegerField(blank=True, null=True)
     order = models.PositiveIntegerField(blank=True, null=True)
+    fiscal_invoice_code = models.CharField(max_length=50, blank=True, null=True)
+    internal_provider_text = models.TextField(blank=True, null=True)
 
     billing = models.ForeignKey("invoicing.Billing", blank=True, null=True, on_delete=models.SET_NULL)
     history = HistoricalRecords()
