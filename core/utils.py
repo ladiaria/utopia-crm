@@ -102,7 +102,8 @@ def calc_price_from_products(products_with_copies, frequency, debug_id=""):
     percentage_discount, debug = None, getattr(settings, 'DEBUG_PRODUCTS', False)
     if debug and debug_id:
         debug_id += ": "
-    all_list, discount_list, non_discount_list, advanced_discount_list = products_with_copies.items(), [], [], []
+    all_list = products_with_copies.items()
+    subscription_product_list, discount_product_list, other_product_list, advanced_discount_list = [], [], [], []
 
     # 1. partition the input by discount products / non discount products
     for product_id, copies in all_list:
@@ -111,11 +112,16 @@ def calc_price_from_products(products_with_copies, frequency, debug_id=""):
         except Product.DoesNotExist:
             pass
         else:
-            (non_discount_list if product.type in ('S', "O") else discount_list).append(product)
+            if product.type in ('D', 'P', 'A'):
+                discount_product_list.append(product)
+            elif product.type == "S":
+                subscription_product_list.append(product)
+            elif product.type == "O":
+                other_product_list.append(product)
 
     # 2. obtain 2 total cost amounts: affectable/non-affectable by discounts
     total_affectable, total_non_affectable = 0, 0
-    for product in non_discount_list:
+    for product in subscription_product_list:
         copies = int(products_with_copies[product.id])
         if debug:
             print(
@@ -124,7 +130,7 @@ def calc_price_from_products(products_with_copies, frequency, debug_id=""):
             )
         # check first if this product is affected to any of the discounts
         affectable = False
-        for discount_product in [d for d in discount_list if d.target_product == product]:
+        for discount_product in [d for d in discount_product_list if d.target_product == product]:
             affectable_delta = product.price * copies
             if discount_product.type == "D":
                 affectable_delta -= discount_product.price * int(products_with_copies[discount_product.id])
@@ -132,7 +138,7 @@ def calc_price_from_products(products_with_copies, frequency, debug_id=""):
                 affectable_delta_discount = (affectable_delta * discount_product.price) / 100
                 affectable_delta -= affectable_delta_discount
             total_affectable += affectable_delta
-            discount_list.remove(discount_product)
+            discount_product_list.remove(discount_product)
             affectable = True
             break
         if not affectable:
@@ -147,7 +153,7 @@ def calc_price_from_products(products_with_copies, frequency, debug_id=""):
         print(debug_id + "before3 affectable=%s, non-affectable=%s" % (total_affectable, total_non_affectable))
 
     # 3. iterate over discounts left
-    for product in discount_list:
+    for product in discount_product_list:
         if product.type == 'D':
             total_non_affectable -= product.price * int(products_with_copies[product.id])
         elif product.type == 'P':
@@ -196,6 +202,10 @@ def calc_price_from_products(products_with_copies, frequency, debug_id=""):
     discount_pct = getattr(settings, 'DISCOUNT_%d_MONTHS' % frequency, 0)
     if discount_pct:
         total_price -= (total_price * discount_pct) / 100
+
+    # Finally we add the price of the one-shot products since they're not affected by the frequency discount.
+    for product in other_product_list:
+        total_price += float(product.price)
 
     if debug:
         print(debug_id + "Total {}\n".format(total_price))

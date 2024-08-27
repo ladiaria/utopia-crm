@@ -33,6 +33,7 @@ class ContactFilter(django_filters.FilterSet):
             | Q(mobile__contains=value)
             | Q(work_phone__contains=value)
             | Q(name__icontains=value)
+            | Q(last_name__icontains=value)
             | Q(email__icontains=value)
             | Q(id_document__contains=value)
         )
@@ -48,8 +49,8 @@ class ContactFilter(django_filters.FilterSet):
 
     def by_tags(self, queryset, name, value):
         tags = value.split(',')
-        if tags:
-            queryset = queryset.filter(tags__name__in=tags).distinct()
+        for tag in tags:
+            queryset = queryset.filter(tags__name=tag).distinct()
         return queryset
 
     def by_address(self, queryset, name, value):
