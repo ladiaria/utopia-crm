@@ -306,7 +306,7 @@ class ContactAdmin(SimpleHistoryAdmin):
                     ("name", "last_name"),
                     "tags",
                     ("email", "no_email"),
-                    ("id_document_type", "id_document"),
+                    ("id_document_cat", "id_document"),
                     ("phone", "mobile"),
                     "work_phone",
                     ("gender", "education", "ranking"),
