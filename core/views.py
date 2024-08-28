@@ -220,8 +220,10 @@ def create_oneshot_invoice_from_web(request):
     - `email` (str): The email address of the user making the purchase. This field is required.
     - `phone` (str, optional): The phone number of the user. If not provided, defaults to an empty string.
     - `name` (str, optional): The name of the user. If not provided, defaults to an empty string.
-    - `payment_reference` (str, optional): A reference identifier for the payment transaction. Defaults to an empty string.
-    - `payment_type` (str, optional): The type of payment used (e.g., credit card, PayPal). Defaults to an empty string.
+    - `payment_reference` (str, optional):
+      A reference identifier for the payment transaction. Defaults to an empty string.
+    - `payment_type` (str, optional):
+      The type of payment used (e.g., credit card, PayPal). Defaults to an empty string.
 
     Process:
     1. Validates the presence of the required `email` field.
@@ -233,8 +235,10 @@ def create_oneshot_invoice_from_web(request):
 
     Responses:
     - `JsonResponse`: On success, returns a JSON object with the `invoice_id` and `contact_id`.
-    - `HttpResponseBadRequest`: Returns an error if the required `email` is missing or if the product slugs are invalid.
-    - `HttpResponseServerError`: Returns an error with the exception message if an unexpected issue occurs during processing.
+    - `HttpResponseBadRequest`:
+      Returns an error if the required `email` is missing or if the product slugs are invalid.
+    - `HttpResponseServerError`:
+      Returns an error with the exception message if an unexpected issue occurs during processing.
 
     Permissions:
     - Requires a valid API key (`HasAPIKey`) to access this view.

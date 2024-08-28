@@ -317,7 +317,6 @@ def process_products(input_product_dict: dict) -> dict:
     return output_dict
 
 
-# def updatewebuser(id, name, email, newemail, field=None, value=None):
 def updatewebuser(id, name, email, newemail, fields_values={}):
     """
     Esta es la funcion que hace el POST hacia la web, siempre recibe el mail actual y el nuevo (el que se esta
@@ -334,16 +333,8 @@ def updatewebuser(id, name, email, newemail, fields_values={}):
     {"field_name": "field_value"}
     Warning: This not excecute the sync if the values to update are None
     """
-    data = {
-            "contact_id": id,
-            "name": name,
-            "email": email,
-            "newemail": newemail,
-            "fields": fields_values,
-        }
-    return post_to_cms_rest_api(
-        "updatewebuser", settings.WEB_UPDATE_USER_URI, data
-    )
+    data = {"contact_id": id, "name": name, "email": email, "newemail": newemail, "fields": fields_values}
+    return post_to_cms_rest_api("updatewebuser", settings.WEB_UPDATE_USER_URI, data)
 
 
 def post_to_cms_rest_api(api_name, api_uri, post_data):
@@ -367,7 +358,6 @@ def post_to_cms_rest_api(api_name, api_uri, post_data):
         post_kwargs["auth"] = HTTPBasicAuth(*http_basic_auth)
     try:
         if settings.DEBUG:
-            print("cms request headers", post_kwargs)
             print("DEBUG: %s to %s with post_data='%s'" % (api_name, api_uri, post_data))
         r = requests.post(api_uri, **post_kwargs)
         r.raise_for_status()

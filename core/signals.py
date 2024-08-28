@@ -27,7 +27,7 @@ def contact_pre_save_signal(sender, instance, **kwargs):
         if instance.email != saved_email:
             instance.old_email = saved_email
     except Contact.DoesNotExist:
-        # do nothin on the new ones
+        # do nothing on the new ones
         pass
     instance.old_contact = instance
 
