@@ -178,6 +178,7 @@ class Product(models.Model):
         "self", blank=True, null=True, on_delete=models.SET_NULL, limit_choices_to={"offerable": True, "type": "S"}
     )
     old_pk = models.PositiveIntegerField(blank=True, null=True)
+    internal_code = models.CharField(max_length=50, blank=True, null=True, verbose_name=_("Internal code"))
     objects = ProductManager()
 
     def __str__(self):
@@ -232,8 +233,21 @@ class EmailBounceActionLog(models.Model):
         ordering = ("-created", "email")
 
 
+class IdDocumentType(models.Model):
+    id = models.PositiveIntegerField(primary_key=True)
+    name = models.CharField(max_length=50)
+
+    def __str__(self):
+        return self.name
+
+
 class Contact(models.Model):
     """Holds people personal information"""
+
+    class ContactTypeChoices(models.TextChoices):
+        """Choices for the contact type"""
+        PERSON = "P", _("Person")
+        COMPANY = "C", _("Company")
 
     subtype = models.ForeignKey(
         Subtype,
@@ -257,10 +271,27 @@ class Contact(models.Model):
         verbose_name=_("Institution"),
         on_delete=models.SET_NULL,
     )
+
     name = models.CharField(max_length=100, validators=[alphanumeric], verbose_name=_("Name"))
-    last_name = models.CharField(max_length=100, validators=[alphanumeric], blank=True, null=True, verbose_name=_("Last name"))
+    last_name = models.CharField(
+        max_length=100, validators=[alphanumeric], blank=True, null=True, verbose_name=_("Last name")
+    )
+    contact_type = models.CharField(
+        max_length=1,
+        choices=ContactTypeChoices.choices,
+        default="P",
+        verbose_name=_("Contact type"),
+        null=True,
+        blank=True,
+    )
     id_document = models.CharField(max_length=20, blank=True, null=True, verbose_name=_("Identifcation Document"))
-    id_document_type = models.CharField(max_length=20, blank=True, null=True, verbose_name=_("Identification Document Type"))
+    id_document_type = models.ForeignKey(
+        "core.IdDocumentType",
+        blank=True,
+        null=True,
+        verbose_name=_("Document type"),
+        on_delete=models.SET_NULL,
+    )
     phone = models.CharField(max_length=20, verbose_name=_("Phone"), blank=True, null=True)
     work_phone = models.CharField(max_length=20, blank=True, null=True, verbose_name=_("Work phone"))
     mobile = models.CharField(max_length=20, blank=True, null=True, verbose_name=_("Mobile"))
@@ -781,9 +812,7 @@ class Contact(models.Model):
 
         return errors
 
-    def add_single_invoice_with_products(
-        self, products, payment_type, expiration_days=30
-    ):
+    def add_single_invoice_with_products(self, products, payment_type, expiration_days=30):
         from invoicing.models import Invoice
 
         invoice = Invoice.objects.create(
@@ -803,10 +832,12 @@ class Contact(models.Model):
 
     def get_full_name(self):
         return " ".join(filter(None, (self.name, self.last_name)))
+
     get_full_name.short_description = _("Full name")
 
     def get_full_id_document(self):
-        return " ".join(filter(None, (self.id_document_type, self.id_document)))
+        return " ".join(filter(None, (self.id_document_type.name if self.id_document_type else None, self.id_document)))
+
     get_full_id_document.short_description = _("Full ID document")
 
     def create_address_from_email(self):
@@ -816,7 +847,8 @@ class Contact(models.Model):
                 city=getattr(settings, "DEFAULT_CITY", None),
                 state=getattr(settings, "DEFAULT_STATE", None),
                 address_type="digital",
-                contact=self)
+                contact=self,
+            )
             return address
         return None
 
