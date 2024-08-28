@@ -1,5 +1,4 @@
 # coding: utf-8
-from time import sleep
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework_api_key.permissions import HasAPIKey
 
@@ -14,12 +13,11 @@ from django.http import (
 )
 from django.shortcuts import render, get_list_or_404, get_object_or_404
 from django.views.decorators.cache import never_cache
-from django.conf import settings
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
 
-from .models import Contact, MailtrainList, Product, update_customer
+from .models import Contact, MailtrainList, update_customer
 from .admin import contact_is_safe_to_delete
 from .utils import (
     get_emails_from_mailtrain_list,
@@ -222,8 +220,10 @@ def create_oneshot_invoice_from_web(request):
     - `email` (str): The email address of the user making the purchase. This field is required.
     - `phone` (str, optional): The phone number of the user. If not provided, defaults to an empty string.
     - `name` (str, optional): The name of the user. If not provided, defaults to an empty string.
-    - `payment_reference` (str, optional): A reference identifier for the payment transaction. Defaults to an empty string.
-    - `payment_type` (str, optional): The type of payment used (e.g., credit card, PayPal). Defaults to an empty string.
+    - `payment_reference` (str, optional):
+      A reference identifier for the payment transaction. Defaults to an empty string.
+    - `payment_type` (str, optional):
+      The type of payment used (e.g., credit card, PayPal). Defaults to an empty string.
 
     Process:
     1. Validates the presence of the required `email` field.
@@ -235,8 +235,10 @@ def create_oneshot_invoice_from_web(request):
 
     Responses:
     - `JsonResponse`: On success, returns a JSON object with the `invoice_id` and `contact_id`.
-    - `HttpResponseBadRequest`: Returns an error if the required `email` is missing or if the product slugs are invalid.
-    - `HttpResponseServerError`: Returns an error with the exception message if an unexpected issue occurs during processing.
+    - `HttpResponseBadRequest`:
+      Returns an error if the required `email` is missing or if the product slugs are invalid.
+    - `HttpResponseServerError`:
+      Returns an error with the exception message if an unexpected issue occurs during processing.
 
     Permissions:
     - Requires a valid API key (`HasAPIKey`) to access this view.

@@ -2498,7 +2498,7 @@ def update_web_user(contact, target_email=None, newsletter_data=None, area_newsl
     @param area_newsletters: field name for newsletters.
     """
     if settings.WEB_UPDATE_USER_ENABLED and not getattr(contact, "updatefromweb", False) and contact.id:
-        fields_to_update =  dict()
+        fields_to_update = dict()
         try:
             if newsletter_data:
                 field = ("area_" if area_newsletters else "") + "newsletters"
@@ -2513,7 +2513,10 @@ def update_web_user(contact, target_email=None, newsletter_data=None, area_newsl
                         fields_to_update.update({f, current_saved_value})
             # call for sync if there are fields to update
             if fields_to_update:
-                updatewebuser(contact.id, contact.name, target_email, contact.email, fields_to_update)
+                updatewebuser(contact.id, target_email, contact.email,
+                              contact.name,
+                              contact.last_name,
+                              fields_to_update)
         except RequestException as e:
             raise ValidationError("{}: {}".format(_("CMS sync error"), e))
         except Contact.DoesNotExist:
