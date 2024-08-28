@@ -318,7 +318,7 @@ def process_products(input_product_dict: dict) -> dict:
 
 
 # def updatewebuser(id, name, email, newemail, field=None, value=None):
-def updatewebuser(id, name, email, newemail, fields_values={}):
+def updatewebuser(id, email, newemail, name="", last_name="", fields_values={}):
     """
     Esta es la funcion que hace el POST hacia la web, siempre recibe el mail actual y el nuevo (el que se esta
     actualizando) porque son necesarios para buscar la ficha en la web.
@@ -328,6 +328,7 @@ def updatewebuser(id, name, email, newemail, fields_values={}):
     Those email arguments are necessary for find the user on WEB CMS app
     @param id: ID of the contact in integer format
     @param name: Name of the contact in string format
+    @param last_name: Last name of the contact in string format
     @param email: Current email of the contact in email format. This is used for find the user in WEB CMS app
     @param newemail: New email for the contact, the email that will be set like updates on CMS app
     @param fields_values: Field values to update into User/Subscriber the WEB CMS app in dict format like
@@ -337,6 +338,7 @@ def updatewebuser(id, name, email, newemail, fields_values={}):
     data = {
             "contact_id": id,
             "name": name,
+            "last_name": last_name,
             "email": email,
             "newemail": newemail,
             "fields": fields_values,
