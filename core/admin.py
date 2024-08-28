@@ -20,6 +20,7 @@ from support.models import Issue
 
 from .models import (
     Subscription,
+    IdDocumentType,
     Contact,
     Product,
     Address,
@@ -535,3 +536,4 @@ admin.site.register(ProductBundle)
 admin.site.register(AdvancedDiscount)
 admin.site.register(DoNotCallNumber)
 admin.site.register(MailtrainList)
+admin.site.register(IdDocumentType)
