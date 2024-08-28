@@ -1,55 +1,53 @@
-{% extends 'adminlte/base.html' %}
+{% extends "adminlte/base.html" %}
 {% load static i18n %}
 
 {% block title %}{% trans "Import contacts" %}{% endblock title %}
 
 {% block no_heading %}
-<h1>{% trans 'Support' %}</h1>
-<p>{% trans 'Import new contacts' %}</p>
+<h1>{% trans "Support" %}</h1>
+<p>{% trans "Import new contacts" %}</p>
 {% endblock %}
 {% block breadcrumbs %}
 <ol class="breadcrumb">
-  <li class="breadcrumb-item"><a href="/support/">{% trans 'Support' %}</a></li>
-  <li class="breadcrumb-item active">{% trans 'Import new contacts' %}</li>
+  <li class="breadcrumb-item active">{% trans "Import new contacts" %}</li>
 </ol>
 {% endblock %}
 
 {% block content %}
 <div class="card">
   <div class="card-header">
-    <h3 class="card-title">{% trans 'Import new contacts' %}</h3>
+    <h3 class="card-title">{% trans "Import new contacts" %}</h3>
   </div>
   <div class="card-body">
     {% if new_contacts_count %}
-    <h4>{{new_contacts_count}} {% trans 'new contacts imported' %}:</h4>
+    <h4>{{ new_contacts_count }} {% trans "new contacts imported" %}:</h4>
     {% endif %}
 
     {% if in_active_campaign %}
-    <p>{{in_active_campaign}} contactos fueron encontrados en campañas activas.</p>
+    <p>{{ in_active_campaign }} contactos fueron encontrados en campañas activas.</p>
     {% endif %}
-    {% if active_contacts %}<p>{{active_contacts}} contactos estaban activos.</p>{% endif %}
-    {% if existing_inactive_contacts %}<p>{{existing_inactive_contacts}} contactos estaban inactivos.</p>{% endif %}
+    {% if active_contacts %}<p>{{ active_contacts }} contactos estaban activos.</p>{% endif %}
+    {% if existing_inactive_contacts %}<p>{{ existing_inactive_contacts }} contactos estaban inactivos.</p>{% endif %}
     {% if added_emails %}
-    <p>{{added_emails}} emails fueron agregados a contactos existentes.</p>
+    <p>{{ added_emails }} emails fueron agregados a contactos existentes.</p>
     {% endif %}
 
     {% if errors_list %}
-    <h4>{% trans 'Import has encountered some errors' %}:</h4>
+    <h4>{% trans "Import has encountered some errors" %}:</h4>
     <ul>
       {% for error in errors_list %}
-      <li>{% trans "Error" %}: {{error}}</li>
+      <li>{% trans "Error" %}: {{ error }}</li>
       {% endfor %}
     </ul>
     {% endif %}
-
 
     <form action="" method="post" enctype="multipart/form-data">
       {% csrf_token %}
       <div class="form-group">
         <label
-          for="file">{% trans 'Choose file to send. It has to be a csv file with the following header and columns' %}:</label>
-        <p>{% trans "name, phone, email, mobile, work_phone, notes, address_1, address_2, city, state" %}</p>
-        <p>{% trans "All columns must be present in the header. Only name and phone are required in the content." %}</p>
+          for="file">{% trans "Choose file to send. It has to be a csv file with the following header and columns" %}:</label>
+        <p>Nombre, apellido, email, teléfono, celular, teléfono_trabajo, notas, direccion_1, direccion_2, ciudad, estado, país, tipo_documento, documento, calificación</p>
+        <p>{% trans "All columns must be present in the header." %}</p>
         <input type="file" name="file" id="file" class="form-control" accept=".csv">
       </div>
       <div class="form-group">
@@ -72,7 +70,7 @@
       </div>
 
       <div class="form-group text-right">
-        <input type="submit" value="{% trans 'Import' %}" class="btn bg-gradient-primary">
+        <input type="submit" value="{% trans "Import" %}" class="btn bg-gradient-primary">
       </div>
     </form>
   </div>

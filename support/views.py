@@ -15,7 +15,12 @@ from django.contrib import messages
 from django.contrib.auth.models import User
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.http import (
-    HttpResponseServerError, HttpResponseNotFound, HttpResponseRedirect, HttpResponse, JsonResponse, Http404
+    HttpResponseServerError,
+    HttpResponseNotFound,
+    HttpResponseRedirect,
+    HttpResponse,
+    JsonResponse,
+    Http404,
 )
 from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
@@ -118,8 +123,8 @@ def import_contacts(request):
     """
     Imports contacts from a CSV file.
     Csv must consist of a header, and then:
-    name, phone, email, mobile, work_phone, notes, address, address_2, city, state
-
+    name, last_name, email, phone, mobile, work_phone, notes, address_1, address_2, city, state, country, id_document_type, id_document, ranking
+    0   , 1        , 2    , 3    , 4     , 5        , 6    , 7         , 8         , 9   , 10   , 11     , 12            , 13         , 14
     TODO: Pandas this
     """
     if request.POST and request.FILES:
@@ -165,17 +170,22 @@ def import_contacts(request):
         for row_number, row in enumerate(reader, start=1):
             try:
                 name = row[0]
-                phone = row[1] or None
+                last_name = row[1] or None
                 email = row[2] or None
+                phone = row[3] or None
                 if email:
                     email = email.lower()
-                mobile = row[3] or None
-                work_phone = row[4] or None
-                notes = row[5].strip() or None
-                address_1 = row[6] or None
-                address_2 = row[7] or None
-                city = row[8] or None
-                state = row[9].strip() or None
+                mobile = row[4] or None
+                work_phone = row[5] or None
+                notes = row[6].strip() or None
+                address_1 = row[7] or None
+                address_2 = row[8] or None
+                city = row[9] or None
+                state = row[10].strip() or None
+                country = row[11] or None
+                id_document_type = row[12] or None
+                id_document = row[13] or None
+                ranking = row[14] or None
                 # This is only valid for Uruguay. If needed we might move this to a custom function or setting
                 if phone and phone.startswith("9"):
                     phone = "0{}".format(phone)
@@ -231,7 +241,16 @@ def import_contacts(request):
             else:
                 try:
                     new_contact = Contact.objects.create(
-                        name=name, phone=phone, email=email, work_phone=work_phone, mobile=mobile, notes=notes
+                        name=name,
+                        last_name=last_name,
+                        phone=phone,
+                        email=email,
+                        work_phone=work_phone,
+                        mobile=mobile,
+                        notes=notes,
+                        id_document_type=id_document_type,
+                        id_document=id_document,
+                        ranking=ranking,
                     )
                     # Build the address if necessary
                     if address_1:
@@ -243,6 +262,7 @@ def import_contacts(request):
                             state=state,
                             address_type="physical",
                             email=email,
+                            country=country,
                         )
                     new_contacts_list.append(new_contact)
                     if tag_list:

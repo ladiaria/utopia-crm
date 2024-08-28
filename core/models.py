@@ -258,7 +258,9 @@ class Contact(models.Model):
         on_delete=models.SET_NULL,
     )
     name = models.CharField(max_length=100, validators=[alphanumeric], verbose_name=_("Name"))
+    last_name = models.CharField(max_length=100, validators=[alphanumeric], blank=True, null=True, verbose_name=_("Last name"))
     id_document = models.CharField(max_length=20, blank=True, null=True, verbose_name=_("Identifcation Document"))
+    id_document_type = models.CharField(max_length=20, blank=True, null=True, verbose_name=_("Identification Document Type"))
     phone = models.CharField(max_length=20, verbose_name=_("Phone"), blank=True, null=True)
     work_phone = models.CharField(max_length=20, blank=True, null=True, verbose_name=_("Work phone"))
     mobile = models.CharField(max_length=20, blank=True, null=True, verbose_name=_("Mobile"))
@@ -284,6 +286,7 @@ class Contact(models.Model):
     allow_polls = models.BooleanField(default=True, verbose_name=_("Allows polls"))
     allow_promotions = models.BooleanField(default=True, verbose_name=_("Allows promotions"))
     cms_date_joined = models.DateTimeField(blank=True, null=True, verbose_name=_("CMS join date"))
+    ranking = models.PositiveSmallIntegerField(blank=True, null=True, verbose_name=_("Ranking"))
     history = HistoricalRecords()
 
     def __str__(self):
@@ -798,6 +801,25 @@ class Contact(models.Model):
         invoice.save()
         return invoice
 
+    def get_full_name(self):
+        return " ".join(filter(None, (self.name, self.last_name)))
+    get_full_name.short_description = _("Full name")
+
+    def get_full_id_document(self):
+        return " ".join(filter(None, (self.id_document_type, self.id_document)))
+    get_full_id_document.short_description = _("Full ID document")
+
+    def create_address_from_email(self):
+        if self.email:
+            address = Address.objects.create(
+                address_1=self.email,
+                city=getattr(settings, "DEFAULT_CITY", None),
+                state=getattr(settings, "DEFAULT_STATE", None),
+                address_type="digital",
+                contact=self)
+            return address
+        return None
+
     class Meta:
         verbose_name = _("contact")
         verbose_name_plural = _("contacts")
@@ -855,6 +877,7 @@ class Address(models.Model):
     address_georef_id = models.IntegerField(null=True, blank=True)
     state_id = models.IntegerField(null=True, blank=True)
     city_id = models.IntegerField(null=True, blank=True)
+    country = models.CharField(max_length=50, blank=True, null=True)
 
     def __str__(self):
         return ' '.join(filter(None, (self.address_1, self.address_2, self.city, self.state)))
@@ -1134,6 +1157,7 @@ class Subscription(models.Model):
         seller_id=None,
         override_date=None,
         label_contact=None,
+        tag=False,
     ):
         """
         Used to add products to the current subscription. It is encouraged to always use this method when you want
@@ -1160,7 +1184,7 @@ class Subscription(models.Model):
             seller=sp.seller,
             override_date=override_date,
         )
-        if product.edition_frequency == 4:
+        if product.edition_frequency == 4 and tag:
             self.contact.tags.add(product.slug + "-added")
         return sp
 
@@ -1266,7 +1290,7 @@ class Subscription(models.Model):
         """
         Returns the first product by priority
         """
-        products = self.products.filter(type="S").order_by("billing_priority")
+        products = self.products.filter(type__in="SO").order_by("billing_priority")
         if products.exists():
             return products.first()
         else:
@@ -1284,25 +1308,33 @@ class Subscription(models.Model):
         product = self.get_first_product_by_priority()
         if product:
             sp = self.subscriptionproduct_set.filter(product=product).first()
-            if sp.address and sp.address.address_1:
-                address = sp.address.address_1
-                state = sp.address.state
-                city = sp.address.city
-            elif sp.product.digital and self.contact.email:
+            if sp.product.edition_frequency == 4 and self.contact.email:
+                route = 56
                 address = self.contact.email
                 state = getattr(settings, "DEFAULT_STATE", None)
                 city = getattr(settings, "DEFAULT_CITY", None)
+            elif sp.product.digital and self.contact.email:
+                route = 56
+                address = self.contact.email
+                state = getattr(settings, "DEFAULT_STATE", None)
+                city = getattr(settings, "DEFAULT_CITY", None)
+            elif sp.address and sp.address.address_1:
+                address = sp.address.address_1
+                state = sp.address.state
+                city = sp.address.city
+                route = sp.route_id
             else:
-                address, state, city = None, None, None
+                route, address, state, city = None, None, None, None
             if address:
                 result = {
-                    "route": sp.route_id,
+                    "route": route,
                     "order": sp.order,
                     "address": address,
                     "state": state,
                     "city": city,
                     "name": self.get_billing_name(),
                 }
+                print(result)
             elif settings.DEBUG:
                 print(("DEBUG: No address found in the billing data for subscription %d." % self.id))
         elif settings.DEBUG:
