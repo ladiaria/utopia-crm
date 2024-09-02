@@ -173,7 +173,7 @@
                   {% endfor %}
                 </dd>
                 <dd>
-                  <b>{% trans "Type" %}:</b>{{ subscription.get_type_display }}
+                  <b>{% trans "Type" %}:</b> {{ subscription.get_type_display }}
                 </dd>
                 {% if subscription.type == "N" %}
                   <dd>
@@ -190,10 +190,9 @@
                 </dd>
                 {% if subscription.type == "N" %}
                   <dd>
-                    {{ subscription.get_payment_type }}
+                    <b>{% trans "Payment type" %}:</b> {{ subscription.get_payment_type }}
                     {% block extrapayment_1 %}
                     {% endblock extrapayment_1 %}
-
                   </dd>
                 {% endif %}
                 <dd>
