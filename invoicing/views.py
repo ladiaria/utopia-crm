@@ -385,22 +385,22 @@ def bill_subscription(subscription_id, billing_date=None, dpp=10, check_route=Fa
                     amount=amount,
                 )
 
-                # We add all invoice items to the invoice.
+                # We add all invoice items to the invoice. We need to remove the products that are one-shot
                 for item in invoice_items:
                     item.save()
                     invoice.invoiceitem_set.add(item)
+                    if item.product.edition_frequency == 4:  # One-shot
+                        invoice.subscription.remove_product(item.product)
 
                 # When the invoice has finally been created and every date has been moved where it should have been,
                 # we're going to check if there's any temporary discounts, and remove them if it applies.
-                # We're also going to remove one-shot products
                 ii_qs = invoice.invoiceitem_set.filter(product__temporary_discount_months__gte=1)
                 for ii in ii_qs:
                     temporary_discount = ii.product
                     months = temporary_discount.temporary_discount_months
                     if invoice.subscription.months_in_invoices_with_product(temporary_discount.slug) >= months:
                         invoice.subscription.remove_product(temporary_discount)
-                    if ii.product.edition_frequency == 4:  # One-shot
-                        invoice.subscription.remove_product(ii.product)
+
 
             # Then finally we need to change everything on the subscription
             if subscription.balance:
