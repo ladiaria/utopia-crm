@@ -31,7 +31,7 @@
             <span class="d-none d-md-inline">{% firstof request.user.get_short_name request.user.get_username %}</span>
           </a>
           <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right">
-            <a href="#" class="dropdown-item">
+            <div class="dropdown-item">
               <!-- Message Start -->
               <div class="media">
                 <img src="{% avatar_url size=128 %}"
@@ -53,7 +53,7 @@
                 </div>
               </div>
               <!-- Message End -->
-            </a>
+            </div>
             <div class="dropdown-divider"></div>
             <div class="dropdown-footer">
               <a href="{% block change_password_url %}{% url 'admin:password_change' %}{% endblock %}
