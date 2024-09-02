@@ -1,4 +1,5 @@
 # coding: utf-8
+import json
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework_api_key.permissions import HasAPIKey
 
@@ -57,6 +58,7 @@ def contact_api(request):
         return HttpResponseBadRequest()
 
     try:
+        id_contact = None
         c = Contact.objects.get(pk=contact_id)
         if request.method == "DELETE":
             if contact_is_safe_to_delete(c):
@@ -65,6 +67,7 @@ def contact_api(request):
                 return HttpResponseForbidden()
         else:
             update_customer(c, newmail, field, value)
+            id_contact = c.id
     except Contact.DoesNotExist:
         if mail:
             try:
@@ -76,17 +79,19 @@ def contact_api(request):
                         return HttpResponseForbidden()
                 else:
                     update_customer(c, newmail, field, value)
+                    id_contact = c.id
             except Contact.DoesNotExist:
                 if request.method == "POST":  # create
                     c = Contact.objects.create(name=request.data.get("name"))
                     update_customer(c, mail, field, value)
+                    id_contact = c.id
             except (Contact.MultipleObjectsReturned, IntegrityError) as m_ie_exc:
                 # TODO Notificar por mail a los managers
                 return HttpResponseBadRequest(m_ie_exc)
     except IntegrityError as ie_exc:
         # TODO Notificar por mail a los managers
         return HttpResponseBadRequest(ie_exc)
-    return HttpResponse("OK", content_type="application/json")
+    return HttpResponse(json.dumps({"contact_id": id_contact}), content_type="application/json")
 
 
 @login_required
