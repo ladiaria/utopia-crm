@@ -18,7 +18,8 @@ from invoicing.models import Invoice
 class TestCoreContact(TestCase):
 
     def setUp(self):
-        pass
+        # prevent sync on these tests
+        settings.WEB_UPDATE_USER_ENABLED = False
 
     def test1_create_contact(self):
         """
