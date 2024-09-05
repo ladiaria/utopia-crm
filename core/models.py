@@ -2510,7 +2510,7 @@ def update_web_user(contact, target_email=None, newsletter_data=None, area_newsl
                     before_saved_value = getattr(contact, f)
                     current_saved_value = getattr(current_saved_contact, f)
                     if before_saved_value is not None and current_saved_contact != before_saved_value:
-                        fields_to_update.update({f, current_saved_value})
+                        fields_to_update.update({f: current_saved_value})
             # call for sync if there are fields to update
             if fields_to_update:
                 updatewebuser(contact.id, target_email, contact.email,

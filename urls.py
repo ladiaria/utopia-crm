@@ -15,6 +15,7 @@ from django.conf.urls import handler500
 
 from core.views import (
     contact_api,
+    contact_exists,
     search_contacts_htmx,
     mailtrain_list_subscription,
     mailtrain_lists,
@@ -45,6 +46,7 @@ urlpatterns += [
 # Core views
 urlpatterns += [
     path("api/updateuserweb/", contact_api),
+    path("api/existsuserweb/", contact_exists),
     path('api/search_contacts/', search_contacts_htmx, name="htmx_search_contacts"),
     path('api/search_contacts/<str:name>/', search_contacts_htmx, name="htmx_search_contacts_alt"),
     path('api/mailtrain_list_subscription/', mailtrain_list_subscription, name="mailtrain_list_subscription"),
