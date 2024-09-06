@@ -319,11 +319,7 @@ def process_products(input_product_dict: dict) -> dict:
 
 def updatewebuser(id, email, newemail, name="", last_name="", fields_values={}):
     """
-    Esta es la funcion que hace el POST hacia la web, siempre recibe el mail actual y el nuevo (el que se esta
-    actualizando) porque son necesarios para buscar la ficha en la web.
-    Ademas recibe el nombre de campo y el nuevo valor actualizado, son utiles cuando se quiere sincronizar otros
-    campos.
-    This function performs a POST to the WEB CMS app.
+    Performs a POST to the WEB CMS app.
     Those email arguments are necessary for find the user on WEB CMS app
     @param id: ID of the contact in integer format
     @param name: Name of the contact in string format
