@@ -45,8 +45,10 @@ from .choices import (
     PRICERULE_WILDCARD_MODE_CHOICES,
     PRICERULE_AMOUNT_TO_PICK_CONDITION_CHOICES,
     PRIORITY_CHOICES,
+    PRODUCT_BILLING_FREQUENCY_CHOICES,
     PRODUCT_EDITION_FREQUENCY,
     PRODUCT_TYPE_CHOICES,
+    PRODUCT_RENEWAL_TYPE_CHOICES,
     PRODUCT_WEEKDAYS,
     PRODUCTHISTORY_CHOICES,
     SUBSCRIPTION_STATUS_CHOICES,
@@ -162,7 +164,7 @@ class Product(models.Model):
     Products that a subscription can have. (They must have a billing priority to be billed).
     """
 
-    name = models.CharField(max_length=50, verbose_name=_("Name"), db_index=True)
+    name = models.CharField(max_length=100, verbose_name=_("Name"), db_index=True)
     slug = AutoSlugField(populate_from="name", null=True, blank=True)
     active = models.BooleanField(default=False, verbose_name=_("Active"))
     price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
@@ -179,6 +181,21 @@ class Product(models.Model):
     )
     old_pk = models.PositiveIntegerField(blank=True, null=True)
     internal_code = models.CharField(max_length=50, blank=True, null=True, verbose_name=_("Internal code"))
+    billing_days = models.PositiveSmallIntegerField(
+        default=30,
+        verbose_name=_("Billing frequency"),
+        choices=PRODUCT_BILLING_FREQUENCY_CHOICES,
+        null=True,
+        blank=True,
+    )
+    renewal_type = models.CharField(
+        max_length=1,
+        default="A",
+        choices=PRODUCT_RENEWAL_TYPE_CHOICES,
+        verbose_name=_("Renewal type"),
+        null=True,
+        blank=True,
+    )
     objects = ProductManager()
 
     def __str__(self):
@@ -246,6 +263,7 @@ class Contact(models.Model):
 
     class ContactTypeChoices(models.TextChoices):
         """Choices for the contact type"""
+
         PERSON = "P", _("Person")
         COMPANY = "C", _("Company")
 
@@ -836,7 +854,9 @@ class Contact(models.Model):
     get_full_name.short_description = _("Full name")
 
     def get_full_id_document(self):
-        return " ".join(filter(None, (self.id_document_type.name if self.id_document_type else None, self.id_document)))
+        return " ".join(
+            filter(None, (self.id_document_type.name if self.id_document_type else None, self.id_document))
+        )
 
     get_full_id_document.short_description = _("Full ID document")
 
