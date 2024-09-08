@@ -23,7 +23,6 @@ def contact_pre_save_signal(sender, instance, **kwargs):
         raise ValidationError(regex_alphanumeric_msg)
     try:
         saved_email = Contact.objects.values_list("email", flat=True).get(pk=instance.id)
-        print("new instance", instance.email, instance.name, instance.last_name, saved_email)
         instance.old_email = saved_email
     except Contact.DoesNotExist:
         # do nothing on the new ones

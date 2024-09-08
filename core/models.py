@@ -2520,6 +2520,19 @@ def update_web_user(contact, target_email=None, newsletter_data=None, area_newsl
             pass
 
 
+def update_web_user_newsletters(contact):
+    """
+    Update web user newsletters when they are edited
+    @params contact: Contact instance
+    """
+    try:
+        newsletters_slugs = contact.get_active_newsletters().values_list('slug', flat=True)
+        update_web_user(contact, contact.email, json.dumps(newsletters_slugs))
+    except Exception as ex:
+        print("Error sending the request to CMS", str(ex))
+        pass
+
+
 class MailtrainList(models.Model):
     """MailtrainList
 
