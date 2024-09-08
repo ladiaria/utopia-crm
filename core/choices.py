@@ -27,6 +27,20 @@ INACTIVITY_REASONS = (
 
 FREQUENCY_CHOICES = ((1, _("Monthly")), (3, _("Quarterly")), (6, _("Biannual")), (12, _("Annual")))
 
+PRODUCT_BILLING_FREQUENCY_CHOICES = (
+    (30, _("Monthly")),
+    (90, _("Quarterly")),
+    (365, _("Annual")),
+    (730, _("Biannual")),
+    (0, _("One-shot")),
+)
+
+PRODUCT_RENEWAL_TYPE_CHOICES = (
+    ("N", _("New")),
+    ("A", _("Automatic")),
+    ("R", _("Renewal")),
+)
+
 SUBSCRIPTION_TYPE_CHOICES = (
     ("P", _("Promotion")),
     ("N", _("Normal")),

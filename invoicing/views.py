@@ -389,7 +389,7 @@ def bill_subscription(subscription_id, billing_date=None, dpp=10, check_route=Fa
                 for item in invoice_items:
                     item.save()
                     invoice.invoiceitem_set.add(item)
-                    if item.product.edition_frequency == 4:  # One-shot
+                    if item.product and item.product.edition_frequency == 4:  # One-shot
                         invoice.subscription.remove_product(item.product)
 
                 # When the invoice has finally been created and every date has been moved where it should have been,
