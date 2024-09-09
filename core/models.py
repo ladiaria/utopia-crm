@@ -1387,6 +1387,9 @@ class Subscription(models.Model):
                     "name": self.get_billing_name(),
                 }
                 print(result)
+            elif not address and getattr(settings, "DEFAULT_BILLING_ADDRESS", None):
+                result = getattr(settings, "DEFAULT_BILLING_ADDRESS", None)
+                result["name"] = self.get_billing_name()
             elif settings.DEBUG:
                 print(("DEBUG: No address found in the billing data for subscription %d." % self.id))
         elif settings.DEBUG:
