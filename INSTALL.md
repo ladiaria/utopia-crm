@@ -143,7 +143,7 @@ To enable Mercado Pago integration:
    pip install -r requirements_mercadopago.txt
    ```
 
-2. Copy `mercadopago_settings_sample.py` to `mercadopago_settings.py`
+2. Copy `local_mercadopago_settings_sample.py` to `local_mercadopago_settings.py`
 
 3. Edit `mercadopago_settings.py`:
    - Set `MERCADOPAGO_ENABLED = True`

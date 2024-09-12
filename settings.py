@@ -229,7 +229,7 @@ except ImportError:
 
 MERCADOPAGO_ENABLED = False
 try:
-    from .mercadopago_settings import *  # type: ignore
+    from .local_mercadopago_settings import *  # type: ignore
 except ImportError:
     pass
 
