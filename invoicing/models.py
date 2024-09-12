@@ -307,3 +307,24 @@ class CreditNoteCopy(CreditNote):
 
     class Meta:
         proxy = True
+
+
+class MercadoPagoData(models.Model):
+    contact = models.OneToOneField("core.Contact", on_delete=models.CASCADE, related_name='mercadopago_data')
+    card_id = models.CharField(max_length=255, blank=True, null=True)
+    customer_id = models.CharField(max_length=255, blank=True, null=True)
+    payment_method_id = models.CharField(max_length=255, blank=True, null=True)
+    identification_type = models.CharField(max_length=50, blank=True, null=True)
+
+    # Consider adding these fields:
+    identification_number = models.CharField(max_length=50, blank=True, null=True)
+    last_four_digits = models.CharField(max_length=4, blank=True, null=True)
+    payment_method_type = models.CharField(max_length=50, blank=True, null=True)
+    token = models.CharField(max_length=255, blank=True, null=True)
+
+    def __str__(self):
+        return f"Mercado Pago Data for {self.contact}"
+
+    class Meta:
+        verbose_name = "Mercado Pago Data"
+        verbose_name_plural = "Mercado Pago Data"

@@ -223,7 +223,13 @@ WEB_EMAIL_CHECK_URI = None
 # Import local settings if they exist
 # TODO: improve hardcoded load of community settings (which are this community settings?)
 try:
-    from local_settings import *  # noqa
+    from local_settings import *  # type: ignore
+except ImportError:
+    pass
+
+MERCADOPAGO_ENABLED = False
+try:
+    from .mercadopago_settings import *  # type: ignore
 except ImportError:
     pass
 

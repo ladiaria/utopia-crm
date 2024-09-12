@@ -27,3 +27,6 @@ python-dateutil
 reportlab
 requests
 setuptools
+
+# Mercado Pago (optional)
+# -r requirements_mercadopago.txt
