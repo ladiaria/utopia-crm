@@ -341,12 +341,13 @@ def updatewebuser(id, email, newemail, name="", last_name="", fields_values={}):
     return post_to_cms_rest_api("updatewebuser", settings.WEB_UPDATE_USER_URI, data)
 
 
-def post_to_cms_rest_api(api_name, api_uri, post_data):
+def post_to_cms_rest_api(api_name, api_uri, post_data, method="POST"):
     """
     Performs a post request to the WEB CMS app.
     @param api_name: Name of the function that is calling the API
     @param api_uri: URL of the endpoint.
     @param post_data: Request data to be sent.
+    @param method: Http method send
     """
     api_key = settings.LDSOCIAL_API_KEY
     if not (api_uri or api_key):
@@ -357,26 +358,31 @@ def post_to_cms_rest_api(api_name, api_uri, post_data):
         "timeout": (5, 20),
         "verify": settings.WEB_UPDATE_USER_VERIFY_SSL,
     }
+    request_call_map = {
+        "POST": requests.post(api_uri, **post_kwargs),
+        "PUT": requests.put(api_uri, **post_kwargs),
+        "DELETE": requests.delete(api_uri, **post_kwargs)
+    }
     http_basic_auth = settings.WEB_UPDATE_HTTP_BASIC_AUTH
     if http_basic_auth:
         post_kwargs["auth"] = HTTPBasicAuth(*http_basic_auth)
     try:
         if settings.DEBUG:
             print("DEBUG: %s to %s with post_data='%s'" % (api_name, api_uri, post_data))
-        r = requests.post(api_uri, **post_kwargs)
+        r = request_call_map[method]
         r.raise_for_status()
     except ReadTimeout as rt:
         if settings.DEBUG:
-            print("DEBUG: %s POST read timeout: %s" % (api_name, str(rt)))
-        return "TIMEOUT"
+            print(f"DEBUG: {api_name} {method} read timeout: {str(rt)}")
+        raise Exception("NO HUBO RESPUESTA DEL SERVIDOR DEL CMS")
     except RequestException as req_ex:
         if settings.DEBUG:
-            print("DEBUG: %s POST request error: %s" % (api_name, str(req_ex)))
-        return "ERROR"
+            print(f"DEBUG: {api_name} {method} request error: {str(req_ex)}")
+        raise Exception("ERROR AL SINCONIZAR.")
     else:
         result = r.json()
         if settings.DEBUG:
-            print("DEBUG: %s POST result: %s" % (api_name, result))
+            print(f"DEBUG: {api_name} {method} result: {result}")
         return result
 
 

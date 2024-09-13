@@ -44,7 +44,7 @@ from .models import (
     MailtrainList,
 )
 from .forms import SubscriptionAdminForm, ContactAdminForm
-
+from .utils import post_to_cms_rest_api
 
 # unregister default TagAdmin to remove inlines (avoid timeout when many taggetitems), register it again changed
 if Tag in admin.site._registry:
@@ -375,6 +375,29 @@ class ContactAdmin(SimpleHistoryAdmin):
         else:
             if skip_clean_set:
                 del obj._skip_clean
+
+    def delete_model(self, request, obj):
+        # Perform the actual deletion
+        super().delete_model(request, obj)
+        self.send_deletion_request(obj, request)
+
+    def delete_queryset(self, request, queryset):
+        # Perform the actual deletion
+        super().delete_queryset(request, queryset)
+        # TODO: review this if we could send bulk requests
+        for obj in queryset:
+            self.send_deletion_request(obj, request)
+
+    def send_deletion_request(self, obj, request):
+        # Define the URL of the external service
+        url = settings.WEB_DELETE_USER_URI
+        data = {'id': obj.id, 'email': obj.email}
+        try:
+            post_to_cms_rest_api("send_deletion_request", url, data, "DELETE")
+        except Exception as ex:
+            # TODO: improve this log
+            self.message_user(request, "Error trying to delete the contact in external app", level=messages.WARNING)
+            print(f"Error sending delete request: {ex}")
 
 
 @admin.register(Product)
