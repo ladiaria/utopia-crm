@@ -231,5 +231,5 @@ except ImportError:
 # utopia-cms interoperability default urls. TODO: s/(WEB_|LDSOCIAL_)/UTOPIACMS_/
 if LDSOCIAL_URL:
     WEB_UPDATE_USER_URI = WEB_UPDATE_USER_URI or (LDSOCIAL_URL + 'usuarios/fromcrm')
-    WEB_DELETE_USER_URI = WEB_EMAIL_CHECK_URI or (LDSOCIAL_URL + 'usuarios/deletefromcrm/')
+    WEB_DELETE_USER_URI = WEB_EMAIL_CHECK_URI or (LDSOCIAL_URL + 'usuarios/deletefromcrm')
     WEB_EMAIL_CHECK_URI = WEB_EMAIL_CHECK_URI or (LDSOCIAL_URL + 'usuarios/api/email_check/')

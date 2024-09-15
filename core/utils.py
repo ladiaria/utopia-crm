@@ -359,9 +359,9 @@ def post_to_cms_rest_api(api_name, api_uri, post_data, method="POST"):
         "verify": settings.WEB_UPDATE_USER_VERIFY_SSL,
     }
     request_call_map = {
-        "POST": requests.post(api_uri, **post_kwargs),
-        "PUT": requests.put(api_uri, **post_kwargs),
-        "DELETE": requests.delete(api_uri, **post_kwargs)
+        "POST": lambda: requests.post(api_uri, **post_kwargs),
+        "PUT": lambda: requests.put(api_uri, **post_kwargs),
+        "DELETE": lambda: requests.delete(api_uri, **post_kwargs)
     }
     http_basic_auth = settings.WEB_UPDATE_HTTP_BASIC_AUTH
     if http_basic_auth:
@@ -369,7 +369,7 @@ def post_to_cms_rest_api(api_name, api_uri, post_data, method="POST"):
     try:
         if settings.DEBUG:
             print("DEBUG: %s to %s with post_data='%s'" % (api_name, api_uri, post_data))
-        r = request_call_map[method]
+        r = request_call_map[method]()
         r.raise_for_status()
     except ReadTimeout as rt:
         if settings.DEBUG:

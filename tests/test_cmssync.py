@@ -42,6 +42,32 @@ class CMSyncTestCase(TestCase):
                 self.assertEqual(res.json()["msg"], "OK")
                 self.assertEqual(res.json()["retval"], 0)
 
+    def test_delete_contact_sync(self):
+        if self.contact:
+            api_url = settings.WEB_DELETE_USER_URI
+            api_key = getattr(settings, "LDSOCIAL_API_KEY", None)
+            if api_url and api_key:
+                res = requests.delete(
+                    api_url,
+                    headers={'Authorization': 'Api-Key ' + api_key},
+                    data={"contact_id": self.contact.id, "email": self.contact.email},
+                    verify=settings.WEB_UPDATE_USER_VERIFY_SSL
+                )
+                self.assertEqual(res.json()["message"], "OK")
+
+                # check of the contact exits in CMS
+                api_url = settings.WEB_EMAIL_CHECK_URI
+                api_key = getattr(settings, "LDSOCIAL_API_KEY", None)
+                if api_url and api_key:
+                    res = requests.post(
+                        api_url,
+                        headers={'Authorization': 'Api-Key ' + api_key},
+                        data={"contact_id": self.contact.id, "email": self.contact.email},
+                        verify=settings.WEB_UPDATE_USER_VERIFY_SSL
+                    )
+                    self.assertEqual(res.json()["msg"], "OK")
+                    self.assertEqual(res.json()["retval"], 0)
+
     def test_not_create_contact_without_sync(self):
         with override_settings(WEB_UPDATE_USER_ENABLED=False):
             name, email_pre_prefix, phone = "Jane Doe", "cms_test_crmsync_", "12345678"
