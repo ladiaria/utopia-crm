@@ -2475,7 +2475,7 @@ class EmailReplacement(models.Model):
 def update_customer(cust, newmail, field, value):
     # TODO: rename to update_contact or similar, rename cust arg accordingly also
     if settings.DEBUG:
-        print("DEBUG: update_customer(%s, %s, %s, %s)" % (cust, newmail, field, value))
+        print("DEBUG: update_customer(%s[id=%d], %s, %s, %s)" % (cust, cust.id, newmail, field, value))
     cust.updatefromweb = True
     if field:
         if field in ("newsletters", "area_newsletters", "newsletters_remove", "area_newsletters_remove"):
