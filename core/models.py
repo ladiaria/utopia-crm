@@ -1163,6 +1163,15 @@ class Subscription(models.Model):
 
     history = HistoricalRecords()
 
+    billing_contact = models.ForeignKey(
+        Contact,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='billed_subscriptions',
+        verbose_name=_("Billing Contact"),
+    )
+
     def __str__(self):
         return str(
             _("{} subscription for the contact {} {}").format(
@@ -1254,25 +1263,34 @@ class Subscription(models.Model):
         else:
             self.contact.add_product_history(self, product, "D")
 
+    def get_billing_contact(self):
+        """
+        Returns the contact to bill for this subscription.
+        If no specific billing contact is set, returns the subscription's contact.
+        """
+        return self.billing_contact or self.contact
+
     def get_billing_name(self):
         """
         Gets the billing name for the contact. If it doesn't have one, then the contact's name is returned.
         Used primarily in invoicing.
         """
+        billing_contact = self.get_billing_contact()
         if self.billing_name:
             return self.billing_name
         else:
-            return self.contact.name
+            return billing_contact.name
 
     def get_billing_phone(self):
         """
         Gets the billing phone for the contact. If it doesn't have one, then the contact's phone is returned.
         Used primarily in invoicing.
         """
+        billing_contact = self.get_billing_contact()
         if self.billing_phone:
             return self.billing_phone
         else:
-            return self.contact.phone
+            return billing_contact.phone
 
     def get_billing_document(self):
         """
@@ -1280,12 +1298,13 @@ class Subscription(models.Model):
         in that order.
         Used primarily in invoicing.
         """
+        billing_contact = self.get_billing_contact()
         if self.rut:
             return self.rut
         elif self.billing_id_doc:
             return self.billing_id_doc
         else:
-            return self.contact.id_document
+            return billing_contact.id_document
 
     def get_billing_address(self):
         """
@@ -1387,6 +1406,9 @@ class Subscription(models.Model):
                     "name": self.get_billing_name(),
                 }
                 print(result)
+            elif not address and getattr(settings, "DEFAULT_BILLING_ADDRESS", None):
+                result = getattr(settings, "DEFAULT_BILLING_ADDRESS", None)
+                result["name"] = self.get_billing_name()
             elif settings.DEBUG:
                 print(("DEBUG: No address found in the billing data for subscription %d." % self.id))
         elif settings.DEBUG:
