@@ -1,5 +1,4 @@
 # coding: utf-8
-import json
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework_api_key.permissions import HasAPIKey
 
@@ -12,6 +11,7 @@ from django.http import (
     HttpResponseRedirect,
     HttpResponseForbidden,
     HttpResponseServerError,
+    HttpResponseNotFound,
 )
 from django.shortcuts import render, get_list_or_404, get_object_or_404
 from django.views.decorators.cache import never_cache
@@ -41,6 +41,25 @@ def handler403(request, exception):
 
 def handler500(request):
     return render(request, '500.html', status=500)
+
+
+@api_view(['POST'])
+@permission_classes([HasAPIKey])
+def contact_by_emailprefix(request):
+    """
+    Returns a JSON with contact_id and email, only if an exact one contact has an email starting with the given string.
+    The prefix is received in the email_prefix data var and must contain more than 1 char and end with "@".
+    """
+    email_prefix = request.POST.get("email_prefix", "")
+    if len(email_prefix) < 2 or not email_prefix.endswith("@"):
+        return HttpResponseBadRequest()
+    else:
+        matches = Contact.objects.filter(email__startswith=email_prefix)
+        if matches.count() != 1:
+            return HttpResponseNotFound()
+        else:
+            c = matches[0]
+            return JsonResponse({"contact_id": c.id, "email": c.email})
 
 
 @api_view(['POST', "PUT", "DELETE"])
@@ -92,7 +111,7 @@ def contact_api(request):
     except IntegrityError as ie_exc:
         # TODO Notificar por mail a los managers
         return HttpResponseBadRequest(ie_exc)
-    return HttpResponse(json.dumps({"contact_id": id_contact}), content_type="application/json")
+    return JsonResponse({"contact_id": id_contact}, content_type="application/json")
 
 
 @api_view(["GET"])

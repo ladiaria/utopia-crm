@@ -22,6 +22,7 @@ from core.views import (
     get_mailtrain_list_subscribed_emails,
     toggle_mailtrain_subscription,
     create_oneshot_invoice_from_web,
+    contact_by_emailprefix,
 )
 
 
@@ -47,6 +48,7 @@ urlpatterns += [
 urlpatterns += [
     path("api/updateuserweb/", contact_api),
     path("api/existsuserweb/", contact_exists),
+    path("api/contact_by_emailprefix/", contact_by_emailprefix),
     path('api/search_contacts/', search_contacts_htmx, name="htmx_search_contacts"),
     path('api/search_contacts/<str:name>/', search_contacts_htmx, name="htmx_search_contacts_alt"),
     path('api/mailtrain_list_subscription/', mailtrain_list_subscription, name="mailtrain_list_subscription"),
@@ -57,7 +59,9 @@ urlpatterns += [
         toggle_mailtrain_subscription,
         name="toggle_mailtrain_subscription",
     ),
-    path("api/create_oneshot_invoice_from_web/", create_oneshot_invoice_from_web, name="create_oneshot_invoice_from_web"),
+    path(
+        "api/create_oneshot_invoice_from_web/", create_oneshot_invoice_from_web, name="create_oneshot_invoice_from_web"
+    ),
 ]
 
 if 'support' in settings.INSTALLED_APPS:
