@@ -389,7 +389,7 @@ def bill_subscription(subscription_id, billing_date=None, dpp=10, check_route=Fa
                 for item in invoice_items:
                     item.save()
                     invoice.invoiceitem_set.add(item)
-                    if item.product.edition_frequency == 4:  # One-shot
+                    if item.product and item.product.edition_frequency == 4:  # One-shot
                         invoice.subscription.remove_product(item.product)
 
                 # When the invoice has finally been created and every date has been moved where it should have been,
@@ -602,7 +602,10 @@ def invoice_filter(request):
         header = [
             _("Id"),
             _("Contact name"),
-            _("Subscriptions"),
+            _("Items"),
+            _("Contact id"),
+            _("Subscription id"),
+            _("Subscription Payment Type"),
             _("Amount"),
             _("Payment type"),
             _("Date"),
@@ -617,17 +620,14 @@ def invoice_filter(request):
         ]
         writer.writerow(header)
         for invoice in invoice_filter.qs.iterator():
-            products = ""
-            for index, invoiceitem in enumerate(invoice.invoiceitem_set.all()):
-                if index > 0 and len(products) > 1:
-                    products += ", "
-                if invoiceitem.product:
-                    products += invoiceitem.product.name
             writer.writerow(
                 [
                     invoice.id,
                     invoice.contact.name,
                     invoice.get_invoiceitem_description_list(html=False),
+                    invoice.contact.id,
+                    invoice.subscription.id if invoice.subscription else None,
+                    invoice.subscription.get_payment_type_display() if invoice.subscription else None,
                     invoice.amount,
                     invoice.get_payment_type(),
                     invoice.creation_date,
