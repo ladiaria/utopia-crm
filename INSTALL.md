@@ -132,3 +132,25 @@ It is possible that you encounter this error when running the server for the fir
 `ModuleNotFoundError: No module named 'dns'`
 
 To solve this issue, navigate to where your virtualenv is located and find the site-packages folder under the folder lib/pythonX.XX/ where X.XX is your python version. There you might find an uppercase DNS folder that you can safely rename to lowercase "dns". In the case your error shows that the module not found is an uppercase DNS, you can do the opposite.
+
+### Optional: Enabling Mercado Pago Integration
+
+To enable Mercado Pago integration:
+
+1. Install additional requirements:
+
+   ```
+   pip install -r requirements_mercadopago.txt
+   ```
+
+2. Copy `local_mercadopago_settings_sample.py` to `local_mercadopago_settings.py`
+
+3. Edit `mercadopago_settings.py`:
+   - Set `MERCADOPAGO_ENABLED = True`
+   - Add your Mercado Pago access token: `MERCADOPAGO_ACCESS_TOKEN = "your_access_token_here"`
+
+4. Run migrations:
+
+   ```
+   python manage.py migrate
+   ```

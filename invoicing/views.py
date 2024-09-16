@@ -67,14 +67,21 @@ def contact_invoices(request, contact_id):
     return render(request, 'contact_invoices.html', {'contact': contact, 'invoice_list': invoice_list, 'debt': debt})
 
 
-def bill_subscription(subscription_id, billing_date=None, dpp=10, check_route=False, debug=False):
+def bill_subscription(subscription_id, billing_date=None, dpp=10):
     """
     # TODO: debug arg is not used, use/remove it.
     Bills a single subscription into an only invoice. Returns the created invoice.
     """
+    # Safely get settings with default values
+    billing_extra_days = getattr(settings, 'BILLING_EXTRA_DAYS', 0)
+    force_dummy_missing_billing_data = getattr(settings, 'FORCE_DUMMY_MISSING_BILLING_DATA', False)
+    require_route_for_billing = getattr(settings, 'REQUIRE_ROUTE_FOR_BILLING', False)
+    exclude_routes_from_billing_list = getattr(settings, 'EXCLUDE_ROUTES_FROM_BILLING_LIST', [])
+    envelope_price = getattr(settings, 'ENVELOPE_PRICE', 0)
+    debug_products = getattr(settings, 'DEBUG_PRODUCTS', False)
+
     billing_date = billing_date or date.today()
     subscription = get_object_or_404(Subscription, pk=subscription_id)
-    contact = subscription.contact
     invoice, invoice_items, balance_item = None, None, None
 
     # Check that the subscription is active
@@ -94,14 +101,14 @@ def bill_subscription(subscription_id, billing_date=None, dpp=10, check_route=Fa
         error_msg = _("This subscription has an end date greater than its next billing")
         assert subscription.next_billing < subscription.end_date, error_msg
 
-    if subscription.next_billing > billing_date + timedelta(settings.BILLING_EXTRA_DAYS):
+    if subscription.next_billing > billing_date + timedelta(billing_extra_days):
         raise Exception(_('This subscription should not be billed yet.'))
 
     # We need to get all the subscription data. The priority is defined in the billing_priority column of the product.
     # If this first product doesn't have the required data, then we can't bill the subscription.
     billing_data = subscription.get_billing_data_by_priority()
 
-    if not billing_data and not getattr(settings, "FORCE_DUMMY_MISSING_BILLING_DATA", False):
+    if not billing_data and not force_dummy_missing_billing_data:
         raise Exception(
             "Subscription {} for contact {} contains no billing data.".format(subscription.id, subscription.contact.id)
         )
@@ -113,7 +120,7 @@ def bill_subscription(subscription_id, billing_date=None, dpp=10, check_route=Fa
             )
         )
 
-    if billing_data and settings.REQUIRE_ROUTE_FOR_BILLING:
+    if billing_data and require_route_for_billing:
         if billing_data["route"] is None:
             raise Exception(
                 "Subscription {} for contact {} requires a route to be billed.".format(
@@ -121,7 +128,7 @@ def bill_subscription(subscription_id, billing_date=None, dpp=10, check_route=Fa
                 )
             )
 
-        elif billing_data["route"] in settings.EXCLUDE_ROUTES_FROM_BILLING_LIST:
+        elif billing_data["route"] in exclude_routes_from_billing_list:
             raise Exception(
                 "Subscription {} for contact {} can't be billed since it's on route {}.".format(
                     subscription.id, subscription.contact.id, billing_data["route"]
@@ -152,7 +159,7 @@ def bill_subscription(subscription_id, billing_date=None, dpp=10, check_route=Fa
     for product in non_discount_list:
         copies = int(product_summary[product.id])
 
-        if getattr(settings, 'DEBUG_PRODUCTS', False):
+        if debug_products:
             print(
                 f"{product.name} {copies}x{'-' if product.type == 'D' else ''}"
                 f"{product.price} = {'-' if product.type == 'D' else ''}{product.price * copies}"
@@ -278,11 +285,7 @@ def bill_subscription(subscription_id, billing_date=None, dpp=10, check_route=Fa
     # After adding all of the invoiceitems, we need to check if the subscription has an envelope. In future reviews
     # this should be deprecated and envelopes should be its own product, because here you'd end up adding envelopes
     # to digital products potentially. Fancy digital envelopes huh?
-    if (
-        hasattr(settings, 'ENVELOPE_PRICE')
-        and SubscriptionProduct.objects.filter(subscription=subscription, has_envelope=1).exists()
-    ):
-        envelope_price = settings.ENVELOPE_PRICE
+    if envelope_price and SubscriptionProduct.objects.filter(subscription=subscription, has_envelope=1).exists():
         # Get the amount of days per week the subscription gets the paper
         products_with_envelope_count = SubscriptionProduct.objects.filter(
             subscription=subscription, has_envelope=1
@@ -368,7 +371,7 @@ def bill_subscription(subscription_id, billing_date=None, dpp=10, check_route=Fa
             # Meanwhile we'll create the invoice object
             if amount > 0:
                 invoice = Invoice.objects.create(
-                    contact=contact,
+                    contact=subscription.get_billing_contact(),
                     payment_type=payment_method,
                     creation_date=billing_date,
                     service_from=service_from,
@@ -602,7 +605,10 @@ def invoice_filter(request):
         header = [
             _("Id"),
             _("Contact name"),
-            _("Subscriptions"),
+            _("Items"),
+            _("Contact id"),
+            _("Subscription id"),
+            _("Subscription Payment Type"),
             _("Amount"),
             _("Payment type"),
             _("Date"),
@@ -617,17 +623,14 @@ def invoice_filter(request):
         ]
         writer.writerow(header)
         for invoice in invoice_filter.qs.iterator():
-            products = ""
-            for index, invoiceitem in enumerate(invoice.invoiceitem_set.all()):
-                if index > 0 and len(products) > 1:
-                    products += ", "
-                if invoiceitem.product:
-                    products += invoiceitem.product.name
             writer.writerow(
                 [
                     invoice.id,
                     invoice.contact.name,
                     invoice.get_invoiceitem_description_list(html=False),
+                    invoice.contact.id,
+                    invoice.subscription.id if invoice.subscription else None,
+                    invoice.subscription.get_payment_type_display() if invoice.subscription else None,
                     invoice.amount,
                     invoice.get_payment_type(),
                     invoice.creation_date,
