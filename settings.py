@@ -219,11 +219,21 @@ WEB_UPDATE_AREA_NEWSLETTER_MAP = {
 WEB_UPDATE_USER_URI = None
 WEB_EMAIL_CHECK_URI = None
 
+# If True, allows queuing subscriptions to start after the active one ends. This is useful for
+# example to queue a subscription to start after the current one ends, in the case the customer
+# wants to pay for a new subscription before the current one ends.
+ALLOW_QUEUE_SUBSCRIPTIONS = False
 
 # Import local settings if they exist
 # TODO: improve hardcoded load of community settings (which are this community settings?)
 try:
-    from local_settings import *  # noqa
+    from local_settings import *  # type: ignore
+except ImportError:
+    pass
+
+MERCADOPAGO_ENABLED = False
+try:
+    from .local_mercadopago_settings import *  # type: ignore
 except ImportError:
     pass
 

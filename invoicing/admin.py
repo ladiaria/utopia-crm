@@ -1,6 +1,4 @@
 # coding=utf-8
-
-
 from django.contrib import admin
 from django.utils.translation import gettext_lazy as _
 
@@ -95,5 +93,3 @@ class BillingAdmin(admin.ModelAdmin):
                 )
             else:
                 return [f.name for f in self.model._meta.fields]
-
-

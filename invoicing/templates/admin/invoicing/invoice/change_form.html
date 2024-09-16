@@ -3,6 +3,12 @@
 {% block object-tools-items %}
   {% if object_id %}
     <li>
+      <a href="{% url "contact_invoices" original.contact_id %}">{% trans "Back to contact invoices" %}</a>
+    </li>
+    <li>
+      <a href="{% url "contact_detail" original.contact_id %}">{% trans "Back to contact" %}</a>
+    </li>
+    <li>
       <a href="{% url "download_invoice" object_id %}" class="historylink">{% trans "Download invoice" %}</a>
     </li>
     {% if not original.canceled %}
