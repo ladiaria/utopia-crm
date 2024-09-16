@@ -13,8 +13,8 @@ from rest_framework.permissions import HasAPIKey
 
 from core.models import Contact
 from invoicing.models import Subscription
-from invoicing.utils import bill_subscription, ladiaria_invoice_maintenance
-from .utils import contact_update_mp_wrapper, create_mp_subscription_for_contact
+from invoicing.views import bill_subscription
+from .utils import contact_update_mp_wrapper, create_mp_subscription_for_contact, mercadopago_debit
 
 
 @api_view(['POST'])
@@ -30,7 +30,7 @@ def createinvoicefromweb(request):
         return HttpResponseBadRequest(error_msg)
 
     required_params = [
-        "plan_id",
+        "product_slug",
         "mp_payment_method_id",
         "mp_identification_type",
         "identification_number",
@@ -46,10 +46,8 @@ def createinvoicefromweb(request):
         sleep(sleep_secs)
 
     subscription = None
-    web_plan = product_slug = None  # should be initialized in the try block below
     try:
-        web_plan = request.POST["plan_id"]
-        product_slug = getattr(settings, "PLANES_WEB", {}).get(web_plan)
+        product_slug = request.POST["product_slug"]
         mp_payment_method_id = request.POST["mp_payment_method_id"]
         mp_identification_type = request.POST["mp_identification_type"]
         identification_number = request.POST["identification_number"]
@@ -62,14 +60,13 @@ def createinvoicefromweb(request):
         return error_handler("Parámetro '%s' requerido" % ke.args[0])
 
     if not product_slug:
-        return error_handler("Plan '%s' no configurado" % web_plan)
+        return error_handler("Product slug is required")
 
     customer_email = request.POST.get("customer_email").strip()
     customer_telephone = request.POST.get("customer_telephone")
     customer_address = request.POST.get("customer_address")
     customer_city = request.POST.get("customer_city")
     customer_province = request.POST.get("customer_province")
-    ldfs = web_plan in ("DDIGMFS", "PAPYLAS")
 
     try:
         contact = Contact.objects.get(email=customer_email)
@@ -89,7 +86,6 @@ def createinvoicefromweb(request):
             mp_payment_method_id=mp_payment_method_id,
             mp_identification_type=mp_identification_type,
             identification_number=identification_number,
-            ldfs=ldfs,
         )
 
         if type(func_result) is Subscription:
@@ -130,6 +126,7 @@ def createinvoicefromweb(request):
                 contact = Contact.objects.create(
                     id_document=identification_number,
                     name=request.POST["customer_name"],
+                    last_name=request.POST["customer_last_name"],
                     email=customer_email,
                     subtype_id=getattr(settings, "WEB_UPDATE_MP_SUBTIPO_ID", None),
                     phone=customer_telephone,
@@ -161,18 +158,13 @@ def createinvoicefromweb(request):
     except Contact.MultipleObjectsReturned as exc:
         return error_handler(("Más de un cliente con ese email", exc))
 
-    # crear la factura y devolver los ids de factura y cliente. Si error
-    # se desactiva con pausa para no perder la fecha de proxima facturacion
-    # en LDFS no se necesita poner pausa porque no se borra la fecha.
-    # antes de hacer esos cambios hay que recargar el objeto porque la
-    # llamada a facturar_* cambia cosas del cliente en otro objeto.
     invoice, bill_exc = None, None
     try:
         invoice = bill_subscription(subscription.id, date.today(), 30)
-        ladiaria_invoice_maintenance(invoice, settings.DEBUG, True)
+        mercadopago_debit(invoice)
     except Exception as exc:
         bill_exc = exc
-        if settings.DEBUG or getattr(settings, "WEB_UPDATE_MP_DEBUG", False):
+        if settings.DEBUG:
             traceback.print_exc()
     if not invoice or not (invoice.paid or invoice.debited):
         if subscription:
@@ -189,9 +181,8 @@ def createinvoicefromweb(request):
             response_content["plan_id"] = [
                 (subscription.type, list(subscription.products.filter(type="S").values_list("slug", flat=True)))
             ]
-            # add default newsletters
             if contact.offer_default_newsletters_condition():
                 response_content["nl_added"] = contact.add_default_newsletters()
         return HttpResponse(json.dumps(response_content), content_type="application/json")
     else:
-        return error_handler(("No se pudo facturar", bill_exc))
+        return error_handler("Could not bill", bill_exc)
