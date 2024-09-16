@@ -26,7 +26,8 @@ class CMSyncTestCase(TestCase):
     def test_create_contact_sync(self):
         with override_settings(WEB_UPDATE_USER_ENABLED=True):
             name, email_pre_prefix, phone = "Jane Doe", "cms_test_crmsync_", "12345678"
-            email = "%s%s@%s" % (email_pre_prefix, rand_chars(), "yoogle.com")
+            email = f"{email_pre_prefix}{rand_chars()}@yoogle.com"
+
             # create a user with very low collission probability on email field
             self.contact = create_contact(name, phone, email)
             # get contact from CMS
@@ -71,7 +72,8 @@ class CMSyncTestCase(TestCase):
     def test_not_create_contact_without_sync(self):
         with override_settings(WEB_UPDATE_USER_ENABLED=False):
             name, email_pre_prefix, phone = "Jane Doe", "cms_test_crmsync_", "12345678"
-            email = "%s%s@%s" % (email_pre_prefix, rand_chars(), "yoogle.com")
+            email = f"{email_pre_prefix}{rand_chars()}@yoogle.com"
+
             # create a user with very low collission probability on email field
             no_sync_conctact = create_contact(name, phone, email)
             # get the contact from CMS
