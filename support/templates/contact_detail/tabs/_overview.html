@@ -71,7 +71,9 @@
       </div>
       <div class="card-body">
         <dl>
-          {% block payment_requests %}{% endblock payment_requests %}
+          {% block payment_requests %}
+          {% endblock payment_requests %}
+
           {% if last_paid_invoice or contact.get_debt %}
             <dt>{% trans "Latest payment" %}</dt>
             {% if last_paid_invoice %}
@@ -115,7 +117,9 @@
           {% if subscriptions %}({{ subscriptions|length }}){% endif %}
         </h3>
         <div class="card-tools">
-          {% block products_amount %}{% endblock products_amount %}
+          {% block products_amount %}
+          {% endblock products_amount %}
+
           {% if contact.invoice_set.exists %}
             <h3 class="bg-success font-weight-bold rounded d-inline-block p-1"
                 title="Año de primera factura"
@@ -169,27 +173,33 @@
                   {% endfor %}
                 </dd>
                 <dd>
-                  {{ subscription.get_type_display }}
-                  {% if subscription.type == "N" %}
-                    -
-                    {{ subscription.get_frequency_display }} -
-                    ${{ subscription.get_price_for_full_period }}
-                  {% endif %}
+                  <b>{% trans "Type" %}:</b> {{ subscription.get_type_display }}
+                </dd>
+                {% if subscription.type == "N" %}
+                  <dd>
+                    <b>{% trans "Frequency" %}:</b> {{ subscription.get_frequency_display }}
+                  </dd>
+                  <dd>
+                    <b>{% trans "Price" %}:</b> {{ subscription.get_price_for_full_period }}
+                  </dd>
+                {% endif %}
+                <dd>
                   {% if subscription.has_paused_products %}
                     (${{ subscription.get_price_for_full_period_with_pauses }} {% trans "because of pause" %})
                   {% endif %}
                 </dd>
                 {% if subscription.type == "N" %}
                   <dd>
-                    {{ subscription.get_payment_type }}
-                    {% block extrapayment_1 %}{% endblock extrapayment_1 %}
+                    <b>{% trans "Payment type" %}:</b> {{ subscription.get_payment_type }}
+                    {% block extrapayment_1 %}
+                    {% endblock extrapayment_1 %}
                   </dd>
                 {% endif %}
                 <dd>
                   <b>{% trans "Start" %}:</b> {{ subscription.start_date|date:"d/m/Y" }}
                   {% if subscription.end_date %}
                     -
-                    {% trans "End" %}:</b> {{ subscription.end_date|date:"d/m/Y" }}
+                    <b>{% trans "End" %}:</b> {{ subscription.end_date|date:"d/m/Y" }}
                   {% endif %}
                 </dd>
                 {% if subscription.type == "N" %}
@@ -300,14 +310,16 @@
                   {% if subscription.type == "N" %}
                     <dd>
                       {{ subscription.get_payment_type }}
-                      {% block extrapayment_2 %}{% endblock extrapayment_2 %}
+                      {% block extrapayment_2 %}
+                      {% endblock extrapayment_2 %}
+
                     </dd>
                   {% endif %}
                   <dd>
                     <b>{% trans "Start" %}:</b> {{ subscription.start_date|date:"d/m/Y" }}
                     {% if subscription.end_date %}
                       -
-                      {% trans "End" %}:</b> {{ subscription.end_date|date:"d/m/Y" }}
+                      <b>{% trans "End" %}:</b> {{ subscription.end_date|date:"d/m/Y" }}
                     {% endif %}
                   </dd>
                   {% if subscription.type == "N" %}
