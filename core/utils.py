@@ -378,7 +378,7 @@ def post_to_cms_rest_api(api_name, api_uri, post_data, method="POST"):
     except RequestException as req_ex:
         if settings.DEBUG:
             print(f"DEBUG: {api_name} {method} request error: {str(req_ex)}")
-        raise Exception("ERROR AL SINCRONIZAR.")
+        raise Exception("ERROR AL SINCRONIZAR")
     else:
         result = r.json()
         if settings.DEBUG:
