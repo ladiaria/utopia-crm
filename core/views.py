@@ -91,20 +91,23 @@ def contact_api(request):
     except Contact.DoesNotExist:
         if mail:
             try:
-                c = Contact.objects.get(email=mail)
+                contact = Contact.objects.get(email=mail)
                 if request.method == "DELETE":
-                    if contact_is_safe_to_delete(c):
-                        c.delete()
+                    if contact_is_safe_to_delete(contact):
+                        contact.delete()
                     else:
                         return HttpResponseForbidden()
                 else:
-                    update_customer(c, newmail, field, value)
-                    id_contact = c.id
+                    update_customer(contact, newmail, field, value)
+                    id_contact = contact.id
             except Contact.DoesNotExist:
                 if request.method == "POST":  # create
-                    c = Contact.objects.create(name=request.data.get("name"))
-                    update_customer(c, mail, field, value)
-                    id_contact = c.id
+                    new_contact = Contact()
+                    new_contact.name = request.data.get("name")
+                    new_contact.updatefromweb = True
+                    new_contact.save()
+                    update_customer(new_contact, mail, field, value)
+                    id_contact = new_contact.id
             except (Contact.MultipleObjectsReturned, IntegrityError) as m_ie_exc:
                 # TODO Notificar por mail a los managers
                 return HttpResponseBadRequest(m_ie_exc)
