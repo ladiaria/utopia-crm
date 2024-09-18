@@ -1,5 +1,4 @@
 # coding: utf-8
-from time import sleep
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework_api_key.permissions import HasAPIKey
 
@@ -11,15 +10,15 @@ from django.http import (
     HttpResponseRedirect,
     HttpResponseForbidden,
     HttpResponseServerError,
+    HttpResponseNotFound,
 )
 from django.shortcuts import render, get_list_or_404, get_object_or_404
 from django.views.decorators.cache import never_cache
-from django.conf import settings
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
 
-from .models import Contact, MailtrainList, Product, update_customer
+from .models import Contact, MailtrainList, update_customer
 from .admin import contact_is_safe_to_delete
 from .utils import (
     get_emails_from_mailtrain_list,
@@ -41,6 +40,25 @@ def handler403(request, exception):
 
 def handler500(request):
     return render(request, '500.html', status=500)
+
+
+@api_view(['POST'])
+@permission_classes([HasAPIKey])
+def contact_by_emailprefix(request):
+    """
+    Returns a JSON with contact_id and email, only if an exact one contact has an email starting with the given string.
+    The prefix is received in the email_prefix data var and must contain more than 1 char and end with "@".
+    """
+    email_prefix = request.POST.get("email_prefix", "")
+    if len(email_prefix) < 2 or not email_prefix.endswith("@"):
+        return HttpResponseBadRequest()
+    else:
+        matches = Contact.objects.filter(email__startswith=email_prefix)
+        if matches.count() != 1:
+            return HttpResponseNotFound()
+        else:
+            c = matches[0]
+            return JsonResponse({"contact_id": c.id, "email": c.email})
 
 
 @api_view(['POST', "PUT", "DELETE"])
