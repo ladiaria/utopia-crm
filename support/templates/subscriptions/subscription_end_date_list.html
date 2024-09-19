@@ -1,0 +1,103 @@
+{% extends "adminlte/base.html" %}
+{% load static i18n widget_tweaks core_tags %}
+{% block stylesheets %}
+  {{ block.super }}
+  <link rel="stylesheet" href="{% static "/admin-lte/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css" %}" />
+{% endblock %}
+
+{% block title %}
+  {% trans "Contacts" %}
+{% endblock title %}
+
+{% block no_heading %}
+  <h1>{% trans "Subscription End Dates" %}</h1>
+  <p>{% trans "Manage all subscription end dates in the database." %}</p>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">{% trans "Search" %}</h3>
+        <div class="card-tools">
+          <button type="button" class="btn btn-tool" data-card-widget="collapse"><i class="fas fa-minus"></i>
+          </button>
+        </div>
+      </div>
+      <div class="card-body">
+        <form method="get" id="form">
+          <div class="row">
+            <div class="col-md-3">
+              {{ filter.form.end_date_min.label_tag }}
+              {% render_field filter.form.end_date_min class="form-control" %}
+            </div>
+            <div class="col-md-3">
+              {{ filter.form.end_date_max.label_tag }}
+              {% render_field filter.form.end_date_max class="form-control" %}
+            </div>
+            <div class="col-md-3">
+              {{ filter.form.contact_name.label_tag }}
+              {% render_field filter.form.contact_name class="form-control" %}
+            </div>
+            <div class="col-md-3">
+              {{ filter.form.contact_id_document.label_tag }}
+              {% render_field filter.form.contact_id_document class="form-control" %}
+            </div>
+            <div class="col text-right mt-4">
+              <button type="submit" class="btn btn-primary">{% trans "Search" %}</button>
+              <a href="{% url 'subscription_end_date_list' %}" class="btn btn-secondary">{% trans "Reset" %}</a>
+              <a href="?{{ request.GET.urlencode }}&export=1" class="btn btn-primary">
+                <i class="fas fa-file-csv mr-2"></i>{% trans "Export to CSV" %}
+              </a>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-12">
+    <div class="card">
+      <div class="card-body">
+        <h3>{% trans "All subscription end dates" %}</h3>
+        <table id="table1" class="table table-bordered table-striped">
+          <thead>
+            <tr role="row">
+              <th>{% trans "Contact Name" %}</th>
+              <th>{% trans "Email" %}</th>
+              <th>{% trans "Phone" %}</th>
+              <th>{% trans "Product" %}</th>
+              <th>{% trans "Subscription End Date" %}</th>
+              <th>{% trans "Actions" %}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if object_list %}
+              {% for subscription in object_list %}
+                <tr role="row">
+                <td>{{ subscription.contact.name }}</td>
+                <td>{{ subscription.contact.email }}</td>
+                <td>{{ subscription.contact.phone }}</td>
+                <td>{{ subscription.render_product_summary|safe }}</td>
+                <td>{{ subscription.end_date|date:"d/m/Y"|default:"-" }}</td>
+                <td>
+                  <a href="{% url 'contact_detail' subscription.contact.id %}" class="btn btn-primary">{% trans "View" %}</a>
+                </td>
+                </tr>
+              {% endfor %}
+            {% else %}
+              <tr>
+                <td colspan="6">{% trans "No subscriptions found" %}</td>
+              </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  {% if contacts.has_other_pages %}
+    {% include "components/_pagination.html" %}
+  {% endif %}
+</div>
+{% endblock %}

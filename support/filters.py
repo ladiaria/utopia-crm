@@ -195,3 +195,24 @@ class SalesRecordFilterForSeller(django_filters.FilterSet):
         model = SalesRecord
         fields = ['date_time', 'sale_type']
         exclude = ['seller']
+
+
+class SubscriptionEndDateFilter(django_filters.FilterSet):
+    end_date_min = django_filters.DateFilter(
+        field_name='end_date',
+        lookup_expr='gte',
+        label='End Date From',
+        widget=forms.DateInput(attrs={'type': 'date'})
+    )
+    end_date_max = django_filters.DateFilter(
+        field_name='end_date',
+        lookup_expr='lte',
+        label='End Date To',
+        widget=forms.DateInput(attrs={'type': 'date'})
+    )
+    contact_name = django_filters.CharFilter(field_name='contact__name', lookup_expr='icontains', label='Contact Name')
+    contact_id_document = django_filters.CharFilter(field_name='contact__id_document', lookup_expr='icontains', label='Contact ID Document')
+
+    class Meta:
+        model = Subscription
+        fields = ['end_date_min', 'end_date_max', 'contact_name', 'contact_id_document']
