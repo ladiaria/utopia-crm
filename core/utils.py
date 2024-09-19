@@ -1,5 +1,6 @@
 from datetime import date, timedelta
 import collections
+from functools import wraps
 import requests
 from requests.auth import HTTPBasicAuth
 from requests.exceptions import ReadTimeout, RequestException
@@ -10,6 +11,8 @@ from typing import Literal
 from django.conf import settings
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
+
+from rest_framework.decorators import authentication_classes
 
 
 dnames = ('monday', 'tuesday', 'wednesday', 'thursday', 'friday')
@@ -319,6 +322,35 @@ def process_products(input_product_dict: dict) -> dict:
     return output_dict
 
 
+def no_op_decorator(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        return func(*args, **kwargs)
+    return wrapper
+
+
+# Endpoints must be decorated with no auth classes if the deployment is under http basic auth, when no basic auth is
+# set, the decorator is no_op_decorator, which does nothing and let the endpoint acts as if it was not decorated.
+api_view_auth_decorator = (
+    authentication_classes([]) if getattr(settings, 'ENV_HTTP_BASIC_AUTH', False) else no_op_decorator
+)
+
+
+def cms_rest_api_kwargs(api_key, data=None):
+    http_basic_auth = settings.WEB_UPDATE_HTTP_BASIC_AUTH
+    result = {
+        "headers": {"X-Api-Key": api_key} if http_basic_auth else {'Authorization': 'Api-Key ' + api_key},
+        "timeout": (5, 20),
+    }
+    if not getattr(settings, "WEB_UPDATE_USER_VERIFY_SSL", True):
+        result["verify"] = False
+    if data:
+        result["data"] = data
+    if http_basic_auth:
+        result["auth"] = HTTPBasicAuth(*http_basic_auth)
+    return result
+
+
 def updatewebuser(id, email, newemail, field, value):
     """
     Esta es la funcion que hace el POST hacia la web, siempre recibe el mail actual y el nuevo (el que se esta
@@ -338,15 +370,7 @@ def updatewebuser(id, email, newemail, field, value):
             "field": field,
             "value": value,
         }
-        post_kwargs = {
-            "headers": {'Authorization': 'Api-Key ' + api_key},
-            "data": data,
-            "timeout": (5, 20),
-            "verify": settings.WEB_UPDATE_USER_VERIFY_SSL,
-        }
-        http_basic_auth = settings.WEB_UPDATE_HTTP_BASIC_AUTH
-        if http_basic_auth:
-            post_kwargs["auth"] = HTTPBasicAuth(*http_basic_auth)
+        post_kwargs = cms_rest_api_kwargs(api_key, data)
         r = requests.post(api_url, **post_kwargs)
         if settings.DEBUG:
             print("DEBUG: updatewebuser api response content: " + html2text.html2text(r.content.decode()).strip())
@@ -357,15 +381,7 @@ def post_to_cms_rest_api(api_name, api_uri, post_data):
     api_key = settings.LDSOCIAL_API_KEY
     if not (api_uri or api_key):
         return "ERROR"
-    post_kwargs = {
-        "headers": {'Authorization': 'Api-Key ' + api_key},
-        "data": post_data,
-        "timeout": (5, 20),
-        "verify": settings.WEB_UPDATE_USER_VERIFY_SSL,
-    }
-    http_basic_auth = settings.WEB_UPDATE_HTTP_BASIC_AUTH
-    if http_basic_auth:
-        post_kwargs["auth"] = HTTPBasicAuth(*http_basic_auth)
+    post_kwargs = cms_rest_api_kwargs(api_key, post_data)
     try:
         if settings.DEBUG:
             print("DEBUG: %s to %s with post_data='%s'" % (api_name, api_uri, post_data))
@@ -484,4 +500,3 @@ def process_invoice_request(product_slugs, email, phone, name, id_document, paym
         "invoice_id": invoice.id,
         "contact_id": contact_obj.id
     }
-
