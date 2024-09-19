@@ -9,7 +9,7 @@ from django.core.mail import mail_managers
 from django.db import DataError
 from django.http import HttpResponse, HttpResponseBadRequest
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import HasAPIKey
+from rest_framework_api_key.permissions import HasAPIKey
 
 from core.models import Contact
 from invoicing.models import Subscription

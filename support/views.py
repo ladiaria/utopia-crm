@@ -6,7 +6,7 @@ import collections
 from requests import RequestException
 from datetime import date, timedelta, datetime
 
-from django.db.models import Q, Count, Sum, Min
+from django.db.models import Q, Count, Sum, Min, Prefetch
 from taggit.models import Tag
 
 from django import forms
@@ -27,7 +27,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django.utils.text import format_lazy
-from django.views.generic import UpdateView, RedirectView, CreateView
+from django.views.generic import UpdateView, RedirectView, CreateView, ListView
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
@@ -55,16 +55,10 @@ from core.models import (
     MailtrainList,
 )
 from core.choices import CAMPAIGN_RESOLUTION_REASONS_CHOICES
-from core.utils import calc_price_from_products, process_products
+from core.utils import calc_price_from_products, process_products, logistics_is_installed
 
 
-# Repeat this line many times is not a good pattern because the default value in getattr becomes into something to
-# mantain on many places if for any reason we have to change it. Hint: make a bool function somewhere using the
-# "possitive pattern" like this:
-# >>> def logistics_is_installed():
-# >>>     return "logistics" in getattr(settings, "DISABLED_APPS", [])  # Default value then is set only here
-# >>> and then you can use it here like this "if not logistics_is_installed():"
-if "logistics" not in getattr(settings, "DISABLED_APPS", []):
+if logistics_is_installed():
     from logistics.models import Route
 from support.management.commands.run_scheduled_tasks import run_address_change, run_start_of_total_pause
 
@@ -78,6 +72,7 @@ from .filters import (
     CampaignFilter,
     SalesRecordFilter,
     SalesRecordFilterForSeller,
+    SubscriptionEndDateFilter,
 )
 from .forms import (
     NewPauseScheduledTaskForm,
@@ -314,7 +309,7 @@ def seller_console_list_campaigns(request, seller_id=None):
         messages.error(request, _("This seller is set in more than one user. Please contact your manager."))
         return HttpResponseRedirect(reverse("main_menu"))
 
-    if "logistics" not in getattr(settings, "DISABLED_APPS", []):
+    if logistics_is_installed():
         special_routes = {}
         for route_id in settings.SPECIAL_ROUTES_FOR_SELLERS_LIST:
             route = Route.objects.get(pk=route_id)
@@ -359,7 +354,7 @@ def seller_console_list_campaigns(request, seller_id=None):
         "upcoming_activity": upcoming_activity,
         "issues_never_paid": issues_never_paid,
     }
-    if "logistics" not in getattr(settings, "DISABLED_APPS", []):
+    if logistics_is_installed():
         context["special_routes"] = special_routes
     return render(
         request,
@@ -1289,7 +1284,7 @@ def list_issues(request):
     """
     Shows a very basic list of issues.
     """
-    if "logistics" not in getattr(settings, "DISABLED_APPS", []):
+    if logistics_is_installed():
         issues_queryset = Issue.objects.all().order_by(
             "-date", "subscription_product__product", "-subscription_product__route__number", "-id"
         )
@@ -2475,7 +2470,7 @@ def partial_unsubscription(request, subscription_id):
                         instructions=sp.special_instructions,
                         seller_id=sp.seller_id,
                     )
-                    if "logistics" not in getattr(settings, "DISABLED_APPS", []):
+                    if logistics_is_installed():
                         if sp.route:
                             new_sp.route = sp.route
                         if sp.order:
@@ -2559,7 +2554,7 @@ def product_change(request, subscription_id):
                         instructions=sp.special_instructions,
                         seller_id=sp.seller_id,
                     )
-                    if "logistics" not in getattr(settings, "DISABLED_APPS", []):
+                    if logistics_is_installed():
                         if sp.route:
                             new_sp.route = sp.route
                         if sp.order:
@@ -2653,7 +2648,7 @@ def book_additional_product(request, subscription_id):
                         instructions=sp.special_instructions,
                         seller_id=sp.seller_id,
                     )
-                    if "logistics" not in getattr(settings, "DISABLED_APPS", []):
+                    if logistics_is_installed():
                         if sp.route:
                             new_sp.route = sp.route
                         if sp.order:
@@ -3546,3 +3541,46 @@ class SalesRecordCreateView(CreateView):
         )
         self.subscription.validate(user=self.request.user)
         return super().form_valid(form)
+
+@method_decorator(staff_member_required, name="dispatch")
+class SubscriptionEndDateListView(FilterView, ListView):
+    model = Subscription
+    template_name = 'subscriptions/subscription_end_date_list.html'
+    context_object_name = 'subscriptions'
+    filterset_class = SubscriptionEndDateFilter
+    paginate_by = 10
+
+    def get_queryset(self):
+        # Apply the filterset to the queryset
+        queryset = super().get_queryset().filter(active=True)
+        self.filterset = self.filterset_class(self.request.GET, queryset=queryset)
+        return self.filterset.qs.order_by('end_date')
+
+    def get(self, request, *args, **kwargs):
+        if request.GET.get("export"):
+            return self.export_to_csv()
+        return super().get(request, *args, **kwargs)
+
+    def export_to_csv(self):
+        queryset = self.get_queryset().select_related('contact').prefetch_related('products')
+        print(queryset.count())
+
+        data = []
+        for subscription in queryset:
+            data.append({
+                'Contact ID': subscription.contact.id,
+                'Contact Name': subscription.contact.name,
+                'Email': subscription.contact.email,
+                'Phone': subscription.contact.phone,
+                'End Date': subscription.end_date,
+                'Products': ', '.join([p.name for p in subscription.products.all()])
+            })
+
+        df = pd.DataFrame(data)
+
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="subscription_end_dates.csv"'
+
+        df.to_csv(path_or_buf=response, index=False, encoding='utf-8')
+
+        return response
