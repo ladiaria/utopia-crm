@@ -134,3 +134,15 @@ body.contact-detail .card-footer::after{
 .breadcrumb-item + .breadcrumb-item::before {
     content: ">";
 }
+
+/* Change select2 tags background color and text color */
+.select2-container--default .select2-selection--multiple .select2-selection__choice {
+    background-color: #f0f0f0; /* light gray background for tags */
+    color: #333333; /* dark text for readability */
+    border: 1px solid #cccccc; /* optional: border to enhance clarity */
+}
+
+/* Ensure the placeholder text color is visible */
+.select2-container--default .select2-selection--multiple .select2-selection__placeholder {
+    color: #555555; /* medium gray placeholder text */
+}
