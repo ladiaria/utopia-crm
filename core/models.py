@@ -2565,8 +2565,7 @@ def update_web_user(contact, target_email=None, newsletter_data=None, area_newsl
                 if before_saved_value is not None and current_saved_value != before_saved_value:
                     fields_to_update.update({f: current_saved_value})
             # call for sync if there are fields to update
-            updatewebuser(contact.id, target_email, contact.email, contact.name, contact.last_name,
-                          fields_to_update)
+            updatewebuser(contact.id, target_email, contact.email, contact.name, contact.last_name, fields_to_update)
         except RequestException as e:
             raise ValidationError("{}: {}".format(_("CMS sync error"), e))
         except Contact.DoesNotExist:

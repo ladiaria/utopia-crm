@@ -27,7 +27,8 @@ from .utils import (
     subscribe_email_to_mailtrain_list,
     delete_email_from_mailtrain_list,
     manage_mailtrain_subscription,
-    process_invoice_request
+    process_invoice_request,
+    api_view_auth_decorator,
 )
 
 
@@ -44,6 +45,7 @@ def handler500(request):
 
 
 @api_view(['POST'])
+@api_view_auth_decorator
 @permission_classes([HasAPIKey])
 def contact_by_emailprefix(request):
     """
@@ -63,6 +65,7 @@ def contact_by_emailprefix(request):
 
 
 @api_view(['POST', "PUT", "DELETE"])
+@api_view_auth_decorator
 @permission_classes([HasAPIKey])
 def contact_api(request):
     """
@@ -163,6 +166,7 @@ def search_contacts_htmx(request, name="contact"):
 
 @never_cache
 @api_view(['GET'])
+@api_view_auth_decorator
 @permission_classes([HasAPIKey])
 def get_mailtrain_list_subscribed_emails(request, list_id):
     """
@@ -185,6 +189,7 @@ def get_mailtrain_list_subscribed_emails(request, list_id):
 
 
 @api_view(['POST'])
+@api_view_auth_decorator
 @permission_classes([HasAPIKey])
 def mailtrain_lists(request):
     """
@@ -198,6 +203,7 @@ def mailtrain_lists(request):
 
 
 @api_view(['POST', "DELETE"])
+@api_view_auth_decorator
 @permission_classes([HasAPIKey])
 def mailtrain_list_subscription(request):
     """
@@ -253,6 +259,7 @@ def toggle_mailtrain_subscription(request, contact_id: int, cid: str) -> HttpRes
 
 
 @api_view(['POST'])
+@api_view_auth_decorator
 @permission_classes([HasAPIKey])
 def create_oneshot_invoice_from_web(request):
     """
