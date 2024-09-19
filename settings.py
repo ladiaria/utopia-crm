@@ -104,6 +104,7 @@ INSTALLED_APPS = [
     "leaflet",
     "djgeojson",
     'markdownify.apps.MarkdownifyConfig',
+    'django_select2',
     # crm apps enabled
     "core",
     "support",
