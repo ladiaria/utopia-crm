@@ -3552,7 +3552,7 @@ class SubscriptionEndDateListView(FilterView, ListView):
 
     def get_queryset(self):
         # Apply the filterset to the queryset
-        queryset = super().get_queryset()
+        queryset = super().get_queryset().filter(active=True)
         self.filterset = self.filterset_class(self.request.GET, queryset=queryset)
         return self.filterset.qs.order_by('end_date')
 

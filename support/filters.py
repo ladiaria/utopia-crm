@@ -7,7 +7,7 @@ from django.utils.translation import gettext_lazy as _
 from django.contrib.auth.models import User
 from django.db.models import Q
 
-from core.models import Activity, ContactCampaignStatus, Subscription, Campaign
+from core.models import Activity, ContactCampaignStatus, Subscription, Campaign, Product
 from .models import Issue, IssueSubcategory, Seller, ScheduledTask, SalesRecord
 
 
@@ -196,7 +196,6 @@ class SalesRecordFilterForSeller(django_filters.FilterSet):
         fields = ['date_time', 'sale_type']
         exclude = ['seller']
 
-
 class SubscriptionEndDateFilter(django_filters.FilterSet):
     end_date_min = django_filters.DateFilter(
         field_name='end_date',
@@ -212,7 +211,17 @@ class SubscriptionEndDateFilter(django_filters.FilterSet):
     )
     contact_name = django_filters.CharFilter(field_name='contact__name', lookup_expr='icontains', label='Contact Name')
     contact_id_document = django_filters.CharFilter(field_name='contact__id_document', lookup_expr='icontains', label='Contact ID Document')
-
+    products = django_filters.ModelMultipleChoiceFilter(
+        queryset=Product.objects.all(),
+        field_name='products',
+        label='Products',
+    )
     class Meta:
         model = Subscription
-        fields = ['end_date_min', 'end_date_max', 'contact_name', 'contact_id_document']
+        fields = ['end_date_min', 'end_date_max', 'contact_name', 'contact_id_document', 'products']
+
+    def filter_products(self, queryset, name, value):
+        if value:
+            return queryset.filter(products__in=value).distinct()
+        return queryset
+
