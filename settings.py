@@ -48,7 +48,7 @@ CACHES = {
     },
 }
 
-SELECT2_CACHE_BACKEND = "default"
+SELECT2_CACHE_BACKEND = None
 
 TEMPLATES = [
     {
