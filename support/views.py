@@ -3304,6 +3304,7 @@ class SalesRecordFilterSellersView(FilterView):
         .order_by("-date_time")
     )
     seller = None
+    page_kwarg = 'p'
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -3549,6 +3550,7 @@ class SubscriptionEndDateListView(FilterView, ListView):
     context_object_name = 'subscriptions'
     filterset_class = SubscriptionEndDateFilter
     paginate_by = 10
+    page_kwarg = 'p'
 
     def get_queryset(self):
         # Apply the filterset to the queryset
