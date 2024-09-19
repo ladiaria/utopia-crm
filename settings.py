@@ -48,6 +48,8 @@ CACHES = {
     },
 }
 
+SELECT2_CACHE_BACKEND = "default"
+
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
