@@ -1,6 +1,7 @@
 from datetime import date, timedelta
 
 import django_filters
+from django_select2.forms import ModelSelect2MultipleWidget
 from django import forms
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
@@ -215,6 +216,11 @@ class SubscriptionEndDateFilter(django_filters.FilterSet):
         queryset=Product.objects.all(),
         field_name='products',
         label='Products',
+        widget=ModelSelect2MultipleWidget(
+            queryset=Product.objects.all(),
+            search_fields=['name__icontains'],
+            attrs={'data-placeholder': 'Select products', 'data-allow-clear': 'true', "data-minimum-input-length": 0}
+        )
     )
     class Meta:
         model = Subscription
