@@ -344,30 +344,26 @@ class Contact(models.Model):
     def get_absolute_url(self):
         return reverse('contact_detail', args=[str(self.id)])
 
+    def get_normalized_email(self):
+        """Returns the normalized (lowercased) email if it exists."""
+        return self.email.lower() if self.email else None
+
+    def get_old_email(self):
+        """Returns the old email in lowercase if it exists."""
+        if self.id:
+            old_email = self.__class__.objects.get(id=self.id).email
+            return old_email.lower() if old_email else None
+
     def clean(self, debug=False):
-        def get_normalized_email(self):
-            """Returns the normalized (lowercased) email if it exists."""
-            return self.email.lower() if self.email else None
-
-        def get_old_email(self):
-            """Returns the old email in lowercase if it exists."""
-            if self.id:
-                old_email = self.__class__.objects.get(id=self.id).email
-                return old_email.lower() if old_email else None
-
-        def validate_email_bounce(self, email):
-            """Checks if the email is a bouncer."""
-            if EmailBounceActionLog.email_is_bouncer(email):
-                raise ValidationError({
-                    "email": f"El email '{email}' registra exceso de rebotes, no se permite su utilización"
-                })
-
         email = self.get_normalized_email()
 
         if self.id:
-            old_email = self.get_normalized_old_email()
+            old_email = self.get_old_email()
             if old_email and old_email != email:
-                self.validate_email_bounce(email)
+                if EmailBounceActionLog.email_is_bouncer(email):
+                    raise ValidationError({
+                        "email": f"El email '{email}' registra exceso de rebotes, no se permite su utilización"
+                    })
 
         if settings.WEB_UPDATE_USER_ENABLED and email and self.id:
             self.custom_clean(email, debug)
