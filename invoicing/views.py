@@ -69,7 +69,6 @@ def contact_invoices(request, contact_id):
 
 def bill_subscription(subscription_id, billing_date=None, dpp=10):
     """
-    # TODO: debug arg is not used, use/remove it.
     Bills a single subscription into an only invoice. Returns the created invoice.
     """
     # Safely get settings with default values
