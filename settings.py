@@ -48,6 +48,7 @@ CACHES = {
     },
 }
 
+# Cache backend for django-select2. This needs memcached to be running but it won't fail if you don't use select2.
 SELECT2_CACHE_BACKEND = "default"
 
 TEMPLATES = [

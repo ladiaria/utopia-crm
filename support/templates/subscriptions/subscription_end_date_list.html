@@ -2,8 +2,8 @@
 {% load static i18n widget_tweaks core_tags %}
 {% block stylesheets %}
   {{ block.super }}
-  {{ filter.form.media.css }}
   <link rel="stylesheet" href="{% static "/admin-lte/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css" %}" />
+  <link rel="stylesheet" href="{% static "css/chosen/chosen.min.css" %}" />
 {% endblock %}
 
 {% block title %}
@@ -17,7 +17,12 @@
 
 {% block extra_js %}
   {{ block.super }}
-  {{ filter.form.media.js }}
+  <script src="{% static "js/chosen.jquery.min.js" %}"></script>
+  <script>
+    $(document).ready(function() {
+        $('.chosen-select').chosen();
+    });
+  </script>
 {% endblock %}
 
 {% block content %}
@@ -55,7 +60,7 @@
             <div class="row">
               <div class="col">
                 {{ filter.form.products.label_tag }}
-                {% render_field filter.form.products class="form-control" %}
+                {% render_field filter.form.products class="form-control chosen-select" %}
               </div>
             </div>
             <div class="row">
