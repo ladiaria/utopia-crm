@@ -216,11 +216,6 @@ class SubscriptionEndDateFilter(django_filters.FilterSet):
         queryset=Product.objects.all(),
         field_name='products',
         label='Products',
-        widget=ModelSelect2MultipleWidget(
-            queryset=Product.objects.all(),
-            search_fields=['name__icontains'],
-            attrs={'data-placeholder': 'Select products', 'data-allow-clear': 'true', "data-minimum-input-length": 0}
-        )
     )
     class Meta:
         model = Subscription
