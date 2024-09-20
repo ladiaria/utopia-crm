@@ -16,7 +16,6 @@ from django.http import HttpResponseRedirect, HttpResponse
 from django.utils.translation import gettext_lazy as _
 from django.utils.text import format_lazy
 from django.views.generic import CreateView
-from django.db import transaction
 from django.utils.decorators import method_decorator
 
 import reportlab
@@ -402,7 +401,6 @@ def bill_subscription(subscription_id, billing_date=None, dpp=10):
                     months = temporary_discount.temporary_discount_months
                     if invoice.subscription.months_in_invoices_with_product(temporary_discount.slug) >= months:
                         invoice.subscription.remove_product(temporary_discount)
-
 
             # Then finally we need to change everything on the subscription
             if subscription.balance:
