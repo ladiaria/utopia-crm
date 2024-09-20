@@ -12,12 +12,14 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework_api_key.permissions import HasAPIKey
 
 from core.models import Contact
-from invoicing.models import Subscription
-from invoicing.views import bill_subscription
+from core.utils import api_view_auth_decorator
+from .models import Subscription
+from .views import bill_subscription
 from .utils import contact_update_mp_wrapper, create_mp_subscription_for_contact, mercadopago_debit
 
 
 @api_view(['POST'])
+@api_view_auth_decorator
 @permission_classes([HasAPIKey])
 def createinvoicefromweb(request):
     """

@@ -1,20 +1,26 @@
 from datetime import date, timedelta
 import collections
+from functools import wraps
 import requests
 from requests.auth import HTTPBasicAuth
 from requests.exceptions import ReadTimeout, RequestException
 from typing import Literal
+from html2text import html2text
 import logging
 
 from django.conf import settings
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
 
+from rest_framework.decorators import authentication_classes
+
 logger = logging.getLogger(__name__)
+
 
 def check_mailtrain_config():
     if not all([settings.MAILTRAIN_API_URL, settings.MAILTRAIN_API_KEY]):
         raise ValueError("Mailtrain API URL or API Key is not configured properly.")
+
 
 def mailtrain_api_call(endpoint, method='get', data=None):
     check_mailtrain_config()
@@ -32,11 +38,13 @@ def mailtrain_api_call(endpoint, method='get', data=None):
         logger.error(f"Mailtrain API error: {str(e)}")
         return None
 
+
 def subscribe_email_to_mailtrain_list(email, mailtrain_list_id):
     if settings.DEBUG:
         logger.debug(f"Sending email {email} to list {mailtrain_list_id}")
     response = mailtrain_api_call(f'subscribe/{mailtrain_list_id}', method='post', data={'EMAIL': email})
     return response.json() if response else None
+
 
 def unsubscribe_email_from_mailtrain_list(email, mailtrain_list_id):
     if settings.DEBUG:
@@ -44,17 +52,20 @@ def unsubscribe_email_from_mailtrain_list(email, mailtrain_list_id):
     response = mailtrain_api_call(f'unsubscribe/{mailtrain_list_id}', method='post', data={'EMAIL': email})
     return response.json() if response else None
 
+
 def delete_email_from_mailtrain_list(email, mailtrain_list_id):
     if settings.DEBUG:
         logger.debug(f"Deleting email {email} from list {mailtrain_list_id}")
     response = mailtrain_api_call(f'delete/{mailtrain_list_id}', method='post', data={'EMAIL': email})
     return response.json() if response else None
 
+
 def get_mailtrain_lists(email):
     response = mailtrain_api_call(f'lists/{email}')
     if response:
         return [mlist["cid"] for mlist in response.json()["data"] if mlist["status"] == 1]
     return []
+
 
 def get_emails_from_mailtrain_list(mailtrain_list_id, status=None, limit=None):
     params = {}
@@ -71,6 +82,7 @@ def get_emails_from_mailtrain_list(mailtrain_list_id, status=None, limit=None):
         if not status or subscription["status"] == status
     ]
 
+
 def user_mailtrain_lists(email):
     response = mailtrain_api_call(f'lists/{email}')
     if not response:
@@ -82,7 +94,9 @@ def user_mailtrain_lists(email):
         for item in json_response["data"]
     ]
 
+
 dnames = ('monday', 'tuesday', 'wednesday', 'thursday', 'friday')
+
 
 def addMonth(d, n=1):
     """
@@ -93,6 +107,7 @@ def addMonth(d, n=1):
     if d.month != (d + timedelta(days=1)).month or d.day >= eom.day:
         return eom
     return eom.replace(day=d.day)
+
 
 def calc_price_from_products(products_with_copies, frequency, debug_id=""):
     """
@@ -215,6 +230,7 @@ def calc_price_from_products(products_with_copies, frequency, debug_id=""):
 
     return round(total_price)
 
+
 def process_products(input_product_dict: dict) -> dict:
     """
     Takes products from a product list (for example from a subscription products list) and turns them into new products
@@ -318,9 +334,39 @@ def process_products(input_product_dict: dict) -> dict:
         output_dict[product.id] = input_product_dict[str(product.id)]
     return output_dict
 
+
+def no_op_decorator(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        return func(*args, **kwargs)
+    return wrapper
+
+
+# Endpoints must be decorated with no auth classes if the deployment is under http basic auth, when no basic auth is
+# set, the decorator is no_op_decorator, which does nothing and let the endpoint acts as if it was not decorated.
+api_view_auth_decorator = (
+    authentication_classes([]) if getattr(settings, 'ENV_HTTP_BASIC_AUTH', False) else no_op_decorator
+)
+
+
+def cms_rest_api_kwargs(api_key, data=None):
+    http_basic_auth = settings.WEB_UPDATE_HTTP_BASIC_AUTH
+    result = {
+        "headers": {"X-Api-Key": api_key} if http_basic_auth else {'Authorization': 'Api-Key ' + api_key},
+        "timeout": (5, 20),
+    }
+    if not getattr(settings, "WEB_UPDATE_USER_VERIFY_SSL", True):
+        result["verify"] = False
+    if data:
+        result["data"] = data
+    if http_basic_auth:
+        result["auth"] = HTTPBasicAuth(*http_basic_auth)
+    return result
+
+
 def updatewebuser(id, email, newemail, name="", last_name="", fields_values={}):
     """
-    This function performs a POST to the WEB CMS app.
+    Performs a POST to the WEB CMS app.
     Those email arguments are necessary for find the user on WEB CMS app
     @param id: ID of the contact in integer format
     @param name: Name of the contact in string format
@@ -339,50 +385,58 @@ def updatewebuser(id, email, newemail, name="", last_name="", fields_values={}):
         "newemail": newemail,
         "fields": fields_values,
     }
-    return post_to_cms_rest_api("updatewebuser", settings.WEB_UPDATE_USER_URI, data)
+    try:
+        post_to_cms_rest_api("updatewebuser", settings.WEB_UPDATE_USER_URI, data)
+    except Exception as e:
+        if settings.DEBUG:
+            print(f"Error updating web user: {e}")
 
-def post_to_cms_rest_api(api_name, api_uri, post_data):
+
+def post_to_cms_rest_api(api_name, api_uri, post_data, method="POST"):
     """
-    Performs a post request to the WEB CMS app.
+    TODO: rename properly to cms_rest_api_request
+    Performs a request to the CMS REST API.
     @param api_name: Name of the function that is calling the API
     @param api_uri: URL of the endpoint.
     @param post_data: Request data to be sent.
+    @param method: Http method to be used.
     """
     api_key = settings.LDSOCIAL_API_KEY
-    if not (api_uri or api_key):
+    if not (api_uri or api_key) or method not in ("POST", "PUT", "DELETE"):
         return "ERROR"
-    post_kwargs = {
-        "headers": {'Authorization': 'Api-Key ' + api_key},
-        "data": post_data,
-        "timeout": (5, 20),
-        "verify": settings.WEB_UPDATE_USER_VERIFY_SSL,
-    }
-    http_basic_auth = settings.WEB_UPDATE_HTTP_BASIC_AUTH
-    if http_basic_auth:
-        post_kwargs["auth"] = HTTPBasicAuth(*http_basic_auth)
     try:
         if settings.DEBUG:
             print("DEBUG: %s to %s with post_data='%s'" % (api_name, api_uri, post_data))
-        r = requests.post(api_uri, **post_kwargs)
-        r.raise_for_status()
+
+        if (settings.WEB_UPDATE_USER_ENABLED if method == "PUT" else settings.WEB_CREATE_USER_ENABLED):
+            r = getattr(requests, method.lower())(api_uri, **cms_rest_api_kwargs(api_key, post_data))
+            if settings.DEBUG:
+                html2text_content = html2text(r.content.decode()).strip()
+                print(
+                    "DEBUG: CMS api response content: " + html2text_content.split("## Request information")[0].strip()
+                )
+            r.raise_for_status()
+            result = r.json()
+            if settings.DEBUG:
+                print(f"DEBUG: {api_name} {method} result: {result}")
+            return result
     except ReadTimeout as rt:
         if settings.DEBUG:
-            print("DEBUG: %s POST read timeout: %s" % (api_name, str(rt)))
+            print(f"DEBUG: {api_name} {method} read timeout: {str(rt)}")
         return "TIMEOUT"
     except RequestException as req_ex:
         if settings.DEBUG:
-            print("DEBUG: %s POST request error: %s" % (api_name, str(req_ex)))
+            print(f"DEBUG: {api_name} {method} request error: {str(req_ex)}")
         return "ERROR"
     else:
-        result = r.json()
-        if settings.DEBUG:
-            print("DEBUG: %s POST result: %s" % (api_name, result))
-        return result
+        return {"msg": "OK"}
+
 
 def validateEmailOnWeb(contact_id, email):
     return post_to_cms_rest_api(
         "validateEmailOnWeb", settings.WEB_EMAIL_CHECK_URI, {"contact_id": contact_id, "email": email}
     )
+
 
 def manage_mailtrain_subscription(email: str, list_id: str, action: Literal["subscribe", "unsubscribe"]) -> dict:
     """
@@ -403,6 +457,7 @@ def manage_mailtrain_subscription(email: str, list_id: str, action: Literal["sub
 
     return result
 
+
 def select_or_create_contact(email, name=None, phone=None, id_document=None):
     """
     Check if a contact exists in the CRM, if not, create it.
@@ -422,6 +477,7 @@ def select_or_create_contact(email, name=None, phone=None, id_document=None):
     else:
         contact_obj = Contact.objects.create(email=email, name=name, phone=phone, id_document=id_document)
     return contact_obj
+
 
 def process_invoice_request(product_slugs, email, phone, name, id_document, payment_type):
     from core.models import Product
@@ -478,6 +534,7 @@ def process_invoice_request(product_slugs, email, phone, name, id_document, paym
         "invoice_id": invoice.id,
         "contact_id": contact_obj.id,
     }
+
 
 def logistics_is_installed():
     return "logistics" not in getattr(settings, "DISABLED_APPS", [])

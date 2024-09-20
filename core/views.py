@@ -27,7 +27,8 @@ from .utils import (
     subscribe_email_to_mailtrain_list,
     delete_email_from_mailtrain_list,
     manage_mailtrain_subscription,
-    process_invoice_request
+    process_invoice_request,
+    api_view_auth_decorator,
 )
 
 
@@ -44,6 +45,7 @@ def handler500(request):
 
 
 @api_view(['POST'])
+@api_view_auth_decorator
 @permission_classes([HasAPIKey])
 def contact_by_emailprefix(request):
     """
@@ -63,6 +65,7 @@ def contact_by_emailprefix(request):
 
 
 @api_view(['POST', "PUT", "DELETE"])
+@api_view_auth_decorator
 @permission_classes([HasAPIKey])
 def contact_api(request):
     """
@@ -91,20 +94,23 @@ def contact_api(request):
     except Contact.DoesNotExist:
         if mail:
             try:
-                c = Contact.objects.get(email=mail)
+                contact = Contact.objects.get(email=mail)
                 if request.method == "DELETE":
-                    if contact_is_safe_to_delete(c):
-                        c.delete()
+                    if contact_is_safe_to_delete(contact):
+                        contact.delete()
                     else:
                         return HttpResponseForbidden()
                 else:
-                    update_customer(c, newmail, field, value)
-                    id_contact = c.id
+                    update_customer(contact, newmail, field, value)
+                    id_contact = contact.id
             except Contact.DoesNotExist:
                 if request.method == "POST":  # create
-                    c = Contact.objects.create(name=request.data.get("name"))
-                    update_customer(c, mail, field, value)
-                    id_contact = c.id
+                    new_contact = Contact()
+                    new_contact.name = request.data.get("name")
+                    new_contact.updatefromweb = True
+                    new_contact.save()
+                    update_customer(new_contact, mail, field, value)
+                    id_contact = new_contact.id
             except (Contact.MultipleObjectsReturned, IntegrityError) as m_ie_exc:
                 # TODO Notificar por mail a los managers
                 return HttpResponseBadRequest(m_ie_exc)
@@ -160,6 +166,7 @@ def search_contacts_htmx(request, name="contact"):
 
 @never_cache
 @api_view(['GET'])
+@api_view_auth_decorator
 @permission_classes([HasAPIKey])
 def get_mailtrain_list_subscribed_emails(request, list_id):
     """
@@ -182,6 +189,7 @@ def get_mailtrain_list_subscribed_emails(request, list_id):
 
 
 @api_view(['POST'])
+@api_view_auth_decorator
 @permission_classes([HasAPIKey])
 def mailtrain_lists(request):
     """
@@ -195,6 +203,7 @@ def mailtrain_lists(request):
 
 
 @api_view(['POST', "DELETE"])
+@api_view_auth_decorator
 @permission_classes([HasAPIKey])
 def mailtrain_list_subscription(request):
     """
@@ -250,6 +259,7 @@ def toggle_mailtrain_subscription(request, contact_id: int, cid: str) -> HttpRes
 
 
 @api_view(['POST'])
+@api_view_auth_decorator
 @permission_classes([HasAPIKey])
 def create_oneshot_invoice_from_web(request):
     """

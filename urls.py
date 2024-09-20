@@ -53,12 +53,12 @@ urlpatterns += [
     path('api/mailtrain_lists/', mailtrain_lists, name="mailtrain_lists"),
     path("api/mailtrain_subscribers/list/<str:list_id>/", get_mailtrain_list_subscribed_emails),
     path(
-        'mailtrain/toggle_subscription/<int:contact_id>/<str:cid>/',
+        "mailtrain/toggle_subscription/<int:contact_id>/<str:cid>/",
         toggle_mailtrain_subscription,
-        name='toggle_mailtrain_subscription',
+        name="toggle_mailtrain_subscription",
     ),
     path(
-        'api/create_oneshot_invoice_from_web/', create_oneshot_invoice_from_web, name='create_oneshot_invoice_from_web'
+        "api/create_oneshot_invoice_from_web/", create_oneshot_invoice_from_web, name="create_oneshot_invoice_from_web"
     ),
 ]
 

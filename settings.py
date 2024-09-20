@@ -210,8 +210,8 @@ SPECIAL_ROUTES_FOR_SELLERS_LIST = []
 WEB_UPDATE_USER_ENABLED = False  # TODO: write analogous systemcheck made in CMS when this is True and "no url"
 LDSOCIAL_URL = ""  # The SITE_URL setting of the "associated" utopia-cms deplyment (CMS)
 LDSOCIAL_API_KEY = ""  # A key generated in the CMS using "rest_framework_api_key" app
-WEB_UPDATE_USER_VERIFY_SSL = True
-WEB_UPDATE_HTTP_BASIC_AUTH = None  # Override to tuple (user, pass) if the CMS is also restricted using basic auth
+WEB_UPDATE_HTTP_BASIC_AUTH = None  # Override to tuple (user, pass) if the CMS is restricted using basic auth
+ENV_HTTP_BASIC_AUTH = False  # Override to True if this CRM deployment is restricted using basic auth
 # Subscriptions to publication and area newsletters sync (to find usage, do not grep literally, use "_MEWSLETTER_MAP")
 WEB_UPDATE_NEWSLETTER_MAP = {
     # Override to sync CMS Publication newsletters subscriptions, format: key: CMS Publication.id, value: product.slug
@@ -219,9 +219,11 @@ WEB_UPDATE_NEWSLETTER_MAP = {
 WEB_UPDATE_AREA_NEWSLETTER_MAP = {
     # Override to sync CMS Area newsletters subscriptions, format: key: CMS Category.id, value: product.slug
 }
-# Api uris which their default value will be assigned after local_settings import, if not overrided there
+# Api variables which their default value will be assigned after local_settings import, if not overrided there
 WEB_UPDATE_USER_URI = None
+WEB_DELETE_USER_URI = None
 WEB_EMAIL_CHECK_URI = None
+WEB_CREATE_USER_ENABLED = False
 
 # If True, allows queuing subscriptions to start after the active one ends. This is useful for
 # example to queue a subscription to start after the current one ends, in the case the customer
@@ -229,15 +231,18 @@ WEB_EMAIL_CHECK_URI = None
 ALLOW_QUEUE_SUBSCRIPTIONS = False
 
 # Import local settings if they exist
-# TODO: improve hardcoded load of community settings (which are this community settings?)
+# TODO: - improve hardcoded load of community settings (which are this community settings?)
+#         (maybe the app community here, uses some values that can be migrated to settings)
+#       - ask @virusereturns why mercadopago settings needs a separated local settings file
+#       - investigate usage of django-environ to manage settings more easily
 try:
-    from local_settings import *  # type: ignore
+    from local_settings import *  # noqa
 except ImportError:
     pass
 
 MERCADOPAGO_ENABLED = False
 try:
-    from .local_mercadopago_settings import *  # type: ignore
+    from .local_mercadopago_settings import *  # noqa
 except ImportError:
     pass
 
@@ -245,4 +250,12 @@ except ImportError:
 # utopia-cms interoperability default urls. TODO: s/(WEB_|LDSOCIAL_)/UTOPIACMS_/
 if LDSOCIAL_URL:
     WEB_UPDATE_USER_URI = WEB_UPDATE_USER_URI or (LDSOCIAL_URL + 'usuarios/fromcrm')
+    WEB_DELETE_USER_URI = WEB_EMAIL_CHECK_URI or (LDSOCIAL_URL + 'usuarios/deletefromcrm')
     WEB_EMAIL_CHECK_URI = WEB_EMAIL_CHECK_URI or (LDSOCIAL_URL + 'usuarios/api/email_check/')
+
+if WEB_CREATE_USER_ENABLED is None:
+    WEB_CREATE_USER_ENABLED = WEB_UPDATE_USER_ENABLED
+
+if ENV_HTTP_BASIC_AUTH and not locals().get("API_KEY_CUSTOM_HEADER"):
+    # by default, this variable is not defined, thats why we use locals() instead of set a "neutral" value
+    API_KEY_CUSTOM_HEADER = "HTTP_X_API_KEY"

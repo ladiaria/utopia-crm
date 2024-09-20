@@ -36,7 +36,7 @@ from django.views.generic import FormView
 from django.conf import settings
 from django_filters.views import FilterView
 from django.utils.decorators import method_decorator
-
+from threading import Thread
 from util.dates import add_business_days
 from core.filters import ContactFilter
 from core.forms import AddressForm, ContactAdminForm
@@ -53,6 +53,7 @@ from core.models import (
     DynamicContactFilter,
     DoNotCallNumber,
     MailtrainList,
+    update_web_user_newsletters
 )
 from core.choices import CAMPAIGN_RESOLUTION_REASONS_CHOICES
 from core.utils import calc_price_from_products, process_products, logistics_is_installed
@@ -2120,15 +2121,22 @@ def edit_contact(request, contact_id):
 def edit_newsletters(request, contact_id):
     contact = get_object_or_404(Contact, pk=contact_id)
     if request.POST:
+        nl_updated = False
         all_newsletters = Product.objects.filter(type="N", active=True)
         for newsletter in all_newsletters:
             if request.POST.get(str(newsletter.id)):
                 if not contact.has_newsletter(newsletter.id):
                     contact.add_newsletter(newsletter.id)
+                    nl_updated = True
             else:
                 if contact.has_newsletter(newsletter.id):
                     contact.remove_newsletter(newsletter.id)
+                    nl_updated = True
         messages.success(request, _("Newsletters edited successfully"))
+        if nl_updated:
+            # TODO: Pending the revision for this approach for smooth call to this function
+            thread = Thread(target=update_web_user_newsletters, args=(contact,))
+            thread.start()
         return HttpResponseRedirect(reverse("edit_contact", args=[contact_id]))
 
 

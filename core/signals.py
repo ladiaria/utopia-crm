@@ -22,10 +22,8 @@ def contact_pre_save_signal(sender, instance, **kwargs):
     if not alphanumeric.match(instance.name):
         raise ValidationError(regex_alphanumeric_msg)
     try:
-        instance.old_email = ""
         saved_email = Contact.objects.values_list("email", flat=True).get(pk=instance.id)
-        if instance.email != saved_email:
-            instance.old_email = saved_email
+        instance.old_email = saved_email
     except Contact.DoesNotExist:
         # do nothing on the new ones
         pass
@@ -38,7 +36,6 @@ def contact_post_save_signal(sender, instance, created, **kwargs):
         update_web_user(instance.old_contact)
     else:
         target_email = instance.old_email if hasattr(instance, 'old_email') else None
-        print(target_email, instance.old_contact.email, instance.email)
         update_web_user(instance.old_contact, target_email)
 
 

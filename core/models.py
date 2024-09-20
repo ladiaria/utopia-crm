@@ -344,17 +344,31 @@ class Contact(models.Model):
     def get_absolute_url(self):
         return reverse('contact_detail', args=[str(self.id)])
 
+    def get_normalized_email(self):
+        """
+        Returns the normalized (lowercased) email if it exists.
+        """
+        return self.email.lower() if self.email else None
+
+    def get_old_email(self):
+        """
+        Returns the old email in lowercase if it exists.
+        """
+        if self.id:
+            old_email = self.__class__.objects.get(id=self.id).email
+            return old_email.lower() if old_email else None
+
     def clean(self, debug=False):
-        email = self.email
-        if email:
-            email = email.lower()
-        old_email = self.id and self.__class__.objects.get(id=self.id).email
-        if old_email:
-            old_email = old_email.lower()
-        if old_email != email and EmailBounceActionLog.email_is_bouncer(email):
-            raise ValidationError(
-                {"email": "El email '%s' registra exceso de rebotes, no se permite su utilización" % email}
-            )
+        email = self.get_normalized_email()
+
+        if self.id:
+            old_email = self.get_old_email()
+            if old_email and old_email != email:
+                if EmailBounceActionLog.email_is_bouncer(email):
+                    raise ValidationError({
+                        "email": f"El email '{email}' registra exceso de rebotes, no se permite su utilización"
+                    })
+
         if settings.WEB_UPDATE_USER_ENABLED and email and self.id:
             self.custom_clean(email, debug)
 
@@ -2497,8 +2511,9 @@ class EmailReplacement(models.Model):
 def update_customer(cust, newmail, field, value):
     # TODO: rename to update_contact or similar, rename cust arg accordingly also
     if settings.DEBUG:
-        print("DEBUG: update_customer(%s, %s, %s, %s)" % (cust, newmail, field, value))
-    cust.updatefromweb = True
+        print("DEBUG: update_customer(%s[id=%d], %s, %s, %s)" % (cust, cust.id, newmail, field, value))
+    if not getattr(cust, 'updatefromweb', False):
+        cust.updatefromweb = True
     if field:
         if field in ("newsletters", "area_newsletters", "newsletters_remove", "area_newsletters_remove"):
             map_setting = getattr(
@@ -2545,24 +2560,33 @@ def update_web_user(contact, target_email=None, newsletter_data=None, area_newsl
             if newsletter_data:
                 field = ("area_" if area_newsletters else "") + "newsletters"
                 fields_to_update.update({field: newsletter_data})
-            else:
-                current_saved_contact = Contact.objects.get(pk=contact.id)
-                # TODO: change this 1-field-per-request approach to a new 1-request-only approach with all chanmges
-                for f in getattr(settings, "WEB_UPDATE_USER_CHECKED_FIELDS", []):
-                    before_saved_value = getattr(contact, f)
-                    current_saved_value = getattr(current_saved_contact, f)
-                    if before_saved_value is not None and current_saved_contact != before_saved_value:
-                        fields_to_update.update({f: current_saved_value})
+
+            current_saved_contact = Contact.objects.get(pk=contact.id)
+            # TODO: change this 1-field-per-request approach to a new 1-request-only approach with all chanmges
+            for f in getattr(settings, "WEB_UPDATE_USER_CHECKED_FIELDS", []):
+                before_saved_value = getattr(contact, f)
+                current_saved_value = getattr(current_saved_contact, f)
+                if before_saved_value is not None and current_saved_value != before_saved_value:
+                    fields_to_update.update({f: current_saved_value})
             # call for sync if there are fields to update
-            if fields_to_update:
-                updatewebuser(contact.id, target_email, contact.email,
-                              contact.name,
-                              contact.last_name,
-                              fields_to_update)
+            updatewebuser(contact.id, target_email, contact.email, contact.name, contact.last_name, fields_to_update)
         except RequestException as e:
             raise ValidationError("{}: {}".format(_("CMS sync error"), e))
         except Contact.DoesNotExist:
             pass
+
+
+def update_web_user_newsletters(contact):
+    """
+    Update web user newsletters when they are edited
+    @params contact: Contact instance
+    """
+    try:
+        newsletters_slugs = contact.get_active_newsletters().values_list('slug', flat=True)
+        update_web_user(contact, contact.email, json.dumps(newsletters_slugs))
+    except Exception as ex:
+        print("Error sending the request to CMS", str(ex))
+        pass
 
 
 class MailtrainList(models.Model):
