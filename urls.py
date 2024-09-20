@@ -44,8 +44,8 @@ urlpatterns += [
 
 # Core views
 urlpatterns += [
-    path("api/updateuserweb/", contact_api),
     path("api/existsuserweb/", contact_exists),
+    path("api/updateuserweb/", contact_api),
     path("api/contact_by_emailprefix/", contact_by_emailprefix),
     path('api/search_contacts/', search_contacts_htmx, name="htmx_search_contacts"),
     path('api/search_contacts/<str:name>/', search_contacts_htmx, name="htmx_search_contacts_alt"),
