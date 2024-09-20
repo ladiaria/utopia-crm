@@ -14,6 +14,17 @@ DATABASES = {
     }
 }
 
+# In the case you want to use a custom cache backend for django-select2, uncomment the following lines,
+# and change the SELECT2_CACHE_BACKEND value for the cache backend name. Here is an example using memcached,
+# you can use any other cache backend supported by Django like redis.
+# CACHES = {
+#     "example": {
+#         "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+#         "LOCATION": "example",
+#     }
+# }
+# SELECT2_CACHE_BACKEND = "example"
+
 if DEBUG:
     # CorsMiddleware used in debug mode
     MIDDLEWARE.insert(2, "corsheaders.middleware.CorsMiddleware")

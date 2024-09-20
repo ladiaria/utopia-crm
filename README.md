@@ -108,7 +108,6 @@ Project Link: [https://github.com/ladiaria/utopia-crm](https://github.com/ladiar
 
 Utopia is developed at [la diaria](https://ladiaria.com.uy/) and it has been released open source in 2020 thanks to the support of [Google News Initiative](https://newsinitiative.withgoogle.com/).
 
-
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
 [contributors-shield]: https://img.shields.io/github/contributors/ladiaria/utopia-crm.svg?style=for-the-badge
