@@ -117,7 +117,7 @@ def contact_api(request):
     except IntegrityError as ie_exc:
         # TODO Notificar por mail a los managers
         return HttpResponseBadRequest(ie_exc)
-    return JsonResponse({"contact_id": id_contact}, content_type="application/json")
+    return JsonResponse({"contact_id": id_contact})
 
 
 @api_view(["GET"])
