@@ -345,11 +345,15 @@ class Contact(models.Model):
         return reverse('contact_detail', args=[str(self.id)])
 
     def get_normalized_email(self):
-        """Returns the normalized (lowercased) email if it exists."""
+        """
+        Returns the normalized (lowercased) email if it exists.
+        """
         return self.email.lower() if self.email else None
 
     def get_old_email(self):
-        """Returns the old email in lowercase if it exists."""
+        """
+        Returns the old email in lowercase if it exists.
+        """
         if self.id:
             old_email = self.__class__.objects.get(id=self.id).email
             return old_email.lower() if old_email else None

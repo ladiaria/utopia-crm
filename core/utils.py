@@ -371,7 +371,11 @@ def updatewebuser(id, email, newemail, name="", last_name="", fields_values={}):
         "newemail": newemail,
         "fields": fields_values,
     }
-    post_to_cms_rest_api("updatewebuser", settings.WEB_UPDATE_USER_URI, data)
+    try:
+        post_to_cms_rest_api("updatewebuser", settings.WEB_UPDATE_USER_URI, data)
+    except Exception as e:
+        if settings.DEBUG:
+            print(f"Error updating web user: {e}")
 
 
 def post_to_cms_rest_api(api_name, api_uri, post_data, method="POST"):
@@ -384,35 +388,34 @@ def post_to_cms_rest_api(api_name, api_uri, post_data, method="POST"):
     @param method: Http method to be used.
     """
     api_key = settings.LDSOCIAL_API_KEY
-    if not (api_uri or api_key):
+    if not (api_uri or api_key) or method not in ("POST", "PUT", "DELETE"):
         return "ERROR"
-    post_kwargs = cms_rest_api_kwargs(api_key, post_data)
     try:
         if settings.DEBUG:
             print("DEBUG: %s to %s with post_data='%s'" % (api_name, api_uri, post_data))
 
-        request_call_map = {
-            "POST": lambda: requests.post(api_uri, **post_kwargs),
-            "PUT": lambda: requests.put(api_uri, **post_kwargs),
-            "DELETE": lambda: requests.delete(api_uri, **post_kwargs),
-        }
-        r = request_call_map[method]()
-        if settings.DEBUG:
-            print("DEBUG: CMS api response content: " + html2text(r.content.decode()).strip())
-        r.raise_for_status()  # TODO: is there a way to "attach" the exception content (if any) to this call?
+        if (settings.WEB_UPDATE_USER_ENABLED if method == "PUT" else settings.WEB_CREATE_USER_ENABLED):
+            r = getattr(requests, method.lower())(api_uri, **cms_rest_api_kwargs(api_key, post_data))
+            if settings.DEBUG:
+                html2text_content = html2text(r.content.decode()).strip()
+                print(
+                    "DEBUG: CMS api response content: " + html2text_content.split("## Request information")[0].strip()
+                )
+            r.raise_for_status()
+            result = r.json()
+            if settings.DEBUG:
+                print(f"DEBUG: {api_name} {method} result: {result}")
+            return result
     except ReadTimeout as rt:
         if settings.DEBUG:
             print(f"DEBUG: {api_name} {method} read timeout: {str(rt)}")
-        raise Exception("NO HUBO RESPUESTA DEL CMS")
+        return "TIMEOUT"
     except RequestException as req_ex:
         if settings.DEBUG:
             print(f"DEBUG: {api_name} {method} request error: {str(req_ex)}")
-        raise Exception("ERROR AL SINCRONIZAR")
+        return "ERROR"
     else:
-        result = r.json()
-        if settings.DEBUG:
-            print(f"DEBUG: {api_name} {method} result: {result}")
-        return result
+        return {"msg": "OK"}
 
 
 def validateEmailOnWeb(contact_id, email):
