@@ -8,14 +8,14 @@
 
   If your system has a native Python installation in version 3.10.6 - 3.11.6 you can use it, and no installing another Python version may be required.
 
-  If not, we recommend install the version 3.11.6 using pyenv: https://github.com/pyenv/pyenv
+  If not, we recommend installing version 3.11.6 using [pyenv](https://github.com/pyenv/pyenv)
 
 - System packages:
 
   NOTES: package names can vary by OS/distribution.
 
-  * `postgresql` (Version 11+ is required)
-  * `postgis`
+  - `postgresql` (Version 11+ is required)
+  - `postgis`
 
 ## Local installation for development in Linux or Mac (Devs / DevOps)
 
@@ -39,7 +39,7 @@ Create a virtualenv (venv) for Python3 (the subdirectory `~/.virtualenvs` is not
 
 - Activate the new virtual environment and install the required Python modules:
 
-  ```
+  ```bash
   user@host:~/utopia-crm $ source ~/.virtualenvs/utopiacrm/bin/activate
   (utopiacrm) user@host:~/utopia-crm $ pip install --upgrade pip && pip install -r requirements.txt
   ```
@@ -50,7 +50,7 @@ Create a database user and the database, this can be done in many different ways
 
 Note: the default password we use in the sample settings file in the next step is "utopiadev_django", the same as the username.
 
-```
+```bash
 # Execute these commands, entering a new password for the new user beeing create, this password will be used in next
 # step, don't forget it.
 sudo -u postgres createuser -DPS utopiadev_django
@@ -66,7 +66,7 @@ Copy `local_settings_sample.py` to `local_settings.py` and configure the databas
 
 In the case that you're using macOS, it is necessary that you specify where "gdal" and "geos" are located. You'll have to install them through brew and then locate where the files are stored to add the following settings. Please note that these settings are for the last version of ARM MacOS computers. Your homebrew folder can differ for intel based MacOS computers. These settings will be commented in local_settings_sample.py.
 
-```
+```python
 GDAL_LIBRARY_PATH = "/opt/homebrew/opt/gdal/lib/libgdal.dylib"
 GEOS_LIBRARY_PATH = "/opt/homebrew/opt/geos/lib/libgeos_c.dylib"
 ```
@@ -83,7 +83,7 @@ Run "migrate":
 
 An output like this will appear:
 
-```
+```console
 Operations to perform:
   Apply all migrations: admin, admin_honeypot, auth, authtoken, community, contenttypes, core, invoicing, logistics, sessions, support, taggit
 Running migrations:
@@ -95,11 +95,11 @@ Running migrations:
 ...
 ```
 
-### Create a Django superuser to login into the CRM's web interface.
+### Create a Django superuser to login into the CRM's web interface
 
 Run the following command:
 
-```
+```bash
 (utopiacrm) user@host:~/utopia-crm$ python manage.py createsuperuser
 ```
 
@@ -107,11 +107,11 @@ And follow the prompts to create your super user.
 
 WARNING: This user has ALL permissions on the application database. It is recommended that you only give superuser permissions to people you trust. It can be deleted if it's not necessary.
 
-### Create the default groups and populate them with their permissions.
+### Create the default groups and populate them with their permissions
 
 Run the following command, which will create the default groups for the application with some basic permissions.
 
-```
+```bash
 (utopiacrm) user@host:~/utopia-crm$ python manage.py loaddata fixtures/default_groups.json
 ```
 
@@ -119,11 +119,11 @@ Run the following command, which will create the default groups for the applicat
 
 Start the development server by running:
 
-```
+```bash
 (utopiacrm) user@host:~/utopia-crm$ python manage.py runserver
 ```
 
-and go to the following URL in your browser: http://127.0.0.1:8000/
+and go to the following URL in your browser: [http://127.0.0.1:8000/](http://127.0.0.1:8000/)
 
 ### Known issues for MacOS
 
@@ -139,8 +139,8 @@ To enable Mercado Pago integration:
 
 1. Install additional requirements:
 
-   ```
-   pip install -r requirements_mercadopago.txt
+   ```bash
+   pip install -r mercadopago_requirements.txt
    ```
 
 2. Copy `local_mercadopago_settings_sample.py` to `local_mercadopago_settings.py`
@@ -151,6 +151,6 @@ To enable Mercado Pago integration:
 
 4. Run migrations:
 
-   ```
+   ```bash
    python manage.py migrate
    ```

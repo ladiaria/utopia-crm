@@ -5,15 +5,85 @@ from requests.auth import HTTPBasicAuth
 from requests.exceptions import ReadTimeout, RequestException
 import html2text
 from typing import Literal
-
+import logging
 
 from django.conf import settings
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
 
+logger = logging.getLogger(__name__)
+
+def check_mailtrain_config():
+    if not all([settings.MAILTRAIN_API_URL, settings.MAILTRAIN_API_KEY]):
+        raise ValueError("Mailtrain API URL or API Key is not configured properly.")
+
+def mailtrain_api_call(endpoint, method='get', data=None):
+    check_mailtrain_config()
+    url = f"{settings.MAILTRAIN_API_URL}{endpoint}"
+    params = {'access_token': settings.MAILTRAIN_API_KEY}
+
+    try:
+        if method == 'get':
+            response = requests.get(url, params=params)
+        elif method == 'post':
+            response = requests.post(url, params=params, data=data)
+        response.raise_for_status()
+        return response
+    except requests.RequestException as e:
+        logger.error(f"Mailtrain API error: {str(e)}")
+        return None
+
+def subscribe_email_to_mailtrain_list(email, mailtrain_list_id):
+    if settings.DEBUG:
+        logger.debug(f"Sending email {email} to list {mailtrain_list_id}")
+    response = mailtrain_api_call(f'subscribe/{mailtrain_list_id}', method='post', data={'EMAIL': email})
+    return response.json() if response else None
+
+def unsubscribe_email_from_mailtrain_list(email, mailtrain_list_id):
+    if settings.DEBUG:
+        logger.debug(f"Unsubscribing email {email} from list {mailtrain_list_id}")
+    response = mailtrain_api_call(f'unsubscribe/{mailtrain_list_id}', method='post', data={'EMAIL': email})
+    return response.json() if response else None
+
+def delete_email_from_mailtrain_list(email, mailtrain_list_id):
+    if settings.DEBUG:
+        logger.debug(f"Deleting email {email} from list {mailtrain_list_id}")
+    response = mailtrain_api_call(f'delete/{mailtrain_list_id}', method='post', data={'EMAIL': email})
+    return response.json() if response else None
+
+def get_mailtrain_lists(email):
+    response = mailtrain_api_call(f'lists/{email}')
+    if response:
+        return [mlist["cid"] for mlist in response.json()["data"] if mlist["status"] == 1]
+    return []
+
+def get_emails_from_mailtrain_list(mailtrain_list_id, status=None, limit=None):
+    params = {}
+    if limit:
+        params['limit'] = limit
+    response = mailtrain_api_call(f'subscriptions/{mailtrain_list_id}', data=params)
+    if not response:
+        return []
+
+    data = response.json()
+    return [
+        subscription['email']
+        for subscription in data['data']['subscriptions']
+        if not status or subscription["status"] == status
+    ]
+
+def user_mailtrain_lists(email):
+    response = mailtrain_api_call(f'lists/{email}')
+    if not response:
+        return []
+
+    json_response = response.json()
+    return [
+        {'name': item.get('name'), 'status': item.get('status'), 'cid': item.get('cid')}
+        for item in json_response["data"]
+    ]
 
 dnames = ('monday', 'tuesday', 'wednesday', 'thursday', 'friday')
-
 
 def addMonth(d, n=1):
     """
@@ -24,74 +94,6 @@ def addMonth(d, n=1):
     if d.month != (d + timedelta(days=1)).month or d.day >= eom.day:
         return eom
     return eom.replace(day=d.day)
-
-
-# TODO: handle cases of setting missconf for the next 4 functions (mailtrain api calls)
-def subscribe_email_to_mailtrain_list(email, mailtrain_list_id):
-    if settings.DEBUG:
-        print(("sending email {} to {}".format(email, mailtrain_list_id)))
-    url = '{}subscribe/{}'.format(settings.MAILTRAIN_API_URL, mailtrain_list_id)
-    params = {'access_token': settings.MAILTRAIN_API_KEY}
-    return requests.post(url, params=params, data={'EMAIL': email})
-
-
-def unsubscribe_email_from_mailtrain_list(email, mailtrain_list_id):
-    if settings.DEBUG:
-        print(("sending email {} to {}".format(email, mailtrain_list_id)))
-    url = '{}unsubscribe/{}'.format(settings.MAILTRAIN_API_URL, mailtrain_list_id)
-    params = {'access_token': settings.MAILTRAIN_API_KEY}
-    return requests.post(url, params=params, data={'EMAIL': email})
-
-
-def delete_email_from_mailtrain_list(email, mailtrain_list_id):
-    if settings.DEBUG:
-        print(("deleting email {} from {}".format(email, mailtrain_list_id)))
-    url = '{}delete/{}'.format(settings.MAILTRAIN_API_URL, mailtrain_list_id)
-    params = {'access_token': settings.MAILTRAIN_API_KEY}
-    return requests.post(url, params=params, data={'EMAIL': email})
-
-
-def get_mailtrain_lists(email):
-    if not getattr(settings, 'MAILTRAIN_API_URL', None):
-        return []
-    url = '{}lists/{}'.format(settings.MAILTRAIN_API_URL, email)
-    params = {'access_token': settings.MAILTRAIN_API_KEY}
-    return [mlist["cid"] for mlist in requests.get(url, params=params).json()["data"] if mlist["status"] == 1]
-
-
-def get_emails_from_mailtrain_list(mailtrain_list_id, status=None, limit=None):
-    # TODO: A way to proceed in case the list has more emails than the limit (Mailtrain's default 10000) allows.
-    # NOTE: The limit passed can be greater than the Mailtrain's default (10000)
-    # Mailtrain's status ref: 1=Subscribed, 2=Unsubscribed ...
-    emails = []
-    url = '{}subscriptions/{}'.format(settings.MAILTRAIN_API_URL, mailtrain_list_id)
-    params = {'access_token': settings.MAILTRAIN_API_KEY}
-    if limit:
-        params['limit'] = limit
-    r = requests.get(url, params=params)
-    data = r.json()
-    for subscription in data['data']['subscriptions']:
-        if not status or subscription["status"] == status:
-            emails.append(subscription['email'])
-    return emails
-
-
-def user_mailtrain_lists(email):
-    url = f'{settings.MAILTRAIN_API_URL}/lists/{email}'
-    params = {'access_token': settings.MAILTRAIN_API_KEY}
-    r = requests.get(url, params=params)
-    try:
-        r.raise_for_status()
-        json_response = r.json()
-        items = json_response["data"]
-        # make a dictionary with list_ids, names, and status for each list
-        mailtrain_lists = [
-            {'name': item.get('name'), 'status': item.get('status'), 'cid': item.get('cid')} for item in items
-        ]
-        return mailtrain_lists
-    except Exception:
-        raise
-
 
 def calc_price_from_products(products_with_copies, frequency, debug_id=""):
     """
@@ -214,7 +216,6 @@ def calc_price_from_products(products_with_copies, frequency, debug_id=""):
 
     return round(total_price)
 
-
 def process_products(input_product_dict: dict) -> dict:
     """
     Takes products from a product list (for example from a subscription products list) and turns them into new products
@@ -318,7 +319,6 @@ def process_products(input_product_dict: dict) -> dict:
         output_dict[product.id] = input_product_dict[str(product.id)]
     return output_dict
 
-
 def updatewebuser(id, email, newemail, field, value):
     """
     Esta es la funcion que hace el POST hacia la web, siempre recibe el mail actual y el nuevo (el que se esta
@@ -352,7 +352,6 @@ def updatewebuser(id, email, newemail, field, value):
             print("DEBUG: updatewebuser api response content: " + html2text.html2text(r.content.decode()).strip())
         r.raise_for_status()  # TODO: is there a way to "attach" the exception content (if any) to this call?
 
-
 def post_to_cms_rest_api(api_name, api_uri, post_data):
     api_key = settings.LDSOCIAL_API_KEY
     if not (api_uri or api_key):
@@ -381,12 +380,10 @@ def post_to_cms_rest_api(api_name, api_uri, post_data):
             print("DEBUG: %s POST result: %s" % (api_name, result))
         return result
 
-
 def validateEmailOnWeb(contact_id, email):
     return post_to_cms_rest_api(
         "validateEmailOnWeb", settings.WEB_EMAIL_CHECK_URI, {"contact_id": contact_id, "email": email}
     )
-
 
 def manage_mailtrain_subscription(email: str, list_id: str, action: Literal["subscribe", "unsubscribe"]) -> dict:
     """
@@ -407,7 +404,6 @@ def manage_mailtrain_subscription(email: str, list_id: str, action: Literal["sub
 
     return result
 
-
 def select_or_create_contact(email, name=None, phone=None, id_document=None):
     """
     Check if a contact exists in the CRM, if not, create it.
@@ -427,7 +423,6 @@ def select_or_create_contact(email, name=None, phone=None, id_document=None):
     else:
         contact_obj = Contact.objects.create(email=email, name=name, phone=phone, id_document=id_document)
     return contact_obj
-
 
 def process_invoice_request(product_slugs, email, phone, name, id_document, payment_type):
     from core.models import Product
@@ -485,3 +480,5 @@ def process_invoice_request(product_slugs, email, phone, name, id_document, paym
         "contact_id": contact_obj.id
     }
 
+def logistics_is_installed():
+    return "logistics" not in getattr(settings, "DISABLED_APPS", [])

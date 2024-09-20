@@ -8,6 +8,7 @@ django-htmx
 django-leaflet
 django-markdownify
 django-rest-framework
+django-select2==8.2.1
 django-simple-history
 django-taggit
 django-widget-tweaks
