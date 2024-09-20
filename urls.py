@@ -43,20 +43,20 @@ urlpatterns += [
 
 # Core views
 urlpatterns += [
-    path('api/updateuserweb/', contact_api),
-    path('api/contact_by_emailprefix/', contact_by_emailprefix),
-    path('api/search_contacts/', search_contacts_htmx, name='htmx_search_contacts'),
-    path('api/search_contacts/<str:name>/', search_contacts_htmx, name='htmx_search_contacts_alt'),
-    path('api/mailtrain_list_subscription/', mailtrain_list_subscription, name='mailtrain_list_subscription'),
-    path('api/mailtrain_lists/', mailtrain_lists, name='mailtrain_lists'),
-    path('api/mailtrain_subscribers/list/<str:list_id>/', get_mailtrain_list_subscribed_emails),
+    path("api/updateuserweb/", contact_api),
+    path("api/contact_by_emailprefix/", contact_by_emailprefix),
+    path('api/search_contacts/', search_contacts_htmx, name="htmx_search_contacts"),
+    path('api/search_contacts/<str:name>/', search_contacts_htmx, name="htmx_search_contacts_alt"),
+    path('api/mailtrain_list_subscription/', mailtrain_list_subscription, name="mailtrain_list_subscription"),
+    path('api/mailtrain_lists/', mailtrain_lists, name="mailtrain_lists"),
+    path("api/mailtrain_subscribers/list/<str:list_id>/", get_mailtrain_list_subscribed_emails),
     path(
-        'mailtrain/toggle_subscription/<int:contact_id>/<str:cid>/',
+        "mailtrain/toggle_subscription/<int:contact_id>/<str:cid>/",
         toggle_mailtrain_subscription,
-        name='toggle_mailtrain_subscription',
+        name="toggle_mailtrain_subscription",
     ),
     path(
-        'api/create_oneshot_invoice_from_web/', create_oneshot_invoice_from_web, name='create_oneshot_invoice_from_web'
+        "api/create_oneshot_invoice_from_web/", create_oneshot_invoice_from_web, name="create_oneshot_invoice_from_web"
     ),
 ]
 
