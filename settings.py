@@ -48,9 +48,6 @@ CACHES = {
     },
 }
 
-# Cache backend for django-select2. This needs memcached to be running but it won't fail if you don't use select2.
-SELECT2_CACHE_BACKEND = "default"
-
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
@@ -145,16 +142,19 @@ LOGO = "static/img/logo-utopia.png"
 # logo for the invoices.
 INVOICE_LOGO = LOGO
 
-# Background tasks settings
-MAX_ATTEMPTS = 1
-MAX_RUN_TIME = 10800
-
 TABBED_ADMIN_USE_JQUERY_UI = True
 
 GRAPH_MODELS = {
     "all_applications": True,
     "group_models": True,
 }
+
+# Background tasks
+MAX_ATTEMPTS = 1
+MAX_RUN_TIME = 10800
+
+# django-select2
+SELECT2_CACHE_BACKEND = "default"  # it can use any other cache backend supported by Django like redis
 
 # Predefined states in Address model. If you don't want to use a choice for the states, override this to False
 USE_STATES_CHOICE = True
