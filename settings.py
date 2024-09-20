@@ -46,17 +46,10 @@ CACHES = {
         'BACKEND': 'django.core.cache.backends.memcached.PyMemcacheCache',
         'LOCATION': '127.0.0.1:11211',
     },
-    'select2': {
-        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-        'LOCATION': 'select2',
-    }
 }
 
-# Cache backend for django-select2. You can define your own backend in your local_settings.py. We use
-# the default cache backend for django-select2, which is "select2" located in memory but this is not the most
-# efficient option for production environments. We recommend using a more efficient cache backend like Redis or
-# Memcached.
-SELECT2_CACHE_BACKEND = "select2"
+# Cache backend for django-select2. This needs memcached to be running but it won't fail if you don't use select2.
+SELECT2_CACHE_BACKEND = "default"
 
 TEMPLATES = [
     {
