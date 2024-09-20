@@ -4,14 +4,11 @@ from pydoc import locate
 import debug_toolbar
 
 from django.conf import settings
-from django.urls import include, path, re_path
+from django.urls import include, path
 from django.views.generic import TemplateView
 from django.contrib import admin
 from django.conf.urls.static import static
 from django.contrib.auth.decorators import login_required
-from django.conf.urls import handler404
-from django.conf.urls import handler403
-from django.conf.urls import handler500
 
 from core.views import (
     contact_api,
@@ -25,11 +22,12 @@ from core.views import (
     contact_by_emailprefix,
 )
 
+from invoicing import api as invoicing_api
 
-# TODO: explain this 3 handlers
-handler404 = 'core.views.handler404'  # noqa
-handler403 = 'core.views.handler403'  # noqa
-handler500 = 'core.views.handler500'  # noqa
+# Custom error handlers. These are used to override the default Django error handlers and are defined in the core app.
+handler404 = 'core.views.handler404'
+handler403 = 'core.views.handler403'
+handler500 = 'core.views.handler500'
 
 # Used to add customized url patterns from a custom app, they're declared up here so you can add your own custom apps
 # and override existing URLs if you need.
@@ -40,8 +38,8 @@ urlpatterns = locate(urls_custom_modules).urlpatterns if urls_custom_modules els
 urlpatterns += [
     path('user/', include('django.contrib.auth.urls')),
     path('admin/doc/', include('django.contrib.admindocs.urls')),
-    re_path(r'^admin/', admin.site.urls),
-    path('', login_required(TemplateView.as_view(template_name='main_menu.html')), name="main_menu"),
+    path('admin/', admin.site.urls),
+    path('', login_required(TemplateView.as_view(template_name='main_menu.html')), name='main_menu'),
 ]
 
 # Core views
@@ -73,6 +71,10 @@ if 'invoicing' in settings.INSTALLED_APPS:
     urlpatterns += [
         path('invoicing/', include('invoicing.urls')),
     ]
+    # Invocing API
+    urlpatterns += [
+        path('api/createinvoicefromweb/', invoicing_api.createinvoicefromweb, name='createinvoicefromweb'),
+    ]
 
 if 'logistics' in settings.INSTALLED_APPS:
     urlpatterns += [
@@ -96,3 +98,8 @@ if getattr(settings, 'SERVE_MEDIA', False):
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT) + static(
         settings.MEDIA_URL, document_root=settings.MEDIA_ROOT
     )
+
+# Select2 URLs
+urlpatterns += [
+    path('select2/', include('django_select2.urls')),
+]

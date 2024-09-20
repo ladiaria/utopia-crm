@@ -1,8 +1,7 @@
-## This list includes also people that contributed to Utopia before released the project open sourced.
+# This list includes also people that contributed to Utopia before released the project open sourced
 
 TODO: update profile links
 
-* [Andrés Trífero](https://github.com/orgs/ladiaria/people/virusereturns)
 * [Aníbal Pacheco](https://github.com/orgs/ladiaria/people/anibalpacheco)
 * [Leonardo Mitchell](https://github.com/orgs/ladiaria/people/Fargo880115)
 * [Francisco](https://github.com/orgs/ladiaria/people/franciscocobas)
@@ -14,5 +13,6 @@ TODO: update profile links
 * [Lu Osorio](https://github.com/orgs/ladiaria/people/LuOsorio)
 * [Pablo Massa](https://github.com/pablomassa)
 * [Reidel](https://github.com/reidelon)
+* [Tanya Trífero](https://github.com/orgs/ladiaria/people/virusereturns)
 * [Yasim](https://github.com/orgs/ladiaria/people/yzeballos)
 * The whole team at [La Diaria](https://ayuda.ladiaria.com.uy/equipo/)

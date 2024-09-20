@@ -17,7 +17,7 @@ from simple_history.admin import SimpleHistoryAdmin
 from community.models import ProductParticipation, Supporter
 from invoicing.models import Invoice
 from support.models import Issue
-
+from core.utils import logistics_is_installed
 from .models import (
     Subscription,
     IdDocumentType,
@@ -107,7 +107,7 @@ class SubscriptionProductInline(admin.TabularInline):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if "logistics" not in getattr(settings, "DISABLED_APPS", []):
+        if logistics_is_installed():
             self.fields = list(self.fields)
             self.fields[1] = ("route", "order", "label_contact", "seller")
             self.raw_id_fields.insert(0, "route")
