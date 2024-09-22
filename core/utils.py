@@ -14,17 +14,14 @@ from django.core.exceptions import ValidationError
 
 from rest_framework.decorators import authentication_classes
 
+
 logger = logging.getLogger(__name__)
-
-
-def check_mailtrain_config():
-    if not all([settings.MAILTRAIN_API_URL, settings.MAILTRAIN_API_KEY]):
-        raise ValueError("Mailtrain API URL or API Key is not configured properly.")
 
 
 def mailtrain_api_call(endpoint, method='get', data=None):
     try:
-        check_mailtrain_config()
+        assert getattr(settings, "MAILTRAIN_API_URL", None) and getattr(settings, "MAILTRAIN_API_KEY", None), \
+            "Mailtrain API URL or API Key is not configured properly."
         url = f"{settings.MAILTRAIN_API_URL}{endpoint}"
         params = {'access_token': settings.MAILTRAIN_API_KEY}
         if method == 'get':
@@ -33,7 +30,7 @@ def mailtrain_api_call(endpoint, method='get', data=None):
             response = requests.post(url, params=params, data=data)
         response.raise_for_status()
         return response
-    except (ValueError, requests.RequestException) as e:
+    except (AssertionError, requests.RequestException) as e:
         logger.error(f"Mailtrain API error: {str(e)}")
         return None
 
