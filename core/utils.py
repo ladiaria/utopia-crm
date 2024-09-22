@@ -23,18 +23,17 @@ def check_mailtrain_config():
 
 
 def mailtrain_api_call(endpoint, method='get', data=None):
-    check_mailtrain_config()
-    url = f"{settings.MAILTRAIN_API_URL}{endpoint}"
-    params = {'access_token': settings.MAILTRAIN_API_KEY}
-
     try:
+        check_mailtrain_config()
+        url = f"{settings.MAILTRAIN_API_URL}{endpoint}"
+        params = {'access_token': settings.MAILTRAIN_API_KEY}
         if method == 'get':
             response = requests.get(url, params=params)
         elif method == 'post':
             response = requests.post(url, params=params, data=data)
         response.raise_for_status()
         return response
-    except requests.RequestException as e:
+    except (ValueError, requests.RequestException) as e:
         logger.error(f"Mailtrain API error: {str(e)}")
         return None
 
