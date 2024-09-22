@@ -219,6 +219,11 @@ urlpatterns = [
         views.SalesRecordCreateView.as_view(),
         name="add_sales_record",
     ),
+    path(
+        "subscription_end_date_list/",
+        views.SubscriptionEndDateListView.as_view(),
+        name="subscription_end_date_list",
+    ),
 ]
 
 # Api views

@@ -103,6 +103,7 @@ INSTALLED_APPS = [
     "leaflet",
     "djgeojson",
     'markdownify.apps.MarkdownifyConfig',
+    'django_select2',
     # crm apps enabled
     "core",
     "support",
@@ -122,7 +123,7 @@ LOGO = "static/img/logo-utopia.png"
 # logo for the invoices.
 INVOICE_LOGO = LOGO
 
-# Background tasks settings
+# Background tasks
 MAX_ATTEMPTS = 1
 MAX_RUN_TIME = 10800
 
