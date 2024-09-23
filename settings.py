@@ -223,7 +223,8 @@ WEB_UPDATE_AREA_NEWSLETTER_MAP = {
 WEB_UPDATE_USER_URI = None
 WEB_DELETE_USER_URI = None
 WEB_EMAIL_CHECK_URI = None
-WEB_CREATE_USER_ENABLED = False
+WEB_CREATE_USER_ENABLED = None
+WEB_CREATE_USER_POST_WHITELIST = []
 
 # If True, allows queuing subscriptions to start after the active one ends. This is useful for
 # example to queue a subscription to start after the current one ends, in the case the customer
@@ -250,11 +251,14 @@ except ImportError:
 # utopia-cms interoperability default urls. TODO: s/(WEB_|LDSOCIAL_)/UTOPIACMS_/
 if LDSOCIAL_URL:
     WEB_UPDATE_USER_URI = WEB_UPDATE_USER_URI or (LDSOCIAL_URL + 'usuarios/fromcrm')
-    WEB_DELETE_USER_URI = WEB_EMAIL_CHECK_URI or (LDSOCIAL_URL + 'usuarios/deletefromcrm')
+    WEB_DELETE_USER_URI = WEB_DELETE_USER_URI or (LDSOCIAL_URL + 'usuarios/deletefromcrm')
     WEB_EMAIL_CHECK_URI = WEB_EMAIL_CHECK_URI or (LDSOCIAL_URL + 'usuarios/api/email_check/')
 
 if WEB_CREATE_USER_ENABLED is None:
     WEB_CREATE_USER_ENABLED = WEB_UPDATE_USER_ENABLED
+
+if not WEB_CREATE_USER_ENABLED and WEB_EMAIL_CHECK_URI not in WEB_CREATE_USER_POST_WHITELIST:
+    WEB_CREATE_USER_POST_WHITELIST.append(WEB_EMAIL_CHECK_URI)
 
 if ENV_HTTP_BASIC_AUTH and not locals().get("API_KEY_CUSTOM_HEADER"):
     # by default, this variable is not defined, thats why we use locals() instead of set a "neutral" value

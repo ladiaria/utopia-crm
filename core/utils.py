@@ -404,7 +404,11 @@ def post_to_cms_rest_api(api_name, api_uri, post_data, method="POST"):
         if settings.DEBUG:
             print("DEBUG: %s to %s with post_data='%s'" % (api_name, api_uri, post_data))
 
-        if (settings.WEB_UPDATE_USER_ENABLED if method == "PUT" else settings.WEB_CREATE_USER_ENABLED):
+        if (
+            settings.WEB_UPDATE_USER_ENABLED if method == "PUT" else (
+                settings.WEB_CREATE_USER_ENABLED or api_uri in settings.WEB_CREATE_USER_POST_WHITELIST
+            )
+        ):
             r = getattr(requests, method.lower())(api_uri, **cms_rest_api_kwargs(api_key, post_data))
             if settings.DEBUG:
                 html2text_content = html2text(r.content.decode()).strip()
@@ -416,6 +420,8 @@ def post_to_cms_rest_api(api_name, api_uri, post_data, method="POST"):
             if settings.DEBUG:
                 print(f"DEBUG: {api_name} {method} result: {result}")
             return result
+        else:
+            print(f"DEBUG: {api_name} {method} conditions to call CMS API not met")
     except ReadTimeout as rt:
         if settings.DEBUG:
             print(f"DEBUG: {api_name} {method} read timeout: {str(rt)}")
