@@ -1,7 +1,8 @@
 # coding=utf-8
 import re
 
-from django.db.models.signals import pre_save, post_save
+from django.conf import settings
+from django.db.models.signals import pre_save, post_save, post_delete
 from django.dispatch import receiver
 from django.forms import ValidationError
 
@@ -46,3 +47,13 @@ def subscription_post_save_signal(sender, instance, **kwargs):
     if instance.active is False:
         for product in instance.products.all():
             contact.add_product_history(instance, product, 'P' if instance.status == 'PA' else 'I', instance.campaign)
+
+
+@receiver(post_delete, sender=Contact)
+def contact_post_delete(sender, instance, **kwargs):
+    # TODO: call CMS to delete the "peer" user of this contact, if the CMS refuses to delete, the sync enters in
+    #       inconsistency state (because this "peer" instance has already been deleted from the CRM).
+    #       When this happen, managers should be notified and actions should be taken by hand, maybe also a good idea
+    #       is to tag the user in CMS for easier identification and further back-to-consistency actions.
+    if settings.DEBUG:
+        print("DEBUG: contact deletion post_delete signal executed (not implemented yet)")

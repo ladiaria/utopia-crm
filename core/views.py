@@ -121,21 +121,19 @@ def contact_api(request):
 
 
 @api_view(["GET"])
+@api_view_auth_decorator
 @permission_classes([HasAPIKey])
 def contact_exists(request):
-    if request.method == "GET":
-        contact_id = request.GET.get('contact_id')
-        email = request.GET.get('email')
-        if contact_id:
-            exists = Contact.objects.filter(pk=contact_id).exists()
-        elif email:
-            exists = Contact.objects.filter(email=email).exists()
-        else:
-            return JsonResponse({'error': 'Either contact_id or email parameter is required'}, status=400)
-
-        return JsonResponse({'exists': exists})
+    contact_id = request.GET.get('contact_id')
+    email = request.GET.get('email')
+    if contact_id:
+        exists = Contact.objects.filter(pk=contact_id).exists()
+    elif email:
+        exists = Contact.objects.filter(email=email).exists()
     else:
-        return JsonResponse({'error': 'Invalid request method'}, status=405)
+        return JsonResponse({'error': 'Either contact_id or email parameter is required'}, status=400)
+
+    return JsonResponse({'exists': exists})
 
 
 @login_required

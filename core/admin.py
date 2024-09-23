@@ -44,7 +44,6 @@ from .models import (
     MailtrainList,
 )
 from .forms import SubscriptionAdminForm, ContactAdminForm
-from .utils import post_to_cms_rest_api
 
 # unregister default TagAdmin to remove inlines (avoid timeout when many taggetitems), register it again changed
 if Tag in admin.site._registry:
@@ -376,6 +375,8 @@ class ContactAdmin(SimpleHistoryAdmin):
             if skip_clean_set:
                 del obj._skip_clean
 
+    """
+    deletion sync is beeing implemented on signals.py (not finished yet)
     def delete_model(self, request, obj):
         try:
             if contact_is_safe_to_delete(obj):
@@ -391,6 +392,7 @@ class ContactAdmin(SimpleHistoryAdmin):
             # TODO: improve this log
             self.message_user(request, "Error al tratar de eliminar el contacto", level=messages.WARNING)
             print(f"Error trying deletetion on contact: {obj.id} with error: {ex}")
+
 
     def delete_queryset(self, request, queryset):
         are_errors = False
@@ -413,10 +415,11 @@ class ContactAdmin(SimpleHistoryAdmin):
                 print(f"Error trying deletetion on contact: {obj.id} with error: {ex}")
                 pass
         if are_errors:
-            self.message_user(request, "Alguno contactos no pudieron ser eliminados", level=messages.WARNING)
+            self.message_user(request, "Algunos contactos no pudieron ser eliminados", level=messages.WARNING)
 
     def send_deletion_request(self, obj, request):
-        if settings.WEB_UPDATE_USER_ENABLED and not getattr(obj, "updatefromweb", False):
+
+        if settings.WEB_CREATE_USER_ENABLED and not getattr(obj, "updatefromweb", False):
             # Define the URL of the external service
             url = settings.WEB_DELETE_USER_URI
             data = {'contact_id': obj.id, 'email': obj.email}
@@ -426,6 +429,7 @@ class ContactAdmin(SimpleHistoryAdmin):
                 # TODO: improve this log
                 self.message_user(request, "Error al intentar eliminar contacto en el CMS", level=messages.WARNING)
                 print(f"Error sending delete request: {ex}")
+    """
 
 
 @admin.register(Product)

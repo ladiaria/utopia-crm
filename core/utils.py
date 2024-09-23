@@ -14,27 +14,23 @@ from django.core.exceptions import ValidationError
 
 from rest_framework.decorators import authentication_classes
 
+
 logger = logging.getLogger(__name__)
 
 
-def check_mailtrain_config():
-    if not all([settings.MAILTRAIN_API_URL, settings.MAILTRAIN_API_KEY]):
-        raise ValueError("Mailtrain API URL or API Key is not configured properly.")
-
-
 def mailtrain_api_call(endpoint, method='get', data=None):
-    check_mailtrain_config()
-    url = f"{settings.MAILTRAIN_API_URL}{endpoint}"
-    params = {'access_token': settings.MAILTRAIN_API_KEY}
-
     try:
+        assert getattr(settings, "MAILTRAIN_API_URL", None) and getattr(settings, "MAILTRAIN_API_KEY", None), \
+            "Mailtrain API URL or API Key is not configured properly."
+        url = f"{settings.MAILTRAIN_API_URL}{endpoint}"
+        params = {'access_token': settings.MAILTRAIN_API_KEY}
         if method == 'get':
             response = requests.get(url, params=params)
         elif method == 'post':
             response = requests.post(url, params=params, data=data)
         response.raise_for_status()
         return response
-    except requests.RequestException as e:
+    except (AssertionError, requests.RequestException) as e:
         logger.error(f"Mailtrain API error: {str(e)}")
         return None
 
@@ -408,7 +404,11 @@ def post_to_cms_rest_api(api_name, api_uri, post_data, method="POST"):
         if settings.DEBUG:
             print("DEBUG: %s to %s with post_data='%s'" % (api_name, api_uri, post_data))
 
-        if (settings.WEB_UPDATE_USER_ENABLED if method == "PUT" else settings.WEB_CREATE_USER_ENABLED):
+        if (
+            settings.WEB_UPDATE_USER_ENABLED if method == "PUT" else (
+                settings.WEB_CREATE_USER_ENABLED or api_uri in settings.WEB_CREATE_USER_POST_WHITELIST
+            )
+        ):
             r = getattr(requests, method.lower())(api_uri, **cms_rest_api_kwargs(api_key, post_data))
             if settings.DEBUG:
                 html2text_content = html2text(r.content.decode()).strip()
@@ -420,6 +420,8 @@ def post_to_cms_rest_api(api_name, api_uri, post_data, method="POST"):
             if settings.DEBUG:
                 print(f"DEBUG: {api_name} {method} result: {result}")
             return result
+        else:
+            print(f"DEBUG: {api_name} {method} conditions to call CMS API not met")
     except ReadTimeout as rt:
         if settings.DEBUG:
             print(f"DEBUG: {api_name} {method} read timeout: {str(rt)}")

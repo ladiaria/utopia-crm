@@ -4,6 +4,7 @@ import json
 
 from django.conf import settings
 from django.test import TestCase
+from django.test.utils import override_settings
 from django.utils.translation import gettext_lazy as _
 
 from tests.factory import (
@@ -17,15 +18,12 @@ from invoicing.models import Invoice
 
 class TestCoreContact(TestCase):
 
-    def setUp(self):
-        # prevent sync on these tests
-        settings.WEB_UPDATE_USER_ENABLED = False
-
     def test1_create_contact(self):
         """
         Gets the contact and checks that its name is the one we set in setUp
         """
-        create_contact(name='Contact 1', phone='12345678')
+        with override_settings(WEB_CREATE_USER_ENABLED=False):
+            create_contact(name='Contact 1', phone='12345678')
         contact = Contact.objects.all().last()
         self.assertTrue(isinstance(contact, Contact))  # Check if it is a contact
         self.assertEqual(contact.name, 'Contact 1')  # Check if its name is Contact 1
@@ -36,7 +34,8 @@ class TestCoreContact(TestCase):
         """
         Simple operation to see if that contact allows to change names.
         """
-        contact = create_contact(name='Contact 2', phone='12345567')
+        with override_settings(WEB_CREATE_USER_ENABLED=False):
+            contact = create_contact(name='Contact 2', phone='12345567')
         contact.name = 'Renamed Contact'
         contact.save()
 
@@ -50,7 +49,8 @@ class TestCoreContact(TestCase):
         """
         Check the unicode method. This test uses a contact that will only be used in this one.
         """
-        contact = create_contact(name='Contact 3', phone='12345567')
+        with override_settings(WEB_CREATE_USER_ENABLED=False):
+            contact = create_contact(name='Contact 3', phone='12345567')
         self.assertTrue(isinstance(contact, Contact))
         self.assertEqual(contact.name, contact.__str__())
 
@@ -58,7 +58,8 @@ class TestCoreContact(TestCase):
         """
         Checks if the is_debtor method works
         """
-        contact = create_contact(name='Contact 4', phone='12312321')
+        with override_settings(WEB_CREATE_USER_ENABLED=False):
+            contact = create_contact(name='Contact 4', phone='12312321')
         product = create_product('newspaper', 500)
         invoice = create_simple_invoice(contact, 'R', product)
         invoice.creation_date = invoice.creation_date - timedelta(30)
@@ -87,7 +88,8 @@ class TestCoreContact(TestCase):
         """
         Creates a contact and checks if it has been added to the campaign.
         """
-        contact = create_contact(name='Contact 5', phone='12412455')
+        with override_settings(WEB_CREATE_USER_ENABLED=False):
+            contact = create_contact(name='Contact 5', phone='12412455')
         campaign = create_campaign(name='Campaign')
 
         # Check if they were created correctly
@@ -129,7 +131,8 @@ class TestCoreContact(TestCase):
         self.assertEqual(basic_print, 'news, newsletter')
 
         # very simple, no expired
-        contact = create_contact(name='Contact 6', phone='12412455')
+        with override_settings(WEB_CREATE_USER_ENABLED=False):
+            contact = create_contact(name='Contact 6', phone='12412455')
         subs_expired = contact.get_subscriptions_with_expired_invoices()
         assert not subs_expired
 
@@ -144,7 +147,8 @@ class TestCoreContact(TestCase):
         # contact.add_product_history(product, status)
 
     def test7_others_classes(self):
-        contact = create_contact(name='Contact 9', phone='12412455')
+        with override_settings(WEB_CREATE_USER_ENABLED=False):
+            contact = create_contact(name='Contact 9', phone='12412455')
         address = create_address('Araucho 1390', contact, address_type='physical')
         self.assertEqual(
             str(address),
@@ -169,11 +173,12 @@ class TestCoreContact(TestCase):
         - Adding or removing a newsletter whose pub_id is not defined in settings will not raise any error.
         - TODO: Adding correct NL should impact in the associated CMS (use CMS's /api/subscribers/?contact_id=XX)
         """
-        email = "contact@fakemail.com.uy"
-        contact = create_contact("Digital", 29000808, email)
-        # secure id check to prevent failures on "running" CMS databases
-        if contact.id > 999:  # TODO: a new local setting and only make this check if the setting is set
-            self.fail("contact_id secure limit reached, please drop your test db and try again")
+        with override_settings(WEB_CREATE_USER_ENABLED=False):
+            email = "contact@fakemail.com.uy"
+            contact = create_contact("Digital", 29000808, email)
+            # secure id check to prevent failures on "running" CMS databases
+            if contact.id > 999:  # TODO: a new local setting and only make this check if the setting is set
+                self.fail("contact_id secure limit reached, please drop your test db and try again")
         contact.email = "newemail@fakemail.com.uy"
         contact.save()
         # change again, if not, next run of this test will fail (TODO: confirm this assumption)
