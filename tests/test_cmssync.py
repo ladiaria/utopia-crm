@@ -6,7 +6,7 @@ import random
 from django.conf import settings
 from django.test import TestCase, override_settings
 
-from core.utils import post_to_cms_rest_api
+from core.utils import cms_rest_api_request
 from tests.factory import create_contact
 
 
@@ -43,7 +43,7 @@ class CMSyncTestCase(TestCase):
         self.assertIsNotNone(self.contact.id)
 
         # check on CMS, try to create the user again, it must fail
-        res = post_to_cms_rest_api(
+        res = cms_rest_api_request(
             "test1_create_contact_sync", settings.WEB_UPDATE_USER_URI, {"newemail": self.contact.email}
         )
         self.assertEqual(res, "ERROR")
@@ -74,7 +74,7 @@ class CMSyncTestCase(TestCase):
             # as we're testing the creation is disabled, this call return should be "ok"
             api_url = settings.WEB_EMAIL_CHECK_URI
             if api_url and self.api_key:
-                res = post_to_cms_rest_api(
+                res = cms_rest_api_request(
                     "sync_disabled", api_url, {"contact_id": no_sync_conctact.id + 1, "email": no_sync_conctact.email}
                 )
                 self.assertEqual(res.get("msg"), "OK")

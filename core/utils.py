@@ -1,3 +1,4 @@
+import traceback
 from datetime import date, timedelta
 import collections
 from functools import wraps
@@ -11,7 +12,7 @@ import logging
 from django.conf import settings
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
-
+from django.core.mail import mail_managers
 from rest_framework.decorators import authentication_classes
 
 
@@ -382,15 +383,14 @@ def updatewebuser(id, email, newemail, name="", last_name="", fields_values={}):
         "fields": fields_values,
     }
     try:
-        post_to_cms_rest_api("updatewebuser", settings.WEB_UPDATE_USER_URI, data)
+        cms_rest_api_request("updatewebuser", settings.WEB_UPDATE_USER_URI, data)
     except Exception as e:
         if settings.DEBUG:
             print(f"Error updating web user: {e}")
 
 
-def post_to_cms_rest_api(api_name, api_uri, post_data, method="POST"):
+def cms_rest_api_request(api_name, api_uri, post_data, method="POST"):
     """
-    TODO: rename properly to cms_rest_api_request
     Performs a request to the CMS REST API.
     @param api_name: Name of the function that is calling the API
     @param api_uri: URL of the endpoint.
@@ -435,7 +435,7 @@ def post_to_cms_rest_api(api_name, api_uri, post_data, method="POST"):
 
 
 def validateEmailOnWeb(contact_id, email):
-    return post_to_cms_rest_api(
+    return cms_rest_api_request(
         "validateEmailOnWeb", settings.WEB_EMAIL_CHECK_URI, {"contact_id": contact_id, "email": email}
     )
 
@@ -540,3 +540,16 @@ def process_invoice_request(product_slugs, email, phone, name, id_document, paym
 
 def logistics_is_installed():
     return "logistics" not in getattr(settings, "DISABLED_APPS", [])
+
+
+def mail_managers_on_errors(process_name, error_msg, traceback_info=""):
+    """
+    Send error notification to the managers
+    @param process_name: Name of the process or function with error.
+    @param error_msg: Error message.
+    """
+    subject = f"System error happens in {process_name}"
+    msg = f"System error occurs {process_name} runs with error: {error_msg}\n\n"
+    if traceback_info:
+        msg += traceback_info  # Add the stack trace
+    mail_managers(subject=subject, message=msg)
