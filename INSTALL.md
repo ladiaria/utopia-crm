@@ -154,13 +154,7 @@ To enable Mercado Pago integration:
 
    Replace `'your_public_key'` and `'your_access_token'` with your actual Mercado Pago credentials.
 
-3. Add 'mercadopago' to your INSTALLED_APPS in `local_settings.py`:
-
-   ```python
-   INSTALLED_APPS += ['mercadopago']
-   ```
-
-4. Ensure that your server has HTTPS enabled, as Mercado Pago requires secure connections for callbacks and redirects.
+3. Ensure that your server has HTTPS enabled, as Mercado Pago requires secure connections for callbacks and redirects.
 
 ### Optional: Set a different cache for django-select2
 
