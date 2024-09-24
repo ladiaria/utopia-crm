@@ -682,3 +682,46 @@ class SalesRecordCreateForm(forms.ModelForm):
         if subscription:
             # Assuming you have a field named 'subscription' to hold the subscription_id
             self.fields['subscription'].initial = subscription
+
+
+class MainSubscriptionForm(forms.ModelForm):
+    contact = forms.ModelChoiceField(queryset=Contact.objects.all())
+    product = forms.ModelChoiceField(queryset=Product.objects.filter(type='S'))
+    number_of_subscriptions = forms.IntegerField(min_value=1)
+    start_date = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}))
+    end_date = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}))
+    custom_price = forms.DecimalField(max_digits=10, decimal_places=2)
+    payment_method = forms.ChoiceField(choices=Subscription._meta.get_field('payment_type').choices)
+
+    class Meta:
+        model = Subscription
+        fields = [
+            'contact',
+            'product',
+            'number_of_subscriptions',
+            'start_date',
+            'end_date',
+            'price',
+            'payment_method',
+        ]
+
+    def clean(self):
+        cleaned_data = super().clean()
+        start_date = cleaned_data.get('start_date')
+        end_date = cleaned_data.get('end_date')
+
+        if start_date and end_date:
+            if end_date < start_date:
+                raise forms.ValidationError("The end date must be after the start date.")
+
+        return cleaned_data
+
+
+class BulkSubscriptionForm(forms.Form):
+    contact = forms.ModelChoiceField(queryset=Contact.objects.all())
+    start_date = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}))
+    end_date = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}))
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['contact'].queryset = self.fields['contact'].queryset.order_by('name')

@@ -23,7 +23,7 @@ from django.http import (
     Http404,
 )
 from django.shortcuts import get_object_or_404, render
-from django.urls import reverse
+from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django.utils.text import format_lazy
@@ -94,6 +94,8 @@ from .forms import (
     AddressComplementaryInformationForm,
     SugerenciaGeorefForm,
     ValidateSubscriptionForm,
+    MainSubscriptionForm,
+    BulkSubscriptionForm,
 )
 from .models import Seller, ScheduledTask, IssueStatus, Issue, IssueSubcategory, SalesRecord
 from .choices import ISSUE_CATEGORIES, ISSUE_ANSWERS
@@ -3543,6 +3545,7 @@ class SalesRecordCreateView(CreateView):
         self.subscription.validate(user=self.request.user)
         return super().form_valid(form)
 
+
 @method_decorator(staff_member_required, name="dispatch")
 class SubscriptionEndDateListView(FilterView, ListView):
     model = Subscription
@@ -3569,14 +3572,16 @@ class SubscriptionEndDateListView(FilterView, ListView):
 
         data = []
         for subscription in queryset:
-            data.append({
-                'Contact ID': subscription.contact.id,
-                'Contact Name': subscription.contact.name,
-                'Email': subscription.contact.email,
-                'Phone': subscription.contact.phone,
-                'End Date': subscription.end_date,
-                'Products': ', '.join([p.name for p in subscription.products.all()])
-            })
+            data.append(
+                {
+                    'Contact ID': subscription.contact.id,
+                    'Contact Name': subscription.contact.name,
+                    'Email': subscription.contact.email,
+                    'Phone': subscription.contact.phone,
+                    'End Date': subscription.end_date,
+                    'Products': ', '.join([p.name for p in subscription.products.all()]),
+                }
+            )
 
         df = pd.DataFrame(data)
 
@@ -3586,3 +3591,65 @@ class SubscriptionEndDateListView(FilterView, ListView):
         df.to_csv(path_or_buf=response, index=False, encoding='utf-8')
 
         return response
+
+
+class MainSubscriptionView(CreateView):
+    template_name = 'support/main_subscription.html'
+    form_class = MainSubscriptionForm
+    success_url = reverse_lazy('bulk_subscription')
+
+    def form_valid(self, form):
+        # Create the main subscription
+        subscription = form.save(commit=False)
+        subscription.contact = form.cleaned_data['contact']
+        subscription.start_date = form.cleaned_data['start_date']
+        subscription.end_date = form.cleaned_data['end_date']
+        subscription.payment_type = form.cleaned_data['payment_method']
+        subscription.type = "N"  # Normal
+        subscription.save()
+
+        # Create the SubscriptionProduct
+        product = form.cleaned_data['product']
+        copies = form.cleaned_data['number_of_subscriptions']
+        SubscriptionProduct.objects.create(subscription=subscription, product=product, copies=copies)
+
+        # Set the success URL with the subscription ID
+        self.success_url = reverse_lazy('bulk_subscription', kwargs={'main_subscription_id': subscription.id})
+        return super().form_valid(form)
+
+
+class BulkSubscriptionView(FormView):
+    template_name = 'support/bulk_subscription.html'
+    form_class = BulkSubscriptionForm
+    success_url = reverse_lazy('bulk_subscription')
+
+    def form_valid(self, form):
+        main_subscription = Subscription.objects.get(id=self.kwargs['main_subscription_id'])
+        contact = form.cleaned_data['contact']
+        start_date = form.cleaned_data['start_date']
+        end_date = form.cleaned_data['end_date']
+
+        # Create a new subscription for the bulk contact
+        bulk_subscription = Subscription.objects.create(
+            contact=contact,
+            start_date=start_date,
+            end_date=end_date,
+            payment_type=main_subscription.payment_type,
+            type="C",  # Complementary
+            status=main_subscription.status,
+        )
+
+        # Copy the SubscriptionProduct from the main subscription
+        main_sp = SubscriptionProduct.objects.get(subscription=main_subscription)
+        SubscriptionProduct.objects.create(
+            subscription=bulk_subscription,
+            product=main_sp.product,
+            copies=1,  # Assuming one copy per bulk subscription
+        )
+
+        return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['main_subscription'] = Subscription.objects.get(id=self.kwargs['main_subscription_id'])
+        return context

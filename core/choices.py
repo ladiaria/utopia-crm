@@ -46,6 +46,7 @@ SUBSCRIPTION_TYPE_CHOICES = (
     ("N", _("Normal")),
     ("F", _("Gift")),
     ("S", _("Staff")),
+    ("C", _("Complementary")),
 )
 
 SUBSCRIPTION_STATUS_CHOICES = (
