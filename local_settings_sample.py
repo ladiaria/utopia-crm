@@ -85,3 +85,11 @@ ISSUE_SUBCATEGORY_GENERIC_DEBT = 'generic-debt'
 # Settings for GDAL and GEOS for MacOS. Only uncomment if necessary, or delete if not needed.
 # GDAL_LIBRARY_PATH = "/opt/homebrew/opt/gdal/lib/libgdal.dylib"
 # GEOS_LIBRARY_PATH = "/opt/homebrew/opt/geos/lib/libgeos_c.dylib"
+
+# Mercado Pago settings, this is optional. Enable to use Mercado Pago as a payment platform, but leave it
+# disabled to not use it.
+MERCADOPAGO_ENABLED = False  # Override to True to enable Mercado Pago
+# MERCADOPAGO_ACCESS_TOKEN = ""  # Override to your Mercado Pago access token in local_settings.py
+# MERCADOPAGO_API_MAX_ATTEMPTS = 10  # Override to the maximum number of attempts to get a successful payment
+# MERCADOPAGO_FORCE_FAIL_PAYMENT = False  # Override to True to make the payment fail
+
