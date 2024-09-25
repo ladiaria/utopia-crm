@@ -94,8 +94,8 @@ from .forms import (
     AddressComplementaryInformationForm,
     SugerenciaGeorefForm,
     ValidateSubscriptionForm,
-    MainSubscriptionForm,
-    BulkSubscriptionForm,
+    CorporateSubscriptionForm,
+    AffiliateSubscriptionForm,
 )
 from .models import Seller, ScheduledTask, IssueStatus, Issue, IssueSubcategory, SalesRecord
 from .choices import ISSUE_CATEGORIES, ISSUE_ANSWERS
@@ -3593,15 +3593,29 @@ class SubscriptionEndDateListView(FilterView, ListView):
         return response
 
 
-class MainSubscriptionView(CreateView):
-    template_name = 'support/main_subscription.html'
-    form_class = MainSubscriptionForm
+class CorporateSubscriptionView(CreateView):
+    template_name = 'subscriptions/corporate_subscription.html'
+    form_class = CorporateSubscriptionForm
     success_url = reverse_lazy('bulk_subscription')
+
+    def dispatch(self, request, *args, **kwargs):
+        self.contact = get_object_or_404(Contact, id=self.kwargs['contact_id'])
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_form_class(self):
+        form_class = super().get_form_class()
+        form_class.base_fields.pop('contact', None)
+        return form_class
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['contact'] = self.contact
+        return context
 
     def form_valid(self, form):
         # Create the main subscription
         subscription = form.save(commit=False)
-        subscription.contact = form.cleaned_data['contact']
+        subscription.contact = self.contact
         subscription.start_date = form.cleaned_data['start_date']
         subscription.end_date = form.cleaned_data['end_date']
         subscription.payment_type = form.cleaned_data['payment_method']
@@ -3617,39 +3631,49 @@ class MainSubscriptionView(CreateView):
         self.success_url = reverse_lazy('bulk_subscription', kwargs={'main_subscription_id': subscription.id})
         return super().form_valid(form)
 
+class AffiliateSubscriptionView(FormView):
+    template_name = 'subscriptions/affiliate_subscription.html'
+    form_class = AffiliateSubscriptionForm
 
-class BulkSubscriptionView(FormView):
-    template_name = 'support/bulk_subscription.html'
-    form_class = BulkSubscriptionForm
-    success_url = reverse_lazy('bulk_subscription')
+    def get_success_url(self):
+        return reverse_lazy('affiliate_subscription', kwargs={'corporate_subscription_id': self.kwargs['corporate_subscription_id']})
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['main_subscription_id'] = self.kwargs['main_subscription_id']
+        return kwargs
 
     def form_valid(self, form):
-        main_subscription = Subscription.objects.get(id=self.kwargs['main_subscription_id'])
+        main_subscription = get_object_or_404(Subscription, id=self.kwargs['main_subscription_id'])
         contact = form.cleaned_data['contact']
         start_date = form.cleaned_data['start_date']
         end_date = form.cleaned_data['end_date']
 
-        # Create a new subscription for the bulk contact
         bulk_subscription = Subscription.objects.create(
             contact=contact,
             start_date=start_date,
             end_date=end_date,
             payment_type=main_subscription.payment_type,
-            type="C",  # Complementary
+            type='C',  # Complementary
             status=main_subscription.status,
         )
 
-        # Copy the SubscriptionProduct from the main subscription
         main_sp = SubscriptionProduct.objects.get(subscription=main_subscription)
         SubscriptionProduct.objects.create(
             subscription=bulk_subscription,
             product=main_sp.product,
-            copies=1,  # Assuming one copy per bulk subscription
+            copies=1
         )
 
         return super().form_valid(form)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['main_subscription'] = Subscription.objects.get(id=self.kwargs['main_subscription_id'])
+        corporate_subscription = get_object_or_404(Subscription, id=self.kwargs['corporate_subscription_id'])
+        context['corporate_subscription'] = corporate_subscription
+        context['affiliate_subscriptions'] = Subscription.objects.filter(
+            type='C',
+            payment_type=corporate_subscription.payment_type,
+            status=corporate_subscription.status
+        ).select_related('contact').order_by('start_date')
         return context

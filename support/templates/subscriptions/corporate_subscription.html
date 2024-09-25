@@ -1,0 +1,56 @@
+{% extends "adminlte/base.html" %}
+{% load static i18n widget_tweaks %}
+
+{% block title %}{% trans "Create Corporate Subscription" %}{% endblock title %}
+
+{% block no_heading %}
+<h1>{% trans "Subscriptions" %}</h1>
+<p>{% trans "Create Corporate Subscription" %}</p>
+{% endblock %}
+
+{% block breadcrumbs %}
+<ol class="breadcrumb">
+  <li class="breadcrumb-item active">{% trans "Create Corporate Subscription" %}</li>
+</ol>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h3 class="card-title">{% trans "Create Corporate Subscription" %}</h3>
+  </div>
+  <div class="card-body">
+    <form method="post">
+      {% csrf_token %}
+      <div class="row">
+        <div class="col-md-6">
+          {% render_field form.product class="form-control" %}
+        </div>
+        <div class="col-md-6">
+          {% render_field form.number_of_subscriptions class="form-control" %}
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-md-6">
+          {% render_field form.start_date class="form-control" %}
+        </div>
+        <div class="col-md-6">
+          {% render_field form.end_date class="form-control" %}
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-md-6">
+          {% render_field form.custom_price class="form-control" %}
+        </div>
+        <div class="col-md-6">
+          {% render_field form.payment_method class="form-control" %}
+        </div>
+      </div>
+      <div class="form-group text-right">
+        <button type="submit" class="btn bg-gradient-primary">{% trans "Create Corporate Subscription" %}</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+

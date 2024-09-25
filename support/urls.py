@@ -214,13 +214,13 @@ urlpatterns = [
         name="validate_subscription",
     ),
     path(
-        "subscription/<int:subscription_id>/add_sales_record/",
-        views.SalesRecordCreateView.as_view(),
-        name="add_sales_record",
+        "subscription/<int:contact_id>/create_corporate_subscription/",
+        views.CorporateSubscriptionView.as_view(),
+        name="create_corporate_subscription",
     ),
     path(
-        "subscription_end_date_list/",
-        views.SubscriptionEndDateListView.as_view(),
-        name="subscription_end_date_list",
+        "subscription/<int:corporate_subscription_id>/affiliate_subscriptions/",
+        views.AffiliateSubscriptionView.as_view(),
+        name="affiliate_subscriptions",
     ),
 ]

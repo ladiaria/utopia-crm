@@ -684,8 +684,7 @@ class SalesRecordCreateForm(forms.ModelForm):
             self.fields['subscription'].initial = subscription
 
 
-class MainSubscriptionForm(forms.ModelForm):
-    contact = forms.ModelChoiceField(queryset=Contact.objects.all())
+class CorporateSubscriptionForm(forms.ModelForm):
     product = forms.ModelChoiceField(queryset=Product.objects.filter(type='S'))
     number_of_subscriptions = forms.IntegerField(min_value=1)
     start_date = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}))
@@ -696,7 +695,6 @@ class MainSubscriptionForm(forms.ModelForm):
     class Meta:
         model = Subscription
         fields = [
-            'contact',
             'product',
             'number_of_subscriptions',
             'start_date',
@@ -717,7 +715,7 @@ class MainSubscriptionForm(forms.ModelForm):
         return cleaned_data
 
 
-class BulkSubscriptionForm(forms.Form):
+class AffiliateSubscriptionForm(forms.Form):
     contact = forms.ModelChoiceField(queryset=Contact.objects.all())
     start_date = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}))
     end_date = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}))
