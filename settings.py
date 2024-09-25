@@ -239,11 +239,6 @@ except ImportError:
     pass
 
 MERCADOPAGO_ENABLED = False
-try:
-    from .local_mercadopago_settings import *  # noqa
-except ImportError:
-    pass
-
 
 # utopia-cms interoperability default urls. TODO: s/(WEB_|LDSOCIAL_)/UTOPIACMS_/
 if LDSOCIAL_URL:

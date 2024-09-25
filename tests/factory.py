@@ -70,7 +70,7 @@ def create_invoiceitem(invoice, product, copies=1):
     return InvoiceItem.objects.get(pk=invoice_item.id)
 
 
-def create_simple_invoice(contact, payment_type, product):
+def create_simple_invoice(contact, payment_type, product, subscription=None):
     """
     Creates an invoice with a single product and creation_date = Today, due date today + 10 days.
     """
@@ -83,6 +83,7 @@ def create_simple_invoice(contact, payment_type, product):
         expiration_date=date.today() + timedelta(10),
         service_from=date.today(),
         service_to=date.today() + timedelta(30),
+        subscription=subscription,
     )
 
     InvoiceItem.objects.create(
