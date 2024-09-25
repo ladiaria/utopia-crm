@@ -55,10 +55,10 @@ class CMSyncTestCase(TestCase):
 
         # check on CMS, try to create the user again, it must be allowed
         # TODO: deletion sync is not yet implemented, uncomment lines left in this test when it's ready
-        # res = post_to_cms_rest_api(
-        #     "test2_delete_contact_sync", settings.WEB_UPDATE_USER_URI, {"newemail": self.contact.email}
-        # )
-        # self.assertEqual(res.get("msg"), "OK")
+        res = cms_rest_api_request(
+            "test2_delete_contact_sync", settings.WEB_UPDATE_USER_URI, {"newemail": self.contact.email}
+        )
+        self.assertEqual(res.get("msg"), "OK")
 
     def test3_not_create_contact_without_sync(self):
         with override_settings(
