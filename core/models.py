@@ -1885,7 +1885,7 @@ class Subscription(models.Model):
         # Check if all invoices are overdue
         return (
             invoices.filter(
-                expiration_date__lt=date.today(), paid=False, debited=False, canceled=False, uncollectible=False
+                expiration_date__lte=date.today(), paid=False, debited=False, canceled=False, uncollectible=False
             ).count()
             == invoices.count()
         )
