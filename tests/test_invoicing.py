@@ -34,6 +34,5 @@ class TestInvoicing(TestCase):
         self.assertTrue(subscription.active)
         self.assertFalse(contact.is_debtor())
         invoice = bill_subscription(subscription.id, date.today(), 10)
-
         self.assertTrue(isinstance(invoice, Invoice))
         self.assertEqual(invoice.amount, product.price)

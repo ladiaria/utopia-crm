@@ -1405,7 +1405,6 @@ class Subscription(models.Model):
                     "city": city,
                     "name": self.get_billing_name(),
                 }
-                print(result)
             elif not address and getattr(settings, "DEFAULT_BILLING_ADDRESS", None):
                 result = getattr(settings, "DEFAULT_BILLING_ADDRESS", None)
                 result["name"] = self.get_billing_name()
