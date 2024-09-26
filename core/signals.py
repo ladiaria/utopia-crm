@@ -63,15 +63,18 @@ def contact_post_delete(sender, instance, **kwargs):
 
     if settings.WEB_CREATE_USER_ENABLED and not getattr(instance, "updatefromweb", False):
         # Define the URL of the external service
-        url = settings.WEB_DELETE_USER_URI
+        uri = settings.WEB_DELETE_USER_URI
         data = {'contact_id': instance.id, 'email': instance.email}
         try:
-            res = cms_rest_api_request("contact_post_delete", url, data, "DELETE")
+            res = cms_rest_api_request("contact_post_delete", uri, data, "DELETE")
+            print(res)
             if isinstance(res, str) and res in ("TIMEOUT", "ERROR"):
-                raise Exception(f"CMS server responds with error when we tried to remove contact_id: {instance.id}")
-            elif not hasattr(res, "msg", None) or res.get("msg") != "OK":
-                raise Exception("Something when wrong or unexpected when we tried to remove contact_id: {instance.id}")
+                raise Exception(res)
+            elif res.get("msg") != "OK":
+                raise Exception("internal error when tried to remove related CMS user")
         except Exception as ex:
             process_name = "Sync for delete on CMS"
-            mail_managers_on_errors(process_name, str(ex), traceback.format_exc())
-            print(f"Error sending delete request: {ex} trace: {traceback.format_exc()}")
+            tb = traceback.format_exc()
+            mail_managers_on_errors(process_name, str(ex), tb)
+            if settings.DEBUG:
+                print(f"Error sending delete request: {ex} trace: {tb}")

@@ -174,12 +174,12 @@ class TestCoreContact(TestCase):
         - TODO: Adding correct NL should impact in the associated CMS (use CMS's /api/subscribers/?contact_id=XX)
         """
         with override_settings(WEB_CREATE_USER_ENABLED=False):
-            email = "contact@fakemail.com.uy"
+            email = "contact@google.com"
             contact = create_contact("Digital", 29000808, email)
             # secure id check to prevent failures on "running" CMS databases
             if contact.id > 999:  # TODO: a new local setting and only make this check if the setting is set
                 self.fail("contact_id secure limit reached, please drop your test db and try again")
-        contact.email = "newemail@fakemail.com.uy"
+        contact.email = "newemail@google.com"
         contact.save()
         # change again, if not, next run of this test will fail (TODO: confirm this assumption)
         contact.email = email

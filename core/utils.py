@@ -1,4 +1,3 @@
-import traceback
 from datetime import date, timedelta
 import collections
 from functools import wraps
