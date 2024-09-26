@@ -35,7 +35,7 @@ def contact_pre_save_signal(sender, instance, **kwargs):
 @receiver(post_save, sender=Contact)
 def contact_post_save_signal(sender, instance, created, **kwargs):
     if created:
-        update_web_user(instance.old_contact)
+        update_web_user(instance.old_contact, method="POST" if settings.WEB_CREATE_USER_ENABLED else "PUT")
     else:
         target_email = instance.old_email if hasattr(instance, 'old_email') else None
         update_web_user(instance.old_contact, target_email)
@@ -59,7 +59,7 @@ def contact_post_delete(sender, instance, **kwargs):
     is to tag the user in CMS for easier identification and further back-to-consistency actions.
     """
     if settings.DEBUG:
-        print("DEBUG: contact deletion post_delete signal executed (not implemented yet)")
+        print("DEBUG: contact deletion post_delete signal executed")
 
     if settings.WEB_CREATE_USER_ENABLED and not getattr(instance, "updatefromweb", False):
         # Define the URL of the external service

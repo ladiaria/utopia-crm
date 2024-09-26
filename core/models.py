@@ -2545,7 +2545,7 @@ def update_customer(cust, newmail, field, value):
     cust.save()
 
 
-def update_web_user(contact, target_email=None, newsletter_data=None, area_newsletters=False):
+def update_web_user(contact, target_email=None, newsletter_data=None, area_newsletters=False, method="PUT"):
     """
     Sync some fields from contact with the web CMS linked subscriptor target reference.
     If newsletter_data is given, newsletters will be sent to websync.
@@ -2555,7 +2555,7 @@ def update_web_user(contact, target_email=None, newsletter_data=None, area_newsl
     @param area_newsletters: field name for newsletters.
     """
     if settings.WEB_UPDATE_USER_ENABLED and not getattr(contact, "updatefromweb", False) and contact.id:
-        fields_to_update = dict()
+        fields_to_update = {}
         try:
             if newsletter_data:
                 field = ("area_" if area_newsletters else "") + "newsletters"
@@ -2569,7 +2569,9 @@ def update_web_user(contact, target_email=None, newsletter_data=None, area_newsl
                 if before_saved_value is not None and current_saved_value != before_saved_value:
                     fields_to_update.update({f: current_saved_value})
             # call for sync if there are fields to update
-            updatewebuser(contact.id, target_email, contact.email, contact.name, contact.last_name, fields_to_update)
+            updatewebuser(
+                contact.id, target_email, contact.email, contact.name, contact.last_name, fields_to_update, method
+            )
         except RequestException as e:
             raise ValidationError("{}: {}".format(_("CMS sync error"), e))
         except Contact.DoesNotExist:
@@ -2583,15 +2585,14 @@ def update_web_user_newsletters(contact):
     """
     try:
         newsletters_slugs = contact.get_active_newsletters().values_list('slug', flat=True)
-        update_web_user(contact, contact.email, json.dumps(newsletters_slugs))
+        update_web_user(contact, contact.email, json.dumps(newsletters_slugs), method="PUT")
     except Exception as ex:
-        print("Error sending the request to CMS", str(ex))
-        pass
+        if settings.DEBUG:
+            print("Error sending the request to CMS", str(ex))
 
 
 class MailtrainList(models.Model):
-    """MailtrainList
-
+    """
     Stores Mailtrain lists to use when updating contacts in the Mailtrain system. This is also used in the CMS
     and should be synced to the model in the CMS.
 

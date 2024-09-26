@@ -175,13 +175,16 @@ class TestCoreContact(TestCase):
         """
         with override_settings(WEB_CREATE_USER_ENABLED=False):
             email = "contact@google.com"
+            # next line may generate a 400 error in API when there is already an user with this email and because we
+            # are not allowed by settings to create new contacts. the error is harmless, and maybe another http status
+            # code would be more appropriate (TODO)
             contact = create_contact("Digital", 29000808, email)
             # secure id check to prevent failures on "running" CMS databases
             if contact.id > 999:  # TODO: a new local setting and only make this check if the setting is set
                 self.fail("contact_id secure limit reached, please drop your test db and try again")
         contact.email = "newemail@google.com"
         contact.save()
-        # change again, if not, next run of this test will fail (TODO: confirm this assumption)
+        # change again, if not, next run of this test will fail
         contact.email = email
         contact.save()
         non_existing_key = max(settings.WEB_UPDATE_NEWSLETTER_MAP.keys() or [0]) + 1
