@@ -4,7 +4,7 @@
 
 - Python:
 
-  The Python version we recomend to use is any version from 3.10.6 to 3.11.6
+  The Python version we recommend to use is any version from 3.10.6 to 3.11.6
 
   If your system has a native Python installation in version 3.10.6 - 3.11.6 you can use it, and no installing another Python version may be required.
 
@@ -51,7 +51,7 @@ Create a database user and the database, this can be done in many different ways
 Note: the default password we use in the sample settings file in the next step is "utopiadev_django", the same as the username.
 
 ```bash
-# Execute these commands, entering a new password for the new user beeing create, this password will be used in next
+# Execute these commands, entering a new password for the new user being created, this password will be used in next
 # step, don't forget it.
 sudo -u postgres createuser -DPS utopiadev_django
 sudo -u postgres createdb -O utopiadev_django utopiadev
@@ -60,7 +60,7 @@ sudo -u postgres psql -c "CREATE EXTENSION postgis;" utopiadev
 
 ### Local configuration
 
-Copy `local_settings_sample.py` to `local_settings.py` and configure the database in the new file by modifiying the `DATABASE` variable with the values created in the previous step. And also fill the `SECRET_KEY` variable using any string or a more secure one generated for example with [this web tool](https://djecrety.ir/).
+Copy `local_settings_sample.py` to `local_settings.py` and configure the database in the new file by modifying the `DATABASE` variable with the values created in the previous step. And also fill the `SECRET_KEY` variable using any string or a more secure one generated for example with [this web tool](https://djecrety.ir/).
 
 ### Extra configuration for macOS
 
@@ -143,14 +143,73 @@ To enable Mercado Pago integration:
    pip install -r mercadopago_requirements.txt
    ```
 
-2. Copy `local_mercadopago_settings_sample.py` to `local_mercadopago_settings.py`
+2. Configure Mercado Pago settings in your `local_settings.py`. You can take these configurations from `local_settings_sample.py`:
 
-3. Edit `mercadopago_settings.py`:
-   - Set `MERCADOPAGO_ENABLED = True`
-   - Add your Mercado Pago access token: `MERCADOPAGO_ACCESS_TOKEN = "your_access_token_here"`
+   ```python
+   # Mercado Pago settings
+   MERCADOPAGO_ENABLED = True
+   MERCADOPAGO_PUBLIC_KEY = 'your_public_key'
+   MERCADOPAGO_ACCESS_TOKEN = 'your_access_token'
+   ```
 
-4. Run migrations:
+   Replace `'your_public_key'` and `'your_access_token'` with your actual Mercado Pago credentials.
+
+3. Ensure that your server has HTTPS enabled, as Mercado Pago requires secure connections for callbacks and redirects.
+
+### Optional: Set a different cache for django-select2
+
+Django-select2 is used to enhance select fields in forms, especially when dealing with large datasets like contacts. It provides a searchable dropdown interface that improves user experience and performance when selecting from a large number of options. The main benefits include:
+
+1. Efficient searching and filtering of options
+2. Lazy loading of data, which is crucial for large datasets
+3. Better user interface with autocomplete functionality
+
+By default, django-select2 uses Django's default cache. However, for better performance, especially in production environments, it's recommended to use a more robust caching solution. Here's how you can configure a different cache for django-select2:
+
+1. First, ensure you have a caching backend installed. For example, to use Redis:
 
    ```bash
-   python manage.py migrate
+   pip install django-redis
    ```
+
+2. Configure the cache in your `local_settings.py`:
+
+   ```python
+   CACHES = {
+       "default": {
+           "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+       },
+       "select2": {
+           "BACKEND": "django_redis.cache.RedisCache",
+           "LOCATION": "redis://127.0.0.1:6379/2",
+           "OPTIONS": {
+               "CLIENT_CLASS": "django_redis.client.DefaultClient",
+           }
+       }
+   }
+
+   # Tell select2 which cache to use
+   SELECT2_CACHE_BACKEND = "select2"
+   ```
+
+   This configuration sets up a separate Redis cache for select2, while keeping the default cache as LocMemCache.
+
+3. Adjust the `LOCATION` in the above configuration to match your Redis server's address and port.
+
+4. If you're using Memcached instead of Redis, you can use this configuration:
+
+   ```python
+   CACHES = {
+       "default": {
+           "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+       },
+       "select2": {
+           "BACKEND": "django.core.cache.backends.memcached.PyMemcacheCache",
+           "LOCATION": "127.0.0.1:11211",
+       }
+   }
+
+   SELECT2_CACHE_BACKEND = "select2"
+   ```
+
+By setting up a separate cache for django-select2, you can optimize its performance without affecting the caching of other parts of your application. This is particularly beneficial when dealing with large datasets like contacts in a CRM system.
