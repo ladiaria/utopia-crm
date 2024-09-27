@@ -1,5 +1,5 @@
 #!/bin/sh
-TEST_MODULES="tests.test_contact tests.test_dynamiccontactfilter tests.test_invoicing tests.test_subscriptor tests.test_email_replacements"
+TEST_MODULES="tests"
 # exit now if we are being sourced by another script or shell (or utopia_crm_exit envvar=1 for zsh compatibility)
 [[ "${#BASH_SOURCE[@]}" -gt "1" ]] && { return 0; }
 [[ $utopia_crm_exit = 1 ]] && { return 0; }
