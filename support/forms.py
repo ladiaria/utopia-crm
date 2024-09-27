@@ -685,11 +685,10 @@ class SalesRecordCreateForm(forms.ModelForm):
 
 
 class CorporateSubscriptionForm(forms.ModelForm):
-    product = forms.ModelChoiceField(queryset=Product.objects.filter(type='S'))
+    product = forms.ModelChoiceField(queryset=Product.objects.all())
     number_of_subscriptions = forms.IntegerField(min_value=1)
     start_date = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}))
     end_date = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}))
-    custom_price = forms.DecimalField(max_digits=10, decimal_places=2)
     payment_method = forms.ChoiceField(choices=Subscription._meta.get_field('payment_type').choices)
 
     class Meta:
@@ -699,7 +698,6 @@ class CorporateSubscriptionForm(forms.ModelForm):
             'number_of_subscriptions',
             'start_date',
             'end_date',
-            'price',
             'payment_method',
         ]
 

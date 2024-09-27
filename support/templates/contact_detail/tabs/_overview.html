@@ -384,6 +384,8 @@
       </div>
       {% if request.user|in_group:"Support" or request.user|in_group:"Managers" %}
         <div class="card-footer">
+          <a href="{% url "create_corporate_subscription" contact.id %}"
+             class="btn btn-primary float-right"><i class="fas fa-plus-circle"></i> {% trans "Craete corporate subscription" %}</a>
           <a href="{% url "new_subscription" contact.id %}"
              class="btn btn-primary float-right"><i class="fas fa-plus-circle"></i> {% trans "Add subscription" %}</a>
         </div>

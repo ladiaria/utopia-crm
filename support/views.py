@@ -3598,6 +3598,13 @@ class CorporateSubscriptionView(CreateView):
     form_class = CorporateSubscriptionForm
     success_url = reverse_lazy('bulk_subscription')
 
+    def breadcrumbs(self):
+        return [
+            {'url': reverse_lazy('contact_list'), 'label': _('Contact list')},
+            {'url': reverse_lazy('contact_detail', args=[self.contact.id]), 'label': self.contact.name},
+            {'url': '', 'label': _('Create Corporate Subscription')},
+        ]
+
     def dispatch(self, request, *args, **kwargs):
         self.contact = get_object_or_404(Contact, id=self.kwargs['contact_id'])
         return super().dispatch(request, *args, **kwargs)
@@ -3610,6 +3617,7 @@ class CorporateSubscriptionView(CreateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['contact'] = self.contact
+        context['breadcrumbs'] = self.breadcrumbs()
         return context
 
     def form_valid(self, form):
@@ -3628,7 +3636,7 @@ class CorporateSubscriptionView(CreateView):
         SubscriptionProduct.objects.create(subscription=subscription, product=product, copies=copies)
 
         # Set the success URL with the subscription ID
-        self.success_url = reverse_lazy('bulk_subscription', kwargs={'main_subscription_id': subscription.id})
+        self.success_url = reverse_lazy('affiliate_subscriptions', kwargs={'corporate_subscription_id': subscription.id})
         return super().form_valid(form)
 
 class AffiliateSubscriptionView(FormView):
