@@ -83,6 +83,7 @@ def contact_api(request):
     try:
         id_contact = None
         c = Contact.objects.get(pk=contact_id)
+        c.updatefromweb = True
         if request.method == "DELETE":
             if contact_is_safe_to_delete(c):
                 c.delete()
@@ -95,6 +96,7 @@ def contact_api(request):
         if mail:
             try:
                 contact = Contact.objects.get(email=mail)
+                contact.updatefromweb = True
                 if request.method == "DELETE":
                     if contact_is_safe_to_delete(contact):
                         contact.delete()

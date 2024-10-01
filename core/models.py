@@ -1419,7 +1419,8 @@ class Subscription(models.Model):
                     "city": city,
                     "name": self.get_billing_name(),
                 }
-                print(result)
+                if settings.DEBUG:
+                    print(f"DEBUG: get_billing_data_by_priority (if address) result: {result}")
             elif not address and getattr(settings, "DEFAULT_BILLING_ADDRESS", None):
                 result = getattr(settings, "DEFAULT_BILLING_ADDRESS", None)
                 result["name"] = self.get_billing_name()
@@ -2530,7 +2531,7 @@ def update_customer(cust, newmail, field, value):
                         except KeyError:
                             pass
             else:
-                # special call for only remove one newsletter
+                # special call for only remove one newsletter. TODO: recheck this assumption
                 obj_id = json.loads(value)[0]
                 try:
                     cust.subscriptionnewsletter_set.filter(product__slug=map_setting[obj_id]).delete()
@@ -2540,9 +2541,10 @@ def update_customer(cust, newmail, field, value):
             mfield = getattr(settings, "WEB_UPDATE_SUBSCRIBER_MAP", {}).get(field, None)
             if mfield:
                 setattr(cust, mfield, eval(value) if type(getattr(cust, mfield)) is bool else value)
+                cust.save()
     else:
         cust.email = newmail or None
-    cust.save()
+        cust.save()
 
 
 def update_web_user(contact, target_email=None, newsletter_data=None, area_newsletters=False, method="PUT"):

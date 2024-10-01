@@ -58,16 +58,14 @@ def contact_post_delete(sender, instance, **kwargs):
     When this happen, managers should be notified and actions should be taken by hand, maybe also a good idea
     is to tag the user in CMS for easier identification and further back-to-consistency actions.
     """
-    if settings.DEBUG:
-        print("DEBUG: contact deletion post_delete signal executed")
-
     if settings.WEB_CREATE_USER_ENABLED and not getattr(instance, "updatefromweb", False):
         # Define the URL of the external service
         uri = settings.WEB_DELETE_USER_URI
         data = {'contact_id': instance.id, 'email': instance.email}
         try:
             res = cms_rest_api_request("contact_post_delete", uri, data, "DELETE")
-            print(res)
+            if settings.DEBUG:
+                print(f"DEBUG: (contact_post_delete) cms_rest_api_request returned: {res}")
             if isinstance(res, str) and res in ("TIMEOUT", "ERROR"):
                 raise Exception(res)
             elif res.get("msg") != "OK":
@@ -77,4 +75,6 @@ def contact_post_delete(sender, instance, **kwargs):
             tb = traceback.format_exc()
             mail_managers_on_errors(process_name, str(ex), tb)
             if settings.DEBUG:
-                print(f"Error sending delete request: {ex} trace: {tb}")
+                print(f"ERROR: (contact_post_delete) sending delete request: {ex} trace: {tb}")
+    elif settings.DEBUG:
+        print("DEBUG: (contact_post_delete) signal called - noop")
