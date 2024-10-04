@@ -1,18 +1,12 @@
 # coding:utf-8
-from builtins import range
-import string
-import random
 import unittest
 
 from django.conf import settings
 from django.test import TestCase, override_settings
 
+from util import rand_chars
 from core.utils import cms_rest_api_request
 from tests.factory import create_contact
-
-
-def rand_chars(length=9):
-    return ''.join(random.choice(string.ascii_lowercase) for _ in range(length))
 
 
 class CMSyncTestCase(TestCase):

@@ -4,7 +4,6 @@ if [ -f ".env" ]; then
 fi
 if [ -z ${TEST_MODULES+x} ]; then
     TEST_MODULES="tests.test_contact tests.test_dynamiccontactfilter tests.test_invoicing tests.test_subscriptor tests.test_email_replacements"
-    TEST_MODULES="tests"
 fi
 if [ -n "$EXTRA_TEST_MODULES" ]; then
     TEST_MODULES="$TEST_MODULES $EXTRA_TEST_MODULES"

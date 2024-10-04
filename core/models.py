@@ -22,6 +22,7 @@ from django.utils import timezone
 
 from taggit.managers import TaggableManager
 from simple_history.models import HistoricalRecords
+from phonenumber_field.modelfields import PhoneNumberField
 
 from util.dates import get_default_next_billing, get_default_start_date, diff_month
 
@@ -310,9 +311,16 @@ class Contact(models.Model):
         verbose_name=_("Document type"),
         on_delete=models.SET_NULL,
     )
-    phone = models.CharField(max_length=20, verbose_name=_("Phone"), blank=True, null=True)
-    work_phone = models.CharField(max_length=20, blank=True, null=True, verbose_name=_("Work phone"))
-    mobile = models.CharField(max_length=20, blank=True, null=True, verbose_name=_("Mobile"))
+    phone = PhoneNumberField(blank=True, default="", verbose_name=_("Phone"))
+    phone_extension = models.CharField(blank=True, default="", max_length=16, verbose_name=_("Phone extension"))
+    work_phone = PhoneNumberField(blank=True, default="", verbose_name=_("Work phone"))
+    work_phone_extension = models.CharField(
+        blank=True,
+        default="",
+        max_length=16,
+        verbose_name=_("Work phone extension"),
+    )
+    mobile = PhoneNumberField(blank=True, default="", verbose_name=_("Mobile"))
     email = models.EmailField(blank=True, null=True, unique=True, verbose_name=_("Email"))
     no_email = models.BooleanField(default=False, verbose_name=_("No email"))
     gender = models.CharField(max_length=1, choices=GENDERS, blank=True, null=True, verbose_name=_("Gender"))
@@ -731,10 +739,8 @@ class Contact(models.Model):
         return result
 
     def do_not_call(self, phone_att="phone"):
-        number = getattr(self, phone_att, None)
-        if number and DoNotCallNumber.objects.filter(number__contains=number[-8:]).exists():
-            return True
-        return False
+        number = getattr(self, phone_att)
+        return number and DoNotCallNumber.objects.filter(number__contains=number.national_number).exists()
 
     def do_not_call_phone(self):
         return self.do_not_call("phone")
@@ -1076,7 +1082,10 @@ class Subscription(models.Model):
         max_length=20, blank=True, null=True, verbose_name=_("Billing Identification Document")
     )
     rut = models.CharField(max_length=12, blank=True, null=True, verbose_name=_("R.U.T."))
-    billing_phone = models.CharField(max_length=20, blank=True, null=True, verbose_name=_("Billing phone"))
+    billing_phone = PhoneNumberField(blank=True, default="", verbose_name=_("Billing phone"))
+    billing_phone_extension = models.CharField(
+        blank=True, default="", max_length=16, verbose_name=_("Billing phone extension")
+    )
     balance = models.DecimalField(
         max_digits=10,
         decimal_places=2,
