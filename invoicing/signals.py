@@ -5,13 +5,6 @@ from django.dispatch import receiver
 from django.db.models.signals import pre_save
 from .models import Invoice
 
-"""
-@receiver(pre_save, sender=Invoice)
-@receiver(pre_save, sender=InvoiceItem)
-def table_changes_forbidden_signal(sender, instance, **kwargs):
-    raise ValidationError(u"No se permiten cambios en esta tabla")
-"""
-
 
 @receiver(pre_save, sender=Invoice)
 def invoice_pre_save_signal(sender, instance, **kwargs):

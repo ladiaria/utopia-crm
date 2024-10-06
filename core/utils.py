@@ -1,17 +1,18 @@
 from datetime import date, timedelta
 import collections
 from functools import wraps
+import json
 import requests
 from requests.auth import HTTPBasicAuth
 from requests.exceptions import ReadTimeout, RequestException
-import html2text
 from typing import Literal
+from html2text import html2text
 import logging
 
 from django.conf import settings
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
-
+from django.core.mail import mail_managers
 from rest_framework.decorators import authentication_classes
 
 
@@ -360,55 +361,74 @@ def cms_rest_api_kwargs(api_key, data=None):
     return result
 
 
-def updatewebuser(id, email, newemail, field, value):
+def updatewebuser(cid, email, newemail, name="", last_name="", fields_values={}, method="PUT"):
     """
-    Esta es la funcion que hace el POST hacia la web, siempre recibe el mail actual y el nuevo (el que se esta
-    actualizando) porque son necesarios para buscar la ficha en la web.
-    Ademas recibe el nombre de campo y el nuevo valor actualizado, son utiles cuando se quiere sincronizar otros
-    campos.
-    ATENCION: No se sincroniza cuando el nuevo valor del campo es None
+    Performs a PUT or a POST to the WEB CMS REST API to update or create the CMS models related to the contact.
+    TODO: Document the usage of the fields_values parameter.
     """
-    # TODO: translate docstring to english
-    # TODO: try to use the next function from here (DRY)
-    api_url, api_key = (getattr(settings, attr) for attr in ("WEB_UPDATE_USER_URI", "LDSOCIAL_API_KEY"))
-    if api_url and api_key:
-        data = {
-            "contact_id": id,
-            "email": email,
-            "newemail": newemail,
-            "field": field,
-            "value": value,
-        }
-        post_kwargs = cms_rest_api_kwargs(api_key, data)
-        r = requests.post(api_url, **post_kwargs)
+    data = {
+        "contact_id": cid,
+        "name": name,
+        "last_name": last_name,
+        "email": email,
+        "newemail": newemail,
+        "fields": json.dumps(fields_values),
+    }
+    try:
+        cms_rest_api_request("updatewebuser", settings.WEB_UPDATE_USER_URI, data, method)
+    except Exception as e:
         if settings.DEBUG:
-            print("DEBUG: updatewebuser api response content: " + html2text.html2text(r.content.decode()).strip())
-        r.raise_for_status()  # TODO: is there a way to "attach" the exception content (if any) to this call?
+            print(f"ERROR: updatewebuser: {e}")
 
 
-def post_to_cms_rest_api(api_name, api_uri, post_data):
+def cms_rest_api_request(api_name, api_uri, post_data, method="POST"):
+    """
+    Performs a request to the CMS REST API.
+    @param api_name: Name of the function that is calling the API
+    @param api_uri: URL of the endpoint.
+    @param post_data: Request data to be sent.
+    @param method: Http method to be used.
+    """
     api_key = settings.LDSOCIAL_API_KEY
-    if not (api_uri or api_key):
+    if not (api_uri or api_key) or method not in ("POST", "PUT", "DELETE"):
         return "ERROR"
-    post_kwargs = cms_rest_api_kwargs(api_key, post_data)
     try:
         if settings.DEBUG:
-            print("DEBUG: %s to %s with post_data='%s'" % (api_name, api_uri, post_data))
-        r = requests.post(api_uri, **post_kwargs)
-        r.raise_for_status()
-    except ReadTimeout:
+            print("DEBUG: %s to %s with method='%s', data='%s'" % (api_name, api_uri, method, post_data))
+
+        if (
+            settings.WEB_UPDATE_USER_ENABLED if method == "PUT" else (
+                settings.WEB_CREATE_USER_ENABLED or api_uri in settings.WEB_CREATE_USER_POST_WHITELIST
+            )
+        ):
+            r = getattr(requests, method.lower())(api_uri, **cms_rest_api_kwargs(api_key, post_data))
+            if settings.DEBUG:
+                html2text_content = html2text(r.content.decode()).strip()
+                # TODO: can be improved splitting and stripping more unuseful info
+                print(
+                    "DEBUG: CMS api response content: " + html2text_content.split("## Request information")[0].strip()
+                )
+            r.raise_for_status()
+            result = r.json()
+            if settings.DEBUG:
+                print(f"DEBUG: {api_name} {method} result: {result}")
+            return result
+        else:
+            print(f"DEBUG: {api_name} {method} conditions to call CMS API not met")
+    except ReadTimeout as rt:
+        if settings.DEBUG:
+            print(f"DEBUG: {api_name} {method} read timeout: {str(rt)}")
         return "TIMEOUT"
-    except RequestException:
+    except RequestException as req_ex:
+        if settings.DEBUG:
+            print(f"DEBUG: {api_name} {method} request error: {str(req_ex)}")
         return "ERROR"
     else:
-        result = r.json()
-        if settings.DEBUG:
-            print("DEBUG: %s POST result: %s" % (api_name, result))
-        return result
+        return {"msg": "OK"}
 
 
 def validateEmailOnWeb(contact_id, email):
-    return post_to_cms_rest_api(
+    return cms_rest_api_request(
         "validateEmailOnWeb", settings.WEB_EMAIL_CHECK_URI, {"contact_id": contact_id, "email": email}
     )
 
@@ -507,9 +527,22 @@ def process_invoice_request(product_slugs, email, phone, name, id_document, paym
 
     return {
         "invoice_id": invoice.id,
-        "contact_id": contact_obj.id
+        "contact_id": contact_obj.id,
     }
 
 
 def logistics_is_installed():
     return "logistics" not in getattr(settings, "DISABLED_APPS", [])
+
+
+def mail_managers_on_errors(process_name, error_msg, traceback_info=""):
+    """
+    Send error notification to the managers
+    @param process_name: Name of the process or function with error.
+    @param error_msg: Error message.
+    """
+    subject = f"System error happens in {process_name}"
+    msg = f"System error occurs {process_name} runs with error: {error_msg}\n\n"
+    if traceback_info:
+        msg += traceback_info  # Add the stack trace
+    mail_managers(subject=subject, message=msg)

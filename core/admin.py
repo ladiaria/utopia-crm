@@ -45,7 +45,6 @@ from .models import (
 )
 from .forms import SubscriptionAdminForm, ContactAdminForm
 
-
 # unregister default TagAdmin to remove inlines (avoid timeout when many taggetitems), register it again changed
 if Tag in admin.site._registry:
     admin.site.unregister(Tag)

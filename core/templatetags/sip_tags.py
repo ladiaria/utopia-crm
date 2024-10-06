@@ -1,12 +1,24 @@
 # coding=utf-8
+from phonenumbers import normalize_digits_only
+
 from django import template
 from django.conf import settings
 from django.utils.safestring import mark_safe
+
 
 register = template.Library()
 
 
 @register.filter(name='sip')
 def sip_filter(value):
-    return mark_safe('%s <a class="button btn-sm btn-primary" href="sip://%s%s"><i class="fas fa-phone"></i> Llamar</a>' % (
-        value, getattr(settings, 'SIP_DIALOUT', ''), value.split('/')[0]) if value else '')
+    """
+    @param value: phonenumber_field.phonenumber.PhoneNumber instance
+    @return: html with a button to call the phone number using SIP
+    """
+    # TODO: think what to do if value is not a valid phone number
+    normalized_number = normalize_digits_only(value.as_national)
+    return mark_safe(
+        '%s <a class="button btn-sm btn-primary" href="sip://%s%s"><i class="fas fa-phone"></i> Llamar</a>' % (
+            normalized_number, getattr(settings, 'SIP_DIALOUT', ''), normalized_number
+        ) if value else ''
+    )

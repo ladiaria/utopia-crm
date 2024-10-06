@@ -12,6 +12,7 @@ from django.contrib.auth.decorators import login_required
 
 from core.views import (
     contact_api,
+    contact_exists,
     search_contacts_htmx,
     mailtrain_list_subscription,
     mailtrain_lists,
@@ -43,6 +44,7 @@ urlpatterns += [
 
 # Core views
 urlpatterns += [
+    path("api/existsuserweb/", contact_exists),
     path("api/updateuserweb/", contact_api),
     path("api/contact_by_emailprefix/", contact_by_emailprefix),
     path('api/search_contacts/', search_contacts_htmx, name="htmx_search_contacts"),
