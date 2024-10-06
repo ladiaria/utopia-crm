@@ -1,5 +1,8 @@
 import logging
 from tqdm import tqdm
+from phonenumbers.phonenumber import PhoneNumber
+
+from django.utils.text import slugify
 
 from core.models import Contact, Subscription
 from advertisement.models import Agency, Advertiser
@@ -21,7 +24,7 @@ extension_fields = {
 
 
 def sql_replacements():
-    blank_patterns = ['-+', '0+']
+    blank_patterns = ['-+', '0+', '1+', ' +', 'x+']
     with open('/tmp/normalize_phone_numbers.sql', 'w') as f:
         for model, fields in phone_fields.items():
             for field in fields:
@@ -72,7 +75,15 @@ def normalize_phone_numbers(exclude=[], filters={}, dry_run=False):
                         has_valid = True
                         need_save = need_save or value.raw_input != value.as_e164
                     else:
-                        invalids.append((field, value))
+                        # try to slugify
+                        try:
+                            value_slugified = slugify(value)
+                            PhoneNumber(value_slugified)
+                        except ValueError:
+                            invalids.append((field, value))
+                        else:
+                            setattr(obj, field, value_slugified)
+                            has_valid, need_save = True, True
 
             has_invalid = bool(invalids)
             if has_invalid:
@@ -81,6 +92,7 @@ def normalize_phone_numbers(exclude=[], filters={}, dry_run=False):
 
             if need_save:
                 if not dry_run:
+                    obj.updatefromweb = True  # to avoid calling cms webservice
                     try:
                         obj.save()
                         saved += 1
