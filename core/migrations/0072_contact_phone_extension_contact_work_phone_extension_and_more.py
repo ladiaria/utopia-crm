@@ -74,6 +74,7 @@ class Migration(migrations.Migration):
                 max_length=128,
                 region=None,
                 verbose_name="Mobile",
+                db_index=True,
             ),
         ),
         migrations.AlterField(
@@ -85,6 +86,7 @@ class Migration(migrations.Migration):
                 max_length=128,
                 region=None,
                 verbose_name="Phone",
+                db_index=True,
             ),
         ),
         migrations.AlterField(
@@ -96,6 +98,7 @@ class Migration(migrations.Migration):
                 max_length=128,
                 region=None,
                 verbose_name="Work phone",
+                db_index=True,
             ),
         ),
         migrations.AlterField(
@@ -107,6 +110,7 @@ class Migration(migrations.Migration):
                 max_length=128,
                 region=None,
                 verbose_name="Mobile",
+                db_index=True,
             ),
         ),
         migrations.AlterField(
@@ -118,6 +122,7 @@ class Migration(migrations.Migration):
                 max_length=128,
                 region=None,
                 verbose_name="Phone",
+                db_index=True,
             ),
         ),
         migrations.AlterField(
@@ -129,6 +134,7 @@ class Migration(migrations.Migration):
                 max_length=128,
                 region=None,
                 verbose_name="Work phone",
+                db_index=True,
             ),
         ),
         migrations.AlterField(
@@ -140,6 +146,7 @@ class Migration(migrations.Migration):
                 max_length=128,
                 region=None,
                 verbose_name="Billing phone",
+                db_index=True,
             ),
         ),
         migrations.AlterField(
@@ -151,6 +158,7 @@ class Migration(migrations.Migration):
                 max_length=128,
                 region=None,
                 verbose_name="Billing phone",
+                db_index=True,
             ),
         ),
     ]
