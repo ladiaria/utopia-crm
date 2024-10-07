@@ -311,16 +311,16 @@ class Contact(models.Model):
         verbose_name=_("Document type"),
         on_delete=models.SET_NULL,
     )
-    phone = PhoneNumberField(blank=True, default="", verbose_name=_("Phone"))
+    phone = PhoneNumberField(blank=True, default="", verbose_name=_("Phone"), db_index=True)
     phone_extension = models.CharField(blank=True, default="", max_length=16, verbose_name=_("Phone extension"))
-    work_phone = PhoneNumberField(blank=True, default="", verbose_name=_("Work phone"))
+    work_phone = PhoneNumberField(blank=True, default="", verbose_name=_("Work phone"), db_index=True)
     work_phone_extension = models.CharField(
         blank=True,
         default="",
         max_length=16,
         verbose_name=_("Work phone extension"),
     )
-    mobile = PhoneNumberField(blank=True, default="", verbose_name=_("Mobile"))
+    mobile = PhoneNumberField(blank=True, default="", verbose_name=_("Mobile"), db_index=True)
     email = models.EmailField(blank=True, null=True, unique=True, verbose_name=_("Email"))
     no_email = models.BooleanField(default=False, verbose_name=_("No email"))
     gender = models.CharField(max_length=1, choices=GENDERS, blank=True, null=True, verbose_name=_("Gender"))
@@ -1082,7 +1082,7 @@ class Subscription(models.Model):
         max_length=20, blank=True, null=True, verbose_name=_("Billing Identification Document")
     )
     rut = models.CharField(max_length=12, blank=True, null=True, verbose_name=_("R.U.T."))
-    billing_phone = PhoneNumberField(blank=True, default="", verbose_name=_("Billing phone"))
+    billing_phone = PhoneNumberField(blank=True, default="", verbose_name=_("Billing phone"), db_index=True)
     billing_phone_extension = models.CharField(
         blank=True, default="", max_length=16, verbose_name=_("Billing phone extension")
     )

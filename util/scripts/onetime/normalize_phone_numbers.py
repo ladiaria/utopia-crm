@@ -1,5 +1,10 @@
 import logging
 from tqdm import tqdm
+from phonenumbers.phonenumber import PhoneNumber
+
+from django.conf import settings
+from django.utils.timezone import now
+from django.utils.text import slugify
 
 from core.models import Contact, Subscription
 from advertisement.models import Agency, Advertiser
@@ -21,17 +26,38 @@ extension_fields = {
 
 
 def sql_replacements():
-    blank_patterns = ['-+', '0+']
+    # common wrong 'beautiful patterns' that users use to fill in phone numbers fields, they won't be allowed anymore.
+    # TODO: split to extension on another patterns like: [' int ', ' int\. ', ' interno ', '-', ' - ']
+    #       for the hyphen cases it would be good to ensure both parts are valid phone numbers
+    blank_patterns = [
+        '-+',
+        '0+',
+        '1+',
+        ' +',
+        'x+',
+        '(NO|Tel|a confirmar|a conf|pdf|PDF|no tiene|mail|confirmar|fax|Fax|Cel|Celular|Celu|confirmar tel|buzon|'
+        'puerta|Buzon|Puerta|De tarde|llamar de tarde|de tardecita|digital|de mañana|no tiene correo|%s)' % (
+            '|'.join(list(dict(settings.STATES).values()))
+        ),
+    ]
     with open('/tmp/normalize_phone_numbers.sql', 'w') as f:
         for model, fields in phone_fields.items():
             for field in fields:
-                where = ' OR '.join([f"{field} ~ '^{pattern}$'" for pattern in blank_patterns])
+                where = ' OR '.join([f"{field} ~* '^{pattern}$'" for pattern in blank_patterns])
                 f.write(f"UPDATE {model._meta.db_table} SET {field} = '' WHERE {where};\n")
+                if model == Contact:
+                    notes_msg = "%s - IT: El valor telefonico invalido \"'||%s||'\" en campo \"%s\" fue eliminado." % (
+                        now().strftime("%Y-%m-%d"), field, field
+                    )
+                    notes_upd = f"notes='{notes_msg}'||E'\\n'||notes"
+                    field_cond = f"{field} != '' AND {field} !~ '[0-9]'"
+                    f.write(f"UPDATE {model._meta.db_table} SET {field}='',{notes_upd} WHERE {field_cond};\n")
         for model, fields in extension_fields.items():
             for field in fields:
                 set_str = f"{field}=trim(both ' ' FROM split_part({field}, '/', 1)),"
                 set_str += f"{field}_extension=trim(both ' ' FROM split_part({field}, '/', 2))"
-                f.write(f"UPDATE {model._meta.db_table} SET {set_str} WHERE {field} LIKE '%/%';\n")
+                ext_cond = f"{field}_extension=''"
+                f.write(f"UPDATE {model._meta.db_table} SET {set_str} WHERE {field} ~* '/' AND {ext_cond};\n")
 
 
 def normalize_phone_numbers(exclude=[], filters={}, dry_run=False):
@@ -72,7 +98,15 @@ def normalize_phone_numbers(exclude=[], filters={}, dry_run=False):
                         has_valid = True
                         need_save = need_save or value.raw_input != value.as_e164
                     else:
-                        invalids.append((field, value))
+                        # try to slugify
+                        try:
+                            value_slugified = slugify(value)
+                            PhoneNumber(value_slugified)
+                        except ValueError:
+                            invalids.append((field, value))
+                        else:
+                            setattr(obj, field, value_slugified)
+                            has_valid, need_save = True, True
 
             has_invalid = bool(invalids)
             if has_invalid:
@@ -81,6 +115,7 @@ def normalize_phone_numbers(exclude=[], filters={}, dry_run=False):
 
             if need_save:
                 if not dry_run:
+                    obj.updatefromweb = True  # to avoid calling cms webservice
                     try:
                         obj.save()
                         saved += 1
