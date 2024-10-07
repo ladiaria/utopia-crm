@@ -74,7 +74,7 @@ from .utils import (
 
 regex_alphanumeric = r"^[@A-Za-z0-9ñüáéíóúÑÜÁÉÍÓÚ _'.\-]*$"  # noqa
 regex_alphanumeric_msg = _(
-    "This name only supports alphanumeric characters, at, apostrophes, spaces, hyphens, underscores, and periods."
+    "This field only supports alphanumeric characters, at, apostrophes, spaces, hyphens, underscores, and periods."
 )
 
 alphanumeric = RegexValidator(regex_alphanumeric, regex_alphanumeric_msg)
@@ -91,7 +91,6 @@ class Institution(models.Model):
     """
     If the contact comes from an institution. This holds the institutions.
     """
-
     name = models.CharField(max_length=255, verbose_name=_("Name"))
     old_pk = models.PositiveIntegerField(blank=True, null=True, db_index=True)
 
