@@ -30,13 +30,8 @@ def sql_replacements():
     # TODO: split to extension on another patterns like: [' int ', ' int\. ', ' interno ', '-', ' - ']
     #       for the hyphen cases it would be good to ensure both parts are valid phone numbers
     blank_patterns = [
-        '-+',
-        '0+',
-        '1+',
-        ' +',
-        'x+',
-        '(NO|Tel|a confirmar|a conf|pdf|PDF|no tiene|mail|confirmar|fax|Fax|Cel|Celular|Celu|confirmar tel|buzon|'
-        'puerta|Buzon|Puerta|De tarde|llamar de tarde|de tardecita|digital|de mañana|no tiene correo|%s)' % (
+        '([-01 x]+|NO|Tel|a confirmar|a conf|pdf|PDF|no tiene|mail|confirmar|fax|Fax|Cel|Celular|Celu|confirmar tel|'
+        'buzon|puerta|Buzon|Puerta|De tarde|llamar de tarde|de tardecita|digital|de mañana|no tiene correo|%s)' % (
             '|'.join(list(dict(settings.STATES).values()))
         ),
     ]
