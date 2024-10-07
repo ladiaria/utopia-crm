@@ -5,12 +5,12 @@ from tests.factory import (
     create_contact, create_product, create_address, create_subscription, create_dynamiccontactfilter, create_route
 )
 
+from util import rand_chars
 from core.models import Contact, Product, DynamicContactFilter
 from core.choices import DYNAMIC_CONTACT_FILTER_MODES
 
 
 class TestCoreDynamicContactFilter(TestCase):
-
     """
     Pre-defined modes are:
     1, 'At least one of the products' - Contact may have any of the products
@@ -19,13 +19,13 @@ class TestCoreDynamicContactFilter(TestCase):
     """
 
     def setUp(self):
-        c1 = create_contact('contact 1', '123456', 'contact1@email.com')
+        c1 = create_contact('contact 1', '123456', f'contact1{rand_chars()}@email.com')
         a1 = create_address('Fake Street 123', c1)
-        c2 = create_contact('contact 2', '234567', 'contact2@email.com')
+        c2 = create_contact('contact 2', '234567', f'contact2{rand_chars()}@email.com')
         a2 = create_address('Fake Street 234', c2)
-        c3 = create_contact('contact 3', '345567', 'contact3@email.com')
+        c3 = create_contact('contact 3', '345567', f'contact3{rand_chars()}@email.com')
         a3 = create_address('Fake Street 345', c3)
-        c4 = create_contact('contact 4', '456789', 'contact4@email.com')
+        c4 = create_contact('contact 4', '456789', f'contact4{rand_chars()}@email.com')
         a4 = create_address('Fake Street 456', c4)
         product1 = create_product('newspaper', 500)
         product2 = create_product('digital subscription', 250)

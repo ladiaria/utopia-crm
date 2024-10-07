@@ -133,17 +133,11 @@ It is possible that you encounter this error when running the server for the fir
 
 To solve this issue, navigate to where your virtualenv is located and find the site-packages folder under the folder lib/pythonX.XX/ where X.XX is your python version. There you might find an uppercase DNS folder that you can safely rename to lowercase "dns". In the case your error shows that the module not found is an uppercase DNS, you can do the opposite.
 
-### Optional: Enabling Mercado Pago Integration
+### Enabling Mercado Pago Integration
 
 To enable Mercado Pago integration:
 
-1. Install additional requirements:
-
-   ```bash
-   pip install -r mercadopago_requirements.txt
-   ```
-
-2. Configure Mercado Pago settings in your `local_settings.py`. You can take these configurations from `local_settings_sample.py`:
+1. Enable and configure Mercado Pago settings in your `local_settings.py` using your Mercado Pago credentials:
 
    ```python
    # Mercado Pago settings
@@ -152,9 +146,7 @@ To enable Mercado Pago integration:
    MERCADOPAGO_ACCESS_TOKEN = 'your_access_token'
    ```
 
-   Replace `'your_public_key'` and `'your_access_token'` with your actual Mercado Pago credentials.
-
-3. Ensure that your server has HTTPS enabled, as Mercado Pago requires secure connections for callbacks and redirects.
+2. Ensure that your server has HTTPS enabled, as Mercado Pago requires secure connections for callbacks and redirects.
 
 ### Optional: Set a different cache for django-select2
 

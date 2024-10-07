@@ -22,6 +22,7 @@ from django.utils import timezone
 
 from taggit.managers import TaggableManager
 from simple_history.models import HistoricalRecords
+from phonenumber_field.modelfields import PhoneNumberField
 
 from util.dates import get_default_next_billing, get_default_start_date, diff_month
 
@@ -73,7 +74,7 @@ from .utils import (
 
 regex_alphanumeric = r"^[@A-Za-z0-9ñüáéíóúÑÜÁÉÍÓÚ _'.\-]*$"  # noqa
 regex_alphanumeric_msg = _(
-    "This name only supports alphanumeric characters, at, apostrophes, spaces, hyphens, underscores, and periods."
+    "This field only supports alphanumeric characters, at, apostrophes, spaces, hyphens, underscores, and periods."
 )
 
 alphanumeric = RegexValidator(regex_alphanumeric, regex_alphanumeric_msg)
@@ -90,7 +91,6 @@ class Institution(models.Model):
     """
     If the contact comes from an institution. This holds the institutions.
     """
-
     name = models.CharField(max_length=255, verbose_name=_("Name"))
     old_pk = models.PositiveIntegerField(blank=True, null=True, db_index=True)
 
@@ -310,9 +310,16 @@ class Contact(models.Model):
         verbose_name=_("Document type"),
         on_delete=models.SET_NULL,
     )
-    phone = models.CharField(max_length=20, verbose_name=_("Phone"), blank=True, null=True)
-    work_phone = models.CharField(max_length=20, blank=True, null=True, verbose_name=_("Work phone"))
-    mobile = models.CharField(max_length=20, blank=True, null=True, verbose_name=_("Mobile"))
+    phone = PhoneNumberField(blank=True, default="", verbose_name=_("Phone"), db_index=True)
+    phone_extension = models.CharField(blank=True, default="", max_length=16, verbose_name=_("Phone extension"))
+    work_phone = PhoneNumberField(blank=True, default="", verbose_name=_("Work phone"), db_index=True)
+    work_phone_extension = models.CharField(
+        blank=True,
+        default="",
+        max_length=16,
+        verbose_name=_("Work phone extension"),
+    )
+    mobile = PhoneNumberField(blank=True, default="", verbose_name=_("Mobile"), db_index=True)
     email = models.EmailField(blank=True, null=True, unique=True, verbose_name=_("Email"))
     no_email = models.BooleanField(default=False, verbose_name=_("No email"))
     gender = models.CharField(max_length=1, choices=GENDERS, blank=True, null=True, verbose_name=_("Gender"))
@@ -731,10 +738,8 @@ class Contact(models.Model):
         return result
 
     def do_not_call(self, phone_att="phone"):
-        number = getattr(self, phone_att, None)
-        if number and DoNotCallNumber.objects.filter(number__contains=number[-8:]).exists():
-            return True
-        return False
+        number = getattr(self, phone_att)
+        return number and DoNotCallNumber.objects.filter(number__contains=number.national_number).exists()
 
     def do_not_call_phone(self):
         return self.do_not_call("phone")
@@ -1076,7 +1081,10 @@ class Subscription(models.Model):
         max_length=20, blank=True, null=True, verbose_name=_("Billing Identification Document")
     )
     rut = models.CharField(max_length=12, blank=True, null=True, verbose_name=_("R.U.T."))
-    billing_phone = models.CharField(max_length=20, blank=True, null=True, verbose_name=_("Billing phone"))
+    billing_phone = PhoneNumberField(blank=True, default="", verbose_name=_("Billing phone"), db_index=True)
+    billing_phone_extension = models.CharField(
+        blank=True, default="", max_length=16, verbose_name=_("Billing phone extension")
+    )
     balance = models.DecimalField(
         max_digits=10,
         decimal_places=2,
@@ -1419,6 +1427,8 @@ class Subscription(models.Model):
                     "city": city,
                     "name": self.get_billing_name(),
                 }
+                if settings.DEBUG:
+                    print(f"DEBUG: get_billing_data_by_priority (if address) result: {result}")
             elif not address and getattr(settings, "DEFAULT_BILLING_ADDRESS", None):
                 result = getattr(settings, "DEFAULT_BILLING_ADDRESS", None)
                 result["name"] = self.get_billing_name()
@@ -2529,7 +2539,7 @@ def update_customer(cust, newmail, field, value):
                         except KeyError:
                             pass
             else:
-                # special call for only remove one newsletter
+                # special call for only remove one newsletter. TODO: recheck this assumption
                 obj_id = json.loads(value)[0]
                 try:
                     cust.subscriptionnewsletter_set.filter(product__slug=map_setting[obj_id]).delete()
@@ -2539,12 +2549,13 @@ def update_customer(cust, newmail, field, value):
             mfield = getattr(settings, "WEB_UPDATE_SUBSCRIBER_MAP", {}).get(field, None)
             if mfield:
                 setattr(cust, mfield, eval(value) if type(getattr(cust, mfield)) is bool else value)
+                cust.save()
     else:
         cust.email = newmail or None
-    cust.save()
+        cust.save()
 
 
-def update_web_user(contact, target_email=None, newsletter_data=None, area_newsletters=False):
+def update_web_user(contact, target_email=None, newsletter_data=None, area_newsletters=False, method="PUT"):
     """
     Sync some fields from contact with the web CMS linked subscriptor target reference.
     If newsletter_data is given, newsletters will be sent to websync.
@@ -2554,7 +2565,7 @@ def update_web_user(contact, target_email=None, newsletter_data=None, area_newsl
     @param area_newsletters: field name for newsletters.
     """
     if settings.WEB_UPDATE_USER_ENABLED and not getattr(contact, "updatefromweb", False) and contact.id:
-        fields_to_update = dict()
+        fields_to_update = {}
         try:
             if newsletter_data:
                 field = ("area_" if area_newsletters else "") + "newsletters"
@@ -2568,7 +2579,9 @@ def update_web_user(contact, target_email=None, newsletter_data=None, area_newsl
                 if before_saved_value is not None and current_saved_value != before_saved_value:
                     fields_to_update.update({f: current_saved_value})
             # call for sync if there are fields to update
-            updatewebuser(contact.id, target_email, contact.email, contact.name, contact.last_name, fields_to_update)
+            updatewebuser(
+                contact.id, target_email, contact.email, contact.name, contact.last_name, fields_to_update, method
+            )
         except RequestException as e:
             raise ValidationError("{}: {}".format(_("CMS sync error"), e))
         except Contact.DoesNotExist:
@@ -2582,15 +2595,14 @@ def update_web_user_newsletters(contact):
     """
     try:
         newsletters_slugs = contact.get_active_newsletters().values_list('slug', flat=True)
-        update_web_user(contact, contact.email, json.dumps(newsletters_slugs))
+        update_web_user(contact, contact.email, json.dumps(newsletters_slugs), method="PUT")
     except Exception as ex:
-        print("Error sending the request to CMS", str(ex))
-        pass
+        if settings.DEBUG:
+            print("Error sending the request to CMS", str(ex))
 
 
 class MailtrainList(models.Model):
-    """MailtrainList
-
+    """
     Stores Mailtrain lists to use when updating contacts in the Mailtrain system. This is also used in the CMS
     and should be synced to the model in the CMS.
 

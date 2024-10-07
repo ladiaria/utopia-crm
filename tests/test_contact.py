@@ -11,7 +11,7 @@ from tests.factory import (
     create_contact, create_simple_invoice, create_product, create_campaign, create_address, create_subtype
 )
 
-from util import space_join
+from util import space_join, rand_chars
 from core.models import Contact, Product, Campaign, ContactCampaignStatus, update_customer
 from invoicing.models import Invoice
 
@@ -20,7 +20,7 @@ class TestCoreContact(TestCase):
 
     def test1_create_contact(self):
         """
-        Gets the contact and checks that its name is the one we set in setUp
+        Basic create checks
         """
         with override_settings(WEB_CREATE_USER_ENABLED=False):
             create_contact(name='Contact 1', phone='12345678')
@@ -174,14 +174,17 @@ class TestCoreContact(TestCase):
         - TODO: Adding correct NL should impact in the associated CMS (use CMS's /api/subscribers/?contact_id=XX)
         """
         with override_settings(WEB_CREATE_USER_ENABLED=False):
-            email = "contact@fakemail.com.uy"
-            contact = create_contact("Digital", 29000808, email)
+            email = f"contact{rand_chars()}@google.com"
+            # next line may generate a 400 error in API when there is already an user with this email and because we
+            # are not allowed by settings to create new contacts. the error is harmless, and maybe another http status
+            # code would be more appropriate (TODO)
+            contact = create_contact("Digital", "29000808", email)
             # secure id check to prevent failures on "running" CMS databases
             if contact.id > 999:  # TODO: a new local setting and only make this check if the setting is set
                 self.fail("contact_id secure limit reached, please drop your test db and try again")
-        contact.email = "newemail@fakemail.com.uy"
+        contact.email = f"newemail{rand_chars()}@google.com"
         contact.save()
-        # change again, if not, next run of this test will fail (TODO: confirm this assumption)
+        # change again, if not, next run of this test will fail
         contact.email = email
         contact.save()
         non_existing_key = max(settings.WEB_UPDATE_NEWSLETTER_MAP.keys() or [0]) + 1

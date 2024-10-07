@@ -375,62 +375,6 @@ class ContactAdmin(SimpleHistoryAdmin):
             if skip_clean_set:
                 del obj._skip_clean
 
-    """
-    deletion sync is beeing implemented on signals.py (not finished yet)
-    def delete_model(self, request, obj):
-        try:
-            if contact_is_safe_to_delete(obj):
-                contact_id = obj.id
-                # Perform the actual deletion
-                super().delete_model(request, obj)
-                obj.id = contact_id
-                # TODO: Thinks if is better approach do this validation against CMS before the deletion in CRM
-                self.send_deletion_request(obj, request)
-            else:
-                raise Exception(f"Contact: {str(obj.id)} is not safe to delete")
-        except Exception as ex:
-            # TODO: improve this log
-            self.message_user(request, "Error al tratar de eliminar el contacto", level=messages.WARNING)
-            print(f"Error trying deletetion on contact: {obj.id} with error: {ex}")
-
-
-    def delete_queryset(self, request, queryset):
-        are_errors = False
-        for obj in queryset:
-            try:
-                if contact_is_safe_to_delete(obj):
-                    contact_id = obj.id
-                    # Perform the actual deletion
-                    super().delete_model(request, obj)
-                    obj.id = contact_id
-                    print("el contact tiene el id", obj.id)
-                    # TODO: review this if we could send bulk requests
-                    # TODO: Thinks if is better approach do this validation against CMS before the deletion in CRM
-                    self.send_deletion_request(obj, request)
-                else:
-                    raise Exception(f"Conact: {str(obj.id)} is not safe for delete")
-            except Exception as ex:
-                if not are_errors:
-                    are_errors = True
-                print(f"Error trying deletetion on contact: {obj.id} with error: {ex}")
-                pass
-        if are_errors:
-            self.message_user(request, "Algunos contactos no pudieron ser eliminados", level=messages.WARNING)
-
-    def send_deletion_request(self, obj, request):
-
-        if settings.WEB_CREATE_USER_ENABLED and not getattr(obj, "updatefromweb", False):
-            # Define the URL of the external service
-            url = settings.WEB_DELETE_USER_URI
-            data = {'contact_id': obj.id, 'email': obj.email}
-            try:
-                post_to_cms_rest_api("send_deletion_request", url, data, "DELETE")
-            except Exception as ex:
-                # TODO: improve this log
-                self.message_user(request, "Error al intentar eliminar contacto en el CMS", level=messages.WARNING)
-                print(f"Error sending delete request: {ex}")
-    """
-
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
