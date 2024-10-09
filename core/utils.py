@@ -1,6 +1,7 @@
 from datetime import date, timedelta
 import collections
 from functools import wraps
+import json
 import requests
 from requests.auth import HTTPBasicAuth
 from requests.exceptions import ReadTimeout, RequestException
@@ -11,7 +12,7 @@ import logging
 from django.conf import settings
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
-
+from django.core.mail import mail_managers
 from rest_framework.decorators import authentication_classes
 
 
@@ -360,37 +361,28 @@ def cms_rest_api_kwargs(api_key, data=None):
     return result
 
 
-def updatewebuser(id, email, newemail, name="", last_name="", fields_values={}):
+def updatewebuser(cid, email, newemail, name="", last_name="", fields_values={}, method="PUT"):
     """
-    Performs a POST to the WEB CMS app.
-    Those email arguments are necessary for find the user on WEB CMS app
-    @param id: ID of the contact in integer format
-    @param name: Name of the contact in string format
-    @param last_name: Last name of the contact in string format
-    @param email: Current email of the contact in email format. This is used for find the user in WEB CMS app
-    @param newemail: New email for the contact, the email that will be set like updates on CMS app
-    @param fields_values: Field values to update into User/Subscriber the WEB CMS app in dict format like
-    {"field_name": "field_value"}
-    Warning: This not excecute the sync if the values to update are None
+    Performs a PUT or a POST to the WEB CMS REST API to update or create the CMS models related to the contact.
+    TODO: Document the usage of the fields_values parameter.
     """
     data = {
-        "contact_id": id,
+        "contact_id": cid,
         "name": name,
         "last_name": last_name,
         "email": email,
         "newemail": newemail,
-        "fields": fields_values,
+        "fields": json.dumps(fields_values),
     }
     try:
-        post_to_cms_rest_api("updatewebuser", settings.WEB_UPDATE_USER_URI, data)
+        cms_rest_api_request("updatewebuser", settings.WEB_UPDATE_USER_URI, data, method)
     except Exception as e:
         if settings.DEBUG:
-            print(f"Error updating web user: {e}")
+            print(f"ERROR: updatewebuser: {e}")
 
 
-def post_to_cms_rest_api(api_name, api_uri, post_data, method="POST"):
+def cms_rest_api_request(api_name, api_uri, post_data, method="POST"):
     """
-    TODO: rename properly to cms_rest_api_request
     Performs a request to the CMS REST API.
     @param api_name: Name of the function that is calling the API
     @param api_uri: URL of the endpoint.
@@ -402,7 +394,7 @@ def post_to_cms_rest_api(api_name, api_uri, post_data, method="POST"):
         return "ERROR"
     try:
         if settings.DEBUG:
-            print("DEBUG: %s to %s with post_data='%s'" % (api_name, api_uri, post_data))
+            print("DEBUG: %s to %s with method='%s', data='%s'" % (api_name, api_uri, method, post_data))
 
         if (
             settings.WEB_UPDATE_USER_ENABLED if method == "PUT" else (
@@ -412,6 +404,7 @@ def post_to_cms_rest_api(api_name, api_uri, post_data, method="POST"):
             r = getattr(requests, method.lower())(api_uri, **cms_rest_api_kwargs(api_key, post_data))
             if settings.DEBUG:
                 html2text_content = html2text(r.content.decode()).strip()
+                # TODO: can be improved splitting and stripping more unuseful info
                 print(
                     "DEBUG: CMS api response content: " + html2text_content.split("## Request information")[0].strip()
                 )
@@ -435,7 +428,7 @@ def post_to_cms_rest_api(api_name, api_uri, post_data, method="POST"):
 
 
 def validateEmailOnWeb(contact_id, email):
-    return post_to_cms_rest_api(
+    return cms_rest_api_request(
         "validateEmailOnWeb", settings.WEB_EMAIL_CHECK_URI, {"contact_id": contact_id, "email": email}
     )
 
@@ -540,3 +533,16 @@ def process_invoice_request(product_slugs, email, phone, name, id_document, paym
 
 def logistics_is_installed():
     return "logistics" not in getattr(settings, "DISABLED_APPS", [])
+
+
+def mail_managers_on_errors(process_name, error_msg, traceback_info=""):
+    """
+    Send error notification to the managers
+    @param process_name: Name of the process or function with error.
+    @param error_msg: Error message.
+    """
+    subject = f"System error happens in {process_name}"
+    msg = f"System error occurs {process_name} runs with error: {error_msg}\n\n"
+    if traceback_info:
+        msg += traceback_info  # Add the stack trace
+    mail_managers(subject=subject, message=msg)

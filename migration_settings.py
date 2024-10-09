@@ -104,6 +104,7 @@ INSTALLED_APPS = [
     "djgeojson",
     'markdownify.apps.MarkdownifyConfig',
     'django_select2',
+    "phonenumber_field",
     # crm apps enabled
     "core",
     "support",

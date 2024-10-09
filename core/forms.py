@@ -166,24 +166,6 @@ class ContactAdminForm(EmailValidationForm, forms.ModelForm):
 
         return id_document
 
-    def clean_phone(self):
-        phone = self.cleaned_data.get("phone")
-        if phone and not phone.replace("/", "").isdigit():
-            raise forms.ValidationError(_("Only numbers and slashes are accepted"))
-        return phone
-
-    def clean_work_phone(self):
-        work_phone = self.cleaned_data.get("work_phone")
-        if work_phone and not work_phone.replace("/", "").isdigit():
-            raise forms.ValidationError(_("Only numbers and slashes are accepted"))
-        return work_phone
-
-    def clean_mobile(self):
-        mobile = self.cleaned_data.get("mobile")
-        if mobile and not mobile.replace("/", "").isdigit():
-            raise forms.ValidationError(_("Only numbers and slashes are accepted"))
-        return mobile
-
     def clean_email(self):
         email = self.cleaned_data.get("email")
 
