@@ -57,6 +57,7 @@ class InvoiceFactory(DjangoModelFactory):
 class InvoiceItemFactory(DjangoModelFactory):
     """
     Factory for creating InvoiceItem instances.
+    Default settings create an invoice item with a random number of copies and a random price.
     """
     class Meta:
         model = InvoiceItem
