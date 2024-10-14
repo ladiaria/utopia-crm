@@ -10,6 +10,9 @@ from tests.factories import ContactFactory, ProductFactory
 
 
 class InvoiceFactory(DjangoModelFactory):
+    """
+    Factory for creating Invoice instances. Default settings create an unpaid invoice.
+    """
     class Meta:
         model = Invoice
 
