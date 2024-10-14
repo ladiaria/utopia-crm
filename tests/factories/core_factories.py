@@ -1,5 +1,5 @@
 from django.conf import settings
-from factory import Faker, SubFactory, LazyAttribute, post_generation
+from factory import Faker, SubFactory
 from factory.django import DjangoModelFactory
 from core.models import Contact, Address, Product, Subscription
 from core.choices import PRODUCT_TYPE_CHOICES, SUBSCRIPTION_TYPE_CHOICES, SUBSCRIPTION_STATUS_CHOICES
