@@ -55,6 +55,9 @@ class InvoiceFactory(DjangoModelFactory):
 
 
 class InvoiceItemFactory(DjangoModelFactory):
+    """
+    Factory for creating InvoiceItem instances.
+    """
     class Meta:
         model = InvoiceItem
 
