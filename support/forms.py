@@ -5,6 +5,8 @@ from django import forms
 from django.forms import ValidationError
 from django.contrib.auth.models import User
 from django.utils.safestring import mark_safe
+from phonenumber_field.formfields import PhoneNumberField
+from phonenumber_field.widgets import RegionalPhoneNumberWidget
 
 from core.models import (
     Contact,
@@ -17,7 +19,7 @@ from core.models import (
     regex_alphanumeric_msg,
 )
 from core.forms import EmailValidationForm
-from core.choices import ADDRESS_TYPE_CHOICES, FREQUENCY_CHOICES, ACTIVITY_TYPES
+from core.choices import ADDRESS_TYPE_CHOICES, ACTIVITY_TYPES
 from core.signals import alphanumeric
 
 
@@ -143,8 +145,16 @@ class NewAddressChangeScheduledTaskForm(forms.Form):
 
 class NewPromoForm(EmailValidationForm):
     name = forms.CharField(widget=forms.TextInput(attrs={"class": "form-control"}))
-    phone = forms.CharField(empty_value=None, required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
-    mobile = forms.CharField(empty_value=None, required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
+    phone = PhoneNumberField(
+        empty_value="",
+        required=False,
+        widget=RegionalPhoneNumberWidget(attrs={"class": "form-control"}),
+    )
+    mobile = PhoneNumberField(
+        empty_value="",
+        required=False,
+        widget=RegionalPhoneNumberWidget(attrs={"class": "form-control"}),
+    )
     notes = forms.CharField(
         empty_value=None, required=False, widget=forms.Textarea(attrs={"class": "form-control", "rows": "4"})
     )
@@ -242,11 +252,14 @@ class NewSubscriptionForm(EmailValidationForm, forms.ModelForm):
         }
 
     name = forms.CharField(widget=forms.TextInput(attrs={"class": "form-control"}), label="Nombre")
-    phone = forms.CharField(
-        empty_value=None, widget=forms.TextInput(attrs={"class": "form-control"}), label="Teléfono"
+    phone = PhoneNumberField(
+        empty_value="", widget=RegionalPhoneNumberWidget(attrs={"class": "form-control"}), label="Teléfono"
     )
-    mobile = forms.CharField(
-        empty_value=None, required=False, widget=forms.TextInput(attrs={"class": "form-control"}), label="Celular"
+    mobile = PhoneNumberField(
+        empty_value="",
+        required=False,
+        widget=RegionalPhoneNumberWidget(attrs={"class": "form-control"}),
+        label="Celular",
     )
     notes = forms.CharField(
         empty_value=None,

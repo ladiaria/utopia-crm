@@ -45,7 +45,6 @@ from .models import (
 )
 from .forms import SubscriptionAdminForm, ContactAdminForm
 
-
 # unregister default TagAdmin to remove inlines (avoid timeout when many taggetitems), register it again changed
 if Tag in admin.site._registry:
     admin.site.unregister(Tag)
@@ -128,9 +127,11 @@ class SubscriptionProductInline(admin.TabularInline):
     def formfield_for_foreignkey(self, db_field, request=None, **kwargs):
         field = super(SubscriptionProductInline, self).formfield_for_foreignkey(db_field, request, **kwargs)
         if db_field.name == "address":
-            if request:
+            if request and self.get_parent_object_from_request(request):
                 contact = self.get_parent_object_from_request(request).contact
                 field.queryset = field.queryset.filter(contact=contact)
+            else:
+                field.queryset = field.queryset.none()
         return field
 
 
@@ -246,14 +247,20 @@ class SubscriptionAdmin(SimpleHistoryAdmin):
     list_display = ("contact", "active", "payment_type", "campaign", "product_summary")
     list_editable = ("active", "payment_type")
     list_filter = ("campaign", "active", "payment_type")
+    raw_id_fields = ("contact",)
     readonly_fields = (
-        "contact",
         "edit_products_field",
         "campaign",
         "updated_from",
         "unsubscription_products",
         "validated_by",
     )
+
+    def get_readonly_fields(self, request, obj):
+        readonly_fields = super().get_readonly_fields(request, obj)
+        if obj:
+            readonly_fields += ("contact",)
+        return readonly_fields
 
     def response_add(self, request, obj, post_url_continue=None):
         if obj.contact.offer_default_newsletters_condition():

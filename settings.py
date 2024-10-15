@@ -105,6 +105,7 @@ INSTALLED_APPS = [
     "djgeojson",
     'markdownify.apps.MarkdownifyConfig',
     'django_select2',
+    "phonenumber_field",
     # crm apps enabled
     "core",
     "support",
@@ -219,31 +220,44 @@ WEB_UPDATE_NEWSLETTER_MAP = {
 WEB_UPDATE_AREA_NEWSLETTER_MAP = {
     # Override to sync CMS Area newsletters subscriptions, format: key: CMS Category.id, value: product.slug
 }
-# Api uris which their default value will be assigned after local_settings import, if not overrided there
-WEB_UPDATE_USER_URI = None
-WEB_EMAIL_CHECK_URI = None
-
 # If True, allows queuing subscriptions to start after the active one ends. This is useful for
 # example to queue a subscription to start after the current one ends, in the case the customer
 # wants to pay for a new subscription before the current one ends.
 ALLOW_QUEUE_SUBSCRIPTIONS = False
 
+# MercadoPago integration (override this to True in your local_settings.py to enable)
+MERCADOPAGO_ENABLED = False
+
+# phonenumbers default region
+PHONENUMBER_DEFAULT_REGION = "UY"
+
+# Variables which their default value will be assigned after local_settings import, if not overrided there
+WEB_UPDATE_USER_URI = None
+WEB_DELETE_USER_URI = None
+WEB_EMAIL_CHECK_URI = None
+WEB_CREATE_USER_ENABLED = None
+WEB_CREATE_USER_POST_WHITELIST = []
+
 # Import local settings if they exist
 # TODO: - improve hardcoded load of community settings (which are this community settings?)
-#         (maybe the app community here, uses some values that can be migrated to settings)
-#       - ask @virusereturns why mercadopago settings needs a separated local settings file
+#         (maybe is the app "community", which defines variables that can be better migrated to this settings file)
 #       - investigate usage of django-environ to manage settings more easily
 try:
     from local_settings import *  # noqa
 except ImportError:
     pass
 
-MERCADOPAGO_ENABLED = False
-
 # utopia-cms interoperability default urls. TODO: s/(WEB_|LDSOCIAL_)/UTOPIACMS_/
 if LDSOCIAL_URL:
     WEB_UPDATE_USER_URI = WEB_UPDATE_USER_URI or (LDSOCIAL_URL + 'usuarios/fromcrm')
+    WEB_DELETE_USER_URI = WEB_DELETE_USER_URI or (LDSOCIAL_URL + 'usuarios/deletefromcrm')
     WEB_EMAIL_CHECK_URI = WEB_EMAIL_CHECK_URI or (LDSOCIAL_URL + 'usuarios/api/email_check/')
+
+if WEB_CREATE_USER_ENABLED is None:
+    WEB_CREATE_USER_ENABLED = WEB_UPDATE_USER_ENABLED
+
+if not WEB_CREATE_USER_ENABLED and WEB_EMAIL_CHECK_URI not in WEB_CREATE_USER_POST_WHITELIST:
+    WEB_CREATE_USER_POST_WHITELIST.append(WEB_EMAIL_CHECK_URI)
 
 if ENV_HTTP_BASIC_AUTH and not locals().get("API_KEY_CUSTOM_HEADER"):
     # by default, this variable is not defined, thats why we use locals() instead of set a "neutral" value

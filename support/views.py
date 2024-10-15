@@ -1,12 +1,10 @@
 # coding=utf-8
-from __future__ import division, unicode_literals
-
 import csv
 import collections
 from requests import RequestException
 from datetime import date, timedelta, datetime
 
-from django.db.models import Q, Count, Sum, Min, Prefetch
+from django.db.models import Q, Count, Sum, Min
 from taggit.models import Tag
 
 from django import forms
@@ -36,7 +34,6 @@ from django.views.generic import FormView
 from django.conf import settings
 from django_filters.views import FilterView
 from django.utils.decorators import method_decorator
-
 from util.dates import add_business_days
 from core.filters import ContactFilter
 from core.forms import AddressForm, ContactAdminForm
@@ -53,6 +50,7 @@ from core.models import (
     DynamicContactFilter,
     DoNotCallNumber,
     MailtrainList,
+    update_web_user_newsletters
 )
 from core.choices import CAMPAIGN_RESOLUTION_REASONS_CHOICES
 from core.utils import calc_price_from_products, process_products, logistics_is_installed
@@ -118,11 +116,13 @@ def csv_sreader(src):
 @staff_member_required
 def import_contacts(request):
     """
-    Imports contacts from a CSV file.
+    Imports contacts from a CSV file. TODO: Pandas this
     Csv must consist of a header, and then:
-    name, last_name, email, phone, mobile, work_phone, notes, address_1, address_2, city, state, country, id_document_type, id_document, ranking
-    0   , 1        , 2    , 3    , 4     , 5        , 6    , 7         , 8         , 9   , 10   , 11     , 12            , 13         , 14
-    TODO: Pandas this
+    name, last_name, email, phone, mobile, work_phone, notes, address_1, address_2, city, state, country,
+    0   , 1        , 2    , 3    , 4     , 5         , 6    , 7        , 8        , 9   , 10   , 11     ,
+
+    id_document_type, id_document, ranking
+    12              , 13         , 14
     """
     if request.POST and request.FILES:
         new_contacts_list = []
@@ -2122,14 +2122,19 @@ def edit_contact(request, contact_id):
 def edit_newsletters(request, contact_id):
     contact = get_object_or_404(Contact, pk=contact_id)
     if request.POST:
+        nl_updated = False
         all_newsletters = Product.objects.filter(type="N", active=True)
         for newsletter in all_newsletters:
             if request.POST.get(str(newsletter.id)):
                 if not contact.has_newsletter(newsletter.id):
                     contact.add_newsletter(newsletter.id)
+                    nl_updated = True
             else:
                 if contact.has_newsletter(newsletter.id):
                     contact.remove_newsletter(newsletter.id)
+                    nl_updated = True
+        if nl_updated:
+            update_web_user_newsletters(contact)
         messages.success(request, _("Newsletters edited successfully"))
         return HttpResponseRedirect(reverse("edit_contact", args=[contact_id]))
 
@@ -3568,7 +3573,8 @@ class SubscriptionEndDateListView(FilterView, ListView):
 
     def export_to_csv(self):
         queryset = self.get_queryset().select_related('contact').prefetch_related('products')
-        print(queryset.count())
+        if settings.DEBUG:
+            print(queryset.count())
 
         data = []
         for subscription in queryset:
