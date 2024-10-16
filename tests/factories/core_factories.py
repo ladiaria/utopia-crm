@@ -1,7 +1,7 @@
 from django.conf import settings
 from factory import Faker, SubFactory
 from factory.django import DjangoModelFactory
-from core.models import Contact, Address, Product, Subscription
+from core.models import Contact, Address, Product, Subscription, Campaign
 from core.choices import PRODUCT_TYPE_CHOICES, SUBSCRIPTION_TYPE_CHOICES, SUBSCRIPTION_STATUS_CHOICES
 
 
@@ -68,3 +68,13 @@ class AddressFactory(DjangoModelFactory):
     state_id = None
     city_id = None
     country = Faker("country")
+
+
+class CampaignFactory(DjangoModelFactory):
+    class Meta:
+        model = Campaign
+
+    name = Faker("word")
+    description = Faker("text", max_nb_chars=200)
+    start_date = Faker("date_this_year")
+    end_date = Faker("date_this_year")
