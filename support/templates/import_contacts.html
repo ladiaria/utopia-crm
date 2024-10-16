@@ -4,8 +4,7 @@
 {% block title %}{% trans "Import contacts" %}{% endblock title %}
 
 {% block no_heading %}
-<h1>{% trans "Support" %}</h1>
-<p>{% trans "Import new contacts" %}</p>
+<h1>{% trans "Campaign Administration" %}</h1>
 {% endblock %}
 {% block breadcrumbs %}
 <ol class="breadcrumb">
@@ -15,23 +14,7 @@
 
 {% block content %}
 <div class="card">
-  <div class="card-header">
-    <h3 class="card-title">{% trans "Import new contacts" %}</h3>
-  </div>
   <div class="card-body">
-    {% if new_contacts_count %}
-    <h4>{{ new_contacts_count }} {% trans "new contacts imported" %}:</h4>
-    {% endif %}
-
-    {% if in_active_campaign %}
-    <p>{{ in_active_campaign }} contactos fueron encontrados en campañas activas.</p>
-    {% endif %}
-    {% if active_contacts %}<p>{{ active_contacts }} contactos estaban activos.</p>{% endif %}
-    {% if existing_inactive_contacts %}<p>{{ existing_inactive_contacts }} contactos estaban inactivos.</p>{% endif %}
-    {% if added_emails %}
-    <p>{{ added_emails }} emails fueron agregados a contactos existentes.</p>
-    {% endif %}
-
     {% if errors_list %}
     <h4>{% trans "Import has encountered some errors" %}:</h4>
     <ul>
@@ -46,7 +29,7 @@
       <div class="form-group">
         <label
           for="file">{% trans "Choose file to send. It has to be a csv file with the following header and columns" %}:</label>
-        <p>Nombre, apellido, email, teléfono, celular, teléfono_trabajo, notas, direccion_1, direccion_2, ciudad, estado, país, tipo_documento, documento, calificación</p>
+        <pre>nombre, apellido, email, teléfono, celular, notas, direccion_1, direccion_2, ciudad, estado, país, tipo_documento, documento, calificación</pre>
         <p>{% trans "All columns must be present in the header." %}</p>
         <input type="file" name="file" id="file" class="form-control" accept=".csv">
       </div>

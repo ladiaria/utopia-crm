@@ -50,7 +50,7 @@ from core.models import (
     DynamicContactFilter,
     DoNotCallNumber,
     MailtrainList,
-    update_web_user_newsletters
+    update_web_user_newsletters,
 )
 from core.choices import CAMPAIGN_RESOLUTION_REASONS_CHOICES
 from core.utils import calc_price_from_products, process_products, logistics_is_installed
@@ -114,13 +114,10 @@ def csv_sreader(src):
 @staff_member_required
 def import_contacts(request):
     """
-    Imports contacts from a CSV file. TODO: Pandas this
-    Csv must consist of a header, and then:
-    name, last_name, email, phone, mobile, work_phone, notes, address_1, address_2, city, state, country,
-    0   , 1        , 2    , 3    , 4     , 5         , 6    , 7        , 8        , 9   , 10   , 11     ,
-
-    id_document_type, id_document, ranking
-    12              , 13         , 14
+    Imports contacts from a CSV file.
+    CSV must consist of a header, and then:
+    name, last_name, email, phone, mobile, notes, address_1, address_2, city, state, country, id_document_type,
+    id_document, ranking
     """
     if request.POST and request.FILES:
         new_contacts_list = []
@@ -129,6 +126,8 @@ def import_contacts(request):
         existing_inactive_contacts = []
         errors_list = []
         added_emails = 0
+        added_phones = 0
+        added_mobiles = 0
         tag_list, tag_list_in_campaign, tag_list_active, tag_list_existing = [], [], [], []
         tags = request.POST.get("tags", None)
         if tags:
@@ -153,8 +152,7 @@ def import_contacts(request):
         # check files for every possible match
         try:
             reader = csv_sreader(request.FILES["file"].read().decode("utf-8"))
-            # consume header
-            next(reader)
+            next(reader)  # consume header
         except UnicodeDecodeError:
             messages.error(request, _("The file is not compatible. Check that the encoding is UTF-8"))
             return HttpResponseRedirect(reverse("import_contacts"))
@@ -165,35 +163,24 @@ def import_contacts(request):
         for row_number, row in enumerate(reader, start=1):
             try:
                 name = row[0]
-                last_name = row[1] or None
+                last_name = row[1] or ""
                 email = row[2] or None
-                phone = row[3] or None
+                phone = row[3] or ""
                 if email:
                     email = email.lower()
-                mobile = row[4] or None
-                work_phone = row[5] or None
-                notes = row[6].strip() or None
-                address_1 = row[7] or None
-                address_2 = row[8] or None
-                city = row[9] or None
-                state = row[10].strip() or None
-                country = row[11] or None
-                id_document_type = row[12] or None
-                id_document = row[13] or None
-                ranking = row[14] or None
-                # This is only valid for Uruguay. If needed we might move this to a custom function or setting
-                if phone and phone.startswith("9"):
-                    phone = "0{}".format(phone)
-                if mobile and mobile.startswith("9"):
-                    mobile = "0{}".format(mobile)
-                if work_phone and work_phone.startswith("9"):
-                    work_phone = "0{}".format(work_phone)
-                if phone == "" or mobile == "" or work_phone == "" or not any([phone, mobile, work_phone]):
-                    errors_list.append("CSV Row {}: {} has no phone".format(row_number, name))
-                    continue
+                mobile = row[4] or ""
+                notes = row[5].strip() or None
+                address_1 = row[6] or None
+                address_2 = row[7] or None
+                city = row[8] or None
+                state = row[9].strip() or None
+                country = row[10] or None
+                id_document_type = row[11] or None
+                id_document = row[12] or None
+                ranking = row[13] or None
             except IndexError:
                 messages.error(
-                    request, _("The column count is wrong, please check that the file has at least 10 columns")
+                    request, _("The column count is wrong, please check that the file has at least 14 columns")
                 )
                 return HttpResponseRedirect(reverse("import_contacts"))
             cpx = Q()
@@ -201,14 +188,14 @@ def import_contacts(request):
             if email and email != "":
                 cpx = cpx | Q(email=email)
             if phone and phone != "":
-                cpx = cpx | Q(work_phone=phone) | Q(mobile=phone) | Q(phone=phone)
+                cpx = cpx | Q(phone=phone)
             if mobile and mobile != "":
-                cpx = cpx | Q(work_phone=mobile) | Q(mobile=mobile) | Q(phone=mobile)
-            if work_phone and work_phone != "":
-                cpx = cpx | Q(work_phone=work_phone) | Q(mobile=work_phone) | Q(phone=work_phone)
+                cpx = cpx | Q(mobile=mobile)
             matches = Contact.objects.filter(cpx)
             if matches.count() > 0:
-                # if we get more than one match, alert the user
+                # If we get more than one match, we'll add the tags to the first one and continue.
+                # After this, we'll check if the email and phones are not already in the contact and add them if they
+                # are not.
                 for c in matches:
                     if c.contactcampaignstatus_set.filter(campaign__active=True).exists():
                         in_active_campaign.append(c.id)
@@ -226,13 +213,27 @@ def import_contacts(request):
                             for tag in tag_list_existing:
                                 c.tags.add(tag)
                     if matches.count() == 1:
-                        if c.email is None and row[2] and not Contact.objects.filter(email=row[2]).exists():
+                        if not c.email and email and not Contact.objects.filter(email=email).exists():
                             try:
-                                c.email = row[2]
+                                c.email = email
                                 c.save()
                                 added_emails += 1
                             except Exception as e:
-                                errors_list.append(f"No se pudo agregar el email {row[2]} al contacto {c.id}: {e}")
+                                errors_list.append(f"No se pudo agregar el email {email} al contacto {c.id}: {e}")
+                        if not c.phone and phone:
+                            try:
+                                c.phone = phone
+                                c.save()
+                                added_phones += 1
+                            except Exception as e:
+                                errors_list.append(f"No se pudo agregar el teléfono {phone} al contacto {c.id}: {e}")
+                        if not c.mobile and mobile:
+                            try:
+                                c.mobile = mobile
+                                c.save()
+                                added_mobiles += 1
+                            except Exception as e:
+                                errors_list.append(f"No se pudo agregar el celular {mobile} al contacto {c.id}: {e}")
             else:
                 try:
                     new_contact = Contact.objects.create(
@@ -240,7 +241,6 @@ def import_contacts(request):
                         last_name=last_name,
                         phone=phone,
                         email=email,
-                        work_phone=work_phone,
                         mobile=mobile,
                         notes=notes,
                         id_document_type=id_document_type,
@@ -265,19 +265,28 @@ def import_contacts(request):
                             new_contact.tags.add(tag)
                 except Exception as e:
                     errors_list.append("CSV Row {}: {}".format(row_number, e))
-        return render(
-            request,
-            "import_contacts.html",
-            {
-                "new_contacts_count": len(new_contacts_list),
-                "in_active_campaign": len(in_active_campaign),
-                "active_contacts": len(active_contacts),
-                "existing_inactive_contacts": len(existing_inactive_contacts),
-                "added_emails": added_emails,
-                "errors_list": errors_list,
-                "tag_list": tag_list,
-            },
-        )
+        if new_contacts_list:
+            messages.success(request, _("{} contacts imported successfully".format(len(new_contacts_list))))
+        if in_active_campaign:
+            messages.warning(request, _("{} contacts were found in active campaigns".format(len(in_active_campaign))))
+        if active_contacts:
+            messages.warning(
+                request, _("{} contacts were found with active subscriptions".format(len(active_contacts)))
+            )
+        if existing_inactive_contacts:
+            messages.warning(
+                request,
+                _("{} contacts were found without active subscriptions".format(len(existing_inactive_contacts))),
+            )
+        if added_emails:
+            messages.success(request, _("{} emails were added to existing contacts".format(added_emails)))
+        if added_phones:
+            messages.success(request, _("{} phone numbers were added to existing contacts".format(added_phones)))
+        if added_mobiles:
+            messages.success(request, _("{} mobile numbers were added to existing contacts".format(added_mobiles)))
+        if errors_list:
+            messages.error(request, _("Import has encountered some errors"))
+        return HttpResponseRedirect(reverse("import_contacts"))
     else:
         return render(
             request,
@@ -3576,14 +3585,16 @@ class SubscriptionEndDateListView(FilterView, ListView):
 
         data = []
         for subscription in queryset:
-            data.append({
-                'Contact ID': subscription.contact.id,
-                'Contact Name': subscription.contact.name,
-                'Email': subscription.contact.email,
-                'Phone': subscription.contact.phone,
-                'End Date': subscription.end_date,
-                'Products': ', '.join([p.name for p in subscription.products.all()])
-            })
+            data.append(
+                {
+                    'Contact ID': subscription.contact.id,
+                    'Contact Name': subscription.contact.name,
+                    'Email': subscription.contact.email,
+                    'Phone': subscription.contact.phone,
+                    'End Date': subscription.end_date,
+                    'Products': ', '.join([p.name for p in subscription.products.all()]),
+                }
+            )
 
         df = pd.DataFrame(data)
 
