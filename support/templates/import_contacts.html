@@ -35,21 +35,21 @@
       </div>
       <div class="form-group">
         <label for="tags">Etiqueta para los contactos inexistentes:</label>
-        <input type="text" id="tags" name="tags" class="form-control" required />
+        {{ form.tags }}
       </div>
       <div class="form-group">
         <label for="tags">Etiqueta para los contactos existentes, fuera de campaña, inactivos, y sin deuda (Dejar en
           blanco si no es requerido):</label>
-        <input type="text" id="tags" name="tags_existing" class="form-control" />
+        {{ form.tags_existing }}
       </div>
       <div class="form-group">
         <label for="tags">Etiqueta para los contactos existentes, activos (Dejar en blanco si no es requerido):</label>
-        <input type="text" id="tags" name="tags_active" class="form-control" />
+        {{ form.tags_active }}
       </div>
       <div class="form-group">
         <label for="tags">Etiqueta para los contactos existentes, en campañas (Dejar en blanco si no es
           requerido):</label>
-        <input type="text" id="tags" name="tags_in_campaign" class="form-control" />
+        {{ form.tags_in_campaign }}
       </div>
 
       <div class="form-group text-right">
