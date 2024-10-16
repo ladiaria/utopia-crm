@@ -10,6 +10,9 @@ from tests.factories import ContactFactory, ProductFactory
 
 
 class InvoiceFactory(DjangoModelFactory):
+    """
+    Factory for creating Invoice instances. Default settings create an unpaid invoice.
+    """
     class Meta:
         model = Invoice
 
@@ -52,6 +55,10 @@ class InvoiceFactory(DjangoModelFactory):
 
 
 class InvoiceItemFactory(DjangoModelFactory):
+    """
+    Factory for creating InvoiceItem instances.
+    Default settings create an invoice item with a random number of copies and a random price.
+    """
     class Meta:
         model = InvoiceItem
 

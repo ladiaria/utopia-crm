@@ -695,3 +695,24 @@ class SalesRecordCreateForm(forms.ModelForm):
         if subscription:
             # Assuming you have a field named 'subscription' to hold the subscription_id
             self.fields['subscription'].initial = subscription
+
+
+class ImportContactsForm(forms.Form):
+    file = forms.FileField(
+        label='CSV File', help_text='Please upload a CSV file', widget=forms.FileInput(attrs={'accept': '.csv'})
+    )
+    tags = forms.CharField(
+        widget=forms.TextInput(attrs={'placeholder': 'Comma-separated tags', 'class': 'form-control'})
+    )
+    tags_existing = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={'placeholder': 'Tags for existing contacts', 'class': 'form-control'}),
+    )
+    tags_active = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={'placeholder': 'Tags for active contacts', 'class': 'form-control'}),
+    )
+    tags_in_campaign = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={'placeholder': 'Tags for contacts in campaign', 'class': 'form-control'}),
+    )
