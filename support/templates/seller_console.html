@@ -84,7 +84,7 @@
         <div class="card-header">
           <div class="d-flex justify-content-between">
             <h3>
-              <a href="{% url 'contact_detail' contact.id %}" target="_blank">{{ contact.id }} - {{ contact.name }}</a>
+              <a href="{% url 'contact_detail' contact.id %}" target="_blank">{{ contact.id }} - {{ contact.get_full_name }}</a>
             </h3>
             <span>{% trans "Contact " %}{{ offset }} {% trans "of" %} {{ count }}</span>
           </div>
@@ -276,10 +276,10 @@
                     <a href="{% url 'edit_subscription' contact.id contact.get_first_active_subscription.id %}?url={{ url }}&offset={{ offset }}&{{ category }}={{ console_instance.id }}"
                        class="btn btn-block bg-gradient-success btn-sm">{% trans "Edit subscription" %}</a>
                   {% else %}
-                  <a href="{% url 'additional_product' contact.get_first_active_subscription.id %}?url={{ url }}&offset={{ offset }}&{{ category }}={{ console_instance.id }}"
-                     class="btn btn-block bg-gradient-success btn-sm">Agregar productos</a>
-                  <a href="{% url 'product_change' contact.get_first_active_subscription.id %}?url={{ url }}&offset={{ offset }}&{{ category }}={{ console_instance.id }}"
-                     class="btn btn-block bg-gradient-success btn-sm">Cambiar productos</a>
+                    <a href="{% url 'additional_product' contact.get_first_active_subscription.id %}?url={{ url }}&offset={{ offset }}&{{ category }}={{ console_instance.id }}"
+                       class="btn btn-block bg-gradient-success btn-sm">Agregar productos</a>
+                    <a href="{% url 'product_change' contact.get_first_active_subscription.id %}?url={{ url }}&offset={{ offset }}&{{ category }}={{ console_instance.id }}"
+                       class="btn btn-block bg-gradient-success btn-sm">Cambiar productos</a>
                   {% endif %}
                 {% else %}
                   <a href="{% url 'new_subscription' contact.id %}?url={{ url }}&offset={{ offset }}&{{ category }}={{ console_instance.id }}"

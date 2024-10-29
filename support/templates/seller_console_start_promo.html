@@ -1,4 +1,4 @@
-{% extends 'adminlte/base.html' %}
+{% extends "adminlte/base.html" %}
 {% load i18n static core_tags %}
 
 {% block title %}{% trans "Start promotion" %}{% endblock %}
@@ -72,19 +72,19 @@
 {% endblock %}
 
 {% block no_heading %}
-<h1>{% trans 'Support' %}</h1>
-<p>{% trans 'Send promo' %}</p>
+<h1>{% trans "Support" %}</h1>
+<p>{% trans "Send promo" %}</p>
 {% endblock %}
 
 {% block content %}
 <div class="card">
   <div class="card-header">
-    <h2 class="card-title">{% trans 'Send promo' %}</h2>
+    <h2 class="card-title">{% trans "Send promo" %}</h2>
   </div>
   <div class="card-body">
     <form method="post" id="subscription_form">
       {% csrf_token %}
-      {% include 'email_suggestion_dialog.html' %}
+      {% include "email_suggestion_dialog.html" %}
       {% if form.errors %}
       {{ form.email_was_valid }}{{ form.email_replaced }}
       {{ form.email_replacement }}{{ form.email_suggestion }}
@@ -99,36 +99,40 @@
       {% endif %}
       <div class="row">
         <div class="form-group col-sm-6">
-          <label for="id_name">{{form.name.label}}</label>
-          {{form.name}}
+          <label for="id_name">{{ form.name.label }}</label>
+          {{ form.name }}
         </div>
         <div class="form-group col-sm-6">
-          <label for="id_email">{{form.email.label}}</label>
-          {{form.email}}
+          <label for="id_last_name">{{ form.last_name.label }}</label>
+          {{ form.last_name }}
+        </div>
+        <div class="form-group col-sm-6">
+          <label for="id_email">{{ form.email.label }}</label>
+          {{ form.email }}
         </div>
       </div>
       <div class="row">
         <div class="form-group col-sm-6">
-          <label for="id_phone">{{form.phone.label}}</label>
-          {{form.phone}}
+          <label for="id_phone">{{ form.phone.label }}</label>
+          {{ form.phone }}
         </div>
         <div class="form-group col-sm-6">
-          <label for="id_mobile">{{form.mobile.label}}</label>
-          {{form.mobile}}
+          <label for="id_mobile">{{ form.mobile.label }}</label>
+          {{ form.mobile }}
         </div>
       </div>
       <div class="form-group">
-        <label for="id_notes">{{form.notes.label}}</label>
-        {{form.notes}}
+        <label for="id_notes">{{ form.notes.label }}</label>
+        {{ form.notes }}
       </div>
       <div class="row">
         <div class="form-group col-sm-6">
-          <label for="id_start_date">{{form.start_date.label}}</label>
-          {{form.start_date}}
+          <label for="id_start_date">{{ form.start_date.label }}</label>
+          {{ form.start_date }}
         </div>
         <div class="form-group col-sm-6">
-          <label for="id_end_date">{{form.end_date.label}}</label>
-          {{form.end_date}}
+          <label for="id_end_date">{{ form.end_date.label }}</label>
+          {{ form.end_date }}
         </div>
       </div>
 
@@ -145,33 +149,33 @@
           <div class="row mt-2">
             <div class="col-4">
               <div class="form-check">
-                <input value="{{product.id}}" {% if product.id in form.checked_products %} checked="checked" {% endif %}
-                  type="checkbox" name="check-{{product.id}}" class="form-check-input product_checkbox"
-                  id="check-{{product.id}}">
-                <label for="check-{{product.id}}">{{product.name}}</label>
+                <input value="{{ product.id }}" {% if product.id in form.checked_products %} checked="checked" {% endif %}
+                  type="checkbox" name="check-{{ product.id }}" class="form-check-input product_checkbox"
+                  id="check-{{ product.id }}">
+                <label for="check-{{ product.id }}">{{ product.name }}</label>
               </div>
-              <select name="address-{{product.id}}" class="address_selector form-control">
+              <select name="address-{{ product.id }}" class="address_selector form-control">
                 {% for address in contact_addresses %}
-                <option value="{{address.id}}" {% if bound_product_values.address == address.id %}selected="selected"
+                <option value="{{ address.id }}" {% if bound_product_values.address == address.id %}selected="selected"
                   {% endif %}>
-                  {{address.address_1}} {{address.city}} {{address.state}}
+                  {{ address.address_1 }} {{ address.city }} {{ address.state }}
                 </option>
                 {% endfor %}
               </select>
             </div>
             <div class="col-2">
-              <label for="copies-{{product.id}}"><small>{% trans 'Copies' %}</small></label>
-              <input type="text" id="copies-{{product.id}}" name="copies-{{product.id}}"
+              <label for="copies-{{ product.id }}"><small>{% trans "Copies" %}</small></label>
+              <input type="text" id="copies-{{ product.id }}" name="copies-{{ product.id }}"
                 value="{{ bound_product_values.copies|default:1 }}" class="form-control">
             </div>
             <div class="col-3">
-              <label for="message-{{product.id}}"><small>{% trans 'Label Message' %}</small></label>
-              <input maxlength="40" type="text" id="message-{{product.id}}" name="message-{{product.id}}"
+              <label for="message-{{ product.id }}"><small>{% trans "Label Message" %}</small></label>
+              <input maxlength="40" type="text" id="message-{{ product.id }}" name="message-{{ product.id }}"
                 class="form-control" value="{{ bound_product_values.message }}">
             </div>
             <div class="col-3">
-              <label for="instructions-{{product.id}}"><small>{% trans 'Special Instructions' %}</small></label>
-              <input type="text" id="instructions-{{product.id}}" name="instructions-{{product.id}}"
+              <label for="instructions-{{ product.id }}"><small>{% trans "Special Instructions" %}</small></label>
+              <input type="text" id="instructions-{{ product.id }}" name="instructions-{{ product.id }}"
                 class="form-control" value="{{ bound_product_values.instructions }}">
             </div>
           </div>
@@ -180,9 +184,9 @@
       </div>
       <div class="form-group text-right">
         <div style="float: right; margin-left: 10px;">
-          <input type="submit" name="result" id="send_form" value="{% trans 'Send' %}" class="btn bg-gradient-primary">
+          <input type="submit" name="result" id="send_form" value="{% trans "Send" %}" class="btn bg-gradient-primary">
         </div>
-        <input type="submit" name="result" value="{% trans 'Cancel' %}" class="btn bg-gradient-secondary">
+        <input type="submit" name="result" value="{% trans "Cancel" %}" class="btn bg-gradient-secondary">
       </div>
     </form>
   </div>
@@ -192,7 +196,7 @@
   <div class="modal-dialog" role="document">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="exampleModalLabel">{% trans 'Add new address' %}</h5>
+        <h5 class="modal-title" id="exampleModalLabel">{% trans "Add new address" %}</h5>
         <button type="button" class="close" data-dismiss="modal" aria-label="Close">
           <span aria-hidden="true">&times;</span>
         </button>
@@ -210,9 +214,9 @@
           {% endfor %}
           {% endif %}
           {% csrf_token %}
-          {{address_form.as_p}}
+          {{ address_form.as_p }}
           <div class="form-group text-right">
-            <input id="submit_address" type="submit" value="{% trans 'Save address' %}" class="btn bg-gradient-primary">
+            <input id="submit_address" type="submit" value="{% trans "Save address" %}" class="btn bg-gradient-primary">
           </div>
         </form>
       </div>

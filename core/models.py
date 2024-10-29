@@ -91,6 +91,7 @@ class Institution(models.Model):
     """
     If the contact comes from an institution. This holds the institutions.
     """
+
     name = models.CharField(max_length=255, verbose_name=_("Name"))
     old_pk = models.PositiveIntegerField(blank=True, null=True, db_index=True)
 
@@ -372,9 +373,9 @@ class Contact(models.Model):
             old_email = self.get_old_email()
             if old_email and old_email != email:
                 if EmailBounceActionLog.email_is_bouncer(email):
-                    raise ValidationError({
-                        "email": f"El email '{email}' registra exceso de rebotes, no se permite su utilización"
-                    })
+                    raise ValidationError(
+                        {"email": f"El email '{email}' registra exceso de rebotes, no se permite su utilización"}
+                    )
 
         if settings.WEB_UPDATE_USER_ENABLED and email and self.id:
             self.custom_clean(email, debug)
@@ -461,15 +462,40 @@ class Contact(models.Model):
 
     def add_to_campaign(self, campaign_id):
         """
-        Adds a contact to a campaign. If the contact is already in that campaign this will raise an exception.
+        Adds a contact to a campaign if not already added.
+
+        Args:
+            campaign_id (int): The ID of the campaign to add the contact to.
+
+        Returns:
+            str: A success message if the contact was added.
+
+        Raises:
+            Campaign.DoesNotExist: If the campaign with the given ID doesn't exist.
+            ContactAlreadyInCampaignError: If the contact is already in the campaign.
         """
-        campaign = Campaign.objects.get(pk=campaign_id)
-        if not ContactCampaignStatus.objects.filter(contact=self, campaign=campaign).exists():
-            # We first create the big object that will hold the status for the campaign
-            ContactCampaignStatus.objects.create(contact=self, campaign=campaign)
-            return _("Contact %s (ID: %s) added to campaign") % (self.name, self.id)
+        try:
+            campaign = Campaign.objects.get(pk=campaign_id)
+        except Campaign.DoesNotExist:
+            raise Campaign.DoesNotExist(f"Campaign with ID {campaign_id} does not exist.")
+
+        contact_campaign_status, created = ContactCampaignStatus.objects.get_or_create(contact=self, campaign=campaign)
+
+        if created:
+            return _("Contact %(name)s (ID: %(id)s) added to campaign %(campaign)s") % {
+                "name": self.get_full_name(),
+                "id": self.id,
+                "campaign": campaign.name,
+            }
         else:
-            raise Exception(_("Contact %s (ID: %s) already in campaign") % (self.name, self.id))
+            raise Exception(
+                _("Contact %(name)s (ID: %(id)s) is already in campaign %(campaign)s")
+                % {
+                    "name": self.get_full_name(),
+                    "id": self.id,
+                    "campaign": campaign.name,
+                }
+            )
 
     def has_active_subscription(self, count=False):
         """
@@ -760,6 +786,7 @@ class Contact(models.Model):
         self,
         source: "Contact",
         name: str = None,
+        last_name: str = None,
         id_document: str = None,
         phone: str = None,
         mobile: str = None,
@@ -776,6 +803,7 @@ class Contact(models.Model):
         Args:
             source (Contact): The contact whose data is going to be deleted and merged into this one.
             name (str, optional): Override name. Defaults to None.
+            last_name (str, optional): Override last name. Defaults to None.
             id_document (str, optional): Override id document. Defaults to None.
             phone (str, optional): Override phone. Defaults to None.
             mobile (str, optional): Override mobie. Defaults to None.
@@ -802,6 +830,8 @@ class Contact(models.Model):
             self.save()  # check for the try
             if name:
                 self.name = name.strip()
+            if last_name:
+                self.last_name = last_name.strip()
             if id_document:
                 if source.id_document == id_document.strip():
                     source.id_document = None
@@ -825,9 +855,11 @@ class Contact(models.Model):
                 self.ocupation_id = int(ocupation_id.strip())
             if birthdate:
                 self.birthdate = birthdate.strip()
-            self.notes = f"Combined from {source.id} - {source.name} at {date.today()}" + f"\n{self.notes or ''}"
+            self.notes = (
+                f"Combined from {source.id} - {source.get_full_name()} at {date.today()}" + f"\n{self.notes or ''}"
+            )
             if source.notes:
-                self.notes += f"\n\nNotes imported from {source.id} - {source.name}\n\n"
+                self.notes += f"\n\nNotes imported from {source.id} - {source.get_full_name()}\n\n"
                 self.notes += source.notes
             for tag in source.tags.all():
                 self.tags.add(tag.name)
@@ -1196,10 +1228,10 @@ class Subscription(models.Model):
 
     def __str__(self):
         return str(
-            _("{} subscription for the contact {} {}").format(
-                _("Active") if self.active else _("Inactive"),
-                self.contact.name,
-                "({})".format(self.get_price_for_full_period()) if self.type == "N" else "",
+            _("{active} subscription for the contact {contact} {price}").format(
+                active=_("Active") if self.active else _("Inactive"),
+                contact=self.contact.get_full_name(),
+                price="({})".format(self.get_price_for_full_period()) if self.type == "N" else "",
             )
         )
 
@@ -1301,7 +1333,7 @@ class Subscription(models.Model):
         if self.billing_name:
             return self.billing_name
         else:
-            return billing_contact.name
+            return billing_contact.get_full_name()
 
     def get_billing_phone(self):
         """
@@ -1724,12 +1756,12 @@ class Subscription(models.Model):
             count = self.products.filter(offerable=True).count()
             if ul:
                 if sp.label_contact:
-                    output += "<li>{} ({})</li>".format(sp.product.name, sp.label_contact.name)
+                    output += "<li>{} ({})</li>".format(sp.product.name, sp.label_contact.get_full_name())
                 else:
                     output += "<li>{}</li>".format(sp.product.name)
             else:
                 if sp.label_contact:
-                    output += "{} ({})".format(sp.product.name, sp.label_contact.name)
+                    output += "{} ({})".format(sp.product.name, sp.label_contact.get_full_name())
                 else:
                     output += "{}".format(sp.product.name)
                 if count > 1:

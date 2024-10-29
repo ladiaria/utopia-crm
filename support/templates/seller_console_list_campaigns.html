@@ -1,150 +1,167 @@
-{% extends 'adminlte/base.html' %}
+{% extends "adminlte/base.html" %}
 {% load i18n %}
-
 {% trans "Campaigns" %}
-
 {% block no_heading %}
-<h1><a href="{% url "seller_console_list_campaigns" %}">{% trans 'Seller console' %} {{seller.name}}</a></h1>
-<p>{% trans 'Manage promotions and sales' %}</p>
+  <h1>
+    <a href="{% url "seller_console_list_campaigns" %}">{% trans "Seller console" %} {{ seller.name }}</a>
+  </h1>
+  <p>{% trans "Manage promotions and sales" %}</p>
 {% endblock %}
 
 {% block content %}
-{% if special_routes %}
-<div class="card">
-  <div class="card-header">
-    <h3 class="card-title">{% trans "Contacts in special routes" %}</h3>
-  </div>
-  <div class="card-body">
-    <table class="table table-borderd">
-      <thead>
-        <tr>
-          <th>{% trans "Route" %}</th>
-          <th>{% trans "Name" %}</th>
-          <th>{% trans "Contacts" %}</th>
-          <th>{% trans "Go" %}</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for route_id, data in special_routes.items %}
-          {% if data.1 != 0 %}
+  {% if special_routes %}
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">{% trans "Contacts in special routes" %}</h3>
+      </div>
+      <div class="card-body">
+        <table class="table table-borderd">
+          <thead>
             <tr>
-              <td>{{route_id}}</td>
-              <td>{{data.0}}</td>
-              <td>{{data.1}}</td>
-              <td>
-                <a class="btn btn-primary btn-sm" href="{% url 'seller_console_special_routes' route_id %}"><i class="fas fa-eye"></i> {% trans 'View' %}</a>
-              </td>
+              <th>{% trans "Route" %}</th>
+              <th>{% trans "Name" %}</th>
+              <th>{% trans "Contacts" %}</th>
+              <th>{% trans "Go" %}</th>
             </tr>
-          {% endif %}
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-</div>
-{% endif %}
-
-{% if issues_never_paid %}
-<div class="card">
-  <div class="card-header">
-    <h3 class="card-title">{% trans "Contacts that never paid their first invoice" %}</h3>
-  </div>
-  <div class="card-body">
-    <table class="table table-borderd">
-      <thead>
-        <tr>
-          <th>{% trans "Contact" %}</th>
-          <th>{% trans "Go" %}</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for issue in issues_never_paid %}
+          </thead>
+          <tbody>
+            {% for route_id, data in special_routes.items %}
+              {% if data.1 != 0 %}
+                <tr>
+                  <td>{{ route_id }}</td>
+                  <td>{{ data.0 }}</td>
+                  <td>{{ data.1 }}</td>
+                  <td>
+                    <a class="btn btn-primary btn-sm"
+                       href="{% url "seller_console_special_routes" route_id %}"><i class="fas fa-eye"></i> {% trans "View" %}</a>
+                  </td>
+                </tr>
+              {% endif %}
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  {% endif %}
+  {% if issues_never_paid %}
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">{% trans "Contacts that never paid their first invoice" %}</h3>
+      </div>
+      <div class="card-body">
+        <table class="table table-borderd">
+          <thead>
             <tr>
-              <td>{{issue.contact.name}}</td>
-              <td>
-                <a class="btn btn-primary btn-sm" href="{% url 'view_issue' issue.id %}"><i class="fas fa-eye"></i> {% trans 'View' %}</a>
-              </td>
+              <th>{% trans "Contact" %}</th>
+              <th>{% trans "Go" %}</th>
             </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-</div>
-{% endif %}
-
-<div class="card">
-  <div class="card-header">
-    <h3 class="card-title">{% trans 'Not contacted' %}</h3>
-  </div>
-  <div class="card-body">
-    {% if campaigns_with_not_contacted %}
-    <table class="table table-bordered">
-      <thead>
-          <tr>
-            <th>{% trans 'Campaign name' %}</th>
-            <th>{% trans 'Campaign count' %}</th>
-            <th>{% trans 'Campaign end date' %}</th>
-            <th>{% trans 'Successful' %}</th>
-            <th></th>
-          </tr>
-      </thead>
-      <tbody>
-        {% for campaign in campaigns_with_not_contacted %}
-        {% if not campaign.count == 0 or not campaign.successful == 0 %}
-        <tr>
-          <td>{{campaign.name}}</td>
-          <td>{{campaign.count}}</td>
-          <td>{{campaign.end_date|date:"SHORT_DATE_FORMAT"}}</td>
-          <td>{{campaign.successful}}</td>
-          <td><a class="btn btn-primary btn-sm" href="/support/seller_console/new/{{campaign.id}}/"><i class="fas fa-eye"></i> {% trans 'View' %}</a></td>
-        </tr>
-        {% endif %}
-        {% endfor %}
-      </tbody>
-    </table>
-    {% else %}
-    <p>{% trans "There is nothing here now." %}</p>
-    {% endif %}
-  </div>
-</div>
-<div class="card">
-  <div class="card-header">
-    <h3 class="card-title">{% trans 'Activities to do' %}</h3>
-  </div>
-  <div class="card-body">
-    {% if campaigns_with_activities_to_do %}
-    <table class="table table-bordered">
-      <thead>
-          <tr>
-            <th>{% trans 'Campaign name' %}</th>
-            <th>{% trans 'Pending' %}</th>
-            <th>{% trans 'Delayed' %}</th>
-            <th>{% trans 'Campaign end date' %}</th>
-            <th>{% trans 'Successful' %}</th>
-            <th></th>
-            <th></th>
-          </tr>
-      </thead>
-      <tbody>
-          {% for campaign in campaigns_with_activities_to_do %}
-          <tr>
-            <td>{{campaign.name}}</td>
-            <td>{{campaign.pending}}</td>
-            <td>{{campaign.delayed}}</td>
-            <td>{{campaign.end_date|date:"SHORT_DATE_FORMAT"}}</td>
-            <td>{{campaign.successful}}</td>
-            <td><a class="btn btn-primary btn-sm" href='{% url "scheduled_activities" %}?status=P&campaign={{campaign.id}}'><i class="fas fa-eye"></i> {% trans 'List activities' %}</a></td>
-            <td><a class="btn btn-primary btn-sm" href='{% url "seller_console" "act" campaign.id %}'><i class="fas fa-eye"></i> {% trans 'View' %}</a></td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    {% else %}
-    <p>{% trans "Congratulations! Everything seems to be done." %}</p>
-    {% endif %}
-    <div class="m-2 p-2">
-    {% trans "Next upcoming activity" %}: {{upcoming_activity.datetime}} - {% trans "Campaign" %}: {{upcoming_activity.campaign}} - <a class="btn-primary btn-sm" href='{% url "scheduled_activities" %}?status=P'><i class="fas fa-eye"></i> {% trans 'List all pending and scheduled activities' %} ({{total_pending_activities}})</a>
+          </thead>
+          <tbody>
+            {% for issue in issues_never_paid %}
+              <tr>
+                <td>{{ issue.contact.get_full_name }}</td>
+                <td>
+                  <a class="btn btn-primary btn-sm" href="{% url "view_issue" issue.id %}"><i class="fas fa-eye"></i> {% trans "View" %}</a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  {% endif %}
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">{% trans "Not contacted" %}</h3>
+    </div>
+    <div class="card-body">
+      {% if campaigns_with_not_contacted %}
+        <table class="table table-bordered">
+          <thead>
+            <tr>
+              <th>{% trans "Campaign name" %}</th>
+              <th>{% trans "Campaign count" %}</th>
+              <th>{% trans "Campaign end date" %}</th>
+              <th>{% trans "Successful" %}</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for campaign in campaigns_with_not_contacted %}
+              {% if not campaign.count == 0 or not campaign.successful == 0 %}
+                <tr>
+                  <td>{{ campaign.name }}</td>
+                  <td>{{ campaign.count }}</td>
+                  <td>{{ campaign.end_date|date:"SHORT_DATE_FORMAT" }}</td>
+                  <td>{{ campaign.successful }}</td>
+                  <td>
+                    <a class="btn btn-primary btn-sm"
+                       href="{% url "seller_console_new" campaign.id %}">
+                      <i class="fas fa-eye"></i> {% trans "View" %}
+                    </a>
+                  </td>
+                </tr>
+              {% endif %}
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p>{% trans "There is nothing here now." %}</p>
+      {% endif %}
     </div>
   </div>
-</div>
-
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">{% trans "Activities to do" %}</h3>
+    </div>
+    <div class="card-body">
+      {% if campaigns_with_activities_to_do %}
+        <table class="table table-bordered">
+          <thead>
+            <tr>
+              <th>{% trans "Campaign name" %}</th>
+              <th>{% trans "Pending" %}</th>
+              <th>{% trans "Delayed" %}</th>
+              <th>{% trans "Campaign end date" %}</th>
+              <th>{% trans "Successful" %}</th>
+              <th></th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for campaign in campaigns_with_activities_to_do %}
+              <tr>
+                <td>{{ campaign.name }}</td>
+                <td>{{ campaign.pending }}</td>
+                <td>{{ campaign.delayed }}</td>
+                <td>{{ campaign.end_date|date:"SHORT_DATE_FORMAT" }}</td>
+                <td>{{ campaign.successful }}</td>
+                <td>
+                  <a class="btn btn-primary btn-sm"
+                     href="{% url "scheduled_activities" %}?status=P&campaign={{ campaign.id }}">
+                    <i class="fas fa-eye"></i> {% trans "List activities" %}
+                  </a>
+                </td>
+                <td>
+                  <a class="btn btn-primary btn-sm"
+                     href="{% url "seller_console" "act" campaign.id %}">
+                    <i class="fas fa-eye"></i> {% trans "View" %}
+                  </a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p>{% trans "Congratulations! Everything seems to be done." %}</p>
+      {% endif %}
+      <div class="m-2 p-2">
+        {% trans "Next upcoming activity" %}: {{ upcoming_activity.datetime }} - {% trans "Campaign" %}: {{ upcoming_activity.campaign }} -
+        <a class="btn-primary btn-sm"
+           href="{% url "scheduled_activities" %}?status=P">
+          <i class="fas fa-eye"></i> {% trans "List all pending and scheduled activities" %} ({{ total_pending_activities }})
+        </a>
+      </div>
+    </div>
+  </div>
 {% endblock %}

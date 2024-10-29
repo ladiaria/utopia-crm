@@ -1,141 +1,159 @@
-{% extends 'adminlte/base.html' %}
+{% extends "adminlte/base.html" %}
 {% load static i18n widget_tweaks core_tags leaflet_tags %}
 {% block extra_js %}
-<script src="{% static 'js/htmx.min.js' %}" defer></script>
-{% leaflet_js %}
-{% leaflet_css %}
-{% if lat and lng %}
-<script>
+  <script src="{% static 'js/htmx.min.js' %}" defer></script>
+  {% leaflet_js %}
+  {% leaflet_css %}
+  {% if lat and lng %}
+    <script>
   function map_init(map, options) {
     var lat = {{lat|stringformat:".6f"}}
     var lng = {{lng|stringformat:".6f"}}
     L.marker([lat, lng]).addTo(map);
     map.setView([lat, lng], 15);
   }
-</script>
-
-{% endif %}
+    </script>
+  {% endif %}
 {% endblock extra_js %}
 
 {% block title %}
-Nueva dirección para {{contact.name}} {{contact.last_name}}
+  Nueva dirección para {{ contact.get_full_name }}
 {% endblock title %}
 
-
 {% block no_heading %}
-<h1><a href="{% url 'contact_list' %}">{% trans "Contacts" %}</a> &raquo; <a
-    href="{%url 'contact_detail' contact.id %}">{{contact.id}} - {{contact.name}}</a> &raquo; Nueva dirección</h1>
+  <h1>
+    <a href="{% url "contact_list" %}">{% trans "Contacts" %}</a> > <a href="{% url "contact_detail" contact.id %}">{{ contact.id }} - {{ contact.get_full_name }}</a> > Nueva dirección
+  </h1>
 {% endblock no_heading %}
 
 {% block content %}
-<div class="card">
-  <div class="card-body">
-    <div class="row">
-      <div class="col-6">
-        <div class="card">
-          <div class="card-header">Nueva direccion</div>
-          <div class="card-body">
-            {% if georef_activated %}
-            <div class="row form-group">
-              <div class="col">
-                <input type="search" name="q_direccion" maxlength="100" list="sugerencias" autocomplete=false
-                  class="form-control" placeholder="Calle y número"
-                  hx-get="{% url 'ajax_sugerir_direccion_autocompletar' %}"
-                  hx-trigger="keyup changed delay:800ms, load, search, changed" hx-target="#sugerencias_container"
-                  hx-indicator=".htmx-indicator" {% if q_sugerencia %}value="{{q_sugerencia}}" {% endif %}>
-              </div>
-              <div class="col">
-                <div id="sugerencias_container">
-                  {% include "location/sugerencias_htmx.html" %}
+  <div class="card">
+    <div class="card-body">
+      <div class="row">
+        <div class="col-6">
+          <div class="card">
+            <div class="card-header">Nueva direccion</div>
+            <div class="card-body">
+              {% if georef_activated %}
+                <div class="row form-group">
+                  <div class="col">
+                    <input type="search"
+                           name="q_direccion"
+                           maxlength="100"
+                           list="sugerencias"
+                           autocomplete="false"
+                           class="form-control"
+                           placeholder="Calle y número"
+                           hx-get="{% url 'ajax_sugerir_direccion_autocompletar' %}"
+                           hx-trigger="keyup changed delay:800ms, load, search, changed"
+                           hx-target="#sugerencias_container"
+                           hx-indicator=".htmx-indicator"
+                           {% if q_sugerencia %}value="{{ q_sugerencia }}"{% endif %}>
+                  </div>
+                  <div class="col">
+                    <div id="sugerencias_container">{% include "location/sugerencias_htmx.html" %}</div>
+                    <span class="htmx-indicator">Buscando...</span>
+                  </div>
                 </div>
-                <span class="htmx-indicator">
-                  Buscando...
-                </span>
-              </div>
-            </div>
-            {% endif %}
-            <div class="form_div">
-              <div id="form_div">
-                <form action="" method="post">
-                  {% csrf_token %}
-                  <div class="row form-group">
-                    <div class="col">
-                      {% if lat and lng %}
-                      {% render_field form.address_1 class="form-control" placeholder=form.address_1.label readonly=True %}
-                      {% else %}
-                      {% render_field form.address_1 class="form-control" placeholder=form.address_1.label %}
-                      {% endif %}
+              {% endif %}
+              <div class="form_div">
+                <div id="form_div">
+                  <form action="" method="post">
+                    {% csrf_token %}
+                    <div class="row form-group">
+                      <div class="col">
+                        {% if lat and lng %}
+                          {% render_field form.address_1 class="form-control" placeholder=form.address_1.label readonly=True %}
+                        {% else %}
+                          {% render_field form.address_1 class="form-control" placeholder=form.address_1.label %}
+                        {% endif %}
+                      </div>
+                      <div class="col">{% render_field form.address_2 class="form-control" placeholder=form.address_2.label %}</div>
                     </div>
-                    <div class="col">
-                      {% render_field form.address_2 class="form-control" placeholder=form.address_2.label %}
+                    <div class="row form-group">
+                      <div class="col">
+                        {% if lat and lng %}
+                          {% render_field form.city class="form-control" placeholder=form.city.label readonly=True %}
+                        {% else %}
+                          {% render_field form.city class="form-control" placeholder=form.city.label %}
+                        {% endif %}
+                      </div>
+                      <div class="col">
+                        {% if lat and lng %}
+                          {% render_field form.state class="form-control" placeholder=form.state.label readonly=True %}
+                        {% else %}
+                          {% render_field form.state class="form-control" placeholder=form.state.label %}
+                        {% endif %}
+                      </div>
                     </div>
-                  </div>
-                  <div class="row form-group">
-                    <div class="col">
-                      {% if lat and lng %}
-                      {% render_field form.city class="form-control" placeholder=form.city.label readonly=True %}
-                      {% else %}
-                      {% render_field form.city class="form-control" placeholder=form.city.label %}
-                      {% endif %}
-                    </div>
-                    <div class="col">
-                      {% if lat and lng %}
-                      {% render_field form.state class="form-control" placeholder=form.state.label readonly=True %}
-                      {% else %}
-                      {% render_field form.state class="form-control" placeholder=form.state.label %}
-                      {% endif %}
-                    </div>
-                  </div>
-                  {% if lat and lng %}
-                  <div class="row form-group">
-                    <div class="col">
-                      {% render_field form.latitude class="form-control" placeholder=form.latitude.label required=True readonly=True %}
-                    </div>
-                    <div class="col">
-                      {% render_field form.longitude class="form-control" placeholder=form.longitude.label required=True readonly=True %}
-                    </div>
-                  </div>
-                  {% render_field form.city_id hidden=True %}
-                  {% render_field form.state_id hidden=True %}
-                  {% render_field form.id hidden=True %}
-                  {% endif %}
-                  {% render_field form.address_type hidden=True %}
-                  <div class="row">
-                    {% if lat and lng and georef_activated %}
-                    <div class="col text-right">
-                      <input type="submit" value="Guardar" name="save" class="btn-large btn btn-primary">
-                    </div>
-                    {% elif georef_activated and q_sugerencia %}
-                    <div class="col text-right">
-                      <p><span class="text-danger">No se encuentra georeferenciación para esta dirección</span><input type="submit" value="Guardar sin georeferenciación" name="save_needs_georef" class="m-2 btn-large btn btn-danger"></p>
-                      {% if not request.user|in_group:"Sellers" %}
-                      <p><span class="text-info">Podés seleccionar el departamento manualmente (y ciudad si aplica) y buscar en la siguiente opción</span><input type="submit" value="Buscar otras alternativas (completar formulario)" name="no_encuentro_direccion" class="m-2 btn-large btn btn-info"></p>
-                      {% endif %}
-                    </div>
-                    {% elif not georef_activated %}
-                    <div class="col text-right">
-                      <input type="submit" value="Guardar sin georeferenciación" name="save" class="btn-large btn btn-primary">
-                    </div>
+                    {% if lat and lng %}
+                      <div class="row form-group">
+                        <div class="col">
+                          {% render_field form.latitude class="form-control" placeholder=form.latitude.label required=True readonly=True %}
+                        </div>
+                        <div class="col">
+                          {% render_field form.longitude class="form-control" placeholder=form.longitude.label required=True readonly=True %}
+                        </div>
+                      </div>
+                      {% render_field form.city_id hidden=True %}
+                      {% render_field form.state_id hidden=True %}
+                      {% render_field form.id hidden=True %}
                     {% endif %}
-                  </div>
-                </form>
+                    {% render_field form.address_type hidden=True %}
+                    <div class="row">
+                      {% if lat and lng and georef_activated %}
+                        <div class="col text-right">
+                          <input type="submit"
+                                 value="Guardar"
+                                 name="save"
+                                 class="btn-large btn btn-primary">
+                        </div>
+                      {% elif georef_activated and q_sugerencia %}
+                        <div class="col text-right">
+                          <p>
+                            <span class="text-danger">No se encuentra georeferenciación para esta dirección</span>
+                            <input type="submit"
+                                   value="Guardar sin georeferenciación"
+                                   name="save_needs_georef"
+                                   class="m-2 btn-large btn btn-danger">
+                          </p>
+                          {% if not request.user|in_group:"Sellers" %}
+                            <p>
+                              <span class="text-info">Podés seleccionar el departamento manualmente (y ciudad si aplica) y buscar en la siguiente opción</span>
+                              <input type="submit"
+                                     value="Buscar otras alternativas (completar formulario)"
+                                     name="no_encuentro_direccion"
+                                     class="m-2 btn-large btn btn-info">
+                            </p>
+                          {% endif %}
+                        </div>
+                      {% elif not georef_activated %}
+                        <div class="col text-right">
+                          <input type="submit"
+                                 value="Guardar sin georeferenciación"
+                                 name="save"
+                                 class="btn-large btn btn-primary">
+                        </div>
+                      {% endif %}
+                    </div>
+                  </form>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-      <div class="col-6">
-        <div class="card">
-          <div class="card-body">
-            <div class="m-2">
-              {% if lat and lng %}
-              {% leaflet_map "mapa" callback="window.map_init" %}
-              {% endif %}
+        <div class="col-6">
+          <div class="card">
+            <div class="card-body">
+              <div class="m-2">
+                {% if lat and lng %}
+                  {% leaflet_map "mapa" callback="window.map_init" %}
+                {% endif %}
+              </div>
             </div>
           </div>
         </div>
       </div>
     </div>
   </div>
-</div>
 {% endblock content %}

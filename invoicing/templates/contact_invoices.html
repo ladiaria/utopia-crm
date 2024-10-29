@@ -1,12 +1,12 @@
-{% extends 'adminlte/base.html' %}
+{% extends "adminlte/base.html" %}
 {% load static i18n widget_tweaks core_tags %}
 
 {% block no_heading %}
-  <h1>{% trans "Invoices for contact:" %} <a href="{% url 'contact_detail' contact.id %}">{{ contact.name }}</a></h1>
+  <h1>{% trans "Invoices for contact:" %} <a href="{% url 'contact_detail' contact.id %}">{{ contact.get_full_name }}</a></h1>
 {% endblock %}
 
 {% block stylesheets %}
-  {{block.super}}
+  {{ block.super }}
   <style type="text/css">
     .o { background-color:#CD5C5C; color: #fff; }
     .p { background-color:#32CD32; color: #fff; }
@@ -15,7 +15,7 @@
   </style>
 {% endblock %}
 
-{% block title %}{% trans "Invoices" %} - {{contact.name}}{% endblock title %}
+{% block title %}{% trans "Invoices" %} - {{ contact.get_full_name }}{% endblock title %}
 
 {% block content %}
   <div class="row">
@@ -33,7 +33,7 @@
         <div class="alert alert-danger">
           <i class="fas fa-exclamation-circle"></i>
           <span class="info-box-text">{% trans "Debt" %}:</span>
-          <span class="info-box-number"><b>{{debt}}</b></span>
+          <span class="info-box-number"><b>{{ debt }}</b></span>
         </div>
       </div>
     {% endif %}
@@ -42,8 +42,8 @@
       <div class="card">
         <div class="card-header d-flex">
           <h3 class="card-title flex-fill">{% trans "Invoices" %}</h3>
-          {% if request.user|in_group:"Finances"  %}
-            <a class="btn btn-sm btn-primary float-end" href="/invoicing/bill_one_contact/{{ contact.id }}/">
+          {% if request.user|in_group:"Finances" %}
+            <a class="btn btn-sm btn-primary float-end" href="{% url 'bill_one_contact' contact.id %}">
               {% trans "Bill contact subscriptions" %}
             </a>
           {% endif %}
@@ -67,15 +67,15 @@
               {% for invoice in invoice_list %}
                 <tr role="row">
                   <td>
-                    <a href="/admin/invoicing/invoice/{{ invoice.id }}/">{{ invoice.id }}</a>
+                    <a href="{% url 'admin:invoicing_invoice_change' invoice.id %}">{{ invoice.id }}</a>
                     {% if invoice.pdf %}
                       {% if request.user|in_group:"Finances" or request.user|in_group:"Managers" or request.user|in_group:"Logistics" or request.user|in_group:"Support" %}
-                        <a href="/invoicing/download_invoice/{{ invoice.id }}/" title="{% trans 'Download invoice' %}">
-                          <img src="{% static 'img/pdficon_small.png' %}" alt="PDF"/>
+                        <a href="{% url 'download_invoice' invoice.id %}" title="{% trans "Download invoice" %}">
+                          <img src="{% static 'img/pdficon_small.png' %}" alt="PDF" height="16" width="16"/>
                         </a>
                       {% endif %}
                     {% else %}
-                      <i class="fas fa-exclamation-triangle text-warning" title="{% trans 'No pdf' %}"></i>
+                      <i class="fas fa-exclamation-triangle text-warning" title="{% trans "No pdf" %}"></i>
                     {% endif %}
                   </td>
                   <td>{{ invoice.subscription_id }}</td>
@@ -105,7 +105,7 @@
               </tr>
               {% for factura in lista_facturas_items %}
                 <tr class="{% cycle 'row1' 'row2' %}">
-                  <td><a href="/admin/invoicing/invoice/{{ invoice.id }}/">{{ invoice.id }}</a></td>
+                  <td><a href="{% url 'admin:invoicing_invoice_change' factura.id %}">{{ factura.id }}</a></td>
                   <td>{{ factura.servicio_desde }}</td>
                   <td>{{ factura.servicio_hasta }}</td>
                   <td>{{ factura.fecha_emision }}</td>
