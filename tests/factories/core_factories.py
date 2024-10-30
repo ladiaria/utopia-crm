@@ -65,8 +65,8 @@ class AddressFactory(DjangoModelFactory):
     verified = False
     needs_georef = False
     address_georef_id = None
-    state_id = None
-    city_id = None
+    state_georef_id = None
+    city_georef_id = None
     country = Faker("country")
 
 
