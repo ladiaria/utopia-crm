@@ -78,6 +78,6 @@
     </div>
   </div>
   {% if activities.has_other_pages %}
-    {% include "components/_pagination.html" with page_obj=activities %}
+    {% include "components/_pagination.html" with page_obj=activities paginator=paginator %}
   {% endif %}
 {% endblock %}
