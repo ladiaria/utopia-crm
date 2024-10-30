@@ -929,6 +929,36 @@ class Contact(models.Model):
         ordering = ("-id",)
 
 
+class Country(models.Model):
+    name = models.CharField(max_length=50)
+    code = models.CharField(max_length=2, unique=True)  # ISO 3166-1 alpha-2 codes
+    active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = _("country")
+        verbose_name_plural = _("countries")
+        ordering = ('name',)
+
+
+class State(models.Model):
+    name = models.CharField(max_length=50)
+    code = models.CharField(max_length=10)  # State/region code
+    country = models.ForeignKey(Country, on_delete=models.PROTECT)
+    active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = _("state")
+        verbose_name_plural = _("states")
+        ordering = ('name',)
+        unique_together = [['code', 'country']]
+
+
 class Address(models.Model):
     """
     Model that contains all the addresses for each contact. They're reused throughout the subscriptions,
@@ -981,6 +1011,24 @@ class Address(models.Model):
     state_georef_id = models.IntegerField(null=True, blank=True)
     city_georef_id = models.IntegerField(null=True, blank=True)
     country = models.CharField(max_length=50, blank=True, null=True)
+
+    # New fields with explicit column names
+    country_new = models.ForeignKey(
+        'core.Country',
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        verbose_name=_("Country"),
+        db_column='country_fk'  # Explicit different column name
+    )
+    state_new = models.ForeignKey(
+        'core.State',
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        verbose_name=_("State"),
+        db_column='state_fk'  # Explicit different column name
+    )
 
     def __str__(self):
         return ' '.join(filter(None, (self.address_1, self.address_2, self.city, self.state)))
