@@ -7,47 +7,55 @@ def migrate_countries_and_states(apps, schema_editor):
     Country = apps.get_model('core', 'Country')
     State = apps.get_model('core', 'State')
 
-    # Get unique countries and create them
-    unique_countries = (
-        Address.objects.exclude(Q(country__isnull=True) | Q(country='')).values_list('country', flat=True).distinct()
+    # First, create a default country (since we only have states)
+    default_country, _ = Country.objects.get_or_create(
+        name='Default',
+        defaults={'code': 'DF'}
     )
 
-    country_mapping = {}
-    for country_name in unique_countries:
-        country, created = Country.objects.get_or_create(
-            name=country_name, defaults={'code': country_name[:2].upper()}  # Temporary code
-        )
-        country_mapping[country_name] = country
+    # Get unique states and create them
+    unique_states = (
+        Address.objects.exclude(Q(state__isnull=True) | Q(state=''))
+        .values_list('state', flat=True)
+        .distinct()
+    )
 
-    # Create states for each country
     state_mapping = {}
-    for country_name, country in country_mapping.items():
-        states = (
-            Address.objects.filter(country=country_name)
-            .exclude(Q(state__isnull=True) | Q(state=''))
-            .values_list('state', flat=True)
-            .distinct()
-        )
+    for state_name in unique_states:
+        # Create a unique code by taking first 2 chars and adding a number if needed
+        base_code = state_name[:2].upper()
+        counter = 1
+        code = base_code
 
-        for state_name in states:
-            state, created = State.objects.get_or_create(
-                name=state_name, country=country, defaults={'code': state_name[:10]}  # Temporary code
-            )
-            state_mapping[f"{country_name}:{state_name}"] = state
+        while True:
+            existing = State.objects.filter(
+                code=code,
+                country=default_country
+            ).exists()
+
+            if not existing:
+                break
+
+            code = f"{base_code}{counter}"
+            counter += 1
+
+        state, created = State.objects.get_or_create(
+            name=state_name,
+            country=default_country,
+            defaults={'code': code}
+        )
+        state_mapping[state_name] = state
 
     # Update addresses with new foreign keys
     for address in Address.objects.all():
-        if address.country:
-            country = country_mapping.get(address.country)
-            if country:
-                address.country_new = country
+        address.country_new = default_country
 
-                if address.state:
-                    state = state_mapping.get(f"{address.country}:{address.state}")
-                    if state:
-                        address.state_new = state
+        if address.state:
+            state = state_mapping.get(address.state)
+            if state:
+                address.state_new = state
 
-                address.save()
+        address.save()
 
 
 def reverse_migrate(apps, schema_editor):

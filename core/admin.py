@@ -42,6 +42,8 @@ from .models import (
     EmailReplacement,
     EmailBounceActionLog,
     MailtrainList,
+    Country,
+    State,
 )
 from .forms import SubscriptionAdminForm, ContactAdminForm
 
@@ -419,7 +421,7 @@ class PlanAdmin(admin.ModelAdmin):
 
 @admin.register(Address)
 class AddressAdmin(SimpleHistoryAdmin, LeafletGeoAdmin):
-    list_display = ("contact", "address_1", "city", "state", "country", "country_new", "state_new")
+    list_display = ("contact", "address_1", "city", "state", "country")
     raw_id_fields = ("contact",)
 
 
@@ -544,3 +546,5 @@ admin.site.register(AdvancedDiscount)
 admin.site.register(DoNotCallNumber)
 admin.site.register(MailtrainList)
 admin.site.register(IdDocumentType)
+admin.site.register(Country)
+admin.site.register(State)

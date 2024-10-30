@@ -982,15 +982,6 @@ class Address(models.Model):
         default=getattr(settings, "DEFAULT_CITY", None),
         verbose_name=_("City"),
     )
-    state = models.CharField(
-        max_length=50,
-        blank=True,
-        null=True,
-        default=getattr(settings, "DEFAULT_STATE", None),
-        verbose_name=_("State"),
-    )
-    if settings.USE_STATES_CHOICE:
-        state.choices = settings.STATES
     email = models.EmailField(blank=True, null=True, verbose_name=_("Email"))
     address_type = models.CharField(max_length=50, choices=ADDRESS_TYPE_CHOICES, verbose_name=_("Address type"))
     notes = models.TextField(blank=True, null=True, verbose_name=_("Notes"))
@@ -1011,6 +1002,15 @@ class Address(models.Model):
     state_georef_id = models.IntegerField(null=True, blank=True)
     city_georef_id = models.IntegerField(null=True, blank=True)
     country = models.CharField(max_length=50, blank=True, null=True)
+    state = models.CharField(
+        max_length=50,
+        blank=True,
+        null=True,
+        default=getattr(settings, "DEFAULT_STATE", None),
+        verbose_name=_("State"),
+    )
+    if settings.USE_STATES_CHOICE:
+        state.choices = settings.STATES
 
     # New fields with explicit column names
     country_new = models.ForeignKey(
@@ -1030,8 +1030,22 @@ class Address(models.Model):
         db_column='state_fk'  # Explicit different column name
     )
 
+    @property
+    def country_name(self):
+        """Compatibility method that works with both old and new fields"""
+        if hasattr(self, 'country') and isinstance(self.country, str):
+            return self.country
+        return self.country_new.name if self.country_new else None
+
+    @property
+    def state_name(self):
+        """Compatibility method that works with both old and new fields"""
+        if hasattr(self, 'state') and isinstance(self.state, str):
+            return self.state
+        return self.state_new.name if self.state_new else None
+
     def __str__(self):
-        return ' '.join(filter(None, (self.address_1, self.address_2, self.city, self.state)))
+        return ' '.join(filter(None, (self.address_1, self.address_2, self.city, self.state_name, self.country_name)))
 
     def get_type(self):
         """
