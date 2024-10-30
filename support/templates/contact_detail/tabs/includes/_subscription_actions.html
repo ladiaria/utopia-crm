@@ -1,0 +1,25 @@
+{% load i18n core_tags %}
+
+{% if request.user|in_group:"Support" or request.user|in_group:"Managers" %}
+  {% if not subscription.is_obsolete %}
+    <a href="{% url "additional_product" subscription.id %}"
+       class="btn btn-success">{% trans "Add" %}</a>
+  {% endif %}
+  <a href="{% url "edit_subscription" contact.id subscription.id %}"
+     class="btn  btn-success">{% trans "Edit" %}</a>
+  <a href="{% url "admin:core_subscription_change" subscription.id %}"
+     class="btn btn-info"
+     target="_blank">{% trans "Advanced" %}</a>
+  {% if subscription.is_obsolete %}
+    <a href="{% url "admin:core_subscription_change" subscription.get_updated_subscription.id %}"
+       class="btn btn-info"
+       target="_blank">{% trans "Replaced Subscription" %}</a>
+  {% else %}
+    <a href="{% url "book_unsubscription" subscription.id %}"
+       class="btn btn-danger">{% trans "Unsubscribe" %}</a>
+  {% endif %}
+{% endif %}
+<a href="{% url "edit_envelopes" subscription.id %}"
+   class="btn btn-info"><i class="fas fa-envelope"></i></a>
+<a href="{% url "upload_payment_certificate" subscription.id %}"
+   class="btn btn-info"><i class="fas fa-file-invoice-dollar"></i></a>

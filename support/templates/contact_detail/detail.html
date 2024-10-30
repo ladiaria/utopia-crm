@@ -23,13 +23,11 @@
 {% endblock body_class %}
 
 {% block title %}
-  {{ contact.id }} - {{ contact.name }}
+  {{ contact.id }} - {{ contact.get_full_name }}
 {% endblock title %}
 
 {% block no_heading %}
-  <h1>
-    {{ contact.id }} - {{ contact.name }}
-  </h1>
+  <h1>{{ contact.id }} - {{ contact.get_full_name }}</h1>
 {% endblock no_heading %}
 
 {% block content %}
@@ -38,25 +36,25 @@
       <div class="row mb-3">
         <div class="col"></div>
         <div class="col-sm-7 d-flex flex-wrap justify-content-end gap-4">
-        <a href="{% url "new_issue" contact.id "L" %}"
-           class="btn btn-sm btn-primary"><i class="fas fa-plus-circle"></i> {% trans "New Issue" %}</a>
-      {% if request.user|in_group:"Support" or request.user|in_group:"Managers" %}
-        {% if request.user|in_group:"Managers" or request.user|in_group:"Support" or request.user|in_group:"Finances" %}
-          <a href='{% url "admin:core_contact_change" contact.id %}'
-             class="btn btn-sm btn-primary"><i class="fas fa-eye"></i> {% trans "See in Admin" %}</a>
-        {% endif %}
-        <a href="{% url "new_scheduled_task_total_pause" contact.id %}"
-           class="btn btn-sm btn-primary"><i class="far fa-clock"></i> {% trans "Total Pause" %}</a>
-        <a href="{% url "new_scheduled_task_partial_pause" contact.id %}"
-           class="btn btn-sm btn-primary"><i class="far fa-clock"></i> {% trans "Partial Pause" %}</a>
-        <a href="{% url "new_scheduled_task_address_change" contact.id %}"
-           class="btn btn-sm btn-primary"><i class="fas fa-address-book"></i> {% trans "Address Change" %}</a>
-      <a href="{% url "history_extended" contact.id %}"
-         class="btn btn-sm btn-primary"><i class="fas fa-history"></i>
-    Historial</a>
-  {% endif %}
-</div>
-</div>
+          <a href="{% url "new_issue" contact.id "L" %}"
+             class="btn btn-sm btn-primary"><i class="fas fa-plus-circle"></i> {% trans "New Issue" %}</a>
+          {% if request.user|in_group:"Support" or request.user|in_group:"Managers" %}
+            {% if request.user|in_group:"Managers" or request.user|in_group:"Support" or request.user|in_group:"Finances" %}
+              <a href='{% url "admin:core_contact_change" contact.id %}'
+                 class="btn btn-sm btn-primary"><i class="fas fa-eye"></i> {% trans "See in Admin" %}</a>
+            {% endif %}
+            <a href="{% url "new_scheduled_task_total_pause" contact.id %}"
+               class="btn btn-sm btn-primary"><i class="far fa-clock"></i> {% trans "Total Pause" %}</a>
+            <a href="{% url "new_scheduled_task_partial_pause" contact.id %}"
+               class="btn btn-sm btn-primary"><i class="far fa-clock"></i> {% trans "Partial Pause" %}</a>
+            <a href="{% url "new_scheduled_task_address_change" contact.id %}"
+               class="btn btn-sm btn-primary"><i class="fas fa-address-book"></i> {% trans "Address Change" %}</a>
+          <a href="{% url "history_extended" contact.id %}"
+             class="btn btn-sm btn-primary"><i class="fas fa-history"></i>
+        Historial</a>
+      {% endif %}
+    </div>
+  </div>
 </div>
 </section>
 <section class="content">
@@ -70,7 +68,7 @@
                 <a class="nav-link active" href="#overview" data-toggle="tab">{% trans "Overview" %}</a>
               </li>
               <li class="nav-item">
-                <a class="nav-link" href="#information" data-toggle="tab">{% trans "Contact information" %}</a>
+                <a class="nav-link" href="#information" data-toggle="tab">{% trans "Information" %}</a>
               </li>
               <li class="nav-item">
                 <a class="nav-link" href="#subscriptions" data-toggle="tab">{% trans "Subscriptions" %}</a>
@@ -81,12 +79,8 @@
               </li>
               <li class="nav-item">
                 <a class="nav-link" href="#issues" data-toggle="tab">{% trans "Issues" %}
-                  ({{ contact.get_total_issues_count }}
-                  {% if contact.get_open_issues_count > 0 %}
-                    /
-                    {{ contact.get_open_issues_count }}
-                  {% endif %}
-                )</a>
+                  ({{ contact.get_total_issues_count }}{% if contact.get_open_issues_count > 0 %}/{{ contact.get_open_issues_count }}{% endif %})
+                </a>
               </li>
               <li class="nav-item">
                 <a class="nav-link" href="#tasks" data-toggle="tab">{% trans "Tasks" %}
@@ -97,7 +91,7 @@
                 ({{ contact.get_total_activities_count }})</a>
               </li>
               <li class="nav-item">
-                <a class="nav-link" href="#last_read" data-toggle="tab">{% trans "Most Read Website" %}</a>
+                <a class="nav-link" href="#last_read" data-toggle="tab">{% trans "Most Read" %}</a>
               </li>
               <li class="nav-item">
                 <a class="nav-link" href="#get_redeemed_vouchers" data-toggle="tab">{% trans "Vouchers" %}</a>
@@ -107,17 +101,15 @@
               </li>
               <li class="nav-item">
                 <a class="nav-link" href="#whatsapp_messages" data-toggle="tab">{% trans "WhatsApp Messages" %}
-                {% block whatsapp_messages_count %}{% endblock whatsapp_messages_count %}</a>
+                  {% block whatsapp_messages_count %}
+                  {% endblock whatsapp_messages_count %}
+                </a>
               </li>
               <li class="nav-item">
                 <a class="text-light nav-link {% if contact.expired_invoices_count > 0 %}btn-danger{% else %}btn-success{% endif %}"
-                   href="{% url "contact_invoices" contact.id %}">{% trans "Go to Invoices" %}
-                  ({{ contact.get_total_invoices_count }}
-                  {% if contact.expired_invoices_count > 0 %}
-                    /
-                    {{ contact.expired_invoices_count }}
-                  {% endif %}
-                )</a>
+                   href="{% url "contact_invoices" contact.id %}">{% trans "Invoices" %}
+                  ({{ contact.get_total_invoices_count }}{% if contact.expired_invoices_count > 0 %}/{{ contact.expired_invoices_count }}{% endif %})
+                </a>
               </li>
             </ul>
           </div>

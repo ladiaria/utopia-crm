@@ -1,0 +1,84 @@
+{% load i18n core_tags %}
+
+<div class="card {% if subscription.status == "PA" %}bg-secondary{% endif %}">
+  <div class="card-body">
+    <div class="row">
+      <div class="col-6">
+        <dt>{% trans "Products" %}:</dt>
+        <dd class="border-bottom pb-3">
+          {% for sp in subscription.get_subscriptionproducts %}
+            <div class="row">
+              <div class="col-5">
+                {% include "contact_detail/tabs/includes/_subscription_icons.html" with sp=sp %}
+                &nbsp;{{ sp.product.name }}
+                {% if sp.label_contact %}({{ sp.label_contact.get_full_name }}){% endif %}
+              </div>
+              <div class="col-6">{{ sp.address.address_1 }}</div>
+              <div class="col-1">
+                {% if sp.route %}R{{ sp.route.number }}{% endif %}
+              </div>
+            </div>
+          {% endfor %}
+        </dd>
+
+        {% if subscription.type == "N" %}
+          <div class="row">
+            <div class="col-6">
+              <dt>{% trans "Frequency" %}:</dt>
+              <dd>{{ subscription.get_frequency }}</dd>
+            </div>
+            <div class="col-6">
+              <dt>{% trans "Price" %}:</dt>
+              <dd>
+                {{ subscription.get_price_for_full_period }}
+                {% if subscription.has_paused_products %}
+                  (${{ subscription.get_price_for_full_period_with_pauses }} {% trans "because of Pause" %})
+                {% endif %}
+              </dd>
+            </div>
+          </div>
+        {% endif %}
+      </div>
+      <div class="col-3">
+        <dt>{% trans "Status" %}:</dt>
+        <dd>{{ subscription.get_status_display }}</dd>
+        {% if subscription.status == "PA" %}
+          <dt>{% trans "Paused until" %}:</dt>
+          <dd>{{ subscription.paused_until|date:"d/m/Y" }}</dd>
+        {% endif %}
+        {% if subscription.has_subscriptionproduct_in_special_route %}
+          <dt>{% trans "Special route" %}:</dt>
+          <dd>{% trans "Yes" %}</dd>
+        {% endif %}
+        {% if subscription.last_paid_invoice %}
+          <dt>{% trans "Last paid invoice" %}:</dt>
+          <dd>{{ subscription.last_paid_invoice.number }}</dd>
+        {% endif %}
+        <dt>{% trans "Next invoice" %}:</dt>
+        <dd>{{ subscription.next_billing|date:"d/m/Y" }}</dd>
+        <dt>{% trans "Start date" %}:</dt>
+        <dd>{{ subscription.start_date|date:"d/m/Y" }}</dd>
+        <dt>{% trans "End date" %}:</dt>
+        <dd>{{ subscription.end_date|date:"d/m/Y"|default:"-" }}</dd>
+      </div>
+      <div class="col-3">
+        {% if subscription.is_obsolete %}
+          <dt>{% trans "Replaced by" %}:</dt>
+          <dd>{{ subscription.get_updated_subscription.number }}</dd>
+        {% endif %}
+        {% if subscription.unsubscription_date %}
+          <dt>{% trans "Unsubscription date" %}:</dt>
+          <dd>{{ subscription.unsubscription_date|date:"d/m/Y" }}</dd>
+          <dt>{% trans "Unsubscription reason" %}:</dt>
+          <dd>{{ subscription.get_unsubscription_reason_display }}</dd>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  {% if request.user|in_group:"Support" or request.user|in_group:"Managers" %}
+    <div class="card-footer text-right">
+      {% include "contact_detail/tabs/includes/_subscription_actions.html" with subscription=subscription %}
+    </div>
+  {% endif %}
+</div>

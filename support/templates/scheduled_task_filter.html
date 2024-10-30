@@ -1,11 +1,11 @@
-{% extends 'adminlte/base.html' %}
+{% extends "adminlte/base.html" %}
 {% load static i18n widget_tweaks %}
 
 {% block title %}{% trans "List scheduled tasks" %}{% endblock title %}
 
 {% block stylesheets %}
-    {{block.super}}
-    <link rel="stylesheet" href="{% static '/admin-lte/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css' %}" />
+  {{ block.super }}
+  <link rel="stylesheet" href="{% static '/admin-lte/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css' %}" />
 {% endblock %}
 
 {% block extra_js %}
@@ -22,8 +22,8 @@
 {% endblock %}
 
 {% block no_heading %}
-<h1>{% trans 'Support' %}</h1>
-<p>{% trans 'List scheduled tasks' %}</p>
+  <h1>{% trans "Support" %}</h1>
+  <p>{% trans "List scheduled tasks" %}</p>
 {% endblock %}
 
 {% block content %}
@@ -31,7 +31,7 @@
     <div class="col-md-12">
         <div class="card">
         <div class="card-body">
-          <form method="GET" id="form">
+          <form method="get" id="form">
             <div class="row">
               <div class="form-group col">
                 <label for="status">{% trans "Contact" %}</label>
@@ -69,9 +69,9 @@
               </div>
             </div>
             <div class="text-right">
-              {{count}} {% trans "issues" %}
-              <input type="submit" class="btn bg-gradient-primary ml-3" value="{% trans 'Export to CSV' %}" name="export" />
-              <input type="submit" class="btn bg-gradient-primary ml-3" value="{% trans 'Search' %}" />
+              {{ count }} {% trans "issues" %}
+              <input type="submit" class="btn bg-gradient-primary ml-3" value="{% trans "Export to CSV" %}" name="export" />
+              <input type="submit" class="btn bg-gradient-primary ml-3" value="{% trans "Search" %}" />
             </div>
           </form>
         </div>
@@ -93,11 +93,11 @@
               <tbody>
                 {% for task in page %}
                 <tr role="row">
-                    <td><a href='{% url "contact_detail" task.contact.id %}'>{{task.contact.name}}</a></td>
-                    <td>{{task.get_category_display}}</td>
-                    <td>{{task.creation_date}}</td>
-                    <td>{{task.execution_date}}</td>
-                    <td>{{task.completed}}</td>
+                    <td><a href="{% url "contact_detail" task.contact.id %}">{{ task.contact.get_full_name }}</a></td>
+                    <td>{{ task.get_category_display }}</td>
+                    <td>{{ task.creation_date }}</td>
+                    <td>{{ task.execution_date }}</td>
+                    <td>{{ task.completed }}</td>
                 </tr>
                 {% endfor %}
               </tbody>
@@ -107,36 +107,6 @@
       </div>
   </div>
   {% if page.has_other_pages %}
-    {% load proper_paginate %}
-    {% load url_replace %}
-    <ul class="pagination">
-        {% if page.number == 1 %}
-            <li class="page-item disabled"><span class="page-link">{% trans "first" %}</span></li>
-        {% else %}
-            <li><a class="page-link" href="?{% url_replace request 'p' 1 %}">{% trans "first" %}</a></li>
-        {% endif %}
-        {% if page.has_previous %}
-            <li><a class="page-link" href="?{% url_replace request 'p' page.previous_page_number %}">&laquo;</a></li>
-        {% else %}
-            <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
-        {% endif %}
-        {% for i in paginator|proper_paginate:page.number %}
-            {% if page.number == i %}
-                <li class="page-item active"><span class="page-link">{{ i }} <span class="sr-only">(current)</span></span></li>
-            {% else %}
-                <li><a class="page-link" href="?{% url_replace request 'p' i %}">{{ i }}</a></li>
-            {% endif %}
-        {% endfor %}
-        {% if page.has_next %}
-            <li><a class="page-link" href="?{% url_replace request 'p' page.next_page_number %}">&raquo;</a></li>
-        {% else %}
-            <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
-        {% endif %}
-        {% if page.number == paginator.num_pages %}
-            <li class="page-item disabled"><span class="page-link">{% trans "last" %}</span></li>
-        {% else %}
-            <li><a class="page-link" href="?{% url_replace request 'p' paginator.num_pages %}">{% trans "last" %}</a></li>
-        {% endif %}
-    </ul>
+    {% include "components/_pagination.html" with page_obj=page %}
   {% endif %}
 {% endblock %}

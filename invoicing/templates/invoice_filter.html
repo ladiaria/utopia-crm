@@ -1,13 +1,12 @@
-{% extends 'adminlte/base.html' %}
+{% extends "adminlte/base.html" %}
 {% load static i18n widget_tweaks %}
-
 {% block title %}
-    {% trans "Invoice filter" %}
+  {% trans "Invoice filter" %}
 {% endblock %}
 
 {% block javascript %}
-{{ block.super }}
-<script>
+  {{ block.super }}
+  <script>
   $(function() {
     $('#id_creation_date').change(function(){
       var option = $(this).val();
@@ -22,38 +21,38 @@
     $('#id_creation_date').change();
     $('.datepicker').datepicker({ dateFormat: 'yy-mm-dd' });
   });
-</script>
+  </script>
 {% endblock %}
 
 {% block no_heading %}
-<h1>{% trans 'Invoice filter' %}</h1>
-<p>{% trans 'Manage invoices.' %}</p>
+  <h1>{% trans "Invoice filter" %}</h1>
+  <p>{% trans "Manage invoices." %}</p>
 {% endblock %}
 
 {% block content %}
-<div class="row">
+  <div class="row">
     <div class="col-md-12">
       <div class="card">
         <div class="card-body">
-          <form method="GET" id="form">
+          <form method="get" id="form">
             <div class="row">
               <div class="form-group col">
                 <label for="phone">{% trans "Contact name" %}</label>
                 {% render_field invoice_filter.form.contact_name class="form-control" %}
               </div>
-                <div class="form-group col">
-                  <label for="creation_date">{% trans "Creation date" %}</label>
-                    {% render_field invoice_filter.form.creation_date class="form-control " %}
-                </div>
+              <div class="form-group col">
+                <label for="creation_date">{% trans "Creation date" %}</label>
+                {% render_field invoice_filter.form.creation_date class="form-control " %}
+              </div>
               <div class="creation-range hidden d-none col-4">
                 <div class="row">
                   <div class="form-group col">
                     <label for="creation_date_gte">{% trans "Creation date (from)" %}</label>
-                      {% render_field invoice_filter.form.creation_gte class="form-control datepicker" %}
+                    {% render_field invoice_filter.form.creation_gte class="form-control datepicker" %}
                   </div>
                   <div class="form-group col">
                     <label for="creation_date_lte">{% trans "Creation date (to)" %}</label>
-                      {% render_field invoice_filter.form.creation_lte class="form-control datepicker" %}
+                    {% render_field invoice_filter.form.creation_lte class="form-control datepicker" %}
                   </div>
                 </div>
               </div>
@@ -89,9 +88,14 @@
               </div>
             </div>
             <div class="text-right">
-              {{invoices_count}} {% trans "invoices" %}
-              <input type="submit" class="btn bg-gradient-primary ml-3" value="{% trans 'Export to CSV' %}" name="export" />
-              <input type="submit" class="btn bg-gradient-primary ml-3" value="{% trans 'Search' %}" />
+              {{ invoices_count }} {% trans "invoices" %}
+              <input type="submit"
+                     class="btn bg-gradient-primary ml-3"
+                     value="{% trans "Export to CSV" %}"
+                     name="export" />
+              <input type="submit"
+                     class="btn bg-gradient-primary ml-3"
+                     value="{% trans "Search" %}" />
             </div>
           </form>
         </div>
@@ -99,90 +103,69 @@
     </div>
     <div class="col-md-12">
       <div class="callout callout-info">
-        <h5>{% trans "Invoices" %}: {{invoices_count}} (${{invoices_sum|default_if_none:"0"}})</h5>
-        <p>{% trans "Paid" %}: {{paid_count}} (${{paid_sum|default_if_none:"0"}}), {% trans "Pending" %}:{{pending_count}} (${{pending_sum|default_if_none:"0"}}), {% trans "Overdue" %}: {{overdue_count|default_if_none:"0"}} (${{overdue_sum|default_if_none:"0"}}), {% trans "Canceled" %}: {{canceled_count|default_if_none:"0"}} (${{canceled_sum|default_if_none:"0"}}), {% trans "Uncollectible" %}:{{uncollectible_count|default_if_none:"0"}} (${{uncollectible_sum|default_if_none:"0"}})</p>
+        <h5>{% trans "Invoices" %}: {{ invoices_count }} (${{ invoices_sum|default_if_none:"0" }})</h5>
+        <p>
+          {% trans "Paid" %}: {{ paid_count }} (${{ paid_sum|default_if_none:"0" }}), {% trans "Pending" %}:{{ pending_count }} (${{ pending_sum|default_if_none:"0" }}), {% trans "Overdue" %}: {{ overdue_count|default_if_none:"0" }} (${{ overdue_sum|default_if_none:"0" }}), {% trans "Canceled" %}: {{ canceled_count|default_if_none:"0" }} (${{ canceled_sum|default_if_none:"0" }}), {% trans "Uncollectible" %}:{{ uncollectible_count|default_if_none:"0" }} (${{ uncollectible_sum|default_if_none:"0" }})
+        </p>
         <a href="{% url 'invoice_filter' %}" class="text-danger"><u>{% trans "Reset" %}</u></a>
       </div>
     </div>
     <div class="col-md-12">
-        <div class="card">
-          <div class="card-body">
-            <table id="table1" class="table ">
-              <thead>
-                  <tr role="row">
-                    <th>{% trans "Id" %}</th>
-                    <th>{% trans "Contact" %}</th>
-                    <th>{% trans "Items" %}</th>
-                    <th>{% trans "Amount" %}</th>
-                    <th>{% trans "Payment type" %}</th>
-                    <th>{% trans "Date" %}</th>
-                    <th>{% trans "Service from" %}</th>
-                    <th>{% trans "Service to" %}</th>
-                    <th>{% trans "Status" %}</th>
-                    <th>{% trans "S/N" %}</th>
-                    <th>{% trans "Details" %}</th>
-                  </tr>
-              </thead>
-              <tbody>
-                {% for invoice in invoices %}
+      <div class="card">
+        <div class="card-body">
+          <table id="table1" class="table ">
+            <thead>
+              <tr role="row">
+                <th>{% trans "Id" %}</th>
+                <th>{% trans "Contact" %}</th>
+                <th>{% trans "Items" %}</th>
+                <th>{% trans "Amount" %}</th>
+                <th>{% trans "Payment type" %}</th>
+                <th>{% trans "Date" %}</th>
+                <th>{% trans "Service from" %}</th>
+                <th>{% trans "Service to" %}</th>
+                <th>{% trans "Status" %}</th>
+                <th>{% trans "S/N" %}</th>
+                <th>{% trans "Details" %}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for invoice in invoices %}
                 <tr role="row">
-                  <td>{{invoice.id}}</td>
+                  <td>{{ invoice.id }}</td>
                   <td>
-                      {% if invoice.contact %}
-                      <a href='{% url "contact_detail" invoice.contact.id %}' target="_blank">{{invoice.contact.name}}</a>
-                      {% else %}
+                    {% if invoice.contact %}
+                      <a href='{% url "contact_detail" invoice.contact.id %}' target="_blank">{{ invoice.contact.get_full_name() }}</a>
+                    {% else %}
                       {% trans "Invoice has no contact!" %}
-                      {% endif %}
+                    {% endif %}
                   </td>
-                  <td>{% autoescape off %}{{invoice.get_invoiceitem_description_list}}{% endautoescape %}</td>
-                  <td>{{invoice.amount}}</td>
-                  <td>{{invoice.get_payment_type}}</td>
-                  <td>{{invoice.creation_date|date:"d/m/Y"}}</td>
-                  <td>{{invoice.service_from|date:"d/m/Y"}}</td>
-                  <td>{{invoice.service_to|date:"d/m/Y"}}</td>
-                  <td>{{invoice.get_status}}</td>
-                  <td>{{invoice.serie}} {{invoice.numero}}</td>
-                  <td><a href='{% url "admin:invoicing_invoice_change" invoice.id %}' target="_blank" class="btn-sm btn-primary">{% trans "Details" %}</a></td>
+                  <td>
+                    {% autoescape off %}
+                      {{ invoice.get_invoiceitem_description_list }}
+                    {% endautoescape %}
+                  </td>
+                  <td>{{ invoice.amount }}</td>
+                  <td>{{ invoice.get_payment_type }}</td>
+                  <td>{{ invoice.creation_date|date:"d/m/Y" }}</td>
+                  <td>{{ invoice.service_from|date:"d/m/Y" }}</td>
+                  <td>{{ invoice.service_to|date:"d/m/Y" }}</td>
+                  <td>{{ invoice.get_status }}</td>
+                  <td>{{ invoice.serie }} {{ invoice.numero }}</td>
+                  <td>
+                    <a href='{% url "admin:invoicing_invoice_change" invoice.id %}'
+                       target="_blank"
+                       class="btn-sm btn-primary">{% trans "Details" %}</a>
+                  </td>
                 </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
+              {% endfor %}
+            </tbody>
+          </table>
         </div>
       </div>
+    </div>
     {% if invoices.has_other_pages %}
-    {% load proper_paginate %}
-    {% load url_replace %}
-    <ul class="pagination">
-        {% if invoices.number == 1 %}
-            <li class="page-item disabled"><span class="page-link">{% trans "first" %}</span></li>
-        {% else %}
-            <li><a class="page-link" href="?{% url_replace request 'p' 1 %}">{% trans "first" %}</a></li>
-        {% endif %}
-        {% if invoices.has_previous %}
-            <li><a class="page-link" href="?{% url_replace request 'p' invoices.previous_page_number %}">&laquo;</a></li>
-        {% else %}
-            <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
-        {% endif %}
-        {% for i in paginator|proper_paginate:invoices.number %}
-            {% if invoices.number == i %}
-                <li class="page-item active"><span class="page-link">{{ i }} <span class="sr-only">{% trans "(current)" %}</span></span></li>
-            {% else %}
-                <li><a class="page-link" href="?{% url_replace request 'p' i %}">{{ i }}</a></li>
-            {% endif %}
-        {% endfor %}
-        {% if invoices.has_next %}
-            <li><a class="page-link" href="?{% url_replace request 'p' invoices.next_page_number %}">&raquo;</a></li>
-        {% else %}
-            <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
-        {% endif %}
-        {% if invoices.number == paginator.num_pages %}
-            <li class="page-item disabled"><span class="page-link">{% trans "last" %}</span></li>
-        {% else %}
-            <li><a class="page-link" href="?{% url_replace request 'p' paginator.num_pages %}">{% trans "last" %}</a></li>
-        {% endif %}
-    </ul>
-  {% endif %}
+      {% include "components/_pagination.html" with page_obj=invoices %}
+    {% endif %}
   </div>
-
 {% endblock %}

@@ -1,10 +1,10 @@
-{% extends 'adminlte/base.html' %}
+{% extends "adminlte/base.html" %}
 {% load static i18n %}
 
-{% block title %}{{contact.name}} - {% trans "Extended history" %}{% endblock title %}
+{% block title %}{{ contact.get_full_name }} - {% trans "Extended history" %}{% endblock title %}
 
 {% block no_heading %}
-<h1><a href="{% url 'contact_list' %}">{% trans "Contacts" %}</a> &raquo; <a href="{% url 'contact_detail' contact.id %}">{{contact.id}} - {{contact.name}}</a> &raquo; {% trans "History" %} </h1>
+<h1><a href="{% url 'contact_list' %}">{% trans "Contacts" %}</a> &raquo; <a href="{% url 'contact_detail' contact.id %}">{{ contact.id }} - {{ contact.get_full_name }}</a> &raquo; {% trans "History" %} </h1>
 {% endblock %}
 
 {% block content %}
@@ -32,8 +32,8 @@
           <tbody>
             {% for history_object, changes in contact_history_dict.items %}
             <tr>
-              <td>{{history_object.history_date}}</td>
-              <td>{{history_object.history_user|default_if_none:"System"}}</td>
+              <td>{{ history_object.history_date }}</td>
+              <td>{{ history_object.history_user|default_if_none:"System" }}</td>
               <td>
                 <ul>
                   {% if not changes %}
@@ -43,7 +43,7 @@
                   {% if change.0 == "created" %}
                   <li>{% trans "History was created" %}</li>
                   {% else %}
-                  <li>{{change.0}}: {{change.1}} -> {{change.2}}</li>
+                  <li>{{ change.0 }}: {{ change.1 }} -> {{ change.2 }}</li>
                   {% endif %}
                   {% endfor %}
                   {% endif %}
@@ -71,7 +71,7 @@
           <div class="card-header p-2 m-2">
             <div class="d-flex justify-content-between m-2">
               <div>
-                {{subscription}}
+                {{ subscription }}
               </div>
               <div>
                 <a href="{% url 'admin:core_subscription_change' subscription.id %}" class="btn-sm btn-success">{% trans "Go to subscription" %}</a>
@@ -89,8 +89,8 @@
               <tbody>
                 {% for history_object, changes in history_dict.items %}
                 <tr>
-                  <td>{{history_object.history_date}}</td>
-                  <td>{{history_object.history_user|default_if_none:"System"}}</td>
+                  <td>{{ history_object.history_date }}</td>
+                  <td>{{ history_object.history_user|default_if_none:"System" }}</td>
                   <td>
                     <ul>
                       {% if not changes %}
@@ -100,7 +100,7 @@
                       {% if change.0 == "created" %}
                       <li>{% trans "History was created" %}</li>
                       {% else %}
-                      <li>{{change.0}}: {{change.1}} -> {{change.2}}</li>
+                      <li>{{ change.0 }}: {{ change.1 }} -> {{ change.2 }}</li>
                       {% endif %}
                       {% endfor %}
                       {% endif %}
@@ -132,7 +132,7 @@
           <div class="card-header p-2 m-2">
             <div class="d-flex justify-content-between m-2">
               <div>
-                {{issue}}
+                {{ issue }}
               </div>
               <div>
                 <a href="{% url 'view_issue' issue.id %}" class="btn-sm btn-success">{% trans "Go to issue" %}</a>
@@ -150,8 +150,8 @@
               <tbody>
                 {% for history_object, changes in history_dict.items %}
                 <tr>
-                  <td>{{history_object.history_date}}</td>
-                  <td>{{history_object.history_user|default_if_none:"System"}}</td>
+                  <td>{{ history_object.history_date }}</td>
+                  <td>{{ history_object.history_user|default_if_none:"System" }}</td>
                   <td>
                     <ul>
                       {% if not changes %}
@@ -161,7 +161,7 @@
                       {% if change.0 == "created" %}
                       <li>{% trans "History was created" %}</li>
                       {% else %}
-                      <li>{{change.0}}: {{change.1}} -> {{change.2}}</li>
+                      <li>{{ change.0 }}: {{ change.1 }} -> {{ change.2 }}</li>
                       {% endif %}
                       {% endfor %}
                       {% endif %}

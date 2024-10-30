@@ -104,7 +104,7 @@
                            data-toggle="tooltip"></i>
                       {% endif %}
                       {{ sp.product.name }}
-                      {% if sp.label_contact %}({{ sp.label_contact.name }}){% endif %}
+                      {% if sp.label_contact %}({{ sp.label_contact.get_full_name }}){% endif %}
                       <br>
                     {% endfor %}
                   </td>

@@ -1,20 +1,25 @@
-{% extends 'adminlte/base.html' %}
+{% extends "adminlte/base.html" %}
 {% load static i18n widget_tweaks %}
-
-{% block title %}{% trans "Upload payment certificate" %}{% endblock title %}
+{% block title %}
+  {% trans "Upload payment certificate" %}
+{% endblock title %}
 
 {% block no_heading %}
-<h1><a href="{% url 'contact_list' %}">{% trans "Contacts" %}</a> &raquo; <a href="{% url 'contact_detail' subscription.contact.id %}">{{subscription.contact.id}} - {{subscription.contact.name}}</a> &raquo; {% trans "Upload payment certificate" %} </h1>
+  <h1>
+    <a href="{% url "contact_list" %}">{% trans "Contacts" %}</a> >
+    <a href="{% url "contact_detail" subscription.contact.id %}">{{ subscription.contact.id }} - {{ subscription.contact.get_full_name }}</a>
+    > {% trans "Upload payment certificate" %}
+  </h1>
 {% endblock no_heading %}
 
 {% block content %}
-<section class="content">
-  <div class="container-fluid">
-    <div class="row">
-      <div class="col-md-12">
-        <div class="card">
-          <div class="card-body">
-            <div class="tab-pane" id="payment_certificate">
+  <section class="content">
+    <div class="container-fluid">
+      <div class="row">
+        <div class="col-md-12">
+          <div class="card">
+            <div class="card-body">
+              <div class="tab-pane" id="payment_certificate">
                 <div class="row">
                   <div class="col-md-8">
                     <form method="post" enctype="multipart/form-data">
@@ -24,9 +29,7 @@
                           <h2 class="card-title">{% trans "Upload payment certificate" %}</h2>
                         </div>
                         <div class="card-body">
-                          <div class="form-group">
-                            {{form.as_p}}
-                          </div>
+                          <div class="form-group">{{ form.as_p }}</div>
                         </div>
                       </div>
                       <div class="text-right">
@@ -34,12 +37,12 @@
                       </div>
                     </form>
                   </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
     </div>
-  </div>
-</section>
+  </section>
 {% endblock %}

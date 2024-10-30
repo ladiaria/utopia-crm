@@ -1,4 +1,4 @@
-{% extends 'adminlte/base.html' %}
+{% extends "adminlte/base.html" %}
 {% load static l10n i18n %}
 
 {% block title %}
@@ -6,23 +6,23 @@
 {% endblock %}
 
 {% block page_name %}
-Facturar contacto: <a href="/admin/core/contact/{{ contact.id }}">{{ contact.name }}</a>
+Facturar contacto: <a href="{% url 'contact_detail' contact.id %}">{{ contact.get_full_name }}</a>
 {% endblock %}
 
 {% block content %}
     {% localize off %}
         {% if contact.protected %}
-                <div style="border: 1px solid #c00; background: #fee; font-size: 1.2em; padding: .5em; margin: .5em 0;">
+            <div class="alert alert-danger">
                 ATENCION: CLIENTE PROTEGIDO<br/>
                 {{ cliente.razon_proteccion|linebreaks }}
-                </div>
+            </div>
         {% endif %}
         <form method="post">
-          {% csrf_token %}
-          <input type='text' name='creation_date' value="{{today}}"> Fecha emisión<br>
-          <input type='text' name='dpp' value="10"> Días para pagar<br>
-          <input type='submit'>
+            {% csrf_token %}
+            <input type="text" name="creation_date" value="{{ today }}"> Fecha emisión<br>
+            <input type="text" name="dpp" value="10"> Días para pagar<br>
+            <input type="submit">
         </form>
-        {{error}}
+        {{ error }}
     {% endlocalize %}
 {% endblock %}

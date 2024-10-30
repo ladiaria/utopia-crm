@@ -96,13 +96,13 @@
               {% if object_list %}
                 {% for subscription in object_list %}
                   <tr role="row">
-                    <td>{{ subscription.contact.name }}</td>
+                    <td>{{ subscription.contact.get_full_name }}</td>
                     <td>{{ subscription.contact.email|default:"-" }}</td>
                     <td>{{ subscription.contact.phone|default:"-" }}</td>
                     <td>{{ subscription.render_product_summary|safe }}</td>
                     <td>{{ subscription.end_date|date:"d/m/Y"|default:"-" }}</td>
                     <td>
-                      <a href="{% url 'contact_detail' subscription.contact.id %}"
+                      <a href="{% url "contact_detail" subscription.contact.id %}"
                          class="btn btn-primary">{% trans "View" %}</a>
                     </td>
                   </tr>
