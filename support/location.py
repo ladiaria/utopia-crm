@@ -1,6 +1,5 @@
 from core.models import Address, Contact
 from django.contrib import messages
-from django.contrib.gis.geos import Point
 from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
@@ -37,7 +36,8 @@ def normalizar_direccion(request, contact_id, address_id):
             new_address.save()
             if old_address_1 != new_address.address_1:
                 new_address.add_note(
-                    f"Sugerencia aplicada el {timezone.now().strftime('%Y/%m/%d %H:%M:%S')}, dirección anterior: {old_address_1}"
+                    f"Sugerencia aplicada el {timezone.now().strftime('%Y/%m/%d %H:%M:%S')}, "
+                    f"dirección anterior: {old_address_1}"
                 )
             if new_address.verified:
                 messages.success(request, f"Dirección {new_address} normalizada con éxito.")
@@ -70,8 +70,8 @@ def normalizar_direccion(request, contact_id, address_id):
             "city": j["localidad"],
             "latitude": j["latitud"],
             "longitude": j["longitud"],
-            "state_id": j["departamento_id"],  # For debug reasons
-            "city_id": j["localidad_id"],  # For debug reasons
+            "state_georef_id": j["departamento_id"],  # For debug reasons
+            "city_georef_id": j["localidad_id"],  # For debug reasons
             "address_type": "physical",
         }
     )
@@ -168,6 +168,7 @@ def agregar_direccion(request, contact_id):
         },
     )
 
+
 @staff_member_required
 def editar_direccion(request, contact_id, address_id):
     georef_activated = getattr(settings, "GEOREF_SERVICES", False)
@@ -210,7 +211,8 @@ def editar_direccion(request, contact_id, address_id):
 
 @csrf_exempt
 def sugerir_direccion_autocompletar(request):
-    form_nuevo = SugerenciaGeorefForm()
+    # TODO: Check why this is not being used
+    # form_nuevo = SugerenciaGeorefForm()
     q, obs = separar_direccion(request.GET.get("q_direccion"))
     sugerencias = []
     if q:

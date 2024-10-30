@@ -41,14 +41,16 @@ def autocompletar_direccion(texto, obs):
         sugerencias = df_sug.to_dict("records")
         for sugerencia in sugerencias:
             if obs:
-                sugerencia[
-                    "resumen"
-                ] = f"{sugerencia['nomVia']} {sugerencia['portalNumber']}, {obs}, {sugerencia['localidad']}, {sugerencia['departamento']}".title()
+                sugerencia["resumen"] = (
+                    f"{sugerencia['nomVia']} {sugerencia['portalNumber']}, {obs}, "
+                    f"{sugerencia['localidad']}, {sugerencia['departamento']}".title()
+                )
                 sugerencia["direccion"] = f"{sugerencia['nomVia']} {sugerencia['portalNumber']}, {obs}".title()
             else:
-                sugerencia[
-                    "resumen"
-                ] = f"{sugerencia['nomVia']} {sugerencia['portalNumber']}, {sugerencia['localidad']}, {sugerencia['departamento']}".title()
+                sugerencia["resumen"] = (
+                    f"{sugerencia['nomVia']} {sugerencia['portalNumber']}, "
+                    f"{sugerencia['localidad']}, {sugerencia['departamento']}".title()
+                )
                 sugerencia["direccion"] = f"{sugerencia['nomVia']} {sugerencia['portalNumber']}".title()
             result.append(sugerencia)
     result.sort(key=lambda x: x["idDepartamento"])
@@ -107,22 +109,21 @@ def buscar_direccion(sugerencias, sug_num_calle, sug_num_localidad, sug_num_port
             how="left",
         )
         df_exact = df.query(
-            "type == 'CALLEyPORTAL' and idCalle == @sug_num_calle and portalNumber == @sug_num_portal and idLocalidad == @sug_num_localidad"
+            "type == 'CALLEyPORTAL' and idCalle == @sug_num_calle and portalNumber == @sug_num_portal"
+            " and idLocalidad == @sug_num_localidad"
         )
-       
 
         if not df_exact.empty:
             direccion = df.to_dict("records")[0]
             df_exact_but_portal_number = df.query(
                 "type == 'CALLEyPORTAL' and idCalle == @sug_num_calle and idLocalidad == @sug_num_localidad"
-                )
+            )
             if not df_exact_but_portal_number.empty:
                 direccion = df_exact_but_portal_number.to_dict("records")[0]
 
         else:
             direccion = df_direcciones.to_dict("records")[0]
 
-        
         if direccion:
             direccion_str = f"{direccion['nomVia'].strip(' ,')} {direccion['portalNumber']}".title()
             if obs:
@@ -154,7 +155,7 @@ def separar_direccion(direccion, state=None, city=None):
             continue
         else:
             q = " ".join(parts[: i + 2])
-            obs = " ".join(parts[i + 2 :])
+            obs = " ".join(parts[i + 2:])
             break
 
     if city:
@@ -208,17 +209,17 @@ def seleccionar_sugerencia(resumen_direccion, sug_num_calle, sug_num_localidad, 
 
 def save_address(address):
     if address.latitude and address.longitude:
-        if type(address.latitude) == str:
+        if type(address.latitude) is str:
             address.latitude = address.latitude.replace(",", ".")
         address.latitude = float(address.latitude)
-        if type(address.longitude) == str:
+        if type(address.longitude) is str:
             address.longitude = address.longitude.replace(",", ".")
         address.longitude = float(address.longitude)
         address.punto_geografico = Point(address.longitude, address.latitude)
     if address.punto_geografico and not (address.latitude and address.longitude):
         address.latitude = address.punto_geografico.y
         address.longitude = address.punto_geografico.x
-    if address.state_id and address.city_id and address.punto_geografico:
+    if address.state_georef_id and address.city_georef_id and address.punto_geografico:
         address.direccion_verificada = True
     address.save()
 
@@ -245,7 +246,7 @@ def buscar_alternativas_normalizadas(address_1, state=None, city=None):
             q, obs = separar_direccion_de_obs(address_1, state, city)
             direcciones = autocompletar_direccion(q, obs)
             return direcciones
-    except Exception as e:
+    except Exception:
         raise
     return sugerencias
 
@@ -255,15 +256,19 @@ def aplicar_sugerencia(address, sugerencia):
     Aplica una sugerencia de autocompletado
     """
     if sugerencia:
-        address.notes = address.notes + f"Sugerencia aplicada el {timezone.now().strftime('%Y/%m/%d %H:%M:%S')}, dirección anterior: {address.direccion_1}\n\n"
+        address.notes = (
+            address.notes + f"Sugerencia aplicada el {timezone.now().strftime('%Y/%m/%d %H:%M:%S')}, "
+            f"dirección anterior: {address.address_1}\n\n"
+        )
         address.address_1 = sugerencia["direccion"]
         address.state = sugerencia["departamento"]
-        address.state_id = sugerencia["departamento_id"]
+        address.state_georef_id = sugerencia["departamento_id"]
         address.city = sugerencia["localidad"]
-        address.city_id = sugerencia["localidad_id"]
+        address.city_georef_id = sugerencia["localidad_id"]
         address.latitude = sugerencia["latitud"]
         address.longitude = sugerencia["longitud"]
         address.save()
+
 
 """
 Stuff to consider LATER

@@ -978,8 +978,8 @@ class Address(models.Model):
     needs_georef = models.BooleanField(null=True, default=False)
     # These last three fields are here for debug reasons. The first one is totally unused
     address_georef_id = models.IntegerField(null=True, blank=True)
-    state_id = models.IntegerField(null=True, blank=True)
-    city_id = models.IntegerField(null=True, blank=True)
+    state_georef_id = models.IntegerField(null=True, blank=True)
+    city_georef_id = models.IntegerField(null=True, blank=True)
     country = models.CharField(max_length=50, blank=True, null=True)
 
     def __str__(self):
@@ -1020,7 +1020,7 @@ class Address(models.Model):
         if self.georef_point and not (self.latitude and self.longitude):
             self.latitude = self.georef_point.y
             self.longitude = self.georef_point.x
-        if self.state_id and self.city_id and self.georef_point:
+        if self.state_georef_id and self.city_georef_id and self.georef_point:
             self.verified = True
         super(Address, self).save(*args, **kwargs)
 
