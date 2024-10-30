@@ -2218,6 +2218,7 @@ def scheduled_activities(request):
             "total_pages": paginator.num_pages,
             "count": activity_filter.qs.count(),
             "now": datetime.now(),
+            "paginator": paginator,
         },
     )
 
