@@ -1,102 +1,102 @@
-{% extends 'adminlte/base.html' %}
+{% extends "adminlte/base.html" %}
 {% load static i18n widget_tweaks core_tags leaflet_tags %}
 {% block extra_js %}
-<script src="{% static 'js/htmx.min.js' %}" defer></script>
-{% leaflet_js %}
-{% leaflet_css %}
-{% if lat and lng %}
-<script>
+  <script src="{% static 'js/htmx.min.js' %}" defer></script>
+  {% leaflet_js %}
+  {% leaflet_css %}
+  {% if lat and lng %}
+    <script>
   function map_init(map, options) {
     var lat = {{lat|stringformat:".6f"}}
     var lng = {{lng|stringformat:".6f"}}
     L.marker([lat, lng]).addTo(map);
     map.setView([lat, lng], 15);
   }
-</script>
-
-{% endif %}
+    </script>
+  {% endif %}
 {% endblock extra_js %}
 
 {% block title %}
-Editar dirección para {{contact.name}} {{contact.last_name}}
+  Editar dirección para {{ contact.get_full_name }}
 {% endblock title %}
 
-
 {% block no_heading %}
-<h1><a href="{% url 'contact_list' %}">{% trans "Contacts" %}</a> &raquo; <a
-    href="{%url 'contact_detail' contact.id %}">{{contact.id}} - {{contact.name}}</a> &raquo; Editar dirección</h1>
+  <h1>
+    <a href="{% url "contact_list" %}">{% trans "Contacts" %}</a> > <a href="{% url "contact_detail" contact.id %}">{{ contact.id }} - {{ contact.get_full_name }}</a> > Editar dirección
+  </h1>
 {% endblock no_heading %}
 
 {% block content %}
-<div class="card">
-  <div class="card-body">
-    <div class="row">
-      <div class="col-6">
-        <div class="card">
-          <div class="card-header">Datos actuales</div>
-          <div class="card-body">
-            <div class="form_div">
-              <div id="form_div">
-                <form action="" method="post">
-                  {% csrf_token %}
-                  <div class="row form-group">
-                    <div class="col">
-                      {% render_field form.address_1 class="form-control" placeholder=form.address_1.label %}
+  <div class="card">
+    <div class="card-body">
+      <div class="row">
+        <div class="col-6">
+          <div class="card">
+            <div class="card-header">Datos actuales</div>
+            <div class="card-body">
+              <div class="form_div">
+                <div id="form_div">
+                  <form action="" method="post">
+                    {% csrf_token %}
+                    <div class="row form-group">
+                      <div class="col">{% render_field form.address_1 class="form-control" placeholder=form.address_1.label %}</div>
+                      <div class="col">{% render_field form.address_2 class="form-control" placeholder=form.address_2.label %}</div>
                     </div>
-                    <div class="col">
-                      {% render_field form.address_2 class="form-control" placeholder=form.address_2.label %}
+                    <div class="row form-group">
+                      <div class="col">{% render_field form.city class="form-control" placeholder=form.city.label %}</div>
+                      <div class="col">{% render_field form.state class="form-control" placeholder=form.state.label %}</div>
                     </div>
-                  </div>
-                  <div class="row form-group">
-                    <div class="col">
-                      {% render_field form.city class="form-control" placeholder=form.city.label %}
-                    </div>
-                    <div class="col">
-                      {% render_field form.state class="form-control" placeholder=form.state.label %}
-                    </div>
-                  </div>
-                  {% if lat and lng %}
-                  <div class="row form-group">
-                    <div class="col">
-                      {% render_field form.latitude class="form-control" placeholder=form.latitude.label required=True readonly=True %}
-                    </div>
-                    <div class="col">
-                      {% render_field form.longitude class="form-control" placeholder=form.longitude.label required=True readonly=True %}
-                    </div>
-                  </div>
-                  {% render_field form.city_id hidden=True %}
-                  {% render_field form.state_id hidden=True %}
-                  {% render_field form.id hidden=True %}
-                  {% endif %}
-                  {% render_field form.address_type hidden=True %}
-                  <div class="row">
-                    {% if georef_activated %}
-                    <div class="col text-right">
-                      <p><span class="text-info">Editá lo que veas necesario y en la siguiente pantalla podrás georreferenciarlo</span><input type="submit" value="Pasar a georreferenciar" name="editar_direccion" class="m-2 btn-large btn btn-info"></p>
-                    </div>
-                    <div class="col text-right">
-                      <input type="submit" value="Guardar sin georeferenciación" name="save_no_georef" class="btn-large btn btn-primary">
-                    </div>
+                    {% if lat and lng %}
+                      <div class="row form-group">
+                        <div class="col">
+                          {% render_field form.latitude class="form-control" placeholder=form.latitude.label required=True readonly=True %}
+                        </div>
+                        <div class="col">
+                          {% render_field form.longitude class="form-control" placeholder=form.longitude.label required=True readonly=True %}
+                        </div>
+                      </div>
+                      {% render_field form.city_id hidden=True %}
+                      {% render_field form.state_id hidden=True %}
+                      {% render_field form.id hidden=True %}
                     {% endif %}
-                  </div>
-                </form>
+                    {% render_field form.address_type hidden=True %}
+                    <div class="row">
+                      {% if georef_activated %}
+                        <div class="col text-right">
+                          <p>
+                            <span class="text-info">Editá lo que veas necesario y en la siguiente pantalla podrás georreferenciarlo</span>
+                            <input type="submit"
+                                   value="Pasar a georreferenciar"
+                                   name="editar_direccion"
+                                   class="m-2 btn-large btn btn-info">
+                          </p>
+                        </div>
+                        <div class="col text-right">
+                          <input type="submit"
+                                 value="Guardar sin georeferenciación"
+                                 name="save_no_georef"
+                                 class="btn-large btn btn-primary">
+                        </div>
+                      {% endif %}
+                    </div>
+                  </form>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-      <div class="col-6">
-        <div class="card">
-          <div class="card-body">
-            <div class="m-2">
-              {% if lat and lng %}
-              {% leaflet_map "mapa" callback="window.map_init" %}
-              {% endif %}
+        <div class="col-6">
+          <div class="card">
+            <div class="card-body">
+              <div class="m-2">
+                {% if lat and lng %}
+                  {% leaflet_map "mapa" callback="window.map_init" %}
+                {% endif %}
+              </div>
             </div>
           </div>
         </div>
       </div>
     </div>
   </div>
-</div>
 {% endblock content %}

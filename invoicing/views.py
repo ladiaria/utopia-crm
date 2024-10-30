@@ -539,14 +539,18 @@ def download_invoice(request, invoice_id):
         c.drawImage(
             settings.INVOICE_LOGO, 17 * mm, height - 38 * mm, width=40 * mm, preserveAspectRatio=True, mask='auto'
         )
-        c.drawString(10 * mm, height - 35 * mm, _('Issue date: {}'.format(invoice.creation_date.strftime("%d/%m/%Y"))))
-        c.drawString(10 * mm, height - 40 * mm, _('Due date: {}'.format(invoice.expiration_date.strftime("%d/%m/%Y"))))
-        c.drawString(10 * mm, height - 50 * mm, '{}'.format(invoice.contact.name))
+        c.drawString(
+            10 * mm, height - 35 * mm, _('Issue date: {date}').format(date=invoice.creation_date.strftime("%d/%m/%Y"))
+        )
+        c.drawString(
+            10 * mm, height - 40 * mm, _('Due date: {date}').format(date=invoice.expiration_date.strftime("%d/%m/%Y"))
+        )
+        c.drawString(10 * mm, height - 50 * mm, f"{invoice.contact.get_full_name()}")
         c.setFont("Roboto", 5)
         table_data = []
         table_data.append((_('Item'), _('Un.'), _('Price'), _('Total')))
         if getattr(settings, 'USE_SQUASHED_SUBSCRIPTION_INVOICEITEMS', False) and invoice.subscription:
-            product = _('Subscription {}'.format(invoice.subscription.id))
+            product = _('Subscription {id}').format(id=invoice.subscription.id)
             copies = 1
             total_amount = 0
             for item in invoice.invoiceitem_set.all():
@@ -565,14 +569,14 @@ def download_invoice(request, invoice_id):
         table.drawOn(c, 3 * mm, 30 * mm)
         c.setFont("Roboto", 11)
         c.drawString(10 * mm, 15 * mm, _("Payment method"))
-        c.drawString(10 * mm, 10 * mm, '{}'.format(invoice.get_payment_type()))
+        c.drawString(10 * mm, 10 * mm, f"{invoice.get_payment_type()}")
         if page == 1:
             c.setFont("Roboto", 10)
-            c.drawCentredString(40 * mm, 4 * mm, '%s' % _("Original invoice"))
+            c.drawCentredString(40 * mm, 4 * mm, _("Original invoice"))
             c.showPage()
         else:
             c.setFont("Roboto", 10)
-            c.drawCentredString(40 * mm, 4 * mm, '%s' % _("Customer invoice"))
+            c.drawCentredString(40 * mm, 4 * mm, _("Customer invoice"))
     c.save()
     return response
 
@@ -623,7 +627,7 @@ def invoice_filter(request):
             writer.writerow(
                 [
                     invoice.id,
-                    invoice.contact.name,
+                    invoice.contact.get_full_name(),
                     invoice.get_invoiceitem_description_list(html=False),
                     invoice.contact.id,
                     invoice.subscription.id if invoice.subscription else None,

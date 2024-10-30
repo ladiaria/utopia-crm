@@ -164,7 +164,7 @@ class Issue(models.Model):
         self.closing_date = date.today()
         if answer_2:
             if self.answer_2:
-                self.answer_2 = "{}\n\n{}".format(self.answer_2, answer_2)
+                self.answer_2 = f"{self.answer_2}\n\n{answer_2}"
             else:
                 self.answer_2 = answer_2
         self.save()
@@ -193,8 +193,8 @@ class Issue(models.Model):
     def __str__(self):
         return str(
             _(
-                "Issue of category {} for {} with status {}".format(
-                    self.get_category(), self.contact.name, self.get_status()
+                "Issue of category {category} for {contact} with status {status}".format(
+                    category=self.get_category(), contact=self.contact.get_full_name(), status=self.get_status()
                 )
             )
         )
@@ -302,7 +302,8 @@ class SalesRecord(models.Model):
         ordering = ["-date_time"]
 
     def __str__(self):
-        return f"{self.seller} - {self.subscription.contact.name} - {self.date_time}"
+        contact_name = self.subscription.contact.get_full_name() if self.subscription and self.subscription.contact else ""
+        return f"{self.seller} - {contact_name} - {self.date_time}"
 
     def show_products(self):
         return ", ".join([p.name for p in self.products.filter(type="S")])

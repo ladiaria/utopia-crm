@@ -1,43 +1,46 @@
 {% load i18n %}
 <!DOCTYPE html>
 <html lang="en" dir="ltr">
-<head>
-  <meta charset="utf-8">
-  <title>{% trans "List of unordered products" %}</title>
-</head>
-<body>
-  {% for route in routes %}
-  <div style="width:100%;page-break-after:always;">
-    <h3 class="card-title">{% trans "Order subscriptions on route" %} {{route.number}}{% if product %} - {% trans "Product" %}: {{product.name}}{% endif %}</h3>
-    <table border="1">
-      <thead>
-        <th>{% trans 'Name' %}</th>
-        {% if not product %}
-        <th>{% trans 'Product' %}</th>
-        {% endif %}
-        <th>{% trans 'Address' %}</th>
-        <th>{% trans 'Complement' %}</th>
-        <th>{% trans 'Message' %}</th>
-        <th>{% trans 'Instructions' %}</th>
-        <th>{% trans 'Order' %}</th>
-      </thead>
-      <tbody>
-        {% for sp in route.subscription_products %}
-        <tr>
-          <td>{{ sp.subscription.contact.name }}</td>
-          {% if not product %}
-          <th>{{sp.product.name}}</th>
+  <head>
+    <meta charset="utf-8">
+    <title>{% trans "List of unordered products" %}</title>
+  </head>
+  <body>
+    {% for route in routes %}
+      <div style="width:100%;page-break-after:always;">
+        <h3 class="card-title">
+          {% trans "Order subscriptions on route" %} {{ route.number }}
+          {% if product %}
+            - {% trans "Product" %}: {{ product.name }}
           {% endif %}
-          <td>{{ sp.address.address_1|default_if_none:'' }}</td>
-          <td>{{ sp.address.address_2|default_if_none:'' }}</td>
-          <td>{{ sp.label_message|default_if_none:'' }}</td>
-          <td>{{ sp.special_instructions|default_if_none:'' }}</td>
-          <td>{{sp.order|default_if_none:''}}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-  {% endfor %}
-</body>
+        </h3>
+        <table border="1">
+          <thead>
+            <th>{% trans "Name" %}</th>
+            {% if not product %}
+              <th>{% trans "Product" %}</th>
+            {% endif %}
+            <th>{% trans "Address" %}</th>
+            <th>{% trans "Complement" %}</th>
+            <th>{% trans "Message" %}</th>
+            <th>{% trans "Instructions" %}</th>
+            <th>{% trans "Order" %}</th>
+          </thead>
+          <tbody>
+            {% for sp in route.subscription_products %}
+              <tr>
+                <td>{{ sp.subscription.contact.get_full_name }}</td>
+                {% if not product %}<th>{{ sp.product.name }}</th>{% endif %}
+                <td>{{ sp.address.address_1|default_if_none:'' }}</td>
+                <td>{{ sp.address.address_2|default_if_none:'' }}</td>
+                <td>{{ sp.label_message|default_if_none:'' }}</td>
+                <td>{{ sp.special_instructions|default_if_none:'' }}</td>
+                <td>{{ sp.order|default_if_none:'' }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endfor %}
+  </body>
 </html>

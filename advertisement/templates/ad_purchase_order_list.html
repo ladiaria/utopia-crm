@@ -1,8 +1,8 @@
-{% extends 'adminlte/base.html' %}
+{% extends "adminlte/base.html" %}
 {% load static i18n widget_tweaks core_tags %}
 
 {% block stylesheets %}
-{{block.super}}
+{{ block.super }}
 <link rel="stylesheet" href="{% static '/admin-lte/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css' %}" />
 {% endblock %}
 
@@ -29,7 +29,7 @@
 <div class="row">
   <div class="col">
     <h1><a href="{% url 'ad_purchase_order_list' %}">{% trans "All Purchase Orders" %}</a></h1>
-    <p>{% trans 'See all advertisement purchase orders.' %}</p>
+    <p>{% trans "See all advertisement purchase orders." %}</p>
   </div>
 </div>
 {% endblock %}
@@ -39,29 +39,29 @@
   <div class="col-md-12">
     <div class="card card-outline card-primary">
       <div class="card-header">
-        <h3 class="card-title">{% trans 'Search' %}</h3>
+        <h3 class="card-title">{% trans "Search" %}</h3>
         <div class="card-tools">
           <button type="button" class="btn btn-tool" data-card-widget="collapse"><i class="fas fa-minus"></i>
           </button>
         </div>
       </div>
       <div class="card-body">
-        <form method="GET" id="form">
+        <form method="get" id="form">
           <div class="row">
             <div class="form-group row col">
-              <label for="advertiser" class="col-sm-3 col-form-label">{% trans 'Advertiser' %}</label>
+              <label for="advertiser" class="col-sm-3 col-form-label">{% trans "Advertiser" %}</label>
               <div class="col-sm-9">
                 {% render_field filter.form.advertiser__name__icontains class="form-control" %}
               </div>
             </div>
             <div class="form-group row col">
-              <label for="billed" class="col-sm-3 col-form-label">{% trans 'Billed' %}</label>
+              <label for="billed" class="col-sm-3 col-form-label">{% trans "Billed" %}</label>
               <div class="col-sm-9">
                 {% render_field filter.form.billed class="form-control" %}
               </div>
             </div>
             <div class="form-group row col">
-              <label for="seller" class="col-sm-3 col-form-label">{% trans 'Seller' %}</label>
+              <label for="seller" class="col-sm-3 col-form-label">{% trans "Seller" %}</label>
               <div class="col-sm-9">
                 {% render_field filter.form.seller class="form-control" %}
               </div>
@@ -69,19 +69,19 @@
           </div>
           <div class="row">
             <div class="form-group row col">
-              <label for="date_created__gte" class="col-sm-3 col-form-label">{% trans 'Min. Date' %}</label>
+              <label for="date_created__gte" class="col-sm-3 col-form-label">{% trans "Min. Date" %}</label>
               <div class="col-sm-9">
                 {% render_field filter.form.date_created__gte class="form-control datepicker" %}
               </div>
             </div>
             <div class="form-group row col">
-              <label for="date_created__lte" class="col-sm-3 col-form-label">{% trans 'Max. Date' %}</label>
+              <label for="date_created__lte" class="col-sm-3 col-form-label">{% trans "Max. Date" %}</label>
               <div class="col-sm-9">
                 {% render_field filter.form.date_created__lte class="form-control datepicker" %}
               </div>
             </div>
             <div class="form-group col-sm-1 text-right">
-              <input type="submit" class="btn bg-gradient-primary" value="{% trans 'Search' %}" />
+              <input type="submit" class="btn bg-gradient-primary" value="{% trans "Search" %}" />
             </div>
           </div>
         </form>

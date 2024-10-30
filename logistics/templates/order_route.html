@@ -1,8 +1,7 @@
 {% extends "adminlte/base.html" %}
 {% load static i18n widget_tweaks core_tags %}
-
 {% block extra_js %}
-<script type="text/javascript">
+  <script type="text/javascript">
 function addParam(v) {
       window.location.search += '&' + v;
   }
@@ -26,109 +25,144 @@ $(function(){
     });
   });
 });
-</script>
+  </script>
 {% endblock %}
 
 {% block no_heading %}
-<h1>{% trans "Logistics" %} &raquo; <a href="{% url 'list_routes' %}">{% trans "All routes" %}</a> &raquo; {% trans "Order route" %} {{route.number}}</h1>
+  <h1>
+    {% trans "Logistics" %} &raquo; <a href="{% url 'list_routes' %}">{% trans "All routes" %}</a> &raquo; {% trans "Order route" %} {{ route.number }}
+  </h1>
 {% endblock %}
 
 {% block title %}
-{% trans "Order route" %} {{route.number}}
+  {% trans "Order route" %} {{ route.number }}
 {% endblock title %}
 
 {% block content %}
-<div class="card">
-  <div class="card-header">
-    <h3 class="card-title">{% trans "Order susbscription products on route" %} {{route.number}} - {{route.name|default:"No name"}}{% if product %} - {% trans "Product" %}: {{product.name}}{% endif %}</h3>
-  </div>
-  <div class="card-body">
-    <div class="col-md-12">
-      <div class="card card-outline card-primary">
-        <div class="card-header">
-          <h3 class="card-title">{% trans 'Filter' %}</h3>
-          <div class="card-tools">
-              <button type="button" class="btn btn-tool" data-card-widget="collapse"><i class="fas fa-minus"></i>
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">
+        {% trans "Order susbscription products on route" %} {{ route.number }} - {{ route.name|default:"No name" }}
+        {% if product %}
+          - {% trans "Product" %}: {{ product.name }}
+        {% endif %}
+      </h3>
+    </div>
+    <div class="card-body">
+      <div class="col-md-12">
+        <div class="card card-outline card-primary">
+          <div class="card-header">
+            <h3 class="card-title">{% trans 'Filter' %}</h3>
+            <div class="card-tools">
+              <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                <i class="fas fa-minus"></i>
               </button>
             </div>
-        </div>
-        <div class="card-body">
-          <form method="GET" id="form">
-            <div class="row">
-              <div class="form-group row col">
-                <label for="tags" class="col-sm-3 col-form-label">{% trans 'Product' %}</label>
-                <div class="col-sm-3">
-                  {% render_field filter.form.product class="form-control" %}
-                </div>
-                <label for="tags" class="col-sm-3 col-form-label">{% trans 'Product weekday' %}</label>
-                <div class="col-sm-3">
-                  {% render_field filter.form.weekday class="form-control" %}
+          </div>
+          <div class="card-body">
+            <form method="get" id="form">
+              <div class="row">
+                <div class="form-group row col">
+                  <label for="tags" class="col-sm-3 col-form-label">{% trans "Product" %}</label>
+                  <div class="col-sm-3">{% render_field filter.form.product class="form-control" %}</div>
+                  <label for="tags" class="col-sm-3 col-form-label">{% trans "Product weekday" %}</label>
+                  <div class="col-sm-3">{% render_field filter.form.weekday class="form-control" %}</div>
                 </div>
               </div>
-            </div>
-            <div class="row">
-              <div class="form-group row col">
-                <label for="tags" class="col-sm-3 col-form-label">{% trans 'Empty order' %}</label>
-                <div class="col-sm-3">
-                  {% render_field filter.form.empty_order class="form-control" %}
-                </div>
-                <label for="tags" class="col-sm-3 col-form-label">{% trans 'Active/Future' %}</label>
-                <div class="col-sm-3">
-                  {% render_field filter.form.active_future class="form-control" %}
+              <div class="row">
+                <div class="form-group row col">
+                  <label for="tags" class="col-sm-3 col-form-label">{% trans "Empty order" %}</label>
+                  <div class="col-sm-3">{% render_field filter.form.empty_order class="form-control" %}</div>
+                  <label for="tags" class="col-sm-3 col-form-label">{% trans "Active/Future" %}</label>
+                  <div class="col-sm-3">{% render_field filter.form.active_future class="form-control" %}</div>
                 </div>
               </div>
-            </div>
-            <div class="row">
-              <div class="form-group col-12 text-right">
-                <a href="javascript:addParam('print=True')" class="btn-primary btn">{% trans "Print view" %}</a>
-                <input type="submit" class="btn bg-gradient-primary" value="{% trans 'Search' %}" />
-                {{subscription_products.count}} {% trans "products" %}
+              <div class="row">
+                <div class="form-group col-12 text-right">
+                  <a href="javascript:addParam('print=True')" class="btn-primary btn">{% trans "Print view" %}</a>
+                  <input type="submit"
+                         class="btn bg-gradient-primary"
+                         value="{% trans "Search" %}" />
+                  {{ subscription_products.count }} {% trans "products" %}
+                </div>
               </div>
-            </div>
-          </form>
+            </form>
+          </div>
         </div>
       </div>
+      <form action="" method="post">
+        {% csrf_token %}
+        <div class="table-responsive">
+          <table class="table table-hover table-head-fixed">
+            <thead>
+              <tr>
+                <th>{% trans "Name" %}</th>
+                {% if not product %}
+                  <th>{% trans "Product" %}</th>
+                {% endif %}
+                <th>{% trans "Address" %}</th>
+                <th>{% trans "Complement" %}</th>
+                <th>{% trans "Message" %}</th>
+                <th>{% trans "Instructions" %}</th>
+                <th>{% trans "Order" %}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for sp in subscription_products %}
+                <tr class="{% cycle 'row1' 'row2' %}">
+                  <td>
+                    <a href="{% url 'contact_detail' sp.subscription.contact.id %}">{{ sp.subscription.contact.get_full_name }}</a>
+                  </td>
+                  {% if not product %}<td>{{ sp.product.name }}</td>{% endif %}
+                  <td>{{ sp.address.address_1|default_if_none:'' }}</td>
+                  <td>{{ sp.address.address_2|default_if_none:'' }}</td>
+                  <td>
+                    <input class="form-control"
+                           maxlength="40"
+                           type="text"
+                           name="message-{{ sp.id }}"
+                           value="{{ sp.label_message|default_if_none:'' }}" />
+                  </td>
+                  <td>
+                    <input class="form-control"
+                           type="number"
+                           name="instructions-{{ sp.id }}"
+                           value="{{ sp.special_instructions|default_if_none:'' }}" />
+                  </td>
+                  <td>
+                    <input class="form-control"
+                           type="number"
+                           name="sp-order-{{ sp.id }}"
+                           value="{{ sp.order|default_if_none:'' }}"
+                           size="2"
+                           tabindex="{{ forloop.counter }}" />
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <div class="text-right">
+          <input id="convert"
+                 type="button"
+                 value="{% trans "Convert to tens" %}"
+                 class="btn btn-primary btn-gradient" />
+          <input type="submit"
+                 value="{% trans "Send" %}"
+                 class="btn btn-primary btn-gradient" />
+        </div>
+      </form>
     </div>
-
-    <form action="" method="post">
-      {% csrf_token %}
-      <div class="table-responsive">
-        <table class="table table-hover table-head-fixed">
-          <thead>
-            <tr>
-              <th>{% trans 'Name' %}</th>
-              {% if not product %}<th>{% trans 'Product' %}</th>{% endif %}
-              <th>{% trans 'Address' %}</th>
-              <th>{% trans 'Complement' %}</th>
-              <th>{% trans 'Message' %}</th>
-              <th>{% trans 'Instructions' %}</th>
-              <th>{% trans 'Order' %}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for sp in subscription_products %}
-            <tr class="{% cycle 'row1' 'row2' %}">
-              <td><a href="{% url 'contact_detail' sp.subscription.contact.id %}">{{ sp.subscription.contact.name }}</a></td>
-              {% if not product %}<td>{{ sp.product.name }}</td>{% endif %}
-              <td>{{ sp.address.address_1|default_if_none:'' }}</td>
-              <td>{{ sp.address.address_2|default_if_none:'' }}</td>
-              <td><input class="form-control" maxlength="40" type="text" name="message-{{ sp.id }}" value="{{ sp.label_message|default_if_none:'' }}" /></td>
-              <td><input class="form-control" type="number" name="instructions-{{ sp.id }}" value="{{ sp.special_instructions|default_if_none:'' }}" /></td>
-              <td><input class="form-control" type="number" name="sp-order-{{ sp.id }}" value="{{sp.order|default_if_none:''}}" size="2" tabindex="{{ forloop.counter }}" class="form-control"/></td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-      <div class="text-right">
-        <input id="convert" type="button" value="{% trans 'Convert to tens' %}" class="btn btn-primary btn-gradient"/>
-        <input type="submit" value="{% trans 'Send' %}" class="btn btn-primary btn-gradient"/>
-      </div>
-    </form>
   </div>
-</div>
-
-<div style="display: none" id="dialog-confirm" title='{% trans "Confirm action" %}'>
-  <p><span class="ui-icon ui-icon-alert" style="float:left; margin:12px 12px 20px 0;"></span>{% blocktrans with route as route_number %}Convert all orders of route {{ route.number }} to tens?{% endblocktrans %} ({% if product %}{{ product.name }}{% endif %})</p>
-</div>
+  <div style="display: none"
+       id="dialog-confirm"
+       title="{% trans "Confirm action" %}">
+    <p>
+      <span class="ui-icon ui-icon-alert"
+            style="float:left;
+                   margin:12px 12px 20px 0"></span>{% blocktrans with route as route_number %}Convert all orders of route {{ route.number }} to tens?{% endblocktrans %} (
+      {% if product %}{{ product.name }}{% endif %}
+      )
+    </p>
+  </div>
 {% endblock %}

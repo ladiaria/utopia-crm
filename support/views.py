@@ -5,7 +5,7 @@ from datetime import date, timedelta, datetime
 from functools import reduce
 from operator import or_
 
-from django.db.models import Q, Count, Sum, Min
+from django.db.models import Q, Count, Sum, Min, Case, When, Value, BooleanField
 from taggit.models import Tag
 
 from django import forms
@@ -662,6 +662,7 @@ def send_promo(request, contact_id):
     form = NewPromoForm(
         initial={
             "name": contact.name,
+            "last_name": contact.last_name,
             "phone": contact.phone,
             "mobile": contact.mobile,
             "email": contact.email,
@@ -780,6 +781,7 @@ class SubscriptionMixin:
         return {
             "contact": contact,
             "name": contact.name,
+            "last_name": contact.last_name,
             "phone": contact.phone,
             "mobile": contact.mobile,
             "email": contact.email,
@@ -1324,7 +1326,7 @@ def list_issues(request):
                 [
                     issue.date,
                     issue.contact.id,
-                    issue.contact.name,
+                    issue.contact.get_full_name(),
                     issue.get_category(),
                     issue.get_subcategory(),
                     issue.activity_count(),
@@ -1669,7 +1671,7 @@ def contact_list(request):
             writer.writerow(
                 [
                     contact.id,
-                    contact.name,
+                    contact.get_full_name(),
                     contact.email,
                     contact.phone,
                     contact.mobile,
@@ -1713,33 +1715,69 @@ def contact_detail(request, contact_id):
     contact = get_object_or_404(Contact, pk=contact_id)
     addresses = contact.addresses.all()
     activities = contact.activity_set.all().order_by("-id")[:3]
-    active_subscriptions = contact.subscriptions.filter(active=True).exclude(status="AP")
-    paused_subscriptions = contact.subscriptions.filter(status="PA")
-    subscriptions = active_subscriptions | paused_subscriptions
-    subscriptions = subscriptions.order_by("-end_date", "-start_date")
-    issues = contact.issue_set.all().order_by("-id")[:3]
     newsletters = contact.get_newsletters()
     last_paid_invoice = contact.get_last_paid_invoice()
-    inactive_subscriptions = (
-        contact.subscriptions.filter(active=False, start_date__lt=date.today())
-        .exclude(status__in=("AP", "ER"))
-        .order_by("-end_date", "-start_date")
-    )
-    future_subscriptions = (
-        contact.subscriptions.filter(active=False, start_date__gte=date.today())
-        .exclude(status__in=("AP", "ER"))
-        .order_by("-start_date")
-    )
+    issues = contact.issue_set.all().order_by("-id")[:3]
     all_activities = contact.activity_set.all().order_by("-datetime", "id")
     all_issues = contact.issue_set.all().order_by("-date", "id")
     all_scheduled_tasks = contact.scheduledtask_set.all().order_by("-creation_date", "id")
     all_campaigns = contact.contactcampaignstatus_set.all().order_by("-date_created", "id")
-    awaiting_payment_subscriptions = contact.subscriptions.filter(status="AP")
-    subscriptions_with_error = contact.subscriptions.filter(status="ER")
+
+    subscription_groups = [
+        {
+            'title': _("Active subscriptions"),
+            'subscriptions': contact.subscriptions.filter(active=True).exclude(status="AP"),
+            'collapsed': False
+        },
+        {
+            'title': _("Future Subscriptions"),
+            'subscriptions': contact.subscriptions.filter(
+                active=False,
+                start_date__gte=date.today()
+            ).exclude(status__in=("AP", "ER")),
+            'collapsed': False
+        },
+        {
+            'title': _("Subscriptions awaiting payment"),
+            'subscriptions': contact.subscriptions.filter(status="AP"),
+            'collapsed': True
+        },
+        {
+            'title': _("Subscriptions with errors"),
+            'subscriptions': contact.subscriptions.filter(status="ER"),
+            'collapsed': True
+        },
+        {
+            'title': _("Paused Subscriptions"),
+            'subscriptions': contact.subscriptions.filter(status="PA"),
+            'collapsed': True
+        },
+        {
+            'title': _("Inactive subscriptions"),
+            'subscriptions': contact.subscriptions.filter(
+                active=False,
+                start_date__lt=date.today()
+            ).exclude(status__in=("AP", "ER")),
+            'collapsed': True
+        }
+    ]
+
+    overview_subscriptions = Subscription.objects.filter(
+        contact=contact,
+        active=True
+    ).exclude(
+        status="AP"
+    ).annotate(
+        is_future=Case(
+            When(start_date__gt=date.today(), then=Value(True)),
+            default=Value(False),
+            output_field=BooleanField(),
+        )
+    ).order_by('is_future', 'start_date')
 
     breadcrumbs = [
         {"label": _("Contact list"), "url": reverse("contact_list")},
-        {"label": contact.name, "url": reverse("contact_detail", args=[contact.id])},
+        {"label": contact.get_full_name(), "url": reverse("contact_detail", args=[contact.id])},
     ]
 
     return render(
@@ -1749,20 +1787,16 @@ def contact_detail(request, contact_id):
             "contact": contact,
             "addresses": addresses,
             "activities": activities,
-            "subscriptions": subscriptions,
             "newsletters": newsletters,
             "issues": issues,
-            "inactive_subscriptions": inactive_subscriptions,
-            "awaiting_payment_subscriptions": awaiting_payment_subscriptions,
-            "paused_subscriptions": paused_subscriptions,
-            "subscriptions_with_error": subscriptions_with_error,
-            "future_subscriptions": future_subscriptions,
             "last_paid_invoice": last_paid_invoice,
             "all_activities": all_activities,
             "all_issues": all_issues,
             "all_scheduled_tasks": all_scheduled_tasks,
             "all_campaigns": all_campaigns,
             "breadcrumbs": breadcrumbs,
+            "subscription_groups": subscription_groups,
+            "overview_subscriptions": overview_subscriptions,
         },
     )
 
@@ -2036,7 +2070,7 @@ def advanced_export_dcf_list(request, dcf_id):
     for contact in dcf.get_contacts():
         row = [
             contact.id,
-            contact.name,
+            contact.get_full_name(),
             contact.id_document,
             contact.email,
             contact.phone,
@@ -2294,7 +2328,7 @@ def invoicing_issues(request):
                 [
                     issue.date,
                     issue.contact.id,
-                    issue.contact.name,
+                    issue.contact.get_full_name(),
                     issue.activity_count(),
                     issue.get_status(),
                     issue.owed_invoices,
@@ -2372,7 +2406,7 @@ def debtor_contacts(request):
             writer.writerow(
                 [
                     contact.id,
-                    contact.name,
+                    contact.get_full_name(),
                     contact.has_active_subscription(),
                     contact.owed_invoices,
                     contact.get_open_issues_by_category_count("I"),
@@ -2418,7 +2452,7 @@ def book_unsubscription(request, subscription_id):
             form.save()
             success_text = format_lazy(
                 "Unsubscription for {name} booked for {end_date}",
-                name=subscription.contact.name,
+                name=subscription.contact.get_full_name(),
                 end_date=subscription.end_date,
             )
             messages.success(request, success_text)
@@ -2496,7 +2530,7 @@ def partial_unsubscription(request, subscription_id):
             # After that, we'll set the unsubscription date to this new subscription
             success_text = format_lazy(
                 "Unsubscription for {name} booked for {end_date}",
-                name=old_subscription.contact.name,
+                name=old_subscription.contact.get_full_name(),
                 end_date=old_subscription.end_date,
             )
             messages.success(request, success_text)
@@ -2587,7 +2621,7 @@ def product_change(request, subscription_id):
             # After that, we'll set the unsubscription date to this new subscription
             success_text = format_lazy(
                 "Unsubscription for {name} booked for {end_date}",
-                name=old_subscription.contact.name,
+                name=old_subscription.contact.get_full_name(),
                 end_date=old_subscription.end_date,
             )
             messages.success(request, success_text)
@@ -3128,7 +3162,7 @@ def scheduled_task_filter(request):
             writer.writerow(
                 [
                     st.contact.id,
-                    st.contact.name,
+                    st.contact.get_full_name(),
                     st.get_category_display(),
                     st.creation_date,
                     st.execution_date,
@@ -3590,7 +3624,7 @@ class SubscriptionEndDateListView(FilterView, ListView):
             data.append(
                 {
                     'Contact ID': subscription.contact.id,
-                    'Contact Name': subscription.contact.name,
+                    'Contact Name': subscription.contact.get_full_name(),
                     'Email': subscription.contact.email,
                     'Phone': subscription.contact.phone,
                     'End Date': subscription.end_date,

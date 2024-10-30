@@ -2,8 +2,8 @@
 {% load static i18n %}
 
 {% block stylesheets %}
-    {{block.super}}
-    <link rel="stylesheet" media="print" href="{% static 'css/print.css' %}" />
+  {{ block.super }}
+  <link rel="stylesheet" media="print" href="{% static 'css/print.css' %}" />
 {% endblock %}
 
 {% block extra_js %}
@@ -19,18 +19,19 @@
 {% endblock %}
 
 {% block no_heading %}
-<span onclick="window.print()" class="btn btn-primary float-right"><i class="fas fa-print"></i>  {% trans 'Print' %}</span>
-<h1>{% trans "Logistics" %} &raquo; <a href="{% url 'list_routes' %}">{% trans "All routes" %}</a> &raquo;
-{% for route in route_list %}{% if forloop.counter > 1 %},&nbsp;{% endif %}{{route}}{% endfor %}
-{% if product_name %}
-    ({{product_name}})
-{% endif %}
+  <span onclick="window.print()" class="btn btn-primary float-right"><i class="fas fa-print"></i>{% trans "Print" %}</span>
+  <h1>
+    {% trans "Logistics" %} &raquo; <a href="{% url "list_routes" %}">{% trans "All routes" %}</a> &raquo;
+    {% for route in route_list %}{% if forloop.counter > 1 %},&nbsp;{% endif %}{{ route }}{% endfor %}
+    {% if product_name %}
+      ({{ product_name }})
+  {% endif %}
 </h1>
 {% endblock %}
 
 {% block title %}
-    {% trans "Print routes" %}
-    {% for route in route_list %}{% if forloop.counter > 1 %},&nbsp;{% endif %}{{route}}{% endfor %}
+  {% trans "Print routes" %}
+  {% for route in route_list %}{% if forloop.counter > 1 %},&nbsp;{% endif %}{{ route }}{% endfor %}
 {% endblock title %}
 
 {% block content %}
@@ -38,7 +39,7 @@
   <div class="card-body">
       <div class="card card-outline card-primary noprint">
         <div class="card-header">
-          <h3 class="card-title">{% trans 'Filter by product' %}</h3>
+          <h3 class="card-title">{% trans "Filter by product" %}</h3>
           <div class="card-tools">
             <button type="button" class="btn btn-tool" data-card-widget="collapse"><i class="fas fa-minus"></i>
             </button>
@@ -47,35 +48,35 @@
         <div class="card-body">
           <div class="form-group">
             <select id="product_select" class="form-control">
-             <option value="all">{% trans 'All' %}</option>
+            <option value="all">{% trans "All" %}</option>
             {% for product in product_list %}
-             <option value="{{product.id}}" {% if product_id == product.id|slugify %}selected{% endif %}>{{product.name}}</option>
+             <option value="{{ product.id }}" {% if product_id == product.id|slugify %}selected{% endif %}>{{ product.name }}</option>
             {% endfor %}
            </select>
           </div>
         </div>
       </div>
       {% for route, subscription_products in route_dict %}
-        <h2 class="{% if not forloop.first %}page-break{% endif%}">{% trans "Route" %} {{route}} {% if product_name %}({{product_name}}){% endif %}</h2>
+        <h2 class="{% if not forloop.first %}page-break{% endif %}">{% trans "Route" %} {{ route }} {% if product_name %}({{ product_name }}){% endif %}</h2>
         <div class="table-responsive">
           <table class="table table-hover table-head-fixed">
             <thead>
               <tr>
-                  <th>{% trans 'Name' %}</th>
+                  <th>{% trans "Name" %}</th>
                   {% if not product_name %}
-                      <th>{% trans 'Product' %}</th>
+                      <th>{% trans "Product" %}</th>
                   {% endif %}
-                  <th>{% trans 'Address' %}</th>
-                  <th>{% trans 'Complement' %}</th>
-                  <th>{% trans 'Message' %}</th>
-                  <th>{% trans 'Instructions' %}</th>
-                  <th>{% trans 'Order' %}</th>
+                  <th>{% trans "Address" %}</th>
+                  <th>{% trans "Complement" %}</th>
+                  <th>{% trans "Message" %}</th>
+                  <th>{% trans "Instructions" %}</th>
+                  <th>{% trans "Order" %}</th>
               </tr>
             </thead>
             <tbody>
             {% for sp in subscription_products %}
               <tr>
-                  <td>{{ sp.subscription.contact.name }}</td>
+                  <td>{{ sp.subscription.contact.get_full_name }}</td>
                   {% if not product_name %}
                     <td>{{ sp.product.name }}</td>
                   {% endif %}
@@ -83,7 +84,7 @@
                   <td>{{ sp.address.address_2|default_if_none:'' }}</td>
                   <td>{{ sp.label_message|default_if_none:'' }}</td>
                   <td>{{ sp.special_instructions|default_if_none:'' }}</td>
-                  <td>{{sp.order|default_if_none:''}}</td>
+                  <td>{{ sp.order|default_if_none:'' }}</td>
               </tr>
             {% endfor %}
             </tbody>
