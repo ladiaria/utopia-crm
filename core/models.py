@@ -929,6 +929,36 @@ class Contact(models.Model):
         ordering = ("-id",)
 
 
+class Country(models.Model):
+    name = models.CharField(max_length=50)
+    code = models.CharField(max_length=2, unique=True)  # ISO 3166-1 alpha-2 codes
+    active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = _("country")
+        verbose_name_plural = _("countries")
+        ordering = ('name',)
+
+
+class State(models.Model):
+    name = models.CharField(max_length=50)
+    code = models.CharField(max_length=10)  # State/region code
+    country = models.ForeignKey(Country, on_delete=models.PROTECT)
+    active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = _("state")
+        verbose_name_plural = _("states")
+        ordering = ('name',)
+        unique_together = [['code', 'country']]
+
+
 class Address(models.Model):
     """
     Model that contains all the addresses for each contact. They're reused throughout the subscriptions,
@@ -952,15 +982,6 @@ class Address(models.Model):
         default=getattr(settings, "DEFAULT_CITY", None),
         verbose_name=_("City"),
     )
-    state = models.CharField(
-        max_length=50,
-        blank=True,
-        null=True,
-        default=getattr(settings, "DEFAULT_STATE", None),
-        verbose_name=_("State"),
-    )
-    if settings.USE_STATES_CHOICE:
-        state.choices = settings.STATES
     email = models.EmailField(blank=True, null=True, verbose_name=_("Email"))
     address_type = models.CharField(max_length=50, choices=ADDRESS_TYPE_CHOICES, verbose_name=_("Address type"))
     notes = models.TextField(blank=True, null=True, verbose_name=_("Notes"))
@@ -981,9 +1002,50 @@ class Address(models.Model):
     state_georef_id = models.IntegerField(null=True, blank=True)
     city_georef_id = models.IntegerField(null=True, blank=True)
     country = models.CharField(max_length=50, blank=True, null=True)
+    state = models.CharField(
+        max_length=50,
+        blank=True,
+        null=True,
+        default=getattr(settings, "DEFAULT_STATE", None),
+        verbose_name=_("State"),
+    )
+    if settings.USE_STATES_CHOICE:
+        state.choices = settings.STATES
+
+    # New fields with explicit column names
+    country_new = models.ForeignKey(
+        'core.Country',
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        verbose_name=_("Country"),
+        db_column='country_fk'  # Explicit different column name
+    )
+    state_new = models.ForeignKey(
+        'core.State',
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        verbose_name=_("State"),
+        db_column='state_fk'  # Explicit different column name
+    )
+
+    @property
+    def country_name(self):
+        """Compatibility method that works with both old and new fields"""
+        if hasattr(self, 'country') and isinstance(self.country, str):
+            return self.country
+        return self.country_new.name if self.country_new else None
+
+    @property
+    def state_name(self):
+        """Compatibility method that works with both old and new fields"""
+        if hasattr(self, 'state') and isinstance(self.state, str):
+            return self.state
+        return self.state_new.name if self.state_new else None
 
     def __str__(self):
-        return ' '.join(filter(None, (self.address_1, self.address_2, self.city, self.state)))
+        return ' '.join(filter(None, (self.address_1, self.address_2, self.city, self.state_name, self.country_name)))
 
     def get_type(self):
         """
