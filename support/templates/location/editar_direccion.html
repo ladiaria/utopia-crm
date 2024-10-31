@@ -55,8 +55,8 @@
                           {% render_field form.longitude class="form-control" placeholder=form.longitude.label required=True readonly=True %}
                         </div>
                       </div>
-                      {% render_field form.city_id hidden=True %}
-                      {% render_field form.state_id hidden=True %}
+                      {% render_field form.city_georef_id hidden=True %}
+                      {% render_field form.state_georef_id hidden=True %}
                       {% render_field form.id hidden=True %}
                     {% endif %}
                     {% render_field form.address_type hidden=True %}
