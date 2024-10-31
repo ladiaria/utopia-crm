@@ -42,6 +42,8 @@ from .models import (
     EmailReplacement,
     EmailBounceActionLog,
     MailtrainList,
+    Country,
+    State,
 )
 from .forms import SubscriptionAdminForm, ContactAdminForm
 
@@ -544,3 +546,5 @@ admin.site.register(AdvancedDiscount)
 admin.site.register(DoNotCallNumber)
 admin.site.register(MailtrainList)
 admin.site.register(IdDocumentType)
+admin.site.register(Country)
+admin.site.register(State)
