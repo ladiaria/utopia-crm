@@ -10,6 +10,7 @@ import pandas as pd
 
 from django.contrib.admin.views.decorators import staff_member_required
 
+from core.models import State
 from support.forms import SugerenciaGeorefForm
 from util.location_utils import (
     buscar_alternativas_normalizadas,
@@ -25,6 +26,7 @@ def normalizar_direccion(request, contact_id, address_id):
         messages.error(request, "Servicio de georeferenciación no configurado.")
         return HttpResponseRedirect(reverse("contact_detail", args=[contact_id]))
     address_obj = get_object_or_404(Address, pk=address_id)
+    print(address_obj.state_georef_id, address_obj.city_georef_id, address_obj.georef_point)
     contact_obj = get_object_or_404(Contact, pk=contact_id)
     old_address_1 = address_obj.address_1
     if request.POST:
@@ -49,7 +51,7 @@ def normalizar_direccion(request, contact_id, address_id):
                 return HttpResponseRedirect(reverse("normalizar_direccion", args=[contact_id, address_id]))
         else:
             messages.error(request, "Dirección no cuenta con los valores correctos de georreferenciación.")
-    sugerencias = buscar_alternativas_normalizadas(address_obj.address_1, address_obj.city, address_obj.state)
+    sugerencias = buscar_alternativas_normalizadas(address_obj.address_1, address_obj.city, address_obj.state_name)
     sugindex = int(request.GET.get('sugerencia', 0))
     try:
         sugerencia = sugerencias[sugindex]
@@ -62,11 +64,13 @@ def normalizar_direccion(request, contact_id, address_id):
     direccion, id_calle = sugerencia['direccion'], sugerencia["idCalle"]
     id_localidad, id_portal = sugerencia["idLocalidad"], sugerencia["portalNumber"]
     j = seleccionar_sugerencia(direccion, id_calle, id_localidad, id_portal)
+    state_name = j["departamento"].title()
+    state_obj = State.objects.get(name=state_name)
     form_nuevo = SugerenciaGeorefForm(
         initial={
             "address_1": j["direccion"],
             "address_2": address_obj.address_2,
-            "state": j["departamento"].title(),
+            "state": state_obj,
             "city": j["localidad"],
             "latitude": j["latitud"],
             "longitude": j["longitud"],
@@ -136,17 +140,19 @@ def agregar_direccion(request, contact_id):
                 return HttpResponseRedirect(reverse("normalizar_direccion", args=[contact_id, address.id]) + stayhere)
         direccion, id_calle, id_localidad, id_portal = request.POST.get('sugerencias').split("|")
         j = seleccionar_sugerencia(direccion, id_calle, id_localidad, id_portal)
+        state_name = j["departamento"].title()
+        state_obj = State.objects.get(name=state_name)
         form = SugerenciaGeorefForm(
             initial={
                 "contact": contact_obj,
                 "address_1": j["direccion"],
                 "address_2": None,
-                "state": j["departamento"].title(),
+                "state": state_obj,
                 "city": j["localidad"],
                 "latitude": j["latitud"],
                 "longitude": j["longitud"],
-                "state_id": j["departamento_id"],  # For debug reasons
-                "city_id": j["localidad_id"],  # For debug reasons
+                "state_georef_id": j["departamento_id"],  # For debug reasons
+                "city_georef_id": j["localidad_id"],  # For debug reasons
                 "address_type": "physical",
             }
         )

@@ -9,13 +9,15 @@ class Migration(migrations.Migration):
 
     operations = [
         # First remove the old fields
-        migrations.RemoveField(
+        migrations.RenameField(
             model_name='address',
-            name='country',
+            old_name='country',
+            new_name='country_old',
         ),
-        migrations.RemoveField(
+        migrations.RenameField(
             model_name='address',
-            name='state',
+            old_name='state',
+            new_name='state_old',
         ),
 
         # Then rename the new fields to the simpler names
