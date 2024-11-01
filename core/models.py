@@ -765,7 +765,9 @@ class Contact(models.Model):
 
     def do_not_call(self, phone_att="phone"):
         number = getattr(self, phone_att)
-        return number and DoNotCallNumber.objects.filter(number__contains=number.national_number).exists()
+        if number is None or number.national_number is None:
+            return False
+        return DoNotCallNumber.objects.filter(number__contains=number.national_number).exists()
 
     def do_not_call_phone(self):
         return self.do_not_call("phone")
