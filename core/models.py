@@ -918,7 +918,7 @@ class Contact(models.Model):
             address = Address.objects.create(
                 address_1=self.email,
                 city=getattr(settings, "DEFAULT_CITY", None),
-                state=getattr(settings, "DEFAULT_STATE", None),
+                state=State.objects.get(name=getattr(settings, "DEFAULT_STATE", None)),
                 address_type="digital",
                 contact=self,
             )
@@ -988,7 +988,7 @@ class Address(models.Model):
     address_type = models.CharField(max_length=50, choices=ADDRESS_TYPE_CHOICES, verbose_name=_("Address type"))
     notes = models.TextField(blank=True, null=True, verbose_name=_("Notes"))
     default = models.BooleanField(default=False, verbose_name=_("Default"))
-    history = HistoricalRecords()
+    # history = HistoricalRecords()
     picture = models.FileField(upload_to="address_pictures/", blank=True, null=True)
     google_maps_url = models.CharField(max_length=2048, null=True, blank=True)
     do_not_show = models.BooleanField(default=False, help_text=_("Do not show in picture/google maps list"))
@@ -1003,19 +1003,24 @@ class Address(models.Model):
     address_georef_id = models.IntegerField(null=True, blank=True)
     state_georef_id = models.IntegerField(null=True, blank=True)
     city_georef_id = models.IntegerField(null=True, blank=True)
-    country = models.CharField(max_length=50, blank=True, null=True)
-    state = models.CharField(
+    country_old = models.CharField(
+        verbose_name=_("Country (old)"),
+        max_length=50,
+        blank=True,
+        null=True,
+    )
+    state_old = models.CharField(
+        verbose_name=_("State (old)"),
         max_length=50,
         blank=True,
         null=True,
         default=getattr(settings, "DEFAULT_STATE", None),
-        verbose_name=_("State"),
     )
     if settings.USE_STATES_CHOICE:
-        state.choices = settings.STATES
+        state_old.choices = settings.STATES
 
     # New fields with explicit column names
-    country_new = models.ForeignKey(
+    country = models.ForeignKey(
         'core.Country',
         on_delete=models.PROTECT,
         null=True,
@@ -1023,7 +1028,7 @@ class Address(models.Model):
         verbose_name=_("Country"),
         db_column='country_fk'  # Explicit different column name
     )
-    state_new = models.ForeignKey(
+    state = models.ForeignKey(
         'core.State',
         on_delete=models.PROTECT,
         null=True,
@@ -1034,17 +1039,11 @@ class Address(models.Model):
 
     @property
     def country_name(self):
-        """Compatibility method that works with both old and new fields"""
-        if hasattr(self, 'country') and isinstance(self.country, str):
-            return self.country
-        return self.country_new.name if self.country_new else None
+        return self.country.name if self.country else None
 
     @property
     def state_name(self):
-        """Compatibility method that works with both old and new fields"""
-        if hasattr(self, 'state') and isinstance(self.state, str):
-            return self.state
-        return self.state_new.name if self.state_new else None
+        return self.state.name if self.state else None
 
     def __str__(self):
         return ' '.join(filter(None, (self.address_1, self.address_2, self.city, self.state_name, self.country_name)))
@@ -1084,6 +1083,7 @@ class Address(models.Model):
         if self.georef_point and not (self.latitude and self.longitude):
             self.latitude = self.georef_point.y
             self.longitude = self.georef_point.x
+        print(self.state_georef_id, self.city_georef_id, self.georef_point)
         if self.state_georef_id and self.city_georef_id and self.georef_point:
             self.verified = True
         super(Address, self).save(*args, **kwargs)
