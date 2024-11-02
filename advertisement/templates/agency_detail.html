@@ -1,14 +1,14 @@
-{% extends 'adminlte/base.html' %}
+{% extends "adminlte/base.html" %}
 {% load i18n %}
 
 {% block title %}
-{{agency.name}}
+{{ agency.name }}
 {% endblock title %}
 
 {% block no_heading %}
 <div class="container-fluid">
   <div class="row">
-    <div class="col-9"><h1><a href="{% url 'agency_list' %}">{% trans "All agencies" %}</a> &raquo; {{agency.name}}</h1></div>
+    <div class="col-9"><h1><a href="{% url "agency_list" %}">{% trans "All agencies" %}</a> > {{ agency.name }}</h1></div>
     <div class="col"></div>
     <div class="text-right col">
       <a href="{% url 'add_agent' agency.id %}" class="btn btn-primary">{% trans "Add Agent" %}</a>
@@ -44,41 +44,41 @@
               <div class="card-body">
                 <dl>
                   <dt>{% trans "Name" %}</dt>
-                  <dd>{{agency.name}}</dd>
+                  <dd>{{ agency.name }}</dd>
                   {% if agency.main_contact %}
                   <dt>{% trans "Main contact" %}</dt>
-                  <dd><a href="{% url 'contact_detail' agency.main_contact.id %}">{{agency.main_contact.name}}</a></dd>
+                  <dd><a href="{% url "contact_detail" agency.main_contact.id %}">{{ agency.main_contact.get_full_name }}</a></dd>
                   {% endif %}
                   <dt>{% trans "Phone" %}</dt>
-                  <dd>{{agency.phone|default_if_none:"-"}}</dd>
+                  <dd>{{ agency.phone|default_if_none:"-" }}</dd>
                   <dt>{% trans "Email" %}</dt>
-                  <dd>{{agency.email|default_if_none:"-"}}</dd>
+                  <dd>{{ agency.email|default_if_none:"-" }}</dd>
                   <dt>{% trans "Priority" %}</dt>
-                  <dd>{{agency.get_priority_display}}</dd>
+                  <dd>{{ agency.get_priority_display }}</dd>
                   <dt>{% trans "Seller" %}</dt>
-                  <dd>{{agency.main_seller|default_if_none:"-"}}</dd>
+                  <dd>{{ agency.main_seller|default_if_none:"-" }}</dd>
                   <div class="card">
                     <div class="card-header">
                       {% trans "Billing data" %}
                     </div>
                     <div class="card-body">
                       <dt>{% trans "Billing name" %}</dt>
-                      <dd>{{agency.billing_name|default_if_none:"-"}}</dd>
+                      <dd>{{ agency.billing_name|default_if_none:"-" }}</dd>
                       <dt>{% trans "Billing id document" %}</dt>
-                      <dd>{{agency.billing_id_document|default_if_none:"-"}}</dd>
+                      <dd>{{ agency.billing_id_document|default_if_none:"-" }}</dd>
                       <dt>{% trans "Unique taxpayer registry" %}</dt>
-                      <dd>{{agency.utr|default_if_none:"-"}}</dd>
+                      <dd>{{ agency.utr|default_if_none:"-" }}</dd>
                       <dt>{% trans "Billing phone" %}</dt>
-                      <dd>{{agency.billing_phone|default_if_none:"-"}}</dd>
+                      <dd>{{ agency.billing_phone|default_if_none:"-" }}</dd>
                       <dt>{% trans "Billing address" %}</dt>
                       {% if agency.billing_address.exists %}
-                      <dd>{{agency.billing_address_set.first}}</dd>
+                      <dd>{{ agency.billing_address_set.first }}</dd>
                       {% else %}
                       <dd>-</dd>
                       {% endif %}
                     </div>
                   </div>
-                  
+
                 </dl>
               </div>
             </div>
@@ -94,7 +94,7 @@
                   <a href="{% url 'add_advertisement_activity' agency.id %}" class="btn-sm btn-success">{% trans "Add activity" %}</a>
                 </div>
               </div>
-              
+
               <div class="card-body">
                 {% if activities %}
                 <table class="table table-bordered table-striped">
@@ -105,9 +105,9 @@
                   </tr>
                   {% for a in activities %}
                     <tr role="row">
-                      <td>{{a.get_type_display}}</td>
-                      <td>{{a.get_status_display}}</td>
-                      <td>{{a.date|date:"d/m/Y H:m"}}</td>
+                      <td>{{ a.get_type_display }}</td>
+                      <td>{{ a.get_status_display }}</td>
+                      <td>{{ a.date|date:"d/m/Y H:m" }}</td>
                     </tr>
                   {% endfor %}
                 </table>
@@ -130,14 +130,14 @@
                   <div class="card-header">
                       {% trans "Agent" %}
                       {% if agent.contact %}
-                      <a href="{% url 'contact_detail' agent.contact.id %}" target="_blank"> {{agent.contact.name}} <i class="fas fa-external-link-alt"></i></a>
+                      <a href="{% url "contact_detail" agent.contact.id %}" target="_blank"> {{ agent.contact.get_full_name }} <i class="fas fa-external-link-alt"></i></a>
                       {% endif %}
                   </div>
                   <div class="card-body">
                     <dl>
-                      <dt>{% trans "Advertiser" %}</dt><dd><a href="{% url 'advertiser_detail' agent.advertiser.id %}">{{agent.advertiser.name}} <i class="fas fa-external-link-alt"></i></a></dd>
-                      <dt>{% trans "Email" %}</dt><dd>{{agent.email|default_if_none:'-'}}</dd>
-                      <dt>{% trans "Notes" %}</dt><dd>{{agent.notes|default_if_none:'-'}}</dd>
+                      <dt>{% trans "Advertiser" %}</dt><dd><a href="{% url "advertiser_detail" agent.advertiser.id %}">{{ agent.advertiser.name }} <i class="fas fa-external-link-alt"></i></a></dd>
+                      <dt>{% trans "Email" %}</dt><dd>{{ agent.email|default_if_none:"-" }}</dd>
+                      <dt>{% trans "Notes" %}</dt><dd>{{ agent.notes|default_if_none:"-" }}</dd>
                     </dl>
                   </div>
                 </div>

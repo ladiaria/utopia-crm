@@ -20,7 +20,7 @@
   {% if contact %}
     <h1>
       <a href="{% url 'contact_list' %}">{% trans "Contacts" %}</a> /
-      <a href="{% url 'contact_detail' contact.id %}">{{ contact.id }} - {{ contact.name }}</a> /
+      <a href="{% url 'contact_detail' contact.id %}">{{ contact.id }} - {{ contact.get_full_name }}</a> /
       {% trans "Edit contact" %}
     </h1>
   {% else %}
@@ -61,12 +61,8 @@
                 {% endfor %}
               {% endif %}
               <div class="tab-content">
-                <div class="active tab-pane" id="data">
-                  {% include "create_contact/tabs/_data.html" %}
-                </div>
-                <div class="tab-pane" id="newsletters">
-                  {% include "create_contact/tabs/_newsletters.html" %}
-                </div>
+                <div class="active tab-pane" id="data">{% include "create_contact/tabs/_data.html" %}</div>
+                <div class="tab-pane" id="newsletters">{% include "create_contact/tabs/_newsletters.html" %}</div>
               </div>
             </div>
           </div>

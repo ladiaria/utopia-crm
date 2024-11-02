@@ -12,8 +12,8 @@
 
 {% block no_heading %}
   <h1>
-    <a href="{% url 'contact_list' %}">{% trans "Contacts" %}</a> &raquo;
-    <a href="{% url 'contact_detail' contact.id %}">{{ contact.id }} - {{ contact.name }}</a> &raquo;
+    <a href="{% url "contact_list" %}">{% trans "Contacts" %}</a> >
+    <a href="{% url "contact_detail" contact.id %}">{{ contact.id }} - {{ contact.get_full_name }}</a> >
     {% if edit_subscription %}
       {% trans "Edit subscription" %}
     {% else %}
@@ -108,15 +108,19 @@
                 {{ form.contact }}
                 {{ form.contact_id }}
               </div>
-              <div class="form-group col-sm-4">
+              <div class="form-group col-sm-3">
                 <label for="id_name">{{ form.name.label }}</label>
                 {{ form.name }}
               </div>
-              <div class="form-group col-sm-4">
+              <div class="form-group col-sm-3">
+                <label for="id_last_name">{{ form.last_name.label }}</label>
+                {{ form.last_name }}
+              </div>
+              <div class="form-group col-sm-3">
                 <label for="id_email">{{ form.email.label }}</label>
                 {{ form.email }}
               </div>
-              <div class="form-group col-sm-4">
+              <div class="form-group col-sm-2">
                 <label for="id_id_document">{{ form.id_document.label }}</label>
                 {{ form.id_document }}
               </div>
@@ -303,7 +307,7 @@
             {% endblock total_price %}
 
             <div class="form-group text-right">
-              <div style="float: right; margin-left: 10px;">
+              <div class="float-right ml-1">
                 <input type="submit"
                        name="result"
                        id="send_form"

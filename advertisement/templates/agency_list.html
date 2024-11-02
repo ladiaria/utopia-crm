@@ -1,8 +1,8 @@
-{% extends 'adminlte/base.html' %}
+{% extends "adminlte/base.html" %}
 {% load static i18n widget_tweaks core_tags %}
 
 {% block stylesheets %}
-{{block.super}}
+{{ block.super }}
 <link rel="stylesheet" href="{% static '/admin-lte/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css' %}" />
 {% endblock %}
 
@@ -27,8 +27,8 @@
 {% block no_heading %}
 <div class="row">
   <div class="col">
-    <h1><a href="{% url 'agency_list' %}">{% trans "All agencies" %}</a></h1>
-    <p>{% trans 'Manage all agencies in the database.' %}</p>
+    <h1><a href="{% url "agency_list" %}">{% trans "All agencies" %}</a></h1>
+    <p>{% trans "Manage all agencies in the database." %}</p>
   </div>
   <div class="col text-right">
     <a href="{% url 'add_agency' %}" class="btn btn-primary">{% trans "Add agency" %}</a>
@@ -41,29 +41,29 @@
   <div class="col-md-12">
     <div class="card card-outline card-primary">
       <div class="card-header">
-        <h3 class="card-title">{% trans 'Search' %}</h3>
+        <h3 class="card-title">{% trans "Search" %}</h3>
         <div class="card-tools">
           <button type="button" class="btn btn-tool" data-card-widget="collapse"><i class="fas fa-minus"></i>
           </button>
         </div>
       </div>
       <div class="card-body">
-        <form method="GET" id="form">
+        <form method="get" id="form">
           <div class="row">
             <div class="form-group row col">
-              <label for="name" class="col-sm-3 col-form-label">{% trans 'Name' %}</label>
+              <label for="name" class="col-sm-3 col-form-label">{% trans "Name" %}</label>
               <div class="col-sm-9">
                 {% render_field filter.form.name__icontains class="form-control" %}
               </div>
             </div>
             <div class="form-group row col">
-              <label for="priority" class="col-sm-3 col-form-label">{% trans 'Priority' %}</label>
+              <label for="priority" class="col-sm-3 col-form-label">{% trans "Priority" %}</label>
               <div class="col-sm-9">
                 {% render_field filter.form.priority class="form-control" %}
               </div>
             </div>
             <div class="form-group col-sm-1">
-              <input type="submit" class="btn bg-gradient-primary" value="{% trans 'Search' %}" />
+              <input type="submit" class="btn bg-gradient-primary" value="{% trans "Search" %}" />
             </div>
           </div>
         </form>
@@ -89,17 +89,17 @@
           <tbody>
             {% for agency in object_list %}
             <tr role="row">
-              <td>{{agency.name}}</td>
-              <td>{{agency.email|default_if_none:""}}</td>
-              <td>{{agency.phone|default_if_none:""}}</td>
+              <td>{{ agency.name }}</td>
+              <td>{{ agency.email|default_if_none:"" }}</td>
+              <td>{{ agency.phone|default_if_none:"" }}</td>
               {% if agency.main_contact %}
-              <td><a href="{% url 'contact_detail' agency.main_contact.id %}" target="_blank">{{agency.main_contact.name}}</a></td>
+              <td><a href="{% url "contact_detail" agency.main_contact.id %}" target="_blank">{{ agency.main_contact.get_full_name }}</a></td>
               {% else %}
               <td>-</td>
               {% endif %}
-              <td>{{agency.main_seller|default_if_none:""}}</td>
-              <td>{{agency.get_priority_display}}</td>
-              <td><a class="btn-sm btn-primary" href="{% url 'agency_detail' agency.id %}">{% trans "Go" %}</a> <a class="btn-sm btn-primary" href="{% url "admin:advertisement_agency_change" agency.id %}" target="_blank">{% trans "Edit" %}</a></td>
+              <td>{{ agency.main_seller|default_if_none:"" }}</td>
+              <td>{{ agency.get_priority_display }}</td>
+              <td><a class="btn-sm btn-primary" href="{% url "agency_detail" agency.id %}">{% trans "Go" %}</a> <a class="btn-sm btn-primary" href="{% url "admin:advertisement_agency_change" agency.id %}" target="_blank">{% trans "Edit" %}</a></td>
             </tr>
             {% endfor %}
           </tbody>

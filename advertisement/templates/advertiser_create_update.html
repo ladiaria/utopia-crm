@@ -1,4 +1,4 @@
-{% extends 'adminlte/base.html' %}
+{% extends "adminlte/base.html" %}
 {% load static i18n widget_tweaks %}
 
 {% block extra_head %}
@@ -16,7 +16,16 @@
 {% endblock extra_js %}
 
 {% block no_heading %}
-<div class="col-9"><h1><a href="{% url 'advertiser_list' %}">{% trans "All advertisers" %}</a> &raquo; {% if form.instance.id %}<a href="{% url 'advertiser_detail' form.instance.id %}">{{form.instance.name}}</a> &raquo; {% trans "Edit" %}{% else %}{% trans "New" %}{% endif %}</h1></div>
+  <div class="col-9">
+    <h1>
+      <a href="{% url "advertiser_list" %}">{% trans "All advertisers" %}</a> >
+      {% if form.instance.id %}
+        <a href="{% url "advertiser_detail" form.instance.id %}">{{ form.instance.name }}</a> > {% trans "Edit" %}
+      {% else %}
+        {% trans "New" %}
+      {% endif %}
+    </h1>
+  </div>
 {% endblock no_heading %}
 
 {% block content %}
@@ -47,13 +56,13 @@
               <div class="row mt-2">
                 <div class="col-4">
                   <label for="contact">{% trans "Search contact by ID" %}:</label>
-                  <input type="text" id="contact_search" hx-get="{% url "htmx_search_contacts_alt" "main_contact" %}" hx-trigger="keyup changed delay:500ms" hx-target="#select_contact" class="form-control" name="contact_id" {% if main_contact %}value="{{main_contact.id}}"{% endif %}>
+                  <input type="text" id="contact_search" hx-get="{% url "htmx_search_contacts_alt" "main_contact" %}" hx-trigger="keyup changed delay:500ms" hx-target="#select_contact" class="form-control" name="contact_id" {% if main_contact %}value="{{ main_contact.id }}"{% endif %}>
                 </div>
                 <div class="col-4" id="select_contact">
                   <label for="contact">{% trans "Current contact" %}:</label>
                   <select id="id_main_contact" name="main_contact" class="form-control">
                     {% if main_contact %}
-                    <option value="{{main_contact.id}}">{{main_contact.id}} - {{main_contact.name}}</option>
+                    <option value="{{ main_contact.id }}">{{ main_contact.id }} - {{ main_contact.get_full_name }}</option>
                     {% endif %}
                   </select>
                 </div>
@@ -63,59 +72,50 @@
                 <div class="col-4">
                   <label for="id_phone">{% trans "Phone" %}</label>
                     {% render_field form.phone class="form-control" %}
-                  </label>
                 </div>
 
                 <div class="col-4">
                   <label for="id_email">{% trans "Email" %}</label>
-                    {% render_field form.email class="form-control" %}
-                  </label>
+                  {% render_field form.email class="form-control" %}
                 </div>
 
                 <div class="col-4">
                   <label for="id_main_seller">{% trans "Main seller" %}</label>
-                    {% render_field form.main_seller class="form-control" %}
-                  </label>
+                  {% render_field form.main_seller class="form-control" %}
                 </div>
               </div>
 
               <div class="row mt-2">
                 <div class="col-4">
                   <label for="id_billing_name">{% trans "Billing name" %}</label>
-                    {% render_field form.billing_name class="form-control" %}
-                  </label>
+                  {% render_field form.billing_name class="form-control" %}
                 </div>
 
                 <div class="col-4">
                   <label for="id_billing_id_document">{% trans "Billing id document" %}</label>
-                    {% render_field form.billing_id_document class="form-control" %}
-                  </label>
+                  {% render_field form.billing_id_document class="form-control" %}
                 </div>
 
                 <div class="col-4">
                   <label for="id_billing_utr">{% trans "Unique taxpayer reference" %}</label>
-                    {% render_field form.utr class="form-control" %}
-                  </label>
+                  {% render_field form.utr class="form-control" %}
                 </div>
               </div>
 
               <div class="row mt-2">
                 <div class="col-4">
                   <label for="id_billing_address">{% trans "Billing address" %}</label>
-                    {% render_field form.billing_address class="form-control" %}
-                  </label>
+                  {% render_field form.billing_address class="form-control" %}
                 </div>
 
                 <div class="col-4">
                   <label for="id_billing_phone">{% trans "Billing phone" %}</label>
-                    {% render_field form.billing_phone class="form-control" %}
-                  </label>
+                  {% render_field form.billing_phone class="form-control" %}
                 </div>
 
                 <div class="col-4">
                   <label for="id_billing_email">{% trans "Billing email" %}</label>
-                    {% render_field form.email class="form-control" %}
-                  </label>
+                  {% render_field form.billing_email class="form-control" %}
                 </div>
               </div>
 

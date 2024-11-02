@@ -55,7 +55,7 @@ def assign_routes(request):
                         request,
                         _(
                             "Contact {} - Product {}: Route {} does not exist".format(
-                                sp.subscription.contact.name, sp.product.name, value
+                                sp.subscription.contact.get_full_name(), sp.product.name, value
                             )
                         ),
                     )
@@ -115,7 +115,7 @@ def assign_routes_future(request):
                         request,
                         _(
                             "Contact {} - Product {}: Route {} does not exist".format(
-                                sp.subscription.contact.name, sp.product.name, value
+                                sp.subscription.contact.get_full_name(), sp.product.name, value
                             )
                         ),
                     )
@@ -315,7 +315,7 @@ def change_route(request, route_id=1):
                         request,
                         _(
                             "Contact {} - Product {}: Route {} does not exist".format(
-                                sp.subscription.contact.name, sp.product.name, value
+                                sp.subscription.contact.get_full_name(), sp.product.name, value
                             )
                         ),
                     )
@@ -537,9 +537,9 @@ def print_labels(request, page="Roll", list_type="", route_list="", product_id=N
                     #     label.message_for_contact = "2x1"
 
                 if sp.label_contact:
-                    label.name = sp.label_contact.name.upper()
+                    label.name = sp.label_contact.get_full_name().upper()
                 else:
-                    label.name = sp.subscription.contact.name.upper()
+                    label.name = sp.subscription.contact.get_full_name().upper()
 
                 if mark_contacts_list and sp.subscription.contact.id in mark_contacts_list:
                     label.partial = True
@@ -665,9 +665,9 @@ def print_labels_for_day(request):
                     #     label.message_for_contact = "2x1"
 
                 if sp.label_contact:
-                    label.name = sp.label_contact.name.upper()
+                    label.name = sp.label_contact.get_full_name().upper()
                 else:
-                    label.name = sp.subscription.contact.name.upper()
+                    label.name = sp.subscription.contact.get_full_name().upper()
                 label.address = (sp.address.address_1 or "") + "\n" + (sp.address.address_2 or "")
                 label.route = sp.route.number
                 label.route_order = sp.order
@@ -761,9 +761,9 @@ def print_labels_for_product(request, page="Roll", product_id=None, list_type=""
                 #     eti.comunicar_cliente = "2x1"
 
             if sp.label_contact:
-                label.name = sp.label_contact.name.upper()
+                label.name = sp.label_contact.get_full_name().upper()
             else:
-                label.name = sp.subscription.contact.name.upper()
+                label.name = sp.subscription.contact.get_full_name().upper()
             label.address = (sp.address.address_1 or "") + "\n" + (sp.address.address_2 or "")
             if sp.route:
                 label.route = sp.route.number
@@ -863,9 +863,9 @@ def issues_labels(request):
             for copy in range(issue.copies):
                 label = next(iterator)
                 if issue.subscription_product and issue.subscription_product.label_contact:
-                    label.name = issue.subscription_product.label_contact.name.upper()
+                    label.name = issue.subscription_product.label_contact.get_full_name().upper()
                 else:
-                    label.name = issue.contact.name.upper()
+                    label.name = issue.contact.get_full_name().upper()
                 if issue.address:
                     label.address = (issue.address.address_1 or "") + "\n" + (issue.address.address_2 or "")
                     label.route = ""
@@ -1298,7 +1298,7 @@ def print_labels_for_product_date(request):
             ]
             writer.writerow(header)
             for sp in subscription_products:
-                label_name = sp.subscription.contact.name
+                label_name = sp.subscription.contact.get_full_name()
                 subscription_id = sp.subscription.id
                 product = sp.product.name
                 if sp.address:
@@ -1322,7 +1322,7 @@ def print_labels_for_product_date(request):
                         subscription_id,
                         product,
                         sp.copies,
-                        sp.subscription.contact.name,
+                        sp.subscription.contact.get_full_name(),
                         label_name,
                         address_1,
                         address_2,
@@ -1386,9 +1386,9 @@ def print_labels_for_product_date(request):
                     #     eti.comunicar_cliente = "2x1"
 
                 if sp.label_contact:
-                    label.name = sp.label_contact.name.upper()
+                    label.name = sp.label_contact.get_full_name().upper()
                 else:
-                    label.name = sp.subscription.contact.name.upper()
+                    label.name = sp.subscription.contact.get_full_name().upper()
                 label.address = (sp.address.address_1 or "") + "\n" + (sp.address.address_2 or "")
                 if sp.route:
                     label.route = sp.route.number

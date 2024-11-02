@@ -1,14 +1,12 @@
 {% extends "adminlte/base.html" %}
-
 {% load i18n static core_tags widget_tweaks %}
-
 {% block title %}
   {% trans "Validate subscription" %}
 {% endblock title %}
 
 {% block no_heading %}
   <h1>
-    <a href="{% url 'contact_list' %}">{% trans "Contacts" %}</a> » <a href="{% url 'contact_detail' subscription.contact.id %}">{{ subscription.contact.id }} - {{ subscription.contact.name }}</a> »
+    <a href="{% url "contact_list" %}">{% trans "Contacts" %}</a> > <a href="{% url "contact_detail" subscription.contact.id %}">{{ subscription.contact.id }} - {{ subscription.contact.get_full_name }}</a> >
     {% trans "Validate Subscription" %}
   </h1>
 {% endblock no_heading %}
@@ -47,25 +45,25 @@
                                      data-toggle="tooltip"></i>
                                 {% endif %}
                                 {% if sp.has_envelope == 1 %}
-                                    <i class="fas fa-envelope"
+                                  <i class="fas fa-envelope"
                                      title="{% trans "Paid envelope" %}"
                                      data-toggle="tooltip"></i>
-                                  {% elif sp.has_envelope == 2 %}
-                                    <i class="far fa-envelope"
+                                {% elif sp.has_envelope == 2 %}
+                                  <i class="far fa-envelope"
                                      title="{% trans "Free envelope" %}"
                                      data-toggle="tooltip"></i>
-                                  {% endif %}
-                                  {% if sp.active == False %}
-                                    <i class="fas fa-pause"
+                                {% endif %}
+                                {% if sp.active == False %}
+                                  <i class="fas fa-pause"
                                      title="{% trans "Paused" %}"
                                      data-toggle="tooltip"></i>
                                 {% endif %}
                                 &nbsp;{{ sp.product.name }}
-                                {% if sp.label_contact %}({{ sp.label_contact.name }}){% endif %}
+                                {% if sp.label_contact %}({{ sp.label_contact.get_full_name }}){% endif %}
                               </div>
                               <div class="col-6">{{ sp.address.address_1 }}</div>
                               <div class="col-1">
-                                {% if sp.route %} R {{ sp.route.number }}{% endif %}
+                                {% if sp.route %}R {{ sp.route.number }}{% endif %}
                               </div>
                             </div>
                           {% endfor %}
@@ -243,15 +241,15 @@
           </div>
         </div>
         <div class="card-footer text-right">
-          <a href="{% url 'edit_subscription' subscription.contact.id subscription.id %}"
-              class="btn  btn-success">{% trans "Edit" %}</a>
-          <a href="{% url 'admin:core_subscription_change' subscription.id %}"
-              class="btn btn-info"
-              target="_blank">{% trans "View in admin" %}</a>
-          <a href="{% url 'edit_envelopes' subscription.id %}"
-              class="btn btn-info"><i class="fas fa-envelope"></i></a>
-          <a href="{% url 'upload_payment_certificate' subscription.id %}"
-              class="btn btn-info">
+          <a href="{% url "edit_subscription" subscription.contact.id subscription.id %}"
+             class="btn  btn-success">{% trans "Edit" %}</a>
+          <a href="{% url "admin:core_subscription_change" subscription.id %}"
+             class="btn btn-info"
+             target="_blank">{% trans "View in admin" %}</a>
+          <a href="{% url "edit_envelopes" subscription.id %}"
+             class="btn btn-info"><i class="fas fa-envelope"></i></a>
+          <a href="{% url "upload_payment_certificate" subscription.id %}"
+             class="btn btn-info">
             <i class="fas fa-file-invoice-dollar"></i></a>
         </div>
       </div>

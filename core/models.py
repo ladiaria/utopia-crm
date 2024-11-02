@@ -91,6 +91,7 @@ class Institution(models.Model):
     """
     If the contact comes from an institution. This holds the institutions.
     """
+
     name = models.CharField(max_length=255, verbose_name=_("Name"))
     old_pk = models.PositiveIntegerField(blank=True, null=True, db_index=True)
 
@@ -372,9 +373,9 @@ class Contact(models.Model):
             old_email = self.get_old_email()
             if old_email and old_email != email:
                 if EmailBounceActionLog.email_is_bouncer(email):
-                    raise ValidationError({
-                        "email": f"El email '{email}' registra exceso de rebotes, no se permite su utilización"
-                    })
+                    raise ValidationError(
+                        {"email": f"El email '{email}' registra exceso de rebotes, no se permite su utilización"}
+                    )
 
         if settings.WEB_UPDATE_USER_ENABLED and email and self.id:
             self.custom_clean(email, debug)
@@ -461,15 +462,40 @@ class Contact(models.Model):
 
     def add_to_campaign(self, campaign_id):
         """
-        Adds a contact to a campaign. If the contact is already in that campaign this will raise an exception.
+        Adds a contact to a campaign if not already added.
+
+        Args:
+            campaign_id (int): The ID of the campaign to add the contact to.
+
+        Returns:
+            str: A success message if the contact was added.
+
+        Raises:
+            Campaign.DoesNotExist: If the campaign with the given ID doesn't exist.
+            ContactAlreadyInCampaignError: If the contact is already in the campaign.
         """
-        campaign = Campaign.objects.get(pk=campaign_id)
-        if not ContactCampaignStatus.objects.filter(contact=self, campaign=campaign).exists():
-            # We first create the big object that will hold the status for the campaign
-            ContactCampaignStatus.objects.create(contact=self, campaign=campaign)
-            return _("Contact %s (ID: %s) added to campaign") % (self.name, self.id)
+        try:
+            campaign = Campaign.objects.get(pk=campaign_id)
+        except Campaign.DoesNotExist:
+            raise Campaign.DoesNotExist(f"Campaign with ID {campaign_id} does not exist.")
+
+        contact_campaign_status, created = ContactCampaignStatus.objects.get_or_create(contact=self, campaign=campaign)
+
+        if created:
+            return _("Contact %(name)s (ID: %(id)s) added to campaign %(campaign)s") % {
+                "name": self.get_full_name(),
+                "id": self.id,
+                "campaign": campaign.name,
+            }
         else:
-            raise Exception(_("Contact %s (ID: %s) already in campaign") % (self.name, self.id))
+            raise Exception(
+                _("Contact %(name)s (ID: %(id)s) is already in campaign %(campaign)s")
+                % {
+                    "name": self.get_full_name(),
+                    "id": self.id,
+                    "campaign": campaign.name,
+                }
+            )
 
     def has_active_subscription(self, count=False):
         """
@@ -739,7 +765,9 @@ class Contact(models.Model):
 
     def do_not_call(self, phone_att="phone"):
         number = getattr(self, phone_att)
-        return number and DoNotCallNumber.objects.filter(number__contains=number.national_number).exists()
+        if number is None or number.national_number is None:
+            return False
+        return DoNotCallNumber.objects.filter(number__contains=number.national_number).exists()
 
     def do_not_call_phone(self):
         return self.do_not_call("phone")
@@ -760,6 +788,7 @@ class Contact(models.Model):
         self,
         source: "Contact",
         name: str = None,
+        last_name: str = None,
         id_document: str = None,
         phone: str = None,
         mobile: str = None,
@@ -776,6 +805,7 @@ class Contact(models.Model):
         Args:
             source (Contact): The contact whose data is going to be deleted and merged into this one.
             name (str, optional): Override name. Defaults to None.
+            last_name (str, optional): Override last name. Defaults to None.
             id_document (str, optional): Override id document. Defaults to None.
             phone (str, optional): Override phone. Defaults to None.
             mobile (str, optional): Override mobie. Defaults to None.
@@ -802,6 +832,8 @@ class Contact(models.Model):
             self.save()  # check for the try
             if name:
                 self.name = name.strip()
+            if last_name:
+                self.last_name = last_name.strip()
             if id_document:
                 if source.id_document == id_document.strip():
                     source.id_document = None
@@ -825,9 +857,11 @@ class Contact(models.Model):
                 self.ocupation_id = int(ocupation_id.strip())
             if birthdate:
                 self.birthdate = birthdate.strip()
-            self.notes = f"Combined from {source.id} - {source.name} at {date.today()}" + f"\n{self.notes or ''}"
+            self.notes = (
+                f"Combined from {source.id} - {source.get_full_name()} at {date.today()}" + f"\n{self.notes or ''}"
+            )
             if source.notes:
-                self.notes += f"\n\nNotes imported from {source.id} - {source.name}\n\n"
+                self.notes += f"\n\nNotes imported from {source.id} - {source.get_full_name()}\n\n"
                 self.notes += source.notes
             for tag in source.tags.all():
                 self.tags.add(tag.name)
@@ -884,7 +918,7 @@ class Contact(models.Model):
             address = Address.objects.create(
                 address_1=self.email,
                 city=getattr(settings, "DEFAULT_CITY", None),
-                state=getattr(settings, "DEFAULT_STATE", None),
+                state=State.objects.get(name=getattr(settings, "DEFAULT_STATE", None)),
                 address_type="digital",
                 contact=self,
             )
@@ -895,6 +929,36 @@ class Contact(models.Model):
         verbose_name = _("contact")
         verbose_name_plural = _("contacts")
         ordering = ("-id",)
+
+
+class Country(models.Model):
+    name = models.CharField(max_length=50)
+    code = models.CharField(max_length=2, unique=True)  # ISO 3166-1 alpha-2 codes
+    active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = _("country")
+        verbose_name_plural = _("countries")
+        ordering = ('name',)
+
+
+class State(models.Model):
+    name = models.CharField(max_length=50)
+    code = models.CharField(max_length=10)  # State/region code
+    country = models.ForeignKey(Country, on_delete=models.PROTECT)
+    active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = _("state")
+        verbose_name_plural = _("states")
+        ordering = ('name',)
+        unique_together = [['code', 'country']]
 
 
 class Address(models.Model):
@@ -920,20 +984,11 @@ class Address(models.Model):
         default=getattr(settings, "DEFAULT_CITY", None),
         verbose_name=_("City"),
     )
-    state = models.CharField(
-        max_length=50,
-        blank=True,
-        null=True,
-        default=getattr(settings, "DEFAULT_STATE", None),
-        verbose_name=_("State"),
-    )
-    if settings.USE_STATES_CHOICE:
-        state.choices = settings.STATES
     email = models.EmailField(blank=True, null=True, verbose_name=_("Email"))
     address_type = models.CharField(max_length=50, choices=ADDRESS_TYPE_CHOICES, verbose_name=_("Address type"))
     notes = models.TextField(blank=True, null=True, verbose_name=_("Notes"))
     default = models.BooleanField(default=False, verbose_name=_("Default"))
-    history = HistoricalRecords()
+    # history = HistoricalRecords()
     picture = models.FileField(upload_to="address_pictures/", blank=True, null=True)
     google_maps_url = models.CharField(max_length=2048, null=True, blank=True)
     do_not_show = models.BooleanField(default=False, help_text=_("Do not show in picture/google maps list"))
@@ -946,12 +1001,52 @@ class Address(models.Model):
     needs_georef = models.BooleanField(null=True, default=False)
     # These last three fields are here for debug reasons. The first one is totally unused
     address_georef_id = models.IntegerField(null=True, blank=True)
-    state_id = models.IntegerField(null=True, blank=True)
-    city_id = models.IntegerField(null=True, blank=True)
-    country = models.CharField(max_length=50, blank=True, null=True)
+    state_georef_id = models.IntegerField(null=True, blank=True)
+    city_georef_id = models.IntegerField(null=True, blank=True)
+    country_old = models.CharField(
+        verbose_name=_("Country (old)"),
+        max_length=50,
+        blank=True,
+        null=True,
+    )
+    state_old = models.CharField(
+        verbose_name=_("State (old)"),
+        max_length=50,
+        blank=True,
+        null=True,
+        default=getattr(settings, "DEFAULT_STATE", None),
+    )
+    if settings.USE_STATES_CHOICE:
+        state_old.choices = settings.STATES
+
+    # New fields with explicit column names
+    country = models.ForeignKey(
+        'core.Country',
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        verbose_name=_("Country"),
+        db_column='country_fk'  # Explicit different column name
+    )
+    state = models.ForeignKey(
+        'core.State',
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        verbose_name=_("State"),
+        db_column='state_fk'  # Explicit different column name
+    )
+
+    @property
+    def country_name(self):
+        return self.country.name if self.country else None
+
+    @property
+    def state_name(self):
+        return self.state.name if self.state else None
 
     def __str__(self):
-        return ' '.join(filter(None, (self.address_1, self.address_2, self.city, self.state)))
+        return ' '.join(filter(None, (self.address_1, self.address_2, self.city, self.state_name, self.country_name)))
 
     def get_type(self):
         """
@@ -988,7 +1083,8 @@ class Address(models.Model):
         if self.georef_point and not (self.latitude and self.longitude):
             self.latitude = self.georef_point.y
             self.longitude = self.georef_point.x
-        if self.state_id and self.city_id and self.georef_point:
+        print(self.state_georef_id, self.city_georef_id, self.georef_point)
+        if self.state_georef_id and self.city_georef_id and self.georef_point:
             self.verified = True
         super(Address, self).save(*args, **kwargs)
 
@@ -1196,10 +1292,10 @@ class Subscription(models.Model):
 
     def __str__(self):
         return str(
-            _("{} subscription for the contact {} {}").format(
-                _("Active") if self.active else _("Inactive"),
-                self.contact.name,
-                "({})".format(self.get_price_for_full_period()) if self.type == "N" else "",
+            _("{active} subscription for the contact {contact} {price}").format(
+                active=_("Active") if self.active else _("Inactive"),
+                contact=self.contact.get_full_name(),
+                price="({})".format(self.get_price_for_full_period()) if self.type == "N" else "",
             )
         )
 
@@ -1301,7 +1397,7 @@ class Subscription(models.Model):
         if self.billing_name:
             return self.billing_name
         else:
-            return billing_contact.name
+            return billing_contact.get_full_name()
 
     def get_billing_phone(self):
         """
@@ -1724,12 +1820,12 @@ class Subscription(models.Model):
             count = self.products.filter(offerable=True).count()
             if ul:
                 if sp.label_contact:
-                    output += "<li>{} ({})</li>".format(sp.product.name, sp.label_contact.name)
+                    output += "<li>{} ({})</li>".format(sp.product.name, sp.label_contact.get_full_name())
                 else:
                     output += "<li>{}</li>".format(sp.product.name)
             else:
                 if sp.label_contact:
-                    output += "{} ({})".format(sp.product.name, sp.label_contact.name)
+                    output += "{} ({})".format(sp.product.name, sp.label_contact.get_full_name())
                 else:
                     output += "{}".format(sp.product.name)
                 if count > 1:

@@ -4,7 +4,7 @@ from django.utils.translation import gettext_lazy as _
 
 from simple_history.admin import SimpleHistoryAdmin
 
-from .models import *
+from invoicing.models import CreditNote, Invoice, InvoiceItem, Billing
 
 
 @admin.register(CreditNote)
