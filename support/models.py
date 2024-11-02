@@ -302,7 +302,9 @@ class SalesRecord(models.Model):
         ordering = ["-date_time"]
 
     def __str__(self):
-        contact_name = self.subscription.contact.get_full_name() if self.subscription and self.subscription.contact else ""
+        contact_name = (
+            self.subscription.contact.get_full_name() if self.subscription and self.subscription.contact else ""
+        )
         return f"{self.seller} - {contact_name} - {self.date_time}"
 
     def show_products(self):
@@ -431,9 +433,9 @@ class SalesRecord(models.Model):
     def calculate_total_commission(self):
         if self.sale_type == self.SALE_TYPE.FULL:
             value = (
-                    self.set_commission_for_payment_type(return_value=True)
-                    + self.set_commission_for_products_sold(return_value=True)
-                    + self.set_commission_for_subscription_frequency(return_value=True)
-                )
+                self.set_commission_for_payment_type(return_value=True)
+                + self.set_commission_for_products_sold(return_value=True)
+                + self.set_commission_for_subscription_frequency(return_value=True)
+            )
             return value
         return 0
