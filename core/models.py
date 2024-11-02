@@ -1083,7 +1083,6 @@ class Address(models.Model):
         if self.georef_point and not (self.latitude and self.longitude):
             self.latitude = self.georef_point.y
             self.longitude = self.georef_point.x
-        print(self.state_georef_id, self.city_georef_id, self.georef_point)
         if self.state_georef_id and self.city_georef_id and self.georef_point:
             self.verified = True
         super(Address, self).save(*args, **kwargs)

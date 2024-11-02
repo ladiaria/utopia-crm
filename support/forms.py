@@ -1,5 +1,3 @@
-# coding=utf-8
-from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 from django import forms
 from django.forms import ValidationError
@@ -16,6 +14,7 @@ from core.models import (
     DynamicContactFilter,
     SubscriptionProduct,
     Activity,
+    State,
     regex_alphanumeric_msg,
 )
 from core.forms import EmailValidationForm
@@ -109,9 +108,9 @@ class NewAddressChangeScheduledTaskForm(forms.Form):
     new_address_1 = forms.CharField(required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
     new_address_2 = forms.CharField(required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
     new_address_city = forms.CharField(required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
-    new_address_state = forms.ChoiceField(required=False, widget=forms.Select(attrs={"class": "form-control"}))
-    if settings.USE_STATES_CHOICE:
-        new_address_state.choices = settings.STATES
+    new_address_state = forms.ModelChoiceField(
+        queryset=State.objects.all(), required=False, widget=forms.Select(attrs={"class": "form-control"})
+    )
     new_address_notes = forms.CharField(required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
     new_address_type = forms.ChoiceField(
         required=False,
@@ -389,9 +388,9 @@ class IssueStartForm(forms.ModelForm):
     new_address_1 = forms.CharField(required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
     new_address_2 = forms.CharField(required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
     new_address_city = forms.CharField(required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
-    new_address_state = forms.ChoiceField(required=False, widget=forms.Select(attrs={"class": "form-control"}))
-    if settings.USE_STATES_CHOICE:
-        new_address_state.choices = settings.STATES
+    new_address_state = forms.ModelChoiceField(
+        queryset=State.objects.all(), required=False, widget=forms.Select(attrs={"class": "form-control"})
+    )
     new_address_notes = forms.CharField(required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
     new_address_type = forms.ChoiceField(
         required=False,
@@ -527,9 +526,9 @@ class NewAddressForm(forms.Form):
     address_1 = forms.CharField(widget=forms.TextInput(attrs={"class": "form-control"}))
     address_2 = forms.CharField(required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
     address_city = forms.CharField(required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
-    address_state = forms.ChoiceField(required=False, widget=forms.Select(attrs={"class": "form-control"}))
-    if settings.USE_STATES_CHOICE:
-        address_state.choices = settings.STATES
+    address_state = forms.ModelChoiceField(
+        queryset=State.objects.all(), required=False, widget=forms.Select(attrs={"class": "form-control"})
+    )
     address_notes = forms.CharField(required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
     address_type = forms.ChoiceField(
         required=False,
