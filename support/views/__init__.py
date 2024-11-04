@@ -5,4 +5,13 @@ from .scheduled_tasks import (  # noqa
     scheduled_task_filter,
 )
 
+from .contacts import (  # noqa
+    ContactUpdateView,
+    ContactCreateView,
+    ContactDetailView,
+    ContactListView,
+    edit_newsletters,
+    ImportContactsView,
+)
+
 from .all_views import *  # noqa
