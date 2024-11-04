@@ -142,8 +142,15 @@ class ContactDetailView(DetailView):
 
     def get_overview_subscriptions(self):
         return (
-            Subscription.objects.filter(contact=self.object, active=True)
+            Subscription.objects.filter(contact=self.object)
             .exclude(status="AP")
+            .annotate(
+                is_active=Case(
+                    When(active=True, then=Value(True)),
+                    default=Value(False),
+                    output_field=BooleanField(),
+                )
+            )
             .annotate(
                 is_future=Case(
                     When(start_date__gt=date.today(), then=Value(True)),

@@ -111,11 +111,9 @@
     {% if contact.notes %}
       <div class="card">
         <div class="card-header">
-        <h3 class="card-title">{% trans "Notes" %}</h3>
+          <h3 class="card-title">{% trans "Notes" %}</h3>
         </div>
-        <div class="card-body">
-          {{ contact.notes|linebreaks }}
-        </div>
+        <div class="card-body">{{ contact.notes|linebreaks }}</div>
       </div>
     {% endif %}
   </div>
@@ -141,7 +139,7 @@
         {% if overview_subscriptions %}
           <div class="list-group list-group-flush">
             {% for subscription in overview_subscriptions %}
-              <div class="list-group-item {% if subscription.is_future %}bg-info{% endif %} {% if subscription.has_subscriptionproduct_in_special_route %}bg-danger{% elif subscription.status == "PA" %}bg-secondary{% endif %} border-bottom border-2 mt-2">
+              <div class="list-group-item {% if subscription.is_future %}border-info border rounded{% endif %} {% if subscription.has_subscriptionproduct_in_special_route %} bg-danger {% elif subscription.status == "PA" %}bg-secondary{% endif %}">
                 {% if subscription.is_future %}
                   <div class="font-weight-bold mb-2">{% trans "Future Subscription (Not yet started)" %}</div>
                 {% endif %}
@@ -184,6 +182,7 @@
                     <b>{% trans "Payment type" %}:</b> {{ subscription.get_payment_type }}
                     {% block extrapayment_1 %}
                     {% endblock extrapayment_1 %}
+
                   </dd>
                 {% endif %}
                 <dd>
@@ -256,12 +255,9 @@
             {% endfor %}
           </div>
         {% else %}
-          <div class="p-3">
-            {% trans "This contact has no active subscriptions" %}
-          </div>
+          <div class="p-3">{% trans "This contact has no active subscriptions" %}</div>
         {% endif %}
       </div>
-
       {% if request.user|in_group:"Support" or request.user|in_group:"Managers" %}
         <div class="card-footer">
           <a href="{% url "new_subscription" contact.id %}"
