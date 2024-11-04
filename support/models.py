@@ -252,8 +252,77 @@ class ScheduledTask(models.Model):
         categories = dict(SCHEDULED_TASK_CATEGORIES)
         return categories.get(self.category, "N/A")
 
+    def execute(self, debug=False, verbose=False):
+        """Execute the scheduled task based on its category"""
+        from core.models import SubscriptionProduct, ContactProductHistory
+        from logistics.models import RouteChange
+
+        if debug:
+            print(_(f"Executing {self.get_category_display()} for contact {self.contact.id}"))
+
+        if self.category in ('PD', 'PA'):  # Total pause start/end
+            self.subscription.active = self.category == 'PA'
+
+            if self.category == 'PD':  # Start of pause
+                self.subscription.status = 'PA'
+                if self.ends:
+                    date_difference = self.execution_date - self.ends.execution_date
+                    self.subscription.next_billing += date_difference
+            else:  # End of pause
+                self.subscription.status = 'OK'
+                # Create new contact product histories
+                for sp in SubscriptionProduct.objects.filter(subscription=self.subscription):
+                    ContactProductHistory.objects.create(
+                        contact=self.contact,
+                        subscription=self.subscription,
+                        product=sp.product,
+                        status='A',
+                        date=date.today(),
+                    )
+
+            self.subscription.save()
+
+        elif self.category in ('PS', 'PE'):  # Partial pause start/end
+            for sp in self.subscription_products.all():
+                sp.active = self.category == 'PE'
+                sp.save()
+
+        elif self.category == 'AC':  # Address change
+            for sp in self.subscription_products.all():
+                if "logistics" not in getattr(settings, "DISABLED_APPS", []) and sp.route:
+                    rc = RouteChange.objects.create(
+                        product=sp.product,
+                        old_route=sp.route,
+                        contact=self.contact,
+                    )
+                    if sp.address:
+                        rc.old_address = u"{} {}".format(sp.address.address_1, sp.address.address_2 or '')
+                        rc.old_city = sp.address.city or ''
+                        rc.save()
+
+                sp.address = self.address
+                sp.route = None
+                sp.order = None
+                sp.label_message = self.label_message
+                sp.special_instructions = self.special_instructions
+                sp.save()
+
+        self.completed = True
+        self.save()
+
+        if debug:
+            print(_("Task {} completed successfully.".format(self.id)))
+        if verbose:
+            return _("Task {id} of type {category} for contact {contact} completed successfully.".format(
+                id=self.id, category=self.get_category(), contact=self.contact.get_full_name()
+            ))
+        else:
+            return None
+
     class Meta:
-        pass
+        verbose_name = _("Scheduled task")
+        verbose_name_plural = _("Scheduled tasks")
+        ordering = ["execution_date"]
 
 
 class IssueStatus(models.Model):
@@ -327,7 +396,9 @@ class SalesRecord(models.Model):
         ordering = ["-date_time"]
 
     def __str__(self):
-        contact_name = self.subscription.contact.get_full_name() if self.subscription and self.subscription.contact else ""
+        contact_name = (
+            self.subscription.contact.get_full_name() if self.subscription and self.subscription.contact else ""
+        )
         return f"{self.seller} - {contact_name} - {self.date_time}"
 
     def show_products(self):
@@ -456,9 +527,9 @@ class SalesRecord(models.Model):
     def calculate_total_commission(self):
         if self.sale_type == self.SALE_TYPE.FULL:
             value = (
-                    self.set_commission_for_payment_type(return_value=True)
-                    + self.set_commission_for_products_sold(return_value=True)
-                    + self.set_commission_for_subscription_frequency(return_value=True)
-                )
+                self.set_commission_for_payment_type(return_value=True)
+                + self.set_commission_for_products_sold(return_value=True)
+                + self.set_commission_for_subscription_frequency(return_value=True)
+            )
             return value
         return 0

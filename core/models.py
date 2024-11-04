@@ -765,7 +765,9 @@ class Contact(models.Model):
 
     def do_not_call(self, phone_att="phone"):
         number = getattr(self, phone_att)
-        return number and DoNotCallNumber.objects.filter(number__contains=number.national_number).exists()
+        if number is None or number.national_number is None:
+            return False
+        return DoNotCallNumber.objects.filter(number__contains=number.national_number).exists()
 
     def do_not_call_phone(self):
         return self.do_not_call("phone")
@@ -1081,7 +1083,6 @@ class Address(models.Model):
         if self.georef_point and not (self.latitude and self.longitude):
             self.latitude = self.georef_point.y
             self.longitude = self.georef_point.x
-        print(self.state_georef_id, self.city_georef_id, self.georef_point)
         if self.state_georef_id and self.city_georef_id and self.georef_point:
             self.verified = True
         super(Address, self).save(*args, **kwargs)

@@ -1,7 +1,7 @@
 from django.conf import settings
-from factory import Faker, SubFactory
+from factory import Faker, SubFactory, LazyAttribute
 from factory.django import DjangoModelFactory
-from core.models import Contact, Address, Product, Subscription, Campaign
+from core.models import Contact, Address, Product, Subscription, Campaign, State, Country
 from core.choices import PRODUCT_TYPE_CHOICES, SUBSCRIPTION_TYPE_CHOICES, SUBSCRIPTION_STATUS_CHOICES
 
 
@@ -43,6 +43,25 @@ class SubscriptionFactory(DjangoModelFactory):
     )
 
 
+class CountryFactory(DjangoModelFactory):
+    class Meta:
+        model = Country
+
+    name = Faker("country")
+    code = ""
+    active = True
+
+
+class StateFactory(DjangoModelFactory):
+    class Meta:
+        model = State
+
+    name = Faker("city")
+    code = ""
+    active = True
+    country = SubFactory(CountryFactory)
+
+
 class AddressFactory(DjangoModelFactory):
     class Meta:
         model = Address
@@ -51,7 +70,8 @@ class AddressFactory(DjangoModelFactory):
     address_1 = Faker("street_address")
     address_2 = Faker("secondary_address")
     city = Faker("city")
-    state = Faker("state")
+    state = SubFactory(StateFactory)
+    country = LazyAttribute(lambda obj: obj.state.country)
     email = None
     address_type = "physical"
     notes = Faker("text", max_nb_chars=200)
@@ -67,7 +87,6 @@ class AddressFactory(DjangoModelFactory):
     address_georef_id = None
     state_georef_id = None
     city_georef_id = None
-    country = Faker("country")
 
 
 class CampaignFactory(DjangoModelFactory):
