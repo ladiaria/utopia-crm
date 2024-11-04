@@ -141,7 +141,7 @@
         {% if overview_subscriptions %}
           <div class="list-group list-group-flush">
             {% for subscription in overview_subscriptions %}
-              <div class="list-group-item {% if subscription.is_future %}bg-info{% endif %} {% if subscription.has_subscriptionproduct_in_special_route %}bg-danger{% elif subscription.status == "PA" %}bg-secondary{% endif %} border-bottom border-2">
+              <div class="list-group-item {% if subscription.is_future %}bg-info{% endif %} {% if subscription.has_subscriptionproduct_in_special_route %}bg-danger{% elif subscription.status == "PA" %}bg-secondary{% endif %} border-bottom border-2 mt-2">
                 {% if subscription.is_future %}
                   <div class="font-weight-bold mb-2">{% trans "Future Subscription (Not yet started)" %}</div>
                 {% endif %}
@@ -155,7 +155,7 @@
                     <b>{% trans "Warning: Subscription in special route. It might not be billed." %}</b>
                   </p>
                 {% endif %}
-                <dd class="border-bottom pb-3">
+                <dd class="mb-2">
                   {% for sp in subscription.get_subscriptionproducts %}
                     {% include "contact_detail/tabs/includes/_subscription_icons.html" with sp=sp %}
                     {{ sp.product.name }}
