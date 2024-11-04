@@ -14,7 +14,6 @@ from django.shortcuts import get_object_or_404
 from django.http import HttpResponse, HttpResponseRedirect, HttpResponseNotFound
 from django.urls import reverse, reverse_lazy
 from django.contrib import messages
-from django.db.models import Case, When, Value, BooleanField
 from django.views.decorators.http import require_POST
 
 from core.models import (
@@ -125,6 +124,8 @@ class ContactDetailView(DetailView):
         context["overview_subscriptions"] = self.get_overview_subscriptions()
         # Unpack all querysets
         context.update(self.get_all_querysets_and_lists())
+        # Unpack subscriptions for overview
+        context.update(self.get_overview_subscriptions())
         return context
 
     def get_all_querysets_and_lists(self):
@@ -141,25 +142,19 @@ class ContactDetailView(DetailView):
         }
 
     def get_overview_subscriptions(self):
-        return (
-            Subscription.objects.filter(contact=self.object)
-            .exclude(status="AP")
-            .annotate(
-                is_active=Case(
-                    When(active=True, then=Value(True)),
-                    default=Value(False),
-                    output_field=BooleanField(),
-                )
-            )
-            .annotate(
-                is_future=Case(
-                    When(start_date__gt=date.today(), then=Value(True)),
-                    default=Value(False),
-                    output_field=BooleanField(),
-                )
-            )
-            .order_by('is_future', 'start_date')
+        active_subscriptions = Subscription.objects.filter(
+            contact=self.object, active=True).exclude(status="AP")
+        future_subscriptions = Subscription.objects.filter(
+            contact=self.object, active=False, start_date__gte=date.today()
+        ).exclude(status="AP")
+        awaiting_payment_subscriptions = Subscription.objects.filter(
+            contact=self.object, status="AP"
         )
+        return {
+            "active_subscriptions": active_subscriptions,
+            "future_subscriptions": future_subscriptions,
+            "awaiting_payment_subscriptions": awaiting_payment_subscriptions,
+        }
 
     def get_subscription_groups(self):
         subscription_groups = [
