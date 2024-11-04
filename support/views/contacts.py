@@ -142,18 +142,19 @@ class ContactDetailView(DetailView):
         }
 
     def get_overview_subscriptions(self):
-        active_subscriptions = Subscription.objects.filter(
-            contact=self.object, active=True).exclude(status="AP")
+        active_subscriptions = Subscription.objects.filter(contact=self.object, active=True).exclude(status="AP")
         future_subscriptions = Subscription.objects.filter(
             contact=self.object, active=False, start_date__gte=date.today()
         ).exclude(status="AP")
-        awaiting_payment_subscriptions = Subscription.objects.filter(
-            contact=self.object, status="AP"
+        awaiting_payment_subscriptions = Subscription.objects.filter(contact=self.object, status="AP")
+        overview_subscriptions_count = (
+            active_subscriptions.count() + future_subscriptions.count() + awaiting_payment_subscriptions.count()
         )
         return {
             "active_subscriptions": active_subscriptions,
             "future_subscriptions": future_subscriptions,
             "awaiting_payment_subscriptions": awaiting_payment_subscriptions,
+            "overview_subscriptions_count": overview_subscriptions_count,
         }
 
     def get_subscription_groups(self):
