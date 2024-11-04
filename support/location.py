@@ -1,16 +1,17 @@
-from core.models import Address, Contact
+import pandas as pd
+
 from django.contrib import messages
+from django.core.exceptions import ObjectDoesNotExist
 from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
+from django.utils.text import slugify
 from django.conf import settings
-import pandas as pd
-
 from django.contrib.admin.views.decorators import staff_member_required
 
-from core.models import State
+from core.models import Address, Contact, State
 from support.forms import SugerenciaGeorefForm
 from util.location_utils import (
     buscar_alternativas_normalizadas,
@@ -140,8 +141,14 @@ def agregar_direccion(request, contact_id):
                 return HttpResponseRedirect(reverse("normalizar_direccion", args=[contact_id, address.id]) + stayhere)
         direccion, id_calle, id_localidad, id_portal = request.POST.get('sugerencias').split("|")
         j = seleccionar_sugerencia(direccion, id_calle, id_localidad, id_portal)
-        state_name = j["departamento"].title()
-        state_obj = State.objects.get(name=state_name)
+        state_name_slug = slugify(j["departamento"].title())
+        try:
+            state_obj = next(
+                state for state in State.objects.all()
+                if slugify(state.name) == state_name_slug
+            )
+        except StopIteration:
+            raise ObjectDoesNotExist(f"No State found matching '{state_name_slug}'")
         form = SugerenciaGeorefForm(
             initial={
                 "contact": contact_obj,
