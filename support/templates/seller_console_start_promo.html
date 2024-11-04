@@ -158,7 +158,7 @@
                 {% for address in contact_addresses %}
                 <option value="{{ address.id }}" {% if bound_product_values.address == address.id %}selected="selected"
                   {% endif %}>
-                  {{ address.address_1 }} {{ address.city }} {{ address.state }}
+                  {{ address.address_1 }} {{ address.city }} {{ address.state_name }}
                 </option>
                 {% endfor %}
               </select>

@@ -1305,7 +1305,7 @@ def print_labels_for_product_date(request):
                     address_1 = sp.address.address_1
                     address_2 = sp.address.address_2
                     city = sp.address.city
-                    state = sp.address.state
+                    state = sp.address.state_name
                 else:
                     address_1, address_2, city, state = None, None, None, None
                 if sp.route:

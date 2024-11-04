@@ -1448,13 +1448,13 @@ class Subscription(models.Model):
         state.
         Used primarily in invoicing.
         """
-        if self.billing_address and self.billing_address.state:
-            return self.billing_address.state
+        if self.billing_address and self.billing_address.state_name:
+            return self.billing_address.state_name
         else:
             sub_prods = SubscriptionProduct.objects.filter(subscription=self)
             addresses = [sp.address for sp in sub_prods]
             if addresses:
-                return addresses[0].state
+                return addresses[0].state_name
             else:
                 return ""
 
@@ -1508,7 +1508,7 @@ class Subscription(models.Model):
                 city = getattr(settings, "DEFAULT_CITY", None)
             elif sp.address and sp.address.address_1:
                 address = sp.address.address_1
-                state = sp.address.state
+                state = sp.address.state_name
                 city = sp.address.city
                 route = sp.route_id
             else:
