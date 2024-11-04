@@ -8,7 +8,12 @@ from django.test.utils import override_settings
 from django.utils.translation import gettext_lazy as _
 
 from tests.factory import (
-    create_contact, create_simple_invoice, create_product, create_campaign, create_address, create_subtype
+    create_contact,
+    create_simple_invoice,
+    create_product,
+    create_campaign,
+    create_address,
+    create_subtype,
 )
 
 from util import space_join, rand_chars
@@ -100,7 +105,12 @@ class TestCoreContact(TestCase):
 
         # This command returns a text, we have to see if the text has been correctly returned
         self.assertEqual(
-            response, _("Contact %(name)s (ID: %(id)s) added to campaign") % {'name': contact.name, 'id': contact.id}
+            response,
+            _("Contact {name} (ID: {id}) added to campaign {campaign}").format(
+                name=contact.get_full_name(),
+                id=contact.id,
+                campaign=campaign.name,
+            ),
         )
 
         # We have to check if a ContactCampaignStatus with campaign.id and contact.id exists
@@ -150,12 +160,12 @@ class TestCoreContact(TestCase):
         with override_settings(WEB_CREATE_USER_ENABLED=False):
             contact = create_contact(name='Contact 9', phone='12412455')
         address = create_address('Araucho 1390', contact, address_type='physical')
-        self.assertEqual(
-            str(address),
+        self.assertIn(
             space_join(
                 'Araucho 1390',
                 space_join(getattr(settings, 'DEFAULT_CITY', None), getattr(settings, 'DEFAULT_STATE', None)),
-            )
+            ),
+            str(address),
         )
 
         address_type = address.get_type()
@@ -163,6 +173,7 @@ class TestCoreContact(TestCase):
 
     def test8_basic_print(self):
         from core.models import Institution
+
         institution = Institution.objects.create(name='inst')
         basic_print = str(institution)
         self.assertEqual(basic_print, 'inst')

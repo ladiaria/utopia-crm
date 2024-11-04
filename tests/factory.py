@@ -1,6 +1,8 @@
 # coding=utf-8
 from datetime import date, timedelta
 
+from django.conf import settings
+
 from core.models import Contact, Subscription
 
 """
@@ -33,11 +35,12 @@ def create_subscription(contact, subscription_type='N', payment_type='C'):
 
 
 def create_empty_invoice(contact, payment_type, amount=0, frequency_months=1):
-    """ creates an empty invoice with creation_date today, expiration_date
+    """creates an empty invoice with creation_date today, expiration_date
     today + 10 days and service_from today and service_to today +
     frequency_months
     """
     from invoicing.models import Invoice
+
     DAYS_GAP = 10
     # amount = contact.get_billing_amount()
     # subscription = contact.get_billing_subscription()
@@ -59,6 +62,7 @@ def create_empty_invoice(contact, payment_type, amount=0, frequency_months=1):
 
 def create_invoiceitem(invoice, product, copies=1):
     from invoicing.models import InvoiceItem
+
     invoice_item = InvoiceItem.objects.create(
         invoice=invoice,
         product=product,
@@ -75,6 +79,7 @@ def create_simple_invoice(contact, payment_type, product, subscription=None):
     Creates an invoice with a single product and creation_date = Today, due date today + 10 days.
     """
     from invoicing.models import Invoice, InvoiceItem
+
     invoice = Invoice.objects.create(
         contact=contact,
         payment_type=payment_type,
@@ -99,7 +104,7 @@ def create_simple_invoice(contact, payment_type, product, subscription=None):
 
 
 def create_route(number, name):
-    """ Creates a route with name: 'Route {number}' """
+    """Creates a route with name: 'Route {number}'"""
     from logistics.models import Route
 
     # add route.active field ???
@@ -110,14 +115,22 @@ def create_route(number, name):
 
 
 def create_address(address_1, contact, address_type='physical'):
-    from core.models import Address
-    address = Address.objects.create(address_1=address_1, contact=contact, address_type=address_type)
+    from core.models import Address, Country, State
+
+    country, _ = Country.objects.get_or_create(name=getattr(settings, 'DEFAULT_COUNTRY', "Uruguay"), code='')
+    state, _ = State.objects.get_or_create(
+        name=getattr(settings, 'DEFAULT_STATE', "Montevideo"), code='', country=country
+    )
+    address = Address.objects.create(
+        address_1=address_1, contact=contact, address_type=address_type, country=country, state=state
+    )
 
     return Address.objects.get(pk=address.id)
 
 
 def create_scheduled_task(contact, category, execution_date):
     from support.models import ScheduledTask
+
     scheduled_task = ScheduledTask.objects.create(contact=contact, category=category, execution_date=execution_date)
 
     return ScheduledTask.objects.get(pk=scheduled_task.id)
@@ -125,6 +138,7 @@ def create_scheduled_task(contact, category, execution_date):
 
 def create_issue(contact, date):
     from support.models import Issue
+
     issue = Issue.objects.create(contact=contact, date=date)
 
     return Issue.objects.get(pk=issue.id)
@@ -132,6 +146,7 @@ def create_issue(contact, date):
 
 def create_product(name, price, type="S", offerable=False, billing_priority=1):
     from core.models import Product
+
     product = Product.objects.create(
         name=name, active=True, price=price, type=type, offerable=offerable, billing_priority=billing_priority
     )
@@ -141,6 +156,7 @@ def create_product(name, price, type="S", offerable=False, billing_priority=1):
 
 def create_campaign(name):
     from core.models import Campaign
+
     campaign = Campaign.objects.create(name=name)
 
     return Campaign.objects.get(pk=campaign.pk)
@@ -148,6 +164,7 @@ def create_campaign(name):
 
 def create_subtype(name):
     from core.models import Subtype
+
     subtype = Subtype.objects.create(name=name)
 
     return Subtype.objects.get(pk=subtype.pk)
@@ -155,6 +172,7 @@ def create_subtype(name):
 
 def create_dynamiccontactfilter(description, mode=1):
     from core.models import DynamicContactFilter
+
     dcf = DynamicContactFilter.objects.create(description=description, mode=mode)
 
     return DynamicContactFilter.objects.get(pk=dcf.pk)
@@ -162,6 +180,7 @@ def create_dynamiccontactfilter(description, mode=1):
 
 def create_pricerule(products_pool, mode, add_wildcard, resulting_product=None, products_not_pool=[], priority=None):
     from core.models import PriceRule
+
     pr = PriceRule.objects.create(
         active=True, mode=mode, add_wildcard=add_wildcard, amount_to_pick=1, priority=priority
     )
