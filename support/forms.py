@@ -144,7 +144,9 @@ class NewAddressChangeScheduledTaskForm(forms.Form):
 
 class NewPromoForm(EmailValidationForm):
     name = forms.CharField(widget=forms.TextInput(attrs={"class": "form-control"}))
-    last_name = forms.CharField(widget=forms.TextInput(attrs={"class": "form-control"}))
+    last_name = forms.CharField(
+        widget=forms.TextInput(attrs={"class": "form-control"}), required=False
+    )
     phone = PhoneNumberField(
         empty_value="",
         required=False,
@@ -255,7 +257,9 @@ class NewSubscriptionForm(EmailValidationForm, forms.ModelForm):
         }
 
     name = forms.CharField(widget=forms.TextInput(attrs={"class": "form-control"}), label="Nombre")
-    last_name = forms.CharField(widget=forms.TextInput(attrs={"class": "form-control"}), label="Apellido")
+    last_name = forms.CharField(
+        widget=forms.TextInput(attrs={"class": "form-control"}), label="Apellido", required=False
+    )
     phone = PhoneNumberField(
         empty_value="", widget=RegionalPhoneNumberWidget(attrs={"class": "form-control"}), label="Teléfono"
     )
