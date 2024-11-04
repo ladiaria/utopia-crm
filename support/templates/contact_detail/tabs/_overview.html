@@ -120,14 +120,10 @@
   <div class="col-md-4">
     <div class="card">
       <div class="card-header">
-        <h3 class="card-title">
-          {% trans "Active subscriptions" %}
-          {% if overview_subscriptions %}({{ overview_subscriptions|length }}){% endif %}
-        </h3>
+        <h3 class="card-title">{% trans "Active subscriptions" %} ({{ overview_subscriptions_count }})</h3>
         <div class="card-tools">
           {% block products_amount %}
           {% endblock products_amount %}
-
           {% if contact.invoice_set.exists %}
             <h3 class="bg-success font-weight-bold rounded d-inline-block p-1"
                 title="Año de primera factura"
