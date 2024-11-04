@@ -183,7 +183,7 @@
                   <td>{{ sp.subscription.contact.phone }} - {{ sp.subscription.contact.mobile|default_if_none:"" }}</td>
                   <td>{{ sp.address.address_1 }}</td>
                   <td>{{ sp.address.city }}</td>
-                  <td>{{ sp.address.state }}</td>
+                  <td>{{ sp.address.state_name }}</td>
                   <td>{{ sp.subscription.end_date }}</td>
                 </tr>
               {% endfor %}
