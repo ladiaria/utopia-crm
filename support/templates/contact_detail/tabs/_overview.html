@@ -136,126 +136,20 @@
         </div>
       </div>
       <div class="card-body p-0">
-        {% if overview_subscriptions %}
+        {% if active_subscriptions or future_subscriptions or awaiting_payment_subscriptions %}
           <div class="list-group list-group-flush">
-            {% for subscription in overview_subscriptions %}
-              <div class="list-group-item {% if subscription.is_future %}border-info border rounded{% endif %} {% if subscription.has_subscriptionproduct_in_special_route %} bg-danger {% elif subscription.status == "PA" %}bg-secondary{% endif %}">
-                {% if subscription.is_future %}
-                  <div class="font-weight-bold mb-2">{% trans "Future Subscription (Not yet started)" %}</div>
-                {% endif %}
-                {% if subscription.status == "PA" %}
-                  <p>
-                    <b>{% trans "Subscription paused until" %} {{ subscription.paused_until|date:"d/m/Y" }}</b>
-                  </p>
-                {% endif %}
-                {% if subscription.has_subscriptionproduct_in_special_route %}
-                  <p>
-                    <b>{% trans "Warning: Subscription in special route. It might not be billed." %}</b>
-                  </p>
-                {% endif %}
-                <dd class="mb-2">
-                  {% for sp in subscription.get_subscriptionproducts %}
-                    {% include "contact_detail/tabs/includes/_subscription_icons.html" with sp=sp %}
-                    {{ sp.product.name }}
-                    {% if sp.label_contact %}({{ sp.label_contact.get_full_name }}){% endif %}
-                    <br>
-                  {% endfor %}
-                </dd>
-                <dd>
-                  <b>{% trans "Type" %}:</b> {{ subscription.get_type_display }}
-                </dd>
-                {% if subscription.type == "N" %}
-                  <dd>
-                    <b>{% trans "Frequency" %}:</b> {{ subscription.get_frequency_display }}
-                  </dd>
-                  <dd>
-                    <b>{% trans "Price" %}:</b> {{ subscription.get_price_for_full_period }}
-                  </dd>
-                {% endif %}
-                <dd>
-                  {% if subscription.has_paused_products %}
-                    (${{ subscription.get_price_for_full_period_with_pauses }} {% trans "because of pause" %})
-                  {% endif %}
-                </dd>
-                {% if subscription.type == "N" %}
-                  <dd>
-                    <b>{% trans "Payment type" %}:</b> {{ subscription.get_payment_type }}
-                    {% block extrapayment_1 %}
-                    {% endblock extrapayment_1 %}
-
-                  </dd>
-                {% endif %}
-                <dd>
-                  <b>{% trans "Start" %}:</b> {{ subscription.start_date|date:"d/m/Y" }}
-                  {% if subscription.end_date %}
-                    -
-                    <b>{% trans "End" %}:</b> {{ subscription.end_date|date:"d/m/Y" }}
-                  {% endif %}
-                </dd>
-                {% if subscription.type == "N" %}
-                  <dd>
-                    <strong>{% trans "Next" %}:</strong> {{ subscription.next_billing|date:"d/m/Y" }}
-                  </dd>
-                {% endif %}
-                {% if subscription.balance and subscription.balance > 0 %}
-                  <dd>
-                    <b>{% trans "Positive Balance (Discount)" %}:</b> {{ subscription.balance }}
-                  </dd>
-                {% elif subscription.balance and subscription.balance < 0 %}
-                  <dd>
-                    <b>{% trans "Negative Balance (Surcharge)" %}:</b> {{ subscription.balance_abs }}
-                  </dd>
-                {% endif %}
-                {% if subscription.campaign %}
-                  <dd>
-                    <b>{% trans "Campaign" %}:</b> {{ subscription.campaign }}
-                  </dd>
-                {% endif %}
-                {% if subscription.payment_certificate %}
-                  <dd>
-                    <b><a href="{{ subscription.payment_certificate.url }}">{% trans "View payment certificate" %}</a></b>
-                  </dd>
-                {% endif %}
-                <div class="mt-3 d-flex flex-wrap justify-content-end border-top pt-2">
-                  {% if request.user|in_group:"Support" or request.user|in_group:"Managers" %}
-                    {% if not subscription.end_date %}
-                      <a href="{% url "additional_product" subscription.id %}"
-                         class="btn-sm btn-success mx-1 mb-1">{% trans "Add" %}</a>
-                    {% endif %}
-                    <a href="{% url "edit_subscription" contact.id subscription.id %}"
-                       class="btn-sm btn-success mx-1 mb-1">{% trans "Edit" %}</a>
-                    {% if not subscription.end_date %}
-                      <a href="{% url "book_unsubscription" subscription.id %}"
-                         class="btn-sm btn-danger mx-1 mb-1">{% trans "Unsubscription" %}</a>
-                    {% endif %}
-                  {% endif %}
-                  {% if request.user|in_group:"Managers" %}
-                    <a href="{% url "admin:core_subscription_change" subscription.id %}"
-                       class="btn-sm btn-info mx-1 mb-1"
-                       target="_blank">{% trans "Advanced" %}</a>
-                    {% if not subscription.validated and subscription.has_sales_record %}
-                      <a href="{% url "validate_subscription" subscription.id %}"
-                         class="btn-sm btn-warning mx-1 mb-1">{% trans "Validate" %}</a>
-                    {% elif not subscription.has_sales_record and request.user|in_group:"Managers" %}
-                      <a href="{% url "add_sales_record" subscription.id %}"
-                         class="btn-sm btn-warning mx-1 mb-1">{% trans "Register Sale" %}</a>
-                    {% endif %}
-                    {% if subscription.is_obsolete %}
-                      <a href="{% url "admin:core_subscription_change" subscription.get_updated_subscription.id %}"
-                         class="btn-sm btn-info mx-1 mb-1"
-                         target="_blank">{% trans "Replaced Subscription" %}</a>
-                    {% endif %}
-                  {% endif %}
-                  <a href="{% url "edit_envelopes" subscription.id %}"
-                     class="btn-sm btn-info mx-1 mb-1"><i class="fas fa-envelope"></i> {% trans "Envelopes" %}</a>
-                  <a href="{% url "upload_payment_certificate" subscription.id %}"
-                     class="btn-sm btn-info mx-1 mb-1"><i class="fas fa-file-invoice-dollar"></i> {% trans "Payment Certificate" %}</a>
-                </div>
-              </div>
+            {% for subscription in active_subscriptions %}
+              {% include "contact_detail/tabs/includes/_overview_subscription_list_item.html" %}
+            {% endfor %}
+            {% for subscription in future_subscriptions %}
+              {% include "contact_detail/tabs/includes/_overview_subscription_list_item.html" with future=True %}
+            {% endfor %}
+            {% for subscription in awaiting_payment_subscriptions %}
+              {% include "contact_detail/tabs/includes/_overview_subscription_list_item.html" with awaiting_payment=True %}
             {% endfor %}
           </div>
         {% else %}
-          <div class="p-3">{% trans "This contact has no active subscriptions" %}</div>
+          <div class="p-3">{% trans "This contact has no subscriptions to show" %}</div>
         {% endif %}
       </div>
       {% if request.user|in_group:"Support" or request.user|in_group:"Managers" %}
