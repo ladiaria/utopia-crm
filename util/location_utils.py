@@ -69,31 +69,47 @@ def buscar_direccion(sugerencias, sug_num_calle, sug_num_localidad, sug_num_port
     params = {"idcalle": sug_num_calle, "portal": sug_num_portal, "type": "CALLEyPORTAL"}
     response = requests.get(url, params=params)
 
-    df_sugerencias = pd.DataFrame(sugerencias)[
-        ["type", "idCalle", "nomVia", "idLocalidad", "localidad", "idDepartamento", "departamento", "portalNumber"]
-    ]
+    # Check structure of sugerencias
+    try:
+        df_sugerencias = pd.DataFrame(sugerencias)[
+            ["type", "idCalle", "nomVia", "idLocalidad", "localidad", "idDepartamento", "departamento", "portalNumber"]
+        ]
+    except KeyError as e:
+        # Log detailed error information for debugging
+        if settings.DEBUG:
+            print(f"KeyError in DataFrame creation: {e}")
+            print("Available columns in sugerencias:", pd.DataFrame(sugerencias).columns)
+        return "Error al crear el dataframe de sugerencias"
 
     if response.status_code == 200:
         direcciones = response.json()
         if not direcciones:
             return None
-        df_direcciones = pd.DataFrame(direcciones)[
-            [
-                "type",
-                "idCalle",
-                "nomVia",
-                "idLocalidad",
-                "localidad",
-                "idDepartamento",
-                "departamento",
-                "portalNumber",
-                "geom",
-                "lat",
-                "lng",
-            ]
-        ]
-        direccion = None
 
+        # Check if 'direcciones' has expected structure
+        try:
+            df_direcciones = pd.DataFrame(direcciones)[
+                [
+                    "type",
+                    "idCalle",
+                    "nomVia",
+                    "idLocalidad",
+                    "localidad",
+                    "idDepartamento",
+                    "departamento",
+                    "portalNumber",
+                    "geom",
+                    "lat",
+                    "lng",
+                ]
+            ]
+        except KeyError as e:
+            if settings.DEBUG:
+                print(f"KeyError in DataFrame creation for 'direcciones': {e}")
+                print("Available columns in direcciones:", pd.DataFrame(direcciones).columns)
+            return "Error al crear el dataframe de direcciones"
+
+        # Merging data to find exact match
         df = df_sugerencias.merge(
             df_direcciones,
             on=[
@@ -108,22 +124,27 @@ def buscar_direccion(sugerencias, sug_num_calle, sug_num_localidad, sug_num_port
             ],
             how="left",
         )
+
+        # Filter for exact match
         df_exact = df.query(
             "type == 'CALLEyPORTAL' and idCalle == @sug_num_calle and portalNumber == @sug_num_portal"
             " and idLocalidad == @sug_num_localidad"
         )
 
+        # Choose address based on query result
+        direccion = None
         if not df_exact.empty:
-            direccion = df.to_dict("records")[0]
+            direccion = df_exact.to_dict("records")[0]
+        else:
             df_exact_but_portal_number = df.query(
                 "type == 'CALLEyPORTAL' and idCalle == @sug_num_calle and idLocalidad == @sug_num_localidad"
             )
             if not df_exact_but_portal_number.empty:
                 direccion = df_exact_but_portal_number.to_dict("records")[0]
+            elif not df_direcciones.empty:
+                direccion = df_direcciones.to_dict("records")[0]
 
-        else:
-            direccion = df_direcciones.to_dict("records")[0]
-
+        # Format final response if a valid address was found
         if direccion:
             direccion_str = f"{direccion['nomVia'].strip(' ,')} {direccion['portalNumber']}".title()
             if obs:
