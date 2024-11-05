@@ -192,18 +192,18 @@ class SellerConsoleView(UserPassesTestMixin, TemplateView):
         """Process activity result and create/update related objects"""
         ccs = ContactCampaignStatus.objects.filter(campaign=campaign, contact=contact).first()
 
-        # Map results to status and campaign_resolution
+        # Map results to status and campaign_resolution using action slugs
         result_mapping = {
-            _("Schedule"): (2, "SC"),
-            "No encontrado, llamar más tarde": (3, "CL"),
-            _("Not interested"): (4, "NI"),
-            "No volver a llamar": (4, "DN"),
-            _("Logistics"): (4, "LO"),
-            _("Already a subscriber"): (4, "AS"),
-            "Inubicable, retirar de campaña": (5, "UN"),
-            _("Error in promotion"): (5, "EP"),
-            "Mover a la mañana": (6, None),
-            "Mover a la tarde": (7, None),
+            "schedule": (2, "SC"),
+            "call-later": (3, "CL"),
+            "not-interested": (4, "NI"),
+            "do-not-call": (4, "DN"),
+            "logistics": (4, "LO"),
+            "already-subscriber": (4, "AS"),
+            "uncontactable": (5, "UN"),
+            "error-promotion": (5, "EP"),
+            "move-morning": (6, None),
+            "move-afternoon": (7, None),
         }
 
         if result in result_mapping:
@@ -282,7 +282,7 @@ class SellerConsoleView(UserPassesTestMixin, TemplateView):
         ccs = self.process_activity_result(contact, campaign, seller, result, new_activity_notes)
 
         # Handle scheduling if needed
-        if result == _("Schedule"):
+        if result == "schedule":
             call_datetime = self.get_call_datetime(data)
             self.create_scheduled_activity(contact, campaign, seller, call_datetime)
 
@@ -297,7 +297,7 @@ class SellerConsoleView(UserPassesTestMixin, TemplateView):
 
         # Convert offset to int and increment it only for "Call later" result
         try:
-            if result == "No encontrado, llamar más tarde":
+            if result == "call-later":
                 offset = int(offset) + 1
         except (TypeError, ValueError):
             offset = 2  # If offset is None or invalid, start at 2 (next item)

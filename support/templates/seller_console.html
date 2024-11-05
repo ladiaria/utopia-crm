@@ -223,48 +223,66 @@
             <br>
             <div class="row">
               <div class="col-sm-3">
-                <input class="btn btn-block bg-gradient-warning btn-sm "
-                       type="submit"
-                       name="result"
-                       value="No encontrado, llamar más tarde" />
-                <input class="btn btn-block bg-gradient-warning btn-sm"
-                       type="submit"
-                       name="result"
-                       value="{% trans "Error in promotion" %}"
-                       onclick="return confirm('{% trans "Do you want to continue?" %}');" />
-                <input class="btn btn-block bg-gradient-warning btn-sm "
-                       type="submit"
-                       name="result"
-                       value="Inubicable, retirar de campaña"
-                       onclick="return confirm('{% trans "Do you want to continue?" %}');" />
-                <input class="btn btn-block bg-gradient-warning btn-sm "
-                       type="submit"
-                       name="result"
-                       value="Mover a la mañana"
-                       onclick="return confirm('{% trans "Do you want to continue?" %}');" />
-                <input class="btn btn-block bg-gradient-warning btn-sm "
-                       type="submit"
-                       name="result"
-                       value="Mover a la tarde"
-                       onclick="return confirm('{% trans "Do you want to continue?" %}');" />
+                <button class="btn btn-block bg-gradient-warning btn-sm"
+                        type="submit"
+                        name="result"
+                        value="call-later">
+                    No encontrado, llamar más tarde
+                </button>
+                <button class="btn btn-block bg-gradient-warning btn-sm"
+                        type="submit"
+                        name="result"
+                        value="error-promotion"
+                        onclick="return confirm('{% trans "Do you want to continue?" %}');">
+                    Error en la promoción
+                </button>
+                <button class="btn btn-block bg-gradient-warning btn-sm"
+                        type="submit"
+                        name="result"
+                        value="uncontactable"
+                        onclick="return confirm('{% trans "Do you want to continue?" %}');">
+                    Inubicable, remover de la campaña
+                </button>
+                <button class="btn btn-block bg-gradient-warning btn-sm"
+                        type="submit"
+                        name="result"
+                        value="move-morning"
+                        onclick="return confirm('{% trans "Do you want to continue?" %}');">
+                    Mover a la mañana
+                </button>
+                <button class="btn btn-block bg-gradient-warning btn-sm"
+                        type="submit"
+                        name="result"
+                        value="move-afternoon"
+                        onclick="return confirm('{% trans "Do you want to continue?" %}');">
+                    Mover a la tarde
+                </button>
               </div>
               <div class="col-sm-3">
-                <input class="reject btn btn-block bg-gradient-danger btn-sm "
-                       type="submit"
-                       name="result"
-                       value="No volver a llamar" />
-                <input class="reject btn btn-block bg-gradient-danger btn-sm"
-                       type="submit"
-                       name="result"
-                       value="{% trans "Not interested" %}" />
-                <input class="reject btn btn-block bg-gradient-danger btn-sm"
-                       type="submit"
-                       name="result"
-                       value="{% trans "Logistics" %}" />
-                <input class="reject btn btn-block bg-gradient-danger btn-sm"
-                       type="submit"
-                       name="result"
-                       value="{% trans "Already a subscriber" %}" />
+                <button class="reject btn btn-block bg-gradient-danger btn-sm"
+                        type="submit"
+                        name="result"
+                        value="do-not-call">
+                    No volver a llamar
+                </button>
+                <button class="reject btn btn-block bg-gradient-danger btn-sm"
+                        type="submit"
+                        name="result"
+                        value="not-interested">
+                    No interesado
+                </button>
+                <button class="reject btn btn-block bg-gradient-danger btn-sm"
+                        type="submit"
+                        name="result"
+                        value="logistics">
+                    Logística
+                </button>
+                <button class="reject btn btn-block bg-gradient-danger btn-sm"
+                        type="submit"
+                        name="result"
+                        value="already-subscriber">
+                    Ya es suscriptor
+                </button>
               </div>
               <div class="col-sm-3">
                 {% if not contact.has_active_subscription %}
@@ -290,37 +308,12 @@
                 hacer nada)</a>
               </div>
               <div class="col-sm-3">
-                <div class="form-group row">
-                  <div class="col-sm-3">
-                    <label for="call_date">{% trans "Date" %}:</label>
-                  </div>
-                  <div class="col-sm-9">
-                    <input id="call_date"
-                           type="date"
-                           name="call_date"
-                           class="form-control form-control-sm"
-                           value="{{ call_date }}"
-                           min="{% now "Y-m-d" %}" />
-                  </div>
-                </div>
-                <div class="form-group row">
-                  <div class="col-sm-3">
-                    <label for="call_time">{% trans "Time" %}:</label>
-                  </div>
-                  <div class="col-sm-9">
-                    <input type="time"
-                           name="call_time"
-                           class="form-control form-control-sm"
-                           value="09:00"
-                           title="El formato de hora no es válido"
-                           min="09:00"
-                           max="21:00" />
-                  </div>
-                </div>
-                <input type="submit"
-                       class="btn btn-sm btn-primary float-right"
-                       name="result"
-                       value="{% trans "Schedule" %}" />
+                <button type="submit"
+                        class="btn btn-sm btn-primary float-right"
+                        name="result"
+                        value="schedule">
+                    {% trans "Schedule" %}
+                </button>
               </div>
             </div>
           </div>
