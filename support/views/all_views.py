@@ -2,7 +2,7 @@ import csv
 import collections
 from requests import RequestException
 from datetime import date, timedelta, datetime
-from django.db.models import Q, Count, Sum, Min
+from django.db.models import Count, Sum, Min
 from taggit.models import Tag
 
 from django import forms
@@ -20,7 +20,6 @@ from django.http import (
 )
 from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
-from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django.utils.text import format_lazy
 from django.views.generic import UpdateView, RedirectView, CreateView, ListView
@@ -47,12 +46,7 @@ from core.models import (
     DynamicContactFilter,
     DoNotCallNumber,
 )
-from core.choices import CAMPAIGN_RESOLUTION_REASONS_CHOICES
 from core.utils import calc_price_from_products, process_products, logistics_is_installed
-
-
-if logistics_is_installed():
-    from logistics.models import Route
 
 from support.filters import (
     IssueFilter,
@@ -98,303 +92,6 @@ def csv_sreader(src):
     # Auto-detect the dialect
     dialect = csv.Sniffer().sniff(src, delimiters=",;")
     return csv.reader(src.splitlines(), dialect=dialect)
-
-
-@staff_member_required
-def seller_console_list_campaigns(request, seller_id=None):
-    """
-    List all campaigns on a dashboard style list for sellers to use, so they can see which campaigns they have contacts
-    in to call.
-    """
-    if seller_id:
-        # Check that the user is a manager
-        if not request.user.is_staff and not request.user.groups.filter(name="Managers").exists():
-            messages.error(request, _("You are not authorized to see this page"))
-            return HttpResponseRedirect(reverse("main_menu"))
-        seller = Seller.objects.get(pk=seller_id)
-        user = seller.user
-    else:
-        user = User.objects.get(username=request.user.username)
-    try:
-        seller = Seller.objects.get(user=user)
-    except Seller.DoesNotExist:
-        messages.error(request, _("User has no seller selected. Please contact your manager."))
-        return HttpResponseRedirect(reverse("main_menu"))
-    except Seller.MultipleObjectsReturned:
-        messages.error(request, _("This seller is set in more than one user. Please contact your manager."))
-        return HttpResponseRedirect(reverse("main_menu"))
-
-    if logistics_is_installed():
-        special_routes = {}
-        for route_id in settings.SPECIAL_ROUTES_FOR_SELLERS_LIST:
-            route = Route.objects.get(pk=route_id)
-            counter = SubscriptionProduct.objects.filter(
-                seller=seller, route_id=route_id, subscription__active=True
-            ).count()
-            if counter:
-                special_routes[route_id] = (route.name, counter)
-
-    # We'll make these lists so we can append the sub count to each campaign
-    campaigns_with_not_contacted, campaigns_with_activities_to_do = [], []
-    issues_never_paid = Issue.objects.filter(
-        sub_category__slug=settings.ISSUE_SUBCATEGORY_NEVER_PAID,
-        assigned_to=user,
-    ).exclude(status__slug__in=settings.ISSUE_STATUS_FINISHED_LIST)
-
-    not_contacted_campaigns = seller.get_campaigns_by_status([1, 3])
-    all_campaigns = seller.get_unfinished_campaigns()
-    for campaign in not_contacted_campaigns:
-        campaign.count = campaign.get_not_contacted_count(seller.id)
-        campaign.successful = campaign.get_successful_count(seller.id)
-        campaigns_with_not_contacted.append(campaign)
-    for campaign in all_campaigns:
-        campaign.pending = campaign.activity_set.filter(
-            Q(campaign__end_date__isnull=True) | Q(campaign__end_date__gte=timezone.now()),
-            seller=seller,
-            status="P",
-            activity_type="C",
-            datetime__lte=timezone.now(),
-        ).count()
-        campaign.successful = campaign.get_successful_count(seller.id)
-        if campaign.pending:
-            campaigns_with_activities_to_do.append(campaign)
-    upcoming_activity = seller.upcoming_activity()
-    total_pending_activities = seller.total_pending_activities_count()
-
-    context = {
-        "campaigns_with_not_contacted": campaigns_with_not_contacted,
-        "campaigns_with_activities_to_do": campaigns_with_activities_to_do,
-        "seller": seller,
-        "total_pending_activities": total_pending_activities,
-        "upcoming_activity": upcoming_activity,
-        "issues_never_paid": issues_never_paid,
-    }
-    if logistics_is_installed():
-        context["special_routes"] = special_routes
-    return render(
-        request,
-        "seller_console_list_campaigns.html",
-        context,
-    )
-
-
-@login_required
-def seller_console(request, category, campaign_id):
-    """
-    Dashboard-like control panel for sellers to take actions on contacts in campaigns one by one, calling them and
-    registering the activity they had with the contacts.
-    """
-    if request.POST and request.POST.get("result"):
-        result = request.POST.get("result")
-        offset = request.POST.get("offset")
-        url = request.POST.get("url")
-        campaign = get_object_or_404(Campaign, pk=request.POST.get("campaign_id"))
-        category = request.POST.get("category")
-        instance_id = request.POST.get("instance_id")
-        seller_id = request.POST.get("seller_id")
-        seller = Seller.objects.get(pk=seller_id)
-
-        dict_resolution_reasons = dict(CAMPAIGN_RESOLUTION_REASONS_CHOICES)
-        if request.POST.get("campaign_resolution_reason", None):
-            resolution_reason = int(request.POST.get("campaign_resolution_reason"))
-        else:
-            resolution_reason = None
-        chosen_resolution_reason = dict_resolution_reasons.get(resolution_reason, None)
-        new_activity_notes = result
-        if chosen_resolution_reason:
-            new_activity_notes += " ({})".format(chosen_resolution_reason)
-        if request.POST.get("notes", None):
-            new_activity_notes += "\n" + request.POST.get("notes")
-
-        if category == "act":
-            activity = Activity.objects.get(pk=instance_id)
-            contact = activity.contact
-            try:
-                ccs = ContactCampaignStatus.objects.get(campaign=campaign, contact=contact)
-            except ContactCampaignStatus.DoesNotExist:
-                messages.success(
-                    request,
-                    _(
-                        "Activity {}: Contact {} is not present in campaign {}. Please report this error!".format(
-                            activity.id, contact.id, campaign.id
-                        )
-                    ),
-                )
-                return HttpResponseRedirect(reverse("seller_console_list_campaigns"))
-            activity.notes = new_activity_notes
-            activity.status = "C"
-            activity.save()
-            if result == _("Call later"):
-                Activity.objects.create(
-                    contact=contact,
-                    activity_type="C",
-                    datetime=datetime.now(),
-                    campaign=campaign,
-                    seller=seller,
-                )
-        elif category == "new":
-            ccs = ContactCampaignStatus.objects.get(pk=instance_id)
-            contact = ccs.contact
-            activity = Activity.objects.create(
-                contact=ccs.contact,
-                activity_type="C",
-                datetime=datetime.now(),
-                campaign=campaign,
-                seller=seller,
-                status="C",
-                notes=new_activity_notes,
-            )
-        if result == _("Schedule"):
-            # Schedule customers
-            ccs.campaign_resolution = "SC"
-            ccs.status = 2
-            call_date = request.POST.get("call_date")
-            call_date = datetime.strptime(call_date, "%Y-%m-%d")
-            call_time = request.POST.get("call_time")
-            call_time = datetime.strptime(call_time, "%H:%M").time()
-            call_datetime = datetime.combine(call_date, call_time)
-            Activity.objects.create(
-                contact=contact,
-                activity_type="C",
-                datetime=call_datetime,
-                campaign=campaign,
-                seller=seller,
-                notes="{} {}".format(_("Scheduled for"), call_datetime),
-            )
-
-        elif result == "No encontrado, llamar más tarde":
-            ccs.campaign_resolution = "CL"
-            offset = int(offset) + 1
-            ccs.status = 3
-
-        elif result == _("Not interested"):
-            ccs.campaign_resolution = "NI"
-            ccs.status = 4
-
-        elif result == "No volver a llamar":
-            ccs.campaign_resolution = "DN"
-            ccs.status = 4
-
-        elif result == _("Logistics"):
-            ccs.campaign_resolution = "LO"
-            ccs.status = 4
-
-        elif result == _("Already a subscriber"):
-            ccs.campaign_resolution = "AS"
-            ccs.status = 4
-
-        elif result == "Inubicable, retirar de campaña":
-            ccs.campaign_resolution = "UN"
-            ccs.status = 5
-
-        elif result == _("Error in promotion"):
-            ccs.campaign_resolution = "EP"
-            ccs.status = 5
-
-        elif result == "Mover a la mañana":
-            ccs.status = 6
-            ccs.seller = None
-
-        elif result == "Mover a la tarde":
-            ccs.status = 7
-            ccs.seller = None
-
-        if request.POST.get("campaign_resolution_reason", None):
-            ccs.resolution_reason = request.POST.get("campaign_resolution_reason", None)
-
-        ccs.save()
-
-        return HttpResponseRedirect(
-            reverse("seller_console", args=[category, campaign.id]) + "?offset={}".format(offset) if offset else None
-        )
-    else:
-        """
-        This is if the user has not selected any option.
-        """
-        campaign = get_object_or_404(Campaign, pk=campaign_id)
-        user = User.objects.get(username=request.user.username)
-        try:
-            seller = Seller.objects.get(user=user)
-        except Seller.DoesNotExist:
-            messages.error(request, _("User has no seller selected. Please contact your manager."))
-            return HttpResponseRedirect(reverse("main_menu"))
-
-        offset, activity_id = None, None
-        if request.GET.get("offset"):
-            offset = request.GET.get("offset")
-        elif request.GET.get("a"):
-            activity_id = request.GET.get("a")
-        else:
-            offset = request.POST.get("offset")
-
-        offset = int(offset) if offset else 1
-        call_datetime = datetime.strftime(date.today() + timedelta(1), "%Y-%m-%d")
-
-        if category == "new":
-            console_instances = campaign.get_not_contacted(seller.id)
-        elif category == "act":
-            # We make sure to show the seller only the activities that are for today.
-            console_instances = campaign.activity_set.filter(
-                activity_type="C", seller=seller, status="P", datetime__lte=datetime.now()
-            ).order_by("datetime", "id")
-
-        count = console_instances.count()
-        if count == 0 or offset - 1 >= count:
-            messages.success(request, _("You've reached the end of this list"))
-            return HttpResponseRedirect(reverse("seller_console_list_campaigns"))
-        elif activity_id:
-            try:
-                console_instance = console_instances.get(pk=activity_id)
-            except Activity.DoesNotExist:
-                messages.error(request, _("An error has occurred with activity number {}".format(activity_id)))
-                return HttpResponseRedirect(reverse("seller_console_list_campaigns"))
-        elif offset - 1 > 0:
-            i = offset
-            console_instance = console_instances[int(i) - 1]
-        else:
-            i = 0
-            console_instance = console_instances[i]
-
-        contact = console_instance.contact
-        times_contacted = contact.activity_set.filter(activity_type="C", status="C", campaign=campaign).count()
-        all_activities = Activity.objects.filter(contact=contact).order_by("-datetime", "id")
-        if category == "act":
-            # If what we're watching is an activity, let's please not show it here
-            all_activities = all_activities.exclude(pk=console_instance.id)
-        all_subscriptions = Subscription.objects.filter(contact=contact).order_by("-active", "id")
-        url = request.META["PATH_INFO"]
-        addresses = Address.objects.filter(contact=contact).order_by("address_1")
-
-        pending_activities_count = seller.total_pending_activities_count()
-        upcoming_activity = seller.upcoming_activity()
-
-        other_campaigns = ContactCampaignStatus.objects.filter(contact=contact).exclude(campaign=campaign)
-
-        return render(
-            request,
-            "seller_console.html",
-            {
-                "campaign": campaign,
-                "times_contacted": times_contacted,
-                "category": category,
-                "position": offset + 1,
-                "offset": offset,
-                "seller": seller,
-                "contact": contact,
-                "count": count,
-                "addresses": addresses,
-                "call_date": call_datetime,
-                "all_activities": all_activities,
-                "all_subscriptions": all_subscriptions,
-                "console_instance": console_instance,
-                "console_instances": console_instances,
-                "url": url,
-                "pending_activities_count": pending_activities_count,
-                "upcoming_activity": upcoming_activity,
-                "resolution_reasons": CAMPAIGN_RESOLUTION_REASONS_CHOICES,
-                "other_campaigns": other_campaigns,
-            },
-        )
 
 
 @login_required
@@ -1049,6 +746,7 @@ def release_seller_contacts(request, seller_id=None):
         return render(request, "release_seller_contacts.html", {"seller_list": seller_qs})
 
 
+@staff_member_required
 def release_seller_contacts_by_campaign(request, seller_id, campaign_id=None):
     seller_obj = get_object_or_404(Seller, pk=seller_id)
     active_campaigns = seller_obj.get_unfinished_campaigns()
@@ -1579,6 +1277,7 @@ def sync_with_mailtrain(request, dcf_id):
     return HttpResponseRedirect(reverse("dynamic_contact_filter_edit", args=[dcf.id]))
 
 
+@staff_member_required
 def register_activity(request):
     issue_id = request.GET.get("issue_id", None)
     form = NewActivityForm(request.POST)
@@ -2509,46 +2208,6 @@ def unsubscription_statistics(request):
             "total_requested_unsubscriptions_count": total_requested_unsubscriptions_count,
             "total_not_requested_unsubscriptions_count": total_not_requested_unsubscriptions_count,
             "total_unsubscriptions_count": total_unsubscriptions_count,
-        },
-    )
-
-
-@staff_member_required
-def seller_console_special_routes(request, route_id):
-    if "logistics" in getattr(settings, "DISABLED_APPS", []):
-        messages.error(request, _("This function is not available."))
-        return HttpResponseRedirect(reverse("main_menu"))
-    if not getattr(settings, "SPECIAL_ROUTES_FOR_SELLERS_LIST", None):
-        messages.error(request, _("This function is not available."))
-        return HttpResponseRedirect("/")
-    if int(route_id) not in settings.SPECIAL_ROUTES_FOR_SELLERS_LIST:
-        messages.error(request, _("This is not a special route."))
-        return HttpResponseRedirect("/")
-    route = get_object_or_404(Route, pk=route_id)
-
-    user = User.objects.get(username=request.user.username)
-    try:
-        seller = Seller.objects.get(user=user)
-    except Seller.DoesNotExist:
-        messages.error(request, _("User has no seller selected. Please contact your manager."))
-        return HttpResponseRedirect(reverse("main_menu"))
-    except Seller.MultipleObjectsReturned:
-        messages.error(request, _("This seller is set in more than one user. Please contact your manager."))
-        return HttpResponseRedirect(reverse("main_menu"))
-
-    subprods = SubscriptionProduct.objects.filter(seller=seller, route=route, subscription__active=True).order_by(
-        "subscription__contact__id"
-    )
-    if subprods.count() == 0:
-        messages.error(request, _("There are no contacts in that route for this seller."))
-        return HttpResponseRedirect(reverse("seller_console_list_campaigns"))
-    return render(
-        request,
-        "seller_console_special_routes.html",
-        {
-            "seller": seller,
-            "subprods": subprods,
-            "route": route,
         },
     )
 
