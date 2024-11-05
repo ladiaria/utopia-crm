@@ -205,7 +205,7 @@ class SellerConsoleView(UserPassesTestMixin, TemplateView):
         """Get appropriate action message for status"""
         status_messages = {
             2: _("scheduled"),
-            3: _("moved to call later"),
+            3: _("skipped to call later"),
             4: _("marked as not interested"),
             5: _("marked as uncontactable"),
             6: _("moved to morning"),
@@ -268,6 +268,13 @@ class SellerConsoleView(UserPassesTestMixin, TemplateView):
         # Show success message
         action = self.get_status_action_message(ccs.status)
         messages.success(self.request, _("Contact {id} {action}".format(id=contact.id, action=action)))
+
+        # Convert offset to int and increment it only for "Call later" result
+        try:
+            if result == "No encontrado, llamar más tarde":
+                offset = int(offset) + 1
+        except (TypeError, ValueError):
+            offset = 2  # If offset is None or invalid, start at 2 (next item)
 
         return self.get_redirect_response(category, campaign.id, offset)
 
