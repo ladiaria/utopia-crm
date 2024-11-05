@@ -14,4 +14,10 @@ from .contacts import (  # noqa
     ImportContactsView,
 )
 
+from .seller_console import (  # noqa
+    SellerConsoleView,
+    seller_console_special_routes,
+    seller_console_list_campaigns,
+)
+
 from .all_views import *  # noqa
