@@ -869,6 +869,9 @@ class Contact(models.Model):
             source.addresses.update(contact=self)
             source.subscriptions.update(contact=self)
             source.invoice_set.update(contact=self)
+            # We need to delete the activities that have a campaign and are yet to be resolved
+            source.activity_set.filter(campaign__isnull=False, status__in=["A", "P"]).delete()
+            # Then we update the contact of the remaining activities
             source.activity_set.update(contact=self)
             source.issue_set.update(contact=self)
             # ContactCampaignStatus have a unique constraint on (contact, campaign)
