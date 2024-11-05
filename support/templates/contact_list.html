@@ -61,7 +61,7 @@
                          name="export"
                          value="{% trans "Export to CSV" %}" />
                 {% endif %}
-                <p>{{ count }} {% trans "contacts" %}</p>
+                <p>{{ paginator.count }} {% trans "contacts" %}</p>
               </div>
             </div>
           </form>
@@ -71,8 +71,11 @@
     <div class="col-md-12">
       <div class="card">
         <div class="card-body">
-          <h3>{% trans "All contacts" %}</h3>
-          <table id="table1" class="table table-bordered table-striped">
+          <div class="d-flex justify-content-between">
+            <h3>{% trans "All contacts" %}</h3>
+            <a href="{% url "create_contact" %}" class="btn btn-primary">{% trans "Create contact" %}</a>
+          </div>
+          <table id="table1" class="table table-bordered table-striped mt-2">
             <thead>
               <tr role="row">
                 <th>{% trans "Full name" %}</th>
@@ -85,7 +88,7 @@
               </tr>
             </thead>
             <tbody>
-              {% for contact in contacts %}
+              {% for contact in page_obj %}
                 <tr role="row">
                   <td>
                     <a href="{% url "contact_detail" contact.id %}">{{ contact.get_full_name|default_if_none:"" }}</a>
@@ -130,7 +133,7 @@
       </div>
     </div>
   </div>
-  {% if contacts.has_other_pages %}
-    {% include "components/_pagination.html" with page_obj=contacts %}
+  {% if page_obj.has_other_pages %}
+    {% include "components/_pagination.html" %}
   {% endif %}
 {% endblock %}

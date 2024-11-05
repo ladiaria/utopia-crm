@@ -2,14 +2,10 @@ import csv
 import collections
 from requests import RequestException
 from datetime import date, timedelta, datetime
-from functools import reduce
-from operator import or_
-
-from django.db.models import Q, Count, Sum, Min, Case, When, Value, BooleanField
+from django.db.models import Q, Count, Sum, Min
 from taggit.models import Tag
 
 from django import forms
-from django.db import transaction
 from django.forms import ValidationError
 from django.contrib import messages
 from django.contrib.auth.models import User
@@ -23,7 +19,7 @@ from django.http import (
     Http404,
 )
 from django.shortcuts import get_object_or_404, render
-from django.urls import reverse_lazy, reverse
+from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django.utils.text import format_lazy
@@ -31,14 +27,13 @@ from django.views.generic import UpdateView, RedirectView, CreateView, ListView
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
-from django.views.decorators.http import require_POST
 from django.views.generic import FormView
 from django.conf import settings
 from django_filters.views import FilterView
 from django.utils.decorators import method_decorator
 from util.dates import add_business_days
 from core.filters import ContactFilter
-from core.forms import AddressForm, ContactAdminForm
+from core.forms import AddressForm
 from core.models import (
     Contact,
     Subscription,
@@ -51,10 +46,6 @@ from core.models import (
     SubscriptionNewsletter,
     DynamicContactFilter,
     DoNotCallNumber,
-    MailtrainList,
-    update_web_user_newsletters,
-    State,
-    Country,
 )
 from core.choices import CAMPAIGN_RESOLUTION_REASONS_CHOICES
 from core.utils import calc_price_from_products, process_products, logistics_is_installed
@@ -91,12 +82,10 @@ from support.forms import (
     AddressComplementaryInformationForm,
     SugerenciaGeorefForm,
     ValidateSubscriptionForm,
-    ImportContactsForm,
 )
 from support.models import Seller, IssueStatus, Issue, IssueSubcategory, SalesRecord
 from support.choices import ISSUE_CATEGORIES, ISSUE_ANSWERS
 from core import choices as core_choices
-from core.utils import get_mailtrain_lists
 import pandas as pd
 
 
@@ -109,194 +98,6 @@ def csv_sreader(src):
     # Auto-detect the dialect
     dialect = csv.Sniffer().sniff(src, delimiters=",;")
     return csv.reader(src.splitlines(), dialect=dialect)
-
-
-class ImportContactsView(FormView):
-    template_name = 'import_contacts.html'
-    form_class = ImportContactsForm
-    success_url = reverse_lazy('import_contacts')
-
-    def get_address_column_names(self):
-        return ['address_1', 'address_2', 'city', 'state', 'country']
-
-    def form_valid(self, form):
-        csv_file = form.cleaned_data['file']
-        tags = self.parse_tags(form.cleaned_data)
-
-        results = self.process_csv(csv_file, tags)
-
-        self.display_messages(results)
-
-        return super().form_valid(form)
-
-    def parse_tags(self, cleaned_data):
-        tag_types = ['tags', 'tags_existing', 'tags_active', 'tags_in_campaign']
-        return {tag_type: [tag.strip() for tag in cleaned_data.get(tag_type, '').split(',')] for tag_type in tag_types}
-
-    def process_csv(self, csv_file, tags):
-        results = {
-            'new_contacts': [],
-            'in_active_campaign': [],
-            'active_contacts': [],
-            'existing_inactive_contacts': [],
-            'errors': [],
-            'added_emails': 0,
-            'added_phones': 0,
-            'added_mobiles': 0,
-        }
-
-        try:
-            df = pd.read_csv(csv_file)
-        except Exception as e:
-            results['errors'].append(str(e))
-            return results
-
-        for index, row in df.iterrows():
-            try:
-                contact_data = self.parse_row(row)
-                self.process_contact(contact_data, tags, results)
-            except Exception as e:
-                results['errors'].append(
-                    f"CSV Row {index + 2}: {e}"
-                )  # +2 because pandas index starts at 0 and we want to account for header
-
-        return results
-
-    def parse_row(self, row, use_headers=False):
-        # TODO: Allow this to be configured through the settings or the UI
-        if use_headers:
-            return {
-                'name': row['name'],
-                'last_name': row['last_name'] if pd.notna(row['last_name']) else "",
-                'email': row['email'].lower() if pd.notna(row['email']) else None,
-                'phone': str(row['phone']) if pd.notna(row['phone']) else "",
-                'mobile': str(row['mobile']) if pd.notna(row['mobile']) else "",
-                'notes': row['notes'].strip() if pd.notna(row['notes']) else None,
-                'address_1': row['address_1'] if pd.notna(row['address_1']) else None,
-                'address_2': row['address_2'] if pd.notna(row['address_2']) else None,
-                'city': row['city'] if pd.notna(row['city']) else None,
-                'state': row['state'].strip() if pd.notna(row['state']) else None,
-                'country': row['country'] if pd.notna(row['country']) else None,
-                'id_document_type': row['id_document_type'] if pd.notna(row['id_document_type']) else None,
-                'id_document': row['id_document'] if pd.notna(row['id_document']) else None,
-                'ranking': row['ranking'] if pd.notna(row['ranking']) else None,
-            }
-        else:
-            return {
-                'name': row.iloc[0],
-                'last_name': row.iloc[1] if pd.notna(row.iloc[1]) else "",
-                'email': row.iloc[2].lower() if pd.notna(row.iloc[2]) else None,
-                'phone': str(row.iloc[3]) if pd.notna(row.iloc[3]) else "",
-                'mobile': str(row.iloc[4]) if pd.notna(row.iloc[4]) else "",
-                'notes': row.iloc[5].strip() if pd.notna(row.iloc[5]) else None,
-                'address_1': row.iloc[6] if pd.notna(row.iloc[6]) else None,
-                'address_2': row.iloc[7] if pd.notna(row.iloc[7]) else None,
-                'city': row.iloc[8] if pd.notna(row.iloc[8]) else None,
-                'state': row.iloc[9].strip() if pd.notna(row.iloc[9]) else None,
-                'country': row.iloc[10] if pd.notna(row.iloc[10]) else None,
-                'id_document_type': row.iloc[11] if pd.notna(row.iloc[11]) else None,
-                'id_document': row.iloc[12] if pd.notna(row.iloc[12]) else None,
-                'ranking': row.iloc[13] if pd.notna(row.iloc[13]) else None,
-            }
-
-    @transaction.atomic
-    def process_contact(self, contact_data, tags, results):
-        matches = self.find_matching_contacts(contact_data)
-
-        if matches.exists():
-            self.update_existing_contacts(matches, contact_data, tags, results)
-        else:
-            self.create_new_contact(contact_data, tags, results)
-
-    def find_matching_contacts(self, contact_data):
-        # Build a list of Q objects for fields that are not empty (email, phone, or mobile)
-        conditions = [
-            Q(**{field: contact_data[field]}) for field in ['email', 'phone', 'mobile'] if contact_data[field]
-        ]
-
-        # If we have any conditions, combine them with an OR operator (|).
-        # The reduce function here takes all Q objects in the list and applies the OR (|) operator between them.
-        # The 'or_' from the operator module is used to apply this OR operator between all Q objects.
-        # If no conditions exist (list is empty), we fall back to an empty Q() object.
-        query = reduce(or_, conditions, Q())
-
-        # Return the filtered Contact objects based on the query we built
-        return Contact.objects.filter(query)
-
-    def update_existing_contacts(self, matches, contact_data, tags, results):
-        for contact in matches:
-            self.categorize_contact(contact, tags, results)
-            if matches.count() == 1:
-                self.update_contact_info(contact, contact_data, results)
-
-    def categorize_contact(self, contact, tags, results):
-        if contact.contactcampaignstatus_set.filter(campaign__active=True).exists():
-            results['in_active_campaign'].append(contact.id)
-            self.add_tags(contact, tags['tags_in_campaign'])
-        elif contact.has_active_subscription():
-            results['active_contacts'].append(contact.id)
-            self.add_tags(contact, tags['tags_active'])
-        else:
-            results['existing_inactive_contacts'].append(contact.id)
-            self.add_tags(contact, tags['tags_existing'])
-
-    def update_contact_info(self, contact, contact_data, results):
-        for field in ['email', 'phone', 'mobile']:
-            if not getattr(contact, field) and contact_data[field]:
-                try:
-                    setattr(contact, field, contact_data[field])
-                    contact.save()
-                    results[f'added_{field}s'] += 1
-                except Exception as e:
-                    results['errors'].append(
-                        f"Could not add {field} {contact_data[field]} to contact {contact.id}: {e}"
-                    )
-
-    def create_new_contact(self, contact_data, tags, results):
-        new_contact = Contact.objects.create(
-            **{k: v for k, v in contact_data.items() if k not in self.get_address_column_names()}
-        )
-
-        state_data = contact_data.get('state', None)
-        contact_data['state'] = State.objects.filter(name=state_data).first()
-
-        country_data = contact_data.get('country', None)
-        contact_data['country'] = Country.objects.filter(name=country_data).first()
-
-        if contact_data['address_1']:
-            Address.objects.create(
-                contact=new_contact,
-                address_1=contact_data['address_1'],
-                address_2=contact_data['address_2'],
-                city=contact_data['city'],
-                address_type="physical",  # Default
-                state=contact_data['state'],
-                country=contact_data['country'],
-            )
-
-        results['new_contacts'].append(new_contact)
-        self.add_tags(new_contact, tags['tags'])
-
-    def add_tags(self, contact, tag_list):
-        for tag in tag_list:
-            contact.tags.add(tag)
-
-    def display_messages(self, results):
-        messages.success(self.request, f"{len(results['new_contacts'])} contacts imported successfully")
-        messages.warning(self.request, f"{len(results['in_active_campaign'])} contacts were found in active campaigns")
-        messages.warning(
-            self.request, f"{len(results['active_contacts'])} contacts were found with active subscriptions"
-        )
-        messages.warning(
-            self.request,
-            _(f"{len(results['existing_inactive_contacts'])} contacts were found without active subscriptions"),
-        )
-        messages.success(self.request, f"{results['added_emails']} emails were added to existing contacts")
-        messages.success(self.request, f"{results['added_phones']} phone numbers were added to existing contacts")
-        messages.success(self.request, f"{results['added_mobiles']} mobile numbers were added to existing contacts")
-
-        for error in results['errors']:
-            messages.error(self.request, error)
 
 
 @staff_member_required
@@ -1479,180 +1280,6 @@ def view_issue(request, issue_id):
     )
 
 
-@login_required
-def contact_list(request):
-    """
-    Shows a very simple contact list.
-    """
-    page = request.GET.get("p")
-    contact_queryset = (
-        Contact.objects.all().prefetch_related("subscriptions", "activity_set").select_related().order_by("-id")
-    )
-    contact_filter = ContactFilter(request.GET, queryset=contact_queryset)
-    paginator = Paginator(contact_filter.qs, 50)
-    if request.GET.get("export"):
-        response = HttpResponse(content_type="text/csv")
-        response["Content-Disposition"] = 'attachment; filename="contacts_export.csv"'
-        writer = csv.writer(response)
-        header = [
-            _("Id"),
-            _("Full name"),
-            _("Email"),
-            _("Phone"),
-            _("Mobile"),
-            _("Has active subscriptions"),
-            _("Active products"),
-            _("Last activity"),
-            _("Overdue invoices"),
-            _("Address"),
-            _("State"),
-            _("City"),
-        ]
-        writer.writerow(header)
-        for contact in contact_filter.qs.all():
-            active_products, address_1, state, city = "", "", "", ""
-            for index, sp in enumerate(contact.get_active_subscriptionproducts()):
-                if index > 0:
-                    active_products += ", "
-                active_products += sp.product.name
-            first_subscription = contact.get_first_active_subscription()
-            if first_subscription:
-                address = first_subscription.get_full_address_by_priority()
-                if address:
-                    address_1, state, city = address.address_1, address.state, address.city
-            writer.writerow(
-                [
-                    contact.id,
-                    contact.get_full_name(),
-                    contact.email,
-                    contact.phone,
-                    contact.mobile,
-                    contact.has_active_subscription(),
-                    active_products,
-                    contact.last_activity().datetime if contact.last_activity() else None,
-                    contact.expired_invoices_count(),
-                    address_1,
-                    state,
-                    city,
-                ]
-            )
-        return response
-    try:
-        contacts = paginator.page(page)
-    except PageNotAnInteger:
-        # If page is not an integer, deliver first page.
-        contacts = paginator.page(1)
-    except EmptyPage:
-        # If page is out of range (e.g. 9999), deliver last page of results.
-        contacts = paginator.page(paginator.num_pages)
-    return render(
-        request,
-        "contact_list.html",
-        {
-            "paginator": paginator,
-            "contacts": contacts,
-            "page": page,
-            "total_pages": paginator.num_pages,
-            "filter": contact_filter,
-            "count": contact_filter.qs.count(),
-        },
-    )
-
-
-@login_required
-def contact_detail(request, contact_id):
-    """
-    Shows all important information on a contact.
-    """
-    contact = get_object_or_404(Contact, pk=contact_id)
-    addresses = contact.addresses.all()
-    activities = contact.activity_set.all().order_by("-id")[:3]
-    newsletters = contact.get_newsletters()
-    last_paid_invoice = contact.get_last_paid_invoice()
-    issues = contact.issue_set.all().order_by("-id")[:3]
-    all_activities = contact.activity_set.all().order_by("-datetime", "id")
-    all_issues = contact.issue_set.all().order_by("-date", "id")
-    all_scheduled_tasks = contact.scheduledtask_set.all().order_by("-creation_date", "id")
-    all_campaigns = contact.contactcampaignstatus_set.all().order_by("-date_created", "id")
-
-    subscription_groups = [
-        {
-            'title': _("Active subscriptions"),
-            'subscriptions': contact.subscriptions.filter(active=True).exclude(status="AP"),
-            'collapsed': False
-        },
-        {
-            'title': _("Future Subscriptions"),
-            'subscriptions': contact.subscriptions.filter(
-                active=False,
-                start_date__gte=date.today()
-            ).exclude(status__in=("AP", "ER")),
-            'collapsed': False
-        },
-        {
-            'title': _("Subscriptions awaiting payment"),
-            'subscriptions': contact.subscriptions.filter(status="AP"),
-            'collapsed': True
-        },
-        {
-            'title': _("Subscriptions with errors"),
-            'subscriptions': contact.subscriptions.filter(status="ER"),
-            'collapsed': True
-        },
-        {
-            'title': _("Paused Subscriptions"),
-            'subscriptions': contact.subscriptions.filter(status="PA"),
-            'collapsed': True
-        },
-        {
-            'title': _("Inactive subscriptions"),
-            'subscriptions': contact.subscriptions.filter(
-                active=False,
-                start_date__lt=date.today()
-            ).exclude(status__in=("AP", "ER")),
-            'collapsed': True
-        }
-    ]
-
-    overview_subscriptions = Subscription.objects.filter(
-        contact=contact,
-        active=True
-    ).exclude(
-        status="AP"
-    ).annotate(
-        is_future=Case(
-            When(start_date__gt=date.today(), then=Value(True)),
-            default=Value(False),
-            output_field=BooleanField(),
-        )
-    ).order_by('is_future', 'start_date')
-
-    breadcrumbs = [
-        {"label": _("Contact list"), "url": reverse("contact_list")},
-        {"label": contact.get_full_name(), "url": reverse("contact_detail", args=[contact.id])},
-    ]
-
-    return render(
-        request,
-        "contact_detail/detail.html",
-        {
-            "contact": contact,
-            "addresses": addresses,
-            "activities": activities,
-            "newsletters": newsletters,
-            "issues": issues,
-            "last_paid_invoice": last_paid_invoice,
-            "all_activities": all_activities,
-            "all_issues": all_issues,
-            "all_scheduled_tasks": all_scheduled_tasks,
-            "all_campaigns": all_campaigns,
-            "breadcrumbs": breadcrumbs,
-            "subscription_groups": subscription_groups,
-            "overview_subscriptions": overview_subscriptions,
-        },
-    )
-
-
 def api_new_address(request, contact_id):
     # Convertir en api para llamar a todas las direcciones. TODO: is this a "to-do"?
     """
@@ -1969,69 +1596,6 @@ def register_activity(request):
         return HttpResponseRedirect(reverse("view_issue", args=[issue_id]))
     else:
         return HttpResponseRedirect(reverse("contact_detail", args=[form.cleaned_data["contact"].id]))
-
-
-@staff_member_required
-def edit_contact(request, contact_id):
-    contact = get_object_or_404(Contact, pk=contact_id)
-    form = ContactAdminForm(instance=contact)
-    all_newsletters = Product.objects.filter(type="N", active=True)
-    contact_newsletters = contact.get_newsletter_products()
-    mailtrain_lists = MailtrainList.objects.filter(is_active=True)
-    contact_mailtrain_lists = get_mailtrain_lists(contact.email)
-
-    if request.POST:
-        form = ContactAdminForm(request.POST, instance=contact)
-        if form.is_valid():
-            # rising a flag to skip call Contact.clean method again (just called on form.is_valid call)
-            skip_clean_set = False
-            if not getattr(contact, "_skip_clean", False):
-                contact._skip_clean, skip_clean_set = True, True
-            try:
-                form.save()
-            except Exception as e:
-                if skip_clean_set:
-                    del contact._skip_clean
-                messages.error(request, "Error: {}".format(e))
-            else:
-                if skip_clean_set:
-                    del contact._skip_clean
-                messages.success(request, _("Contact saved successfully"))
-                return HttpResponseRedirect(reverse("edit_contact", args=[contact_id]))
-    return render(
-        request,
-        "create_contact/create_contact.html",
-        {
-            "form": form,
-            "contact": contact,
-            "all_newsletters": all_newsletters,
-            "contact_newsletters": contact_newsletters,
-            "mailtrain_lists": mailtrain_lists,
-            "contact_mailtrain_lists": contact_mailtrain_lists,
-        },
-    )
-
-
-@require_POST
-@staff_member_required
-def edit_newsletters(request, contact_id):
-    contact = get_object_or_404(Contact, pk=contact_id)
-    if request.POST:
-        nl_updated = False
-        all_newsletters = Product.objects.filter(type="N", active=True)
-        for newsletter in all_newsletters:
-            if request.POST.get(str(newsletter.id)):
-                if not contact.has_newsletter(newsletter.id):
-                    contact.add_newsletter(newsletter.id)
-                    nl_updated = True
-            else:
-                if contact.has_newsletter(newsletter.id):
-                    contact.remove_newsletter(newsletter.id)
-                    nl_updated = True
-        if nl_updated:
-            update_web_user_newsletters(contact)
-        messages.success(request, _("Newsletters edited successfully"))
-        return HttpResponseRedirect(reverse("edit_contact", args=[contact_id]))
 
 
 @staff_member_required
