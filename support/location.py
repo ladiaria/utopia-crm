@@ -1,7 +1,6 @@
 import pandas as pd
 
 from django.contrib import messages
-from django.core.exceptions import ObjectDoesNotExist
 from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
@@ -141,6 +140,9 @@ def agregar_direccion(request, contact_id):
                 return HttpResponseRedirect(reverse("normalizar_direccion", args=[contact_id, address.id]) + stayhere)
         direccion, id_calle, id_localidad, id_portal = request.POST.get('sugerencias').split("|")
         j = seleccionar_sugerencia(direccion, id_calle, id_localidad, id_portal)
+        if not j or "departamento" not in j or not j["departamento"]:
+            messages.error(request, "El departamento de la dirección sugerida no es válido o está vacío.")
+            return HttpResponseRedirect(reverse("agregar_direccion", args=[contact_id]))
         state_name_slug = slugify(j["departamento"].title())
         try:
             state_obj = next(
@@ -148,7 +150,8 @@ def agregar_direccion(request, contact_id):
                 if slugify(state.name) == state_name_slug
             )
         except StopIteration:
-            raise ObjectDoesNotExist(f"No State found matching '{state_name_slug}'")
+            messages.error(request, f"No se encontró un departamento coincidente para '{j['departamento']}'.")
+            return HttpResponseRedirect(reverse("agregar_direccion", args=[contact_id]))
         form = SugerenciaGeorefForm(
             initial={
                 "contact": contact_obj,
