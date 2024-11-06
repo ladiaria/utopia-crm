@@ -413,6 +413,7 @@ class Contact(models.Model):
     def save(self, *args, **kwargs):
         if not getattr(self, "updatefromweb", False) and not getattr(self, "_skip_clean", False):
             self.clean(debug=settings.DEBUG_CONTACT_CLEAN)
+        self.no_email = self.email is None
         return super().save(*args, **kwargs)
 
     def is_debtor(self):
