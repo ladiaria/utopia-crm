@@ -2693,7 +2693,7 @@ def update_web_user_newsletters(contact):
     @params contact: Contact instance
     """
     try:
-        newsletters_slugs = contact.get_active_newsletters().values_list('slug', flat=True)
+        newsletters_slugs = list(contact.get_active_newsletters().values_list('product__slug', flat=True))
         update_web_user(contact, contact.email, json.dumps(newsletters_slugs), method="PUT")
     except Exception as ex:
         if settings.DEBUG:
