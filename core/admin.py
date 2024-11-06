@@ -412,7 +412,18 @@ class ProductAdmin(admin.ModelAdmin):
         "edition_frequency",
         "temporary_discount_months",
     ]
-    readonly_fields = ("slug",)
+    fields = (
+        "name",
+        "price",
+        "type",
+        "weekday",
+        "slug",
+        "offerable",
+        "billing_priority",
+        "edition_frequency",
+        "temporary_discount_months",
+    )
+    # readonly_fields = ("slug",)
 
 
 class PlanAdmin(admin.ModelAdmin):

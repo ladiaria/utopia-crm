@@ -166,7 +166,7 @@ class Product(models.Model):
     """
 
     name = models.CharField(max_length=100, verbose_name=_("Name"), db_index=True)
-    slug = AutoSlugField(populate_from="name", null=True, blank=True)
+    slug = AutoSlugField(populate_from="name", null=True, blank=True, editable=True)
     active = models.BooleanField(default=False, verbose_name=_("Active"))
     price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     type = models.CharField(max_length=1, default="O", choices=PRODUCT_TYPE_CHOICES, db_index=True)
