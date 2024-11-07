@@ -8,7 +8,6 @@ from taggit.models import Tag
 from django import forms
 from django.forms import ValidationError
 from django.contrib import messages
-from django.contrib.auth.models import User
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.http import (
     HttpResponseServerError,
@@ -51,7 +50,6 @@ from core.utils import calc_price_from_products, process_products, logistics_is_
 from support.filters import (
     IssueFilter,
     InvoicingIssueFilter,
-    ScheduledActivityFilter,
     ContactCampaignStatusFilter,
     UnsubscribedSubscriptionsByEndDateFilter,
     CampaignFilter,
@@ -273,9 +271,17 @@ class SubscriptionMixin:
         self.contact = get_object_or_404(Contact, pk=contact_id)
         return self.contact
 
+    def get_contact_addresses(self, contact):
+        return Address.objects.filter(contact=contact)
+
     def get_subscription(self, subscription_id):
         self.subscription = get_object_or_404(Subscription, pk=subscription_id) if subscription_id else None
         return self.subscription
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["contact"] = self.get_contact(self.kwargs["contact_id"])
+        return kwargs
 
     def get_initial_data(self, contact):
         contact_addresses = Address.objects.filter(contact=contact)
@@ -298,7 +304,7 @@ class SubscriptionMixin:
 
     def save_contact_changes(self, form, contact):
         changed = False
-        for attr in ("name", "phone", "mobile", "email", "id_document"):
+        for attr in ("name", "last_name", "phone", "mobile", "email", "id_document_type", "id_document"):
             val = form.cleaned_data.get(attr)
             if getattr(contact, attr) != val:
                 changed = True
@@ -472,9 +478,6 @@ class SubscriptionCreateView(SubscriptionMixin, FormView):
         self.subscription = None
         self.capture_variables()
         return super().dispatch(request, *args, **kwargs)
-
-    def get_initial(self):
-        return self.get_initial_data(self.contact)
 
     def form_valid(self, form):
         self.subscription = self.save_subscription(form, self.subscription, self.contact)
@@ -1301,41 +1304,6 @@ def register_activity(request):
 def toggle_mailtrain_subscription(request, contact_id, list):
     get_object_or_404(Contact, pk=contact_id)
     return HttpResponseRedirect(reverse("edit_contact", args=[contact_id]) + "#newsletters")
-
-
-@staff_member_required
-def scheduled_activities(request):
-    user = User.objects.get(username=request.user.username)
-    try:
-        seller = Seller.objects.get(user=user)
-    except Seller.DoesNotExist:
-        seller = None
-    activity_queryset = seller.total_pending_activities()
-    activity_filter = ScheduledActivityFilter(request.GET, activity_queryset)
-    page_number = request.GET.get("p")
-    paginator = Paginator(activity_filter.qs, 100)
-    try:
-        activities = paginator.page(page_number)
-    except PageNotAnInteger:
-        # If page is not an integer, deliver first page.
-        activities = paginator.page(1)
-    except EmptyPage:
-        # If page is out of range (e.g. 9999), deliver last page of results.
-        activities = paginator.page(paginator.num_pages)
-    return render(
-        request,
-        "scheduled_activities.html",
-        {
-            "filter": activity_filter,
-            "activities": activities,
-            "seller": seller,
-            "page": page_number,
-            "total_pages": paginator.num_pages,
-            "count": activity_filter.qs.count(),
-            "now": datetime.now(),
-            "paginator": paginator,
-        },
-    )
 
 
 @staff_member_required

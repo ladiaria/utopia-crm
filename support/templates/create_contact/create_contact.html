@@ -18,13 +18,9 @@
 
 {% block no_heading %}
   {% if contact %}
-    <h1>
-      <a href="{% url 'contact_list' %}">{% trans "Contacts" %}</a> /
-      <a href="{% url 'contact_detail' contact.id %}">{{ contact.id }} - {{ contact.get_full_name }}</a> /
-      {% trans "Edit contact" %}
-    </h1>
+    <h1>{% trans "Contact data" %}</h1>
   {% else %}
-    <h1>{% trans "Contacts" %} / {% trans "New contact" %}</h1>
+    <h1>{% trans "New contact" %}</h1>
   {% endif %}
 {% endblock no_heading %}
 

@@ -20,4 +20,9 @@ from .seller_console import (  # noqa
     seller_console_list_campaigns,
 )
 
+from .activities import (  # noqa
+    scheduled_activities,
+    ActivityCreateView,
+)
+
 from .all_views import *  # noqa

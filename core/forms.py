@@ -135,10 +135,6 @@ class ContactAdminForm(EmailValidationForm, forms.ModelForm):
     def clean_id_document(self):
         id_document = self.cleaned_data.get("id_document")
 
-        if id_document and not id_document.isdigit():
-            msg = _("This field only admits numeric characters")
-            raise forms.ValidationError(msg)
-
         if id_document and self.instance:
             s = Contact.objects.filter(id_document=id_document).exclude(pk=self.instance.pk)
             if s.exists():

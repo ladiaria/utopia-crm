@@ -36,6 +36,8 @@
       <div class="row mb-3">
         <div class="col"></div>
         <div class="col-sm-7 d-flex flex-wrap justify-content-end gap-4">
+          <a href="{% url "create_activity" contact.id %}"
+             class="btn btn-sm btn-primary"><i class="fas fa-plus-circle"></i> {% trans "New Activity" %}</a>
           <a href="{% url "new_issue" contact.id "L" %}"
              class="btn btn-sm btn-primary"><i class="fas fa-plus-circle"></i> {% trans "New Issue" %}</a>
           {% if request.user|in_group:"Support" or request.user|in_group:"Managers" %}
@@ -79,7 +81,9 @@
               </li>
               <li class="nav-item">
                 <a class="nav-link" href="#issues" data-toggle="tab">{% trans "Issues" %}
-                  ({{ contact.get_total_issues_count }}{% if contact.get_open_issues_count > 0 %}/{{ contact.get_open_issues_count }}{% endif %})
+                  ({{ contact.get_total_issues_count }}
+                  {% if contact.get_open_issues_count > 0 %}/{{ contact.get_open_issues_count }}{% endif %}
+                  )
                 </a>
               </li>
               <li class="nav-item">
@@ -103,12 +107,15 @@
                 <a class="nav-link" href="#whatsapp_messages" data-toggle="tab">{% trans "WhatsApp Messages" %}
                   {% block whatsapp_messages_count %}
                   {% endblock whatsapp_messages_count %}
+
                 </a>
               </li>
               <li class="nav-item">
                 <a class="text-light nav-link {% if contact.expired_invoices_count > 0 %}btn-danger{% else %}btn-success{% endif %}"
                    href="{% url "contact_invoices" contact.id %}">{% trans "Invoices" %}
-                  ({{ contact.get_total_invoices_count }}{% if contact.expired_invoices_count > 0 %}/{{ contact.expired_invoices_count }}{% endif %})
+                  ({{ contact.get_total_invoices_count }}
+                  {% if contact.expired_invoices_count > 0 %}/{{ contact.expired_invoices_count }}{% endif %}
+                  )
                 </a>
               </li>
             </ul>

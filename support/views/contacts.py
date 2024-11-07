@@ -4,6 +4,7 @@ from datetime import date
 from functools import reduce
 from operator import or_
 
+from django.conf import settings
 from django.db import transaction
 from django.db.models import Q
 from django.views.generic import UpdateView, CreateView, DetailView, ListView, FormView
@@ -28,6 +29,7 @@ from core.models import (
 )
 from core.filters import ContactFilter
 from core.forms import ContactAdminForm
+from core.mixins import BreadcrumbsMixin
 from core.utils import get_mailtrain_lists
 
 from support.forms import ImportContactsForm
@@ -107,11 +109,11 @@ class ContactListView(ListView):
 
 
 @method_decorator(staff_member_required, name="dispatch")
-class ContactDetailView(DetailView):
+class ContactDetailView(BreadcrumbsMixin, DetailView):
     model = Contact
     template_name = "contact_detail/detail.html"
 
-    def get_breadcrumbs(self):
+    def breadcrumbs(self):
         return [
             {"label": _("Contact list"), "url": reverse("contact_list")},
             {"label": self.object.get_full_name(), "url": reverse("contact_detail", args=[self.object.id])},
@@ -119,7 +121,7 @@ class ContactDetailView(DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["breadcrumbs"] = self.get_breadcrumbs()
+        context["georef_activated"] = getattr(settings, "GEOREF_SERVICES", False)
         context["subscription_groups"] = self.get_subscription_groups()
         context["overview_subscriptions"] = self.get_overview_subscriptions()
         # Unpack all querysets
@@ -198,11 +200,18 @@ class ContactDetailView(DetailView):
 
 
 @method_decorator(staff_member_required, name="dispatch")
-class ContactUpdateView(UpdateView):
+class ContactUpdateView(BreadcrumbsMixin, UpdateView):
     model = Contact
     form_class = ContactAdminForm
     template_name = "create_contact/create_contact.html"
     success_url = reverse_lazy("contact_list")
+
+    def breadcrumbs(self):
+        return [
+            {"label": _("Contact list"), "url": reverse("contact_list")},
+            {"label": self.object.get_full_name(), "url": reverse("contact_detail", args=[self.object.id])},
+            {"label": _("Edit"), "url": ""},
+        ]
 
     def form_valid(self, form):
         skip_clean_set = False
@@ -236,11 +245,17 @@ class ContactUpdateView(UpdateView):
 
 
 @method_decorator(staff_member_required, name="dispatch")
-class ContactCreateView(CreateView):
+class ContactCreateView(BreadcrumbsMixin, CreateView):
     model = Contact
     form_class = ContactAdminForm
     template_name = "create_contact/create_contact.html"
     success_url = reverse_lazy("contact_list")
+
+    def breadcrumbs(self):
+        return [
+            {"label": _("Contact list"), "url": reverse("contact_list")},
+            {"label": _("Create"), "url": ""},
+        ]
 
     def get_success_url(self) -> str:
         return reverse("contact_detail", args=[self.object.id])
