@@ -166,7 +166,7 @@ class Product(models.Model):
     """
 
     name = models.CharField(max_length=100, verbose_name=_("Name"), db_index=True)
-    slug = AutoSlugField(populate_from="name", null=True, blank=True)
+    slug = AutoSlugField(populate_from="name", null=True, blank=True, editable=True)
     active = models.BooleanField(default=False, verbose_name=_("Active"))
     price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     type = models.CharField(max_length=1, default="O", choices=PRODUCT_TYPE_CHOICES, db_index=True)
@@ -2693,7 +2693,7 @@ def update_web_user_newsletters(contact):
     @params contact: Contact instance
     """
     try:
-        newsletters_slugs = contact.get_active_newsletters().values_list('slug', flat=True)
+        newsletters_slugs = list(contact.get_active_newsletters().values_list('product__slug', flat=True))
         update_web_user(contact, contact.email, json.dumps(newsletters_slugs), method="PUT")
     except Exception as ex:
         if settings.DEBUG:
