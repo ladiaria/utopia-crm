@@ -3,6 +3,8 @@ from django import forms
 from django.forms import ValidationError
 from django.contrib.auth.models import User
 from django.utils.safestring import mark_safe
+from django.utils import timezone
+
 from phonenumber_field.formfields import PhoneNumberField
 from phonenumber_field.widgets import RegionalPhoneNumberWidget
 
@@ -15,6 +17,7 @@ from core.models import (
     SubscriptionProduct,
     Activity,
     State,
+    IdDocumentType,
     regex_alphanumeric_msg,
 )
 from core.forms import EmailValidationForm
@@ -181,6 +184,12 @@ class NewPromoForm(EmailValidationForm):
 
 class NewSubscriptionForm(EmailValidationForm, forms.ModelForm):
 
+    def __init__(self, *args, **kwargs):
+        contact = kwargs.pop("contact")
+        super().__init__(*args, **kwargs)
+        if contact:
+            self.fields["billing_address"].queryset = Address.objects.filter(contact=contact)
+
     class Meta:
         model = Subscription
         fields = (
@@ -191,6 +200,7 @@ class NewSubscriptionForm(EmailValidationForm, forms.ModelForm):
             "mobile",
             "notes",
             "email",
+            "id_document_type",
             "id_document",
             "frequency",
             "payment_type",
@@ -286,6 +296,12 @@ class NewSubscriptionForm(EmailValidationForm, forms.ModelForm):
         required=False,
         widget=forms.EmailInput(attrs={"class": "form-control"}),
         label="Correo electrónico",
+    )
+    id_document_type = forms.ModelChoiceField(
+        required=False,
+        queryset=IdDocumentType.objects.all(),
+        widget=forms.Select(attrs={"class": "form-control"}),
+        label="Tipo de documento",
     )
     id_document = forms.CharField(
         empty_value=None,
@@ -579,6 +595,36 @@ class NewActivityForm(forms.ModelForm):
             "direction": forms.Select(attrs={"class": "form-control"}),
             "activity_type": forms.Select(attrs={"class": "form-control"}),
             "notes": forms.TextInput(attrs={"class": "form-control"}),
+        }
+
+
+class CreateActivityForm(forms.ModelForm):
+    datetime = forms.DateTimeField(
+        widget=forms.DateTimeInput(attrs={'type': 'datetime-local'}),
+        input_formats=['%Y-%m-%dT%H:%M']
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["datetime"].required = True
+        self.fields["activity_type"].required = True
+        self.fields["datetime"].initial = timezone.now().strftime("%Y-%m-%dT%H:%M")
+        self.fields["status"].initial = "C"
+        self.fields["direction"].initial = "I"
+
+    class Meta:
+        model = Activity
+        fields = [
+            "contact",
+            "direction",
+            "datetime",
+            "notes",
+            "activity_type",
+            "status",
+        ]
+        widgets = {
+            "contact": forms.HiddenInput(),
+            "status": forms.HiddenInput(),
         }
 
 

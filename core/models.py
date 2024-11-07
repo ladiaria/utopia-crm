@@ -1030,7 +1030,7 @@ class Address(models.Model):
         null=True,
         blank=True,
         verbose_name=_("Country"),
-        db_column='country_fk'  # Explicit different column name
+        db_column='country_fk',  # Explicit different column name
     )
     state = models.ForeignKey(
         'core.State',
@@ -1038,7 +1038,7 @@ class Address(models.Model):
         null=True,
         blank=True,
         verbose_name=_("State"),
-        db_column='state_fk'  # Explicit different column name
+        db_column='state_fk',  # Explicit different column name
     )
 
     @property
@@ -2188,6 +2188,9 @@ class Activity(models.Model):
     activity_type = models.CharField(choices=ACTIVITY_TYPES, max_length=1, null=True, blank=True)
     status = models.CharField(choices=ACTIVITY_STATUS_CHOICES, default="P", max_length=1)
     direction = models.CharField(choices=ACTIVITY_DIRECTION_CHOICES, default="O", max_length=1)
+    created_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True, verbose_name=_("Created by")
+    )
     history = HistoricalRecords()
 
     def __str__(self):
@@ -2245,6 +2248,14 @@ class Activity(models.Model):
         if subscription:
             subscription.campaign = campaign
             subscription.save()
+
+    @property
+    def created_by_name(self):
+        if self.created_by:
+            # Return the full name if it exists, otherwise return the username
+            return self.created_by.get_full_name() or self.created_by.username
+        # If created_by is None, return an empty string
+        return ""
 
     class Meta:
         verbose_name = _("activity")

@@ -262,3 +262,5 @@ if not WEB_CREATE_USER_ENABLED and WEB_EMAIL_CHECK_URI not in WEB_CREATE_USER_PO
 if ENV_HTTP_BASIC_AUTH and not locals().get("API_KEY_CUSTOM_HEADER"):
     # by default, this variable is not defined, thats why we use locals() instead of set a "neutral" value
     API_KEY_CUSTOM_HEADER = "HTTP_X_API_KEY"
+
+GEOREF_SERVICES = False
