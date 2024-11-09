@@ -119,6 +119,21 @@ class ContactDetailView(BreadcrumbsMixin, DetailView):
             {"label": self.object.get_full_name(), "url": reverse("contact_detail", args=[self.object.id])},
         ]
 
+    def get_queryset(self):
+        queryset = super().get_queryset().prefetch_related(
+            "subscriptions",
+            "addresses",
+            "addresses__state",
+            "addresses__country",
+            "activity_set",
+            "invoice_set",
+            "invoice_set__invoiceitem_set",
+            "subscriptionnewsletter_set",
+            "issue_set",
+            "tags",
+        ).select_related()
+        return queryset
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["georef_activated"] = getattr(settings, "GEOREF_SERVICES", False)
@@ -132,7 +147,7 @@ class ContactDetailView(BreadcrumbsMixin, DetailView):
         return context
 
     def get_invoices(self):
-        return self.object.invoice_set.all().prefetch_related("invoiceitem_set")
+        return self.object.invoice_set.all().prefetch_related("invoiceitem_set").order_by("-id")
 
     def get_all_querysets_and_lists(self):
         return {
