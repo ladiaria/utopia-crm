@@ -4,7 +4,9 @@
 {% block title %}{{ contact.get_full_name }} - {% trans "Extended history" %}{% endblock title %}
 
 {% block no_heading %}
-<h1><a href="{% url 'contact_list' %}">{% trans "Contacts" %}</a> &raquo; <a href="{% url 'contact_detail' contact.id %}">{{ contact.id }} - {{ contact.get_full_name }}</a> &raquo; {% trans "History" %} </h1>
+<h1>
+  {% trans "History" %}
+</h1>
 {% endblock %}
 
 {% block content %}

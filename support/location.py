@@ -9,7 +9,7 @@ from django.utils import timezone
 from django.utils.text import slugify
 from django.conf import settings
 from django.contrib.admin.views.decorators import staff_member_required
-
+from django.utils.translation import gettext as _
 from core.models import Address, Contact, State
 from support.forms import SugerenciaGeorefForm
 from util.location_utils import (
@@ -26,7 +26,6 @@ def normalizar_direccion(request, contact_id, address_id):
         messages.error(request, "Servicio de georeferenciación no configurado.")
         return HttpResponseRedirect(reverse("contact_detail", args=[contact_id]))
     address_obj = get_object_or_404(Address, pk=address_id)
-    print(address_obj.state_georef_id, address_obj.city_georef_id, address_obj.georef_point)
     contact_obj = get_object_or_404(Contact, pk=contact_id)
     old_address_1 = address_obj.address_1
     if request.POST:
@@ -64,8 +63,15 @@ def normalizar_direccion(request, contact_id, address_id):
     direccion, id_calle = sugerencia['direccion'], sugerencia["idCalle"]
     id_localidad, id_portal = sugerencia["idLocalidad"], sugerencia["portalNumber"]
     j = seleccionar_sugerencia(direccion, id_calle, id_localidad, id_portal)
-    state_name = j["departamento"].title()
-    state_obj = State.objects.get(name=state_name)
+    state_name_slug = slugify(j["departamento"].title())
+    try:
+        state_obj = next(
+            state for state in State.objects.all()
+            if slugify(state.name) == state_name_slug
+        )
+    except StopIteration:
+        messages.error(request, f"No se encontró un departamento coincidente para '{j['departamento']}'.")
+        return HttpResponseRedirect(reverse("agregar_direccion", args=[contact_id]))
     form_nuevo = SugerenciaGeorefForm(
         initial={
             "address_1": j["direccion"],
@@ -82,6 +88,13 @@ def normalizar_direccion(request, contact_id, address_id):
     form_actual = SugerenciaGeorefForm(instance=address_obj)
     lat = j["latitud"] if not pd.isna(j["latitud"]) else None
     lng = j["longitud"] if not pd.isna(j["longitud"]) else None
+
+    breadcrumbs = [
+        {"label": _("Contact list"), "url": reverse("contact_list")},
+        {"label": contact_obj.get_full_name(), "url": reverse("contact_detail", args=[contact_id])},
+        {"label": _("Edit address"), "url": ""},
+    ]
+
     return render(
         request,
         "location/normalizar_direccion.html",
@@ -94,6 +107,7 @@ def normalizar_direccion(request, contact_id, address_id):
             "sugindex": sugindex,
             "lat": lat,
             "lng": lng,
+            "breadcrumbs": breadcrumbs,
         },
     )
 
@@ -171,6 +185,12 @@ def agregar_direccion(request, contact_id):
         q_sugerencia = j["direccion"]
     if not georef_activated:
         messages.warning(request, "El servicio de georeferenciación está desactivado. Usar direcciones manuales.")
+
+    breadcrumbs = [
+        {"label": _("Contact list"), "url": reverse("contact_list")},
+        {"label": contact_obj.get_full_name(), "url": reverse("contact_detail", args=[contact_id])},
+        {"label": _("Add address"), "url": ""},
+    ]
     return render(
         request,
         "location/agregar_direccion.html",
@@ -181,6 +201,7 @@ def agregar_direccion(request, contact_id):
             "lat": lat,
             "lng": lng,
             "q_sugerencia": q_sugerencia,
+            "breadcrumbs": breadcrumbs,
         },
     )
 
@@ -211,6 +232,12 @@ def editar_direccion(request, contact_id, address_id):
             messages.info(request, "Dirección editada con éxito sin georreferenciar")
             return HttpResponseRedirect(reverse("contact_detail", args=[contact_id]))
 
+    breadcrumbs = [
+        {"label": _("Contact list"), "url": reverse("contact_list")},
+        {"label": contact_obj.get_full_name(), "url": reverse("contact_detail", args=[contact_id])},
+        {"label": _("Edit address"), "url": ""},
+    ]
+
     form = SugerenciaGeorefForm(instance=address_obj, initial={"address_type": "physical"})
     return render(
         request,
@@ -221,6 +248,7 @@ def editar_direccion(request, contact_id, address_id):
             "form": form,
             "lat": lat,
             "lng": lng,
+            "breadcrumbs": breadcrumbs,
         },
     )
 

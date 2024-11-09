@@ -50,7 +50,7 @@ $( function() {
 
 {% block no_heading %}
   <h1>
-    <a href="{% url "contact_list" %}">{% trans "Contacts" %}</a> > <a href="{% url "contact_detail" contact.id %}">{{ contact.id }} - {{ contact.get_full_name }}</a> > {% trans "New issue" %} ({{ category_name }})
+    {% trans "New issue" %}
   </h1>
 {% endblock %}
 

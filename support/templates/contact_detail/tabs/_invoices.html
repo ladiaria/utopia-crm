@@ -1,0 +1,61 @@
+{% load i18n %}
+{% load static %}
+{% load core_tags %}
+
+{% if request.user|in_group:"Finances" %}
+  <a class="btn btn-sm btn-primary float-right mb-2" href="{% url 'bill_one_contact' contact.id %}">
+    {% trans "Bill contact subscriptions" %}
+  </a>
+{% endif %}
+
+{% if debt %}
+<div class="col-md-12">
+  <div class="alert alert-danger">
+    <i class="fas fa-exclamation-circle"></i>
+    <span class="info-box-text">{% trans "Debt" %}:</span>
+    <span class="info-box-number"><b>{{ debt }}</b></span>
+  </div>
+</div>
+{% endif %}
+
+<table class="table ">
+  <thead>
+    <tr role="row">
+      <th>{% trans "Invoice" %}</th>
+      <th>{% trans "Subscription" %}</th>
+      <th>{% trans "Service from" %}</th>
+      <th>{% trans "Service to" %}</th>
+      <th>{% trans "Created" %}</th>
+      <th>{% trans "Due" %}</th>
+      <th>{% trans "Amount" %}</th>
+      <th>{% trans "Payment method" %}</th>
+      <th>{% trans "Status" %}</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for invoice in invoice_list %}
+      <tr role="row">
+        <td>
+          <a href="{% url 'admin:invoicing_invoice_change' invoice.id %}">{{ invoice.id }}</a>
+          {% if invoice.pdf %}
+            {% if request.user|in_group:"Finances" or request.user|in_group:"Managers" or request.user|in_group:"Logistics" or request.user|in_group:"Support" %}
+              <a href="{% url 'download_invoice' invoice.id %}" title="{% trans "Download invoice" %}">
+                <img src="{% static 'img/pdficon_small.png' %}" alt="PDF" height="16" width="16"/>
+              </a>
+            {% endif %}
+          {% else %}
+            <i class="fas fa-exclamation-triangle text-warning" title="{% trans "No pdf" %}"></i>
+          {% endif %}
+        </td>
+        <td>{{ invoice.subscription_id }}</td>
+        <td>{{ invoice.service_from }}</td>
+        <td>{{ invoice.service_to }}</td>
+        <td>{{ invoice.creation_date }}</td>
+        <td>{{ invoice.expiration_date }}</td>
+        <td>{{ invoice.amount }}</td>
+        <td>{{ invoice.payment_type }}</td>
+        <td class="{{ invoice.get_status_code }} text-center">{{ invoice.get_status }}</td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>

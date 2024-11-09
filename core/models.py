@@ -2028,6 +2028,15 @@ class Subscription(models.Model):
         self.validated_date = timezone.now()
         self.save()
 
+    @property
+    def unsubscription_manager_name(self):
+        if not self.unsubscription_manager:
+            return None
+        if self.unsubscription_manager.get_full_name():
+            return self.unsubscription_manager.get_full_name()
+        else:
+            return self.unsubscription_manager.username
+
     class Meta:
         verbose_name = _("subscription")
         verbose_name_plural = _("subscriptions")
