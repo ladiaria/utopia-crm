@@ -1642,11 +1642,9 @@ class Subscription(models.Model):
     def product_summary_cached(self):
         """Cached version of product summary to avoid repeated queries"""
         subscription_products = self.subscriptionproduct_set.select_related('product').all()
-        dict_all_products = {
-            str(sp.product.id): str(sp.copies)
-            for sp in subscription_products
-        }
+        dict_all_products = {str(sp.product.id): str(sp.copies) for sp in subscription_products}
         from .utils import process_products
+
         return process_products(dict_all_products)
 
     def product_summary_list(self, with_pauses=False) -> list:

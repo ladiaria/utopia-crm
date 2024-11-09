@@ -106,7 +106,7 @@
             {% endif %}
             <dt>{% trans "Payment type of last invoice" %}</dt>
             <dd>
-              {{ contact.get_latest_invoice.get_payment_type }}
+              {{ latest_invoice.payment_type }}
             </dd>
             {% if debt %}
               <dt>{% trans "Debt" %}</dt>
@@ -178,9 +178,9 @@
         <h3 class="card-title">{% trans "Latest issues" %}</h3>
       </div>
       <div class="card-body">
-        {% if issues %}
+        {% if last_issues %}
           <div class="list-group-flush">
-            {% for issue in issues %}
+            {% for issue in last_issues %}
               <div class="list-group-item">
                 <div class="d-flex justify-content-between">
                   <p class="mb-1 font-weight-bold">{{ issue.get_category }} - {{ issue.get_subcategory }}</p>

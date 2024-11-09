@@ -67,7 +67,7 @@
           <div class="card">
             <div class="card-header">
               <h4 class="card-title">
-                {{ address }}
+                {{ address.address_1 }} {{ address.state_name }}
                 {% if address.verified %}
                   <i class="fas fa-check-circle text-success"> {% trans "Verified" %}</i>
                 {% elif address.needs_georef %}

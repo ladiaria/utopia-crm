@@ -1,19 +1,38 @@
 {% extends "adminlte/base.html" %}
 {% load static i18n core_tags %}
 {% block extra_js %}
-  <script type="text/javascript">
-  $(function () {
-    $('[data-toggle="tooltip"]').tooltip();
-    hash = window.location.hash;
-    elements = $('a[href="' + hash + '"]');
-    if (elements.length === 0) {
-      $("ul.tabs li:first").addClass("active").show(); //Activate first tab
-      $(".tab_content:first").show(); //Show first tab content
+<script type="text/javascript">
+  document.addEventListener("DOMContentLoaded", () => {
+    // Initialize tooltips
+    document.querySelectorAll('[data-toggle="tooltip"]').forEach(el => {
+      new bootstrap.Tooltip(el);
+    });
+
+    // Check if there's a hash in the URL on page load
+    const hash = window.location.hash;
+    const tabLink = document.querySelector(`.nav-pills a[href="${hash}"]`);
+    if (tabLink) {
+      // If a valid hash exists, activate the corresponding tab
+      new bootstrap.Tab(tabLink).show();
     } else {
-      elements.click();
+      // If no valid hash, activate the first tab by default
+      const firstTabLink = document.querySelector(".nav-pills a[data-toggle='tab']");
+      if (firstTabLink) {
+        new bootstrap.Tab(firstTabLink).show();
+      }
     }
+
+    // Add click event to each tab link to update the URL hash
+    document.querySelectorAll('.nav-pills a[data-toggle="tab"]').forEach(tab => {
+      tab.addEventListener("click", event => {
+        event.preventDefault();
+        const tabId = tab.getAttribute("href");
+        history.replaceState(null, null, tabId);
+        new bootstrap.Tab(tab).show(); // Show the clicked tab
+      });
+    });
   });
-  </script>
+</script>
   <script src="{% static "js/htmx.min.js" %}" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 {% endblock %}
@@ -87,9 +106,7 @@
                 </li>
                 <li class="nav-item">
                   <a class="nav-link" href="#campaigns" data-toggle="tab">{% trans "Campaigns" %}
-                    <div class="ml-1 badge badge-pill badge-primary">
-                      {{ all_campaigns.count }}
-                    </div>
+                    <div class="ml-1 badge badge-pill badge-primary">{{ all_campaigns.count }}</div>
                   </a>
                 </li>
                 <li class="nav-item">
@@ -102,16 +119,12 @@
                 </li>
                 <li class="nav-item">
                   <a class="nav-link" href="#tasks" data-toggle="tab">{% trans "Tasks" %}
-                    <div class="ml-1 badge badge-pill badge-primary">
-                      {{ contact.get_total_scheduledtask_count }}
-                    </div>
+                    <div class="ml-1 badge badge-pill badge-primary">{{ contact.get_total_scheduledtask_count }}</div>
                   </a>
                 </li>
                 <li class="nav-item">
                   <a class="nav-link" href="#activities" data-toggle="tab">{% trans "Activities" %}
-                    <div class="ml-1 badge badge-pill badge-primary">
-                      {{ contact.get_total_activities_count }}
-                    </div>
+                    <div class="ml-1 badge badge-pill badge-primary">{{ contact.get_total_activities_count }}</div>
                   </a>
                 </li>
                 <li class="nav-item">
@@ -138,7 +151,7 @@
                     <div class="ml-1 badge badge-pill badge-primary">
                       {% with total=contact.get_total_invoices_count expired=contact.expired_invoices_count %}
                         {{ total }}
-                      {% if expired > 0 %}/ {{ expired }}{% endif %}
+                        {% if expired > 0 %}/ {{ expired }}{% endif %}
                       {% endwith %}
                     </div>
                   </a>
