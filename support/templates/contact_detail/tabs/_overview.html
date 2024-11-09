@@ -12,14 +12,14 @@
             {{ contact.get_full_name }}
           </dd>
           {% if contact.id_document %}
-            <dt>{% trans "Documento" %}</dt>
+            <dt>{% trans "ID document" %}</dt>
             <dd>
-              <b>{% trans "Type" %}:</b>
-              {{ contact.id_document_type|default_if_none:"-" }}
-            </dd>
-            <dd>
-              <b>{% trans "Indentifier" %}:</b>
-              {{ contact.id_document|default_if_none:"-" }}
+              <div class="mb-0">
+                <span class="font-weight-bold">{% trans "Type" %}:</span> {{ contact.id_document_type|default_if_none:"-" }}
+              </div>
+              <div>
+                <span class="font-weight-bold">{% trans "Indentifier" %}:</span> {{ contact.id_document|default_if_none:"-" }}
+              </div>
             </dd>
           {% endif %}
           <dt>{% trans "Email" %}</dt>
@@ -28,18 +28,18 @@
           </dd>
           <dt>{% trans "Phone" %}</dt>
           <dd>
-            {{ contact.phone|default_if_none:"-" }}
+            {{ contact.phone.as_national|default_if_none:"-" }}
           </dd>
           {% if contact.mobile %}
             <dt>{% trans "Mobile" %}</dt>
             <dd>
-              {{ contact.mobile|default_if_none:"-" }}
+              {{ contact.mobile.as_national|default_if_none:"-" }}
             </dd>
           {% endif %}
           {% if contact.work_phone %}
             <dt>{% trans "Work phone" %}</dt>
             <dd>
-              {{ contact.work_phone|default_if_none:"-" }}
+              {{ contact.work_phone.as_national|default_if_none:"-" }}
             </dd>
           {% endif %}
           {% if addresses %}
@@ -72,8 +72,8 @@
       </div>
       <div class="card-footer text-right">
         <a href="{% url "agregar_direccion" contact.id %}"
-           class="btn btn-success">{% trans "Add address" %}</a>
-        <a href="{% url "edit_contact" contact.id %}" class="btn btn-success">{% trans "Edit info and newsletters" %}</a>
+           class="btn btn-success mb-1">{% trans "Add address" %}</a>
+        <a href="{% url "edit_contact" contact.id %}" class="btn btn-success mb-1">{% trans "Edit info and newsletters" %}</a>
       </div>
     </div>
     <div class="card">
@@ -131,7 +131,7 @@
   <div class="col-md-4">
     <div class="card">
       <div class="card-header">
-        <h3 class="card-title">{% trans "Active subscriptions" %} ({{ overview_subscriptions_count }})</h3>
+        <h3 class="card-title">{% trans "Subscriptions" %} ({{ overview_subscriptions_count }})</h3>
         <div class="card-tools">
           {% block products_amount %}
           {% endblock products_amount %}
@@ -210,27 +210,27 @@
           <div class="list-group-flush">
             {% for a in activities %}
               <div class="list-group-item">
-                <p class="mb-1">
-                  <strong>{{ a.get_type }}</strong>
-                  {% if a.campaign %}<i>{{ a.campaign.name }}</i>{% endif %}
+                <p class="mb-1 font-weight-bold">
+                  {{ a.get_type }}
+                  {% if a.campaign %}<span class="font-italic">{{ a.campaign.name }}</span>{% endif %}
                 </p>
                 {% if a.created_by %}
-                <p class="mb-1">
-                    <b>{% trans "Created by" %}:</b>
+                  <p class="mb-1">
+                    <span class="font-weight-bold">{% trans "Created by" %}:</span>
                     {{ a.created_by_name|default_if_none:"-" }}
                   </p>
                 {% endif %}
                 <p class="mb-1">
-                  <b>{% trans "Status" %}:</b> {{ a.get_status }}
+                  <span class="font-weight-bold">{% trans "Status" %}:</span> {{ a.get_status }}
                 </p>
                 {% if a.datetime %}
-                <p class="mb-1">
-                    <b>{% trans "Date" %}</b>: {{ a.datetime|date:"SHORT_DATETIME_FORMAT" }}
+                  <p class="mb-1">
+                    <span class="font-weight-bold">{% trans "Date" %}:</span> {{ a.datetime|date:"SHORT_DATETIME_FORMAT" }}
                   </p>
                 {% endif %}
                 {% if a.notes %}
-                <p class="mb-1">
-                    <b>{% trans "Notes" %}</b>: {{ a.notes|linebreaks|default_if_none:"" }}
+                  <p class="mb-1">
+                    <span class="font-weight-bold">{% trans "Notes" %}:</span> {{ a.notes|linebreaks|default_if_none:"" }}
                   </p>
                 {% endif %}
               </div>

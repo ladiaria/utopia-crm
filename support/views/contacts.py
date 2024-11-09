@@ -128,7 +128,11 @@ class ContactDetailView(BreadcrumbsMixin, DetailView):
         context.update(self.get_all_querysets_and_lists())
         # Unpack subscriptions for overview
         context.update(self.get_overview_subscriptions())
+        context["invoices"] = self.get_invoices()
         return context
+
+    def get_invoices(self):
+        return self.object.invoice_set.all().prefetch_related("invoiceitem_set")
 
     def get_all_querysets_and_lists(self):
         return {
