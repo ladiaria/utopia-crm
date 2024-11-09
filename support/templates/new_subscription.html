@@ -12,13 +12,14 @@
 
 {% block no_heading %}
   <h1>
-    <a href="{% url "contact_list" %}">{% trans "Contacts" %}</a> >
-    <a href="{% url "contact_detail" contact.id %}">{{ contact.id }} - {{ contact.get_full_name }}</a> >
     {% if edit_subscription %}
       {% trans "Edit subscription" %}
     {% else %}
       {% trans "New subscription" %}
     {% endif %}
+    {% blocktrans with contact.get_full_name as contact_name %}
+      for {{ contact_name }}
+    {% endblocktrans %}
   </h1>
 {% endblock %}
 

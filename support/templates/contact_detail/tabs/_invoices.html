@@ -1,0 +1,82 @@
+{% load i18n %}
+{% load static %}
+{% load core_tags %}
+
+{% if request.user|in_group:"Finances" %}
+  <a class="btn btn-sm btn-primary float-right mb-2" href="{% url 'bill_one_contact' contact.id %}">
+    {% trans "Bill contact subscriptions" %}
+  </a>
+{% endif %}
+
+{% if debt %}
+<div class="col-md-12">
+  <div class="alert alert-danger">
+    <i class="fas fa-exclamation-circle"></i>
+    <span class="info-box-text">{% trans "Debt" %}:</span>
+    <span class="info-box-number"><b>{{ debt }}</b></span>
+  </div>
+</div>
+{% endif %}
+
+<table class="table ">
+  <thead>
+    <tr role="row">
+      <th>{% trans "Invoice" %}</th>
+      <th>{% trans "Subscription" %}</th>
+      <th>{% trans "Service from" %}</th>
+      <th>{% trans "Service to" %}</th>
+      <th>{% trans "Created" %}</th>
+      <th>{% trans "Due" %}</th>
+      <th>{% trans "Amount" %}</th>
+      <th>{% trans "Payment method" %}</th>
+      <th>{% trans "Status" %}</th>
+      {% if request.user|in_group:"Admins" %}
+        <th>Reenviar</th>
+      {% endif %}
+    </tr>
+  </thead>
+  <tbody>
+    {% for invoice in invoices %}
+    <tr role="row">
+      <td>
+        <a href="{% url 'admin:invoicing_invoice_change' invoice.id %}">{{ invoice.id }}</a>
+        {% if invoice.pdf %}
+          {% if request.user|in_group:"Finances" or request.user|in_group:"Managers" or request.user|in_group:"Logistics" or request.user|in_group:"Support" %}
+            <a href="{% url 'download_invoice' invoice.id %}" title="{% trans "Download invoice" %}">
+              <img src="{% static 'img/pdficon_small.png' %}" alt="PDF" height="16" width="16"/>
+            </a>
+          {% endif %}
+        {% else %}
+          <i class="fas fa-exclamation-triangle text-warning" title="{% trans "No pdf" %}"></i>
+        {% endif %}
+      </td>
+      <td>
+        {% if invoice.subscription %}
+          <a href="{% url 'admin:core_subscription_change' invoice.subscription_id %}" target="_blank">
+            {{ invoice.subscription_id }} ({{ invoice.subscription.get_payment_type_display }})
+            {% if not invoice.subscription.active %}
+              [Inactiva]
+            {% endif %}
+          </a>
+        {% else %}
+          -
+        {% endif %}
+      </td>
+      <td>{{ invoice.service_from|date:"Y-m-d" }}</td>
+      <td>{{ invoice.service_to|date:"Y-m-d" }}</td>
+      <td>{{ invoice.creation_date|date:"Y-m-d" }}</td>
+      <td>{{ invoice.expiration_date|date:"Y-m-d" }}</td>
+      <td>{{ invoice.amount }}</td>
+      <td>{{ invoice.get_payment_type_display }}</td>
+      <td class="{{ invoice.get_status_code }} text-center">{{ invoice.get_status }}</td>
+      {% if request.user|in_group:"Admins" %}
+        <td>
+          {% if "MercadoPago - Pago no aprobado" in invoice.notes and not invoice.paid and not invoice.debited and not invoice.canceled and not invoice.uncollectible %}
+            <a href="{% url 'mercadopago_resend' invoice.id %}" class="btn btn-primary">Enviar a MercadoPago</a>
+          {% endif %}
+        </td>
+      {% endif %}
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>

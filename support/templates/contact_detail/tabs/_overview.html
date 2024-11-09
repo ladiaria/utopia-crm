@@ -12,14 +12,14 @@
             {{ contact.get_full_name }}
           </dd>
           {% if contact.id_document %}
-            <dt>{% trans "Documento" %}</dt>
+            <dt>{% trans "ID document" %}</dt>
             <dd>
-              <b>{% trans "Type" %}:</b>
-              {{ contact.id_document_type|default_if_none:"-" }}
-            </dd>
-            <dd>
-              <b>{% trans "Indentifier" %}:</b>
-              {{ contact.id_document|default_if_none:"-" }}
+              <div class="mb-0">
+                <span class="font-weight-bold">{% trans "Type" %}:</span> {{ contact.id_document_type|default_if_none:"-" }}
+              </div>
+              <div>
+                <span class="font-weight-bold">{% trans "Indentifier" %}:</span> {{ contact.id_document|default_if_none:"-" }}
+              </div>
             </dd>
           {% endif %}
           <dt>{% trans "Email" %}</dt>
@@ -28,18 +28,18 @@
           </dd>
           <dt>{% trans "Phone" %}</dt>
           <dd>
-            {{ contact.phone|default_if_none:"-" }}
+            {{ contact.phone.as_national|default_if_none:"-" }}
           </dd>
           {% if contact.mobile %}
             <dt>{% trans "Mobile" %}</dt>
             <dd>
-              {{ contact.mobile|default_if_none:"-" }}
+              {{ contact.mobile.as_national|default_if_none:"-" }}
             </dd>
           {% endif %}
           {% if contact.work_phone %}
             <dt>{% trans "Work phone" %}</dt>
             <dd>
-              {{ contact.work_phone|default_if_none:"-" }}
+              {{ contact.work_phone.as_national|default_if_none:"-" }}
             </dd>
           {% endif %}
           {% if addresses %}
@@ -48,7 +48,7 @@
               {% if address.address_1 == None %}
               {% else %}
                 <dd>
-                  {{ address }}
+                  - {{ address.address_1 }} {{ address.address_2 }} {{ address.city|default_if_none:"" }} {{ address.state_name|default_if_none:"" }} {{ address.country_name|default_if_none:"" }}
                   {% if georef_activated %}
                     {% if address.needs_georef %}<i class="fas fa-times-circle text-danger"></i>{% endif %}
                     {% if not address.verified %}
@@ -65,15 +65,19 @@
           {% if contact.tags.all %}
             <dt>{% trans "Tags" %}</dt>
             <dd>
-              {% for tag in contact.tags.all %}<span class="btn btn-default btn-sm">{{ tag }}</span>{% endfor %}
+              {% for tag in contact.tags.all %}
+                <a href="{% url "contact_list" %}?tags={{ tag.name }}">
+                  <span class="btn btn-default btn-sm">{{ tag }}</span>
+                </a>
+              {% endfor %}
             </dd>
           {% endif %}
         </dl>
       </div>
       <div class="card-footer text-right">
         <a href="{% url "agregar_direccion" contact.id %}"
-           class="btn btn-success">{% trans "Add address" %}</a>
-        <a href="{% url "edit_contact" contact.id %}" class="btn btn-success">{% trans "Edit info and newsletters" %}</a>
+           class="btn btn-success mb-1">{% trans "Add address" %}</a>
+        <a href="{% url "edit_contact" contact.id %}" class="btn btn-success mb-1">{% trans "Edit info and newsletters" %}</a>
       </div>
     </div>
     <div class="card">
@@ -85,7 +89,7 @@
           {% block payment_requests %}
           {% endblock payment_requests %}
 
-          {% if last_paid_invoice or contact.get_debt %}
+          {% if last_paid_invoice or debt %}
             <dt>{% trans "Latest payment" %}</dt>
             {% if last_paid_invoice %}
               <dd>
@@ -104,10 +108,10 @@
             <dd>
               {{ contact.get_latest_invoice.get_payment_type }}
             </dd>
-            {% if contact.get_debt %}
+            {% if debt %}
               <dt>{% trans "Debt" %}</dt>
               <dd>
-                ${{ contact.get_debt }} ({{ contact.expired_invoices_count }}
+                ${{ debt }} ({{ expired_invoices_count }}
                 {% trans "overdue invoices" %})<i class="fas fa-exclamation-triangle text-danger"></i>
               </dd>
             {% endif %}
@@ -131,7 +135,7 @@
   <div class="col-md-4">
     <div class="card">
       <div class="card-header">
-        <h3 class="card-title">{% trans "Active subscriptions" %} ({{ overview_subscriptions_count }})</h3>
+        <h3 class="card-title">{% trans "Subscriptions" %} ({{ overview_subscriptions_count }})</h3>
         <div class="card-tools">
           {% block products_amount %}
           {% endblock products_amount %}
@@ -179,16 +183,20 @@
             {% for issue in issues %}
               <div class="list-group-item">
                 <div class="d-flex justify-content-between">
-                  <p class="mb-1">{{ issue.get_category }} - {{ issue.get_subcategory }}</p>
+                  <p class="mb-1 font-weight-bold">{{ issue.get_category }} - {{ issue.get_subcategory }}</p>
                   <p class="mb-1">
                     <a href="{% url "view_issue" issue.id %}" class="btn btn-primary btn-sm"><i class="fas fa-eye"></i></a>
                   </p>
                 </div>
-                <div class="d-flex justify-content-between">
-                  <p class="mb-1">{{ issue.get_status|default_if_none:"" }} {{ issue.assigned_to|default_if_none:"" }}</p>
-                  <p class="mb-1">{{ issue.date_created }}</p>
-                  <p class="mb-1">{{ issue.notes|default_if_none:""|linebreaks }}</p>
-                </div>
+                <p class="mb-1">
+                  <span class="font-weight-bold">{% trans "Status" %}:</span> {{ issue.get_status|default_if_none:"" }}
+                </p>
+                <p class="mb-1">
+                  <span class="font-weight-bold">{% trans "Created" %}:</span> {{ issue.date_created }}
+                </p>
+                <p class="mb-1">
+                  <span class="font-weight-bold">{% trans "Notes" %}:</span> {{ issue.notes|default_if_none:""|linebreaks }}
+                </p>
               </div>
             {% endfor %}
           </div>
@@ -210,27 +218,27 @@
           <div class="list-group-flush">
             {% for a in activities %}
               <div class="list-group-item">
-                <p class="mb-1">
-                  <strong>{{ a.get_type }}</strong>
-                  {% if a.campaign %}<i>{{ a.campaign.name }}</i>{% endif %}
+                <p class="mb-1 font-weight-bold">
+                  {{ a.get_type }}
+                  {% if a.campaign %}<span class="font-italic">{{ a.campaign.name }}</span>{% endif %}
                 </p>
                 {% if a.created_by %}
-                <p class="mb-1">
-                    <b>{% trans "Created by" %}:</b>
+                  <p class="mb-1">
+                    <span class="font-weight-bold">{% trans "Created by" %}:</span>
                     {{ a.created_by_name|default_if_none:"-" }}
                   </p>
                 {% endif %}
                 <p class="mb-1">
-                  <b>{% trans "Status" %}:</b> {{ a.get_status }}
+                  <span class="font-weight-bold">{% trans "Status" %}:</span> {{ a.get_status }}
                 </p>
                 {% if a.datetime %}
-                <p class="mb-1">
-                    <b>{% trans "Date" %}</b>: {{ a.datetime|date:"SHORT_DATETIME_FORMAT" }}
+                  <p class="mb-1">
+                    <span class="font-weight-bold">{% trans "Date" %}:</span> {{ a.datetime|date:"SHORT_DATETIME_FORMAT" }}
                   </p>
                 {% endif %}
                 {% if a.notes %}
-                <p class="mb-1">
-                    <b>{% trans "Notes" %}</b>: {{ a.notes|linebreaks|default_if_none:"" }}
+                  <p class="mb-1">
+                    <span class="font-weight-bold">{% trans "Notes" %}:</span> {{ a.notes|linebreaks|default_if_none:"" }}
                   </p>
                 {% endif %}
               </div>

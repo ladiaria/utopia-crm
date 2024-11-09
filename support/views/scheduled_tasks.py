@@ -8,6 +8,7 @@ from django.http import HttpResponseRedirect, HttpResponse
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
+from django.utils import timezone
 
 from core.models import Contact, Activity, SubscriptionProduct, Address
 from support.models import ScheduledTask
@@ -53,12 +54,30 @@ def new_scheduled_task_total_pause(request, contact_id):
                 messages.success(request, _("Total pause has been executed."))
             return HttpResponseRedirect(reverse("contact_detail", args=[contact.id]))
     else:
-        form = NewPauseScheduledTaskForm(initial={"activity_type": "C"})
+        form = NewPauseScheduledTaskForm(
+            initial={
+                "activity_type": "C",
+                "date_1": timezone.now().date().strftime("%Y-%m-%d"),
+                "date_2": (timezone.now().date() + timedelta(days=1)).strftime("%Y-%m-%d"),
+            }
+        )
     form.fields["subscription"].queryset = contact.subscriptions.filter(active=True)
+    breadcrumbs = [
+        {"label": _("Contact list"), "url": reverse("contact_list")},
+        {
+            "label": contact.get_full_name(),
+            "url": reverse("contact_detail", args=[contact.id]),
+        },
+        {"label": _("New total pause"), "url": ""},
+    ]
     return render(
         request,
         "new_scheduled_task_total_pause.html",
-        {"contact": contact, "form": form},
+        {
+            "contact": contact,
+            "form": form,
+            "breadcrumbs": breadcrumbs,
+        },
     )
 
 
@@ -106,8 +125,22 @@ def new_scheduled_task_address_change(request, contact_id):
                 messages.success(request, _("Address change has been executed."))
             return HttpResponseRedirect(reverse("contact_detail", args=[contact.id]))
     else:
-        form = NewAddressChangeScheduledTaskForm(initial={"new_address_type": "physical", "activity_type": "C"})
+        form = NewAddressChangeScheduledTaskForm(
+            initial={
+                "new_address_type": "physical",
+                "activity_type": "C",
+                "date_1": timezone.now().date().strftime("%Y-%m-%d"),
+            }
+        )
     form.fields["contact_address"].queryset = contact.addresses.all()
+    breadcrumbs = [
+        {"label": _("Contact list"), "url": reverse("contact_list")},
+        {
+            "label": contact.get_full_name(),
+            "url": reverse("contact_detail", args=[contact.id]),
+        },
+        {"label": _("New address change"), "url": ""},
+    ]
     return render(
         request,
         "new_scheduled_task_address_change.html",
@@ -115,6 +148,7 @@ def new_scheduled_task_address_change(request, contact_id):
             "contact": contact,
             "form": form,
             "subscriptions": contact.subscriptions.filter(active=True),
+            "breadcrumbs": breadcrumbs,
         },
     )
 
@@ -154,7 +188,21 @@ def new_scheduled_task_partial_pause(request, contact_id):
             )
             return HttpResponseRedirect(reverse("contact_detail", args=[contact.id]))
     else:
-        form = PartialPauseTaskForm(initial={"activity_type": "C"})
+        form = PartialPauseTaskForm(
+            initial={
+                "activity_type": "C",
+                "date_1": timezone.now().date().strftime("%Y-%m-%d"),
+                "date_2": (timezone.now().date() + timedelta(days=1)).strftime("%Y-%m-%d"),
+            }
+        )
+    breadcrumbs = [
+        {"label": _("Contact list"), "url": reverse("contact_list")},
+        {
+            "label": contact.get_full_name(),
+            "url": reverse("contact_detail", args=[contact.id]),
+        },
+        {"label": _("New partial pause"), "url": ""},
+    ]
     return render(
         request,
         "new_scheduled_task_partial_pause.html",
@@ -162,6 +210,7 @@ def new_scheduled_task_partial_pause(request, contact_id):
             "contact": contact,
             "form": form,
             "subscriptions": contact.subscriptions.filter(active=True),
+            "breadcrumbs": breadcrumbs,
         },
     )
 

@@ -17,6 +17,7 @@ from django.forms import ValidationError
 from django.utils.translation import gettext_lazy as _
 from django_extensions.db.fields import AutoSlugField
 from django.utils.html import mark_safe
+from django.utils.functional import cached_property
 from django.urls import reverse
 from django.utils import timezone
 
@@ -1041,11 +1042,11 @@ class Address(models.Model):
         db_column='state_fk',  # Explicit different column name
     )
 
-    @property
+    @cached_property
     def country_name(self):
         return self.country.name if self.country else None
 
-    @property
+    @cached_property
     def state_name(self):
         return self.state.name if self.state else None
 
@@ -1637,6 +1638,17 @@ class Subscription(models.Model):
             dict_all_products[str(sp.product.id)] = str(sp.copies)
         return process_products(dict_all_products)
 
+    @cached_property
+    def product_summary_cached(self):
+        """Cached version of product summary to avoid repeated queries"""
+        subscription_products = self.subscriptionproduct_set.select_related('product').all()
+        dict_all_products = {
+            str(sp.product.id): str(sp.copies)
+            for sp in subscription_products
+        }
+        from .utils import process_products
+        return process_products(dict_all_products)
+
     def product_summary_list(self, with_pauses=False) -> list:
         summary = self.product_summary(with_pauses)
         filtered_products = Product.objects.filter(pk__in=summary.keys(), type="S")
@@ -1650,12 +1662,9 @@ class Subscription(models.Model):
         return output + "</ul>"
 
     def get_price_for_full_period(self, debug_id=""):
-        """
-        Returns the price for a single period on this customer, taking a view from invoicing as aid.
-        """
+        """Returns the price for a single period on this customer"""
         from .utils import calc_price_from_products
-
-        return calc_price_from_products(self.product_summary(), self.frequency, debug_id)
+        return calc_price_from_products(self.product_summary_cached, self.frequency, debug_id)
 
     def get_price_for_full_period_with_pauses(self, debug_id=""):
         """
@@ -2027,6 +2036,15 @@ class Subscription(models.Model):
         self.validated_by = user
         self.validated_date = timezone.now()
         self.save()
+
+    @property
+    def unsubscription_manager_name(self):
+        if not self.unsubscription_manager:
+            return None
+        if self.unsubscription_manager.get_full_name():
+            return self.unsubscription_manager.get_full_name()
+        else:
+            return self.unsubscription_manager.username
 
     class Meta:
         verbose_name = _("subscription")
