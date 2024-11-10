@@ -1,5 +1,5 @@
 {% load i18n static core_tags %}
-<table class="table ">
+<table class="table">
   <thead>
   <tr role="row">
     <th>{% trans "Invoice" %}</th>
@@ -18,9 +18,9 @@
 </thead>
 <tbody>
   {% for invoice in invoices %}
-  <tr role="row">
+  <tr role="row" class="{% if invoice.canceled or invoice.uncollectible %}table-secondary{% elif invoice.paid or invoice.debited %}table-success{% elif invoice.is_overdue %}table-danger{% endif %}">
     <td>
-      <a href="{% url 'admin:invoicing_invoice_change' invoice.id %}">{{ invoice.id }}</a>
+      <a href="{% url 'invoice_detail' invoice.id %}">{{ invoice.id }}</a>
       {% if invoice.pdf %}
         {% if request.user|in_group:"Finances" or request.user|in_group:"Managers" or request.user|in_group:"Logistics" or request.user|in_group:"Support" %}
           <a href="{% url 'download_invoice' invoice.id %}" title="{% trans "Download invoice" %}">
@@ -49,7 +49,7 @@
     <td>{{ invoice.expiration_date|date:"Y-m-d" }}</td>
     <td>{{ invoice.amount }}</td>
     <td>{{ invoice.get_payment_type_display }}</td>
-    <td class="{{ invoice.get_status_code }} text-center">{{ invoice.get_status }}</td>
+    <td>{{ invoice.get_status }}</td>
     {% if request.user|in_group:"Admins" %}
       <td>
         {% if "MercadoPago - Pago no aprobado" in invoice.notes and not invoice.paid and not invoice.debited and not invoice.canceled and not invoice.uncollectible %}

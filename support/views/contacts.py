@@ -549,5 +549,5 @@ def contact_invoices_htmx(request, contact_id):
         Invoice.objects.filter(subscription__contact=contact)
         .select_related("subscription", "contact")
         .prefetch_related("invoiceitem_set")
-    )
+    ).order_by("-id")
     return render(request, "contact_detail/htmx/_invoices_htmx.html", {"invoices": invoices})
