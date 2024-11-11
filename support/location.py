@@ -187,10 +187,12 @@ def agregar_direccion(request, contact_id):
         messages.warning(request, "El servicio de georeferenciación está desactivado. Usar direcciones manuales.")
 
     breadcrumbs = [
+        {"label": _("Home"), "url": reverse("home")},
         {"label": _("Contact list"), "url": reverse("contact_list")},
         {"label": contact_obj.get_full_name(), "url": reverse("contact_detail", args=[contact_id])},
         {"label": _("Add address"), "url": ""},
     ]
+    print(georef_activated)
     return render(
         request,
         "location/agregar_direccion.html",
