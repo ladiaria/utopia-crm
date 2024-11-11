@@ -39,7 +39,7 @@ urlpatterns += [
     path('user/', include('django.contrib.auth.urls')),
     path('admin/doc/', include('django.contrib.admindocs.urls')),
     path('admin/', admin.site.urls),
-    path('', login_required(TemplateView.as_view(template_name='main_menu.html')), name='main_menu'),
+    path('', login_required(TemplateView.as_view(template_name='main_menu.html')), name='home'),
 ]
 
 # Core views
