@@ -93,10 +93,10 @@
                   <td>
                     <a href="{% url "contact_detail" contact.id %}">{{ contact.get_full_name|default_if_none:"" }}</a>
                   </td>
-                  <td>{{ contact.email|default_if_none:"" }}</td>
-                  <td>{{ contact.phone|default_if_none:"" }}</td>
+                  <td>{{ contact.email|default_if_none:"-" }}</td>
+                  <td>{{ contact.phone.as_national|default_if_none:"" }}</td>
                   <td>
-                    {% for sp in contact.get_active_subscriptionproducts %}
+                    {% for sp in contact.active_subscriptionproducts %}
                       {% if sp.has_envelope == 1 %}
                         <i class="fas fa-envelope"
                            title="{% trans "Paid envelope" %}"
@@ -112,15 +112,15 @@
                     {% endfor %}
                   </td>
                   <td>
-                    <ul>
+                    <ul class="ml-0 pl-2">
                       {% for address in contact.addresses.all %}
-                        {{ address.address_1|default_if_none:"" }} {{ address.state|default_if_none:"" }}
+                        <li>{{ address.address_1|default_if_none:"" }} {{ address.state|default_if_none:"" }}</li>
                       {% endfor %}
                     </ul>
                   </td>
                   <td>
-                    {{ contact.last_activity.datetime|date:"SHORT_DATE_FORMAT" }}
-                    {% if contact.last_activity.activity_type %}/ {{ contact.last_activity.get_type }}{% endif %}
+                    {{ contact.get_last_activity.datetime|date:"SHORT_DATE_FORMAT" }}
+                    {% if contact.get_last_activity.activity_type %}/ {{ contact.get_last_activity.get_type }}{% endif %}
                   </td>
                   <td>
                     <a href="{% url "contact_detail" contact.id %}" class="btn btn-primary"><i class="fa fa-eye"></i></a>

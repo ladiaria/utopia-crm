@@ -27,6 +27,7 @@ from core.models import (
     State,
     Country,
     Address,
+    SubscriptionProduct,
 )
 from core.filters import ContactFilter
 from core.forms import ContactAdminForm
@@ -53,7 +54,21 @@ class ContactListView(ListView):
         return super().get(request, *args, **kwargs)
 
     def get_queryset(self):
-        queryset = super().get_queryset().prefetch_related("subscriptions", "activity_set").select_related()
+        queryset = (
+            super()
+            .get_queryset()
+            .prefetch_related(
+                "activity_set",
+                "activity_set__contact",
+                "addresses__state",
+                "addresses__country",
+                Prefetch(
+                    "subscriptionproduct_set",
+                    queryset=SubscriptionProduct.objects.filter(active=True),
+                    to_attr="active_subscriptionproducts",
+                ),
+            )
+        )
         self.filterset = self.filterset_class(self.request.GET, queryset=queryset)
         return self.filterset.qs
 
@@ -151,10 +166,7 @@ class ContactDetailView(BreadcrumbsMixin, DetailView):
         return context
 
     def get_all_querysets_and_lists(self):
-        addresses = (
-            self.object.addresses.all()
-            .prefetch_related("state", "country")
-        )
+        addresses = self.object.addresses.all().prefetch_related("state", "country")
         activities = self.object.activity_set.all().order_by("-datetime", "id")[:3]
         newsletters = self.object.get_newsletters()
         all_issues = self.object.issue_set.all().order_by("-date", "id").select_related("status", "sub_category")
