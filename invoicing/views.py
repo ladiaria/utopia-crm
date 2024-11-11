@@ -448,6 +448,7 @@ def bill_subscriptions_for_one_contact(request, contact_id):
                 messages.success(request, _("Invoice {} has been created successfully".format(invoice.id)))
         return HttpResponseRedirect(reverse("contact_detail", args=(contact_id,)) + "#invoices")
     breadcrumbs = [
+        {"label": _("Home"), "url": reverse("home")},
         {"label": _("Contact list"), "url": reverse("contact_list")},
         {
             "label": contact.get_full_name(),
@@ -778,7 +779,7 @@ class InvoiceDetailView(BreadcrumbsMixin, LoginRequiredMixin, DetailView):
         ).select_related('contact', 'subscription').prefetch_related(
             Prefetch(
                 'invoiceitem_set',
-                queryset=InvoiceItem.objects.select_related('product', 'product__target_product'),
+                queryset=InvoiceItem.objects.exclude(type='D').select_related('product', 'product__target_product'),
                 to_attr='product_items'
             ),
             Prefetch(
@@ -796,6 +797,7 @@ class InvoiceDetailView(BreadcrumbsMixin, LoginRequiredMixin, DetailView):
 
     def breadcrumbs(self):
         return [
+            {"label": _("Home"), "url": reverse("home")},
             {"label": _("Contact list"), "url": reverse("contact_list")},
             {
                 "label": self.object.contact.get_full_name(),
