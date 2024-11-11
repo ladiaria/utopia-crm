@@ -151,10 +151,11 @@
                   <td>{{ invoice.service_from|date:"d/m/Y" }}</td>
                   <td>{{ invoice.service_to|date:"d/m/Y" }}</td>
                   <td>{{ invoice.get_status }}</td>
-                  <td>{{ invoice.serie }} {{ invoice.numero }}</td>
                   <td>
-                    <a href='{% url "admin:invoicing_invoice_change" invoice.id %}'
-                       target="_blank"
+                    {{ invoice.serie|default:"N/A" }} {{ invoice.numero|default:"" }}
+                  </td>
+                  <td>
+                    <a href='{% url "invoice_detail" invoice.id %}'
                        class="btn-sm btn-primary">{% trans "Details" %}</a>
                   </td>
                 </tr>

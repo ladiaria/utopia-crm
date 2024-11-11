@@ -6,7 +6,7 @@ from operator import or_
 
 from django.conf import settings
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Q, Prefetch
 from django.views.generic import UpdateView, CreateView, DetailView, ListView, FormView
 from django.utils.decorators import method_decorator
 from django.utils.translation import gettext_lazy as _
@@ -16,10 +16,11 @@ from django.http import HttpResponse, HttpResponseRedirect, HttpResponseNotFound
 from django.urls import reverse, reverse_lazy
 from django.contrib import messages
 from django.views.decorators.http import require_POST
-
+from django.shortcuts import render
+from django.views.decorators.csrf import csrf_protect
+from django.utils.functional import cached_property
 from core.models import (
     Contact,
-    Subscription,
     Product,
     MailtrainList,
     update_web_user_newsletters,
@@ -33,6 +34,8 @@ from core.mixins import BreadcrumbsMixin
 from core.utils import get_mailtrain_lists
 
 from support.forms import ImportContactsForm
+
+from invoicing.models import Invoice
 
 
 @method_decorator(staff_member_required, name="dispatch")
@@ -50,7 +53,17 @@ class ContactListView(ListView):
         return super().get(request, *args, **kwargs)
 
     def get_queryset(self):
-        queryset = super().get_queryset().prefetch_related("subscriptions", "activity_set").select_related()
+        queryset = (
+            super()
+            .get_queryset()
+            .prefetch_related(
+                "activity_set",
+                "activity_set__contact",
+                "addresses__state",
+                "addresses__country",
+                "subscriptions__subscriptionproduct_set",
+            )
+        )
         self.filterset = self.filterset_class(self.request.GET, queryset=queryset)
         return self.filterset.qs
 
@@ -119,6 +132,22 @@ class ContactDetailView(BreadcrumbsMixin, DetailView):
             {"label": self.object.get_full_name(), "url": reverse("contact_detail", args=[self.object.id])},
         ]
 
+    def get_queryset(self):
+        queryset = (
+            super()
+            .get_queryset()
+            .prefetch_related(
+                "subscriptions",
+                "addresses",
+                "activity_set",
+                "subscriptionnewsletter_set",
+                "issue_set",
+                "tags",
+            )
+            .select_related()
+        )
+        return queryset
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["georef_activated"] = getattr(settings, "GEOREF_SERVICES", False)
@@ -128,31 +157,54 @@ class ContactDetailView(BreadcrumbsMixin, DetailView):
         context.update(self.get_all_querysets_and_lists())
         # Unpack subscriptions for overview
         context.update(self.get_overview_subscriptions())
-        context["invoices"] = self.get_invoices()
+        context.update(self.get_expensive_calculations())
         return context
 
-    def get_invoices(self):
-        return self.object.invoice_set.all().prefetch_related("invoiceitem_set")
-
     def get_all_querysets_and_lists(self):
+        addresses = self.object.addresses.all().prefetch_related("state", "country")
+        activities = self.object.activity_set.all().order_by("-datetime", "id")[:3]
+        newsletters = self.object.get_newsletters()
+        all_issues = self.object.issue_set.all().order_by("-date", "id").select_related("status", "sub_category")
+        last_issues = all_issues[:3]
+        last_paid_invoice = self.object.get_last_paid_invoice()
+        all_activities = self.object.activity_set.all().order_by("-datetime", "id")
+        all_scheduled_tasks = self.object.scheduledtask_set.all().order_by("-creation_date", "id")
+        all_campaigns = self.object.contactcampaignstatus_set.all().order_by("-date_created", "id")
         return {
-            "addresses": self.object.addresses.all(),
-            "activities": self.object.activity_set.all().order_by("-datetime", "id")[:3],
-            "newsletters": self.object.get_newsletters(),
-            "issues": self.object.issue_set.all().order_by("-date", "id")[:3],
-            "last_paid_invoice": self.object.get_last_paid_invoice(),
-            "all_activities": self.object.activity_set.all().order_by("-datetime", "id"),
-            "all_issues": self.object.issue_set.all().order_by("-date", "id"),
-            "all_scheduled_tasks": self.object.scheduledtask_set.all().order_by("-creation_date", "id"),
-            "all_campaigns": self.object.contactcampaignstatus_set.all().order_by("-date_created", "id"),
+            "addresses": addresses,
+            "activities": activities,
+            "newsletters": newsletters,
+            "all_issues": all_issues,
+            "last_issues": last_issues,
+            "last_paid_invoice": last_paid_invoice,
+            "all_activities": all_activities,
+            "all_scheduled_tasks": all_scheduled_tasks,
+            "all_campaigns": all_campaigns,
         }
 
+    @cached_property
+    def prefetched_subscriptions(self):
+        prefetched_subscriptions = self.object.subscriptions.all().prefetch_related(
+            Prefetch(
+                "subscriptionproduct_set__product",
+                queryset=Product.objects.all(),
+            ),
+            "subscriptionproduct_set",
+            "subscriptionproduct_set__address",
+            "subscriptionproduct_set__address__state",
+            "subscriptionproduct_set__address__country",
+        )
+        return prefetched_subscriptions
+
+    def get_subscriptions(self):
+        return self.prefetched_subscriptions
+
     def get_overview_subscriptions(self):
-        active_subscriptions = Subscription.objects.filter(contact=self.object, active=True).exclude(status="AP")
-        future_subscriptions = Subscription.objects.filter(
-            contact=self.object, active=False, start_date__gte=date.today()
-        ).exclude(status="AP")
-        awaiting_payment_subscriptions = Subscription.objects.filter(contact=self.object, status="AP")
+        active_subscriptions = self.get_subscriptions().filter(active=True).exclude(status="AP")
+        future_subscriptions = (
+            self.get_subscriptions().filter(active=False, start_date__gte=date.today()).exclude(status="AP")
+        )
+        awaiting_payment_subscriptions = self.get_subscriptions().filter(status="AP")
         overview_subscriptions_count = (
             active_subscriptions.count() + future_subscriptions.count() + awaiting_payment_subscriptions.count()
         )
@@ -167,40 +219,52 @@ class ContactDetailView(BreadcrumbsMixin, DetailView):
         subscription_groups = [
             {
                 'title': _("Active subscriptions"),
-                'subscriptions': self.object.subscriptions.filter(active=True).exclude(status="AP"),
+                'subscriptions': self.get_subscriptions().filter(active=True).exclude(status="AP"),
                 'collapsed': False,
             },
             {
                 'title': _("Future Subscriptions"),
-                'subscriptions': self.object.subscriptions.filter(active=False, start_date__gte=date.today()).exclude(
-                    status__in=("AP", "ER")
-                ),
+                'subscriptions': self.get_subscriptions()
+                .filter(active=False, start_date__gte=date.today())
+                .exclude(status__in=("AP", "ER")),
                 'collapsed': False,
             },
             {
                 'title': _("Subscriptions awaiting payment"),
-                'subscriptions': self.object.subscriptions.filter(status="AP"),
+                'subscriptions': self.get_subscriptions().filter(status="AP"),
                 'collapsed': True,
             },
             {
                 'title': _("Subscriptions with errors"),
-                'subscriptions': self.object.subscriptions.filter(status="ER"),
+                'subscriptions': self.get_subscriptions().filter(status="ER"),
                 'collapsed': True,
             },
             {
                 'title': _("Paused Subscriptions"),
-                'subscriptions': self.object.subscriptions.filter(status="PA"),
+                'subscriptions': self.get_subscriptions().filter(status="PA"),
                 'collapsed': True,
             },
             {
                 'title': _("Inactive subscriptions"),
-                'subscriptions': self.object.subscriptions.filter(active=False, start_date__lt=date.today()).exclude(
-                    status__in=("AP", "ER")
-                ),
+                'subscriptions': self.get_subscriptions()
+                .filter(active=False, start_date__lt=date.today())
+                .exclude(status__in=("AP", "ER")),
                 'collapsed': True,
             },
         ]
         return subscription_groups
+
+    def get_expensive_calculations(self):
+        debt = self.object.get_debt()
+        last_paid_invoice = self.object.get_last_paid_invoice()
+        latest_invoice = self.object.get_latest_invoice()
+        expired_invoices_count = self.object.expired_invoices_count()
+        return {
+            "debt": debt,
+            "last_paid_invoice": last_paid_invoice,
+            "latest_invoice": latest_invoice,
+            "expired_invoices_count": expired_invoices_count,
+        }
 
 
 @method_decorator(staff_member_required, name="dispatch")
@@ -479,3 +543,18 @@ class ImportContactsView(FormView):
 
         for error in results['errors']:
             messages.error(self.request, error)
+
+
+@csrf_protect
+def contact_invoices_htmx(request, contact_id):
+    # Make sure the request comes from my HTMX library
+    if request.headers.get("HX-Request") != "true":
+        return HttpResponseNotFound()
+
+    contact = get_object_or_404(Contact, pk=contact_id)
+    invoices = (
+        Invoice.objects.filter(contact=contact)
+        .select_related("subscription", "contact")
+        .prefetch_related("invoiceitem_set")
+    ).order_by("-id")
+    return render(request, "contact_detail/htmx/_invoices_htmx.html", {"invoices": invoices})

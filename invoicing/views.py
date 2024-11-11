@@ -10,13 +10,14 @@ from django.contrib import messages
 from django.contrib.auth.decorators import permission_required
 from django.contrib.admin.views.decorators import staff_member_required
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-from django.db.models import Q, Sum
+from django.db.models import Q, Sum, Prefetch
 from django.shortcuts import get_object_or_404, render
 from django.http import HttpResponseRedirect, HttpResponse
 from django.utils.translation import gettext_lazy as _
 from django.utils.text import format_lazy
-from django.views.generic import CreateView
+from django.views.generic import CreateView, DetailView
 from django.utils.decorators import method_decorator
+from django.contrib.auth.mixins import LoginRequiredMixin
 
 import reportlab
 from reportlab.pdfbase import pdfmetrics
@@ -29,6 +30,7 @@ from .filters import InvoiceFilter
 from .forms import InvoiceForm, InvoiceItemFormSet
 from invoicing.models import Invoice, InvoiceItem, Billing, CreditNote
 from core.models import Contact, Subscription, Product, SubscriptionProduct, AdvancedDiscount
+from core.mixins import BreadcrumbsMixin
 
 
 reportlab.rl_config.TTFSearchPath.append(str(settings.STATIC_ROOT) + '/fonts')
@@ -431,6 +433,8 @@ def bill_subscriptions_for_one_contact(request, contact_id):
     generate more than one invoice.
     """
     contact = get_object_or_404(Contact, pk=contact_id)
+    active_subscriptions = contact.subscriptions.filter(active=True, type="N", next_billing__lte=date.today())
+
     if request.POST.get('creation_date'):
         creation_date = request.POST.get('creation_date', date.today())
         creation_date = datetime.strptime(creation_date, "%Y-%m-%d").date()
@@ -442,16 +446,25 @@ def bill_subscriptions_for_one_contact(request, contact_id):
                 messages.error(request, e)
             else:
                 messages.success(request, _("Invoice {} has been created successfully".format(invoice.id)))
-        return HttpResponseRedirect(reverse("contact_invoices", args=(contact_id,)))
-    else:
-        return render(
-            request,
-            'bill_subscriptions_for_one_contact.html',
-            {
-                'contact': contact,
-                'today': date.today(),
-            },
-        )
+        return HttpResponseRedirect(reverse("contact_detail", args=(contact_id,)) + "#invoices")
+    breadcrumbs = [
+        {"label": _("Contact list"), "url": reverse("contact_list")},
+        {
+            "label": contact.get_full_name(),
+            "url": reverse("contact_detail", args=[contact.id]) + "#invoices",
+        },
+        {"label": _("Invoice detail"), "url": ""},
+    ]
+    return render(
+        request,
+        'bill_subscriptions_for_one_contact.html',
+        {
+            'contact': contact,
+            'today': date.today(),
+            'breadcrumbs': breadcrumbs,
+            'active_subscriptions': active_subscriptions,
+        },
+    )
 
 
 @staff_member_required
@@ -751,3 +764,42 @@ class InvoiceNonSubscriptionCreateView(CreateView):
 
     def get_success_url(self):
         return reverse('contact_invoices', args=[self.contact_id])
+
+
+class InvoiceDetailView(BreadcrumbsMixin, LoginRequiredMixin, DetailView):
+    model = Invoice
+    template_name = 'invoice/invoice_detail.html'
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        queryset = queryset.annotate(
+            discount_total=Sum('invoiceitem__amount', filter=Q(invoiceitem__type='D')),
+            product_total=Sum('invoiceitem__amount', filter=Q(invoiceitem__type='I')),
+        ).select_related('contact', 'subscription').prefetch_related(
+            Prefetch(
+                'invoiceitem_set',
+                queryset=InvoiceItem.objects.select_related('product', 'product__target_product'),
+                to_attr='product_items'
+            ),
+            Prefetch(
+                'invoiceitem_set',
+                queryset=InvoiceItem.objects.filter(type='D').select_related('product', 'product__target_product'),
+                to_attr='discount_items'
+            ),
+            Prefetch(
+                'subscription__subscriptionproduct_set__product',
+                queryset=Product.objects.select_related('target_product')
+            ),
+            'creditnote_set',
+        )
+        return queryset
+
+    def breadcrumbs(self):
+        return [
+            {"label": _("Contact list"), "url": reverse("contact_list")},
+            {
+                "label": self.object.contact.get_full_name(),
+                "url": reverse("contact_detail", args=[self.object.contact.id]) + "#invoices",
+            },
+            {"label": _("Invoice detail"), "url": ""},
+        ]

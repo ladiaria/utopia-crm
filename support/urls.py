@@ -224,4 +224,5 @@ urlpatterns = [
         name="subscription_end_date_list",
     ),
     path("contacts/<int:contact_id>/create_activity/", views.ActivityCreateView.as_view(), name="create_activity"),
+    path("contact_invoices_htmx/<int:contact_id>/", views.contact_invoices_htmx, name="contact_invoices_htmx"),
 ]

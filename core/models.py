@@ -12,11 +12,12 @@ from django.contrib.gis.geos import Point
 from django.conf import settings
 from django.core.validators import RegexValidator, MinValueValidator, MaxValueValidator
 from django.db import models
-from django.db.models import Q, Sum, Count, Max
+from django.db.models import Q, Sum, Count, Max, Prefetch
 from django.forms import ValidationError
 from django.utils.translation import gettext_lazy as _
 from django_extensions.db.fields import AutoSlugField
 from django.utils.html import mark_safe
+from django.utils.functional import cached_property
 from django.urls import reverse
 from django.utils import timezone
 
@@ -548,8 +549,17 @@ class Contact(models.Model):
         return self.subscriptions.filter(active=True)
 
     def get_active_subscriptionproducts(self):
-        return SubscriptionProduct.objects.filter(subscription__active=True, subscription__contact=self).order_by(
-            "product__billing_priority", "product__id"
+        return (
+            SubscriptionProduct.objects
+            .filter(subscription__active=True, subscription__contact=self)
+            .select_related('product')  # Assumes `product` is a ForeignKey
+            .prefetch_related(
+                Prefetch(
+                    'label_contact',
+                    queryset=Contact.objects.only('id', 'name', 'last_name')  # Customize fields as needed
+                )
+            )
+            .order_by("product__billing_priority", "product__id")
         )
 
     def get_subscriptions_with_expired_invoices(self):
@@ -1041,11 +1051,11 @@ class Address(models.Model):
         db_column='state_fk',  # Explicit different column name
     )
 
-    @property
+    @cached_property
     def country_name(self):
         return self.country.name if self.country else None
 
-    @property
+    @cached_property
     def state_name(self):
         return self.state.name if self.state else None
 
@@ -1295,10 +1305,10 @@ class Subscription(models.Model):
 
     def __str__(self):
         return str(
-            _("{active} subscription for the contact {contact} {price}").format(
+            _("{active} subscription for the contact {contact} with {products} products").format(
                 active=_("Active") if self.active else _("Inactive"),
                 contact=self.contact.get_full_name(),
-                price="({})".format(self.get_price_for_full_period()) if self.type == "N" else "",
+                products=self.get_product_count(),
             )
         )
 
@@ -1637,6 +1647,15 @@ class Subscription(models.Model):
             dict_all_products[str(sp.product.id)] = str(sp.copies)
         return process_products(dict_all_products)
 
+    @cached_property
+    def product_summary_cached(self):
+        """Cached version of product summary to avoid repeated queries"""
+        subscription_products = self.subscriptionproduct_set.select_related('product').all()
+        dict_all_products = {str(sp.product.id): str(sp.copies) for sp in subscription_products}
+        from .utils import process_products
+
+        return process_products(dict_all_products)
+
     def product_summary_list(self, with_pauses=False) -> list:
         summary = self.product_summary(with_pauses)
         filtered_products = Product.objects.filter(pk__in=summary.keys(), type="S")
@@ -1650,12 +1669,9 @@ class Subscription(models.Model):
         return output + "</ul>"
 
     def get_price_for_full_period(self, debug_id=""):
-        """
-        Returns the price for a single period on this customer, taking a view from invoicing as aid.
-        """
+        """Returns the price for a single period on this customer"""
         from .utils import calc_price_from_products
-
-        return calc_price_from_products(self.product_summary(), self.frequency, debug_id)
+        return calc_price_from_products(self.product_summary_cached, self.frequency, debug_id)
 
     def get_price_for_full_period_with_pauses(self, debug_id=""):
         """
@@ -2269,6 +2285,7 @@ class Activity(models.Model):
     class Meta:
         verbose_name = _("activity")
         verbose_name_plural = _("activities")
+        get_latest_by = "id"
 
 
 class ContactProductHistory(models.Model):

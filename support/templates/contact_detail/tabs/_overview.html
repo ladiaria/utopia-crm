@@ -48,7 +48,7 @@
               {% if address.address_1 == None %}
               {% else %}
                 <dd>
-                  {{ address }}
+                  - {{ address.address_1 }} {{ address.address_2 }} {{ address.city|default_if_none:"" }} {{ address.state_name|default_if_none:"" }} {{ address.country_name|default_if_none:"" }}
                   {% if georef_activated %}
                     {% if address.needs_georef %}<i class="fas fa-times-circle text-danger"></i>{% endif %}
                     {% if not address.verified %}
@@ -65,7 +65,11 @@
           {% if contact.tags.all %}
             <dt>{% trans "Tags" %}</dt>
             <dd>
-              {% for tag in contact.tags.all %}<span class="btn btn-default btn-sm">{{ tag }}</span>{% endfor %}
+              {% for tag in contact.tags.all %}
+                <a href="{% url "contact_list" %}?tags={{ tag.name }}">
+                  <span class="btn btn-default btn-sm">{{ tag }}</span>
+                </a>
+              {% endfor %}
             </dd>
           {% endif %}
         </dl>
@@ -85,7 +89,7 @@
           {% block payment_requests %}
           {% endblock payment_requests %}
 
-          {% if last_paid_invoice or contact.get_debt %}
+          {% if last_paid_invoice or debt %}
             <dt>{% trans "Latest payment" %}</dt>
             {% if last_paid_invoice %}
               <dd>
@@ -102,12 +106,12 @@
             {% endif %}
             <dt>{% trans "Payment type of last invoice" %}</dt>
             <dd>
-              {{ contact.get_latest_invoice.get_payment_type }}
+              {{ latest_invoice.payment_type }}
             </dd>
-            {% if contact.get_debt %}
+            {% if debt %}
               <dt>{% trans "Debt" %}</dt>
               <dd>
-                ${{ contact.get_debt }} ({{ contact.expired_invoices_count }}
+                ${{ debt }} ({{ expired_invoices_count }}
                 {% trans "overdue invoices" %})<i class="fas fa-exclamation-triangle text-danger"></i>
               </dd>
             {% endif %}
@@ -174,21 +178,25 @@
         <h3 class="card-title">{% trans "Latest issues" %}</h3>
       </div>
       <div class="card-body">
-        {% if issues %}
+        {% if last_issues %}
           <div class="list-group-flush">
-            {% for issue in issues %}
+            {% for issue in last_issues %}
               <div class="list-group-item">
                 <div class="d-flex justify-content-between">
-                  <p class="mb-1">{{ issue.get_category }} - {{ issue.get_subcategory }}</p>
+                  <p class="mb-1 font-weight-bold">{{ issue.get_category }} - {{ issue.get_subcategory }}</p>
                   <p class="mb-1">
                     <a href="{% url "view_issue" issue.id %}" class="btn btn-primary btn-sm"><i class="fas fa-eye"></i></a>
                   </p>
                 </div>
-                <div class="d-flex justify-content-between">
-                  <p class="mb-1">{{ issue.get_status|default_if_none:"" }} {{ issue.assigned_to|default_if_none:"" }}</p>
-                  <p class="mb-1">{{ issue.date_created }}</p>
-                  <p class="mb-1">{{ issue.notes|default_if_none:""|linebreaks }}</p>
-                </div>
+                <p class="mb-1">
+                  <span class="font-weight-bold">{% trans "Status" %}:</span> {{ issue.get_status|default_if_none:"" }}
+                </p>
+                <p class="mb-1">
+                  <span class="font-weight-bold">{% trans "Created" %}:</span> {{ issue.date_created }}
+                </p>
+                <p class="mb-1">
+                  <span class="font-weight-bold">{% trans "Notes" %}:</span> {{ issue.notes|default_if_none:""|linebreaks }}
+                </p>
               </div>
             {% endfor %}
           </div>
