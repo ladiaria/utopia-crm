@@ -96,7 +96,7 @@
                   <td>{{ contact.email|default_if_none:"-" }}</td>
                   <td>{{ contact.phone.as_national|default_if_none:"" }}</td>
                   <td>
-                    {% for sp in contact.active_subscriptionproducts %}
+                    {% for sp in contact.get_active_subscriptionproducts %}
                       {% if sp.has_envelope == 1 %}
                         <i class="fas fa-envelope"
                            title="{% trans "Paid envelope" %}"
@@ -119,8 +119,8 @@
                     </ul>
                   </td>
                   <td>
-                    {{ contact.get_last_activity.datetime|date:"SHORT_DATE_FORMAT" }}
-                    {% if contact.get_last_activity.activity_type %}/ {{ contact.get_last_activity.get_type }}{% endif %}
+                    {{ contact.last_activity.datetime|date:"SHORT_DATE_FORMAT" }}
+                    {% if contact.last_activity.activity_type %}/ {{ contact.last_activity.get_type }}{% endif %}
                   </td>
                   <td>
                     <a href="{% url "contact_detail" contact.id %}" class="btn btn-primary"><i class="fa fa-eye"></i></a>
