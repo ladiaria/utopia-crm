@@ -24,6 +24,7 @@
           <span class="btn btn-sm btn-warning">{% trans "No PDF available" %}</span>
         {% endif %}
       {% endblock invoice_actions %}
+
     </div>
   </section>
   <section class="content">
@@ -46,7 +47,7 @@
                       </div>
                       <div class="form-group">
                         <label>{% trans "Subscription" %}</label>
-                        <p>{{ object.subscription }}</p>
+                        <p>{{ object.subscription|default_if_none:"-" }}</p>
                       </div>
                       <div class="form-group">
                         <label>{% trans "Amount" %}</label>
@@ -98,11 +99,10 @@
                         <div>
                           {% if object.paid %}
                             <span class="badge badge-success">{% trans "Paid" %}</span>
+                          {% elif object.debited %}
+                            <span class="badge badge-info">{% trans "Debited" %}</span>
                           {% else %}
                             <span class="badge badge-warning">{% trans "Pending" %}</span>
-                          {% endif %}
-                          {% if object.debited %}
-                            <span class="badge badge-info">{% trans "Debited" %}</span>
                           {% endif %}
                         </div>
                       </div>
@@ -196,7 +196,7 @@
               </div>
               <div class="card-body">
                 <!-- Products table -->
-                {% if object.get_product_items %}
+                {% if object.product_items %}
                   <div class="table-responsive">
                     <table class="table table-hover text-nowrap">
                       <thead>
@@ -228,9 +228,8 @@
                     </div>
                   </div>
                 {% endif %}
-
                 <!-- Discounts table -->
-                {% if object.get_discount_items %}
+                {% if object.discount_items %}
                   <div class="table-responsive">
                     <table class="table table-hover text-nowrap">
                       <thead>
@@ -258,6 +257,12 @@
                     </div>
                   </div>
                 {% endif %}
+                <div class="d-flex justify-content-end">
+                  <div class="px-3 mt-3">
+                    <strong>{% trans "Total" %}:</strong>
+                    <strong class="ms-2">{{ object.amount }}</strong>
+                  </div>
+                </div>
               </div>
             </div>
           {% endif %}
