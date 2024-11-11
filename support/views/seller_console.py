@@ -25,7 +25,7 @@ if logistics_is_installed():
 def seller_console_special_routes(request, route_id):
     if "logistics" in getattr(settings, "DISABLED_APPS", []):
         messages.error(request, _("This function is not available."))
-        return HttpResponseRedirect(reverse("main_menu"))
+        return HttpResponseRedirect(reverse("home"))
     if not getattr(settings, "SPECIAL_ROUTES_FOR_SELLERS_LIST", None):
         messages.error(request, _("This function is not available."))
         return HttpResponseRedirect("/")
@@ -39,10 +39,10 @@ def seller_console_special_routes(request, route_id):
         seller = Seller.objects.get(user=user)
     except Seller.DoesNotExist:
         messages.error(request, _("User has no seller selected. Please contact your manager."))
-        return HttpResponseRedirect(reverse("main_menu"))
+        return HttpResponseRedirect(reverse("home"))
     except Seller.MultipleObjectsReturned:
         messages.error(request, _("This seller is set in more than one user. Please contact your manager."))
-        return HttpResponseRedirect(reverse("main_menu"))
+        return HttpResponseRedirect(reverse("home"))
 
     subprods = SubscriptionProduct.objects.filter(seller=seller, route=route, subscription__active=True).order_by(
         "subscription__contact__id"
@@ -71,7 +71,7 @@ def seller_console_list_campaigns(request, seller_id=None):
         # Check that the user is a manager
         if not request.user.is_staff and not request.user.groups.filter(name="Managers").exists():
             messages.error(request, _("You are not authorized to see this page"))
-            return HttpResponseRedirect(reverse("main_menu"))
+            return HttpResponseRedirect(reverse("home"))
         seller = Seller.objects.get(pk=seller_id)
         user = seller.user
     else:
@@ -80,10 +80,10 @@ def seller_console_list_campaigns(request, seller_id=None):
         seller = Seller.objects.get(user=user)
     except Seller.DoesNotExist:
         messages.error(request, _("User has no seller selected. Please contact your manager."))
-        return HttpResponseRedirect(reverse("main_menu"))
+        return HttpResponseRedirect(reverse("home"))
     except Seller.MultipleObjectsReturned:
         messages.error(request, _("This seller is set in more than one user. Please contact your manager."))
-        return HttpResponseRedirect(reverse("main_menu"))
+        return HttpResponseRedirect(reverse("home"))
 
     if logistics_is_installed():
         special_routes = {}

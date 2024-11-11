@@ -10,6 +10,42 @@
   </h1>
 {% endblock %}
 
+{% block extra_js %}
+  <script type="text/javascript">
+  document.addEventListener('DOMContentLoaded', () => {
+    const newAddressCheckbox = document.getElementById('id_new_address');
+    const newAddressGroup = document.querySelector('.newaddress-group');
+    const sendFormButton = document.getElementById('send_form');
+
+    // Show/hide the address group based on checkbox state
+    if (newAddressCheckbox.checked) {
+      newAddressGroup.classList.remove('d-none');
+    }
+
+    newAddressCheckbox.addEventListener('click', () => {
+      newAddressGroup.classList.toggle('d-none');
+    });
+
+    // Function to enable/disable the submit button
+    const activateSend = () => {
+      if (document.querySelectorAll('.sp-checkbox:checked').length === 0) {
+        sendFormButton.setAttribute('disabled', 'disabled');
+      } else {
+        sendFormButton.removeAttribute('disabled');
+      }
+    };
+
+    // Initial activation of the send button based on checkboxes
+    activateSend();
+
+    // Listen for changes on checkboxes and select elements
+    document.querySelectorAll('input[type="checkbox"], select').forEach((element) => {
+      element.addEventListener('change', activateSend);
+    });
+  });
+  </script>
+{% endblock %}
+
 {% block extra_head %}
 <style>
   input[type="date"] {

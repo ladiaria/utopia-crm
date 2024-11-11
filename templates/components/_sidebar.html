@@ -4,7 +4,7 @@
 <aside class="main-sidebar sidebar-dark-primary elevation-4">
   <!-- Brand Logo -->
   {% block logo %}
-    <a href="{% url "main_menu" %}" class="brand-link">
+    <a href="{% url "home" %}" class="brand-link">
       <img src="/{% setting LOGO %}"
            alt="utopia"
            class="brand-image"
@@ -29,10 +29,18 @@
               data-accordion="false">
             {% block nav_links_outer %}
               {% block nav_links %}
+                {% url 'home' as home %}
                 {% url 'contact_list' as contact_list %}
                 {% url 'seller_console_list_campaigns' as seller_console_list_campaigns %}
                 {% url "my_sales" as my_sales %}
                 {# TODO: Add if ... in INSTALLED_APPS for each menu #}
+                <li class="nav-item">
+                  <a href="{{ home }}"
+                     class="nav-link {% if request.path == home %}active{% endif %}">
+                    <i class="nav-icon fas fa-home"></i>
+                    <p>{% trans "Home" %}</p>
+                  </a>
+                </li>
                 <li class="nav-item">
                   <a href="{{ contact_list }}"
                      class="nav-link {% if request.path == contact_list %}active{% endif %}">
