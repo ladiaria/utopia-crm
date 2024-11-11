@@ -27,7 +27,6 @@ from core.models import (
     State,
     Country,
     Address,
-    SubscriptionProduct,
 )
 from core.filters import ContactFilter
 from core.forms import ContactAdminForm
@@ -62,11 +61,7 @@ class ContactListView(ListView):
                 "activity_set__contact",
                 "addresses__state",
                 "addresses__country",
-                Prefetch(
-                    "subscriptionproduct_set",
-                    queryset=SubscriptionProduct.objects.filter(active=True),
-                    to_attr="active_subscriptionproducts",
-                ),
+                "subscriptions__subscriptionproduct_set",
             )
         )
         self.filterset = self.filterset_class(self.request.GET, queryset=queryset)
@@ -558,7 +553,7 @@ def contact_invoices_htmx(request, contact_id):
 
     contact = get_object_or_404(Contact, pk=contact_id)
     invoices = (
-        Invoice.objects.filter(subscription__contact=contact)
+        Invoice.objects.filter(contact=contact)
         .select_related("subscription", "contact")
         .prefetch_related("invoiceitem_set")
     ).order_by("-id")
