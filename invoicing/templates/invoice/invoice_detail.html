@@ -9,9 +9,13 @@
   <section>
     <div class="d-flex flex-wrap justify-content-end gap-4 container-fluid mb-3">
       {% block invoice_actions %}
-        {% if perms.invoicing.invoice_edit %}
+        {% if perms.invoicing.edit_invoice %}
           <a href="{% url "admin:invoicing_invoice_change" object.id %}"
              class="btn btn-sm btn-primary"><i class="fas fa-pencil-alt"></i> {% trans "Edit" %}</a>
+        {% endif %}
+        {% if perms.invoicing.can_cancel_invoice %}
+          <a href="{% url "cancel_invoice" object.id %}"
+             class="btn btn-sm btn-danger"><i class="fas fa-times"></i> {% trans "Cancel" %}</a>
         {% endif %}
         {% if object.pdf %}
           <a href="{% url "download_invoice" object.id %}"

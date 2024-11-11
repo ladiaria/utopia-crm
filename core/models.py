@@ -12,7 +12,7 @@ from django.contrib.gis.geos import Point
 from django.conf import settings
 from django.core.validators import RegexValidator, MinValueValidator, MaxValueValidator
 from django.db import models
-from django.db.models import Q, Sum, Count, Max
+from django.db.models import Q, Sum, Count, Max, Prefetch
 from django.forms import ValidationError
 from django.utils.translation import gettext_lazy as _
 from django_extensions.db.fields import AutoSlugField
@@ -549,8 +549,17 @@ class Contact(models.Model):
         return self.subscriptions.filter(active=True)
 
     def get_active_subscriptionproducts(self):
-        return SubscriptionProduct.objects.filter(subscription__active=True, subscription__contact=self).order_by(
-            "product__billing_priority", "product__id"
+        return (
+            SubscriptionProduct.objects
+            .filter(subscription__active=True, subscription__contact=self)
+            .select_related('product')  # Assumes `product` is a ForeignKey
+            .prefetch_related(
+                Prefetch(
+                    'label_contact',
+                    queryset=Contact.objects.only('id', 'name', 'last_name')  # Customize fields as needed
+                )
+            )
+            .order_by("product__billing_priority", "product__id")
         )
 
     def get_subscriptions_with_expired_invoices(self):
@@ -2276,6 +2285,7 @@ class Activity(models.Model):
     class Meta:
         verbose_name = _("activity")
         verbose_name_plural = _("activities")
+        get_latest_by = "id"
 
 
 class ContactProductHistory(models.Model):
