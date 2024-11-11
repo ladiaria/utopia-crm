@@ -6,9 +6,9 @@
 {% block extra_js %}
 <script type="text/javascript">
   document.addEventListener('DOMContentLoaded', () => {
-    const form = document.getElementById('form');
+    const formElement = document.getElementById('form-product-change');
 
-    form.addEventListener('submit', (event) => {
+    formElement.addEventListener('submit', (event) => {
       event.preventDefault();
 
       const hasDisabledProducts = document.querySelectorAll('.disable-product:checked').length > 0;
@@ -19,7 +19,7 @@
         return; // Stop the submission if conditions are not met
       }
 
-      form.submit(); // Submit the form if both conditions are met
+      formElement.submit(); // Submit the form if both conditions are met
     });
   });
 </script>
@@ -51,7 +51,7 @@
         {% if new_balance %}
         <div class="alert alert-warning m-2">Esta suscripción es {{ subscription.get_frequency_display }}: Se agregará un balance de $ {{ new_balance }} correspondiente a los {{ days_remaining }} días restantes de la suscripción.</div>
         {% endif %}
-        <form method="post" id="form">
+        <form method="post" id="form-product-change">
           {% csrf_token %}
           {% if form.errors %}
             {% for field in form %}
@@ -120,7 +120,7 @@
             <span class="error invalid-feedback">{{ form.unsubscription_addendum.errors }}</span>
           </div>
           <div class="form-group text-right">
-            <input type="submit" id="submit" name="submit" value='{% trans "Send" %}' class="btn bg-gradient-primary">
+            <input type="submit" id="submit-product-change" name="submit-product-change" value='{% trans "Send" %}' class="btn bg-gradient-primary">
           </div>
         </form>
       </div>
