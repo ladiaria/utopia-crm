@@ -117,8 +117,12 @@ def is_app_hidden(app_name):
 @register.simple_tag
 def days_until(target_date):
     current_date = timezone.now().date()
-    if current_date > target_date:
+    try:
+        if current_date > target_date:
+            return ""
+    except Exception:
         return ""
+
     delta = target_date - current_date
 
     msg = _('{days} days remaining').format(days=delta.days)
