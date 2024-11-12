@@ -73,6 +73,7 @@
         <dt>{% trans "End date" %}:</dt>
         <dd>
           {{ subscription.end_date|date:"d/m/Y"|default:"-" }}
+          ({% days_until subscription.end_date %})
         </dd>
       </div>
       <div class="col-3">

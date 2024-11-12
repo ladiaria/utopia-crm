@@ -9,38 +9,47 @@
         <div class="col-4">
           <dt>{% trans "Name" %}</dt>
           <dd>
-            {{ contact.get_full_name }}
+            {{ contact.get_full_name|default_if_none:"-" }}
           </dd>
-          <dt>{% trans "Documento" %}</dt>
+          <dt>{% trans "ID document" %}</dt>
           <dd>
-            {{ contact.id_document|default_if_none:"N/A" }}
+            <div class="mb-0">
+              <span class="font-weight-bold">{% trans "Type" %}:</span> {{ contact.id_document_type|default_if_none:"-" }}
+            </div>
+            <div>
+              <span class="font-weight-bold">{% trans "Indentifier" %}:</span> {{ contact.id_document|default_if_none:"-" }}
+            </div>
           </dd>
           <dt>{% trans "Email" %}</dt>
           <dd>
-            {{ contact.email }}
+            {{ contact.email|default:"-" }}
           </dd>
         </div>
         <div class="col-4">
           <dt>{% trans "Phone" %}</dt>
           <dd>
-            {{ contact.phone }}
+            {{ contact.phone.as_national|default:"-" }}
           </dd>
           {% if contact.mobile %}
             <dt>{% trans "Mobile" %}</dt>
             <dd>
-              {{ contact.mobile }}
+              {{ contact.mobile.as_national|default:"-" }}
             </dd>
           {% endif %}
           {% if contact.work_phone %}
             <dt>{% trans "Work phone" %}</dt>
             <dd>
-              {{ contact.work_phone }}
+              {{ contact.work_phone.as_national|default:"-" }}
             </dd>
           {% endif %}
           {% if contact.tags.all %}
             <dt>{% trans "Tags" %}</dt>
             <dd>
-              {% for tag in contact.tags.all %}<span class="btn btn-default btn-sm">{{ tag }}</span>{% endfor %}
+              {% for tag in contact.tags.all %}
+                <a href="{% url "contact_list" %}?tags={{ tag.name }}">
+                  <span class="btn btn-default btn-sm">{{ tag }}</span>
+                </a>
+              {% endfor %}
             </dd>
           {% endif %}
         </div>
@@ -155,8 +164,6 @@
     <div class="card-header">
       <h3 class="card-title">{% trans "Notes" %}</h3>
     </div>
-    <div class="card-body">
-      {{ contact.notes|linebreaksbr|default_if_none:"-" }}
-    </div>
+    <div class="card-body">{{ contact.notes|linebreaksbr|default_if_none:"-" }}</div>
   </div>
 </div>
