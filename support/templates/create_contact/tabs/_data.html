@@ -1,7 +1,7 @@
 {% load i18n widget_tweaks %}
 <div class="row">
   <div class="col-md-10">
-    <form method="post">
+    <form method="post" id="contact-form">
       {% csrf_token %}
       {% if form.errors %}
         {{ form.email_was_valid }}{{ form.email_replaced }}
