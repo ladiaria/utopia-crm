@@ -43,11 +43,26 @@
                     <div class="info-box-content">
                       <div class="form-group">
                         <label>{% trans "Contact" %}</label>
-                        <p>{{ object.contact }}</p>
+                        <p>
+                          {{ object.contact.id }} - {{ object.contact }} <a href="{% url "contact_detail" object.contact.id %}"
+    class="btn btn-sm btn-primary ml-2"><i class="fas fa-external-link-alt"></i> {% trans "Go to contact" %}</a>
+                        </p>
                       </div>
                       <div class="form-group">
                         <label>{% trans "Subscription" %}</label>
-                        <p>{{ object.subscription|default_if_none:"-" }}</p>
+                        {% if object.subscription %}
+                          <p>{{ object.subscription.id }} - {{ object.subscription|default_if_none:"-" }}</p>
+                          <div class="d-flex">
+                            <a href="{% url "contact_detail" object.subscription.contact.id %}#subscriptions"
+                               class="btn btn-sm btn-primary"><i class="fas fa-external-link-alt"></i> {% trans "Go to subscriptions" %}</a>
+                            {% if perms.core.change_subscription %}
+                              <a href="{% url "admin:core_subscription_change" object.subscription.id %}"
+                                 class="btn btn-sm btn-primary ml-2"><i class="fas fa-external-link-alt"></i> {% trans "Go to subscription in admin" %}</a>
+                            {% endif %}
+                          </div>
+                        {% else %}
+                          <p>{% trans "No subscription associated" %}</p>
+                        {% endif %}
                       </div>
                       <div class="form-group">
                         <label>{% trans "Amount" %}</label>
