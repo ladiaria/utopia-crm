@@ -131,6 +131,7 @@ class ContactAdminForm(EmailValidationForm, forms.ModelForm):
             email = cleaned_data.get("email")
             if email:
                 email = self.email_extra_clean(cleaned_data)
+        return cleaned_data
 
     def clean_id_document(self):
         id_document = self.cleaned_data.get("id_document")

@@ -319,10 +319,9 @@
                        value="{% trans "Send" %}"
                        class="btn bg-gradient-primary">
               </div>
-              <input type="submit"
-                     name="result"
-                     value="{% trans "Cancel" %}"
-                     class="btn bg-gradient-secondary">
+              <a href="{{ request.META.HTTP_REFERER }}" class="btn bg-gradient-secondary">
+                {% trans "Cancel" %}
+              </a>
             </div>
           {% endblock form_send_controls %}
 

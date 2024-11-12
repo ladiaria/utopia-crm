@@ -158,6 +158,7 @@ class ContactDetailView(BreadcrumbsMixin, DetailView):
         # Unpack subscriptions for overview
         context.update(self.get_overview_subscriptions())
         context.update(self.get_expensive_calculations())
+        context["subscriptions_count"] = self.get_subscriptions().count()
         return context
 
     def get_all_querysets_and_lists(self):

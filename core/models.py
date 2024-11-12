@@ -550,13 +550,12 @@ class Contact(models.Model):
 
     def get_active_subscriptionproducts(self):
         return (
-            SubscriptionProduct.objects
-            .filter(subscription__active=True, subscription__contact=self)
+            SubscriptionProduct.objects.filter(subscription__active=True, subscription__contact=self)
             .select_related('product')  # Assumes `product` is a ForeignKey
             .prefetch_related(
                 Prefetch(
                     'label_contact',
-                    queryset=Contact.objects.only('id', 'name', 'last_name')  # Customize fields as needed
+                    queryset=Contact.objects.only('id', 'name', 'last_name'),  # Customize fields as needed
                 )
             )
             .order_by("product__billing_priority", "product__id")
@@ -588,6 +587,16 @@ class Contact(models.Model):
         """
         if self.activity_set.exists():
             return self.activity_set.latest("id")
+        else:
+            return None
+
+    def get_last_activity_formatted(self):
+        last_activity = self.last_activity()
+        if last_activity:
+            msg = ' '.join(
+                [last_activity.datetime.date().strftime("%d/%m/%Y"), last_activity.get_activity_type_display() or '']
+            )
+            return msg
         else:
             return None
 
@@ -1671,6 +1680,7 @@ class Subscription(models.Model):
     def get_price_for_full_period(self, debug_id=""):
         """Returns the price for a single period on this customer"""
         from .utils import calc_price_from_products
+
         return calc_price_from_products(self.product_summary_cached, self.frequency, debug_id)
 
     def get_price_for_full_period_with_pauses(self, debug_id=""):
