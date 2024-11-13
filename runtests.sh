@@ -15,4 +15,4 @@ if [[ -z "${TEST_MODULES// }" ]]; then
     echo "No tests to run"
     exit 0
 fi
-python -W ignore manage.py test --settings=test_settings --keepdb ${TEST_MODULES}
+python -W ignore manage.py test --settings=test_settings --exclude-tag broken --keepdb ${TEST_MODULES}

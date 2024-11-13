@@ -414,6 +414,8 @@ class Contact(models.Model):
     def save(self, *args, **kwargs):
         if not getattr(self, "updatefromweb", False) and not getattr(self, "_skip_clean", False):
             self.clean(debug=settings.DEBUG_CONTACT_CLEAN)
+        # TODO: next line breaks test_subscriptor.TestContact.test2_cliente_que_no_tiene_email_debe_tener_email_en_...
+        #       Fix the test and explain why the field is not needed anymore or submit a different solution.
         self.no_email = self.email is None
         return super().save(*args, **kwargs)
 
@@ -1651,19 +1653,17 @@ class Subscription(models.Model):
         subscription_products = SubscriptionProduct.objects.filter(subscription=self)
         if with_pauses:
             subscription_products = subscription_products.filter(active=True)
-        dict_all_products = {}
-        for sp in subscription_products:
-            dict_all_products[str(sp.product.id)] = str(sp.copies)
-        return process_products(dict_all_products)
 
-    @cached_property
-    def product_summary_cached(self):
-        """Cached version of product summary to avoid repeated queries"""
-        subscription_products = self.subscriptionproduct_set.select_related('product').all()
         dict_all_products = {str(sp.product.id): str(sp.copies) for sp in subscription_products}
-        from .utils import process_products
-
         return process_products(dict_all_products)
+
+    # def product_summary(self):
+    #     """Cached version of product summary to avoid repeated queries"""
+    #     subscription_products = self.subscriptionproduct_set.select_related('product').all()
+    #     dict_all_products = {str(sp.product.id): str(sp.copies) for sp in subscription_products}
+    #     from .utils import process_products
+
+    #     return process_products(dict_all_products)
 
     def product_summary_list(self, with_pauses=False) -> list:
         summary = self.product_summary(with_pauses)
@@ -1680,8 +1680,7 @@ class Subscription(models.Model):
     def get_price_for_full_period(self, debug_id=""):
         """Returns the price for a single period on this customer"""
         from .utils import calc_price_from_products
-
-        return calc_price_from_products(self.product_summary_cached, self.frequency, debug_id)
+        return calc_price_from_products(self.product_summary(), self.frequency, debug_id)
 
     def get_price_for_full_period_with_pauses(self, debug_id=""):
         """
