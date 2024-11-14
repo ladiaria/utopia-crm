@@ -46,6 +46,7 @@ SUBSCRIPTION_TYPE_CHOICES = (
     ("N", _("Normal")),
     ("F", _("Gift")),
     ("S", _("Staff")),
+    ("C", _("Complementary")),
 )
 
 SUBSCRIPTION_STATUS_CHOICES = (
@@ -90,10 +91,11 @@ ACTIVITY_STATUS_CHOICES = (
     ("D", _("Delayed")),
 )
 
-
 ACTIVITY_DIRECTION_CHOICES = (
     ("I", _("In")),
     ("O", _("Out")),
+    ("N", _("Internal")),
+    ("R", _("Renewal")),
 )
 
 CAMPAIGN_STATUS_CHOICES = (

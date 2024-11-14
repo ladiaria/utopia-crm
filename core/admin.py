@@ -44,6 +44,9 @@ from .models import (
     MailtrainList,
     Country,
     State,
+    ActivityTopic,
+    ActivityResponse,
+    ProductSubscriptionPeriod,
 )
 from .forms import SubscriptionAdminForm, ContactAdminForm
 
@@ -417,16 +420,13 @@ class ProductAdmin(admin.ModelAdmin):
             "fields": ("name", "slug", "type"),
         }),
         (_("Pricing & Discounts"), {
-            "fields": ("price", "offerable", "temporary_discount_months"),
-            "description": "Set the product price and any applicable discounts."
+            "fields": ("price", "offerable", "temporary_discount_months", "renewal_type"),
         }),
         (_("Scheduling & Frequency"), {
-            "fields": ("weekday", "edition_frequency"),
-            "description": "Specify scheduling options, such as day of the week and frequency."
+            "fields": ("weekday", "subscription_period", "duration_months"),
         }),
         (_("Billing & Priority"), {
-            "fields": ("billing_priority", "active"),
-            "description": "Set the billing priority and active status."
+            "fields": ("billing_priority", "active", "edition_frequency"),
         }),
     )
     # readonly_fields = ("slug",)
@@ -565,3 +565,6 @@ admin.site.register(MailtrainList)
 admin.site.register(IdDocumentType)
 admin.site.register(Country)
 admin.site.register(State)
+admin.site.register(ActivityTopic)
+admin.site.register(ActivityResponse)
+admin.site.register(ProductSubscriptionPeriod)

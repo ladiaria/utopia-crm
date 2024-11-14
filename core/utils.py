@@ -120,7 +120,6 @@ def calc_price_from_products(products_with_copies, frequency, debug_id=""):
         debug_id += ": "
     # Fetch all Product instances needed in a single query using in_bulk
     products = Product.objects.in_bulk(products_with_copies.keys())
-    print(products)
 
     # Create the dictionary with product_id as key and (Product instance, copies) as value
     product_data = {

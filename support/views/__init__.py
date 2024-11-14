@@ -31,4 +31,6 @@ from .subscriptions import (  # noqa
     book_additional_product,
     send_promo,
     SubscriptionEndDateListView,
+    CorporateSubscriptionView,
+    AffiliateSubscriptionView,
 )

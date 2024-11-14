@@ -165,9 +165,11 @@
         {% endif %}
       </div>
       {% if request.user|in_group:"Support" or request.user|in_group:"Managers" %}
-        <div class="card-footer">
+        <div class="card-footer d-flex justify-content-end">
+          <a href="{% url "create_corporate_subscription" contact.id %}"
+             class="btn btn-primary"><i class="fas fa-plus-circle"></i> {% trans "Create corporate subscription" %}</a>
           <a href="{% url "new_subscription" contact.id %}"
-             class="btn btn-primary float-right"><i class="fas fa-plus-circle"></i> {% trans "Add subscription" %}</a>
+             class="btn btn-primary"><i class="fas fa-plus-circle"></i> {% trans "Add subscription" %}</a>
         </div>
       {% endif %}
     </div>
@@ -239,6 +241,16 @@
                 {% if a.notes %}
                   <p class="mb-1">
                     <span class="font-weight-bold">{% trans "Notes" %}:</span> {{ a.notes|linebreaks|default_if_none:"" }}
+                  </p>
+                {% endif %}
+                {% if a.topic %}
+                  <p class="mb-1">
+                    <span class="font-weight-bold">{% trans "Topic" %}:</span> {{ a.topic }}
+                  </p>
+                {% endif %}
+                {% if a.response %}
+                  <p class="mb-1">
+                    <span class="font-weight-bold">{% trans "Response" %}:</span> {{ a.response|linebreaks|default_if_none:"" }}
                   </p>
                 {% endif %}
               </div>

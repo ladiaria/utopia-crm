@@ -59,6 +59,18 @@
               {{ activity.created_by_name }}
             </dd>
           {% endif %}
+          {% if activity.topic %}
+            <dt>{% trans "Topic" %}</dt>
+            <dd>
+              {{ activity.topic }}
+            </dd>
+          {% endif %}
+          {% if activity.response %}
+            <dt>{% trans "Response" %}</dt>
+            <dd>
+              {{ activity.response }}
+            </dd>
+          {% endif %}
         </dl>
       </div>
     </div>
