@@ -237,6 +237,10 @@ class Product(models.Model):
         null=True,
         blank=True,
     )
+    terms_and_conditions = models.ManyToManyField(
+        "core.TermsAndConditions",
+        through="core.TermsAndConditionsProduct",
+    )
     objects = ProductManager()
 
     def __str__(self):
@@ -261,6 +265,9 @@ class Product(models.Model):
         """
         weekdays = dict(PRODUCT_WEEKDAYS)
         return weekdays.get(self.weekday, "N/A")
+
+    def get_last_terms_and_conditions(self):
+        return self.terms_and_conditions.order_by("-date").first()
 
     class Meta:
         verbose_name = _("product")
@@ -1352,6 +1359,13 @@ class Subscription(models.Model):
         related_name='billed_subscriptions',
         verbose_name=_("Billing Contact"),
     )
+    terms_and_conditions = models.ForeignKey(
+        "core.TermsAndConditions",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name=_("Terms and conditions"),
+    )
 
     def __str__(self):
         return str(
@@ -2099,7 +2113,10 @@ class Subscription(models.Model):
     class Meta:
         verbose_name = _("subscription")
         verbose_name_plural = _("subscriptions")
-        permissions = [("can_add_free_subscription", _("Can add free subscription"))]
+        permissions = [
+            ("can_add_free_subscription", _("Can add free subscription")),
+            ("can_add_corporate_subscription", _("Can add corporate subscription")),
+        ]
 
 
 class Campaign(models.Model):
@@ -2825,3 +2842,23 @@ class MailtrainList(models.Model):
     class Meta:
         verbose_name = _("Mailtrain List")
         verbose_name_plural = _("Mailtrain Lists")
+
+
+class TermsAndConditions(models.Model):
+    version = models.CharField(max_length=255)
+    date = models.DateField()
+    code = models.CharField(max_length=255)
+    pdf_file = models.FileField(upload_to="terms_and_conditions", null=True, blank=True)
+    text = models.TextField()
+
+    def __str__(self) -> str:
+        return f"T&C {self.version} ({self.date})"
+
+
+class TermsAndConditionsProduct(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    terms_and_conditions = models.ForeignKey(TermsAndConditions, on_delete=models.CASCADE)
+    date = models.DateField()
+
+    def __str__(self) -> str:
+        return f"T&C {self.terms_and_conditions.version} ({self.date}) for {self.product.name}"

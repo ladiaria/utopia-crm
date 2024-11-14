@@ -77,7 +77,8 @@
       <div class="card-footer text-right">
         <a href="{% url "agregar_direccion" contact.id %}"
            class="btn btn-success mb-1">{% trans "Add address" %}</a>
-        <a href="{% url "edit_contact" contact.id %}" class="btn btn-success mb-1">{% trans "Edit info and newsletters" %}</a>
+        <a href="{% url "edit_contact" contact.id %}"
+           class="btn btn-success mb-1">{% trans "Edit info and newsletters" %}</a>
       </div>
     </div>
     <div class="card">
@@ -166,8 +167,10 @@
       </div>
       {% if request.user|in_group:"Support" or request.user|in_group:"Managers" %}
         <div class="card-footer d-flex justify-content-end">
-          <a href="{% url "create_corporate_subscription" contact.id %}"
-             class="btn btn-primary"><i class="fas fa-plus-circle"></i> {% trans "Create corporate subscription" %}</a>
+          {% if perms.core.can_add_corporate_subscription %}
+            <a href="{% url "create_corporate_subscription" contact.id %}"
+               class="btn btn-primary"><i class="fas fa-plus-circle"></i> {% trans "Create corporate subscription" %}</a>
+          {% endif %}
           <a href="{% url "new_subscription" contact.id %}"
              class="btn btn-primary"><i class="fas fa-plus-circle"></i> {% trans "Add subscription" %}</a>
         </div>
