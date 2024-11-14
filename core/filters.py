@@ -2,9 +2,8 @@ import django_filters
 
 from django.utils.translation import gettext_lazy as _
 from django.db.models import Q
-from django.conf import settings
 
-from .models import Contact
+from .models import Contact, State
 
 
 YESNO_CHOICES = (
@@ -15,8 +14,7 @@ YESNO_CHOICES = (
 
 class ContactFilter(django_filters.FilterSet):
     filter_multiple = django_filters.CharFilter(method="by_phone_and_email")
-    if settings.USE_STATES_CHOICE:
-        state = django_filters.ChoiceFilter(choices=settings.STATES, method="by_state")
+    state = django_filters.ModelChoiceFilter(queryset=State.objects.filter(active=True), method="by_state")
     active_subscriptions = django_filters.ChoiceFilter(
         choices=YESNO_CHOICES, method="with_active_subscription"
     )

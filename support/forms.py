@@ -1,10 +1,10 @@
-# coding=utf-8
-from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 from django import forms
 from django.forms import ValidationError
 from django.contrib.auth.models import User
 from django.utils.safestring import mark_safe
+from django.utils import timezone
+
 from phonenumber_field.formfields import PhoneNumberField
 from phonenumber_field.widgets import RegionalPhoneNumberWidget
 
@@ -16,6 +16,8 @@ from core.models import (
     DynamicContactFilter,
     SubscriptionProduct,
     Activity,
+    State,
+    IdDocumentType,
     regex_alphanumeric_msg,
 )
 from core.forms import EmailValidationForm
@@ -109,9 +111,9 @@ class NewAddressChangeScheduledTaskForm(forms.Form):
     new_address_1 = forms.CharField(required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
     new_address_2 = forms.CharField(required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
     new_address_city = forms.CharField(required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
-    new_address_state = forms.ChoiceField(required=False, widget=forms.Select(attrs={"class": "form-control"}))
-    if settings.USE_STATES_CHOICE:
-        new_address_state.choices = settings.STATES
+    new_address_state = forms.ModelChoiceField(
+        queryset=State.objects.all(), required=False, widget=forms.Select(attrs={"class": "form-control"})
+    )
     new_address_notes = forms.CharField(required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
     new_address_type = forms.ChoiceField(
         required=False,
@@ -145,7 +147,9 @@ class NewAddressChangeScheduledTaskForm(forms.Form):
 
 class NewPromoForm(EmailValidationForm):
     name = forms.CharField(widget=forms.TextInput(attrs={"class": "form-control"}))
-    last_name = forms.CharField(widget=forms.TextInput(attrs={"class": "form-control"}))
+    last_name = forms.CharField(
+        widget=forms.TextInput(attrs={"class": "form-control"}), required=False
+    )
     phone = PhoneNumberField(
         empty_value="",
         required=False,
@@ -180,6 +184,12 @@ class NewPromoForm(EmailValidationForm):
 
 class NewSubscriptionForm(EmailValidationForm, forms.ModelForm):
 
+    def __init__(self, *args, **kwargs):
+        contact = kwargs.pop("contact")
+        super().__init__(*args, **kwargs)
+        if contact:
+            self.fields["billing_address"].queryset = Address.objects.filter(contact=contact)
+
     class Meta:
         model = Subscription
         fields = (
@@ -190,6 +200,7 @@ class NewSubscriptionForm(EmailValidationForm, forms.ModelForm):
             "mobile",
             "notes",
             "email",
+            "id_document_type",
             "id_document",
             "frequency",
             "payment_type",
@@ -256,7 +267,9 @@ class NewSubscriptionForm(EmailValidationForm, forms.ModelForm):
         }
 
     name = forms.CharField(widget=forms.TextInput(attrs={"class": "form-control"}), label="Nombre")
-    last_name = forms.CharField(widget=forms.TextInput(attrs={"class": "form-control"}), label="Apellido")
+    last_name = forms.CharField(
+        widget=forms.TextInput(attrs={"class": "form-control"}), label="Apellido", required=False
+    )
     phone = PhoneNumberField(
         empty_value="", widget=RegionalPhoneNumberWidget(attrs={"class": "form-control"}), label="Teléfono"
     )
@@ -283,6 +296,12 @@ class NewSubscriptionForm(EmailValidationForm, forms.ModelForm):
         required=False,
         widget=forms.EmailInput(attrs={"class": "form-control"}),
         label="Correo electrónico",
+    )
+    id_document_type = forms.ModelChoiceField(
+        required=False,
+        queryset=IdDocumentType.objects.all(),
+        widget=forms.Select(attrs={"class": "form-control"}),
+        label="Tipo de documento",
     )
     id_document = forms.CharField(
         empty_value=None,
@@ -389,9 +408,9 @@ class IssueStartForm(forms.ModelForm):
     new_address_1 = forms.CharField(required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
     new_address_2 = forms.CharField(required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
     new_address_city = forms.CharField(required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
-    new_address_state = forms.ChoiceField(required=False, widget=forms.Select(attrs={"class": "form-control"}))
-    if settings.USE_STATES_CHOICE:
-        new_address_state.choices = settings.STATES
+    new_address_state = forms.ModelChoiceField(
+        queryset=State.objects.all(), required=False, widget=forms.Select(attrs={"class": "form-control"})
+    )
     new_address_notes = forms.CharField(required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
     new_address_type = forms.ChoiceField(
         required=False,
@@ -527,9 +546,9 @@ class NewAddressForm(forms.Form):
     address_1 = forms.CharField(widget=forms.TextInput(attrs={"class": "form-control"}))
     address_2 = forms.CharField(required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
     address_city = forms.CharField(required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
-    address_state = forms.ChoiceField(required=False, widget=forms.Select(attrs={"class": "form-control"}))
-    if settings.USE_STATES_CHOICE:
-        address_state.choices = settings.STATES
+    address_state = forms.ModelChoiceField(
+        queryset=State.objects.all(), required=False, widget=forms.Select(attrs={"class": "form-control"})
+    )
     address_notes = forms.CharField(required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
     address_type = forms.ChoiceField(
         required=False,
@@ -576,6 +595,36 @@ class NewActivityForm(forms.ModelForm):
             "direction": forms.Select(attrs={"class": "form-control"}),
             "activity_type": forms.Select(attrs={"class": "form-control"}),
             "notes": forms.TextInput(attrs={"class": "form-control"}),
+        }
+
+
+class CreateActivityForm(forms.ModelForm):
+    datetime = forms.DateTimeField(
+        widget=forms.DateTimeInput(attrs={'type': 'datetime-local'}),
+        input_formats=['%Y-%m-%dT%H:%M']
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["datetime"].required = True
+        self.fields["activity_type"].required = True
+        self.fields["datetime"].initial = timezone.now().strftime("%Y-%m-%dT%H:%M")
+        self.fields["status"].initial = "C"
+        self.fields["direction"].initial = "I"
+
+    class Meta:
+        model = Activity
+        fields = [
+            "contact",
+            "direction",
+            "datetime",
+            "notes",
+            "activity_type",
+            "status",
+        ]
+        widgets = {
+            "contact": forms.HiddenInput(),
+            "status": forms.HiddenInput(),
         }
 
 

@@ -1,0 +1,51 @@
+{% extends "adminlte/base.html" %}
+{% load i18n widget_tweaks %}
+
+{% block no_heading %}
+  <h1>{% trans "Register Activity" %}</h1>
+{% endblock no_heading %}
+
+{% block content %}
+  <section class="content">
+    <div class="container-fluid">
+      <div class="row">
+        <div class="col-md-8">
+          <form method="post">
+            {% csrf_token %}
+            {{ form.contact }}
+            {{ form.status }}
+            <div class="card card-primary">
+              <div class="card-body">
+                <div class="form-row">
+                  <div class="form-group col-md-4">
+                    {{ form.activity_type.label_tag }}
+                    {{ form.activity_type|add_class:"form-control" }}
+                    {{ form.activity_type.errors }}
+                  </div>
+                  <div class="form-group col-md-4">
+                    {{ form.datetime.label_tag }}
+                    {{ form.datetime|add_class:"form-control datetimepicker"|attr:"autocomplete:off" }}
+                    {{ form.datetime.errors }}
+                  </div>
+                  <div class="form-group col-md-4">
+                    {{ form.direction.label_tag }}
+                    {{ form.direction|add_class:"form-control" }}
+                    {{ form.direction.errors }}
+                  </div>
+                </div>
+                <div class="form-row form-group col">
+                  {{ form.notes.label_tag }}
+                  {{ form.notes|add_class:"form-control" }}
+                  {{ form.notes.errors }}
+                </div>
+              </div>
+              <div class="card-footer text-right">
+                <button type="submit" class="btn btn-primary">{% trans "Save" %}</button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </section>
+{% endblock %}

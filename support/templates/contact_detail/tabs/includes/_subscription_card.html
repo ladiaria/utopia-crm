@@ -1,5 +1,4 @@
 {% load i18n core_tags %}
-
 <div class="card {% if subscription.status == "PA" %}bg-secondary{% endif %}">
   <div class="card-body">
     <div class="row">
@@ -20,12 +19,13 @@
             </div>
           {% endfor %}
         </dd>
-
         {% if subscription.type == "N" %}
           <div class="row">
             <div class="col-6">
               <dt>{% trans "Frequency" %}:</dt>
-              <dd>{{ subscription.get_frequency }}</dd>
+              <dd>
+                {{ subscription.get_frequency }}
+              </dd>
             </div>
             <div class="col-6">
               <dt>{% trans "Price" %}:</dt>
@@ -41,44 +41,81 @@
       </div>
       <div class="col-3">
         <dt>{% trans "Status" %}:</dt>
-        <dd>{{ subscription.get_status_display }}</dd>
+        <dd>
+          {{ subscription.get_status_display }}
+        </dd>
         {% if subscription.status == "PA" %}
           <dt>{% trans "Paused until" %}:</dt>
-          <dd>{{ subscription.paused_until|date:"d/m/Y" }}</dd>
+          <dd>
+            {{ subscription.paused_until|date:"d/m/Y" }}
+          </dd>
         {% endif %}
         {% if subscription.has_subscriptionproduct_in_special_route %}
           <dt>{% trans "Special route" %}:</dt>
-          <dd>{% trans "Yes" %}</dd>
+          <dd>
+            {% trans "Yes" %}
+          </dd>
         {% endif %}
         {% if subscription.last_paid_invoice %}
           <dt>{% trans "Last paid invoice" %}:</dt>
-          <dd>{{ subscription.last_paid_invoice.number }}</dd>
+          <dd>
+            {{ subscription.last_paid_invoice.number }}
+          </dd>
         {% endif %}
         <dt>{% trans "Next invoice" %}:</dt>
-        <dd>{{ subscription.next_billing|date:"d/m/Y" }}</dd>
+        <dd>
+          {{ subscription.next_billing|date:"d/m/Y" }}
+        </dd>
         <dt>{% trans "Start date" %}:</dt>
-        <dd>{{ subscription.start_date|date:"d/m/Y" }}</dd>
+        <dd>
+          {{ subscription.start_date|date:"d/m/Y" }}
+        </dd>
         <dt>{% trans "End date" %}:</dt>
-        <dd>{{ subscription.end_date|date:"d/m/Y"|default:"-" }}</dd>
+        <dd>
+          {{ subscription.end_date|date:"d/m/Y"|default:"-" }}
+          ({% days_until subscription.end_date %})
+        </dd>
       </div>
       <div class="col-3">
         {% if subscription.is_obsolete %}
           <dt>{% trans "Replaced by" %}:</dt>
-          <dd>{{ subscription.get_updated_subscription.number }}</dd>
+          <dd>
+            {{ subscription.get_updated_subscription.number }}
+          </dd>
         {% endif %}
         {% if subscription.unsubscription_date %}
           <dt>{% trans "Unsubscription date" %}:</dt>
-          <dd>{{ subscription.unsubscription_date|date:"d/m/Y" }}</dd>
+          <dd>
+            {{ subscription.unsubscription_date|date:"d/m/Y" }}
+          </dd>
+          <dt>{% trans "Unsubscription type" %}:</dt>
+          <dd>
+            {{ subscription.get_unsubscription_type_display }}
+          </dd>
           <dt>{% trans "Unsubscription reason" %}:</dt>
-          <dd>{{ subscription.get_unsubscription_reason_display }}</dd>
+          <dd>
+            {{ subscription.get_unsubscription_reason_display }}
+          </dd>
+          <dt>{% trans "Unsubscription channel" %}:</dt>
+          <dd>
+            {{ subscription.get_unsubscription_channel_display }}
+          </dd>
+          <dt>{% trans "Unsubscription manager" %}:</dt>
+          <dd>
+            {{ subscription.unsubscription_manager_name }}
+          </dd>
+
         {% endif %}
       </div>
     </div>
   </div>
-
-  {% if request.user|in_group:"Support" or request.user|in_group:"Managers" %}
-    <div class="card-footer text-right">
+  <div class="card-footer text-right">
+    {% if request.user|in_group:"Support" or request.user|in_group:"Managers" %}
       {% include "contact_detail/tabs/includes/_subscription_actions.html" with subscription=subscription %}
-    </div>
-  {% endif %}
+    {% endif %}
+    <a href="{% url "edit_envelopes" subscription.id %}"
+       class="btn btn-info"><i class="fas fa-envelope"></i></a>
+    <a href="{% url "upload_payment_certificate" subscription.id %}"
+       class="btn btn-info"><i class="fas fa-file-invoice-dollar"></i></a>
+</div>
 </div>

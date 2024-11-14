@@ -412,7 +412,24 @@ class ProductAdmin(admin.ModelAdmin):
         "edition_frequency",
         "temporary_discount_months",
     ]
-    readonly_fields = ("slug",)
+    fieldsets = (
+        (_("Information"), {
+            "fields": ("name", "slug", "type"),
+        }),
+        (_("Pricing & Discounts"), {
+            "fields": ("price", "offerable", "temporary_discount_months"),
+            "description": "Set the product price and any applicable discounts."
+        }),
+        (_("Scheduling & Frequency"), {
+            "fields": ("weekday", "edition_frequency"),
+            "description": "Specify scheduling options, such as day of the week and frequency."
+        }),
+        (_("Billing & Priority"), {
+            "fields": ("billing_priority", "active"),
+            "description": "Set the billing priority and active status."
+        }),
+    )
+    # readonly_fields = ("slug",)
 
 
 class PlanAdmin(admin.ModelAdmin):

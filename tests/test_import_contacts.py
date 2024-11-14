@@ -38,7 +38,7 @@ class ImportContactsViewTest(TestCase):
                     'address_1': '123 Test St',
                     'address_2': 'Apt 4',
                     'city': 'Test City',
-                    'state': 'TS',
+                    'state': '',
                     'country': 'Test Country',
                     'id_document_type': '',
                     'id_document': '123456',

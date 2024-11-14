@@ -6,8 +6,6 @@
 
 {% block no_heading %}
   <h1>
-    <a href="{% url "contact_list" %}">{% trans "Contacts" %}</a> >
-    <a href="{% url "contact_detail" object.subscription.contact.id %}">{{ object.subscription.contact.id }} - {{ object.subscription.contact.get_full_name }}</a> >
     {% trans "Validate Subscription" %}
   </h1>
 {% endblock no_heading %}

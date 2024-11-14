@@ -1,7 +1,7 @@
 {% load i18n widget_tweaks %}
 <div class="row">
   <div class="col-md-10">
-    <form method="post">
+    <form method="post" id="contact-form">
       {% csrf_token %}
       {% if form.errors %}
         {{ form.email_was_valid }}{{ form.email_replaced }}
@@ -23,20 +23,13 @@
             </div>
           </div>
           <div class="row">
-            <div class="form-group col-5">
+            <div class="form-group col-6">
               <label for="">{% trans "Tags" %}</label>
               {% render_field form.tags class="form-control" %}
             </div>
-            <div class="form-group col-5">
+            <div class="form-group col-6">
               <label for="">{% trans "Email" %}</label>
               {% render_field form.email class="form-control" %}
-            </div>
-            <div class="form-group col-2">
-              <label>{% trans "No email" %}</label>
-              <div class="form-check">
-                {% render_field form.no_email class="form-check-input" %}
-                <label for="" class="form-check-label">{% trans "No email" %}</label>
-              </div>
             </div>
           </div>
           <div class="row">
@@ -54,11 +47,15 @@
             </div>
           </div>
           <div class="row">
-            <div class="form-group col-6">
+            <div class="form-group col-2">
+              <label>{% trans "Id document type" %}</label>
+              {% render_field form.id_document_type class="form-control" %}
+            </div>
+            <div class="form-group col-5">
               <label for="">{% trans "Id document" %}</label>
               {% render_field form.id_document class="form-control" %}
             </div>
-            <div class="form-group col-6">
+            <div class="form-group col-5">
               <label for="">{% trans "Birthdate" %}</label>
               {% render_field form.birthdate class="form-control datepicker" %}
             </div>

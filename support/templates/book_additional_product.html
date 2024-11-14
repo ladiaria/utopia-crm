@@ -5,14 +5,8 @@
 {% endblock title %}
 
 {% block extra_js %}
-  <script type="text/javascript" src="{% static 'js/datepicker-es.js' %}"></script>
   <script type="text/javascript">
 $( function() {
-  $(".datepicker").datepicker({
-    dateFormat: 'yy-mm-dd',
-    minDate: "1",
-  });
-
   function activateSend() {
       var disable = false;
 
@@ -33,9 +27,8 @@ $( function() {
     };
 
   $("input:checkbox").change(function(){
-    activateSend();
-    console.log("hola")
-  });
+      activateSend();
+    });
 
 });
 
@@ -45,7 +38,7 @@ $( function() {
 
 {% block no_heading %}
   <h1>
-    <a href="{% url "contact_list" %}">{% trans "Contacts" %}</a> &raquo; <a href="{% url "contact_detail" subscription.contact.id %}">{{ subscription.contact.id }} - {{ subscription.contact.get_full_name }}</a> &raquo; {% trans "Book additional product(s)" %}
+    {% trans "Book additional product(s)" %}
   </h1>
   <p>{% trans "Currently only products with a monthly edition frequency can be added" %}</p>
 {% endblock %}
@@ -127,7 +120,7 @@ $( function() {
               <div class="col-6">
                 <div class="form-group">
                   <label for="id_end_date">{% trans "Start date for new product" %}</label>
-                  {{ form.end_date }}
+                  {% render_field form.end_date class="form-control" type="date" %}
                   <span class="error invalid-feedback">{{ form.end_date.errors }}</span>
                 </div>
                 <div class="form-group">

@@ -61,7 +61,7 @@
                          name="export"
                          value="{% trans "Export to CSV" %}" />
                 {% endif %}
-                <p>{{ count }} {% trans "contacts" %}</p>
+                <p>{{ paginator.count }} {% trans "contacts" %}</p>
               </div>
             </div>
           </form>
@@ -71,8 +71,11 @@
     <div class="col-md-12">
       <div class="card">
         <div class="card-body">
-          <h3>{% trans "All contacts" %}</h3>
-          <table id="table1" class="table table-bordered table-striped">
+          <div class="d-flex justify-content-between">
+            <h3>{% trans "All contacts" %}</h3>
+            <a href="{% url "create_contact" %}" class="btn btn-primary">{% trans "Create contact" %}</a>
+          </div>
+          <table id="table1" class="table table-bordered table-striped mt-2">
             <thead>
               <tr role="row">
                 <th>{% trans "Full name" %}</th>
@@ -85,12 +88,12 @@
               </tr>
             </thead>
             <tbody>
-              {% for contact in contacts %}
+              {% for contact in page_obj %}
                 <tr role="row">
                   <td>
                     <a href="{% url "contact_detail" contact.id %}">{{ contact.get_full_name|default_if_none:"" }}</a>
                   </td>
-                  <td>{{ contact.email|default_if_none:"" }}</td>
+                  <td>{{ contact.email|default_if_none:"-" }}</td>
                   <td>{{ contact.phone|default_if_none:"" }}</td>
                   <td>
                     {% for sp in contact.get_active_subscriptionproducts %}
@@ -109,15 +112,14 @@
                     {% endfor %}
                   </td>
                   <td>
-                    <ul>
+                    <ul class="ml-0 pl-2 list-unstyled">
                       {% for address in contact.addresses.all %}
-                        {{ address.address_1|default_if_none:"" }} {{ address.state|default_if_none:"" }}
+                        <li>{{ address.address_1|default_if_none:"" }} {{ address.state|default_if_none:"" }}</li>
                       {% endfor %}
                     </ul>
                   </td>
                   <td>
-                    {{ contact.last_activity.datetime|date:"SHORT_DATE_FORMAT" }}
-                    {% if contact.last_activity.activity_type %}/ {{ contact.last_activity.get_type }}{% endif %}
+                    {{ contact.get_last_activity_formatted|default_if_none:"-" }}
                   </td>
                   <td>
                     <a href="{% url "contact_detail" contact.id %}" class="btn btn-primary"><i class="fa fa-eye"></i></a>
@@ -130,7 +132,7 @@
       </div>
     </div>
   </div>
-  {% if contacts.has_other_pages %}
-    {% include "components/_pagination.html" with page_obj=contacts %}
+  {% if page_obj.has_other_pages %}
+    {% include "components/_pagination.html" %}
   {% endif %}
 {% endblock %}

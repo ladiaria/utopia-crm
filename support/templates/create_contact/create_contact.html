@@ -18,13 +18,9 @@
 
 {% block no_heading %}
   {% if contact %}
-    <h1>
-      <a href="{% url 'contact_list' %}">{% trans "Contacts" %}</a> /
-      <a href="{% url 'contact_detail' contact.id %}">{{ contact.id }} - {{ contact.get_full_name }}</a> /
-      {% trans "Edit contact" %}
-    </h1>
+    <h1>{% trans "Contact data" %}</h1>
   {% else %}
-    <h1>{% trans "Contacts" %} / {% trans "New contact" %}</h1>
+    <h1>{% trans "New contact" %}</h1>
   {% endif %}
 {% endblock no_heading %}
 
@@ -39,9 +35,11 @@
                 <li class="nav-item">
                   <a class="nav-link active" href="#data" data-toggle="tab">{% trans "Contact data" %}</a>
                 </li>
-                <li class="nav-item">
-                  <a class="nav-link" href="#newsletters" data-toggle="tab">{% trans "Newsletters and communications" %}</a>
-                </li>
+                {% if contact %}
+                  <li class="nav-item">
+                    <a class="nav-link" href="#newsletters" data-toggle="tab">{% trans "Newsletters and communications" %}</a>
+                  </li>
+                {% endif %}
               </ul>
             </div>
             <div class="card-body">
@@ -62,7 +60,9 @@
               {% endif %}
               <div class="tab-content">
                 <div class="active tab-pane" id="data">{% include "create_contact/tabs/_data.html" %}</div>
-                <div class="tab-pane" id="newsletters">{% include "create_contact/tabs/_newsletters.html" %}</div>
+                {% if contact %}
+                  <div class="tab-pane" id="newsletters">{% include "create_contact/tabs/_newsletters.html" %}</div>
+                {% endif %}
               </div>
             </div>
           </div>

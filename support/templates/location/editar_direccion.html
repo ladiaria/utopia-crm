@@ -22,7 +22,7 @@
 
 {% block no_heading %}
   <h1>
-    <a href="{% url "contact_list" %}">{% trans "Contacts" %}</a> > <a href="{% url "contact_detail" contact.id %}">{{ contact.id }} - {{ contact.get_full_name }}</a> > Editar dirección
+    {% trans "Edit address" %}
   </h1>
 {% endblock no_heading %}
 
@@ -71,13 +71,13 @@
                                    class="m-2 btn-large btn btn-info">
                           </p>
                         </div>
-                        <div class="col text-right">
-                          <input type="submit"
-                                 value="Guardar sin georeferenciación"
-                                 name="save_no_georef"
-                                 class="btn-large btn btn-primary">
-                        </div>
                       {% endif %}
+                      <div class="col text-right">
+                        <input type="submit"
+                               value="Guardar cambios"
+                               name="save_no_georef"
+                               class="btn-large btn btn-primary">
+                      </div>
                     </div>
                   </form>
                 </div>
