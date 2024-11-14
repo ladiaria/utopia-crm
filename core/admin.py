@@ -47,6 +47,8 @@ from .models import (
     ActivityTopic,
     ActivityResponse,
     ProductSubscriptionPeriod,
+    TermsAndConditions,
+    TermsAndConditionsProduct,
 )
 from .forms import SubscriptionAdminForm, ContactAdminForm
 
@@ -389,6 +391,12 @@ class ContactAdmin(SimpleHistoryAdmin):
                 del obj._skip_clean
 
 
+class TermsAndConditionsProductInline(admin.TabularInline):
+    model = TermsAndConditionsProduct
+    fields = ("terms_and_conditions", "date")
+    extra = 1
+
+
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
     # TODO: validations, for example target_product only makes sense on discount products
@@ -429,6 +437,7 @@ class ProductAdmin(admin.ModelAdmin):
             "fields": ("billing_priority", "active", "edition_frequency"),
         }),
     )
+    inlines = [TermsAndConditionsProductInline]
     # readonly_fields = ("slug",)
 
 
@@ -568,3 +577,4 @@ admin.site.register(State)
 admin.site.register(ActivityTopic)
 admin.site.register(ActivityResponse)
 admin.site.register(ProductSubscriptionPeriod)
+admin.site.register(TermsAndConditions)
