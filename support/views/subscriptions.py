@@ -80,7 +80,8 @@ class SubscriptionMixin(BreadcrumbsMixin):
         kwargs["contact"] = self.get_contact(self.kwargs["contact_id"])
         return kwargs
 
-    def get_initial_data(self, contact):
+    def get_initial_data(self):
+        contact = self.contact
         contact_addresses = Address.objects.filter(contact=contact)
         return {
             "contact": contact,
@@ -90,6 +91,7 @@ class SubscriptionMixin(BreadcrumbsMixin):
             "mobile": contact.mobile,
             "email": contact.email,
             "id_document": contact.id_document,
+            "id_document_type": contact.id_document_type,
             "default_address": contact_addresses,
             "copies": 1,
         }
@@ -320,7 +322,7 @@ class SubscriptionUpdateView(SubscriptionMixin, FormView):
         return super().dispatch(request, *args, **kwargs)
 
     def get_initial(self):
-        initial_data = self.get_initial_data(self.contact)
+        initial_data = self.get_initial_data()
         if self.subscription:
             initial_data.update(
                 {

@@ -33,6 +33,20 @@
                     {{ form.direction.errors }}
                   </div>
                 </div>
+                <div class="form-row">
+                  <div class="form-group col">
+                    {{ form.topic.label_tag }}
+                    {{ form.topic|add_class:"form-control" }}
+                    {{ form.topic.errors }}
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group col">
+                    {{ form.response.label_tag }}
+                    {{ form.response|add_class:"form-control" }}
+                    {{ form.response.errors }}
+                  </div>
+                </div>
                 <div class="form-row form-group col">
                   {{ form.notes.label_tag }}
                   {{ form.notes|add_class:"form-control" }}

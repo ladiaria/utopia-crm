@@ -147,9 +147,7 @@ class NewAddressChangeScheduledTaskForm(forms.Form):
 
 class NewPromoForm(EmailValidationForm):
     name = forms.CharField(widget=forms.TextInput(attrs={"class": "form-control"}))
-    last_name = forms.CharField(
-        widget=forms.TextInput(attrs={"class": "form-control"}), required=False
-    )
+    last_name = forms.CharField(widget=forms.TextInput(attrs={"class": "form-control"}), required=False)
     phone = PhoneNumberField(
         empty_value="",
         required=False,
@@ -600,8 +598,7 @@ class NewActivityForm(forms.ModelForm):
 
 class CreateActivityForm(forms.ModelForm):
     datetime = forms.DateTimeField(
-        widget=forms.DateTimeInput(attrs={'type': 'datetime-local'}),
-        input_formats=['%Y-%m-%dT%H:%M']
+        widget=forms.DateTimeInput(attrs={'type': 'datetime-local'}), input_formats=['%Y-%m-%dT%H:%M']
     )
 
     def __init__(self, *args, **kwargs):
@@ -611,11 +608,15 @@ class CreateActivityForm(forms.ModelForm):
         self.fields["datetime"].initial = timezone.now().strftime("%Y-%m-%dT%H:%M")
         self.fields["status"].initial = "C"
         self.fields["direction"].initial = "I"
+        self.fields["topic"].required = False
+        self.fields["response"].required = False
 
     class Meta:
         model = Activity
         fields = [
             "contact",
+            "topic",
+            "response",
             "direction",
             "datetime",
             "notes",

@@ -6,48 +6,55 @@
     </div>
     <div class="card-body">
       {% if all_activities %}
-        <table class="table">
-          <thead>
-            <tr role="row">
-              <th>{% trans "Date" %}</th>
-              <th>{% trans "Activity type" %}</th>
-              <th>{% trans "Direction" %}</th>
-              <th>{% trans "Campaign" %}</th>
-              <th>{% trans "Product" %}</th>
-              <th>{% trans "Issue" %}</th>
-              <th>{% trans "Status" %}</th>
-              <th>{% trans "Created by" %}</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for activity in all_activities %}
+        <div class="table-responsive">
+          <table class="table">
+            <thead>
               <tr role="row">
-                <td>{{ activity.datetime|date:"d/m/Y H:i" }}</td>
-                <td>{{ activity.get_type }}</td>
-                <td>{{ activity.get_direction }}</td>
-                <td>{{ activity.campaign|default_if_none:"-" }}</td>
-                <td>{{ activity.product|default_if_none:"-" }}</td>
-                <td>
-                  {% if activity.issue %}
-                    <a href="{% url "view_issue" activity.issue.id %}"
-                       class="btn btn-primary btn-sm">{% trans "View" %}</a>
-                  {% else %}
-                    -
-                  {% endif %}
-                </td>
-                <td>{{ activity.get_status }}</td>
-                <td>{{ activity.created_by_name|default_if_none:"-" }}</td>
-                <td>
-                  <a href="#"
-                     class="btn btn-primary btn-sm"
-                     data-toggle="modal"
-                     data-target="#activityView-{{ activity.id }}">{% trans "View" %}</a>
-                </td>
+                <th>{% trans "Date" %}</th>
+                <th>{% trans "Activity type" %}</th>
+                <th>{% trans "Direction" %}</th>
+                <th>{% trans "Campaign" %}</th>
+                <th>{% trans "Product" %}</th>
+                <th>{% trans "Issue" %}</th>
+                <th>{% trans "Status" %}</th>
+                <th>{% trans "Topic" %}</th>
+                <th>{% trans "Response" %}</th>
+                <th>{% trans "Created by" %}</th>
+                <th></th>
               </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {% for activity in all_activities %}
+                <tr role="row"
+                    style="{% if activity.topic or activity.response %}border-bottom: none{% endif %}">
+                  <td>{{ activity.datetime|date:"d/m/Y H:i" }}</td>
+                  <td>{{ activity.get_type }}</td>
+                  <td>{{ activity.get_direction }}</td>
+                  <td>{{ activity.campaign|default_if_none:"-" }}</td>
+                  <td>{{ activity.product|default_if_none:"-" }}</td>
+                  <td>
+                    {% if activity.issue %}
+                      <a href="{% url "view_issue" activity.issue.id %}"
+                         class="btn btn-primary btn-sm">{% trans "View" %}</a>
+                    {% else %}
+                      -
+                    {% endif %}
+                  </td>
+                  <td>{{ activity.get_status }}</td>
+                  <td>{{ activity.topic|default_if_none:"-" }}</td>
+                  <td>{{ activity.response|default_if_none:"-" }}</td>
+                  <td>{{ activity.created_by_name|default_if_none:"-" }}</td>
+                  <td>
+                    <a href="#"
+                       class="btn btn-primary btn-sm"
+                       data-toggle="modal"
+                       data-target="#activityView-{{ activity.id }}">{% trans "View" %}</a>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
       {% else %}
         {% trans "This contact has no activities" %}
       {% endif %}

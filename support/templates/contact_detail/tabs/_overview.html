@@ -243,6 +243,16 @@
                     <span class="font-weight-bold">{% trans "Notes" %}:</span> {{ a.notes|linebreaks|default_if_none:"" }}
                   </p>
                 {% endif %}
+                {% if a.topic %}
+                  <p class="mb-1">
+                    <span class="font-weight-bold">{% trans "Topic" %}:</span> {{ a.topic }}
+                  </p>
+                {% endif %}
+                {% if a.response %}
+                  <p class="mb-1">
+                    <span class="font-weight-bold">{% trans "Response" %}:</span> {{ a.response|linebreaks|default_if_none:"" }}
+                  </p>
+                {% endif %}
               </div>
             {% endfor %}
           </div>

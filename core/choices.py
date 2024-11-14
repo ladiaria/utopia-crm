@@ -91,10 +91,11 @@ ACTIVITY_STATUS_CHOICES = (
     ("D", _("Delayed")),
 )
 
-
 ACTIVITY_DIRECTION_CHOICES = (
     ("I", _("In")),
     ("O", _("Out")),
+    ("N", _("Internal")),
+    ("R", _("Renewal")),
 )
 
 CAMPAIGN_STATUS_CHOICES = (
