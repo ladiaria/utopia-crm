@@ -1657,7 +1657,7 @@ class Subscription(models.Model):
         dict_all_products = {str(sp.product.id): str(sp.copies) for sp in subscription_products}
         return process_products(dict_all_products)
 
-    # def product_summary(self):
+    # def product_summary(self):  TODO: explain why this is commented or remove it
     #     """Cached version of product summary to avoid repeated queries"""
     #     subscription_products = self.subscriptionproduct_set.select_related('product').all()
     #     dict_all_products = {str(sp.product.id): str(sp.copies) for sp in subscription_products}
