@@ -429,7 +429,7 @@ class ProductAdmin(admin.ModelAdmin):
             "description": "Set the billing priority and active status."
         }),
     )
-    # readonly_fields = ("slug",)
+    # readonly_fields = ("slug",)  TODO: explain why this line is commented or remove it at all
 
 
 class PlanAdmin(admin.ModelAdmin):
