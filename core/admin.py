@@ -437,7 +437,7 @@ class ProductAdmin(admin.ModelAdmin):
             "fields": ("billing_priority", "active", "edition_frequency"),
         }),
     )
-    inlines = [TermsAndConditionsProductInline]
+    inlines = (TermsAndConditionsProductInline,)
     # readonly_fields = ("slug",)
 
 
