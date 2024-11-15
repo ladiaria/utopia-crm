@@ -111,15 +111,6 @@ class EmailValidationForm(forms.Form):
                     return email
 
 
-def validate_no_email(form, no_email, email):
-    """
-    If no_email is checked, the the email should be None.
-    If no_email is not checked, then no assertions should be made because the contact's email is yet uknown.
-    """
-    if no_email and email:
-        form.add_error('no_email', forms.ValidationError(no_email_validation_msg))
-
-
 class ContactAdminForm(EmailValidationForm, forms.ModelForm):
     class Meta:
         model = Contact
@@ -140,16 +131,10 @@ class ContactAdminForm(EmailValidationForm, forms.ModelForm):
             email = cleaned_data.get("email")
             if email:
                 email = self.email_extra_clean(cleaned_data)
-
-            # no_email validation:
-            validate_no_email(self, cleaned_data.get("no_email"), email)
+        return cleaned_data
 
     def clean_id_document(self):
         id_document = self.cleaned_data.get("id_document")
-
-        if id_document and not id_document.isdigit():
-            msg = _("This field only admits numeric characters")
-            raise forms.ValidationError(msg)
 
         if id_document and self.instance:
             s = Contact.objects.filter(id_document=id_document).exclude(pk=self.instance.pk)

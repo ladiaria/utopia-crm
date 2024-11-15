@@ -1,0 +1,291 @@
+{% extends "adminlte/base.html" %}
+{% load i18n %}
+{% load static core_tags %}
+{% block no_heading %}
+  <h1>{% trans "Invoice Detail" %} #{{ object.id }}</h1>
+{% endblock no_heading %}
+
+{% block content %}
+  <section>
+    <div class="d-flex flex-wrap justify-content-end gap-4 container-fluid mb-3">
+      {% block invoice_actions %}
+        {% if perms.invoicing.change_invoice %}
+          <a href="{% url "admin:invoicing_invoice_change" object.id %}"
+             class="btn btn-sm btn-primary"><i class="fas fa-pencil-alt"></i> {% trans "Edit" %}</a>
+        {% endif %}
+        {% if perms.invoicing.can_cancel_invoice %}
+          <a href="{% url "cancel_invoice" object.id %}"
+             class="btn btn-sm btn-danger"><i class="fas fa-times"></i> {% trans "Cancel" %}</a>
+        {% endif %}
+        {% if object.pdf %}
+          <a href="{% url "download_invoice" object.id %}"
+             class="btn btn-sm btn-primary"><i class="fas fa-file-pdf"></i> {% trans "Download PDF" %}</a>
+        {% else %}
+          <span class="btn btn-sm btn-warning">{% trans "No PDF available" %}</span>
+        {% endif %}
+      {% endblock invoice_actions %}
+
+    </div>
+  </section>
+  <section class="content">
+    <div class="container-fluid">
+      <div class="row">
+        <div class="col-12">
+          <!-- Main info card -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">{% trans "Invoice Information" %}</h3>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="info-box">
+                    <div class="info-box-content">
+                      <div class="form-group">
+                        <label>{% trans "Contact" %}</label>
+                        <p>
+                          {{ object.contact.id }} - {{ object.contact }} <a href="{% url "contact_detail" object.contact.id %}"
+    class="btn btn-sm btn-primary ml-2"><i class="fas fa-external-link-alt"></i> {% trans "Go to contact" %}</a>
+                        </p>
+                      </div>
+                      <div class="form-group">
+                        <label>{% trans "Subscription" %}</label>
+                        {% if object.subscription %}
+                          <p>{{ object.subscription.id }} - {{ object.subscription|default_if_none:"-" }}</p>
+                          <div class="d-flex">
+                            <a href="{% url "contact_detail" object.subscription.contact.id %}#subscriptions"
+                               class="btn btn-sm btn-primary"><i class="fas fa-external-link-alt"></i> {% trans "Go to subscriptions" %}</a>
+                            {% if perms.core.change_subscription %}
+                              <a href="{% url "admin:core_subscription_change" object.subscription.id %}"
+                                 class="btn btn-sm btn-primary ml-2"><i class="fas fa-external-link-alt"></i> {% trans "Go to subscription in admin" %}</a>
+                            {% endif %}
+                          </div>
+                        {% else %}
+                          <p>{% trans "No subscription associated" %}</p>
+                        {% endif %}
+                      </div>
+                      <div class="form-group">
+                        <label>{% trans "Amount" %}</label>
+                        <p>{{ object.amount }}</p>
+                      </div>
+                      <div class="form-group">
+                        <label>{% trans "Payment Type" %}</label>
+                        <p>{{ object.get_payment_type_display }}</p>
+                      </div>
+                      {% block extra_payment_type_info %}
+                      {% endblock extra_payment_type_info %}
+
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="info-box">
+                    <div class="info-box-content">
+                      <div class="form-group">
+                        <label>{% trans "Creation Date" %}</label>
+                        <p>{{ object.creation_date }}</p>
+                      </div>
+                      <div class="form-group">
+                        <label>{% trans "Expiration Date" %}</label>
+                        <p>{{ object.expiration_date }}</p>
+                      </div>
+                      <div class="form-group">
+                        <label>{% trans "Service Period" %}</label>
+                        <p>{{ object.service_from }} - {{ object.service_to }}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- Status card -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">{% trans "Status" %}</h3>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="info-box">
+                    <div class="info-box-content">
+                      <div class="form-group">
+                        <label>{% trans "Payment Status" %}</label>
+                        <div>
+                          {% if object.paid %}
+                            <span class="badge badge-success">{% trans "Paid" %}</span>
+                          {% elif object.debited %}
+                            <span class="badge badge-info">{% trans "Debited" %}</span>
+                          {% else %}
+                            <span class="badge badge-warning">{% trans "Pending" %}</span>
+                          {% endif %}
+                        </div>
+                      </div>
+                      {% if object.payment_date %}
+                        <div class="form-group">
+                          <label>{% trans "Payment Date" %}</label>
+                          <p>{{ object.payment_date }}</p>
+                        </div>
+                      {% endif %}
+                      {% if object.payment_reference %}
+                        <div class="form-group">
+                          <label>{% trans "Payment Reference" %}</label>
+                          <p>{{ object.payment_reference }}</p>
+                        </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="info-box">
+                    <div class="info-box-content">
+                      <div class="form-group">
+                        <label>{% trans "Invoice Status" %}</label>
+                        <div>
+                          {% if object.canceled %}
+                            <span class="badge badge-danger">{% trans "Canceled" %}</span>
+                          {% elif object.uncollectible %}
+                            <span class="badge badge-secondary">{% trans "Uncollectible" %}</span>
+                          {% elif object.is_overdue %}
+                            <span class="badge badge-danger">{% trans "Overdue" %}</span>
+                          {% elif object.is_pending %}
+                            <span class="badge badge-warning">{% trans "Pending" %}</span>
+                          {% elif object.is_paid %}
+                            <span class="badge badge-success">{% trans "Paid" %}</span>
+                          {% else %}
+                            <span class="badge badge-info">{% trans "Active" %}</span>
+                          {% endif %}
+                        </div>
+                      </div>
+                      {% if object.canceled %}
+                        <div class="form-group">
+                          <label>{% trans "Cancelation Date" %}</label>
+                          <p>{{ object.cancelation_date }}</p>
+                        </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- Billing data card -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">{% trans "Billing Data" %}</h3>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="form-group">
+                    <label>{% trans "Billing Name" %}</label>
+                    <p>{{ object.billing_name|default_if_none:"-" }}</p>
+                  </div>
+                  <div class="form-group">
+                    <label>{% trans "Billing Address" %}</label>
+                    <p>{{ object.billing_address|default_if_none:"-" }}</p>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="form-group">
+                    <label>{% trans "Billing State" %}</label>
+                    <p>{{ object.billing_state|default_if_none:"-" }}</p>
+                  </div>
+                  <div class="form-group">
+                    <label>{% trans "Billing City" %}</label>
+                    <p>{{ object.billing_city|default_if_none:"-" }}</p>
+                  </div>
+                  <div class="form-group">
+                    <label>{% trans "Billing Document" %}</label>
+                    <p>{{ object.billing_document|default_if_none:"-" }}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- Invoice items -->
+          {% if object.invoiceitem_set.exists %}
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">{% trans "Invoice Items" %}</h3>
+              </div>
+              <div class="card-body">
+                <!-- Products table -->
+                {% if object.product_items %}
+                  <div class="table-responsive">
+                    <table class="table table-hover text-nowrap">
+                      <thead>
+                        <tr>
+                          <th>{% trans "Product" %}</th>
+                          <th>{% trans "Description" %}</th>
+                          <th>{% trans "Amount" %}</th>
+                          <th>{% trans "Price" %}</th>
+                          <th>{% trans "Copies" %}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {% for item in object.product_items %}
+                          <tr>
+                            <td>{{ item.product }}</td>
+                            <td>{{ item.description }}</td>
+                            <td>{{ item.amount }}</td>
+                            <td>{{ item.price }}</td>
+                            <td>{{ item.copies }}</td>
+                          </tr>
+                        {% endfor %}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div class="d-flex justify-content-end mb-4">
+                    <div class="px-3">
+                      <strong>{% trans "Products Total" %}:</strong>
+                      <strong class="ms-2">{{ object.get_product_total }}</strong>
+                    </div>
+                  </div>
+                {% endif %}
+                <!-- Discounts table -->
+                {% if object.discount_items %}
+                  <div class="table-responsive">
+                    <table class="table table-hover text-nowrap">
+                      <thead>
+                        <tr>
+                          <th>{% trans "Discount" %}</th>
+                          <th>{% trans "Description" %}</th>
+                          <th>{% trans "Amount" %}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {% for item in object.discount_items %}
+                          <tr>
+                            <td>{{ item.product }}</td>
+                            <td>{{ item.description }}</td>
+                            <td>{{ item.amount }}</td>
+                          </tr>
+                        {% endfor %}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div class="d-flex justify-content-end">
+                    <div class="px-3">
+                      <strong>{% trans "Discounts Total" %}:</strong>
+                      <strong class="ms-2">{{ object.get_discount_total }}</strong>
+                    </div>
+                  </div>
+                {% endif %}
+                <div class="d-flex justify-content-end">
+                  <div class="px-3 mt-3">
+                    <strong>{% trans "Total" %}:</strong>
+                    <strong class="ms-2">{{ object.amount }}</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+          {% endif %}
+          {% block extra_cards %}
+          {% endblock extra_cards %}
+
+        </div>
+      </div>
+    </div>
+  </section>
+{% endblock %}

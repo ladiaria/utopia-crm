@@ -1,40 +1,68 @@
 {% extends "adminlte/base.html" %}
-{% load static i18n %}
+{% load static i18n widget_tweaks %}
 {% block title %}
   {% trans "New scheduled task" %} - {% trans "Address change" %}
 {% endblock %}
 
+{% block no_heading %}
+  <h1>
+    {% trans "Change address" %}
+  </h1>
+{% endblock %}
+
 {% block extra_js %}
   <script type="text/javascript">
-$(function(){
-  $(".datepicker").datepicker(
-    { dateFormat: 'yy-mm-dd' }).datepicker("setDate", new Date());
-    if ($('#id_new_address').is(":checked") ){
-      $('.newaddress-group').removeClass('d-none');
+  document.addEventListener('DOMContentLoaded', () => {
+    const newAddressCheckbox = document.getElementById('id_new_address');
+    const newAddressGroup = document.querySelector('.newaddress-group');
+    const sendFormButton = document.getElementById('send_form');
+
+    // Show/hide the address group based on checkbox state
+    if (newAddressCheckbox.checked) {
+      newAddressGroup.classList.remove('d-none');
     }
-    $('#id_new_address').click(function(){
-      $('.newaddress-group').toggleClass('d-none');
+
+    newAddressCheckbox.addEventListener('click', () => {
+      newAddressGroup.classList.toggle('d-none');
     });
-    function activateSend() {
-      if ($(".sp-checkbox:checked").length == 0) {
-        $("#send_form").attr("disabled", "disabled");
-      }else{
-        $("#send_form").removeAttr("disabled");
+
+    // Function to enable/disable the submit button
+    const activateSend = () => {
+      if (document.querySelectorAll('.sp-checkbox:checked').length === 0) {
+        sendFormButton.setAttribute('disabled', 'disabled');
+      } else {
+        sendFormButton.removeAttribute('disabled');
       }
     };
+
+    // Initial activation of the send button based on checkboxes
     activateSend();
 
-    $("input:checkbox, select").change(function(){
-      activateSend();
+    // Listen for changes on checkboxes and select elements
+    document.querySelectorAll('input[type="checkbox"], select').forEach((element) => {
+      element.addEventListener('change', activateSend);
     });
   });
   </script>
 {% endblock %}
 
-{% block no_heading %}
-  <h1>
-    <a href="{% url "contact_list" %}">{% trans "Contacts" %}</a> > <a href="{% url "contact_detail" contact.id %}">{{ contact.id }} - {{ contact.get_full_name }}</a> > {% trans "Address change" %}
-  </h1>
+{% block extra_head %}
+<style>
+  input[type="date"] {
+    position: relative;
+  }
+
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    color: transparent;
+    background: transparent;
+  }
+</style>
 {% endblock %}
 
 {% block content %}
@@ -87,7 +115,7 @@ $(function(){
                         <i class="far fa-calendar-alt"></i>
                       </span>
                     </div>
-                    {{ form.date_1 }}
+                    {% render_field form.date_1 class="form-control" type="date" %}
                     <span class="error invalid-feedback">{{ form.date_1.errors }}</span>
                   </div>
                 </div>

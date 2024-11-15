@@ -9,7 +9,7 @@
         <a class="nav-link" data-widget="pushmenu" href="#"><img src="{% static "img/sidebar-svgrepo-com.svg" %}" alt="sidebar" class="nav-icon" height="30" width="30"></a>
       </li>
       <li class="nav-item d-none d-sm-inline-block">
-        <a href="{% url "main_menu" %}" class="nav-link">{% trans "Home" %}</a>
+        <a href="{% url "home" %}" class="nav-link">{% trans "Home" %}</a>
       </li>
     </ul>
     {% if request.user.is_authenticated %}

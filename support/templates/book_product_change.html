@@ -4,28 +4,31 @@
 {% block title %}{% trans "Book product change" %}{% endblock title %}
 
 {% block extra_js %}
-<script type="text/javascript" src="{% static 'js/datepicker-es.js' %}"></script>
 <script type="text/javascript">
-$( function() {
-  $(".datepicker").datepicker({
-    dateFormat: 'yy-mm-dd',
-    minDate: "1",
-  });
+  document.addEventListener('DOMContentLoaded', () => {
+    const formElement = document.getElementById('form-product-change');
 
-  $("#form").submit(function(event){
-    if ($(".disable-product:checked").length == 0 || $(".enable-product:checked").length == 0){
-      alert("Selecciona productos para activar y desactivar");
-    }else{
-      $("#form").submit();
-    }
-    return false;
+    formElement.addEventListener('submit', (event) => {
+      event.preventDefault();
+
+      const hasDisabledProducts = document.querySelectorAll('.disable-product:checked').length > 0;
+      const hasEnabledProducts = document.querySelectorAll('.enable-product:checked').length > 0;
+
+      if (!hasDisabledProducts || !hasEnabledProducts) {
+        alert("Selecciona productos para activar y desactivar");
+        return; // Stop the submission if conditions are not met
+      }
+
+      formElement.submit(); // Submit the form if both conditions are met
+    });
   });
-});
 </script>
 {% endblock %}
 
 {% block no_heading %}
-<h1><a href="{% url "contact_list" %}">{% trans "Contacts" %}</a> &raquo; <a href="{% url "contact_detail" subscription.contact.id %}">{{ subscription.contact.id }} - {{ subscription.contact.get_full_name }}</a> &raquo; {% trans "Book product change(s)" %} </h1>
+<h1>
+  {% trans "Book product change(s)" %}
+</h1>
 {% endblock %}
 
 {% block content %}
@@ -48,7 +51,7 @@ $( function() {
         {% if new_balance %}
         <div class="alert alert-warning m-2">Esta suscripción es {{ subscription.get_frequency_display }}: Se agregará un balance de $ {{ new_balance }} correspondiente a los {{ days_remaining }} días restantes de la suscripción.</div>
         {% endif %}
-        <form method="post" id="form">
+        <form method="post" id="form-product-change">
           {% csrf_token %}
           {% if form.errors %}
             {% for field in form %}
@@ -90,7 +93,7 @@ $( function() {
             <div class="col-6">
               <div class="form-group">
                 <label for="id_end_date">{{ form.end_date.label }}</label>
-                {{ form.end_date }}
+                {% render_field form.end_date class="form-control" type="date" %}
                 <span class="error invalid-feedback">{{ form.end_date.errors }}</span>
               </div>
             </div>
@@ -117,7 +120,7 @@ $( function() {
             <span class="error invalid-feedback">{{ form.unsubscription_addendum.errors }}</span>
           </div>
           <div class="form-group text-right">
-            <input type="submit" id="submit" name="submit" value='{% trans "Send" %}' class="btn bg-gradient-primary">
+            <input type="submit" id="submit-product-change" name="submit-product-change" value='{% trans "Send" %}' class="btn bg-gradient-primary">
           </div>
         </form>
       </div>

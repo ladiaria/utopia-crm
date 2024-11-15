@@ -23,3 +23,11 @@
     </div>
   {% endif %}
 {% endfor %}
+{% if subscriptions_count == 0 %}
+  <p>{% trans "This contact has no subscriptions" %}</p>
+{% endif %}
+<div class="text-right">
+  <a href="{% url "new_subscription" contact.id %}" class="btn btn-primary">
+    <i class="fas fa-plus-circle"></i> {% trans "Add subscription" %}
+  </a>
+</div>

@@ -1,28 +1,98 @@
 {% extends "adminlte/base.html" %}
 {% load static l10n i18n %}
-
 {% block title %}
-    {% trans "Bill subscriptions" %}
+  {% trans "Bill subscriptions" %}
 {% endblock %}
 
-{% block page_name %}
-Facturar contacto: <a href="{% url 'contact_detail' contact.id %}">{{ contact.get_full_name }}</a>
-{% endblock %}
+{% block no_heading %}
+  <h1>
+    {% blocktrans with contact=contact %}Bill subscriptions manually for {{ contact }}{% endblocktrans %}
+  </h1>
+{% endblock no_heading %}
 
 {% block content %}
-    {% localize off %}
-        {% if contact.protected %}
+  {% localize off %}
+  <div class="row">
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">{% trans "Billing Information" %}</h3>
+        </div>
+        <div class="card-body">
+          {% if contact.protected %}
             <div class="alert alert-danger">
-                ATENCION: CLIENTE PROTEGIDO<br/>
-                {{ cliente.razon_proteccion|linebreaks }}
+              <h5>
+                <i class="icon fas fa-ban"></i> {% trans "Warning!" %}
+              </h5>
+              <strong>{% trans "PROTECTED CLIENT" %}</strong>
+              <br />
+              {{ cliente.razon_proteccion|linebreaks }}
             </div>
-        {% endif %}
-        <form method="post">
+          {% endif %}
+          <form method="post">
             {% csrf_token %}
-            <input type="text" name="creation_date" value="{{ today }}"> Fecha emisión<br>
-            <input type="text" name="dpp" value="10"> Días para pagar<br>
-            <input type="submit">
-        </form>
-        {{ error }}
-    {% endlocalize %}
+            <div class="form-group">
+              <label for="creation_date">{% trans "Issue Date" %}</label>
+              <input type="date"
+                     class="form-control"
+                     id="creation_date"
+                     name="creation_date"
+                     value="{{ today }}">
+            </div>
+            <div class="form-group">
+              <label for="dpp">{% trans "Payment Terms (days)" %}</label>
+              <input type="number" class="form-control" id="dpp" name="dpp" value="10">
+            </div>
+            <button type="submit" class="btn btn-primary" {% if not active_subscriptions %}disabled{% endif %}>
+              <i class="fas fa-save"></i> {% trans "Generate Bill" %}
+            </button>
+          </form>
+          {% if error %}
+            <div class="alert alert-danger mt-3">
+              <h5>
+                <i class="icon fas fa-ban"></i> {% trans "Error" %}
+              </h5>
+              {{ error }}
+            </div>
+          {% endif %}
+
+          {% if active_subscriptions %}
+            <div class="table-responsive mt-4">
+              <h4>{% trans "Subscriptions to be billed" %}</h4>
+              <table class="table table-striped">
+                <thead>
+                  <tr>
+                    <th>{% trans "Subscription" %}</th>
+                    <th>{% trans "Products" %}</th>
+                    <th>{% trans "Price" %}</th>
+                    <th>{% trans "Frequency" %}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for subscription in active_subscriptions %}
+                    <tr>
+                      <td>{{ subscription.id }}</td>
+                      <td>{% for sp in subscription.get_subscriptionproducts %}
+                        {% include "contact_detail/tabs/includes/_subscription_icons.html" with sp=sp %}
+                        {{ sp.product.name }}
+                        {% if sp.label_contact %}({{ sp.label_contact.get_full_name }}){% endif %}
+                        <br>
+                      {% endfor %}</td>
+                      <td>{{ subscription.get_price_for_full_period }}</td>
+                      <td>{{ subscription.frequency }}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <div class="alert alert-warning">
+              {% trans "No active subscriptions to bill" %}
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+{% endlocalize %}
 {% endblock %}

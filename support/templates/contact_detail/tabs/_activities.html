@@ -16,13 +16,14 @@
               <th>{% trans "Product" %}</th>
               <th>{% trans "Issue" %}</th>
               <th>{% trans "Status" %}</th>
+              <th>{% trans "Created by" %}</th>
               <th></th>
             </tr>
           </thead>
           <tbody>
             {% for activity in all_activities %}
               <tr role="row">
-                <td>{{ activity.datetime }}</td>
+                <td>{{ activity.datetime|date:"d/m/Y H:i" }}</td>
                 <td>{{ activity.get_type }}</td>
                 <td>{{ activity.get_direction }}</td>
                 <td>{{ activity.campaign|default_if_none:"-" }}</td>
@@ -36,6 +37,7 @@
                   {% endif %}
                 </td>
                 <td>{{ activity.get_status }}</td>
+                <td>{{ activity.created_by_name|default_if_none:"-" }}</td>
                 <td>
                   <a href="#"
                      class="btn btn-primary btn-sm"

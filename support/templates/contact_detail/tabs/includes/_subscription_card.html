@@ -73,6 +73,7 @@
         <dt>{% trans "End date" %}:</dt>
         <dd>
           {{ subscription.end_date|date:"d/m/Y"|default:"-" }}
+          ({% days_until subscription.end_date %})
         </dd>
       </div>
       <div class="col-3">
@@ -87,10 +88,23 @@
           <dd>
             {{ subscription.unsubscription_date|date:"d/m/Y" }}
           </dd>
+          <dt>{% trans "Unsubscription type" %}:</dt>
+          <dd>
+            {{ subscription.get_unsubscription_type_display }}
+          </dd>
           <dt>{% trans "Unsubscription reason" %}:</dt>
           <dd>
             {{ subscription.get_unsubscription_reason_display }}
           </dd>
+          <dt>{% trans "Unsubscription channel" %}:</dt>
+          <dd>
+            {{ subscription.get_unsubscription_channel_display }}
+          </dd>
+          <dt>{% trans "Unsubscription manager" %}:</dt>
+          <dd>
+            {{ subscription.unsubscription_manager_name }}
+          </dd>
+
         {% endif %}
       </div>
     </div>

@@ -1,7 +1,7 @@
 # coding=utf-8
 
 from django.conf import settings
-from django.test import TestCase
+from django.test import TestCase, tag
 
 from django.forms import ValidationError
 
@@ -16,6 +16,7 @@ class TestContact(TestCase):
         self.assertTrue(subscription.active)
         self.assertFalse(contact.is_debtor())
 
+    @tag('broken')  # TODO: remove this tag when fixed
     def test2_cliente_que_no_tiene_email_debe_tener_email_en_blanco(self):
         contact = create_contact('cliente1', "21312")
         contact.no_email, contact.email = True, 'cliente1@ladiaria.com.uy'

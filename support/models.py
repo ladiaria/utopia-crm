@@ -439,7 +439,7 @@ class SalesRecord(models.Model):
             if products_count > max_count:
                 products_count = max_count
             return products_count
-        return self.subscription.subscriptionproduct_set.filter(type="S").count()
+        return self.subscription.subscriptionproduct_set.filter(product__type="S").count()
 
     def set_commission_for_products_sold(self, save=False, return_value=False):
         # For amount of products sold. Doesn't save unless specified
@@ -522,7 +522,11 @@ class SalesRecord(models.Model):
         cpt = f"{self.set_commission_for_payment_type(return_value=True)} ({self.subscription.get_payment_type_display()})"  # noqa
         cfp = f"{self.set_commission_for_products_sold(return_value=True)} ({self.max_products_count()})"
         cfs = f"{self.set_commission_for_subscription_frequency(return_value=True)} ({self.subscription.get_frequency_display()})"  # noqa
-        return f"{cpt} + {cfp} + {cfs} = {self.calculate_total_commission()}"
+        # Error catching
+        try:
+            return f"{cpt} + {cfp} + {cfs} = {self.calculate_total_commission()}"
+        except Exception as e:
+            return f"Error: {e}"
 
     def calculate_total_commission(self):
         if self.sale_type == self.SALE_TYPE.FULL:

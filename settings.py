@@ -238,6 +238,8 @@ WEB_EMAIL_CHECK_URI = None
 WEB_CREATE_USER_ENABLED = None
 WEB_CREATE_USER_POST_WHITELIST = []
 
+GEOREF_SERVICES = False
+
 # Import local settings if they exist
 # TODO: - improve hardcoded load of community settings (which are this community settings?)
 #         (maybe is the app "community", which defines variables that can be better migrated to this settings file)

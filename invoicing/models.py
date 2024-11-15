@@ -71,32 +71,34 @@ class Invoice(models.Model):
             amount = amount - i.amount if i.type == "D" else amount + i.amount
         return amount
 
+    @property
+    def is_paid(self):
+        return self.paid or self.debited
+
+    @property
+    def is_overdue(self):
+        if self.canceled or self.uncollectible:
+            return False
+        return self.expiration_date <= date.today() and not self.paid and not self.debited
+
+    @property
+    def is_pending(self):
+        return not self.is_paid and not self.is_overdue
+
     def get_status(self, with_date=True):
-        if self.paid or self.debited:
+        if self.canceled:
+            return _("Canceled")
+        elif self.uncollectible:
+            return _("Uncollectible")
+        elif self.is_paid:
             if with_date:
                 return _("Paid on {}".format(self.payment_date))
             else:
                 return _("Paid")
-        elif self.uncollectible:
-            return _("Uncollectible")
-        elif self.canceled:
-            return _("Canceled")
-        elif not (self.paid or self.debited) and self.expiration_date <= date.today():
+        elif self.is_overdue:
             return _("Overdue")
         else:
             return _("Pending")
-
-    def get_status_code(self):
-        if self.paid or self.debited:
-            return "p"
-        elif self.uncollectible:
-            return "u"
-        elif self.canceled:
-            return "c"
-        elif not (self.paid or self.debited) and self.expiration_date <= date.today():
-            return "o"
-        else:
-            return "d"
 
     def get_payment_type(self):
         types = dict(settings.INVOICE_PAYMENT_METHODS)
@@ -161,10 +163,35 @@ class Invoice(models.Model):
             total += item.amount
         return total
 
+    def get_discount_items(self):
+        return self.invoiceitem_set.filter(type="D")
+
+    def get_product_items(self):
+        return self.invoiceitem_set.filter(type="I")
+
+    def get_discount_total(self):
+        """Returns the total amount of all discount items"""
+        return self.invoiceitem_set.filter(type="D").aggregate(
+            total=Sum('amount')
+        )['total'] or 0
+
+    def get_product_total(self):
+        """Returns the total amount of all product items"""
+        return self.invoiceitem_set.filter(type="I").aggregate(
+            total=Sum('amount')
+        )['total'] or 0
+
     class Meta:
         verbose_name = "invoice"
         verbose_name_plural = "invoices"
         ordering = ["creation_date"]
+        permissions = [
+            ("can_download_pdf", "Can download PDF"),
+            ("can_cancel_invoice", "Can cancel invoice"),
+            ("can_generate_invoices", "Can generate invoices"),
+            ("can_send_duplicate_via_email", "Can send duplicate via email"),
+            ("can_send_to_mercadopago", "Can send to MercadoPago"),
+        ]
 
 
 class InvoiceCopy(Invoice):

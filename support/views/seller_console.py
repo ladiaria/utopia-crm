@@ -25,7 +25,7 @@ if logistics_is_installed():
 def seller_console_special_routes(request, route_id):
     if "logistics" in getattr(settings, "DISABLED_APPS", []):
         messages.error(request, _("This function is not available."))
-        return HttpResponseRedirect(reverse("main_menu"))
+        return HttpResponseRedirect(reverse("home"))
     if not getattr(settings, "SPECIAL_ROUTES_FOR_SELLERS_LIST", None):
         messages.error(request, _("This function is not available."))
         return HttpResponseRedirect("/")
@@ -39,10 +39,10 @@ def seller_console_special_routes(request, route_id):
         seller = Seller.objects.get(user=user)
     except Seller.DoesNotExist:
         messages.error(request, _("User has no seller selected. Please contact your manager."))
-        return HttpResponseRedirect(reverse("main_menu"))
+        return HttpResponseRedirect(reverse("home"))
     except Seller.MultipleObjectsReturned:
         messages.error(request, _("This seller is set in more than one user. Please contact your manager."))
-        return HttpResponseRedirect(reverse("main_menu"))
+        return HttpResponseRedirect(reverse("home"))
 
     subprods = SubscriptionProduct.objects.filter(seller=seller, route=route, subscription__active=True).order_by(
         "subscription__contact__id"
@@ -71,7 +71,7 @@ def seller_console_list_campaigns(request, seller_id=None):
         # Check that the user is a manager
         if not request.user.is_staff and not request.user.groups.filter(name="Managers").exists():
             messages.error(request, _("You are not authorized to see this page"))
-            return HttpResponseRedirect(reverse("main_menu"))
+            return HttpResponseRedirect(reverse("home"))
         seller = Seller.objects.get(pk=seller_id)
         user = seller.user
     else:
@@ -80,10 +80,10 @@ def seller_console_list_campaigns(request, seller_id=None):
         seller = Seller.objects.get(user=user)
     except Seller.DoesNotExist:
         messages.error(request, _("User has no seller selected. Please contact your manager."))
-        return HttpResponseRedirect(reverse("main_menu"))
+        return HttpResponseRedirect(reverse("home"))
     except Seller.MultipleObjectsReturned:
         messages.error(request, _("This seller is set in more than one user. Please contact your manager."))
-        return HttpResponseRedirect(reverse("main_menu"))
+        return HttpResponseRedirect(reverse("home"))
 
     if logistics_is_installed():
         special_routes = {}
@@ -145,6 +145,29 @@ class SellerConsoleView(UserPassesTestMixin, TemplateView):
     def test_func(self):
         return self.request.user.is_staff
 
+    def dispatch(self, request, *args, **kwargs):
+        """Check for end of list before processing the request"""
+        if request.method == 'GET':
+            redirect_response = self.check_end_of_list()
+            if redirect_response:
+                return redirect_response
+        return super().dispatch(request, *args, **kwargs)
+
+    def check_end_of_list(self):
+        """Check if we've reached the end of the list and return redirect if needed"""
+        campaign = self.get_campaign()
+        seller = self.get_seller()
+        console_instances = self.get_console_instances(campaign, seller)
+        count = console_instances.count()
+
+        offset = self.request.GET.get('offset')
+        offset = int(offset) if offset else 1
+
+        if count == 0 or offset - 1 >= count:
+            messages.success(self.request, _("You've reached the end of this list"))
+            return HttpResponseRedirect(reverse("seller_console_list_campaigns"))
+        return None
+
     def get_seller(self):
         """Get seller for current user"""
         return get_object_or_404(Seller, user=self.request.user)
@@ -159,25 +182,28 @@ class SellerConsoleView(UserPassesTestMixin, TemplateView):
         if category == "new":
             return campaign.get_not_contacted(seller.id)
         return campaign.activity_set.filter(
-            activity_type="C", seller=seller, status="P", datetime__lte=datetime.now()
+            activity_type="C",
+            seller=seller,
+            status="P",
+            datetime__lte=datetime.now()
         ).order_by("datetime", "id")
 
     def process_activity_result(self, contact, campaign, seller, result, new_activity_notes):
         """Process activity result and create/update related objects"""
         ccs = ContactCampaignStatus.objects.filter(campaign=campaign, contact=contact).first()
 
-        # Map results to status and campaign_resolution
+        # Map results to status and campaign_resolution using action slugs
         result_mapping = {
-            _("Schedule"): (2, "SC"),
-            "No encontrado, llamar más tarde": (3, "CL"),
-            _("Not interested"): (4, "NI"),
-            "No volver a llamar": (4, "DN"),
-            _("Logistics"): (4, "LO"),
-            _("Already a subscriber"): (4, "AS"),
-            "Inubicable, retirar de campaña": (5, "UN"),
-            _("Error in promotion"): (5, "EP"),
-            "Mover a la mañana": (6, None),
-            "Mover a la tarde": (7, None),
+            "schedule": (2, "SC"),
+            "call-later": (3, "CL"),
+            "not-interested": (4, "NI"),
+            "do-not-call": (4, "DN"),
+            "logistics": (4, "LO"),
+            "already-subscriber": (4, "AS"),
+            "uncontactable": (5, "UN"),
+            "error-promotion": (5, "EP"),
+            "move-morning": (6, None),
+            "move-afternoon": (7, None),
         }
 
         if result in result_mapping:
@@ -205,7 +231,7 @@ class SellerConsoleView(UserPassesTestMixin, TemplateView):
         """Get appropriate action message for status"""
         status_messages = {
             2: _("scheduled"),
-            3: _("moved to call later"),
+            3: _("skipped to call later"),
             4: _("marked as not interested"),
             5: _("marked as uncontactable"),
             6: _("moved to morning"),
@@ -256,7 +282,7 @@ class SellerConsoleView(UserPassesTestMixin, TemplateView):
         ccs = self.process_activity_result(contact, campaign, seller, result, new_activity_notes)
 
         # Handle scheduling if needed
-        if result == _("Schedule"):
+        if result == "schedule":
             call_datetime = self.get_call_datetime(data)
             self.create_scheduled_activity(contact, campaign, seller, call_datetime)
 
@@ -268,6 +294,13 @@ class SellerConsoleView(UserPassesTestMixin, TemplateView):
         # Show success message
         action = self.get_status_action_message(ccs.status)
         messages.success(self.request, _("Contact {id} {action}".format(id=contact.id, action=action)))
+
+        # Convert offset to int and increment it only for "Call later" result
+        try:
+            if result == "call-later":
+                offset = int(offset) + 1
+        except (TypeError, ValueError):
+            offset = 2  # If offset is None or invalid, start at 2 (next item)
 
         return self.get_redirect_response(category, campaign.id, offset)
 
@@ -296,9 +329,8 @@ class SellerConsoleView(UserPassesTestMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        campaign = get_object_or_404(Campaign, pk=self.kwargs['campaign_id'])
-        user = self.request.user
-        seller = get_object_or_404(Seller, user=user)
+        campaign = self.get_campaign()
+        seller = self.get_seller()
 
         category = self.kwargs['category']
         offset = self.request.GET.get('offset')
@@ -307,51 +339,42 @@ class SellerConsoleView(UserPassesTestMixin, TemplateView):
         offset = int(offset) if offset else 1
         call_datetime = datetime.strftime(date.today() + timedelta(1), "%Y-%m-%d")
 
-        # Get console instances based on category
-        if category == "new":
-            console_instances = campaign.get_not_contacted(seller.id)
-        else:  # category == "act"
-            console_instances = campaign.activity_set.filter(
-                activity_type="C", seller=seller, status="P", datetime__lte=datetime.now()
-            ).order_by("datetime", "id")
-
+        console_instances = self.get_console_instances(campaign, seller)
         count = console_instances.count()
-        if count == 0 or offset - 1 >= count:
-            messages.success(self.request, _("You've reached the end of this list"))
-            return HttpResponseRedirect(reverse("seller_console_list_campaigns"))
 
         # Get console instance based on activity_id or offset
         console_instance = self.get_console_instance(
-            console_instances=console_instances, activity_id=activity_id, count=count, offset=offset
+            console_instances=console_instances,
+            activity_id=activity_id,
+            count=count,
+            offset=offset
         )
 
         contact = console_instance.contact
 
-        context.update(
-            {
-                'campaign': campaign,
-                'times_contacted': contact.activity_set.filter(
-                    activity_type="C", status="C", campaign=campaign
-                ).count(),
-                'category': category,
-                'position': offset + 1,
-                'offset': offset,
-                'seller': seller,
-                'contact': contact,
-                'count': count,
-                'addresses': Address.objects.filter(contact=contact).order_by("address_1"),
-                'call_date': call_datetime,
-                'all_activities': self.get_activities(contact, console_instance, category),
-                'all_subscriptions': Subscription.objects.filter(contact=contact).order_by("-active", "id"),
-                'console_instance': console_instance,
-                'console_instances': console_instances,
-                'url': self.request.path,
-                'pending_activities_count': seller.total_pending_activities_count(),
-                'upcoming_activity': seller.upcoming_activity(),
-                'resolution_reasons': CAMPAIGN_RESOLUTION_REASONS_CHOICES,
-                'other_campaigns': ContactCampaignStatus.objects.filter(contact=contact).exclude(campaign=campaign),
-            }
-        )
+        context.update({
+            'campaign': campaign,
+            'times_contacted': contact.activity_set.filter(
+                activity_type="C", status="C", campaign=campaign
+            ).count(),
+            'category': category,
+            'position': offset + 1,
+            'offset': offset,
+            'seller': seller,
+            'contact': contact,
+            'count': count,
+            'addresses': Address.objects.filter(contact=contact).order_by("address_1"),
+            'call_date': call_datetime,
+            'all_activities': self.get_activities(contact, console_instance, category),
+            'all_subscriptions': Subscription.objects.filter(contact=contact).order_by("-active", "id"),
+            'console_instance': console_instance,
+            'console_instances': console_instances,
+            'url': self.request.path,
+            'pending_activities_count': seller.total_pending_activities_count(),
+            'upcoming_activity': seller.upcoming_activity(),
+            'resolution_reasons': CAMPAIGN_RESOLUTION_REASONS_CHOICES,
+            'other_campaigns': ContactCampaignStatus.objects.filter(contact=contact).exclude(campaign=campaign),
+        })
         return context
 
     def get_activities(self, contact, console_instance, category):
@@ -374,16 +397,23 @@ class SellerConsoleView(UserPassesTestMixin, TemplateView):
                 activity = console_instances.get(pk=activity_id)
                 # Check if the contact is still in the campaign
                 campaign = activity.campaign
-                if not ContactCampaignStatus.objects.filter(campaign=campaign, contact=activity.contact).exists():
+                if not ContactCampaignStatus.objects.filter(
+                    campaign=campaign,
+                    contact=activity.contact
+                ).exists():
                     # Contact is not in campaign anymore, delete the orphaned activity
                     activity.delete()
                     messages.warning(
-                        self.request, _("Activity was removed because the contact is no longer in the campaign")
+                        self.request,
+                        _("Activity was removed because the contact is no longer in the campaign")
                     )
                     return HttpResponseRedirect(reverse("seller_console_list_campaigns"))
                 return activity
             except Activity.DoesNotExist:
-                messages.error(self.request, _("An error has occurred with activity number {}".format(activity_id)))
+                messages.error(
+                    self.request,
+                    _("An error has occurred with activity number {}".format(activity_id))
+                )
                 return HttpResponseRedirect(reverse("seller_console_list_campaigns"))
 
         # Get item by offset (offset is 1-based, but list indexing is 0-based)

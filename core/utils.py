@@ -21,8 +21,9 @@ logger = logging.getLogger(__name__)
 
 def mailtrain_api_call(endpoint, method='get', data=None):
     try:
-        assert getattr(settings, "MAILTRAIN_API_URL", None) and getattr(settings, "MAILTRAIN_API_KEY", None), \
-            "Mailtrain API URL or API Key is not configured properly."
+        assert getattr(settings, "MAILTRAIN_API_URL", None) and getattr(
+            settings, "MAILTRAIN_API_KEY", None
+        ), "Mailtrain API URL or API Key is not configured properly."
         url = f"{settings.MAILTRAIN_API_URL}{endpoint}"
         params = {'access_token': settings.MAILTRAIN_API_KEY}
         if method == 'get':
@@ -110,29 +111,34 @@ def calc_price_from_products(products_with_copies, frequency, debug_id=""):
     """
     Returns the prices, we need the products already processed.
     """
-    from core.models import Product, AdvancedDiscount
+    from core.models import Product
 
     total_price, discount_pct, frequency = 0, 0, int(frequency)
 
     percentage_discount, debug = None, getattr(settings, 'DEBUG_PRODUCTS', False)
     if debug and debug_id:
         debug_id += ": "
-    all_list = products_with_copies.items()
+    # Fetch all Product instances needed in a single query using in_bulk
+    products = Product.objects.in_bulk(products_with_copies.keys())
+    print(products)
+
+    # Create the dictionary with product_id as key and (Product instance, copies) as value
+    product_data = {
+        product_id: (products[product_id], int(copies))
+        for product_id, copies in products_with_copies.items()
+        if product_id in products
+    }
+
     subscription_product_list, discount_product_list, other_product_list, advanced_discount_list = [], [], [], []
 
     # 1. partition the input by discount products / non discount products
-    for product_id, copies in all_list:
-        try:
-            product = Product.objects.get(pk=int(product_id))
-        except Product.DoesNotExist:
-            pass
-        else:
-            if product.type in ('D', 'P', 'A'):
-                discount_product_list.append(product)
-            elif product.type == "S":
-                subscription_product_list.append(product)
-            elif product.type == "O":
-                other_product_list.append(product)
+    for product, copies in product_data.values():
+        if product.type in ('D', 'P', 'A'):
+            discount_product_list.append(product)
+        elif product.type == "S":
+            subscription_product_list.append(product)
+        elif product.type == "O":
+            other_product_list.append(product)
 
     # 2. obtain 2 total cost amounts: affectable/non-affectable by discounts
     total_affectable, total_non_affectable = 0, 0
@@ -165,7 +171,7 @@ def calc_price_from_products(products_with_copies, frequency, debug_id=""):
                 total_non_affectable += product_delta
 
     if debug:
-        print(debug_id + "before3 affectable=%s, non-affectable=%s" % (total_affectable, total_non_affectable))
+        print(debug_id + f"before3 affectable={total_affectable}, non-affectable={total_non_affectable}")
 
     # 3. iterate over discounts left
     for product in discount_product_list:
@@ -177,38 +183,37 @@ def calc_price_from_products(products_with_copies, frequency, debug_id=""):
             advanced_discount_list.append(product)
 
     if debug:
-        print(debug_id + "after3 affectable=%s, non-affectable=%s" % (total_affectable, total_non_affectable))
+        print(debug_id + f"after3 affectable={total_affectable}, non-affectable={total_non_affectable}")
 
+    # TODO: Unused and debatible if it is needed. This probably needs to be refactored.
     # After calculating the prices of the product, we check out every product in the advanced_discount_list
-    # TODO: this must be tested
-    for discount_product in advanced_discount_list:
-        try:
-            advanced_discount = AdvancedDiscount.objects.get(discount_product=discount_product)
-        except AdvancedDiscount.DoesNotExist:
-            continue
-        else:
-            if advanced_discount.value_mode == 1:
-                discounted_product_price = advanced_discount.value
-            else:
-                discounted_product_price = 0
-                for product in advanced_discount.find_products.all():
-                    if product.id in products_with_copies:
-                        if product.type == 'S':
-                            discounted_product_price += int(products_with_copies[product.id]) * product.price
-                        else:
-                            discounted_product_price -= int(products_with_copies[product.id]) * product.price
-                discounted_product_price = (discounted_product_price * advanced_discount.value) / 100
-            total_non_affectable -= discounted_product_price
-
-    if debug:
-        print(debug_id + "before_pd affectable=%s, non-affectable=%s" % (total_affectable, total_non_affectable))
+    # for discount_product in advanced_discount_list:
+    #     try:
+    #         advanced_discount = AdvancedDiscount.objects.get(discount_product=discount_product)
+    #     except AdvancedDiscount.DoesNotExist:
+    #         continue
+    #     else:
+    #         if advanced_discount.value_mode == 1:
+    #             discounted_product_price = advanced_discount.value
+    #         else:
+    #             discounted_product_price = 0
+    #             for product in advanced_discount.find_products.all():
+    #                 if product.id in products_with_copies:
+    #                     if product.type == 'S':
+    #                         discounted_product_price += int(products_with_copies[product.id]) * product.price
+    #                     else:
+    #                         discounted_product_price -= int(products_with_copies[product.id]) * product.price
+    #             discounted_product_price = (discounted_product_price * advanced_discount.value) / 100
+    #         total_non_affectable -= discounted_product_price
+    # if debug:
+    #     print(debug_id + f"before_pd affectable={total_affectable}, non-affectable={total_non_affectable}")
 
     # After calculating the prices of S and D products, we need to calculate the one for P.
     if percentage_discount:
         total_non_affectable -= (total_non_affectable * percentage_discount.price) / 100
 
     if debug:
-        print(debug_id + "after_pd affectable=%s, non-affectable=%s" % (total_affectable, total_non_affectable))
+        print(debug_id + f"after_pd affectable={total_affectable}, non-affectable={total_non_affectable}")
 
     # Then we multiply all this by the frequency
     total_price = float((total_affectable + total_non_affectable) * frequency)
@@ -223,7 +228,7 @@ def calc_price_from_products(products_with_copies, frequency, debug_id=""):
         total_price += float(product.price)
 
     if debug:
-        print(debug_id + "Total {}\n".format(total_price))
+        print(debug_id + f"Total {total_price}")
 
     return round(total_price)
 
@@ -238,10 +243,16 @@ def process_products(input_product_dict: dict) -> dict:
     from core.models import Product, PriceRule
 
     input_product_ids = list(input_product_dict.keys())
-    input_products = Product.objects.filter(id__in=input_product_ids)
-    input_products_count, output_dict, non_discount_added = input_products.count(), {}, 0
+    input_products_list = list(Product.objects.filter(id__in=input_product_ids))
+    input_products_count, output_dict, non_discount_added = len(input_products_list), {}, 0
 
-    for pricerule in PriceRule.objects.filter(active=True).order_by('priority'):
+    price_rules = (
+        PriceRule.objects.filter(active=True)
+        .order_by('priority')
+        .prefetch_related('products_pool', 'products_not_pool', 'ignore_product_bundle')
+    )
+
+    for pricerule in price_rules:
         exit_loop = False
         products_in_list_and_pool = []
         pool = pricerule.products_pool.all()
@@ -250,7 +261,7 @@ def process_products(input_product_dict: dict) -> dict:
 
         if not_pool:
             for product in not_pool:
-                if product in input_products or product.id in list(output_dict.keys()):
+                if product in input_products_list or product.id in list(output_dict.keys()):
                     # If any of the products is in the list of input products and on the not_pool, we skip the rule
                     exit_loop = True
                     break
@@ -259,26 +270,27 @@ def process_products(input_product_dict: dict) -> dict:
             continue
 
         for bundle in ignore_product_bundle:
-            if collections.Counter(list(input_products)) == collections.Counter(list(bundle.products.all())):
+            if collections.Counter(list(input_products_list)) == collections.Counter(list(bundle.products.all())):
                 exit_loop = True
                 break
 
         if exit_loop:
             continue
 
-        rm_after = []
-        for input_product in input_products:
+        # This list will be used to exclude products that are affected by a discount rule.
+        temporary_exclude_list = []
+        for input_product in input_products_list:
             if pricerule.wildcard_mode == "pool_or_any":
                 if not input_product.has_implicit_discount:
                     if input_product.type in "DP" and input_product.target_product:
-                        rm_after.append(input_product.target_product)
+                        temporary_exclude_list.append(input_product.target_product)
                     else:
                         products_in_list_and_pool.append(input_product)
             elif input_product in pool:
                 products_in_list_and_pool.append(input_product)
 
         non_discount_added_ignore = 0
-        for p in rm_after:
+        for p in temporary_exclude_list:
             try:
                 products_in_list_and_pool.remove(p)
             except ValueError:
@@ -286,11 +298,11 @@ def process_products(input_product_dict: dict) -> dict:
                 if p.id in output_dict:
                     non_discount_added_ignore += 1
 
-        list_and_pool_len, pr_res_prod = len(products_in_list_and_pool), pricerule.resulting_product
+        list_and_pool_len, pricerule_resulting_product = len(products_in_list_and_pool), pricerule.resulting_product
         if pricerule.wildcard_mode == "pool_and_any":
             # wildcard_mode "AND ANY": it means it has to be in the pool, and MUST NOT be the only product in the mix.
             if input_products_count > 1 and list_and_pool_len > 0:
-                output_dict[pr_res_prod.id] = input_product_dict[input_product_ids[0]]
+                output_dict[pricerule_resulting_product.id] = input_product_dict[input_product_ids[0]]
         else:
             if pricerule.wildcard_mode == "pool_or_any":
                 # consider also non discount products that have been added to the output_dict by previous rules
@@ -302,32 +314,37 @@ def process_products(input_product_dict: dict) -> dict:
                 if pricerule.mode == 1:
                     # We use the copies for any of the products, the first one for instance, they should all be the
                     # same since they're on the 'choose all products' mode.
-                    output_dict[pr_res_prod.id] = input_product_dict[str(products_in_list_and_pool[0].id)]
+                    output_dict[pricerule_resulting_product.id] = input_product_dict[
+                        str(products_in_list_and_pool[0].id)
+                    ]
                     # We're going to exclude the products that were not used here so they can be used by other rules.
-                    for product in input_products:
-                        if product in pool:
-                            input_products = input_products.exclude(pk=product.id)
+                    input_products_list = [
+                        product for product in input_products_list if product not in pool
+                    ]
                     # Increment "non discount" counter if is the case
-                    if pr_res_prod.type not in "DP" and not pr_res_prod.has_implicit_discount:
+                    if (
+                        pricerule_resulting_product.type not in "DP"
+                        and not pricerule_resulting_product.has_implicit_discount
+                    ):
                         non_discount_added += 1
                 elif pricerule.mode == 2:
                     # This is if we only need to change one product into another. WIP.
                     output_dict[pricerule.choose_one_product.id] = products_in_list_and_pool[0][1]
-                    for product in input_products:
-                        if product == pricerule.choose_one_product:
-                            # We're only going to replace the chosen product from the mix.
-                            input_products = input_products.exclude(pk=product.id)
+                    # We're only going to replace the chosen product from the mix.
+                    input_products_list = [
+                        product for product in input_products_list if product != pricerule.choose_one_product
+                    ]
                 elif pricerule.mode == 3:
                     # We just add an extra product to the list. We're not going to remove them from input products.
                     # Again we take the copies from the first product on the list. This might be dangerous, and might
                     # need a different value. We might change it to 1.
-                    output_dict[pr_res_prod.id] = input_product_dict[input_product_ids[0]]
+                    output_dict[pricerule_resulting_product.id] = input_product_dict[input_product_ids[0]]
 
     # In the end we will also add the remainder of the products that were not used to the output dictionary.
     # Note that this is useful to place the untargetted percentage discounts that came on input AFTER the untargetted
     # percentage discounts added by the rules, because the price calculation function will use only the LAST one found,
     # and as expected, the rules ones will not be applied.
-    for product in input_products:
+    for product in input_products_list:
         output_dict[product.id] = input_product_dict[str(product.id)]
     return output_dict
 
@@ -336,6 +353,7 @@ def no_op_decorator(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         return func(*args, **kwargs)
+
     return wrapper
 
 
@@ -397,9 +415,9 @@ def cms_rest_api_request(api_name, api_uri, post_data, method="POST"):
             print("DEBUG: %s to %s with method='%s', data='%s'" % (api_name, api_uri, method, post_data))
 
         if (
-            settings.WEB_UPDATE_USER_ENABLED if method == "PUT" else (
-                settings.WEB_CREATE_USER_ENABLED or api_uri in settings.WEB_CREATE_USER_POST_WHITELIST
-            )
+            settings.WEB_UPDATE_USER_ENABLED
+            if method == "PUT"
+            else (settings.WEB_CREATE_USER_ENABLED or api_uri in settings.WEB_CREATE_USER_POST_WHITELIST)
         ):
             r = getattr(requests, method.lower())(api_uri, **cms_rest_api_kwargs(api_key, post_data))
             if settings.DEBUG:
@@ -466,6 +484,7 @@ def select_or_create_contact(email, name=None, phone=None, id_document=None):
     Returns the contact object.
     """
     from core.models import Contact
+
     contact_qs = Contact.objects.filter(email=email)
     if contact_qs.exists():
         contact_obj = contact_qs.first()
@@ -476,6 +495,7 @@ def select_or_create_contact(email, name=None, phone=None, id_document=None):
 
 def process_invoice_request(product_slugs, email, phone, name, id_document, payment_type):
     from core.models import Product
+
     """
     Handles the core logic for processing an invoice request by selecting or creating a contact, retrieving
     the specified products, and creating a one-time invoice.

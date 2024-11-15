@@ -78,8 +78,9 @@ class CMSyncTestCase(TestCase):
                 # check on CMS email availability
                 # if it were created, this check with a different id and the same email should fail
                 # as we're testing the creation is disabled, this call return should be "ok"
+                # WARNING: Contact id sequence must be over max(contact_id) in cms.Subscriber
                 res = cms_rest_api_request(
-                    "sync_disabled", api_uri, {"contact_id": no_sync_conctact.id + 1, "email": no_sync_conctact.email}
+                    "sync_disabled", api_uri, {"contact_id": no_sync_conctact.id + 1, "email": email}
                 )
                 self.assertEqual(res.get("msg"), "OK")
                 self.assertEqual(res.get("retval"), 0)

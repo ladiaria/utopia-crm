@@ -12,11 +12,12 @@ from django.contrib.gis.geos import Point
 from django.conf import settings
 from django.core.validators import RegexValidator, MinValueValidator, MaxValueValidator
 from django.db import models
-from django.db.models import Q, Sum, Count, Max
+from django.db.models import Q, Sum, Count, Max, Prefetch
 from django.forms import ValidationError
 from django.utils.translation import gettext_lazy as _
 from django_extensions.db.fields import AutoSlugField
 from django.utils.html import mark_safe
+from django.utils.functional import cached_property
 from django.urls import reverse
 from django.utils import timezone
 
@@ -166,7 +167,7 @@ class Product(models.Model):
     """
 
     name = models.CharField(max_length=100, verbose_name=_("Name"), db_index=True)
-    slug = AutoSlugField(populate_from="name", null=True, blank=True)
+    slug = AutoSlugField(populate_from="name", null=True, blank=True, editable=True)
     active = models.BooleanField(default=False, verbose_name=_("Active"))
     price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     type = models.CharField(max_length=1, default="O", choices=PRODUCT_TYPE_CHOICES, db_index=True)
@@ -413,6 +414,9 @@ class Contact(models.Model):
     def save(self, *args, **kwargs):
         if not getattr(self, "updatefromweb", False) and not getattr(self, "_skip_clean", False):
             self.clean(debug=settings.DEBUG_CONTACT_CLEAN)
+        # TODO: next line breaks test_subscriptor.TestContact.test2_cliente_que_no_tiene_email_debe_tener_email_en_...
+        #       Fix the test and explain why the field is not needed anymore or submit a different solution.
+        self.no_email = self.email is None
         return super().save(*args, **kwargs)
 
     def is_debtor(self):
@@ -547,8 +551,16 @@ class Contact(models.Model):
         return self.subscriptions.filter(active=True)
 
     def get_active_subscriptionproducts(self):
-        return SubscriptionProduct.objects.filter(subscription__active=True, subscription__contact=self).order_by(
-            "product__billing_priority", "product__id"
+        return (
+            SubscriptionProduct.objects.filter(subscription__active=True, subscription__contact=self)
+            .select_related('product')  # Assumes `product` is a ForeignKey
+            .prefetch_related(
+                Prefetch(
+                    'label_contact',
+                    queryset=Contact.objects.only('id', 'name', 'last_name'),  # Customize fields as needed
+                )
+            )
+            .order_by("product__billing_priority", "product__id")
         )
 
     def get_subscriptions_with_expired_invoices(self):
@@ -577,6 +589,16 @@ class Contact(models.Model):
         """
         if self.activity_set.exists():
             return self.activity_set.latest("id")
+        else:
+            return None
+
+    def get_last_activity_formatted(self):
+        last_activity = self.last_activity()
+        if last_activity:
+            msg = ' '.join(
+                [last_activity.datetime.date().strftime("%d/%m/%Y"), last_activity.get_activity_type_display() or '']
+            )
+            return msg
         else:
             return None
 
@@ -1029,7 +1051,7 @@ class Address(models.Model):
         null=True,
         blank=True,
         verbose_name=_("Country"),
-        db_column='country_fk'  # Explicit different column name
+        db_column='country_fk',  # Explicit different column name
     )
     state = models.ForeignKey(
         'core.State',
@@ -1037,14 +1059,14 @@ class Address(models.Model):
         null=True,
         blank=True,
         verbose_name=_("State"),
-        db_column='state_fk'  # Explicit different column name
+        db_column='state_fk',  # Explicit different column name
     )
 
-    @property
+    @cached_property
     def country_name(self):
         return self.country.name if self.country else None
 
-    @property
+    @cached_property
     def state_name(self):
         return self.state.name if self.state else None
 
@@ -1294,10 +1316,10 @@ class Subscription(models.Model):
 
     def __str__(self):
         return str(
-            _("{active} subscription for the contact {contact} {price}").format(
+            _("{active} subscription for the contact {contact} with {products} products").format(
                 active=_("Active") if self.active else _("Inactive"),
                 contact=self.contact.get_full_name(),
-                price="({})".format(self.get_price_for_full_period()) if self.type == "N" else "",
+                products=self.get_product_count(),
             )
         )
 
@@ -1631,10 +1653,17 @@ class Subscription(models.Model):
         subscription_products = SubscriptionProduct.objects.filter(subscription=self)
         if with_pauses:
             subscription_products = subscription_products.filter(active=True)
-        dict_all_products = {}
-        for sp in subscription_products:
-            dict_all_products[str(sp.product.id)] = str(sp.copies)
+
+        dict_all_products = {str(sp.product.id): str(sp.copies) for sp in subscription_products}
         return process_products(dict_all_products)
+
+    # def product_summary(self):  TODO: explain why this is commented or remove it
+    #     """Cached version of product summary to avoid repeated queries"""
+    #     subscription_products = self.subscriptionproduct_set.select_related('product').all()
+    #     dict_all_products = {str(sp.product.id): str(sp.copies) for sp in subscription_products}
+    #     from .utils import process_products
+
+    #     return process_products(dict_all_products)
 
     def product_summary_list(self, with_pauses=False) -> list:
         summary = self.product_summary(with_pauses)
@@ -1649,11 +1678,8 @@ class Subscription(models.Model):
         return output + "</ul>"
 
     def get_price_for_full_period(self, debug_id=""):
-        """
-        Returns the price for a single period on this customer, taking a view from invoicing as aid.
-        """
+        """Returns the price for a single period on this customer"""
         from .utils import calc_price_from_products
-
         return calc_price_from_products(self.product_summary(), self.frequency, debug_id)
 
     def get_price_for_full_period_with_pauses(self, debug_id=""):
@@ -2027,6 +2053,15 @@ class Subscription(models.Model):
         self.validated_date = timezone.now()
         self.save()
 
+    @property
+    def unsubscription_manager_name(self):
+        if not self.unsubscription_manager:
+            return None
+        if self.unsubscription_manager.get_full_name():
+            return self.unsubscription_manager.get_full_name()
+        else:
+            return self.unsubscription_manager.username
+
     class Meta:
         verbose_name = _("subscription")
         verbose_name_plural = _("subscriptions")
@@ -2187,6 +2222,9 @@ class Activity(models.Model):
     activity_type = models.CharField(choices=ACTIVITY_TYPES, max_length=1, null=True, blank=True)
     status = models.CharField(choices=ACTIVITY_STATUS_CHOICES, default="P", max_length=1)
     direction = models.CharField(choices=ACTIVITY_DIRECTION_CHOICES, default="O", max_length=1)
+    created_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True, verbose_name=_("Created by")
+    )
     history = HistoricalRecords()
 
     def __str__(self):
@@ -2245,9 +2283,18 @@ class Activity(models.Model):
             subscription.campaign = campaign
             subscription.save()
 
+    @property
+    def created_by_name(self):
+        if self.created_by:
+            # Return the full name if it exists, otherwise return the username
+            return self.created_by.get_full_name() or self.created_by.username
+        # If created_by is None, return an empty string
+        return ""
+
     class Meta:
         verbose_name = _("activity")
         verbose_name_plural = _("activities")
+        get_latest_by = "id"
 
 
 class ContactProductHistory(models.Model):
@@ -2692,7 +2739,7 @@ def update_web_user_newsletters(contact):
     @params contact: Contact instance
     """
     try:
-        newsletters_slugs = contact.get_active_newsletters().values_list('slug', flat=True)
+        newsletters_slugs = list(contact.get_active_newsletters().values_list('product__slug', flat=True))
         update_web_user(contact, contact.email, json.dumps(newsletters_slugs), method="PUT")
     except Exception as ex:
         if settings.DEBUG:

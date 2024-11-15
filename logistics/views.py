@@ -1188,7 +1188,7 @@ def print_routes_simple(request, route_list):
             route_object = Route.objects.get(pk=route_number)
         except Route.DoesNotExist:
             messages.error(request, _("Route {} does not exist".format(route_number)))
-            return HttpResponseRedirect(reverse("main_menu"))
+            return HttpResponseRedirect(reverse("home"))
 
         subscription_products = (
             SubscriptionProduct.objects.filter(route=route_object, subscription__active=True, product__type="S")

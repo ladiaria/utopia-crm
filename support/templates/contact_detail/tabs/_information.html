@@ -9,38 +9,47 @@
         <div class="col-4">
           <dt>{% trans "Name" %}</dt>
           <dd>
-            {{ contact.get_full_name }}
+            {{ contact.get_full_name|default_if_none:"-" }}
           </dd>
-          <dt>{% trans "Documento" %}</dt>
+          <dt>{% trans "ID document" %}</dt>
           <dd>
-            {{ contact.id_document|default_if_none:"N/A" }}
+            <div class="mb-0">
+              <span class="font-weight-bold">{% trans "Type" %}:</span> {{ contact.id_document_type|default_if_none:"-" }}
+            </div>
+            <div>
+              <span class="font-weight-bold">{% trans "Indentifier" %}:</span> {{ contact.id_document|default_if_none:"-" }}
+            </div>
           </dd>
           <dt>{% trans "Email" %}</dt>
           <dd>
-            {{ contact.email }}
+            {{ contact.email|default:"-" }}
           </dd>
         </div>
         <div class="col-4">
           <dt>{% trans "Phone" %}</dt>
           <dd>
-            {{ contact.phone }}
+            {{ contact.phone.as_national|default:"-" }}
           </dd>
           {% if contact.mobile %}
             <dt>{% trans "Mobile" %}</dt>
             <dd>
-              {{ contact.mobile }}
+              {{ contact.mobile.as_national|default:"-" }}
             </dd>
           {% endif %}
           {% if contact.work_phone %}
             <dt>{% trans "Work phone" %}</dt>
             <dd>
-              {{ contact.work_phone }}
+              {{ contact.work_phone.as_national|default:"-" }}
             </dd>
           {% endif %}
           {% if contact.tags.all %}
             <dt>{% trans "Tags" %}</dt>
             <dd>
-              {% for tag in contact.tags.all %}<span class="btn btn-default btn-sm">{{ tag }}</span>{% endfor %}
+              {% for tag in contact.tags.all %}
+                <a href="{% url "contact_list" %}?tags={{ tag.name }}">
+                  <span class="btn btn-default btn-sm">{{ tag }}</span>
+                </a>
+              {% endfor %}
             </dd>
           {% endif %}
         </div>
@@ -67,7 +76,7 @@
           <div class="card">
             <div class="card-header">
               <h4 class="card-title">
-                {{ address }}
+                {{ address.address_1 }} {{ address.state_name }}
                 {% if address.verified %}
                   <i class="fas fa-check-circle text-success"> {% trans "Verified" %}</i>
                 {% elif address.needs_georef %}
@@ -81,28 +90,31 @@
                   <dl>
                     <dt>{% trans "Address 1" %}</dt>
                     <dd>
-                      {{ address.address_1 }}
+                      {{ address.address_1|default_if_none:"-" }}
                     </dd>
                   </dl>
                   {% if address.address_2 %}
                     <dt>{% trans "Address 2" %}</dt>
                     <dd>
-                      {{ address.address_2 }}
+                      {{ address.address_2|default_if_none:"-" }}
                     </dd>
                   {% endif %}
                 </div>
                 <div class="col">
-                  <dt>{% trans "Address city" %}</dt>
-                  {% if not address.city %}<i class="fas fa-exclamation-triangle text-danger"></i>{% endif %}
+                  <dt>{% trans "City" %}</dt>
                   <dd>
-                    {{ address.city }}
+                    {% if not address.city %}<i class="fas fa-exclamation-triangle text-danger"></i>{% endif %}
+                    {{ address.city|default_if_none:"-" }}
                   </dd>
-                </div>
-                <div class="col">
-                  <dt>{% trans "Address state" %}</dt>
-                  {% if not address.state %}<i class="fas fa-exclamation-triangle text-danger"></i>{% endif %}
+                  <dt>{% trans "State" %}</dt>
                   <dd>
-                    {{ address.state_name }}
+                    {% if not address.state %}<i class="fas fa-exclamation-triangle text-danger"></i>{% endif %}
+                    {{ address.state_name|default_if_none:"-" }}
+                  </dd>
+                  <dt>{% trans "Country" %}</dt>
+                  <dd>
+                    {% if not address.state %}<i class="fas fa-exclamation-triangle text-danger"></i>{% endif %}
+                    {{ address.state.country.name|default_if_none:"-" }}
                   </dd>
                 </div>
               </div>
@@ -111,22 +123,24 @@
                   {% if address.notes %}
                     <dt>{% trans "Address notes" %}</dt>
                     <dd>
-                      {{ address.notes }}
+                      {{ address.notes|default_if_none:"-" }}
                     </dd>
                   {% endif %}
                 </div>
               </div>
             </div>
             <div class="card-footer text-right">
-              {% if not address.verified %}
-                <a href="{% url "normalizar_direccion" contact.id address.id %}"
-                   class="btn btn-gradient btn-primary">{% trans "Normalize" %}</a>
+              {% if georef_activated %}
+                {% if not address.verified %}
+                  <a href="{% url "normalizar_direccion" contact.id address.id %}"
+                     class="btn btn-gradient btn-primary">{% trans "Normalize" %}</a>
+                {% endif %}
               {% endif %}
               <a href="{% url "editar_direccion" contact.id address.id %}"
                  class="btn btn-gradient btn-primary">{% trans "Edit address" %}</a>
               <a href="{% url "edit_address_complementary_information" address.id %}"
                  class="btn btn-gradient btn-primary">{% trans "Complementary information" %}</a>
-              {% if request.user|in_group:"Support" or request.user|in_group:"Managers" %}
+              {% if request.user|in_group:"Managers" %}
                 <a href="{% url "admin:core_address_change" address.id %}"
                    class="btn btn-gradient btn-danger">{% trans "Admin" %}</a>
                 <a href="{% url "admin:core_address_delete" address.id %}"
@@ -143,5 +157,13 @@
            class="btn btn-gradient btn-primary">{% trans "Add Address" %}</a>
       </div>
     </div>
+  </div>
+</div>
+<div class="row">
+  <div class="card col-sm-9">
+    <div class="card-header">
+      <h3 class="card-title">{% trans "Notes" %}</h3>
+    </div>
+    <div class="card-body">{{ contact.notes|linebreaksbr|default_if_none:"-" }}</div>
   </div>
 </div>
