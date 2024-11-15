@@ -269,6 +269,9 @@ class Product(models.Model):
     def get_last_terms_and_conditions(self):
         return self.terms_and_conditions.order_by("-date").first()
 
+    def has_terms_and_conditions(self):
+        return self.terms_and_conditions.exists()
+
     class Meta:
         verbose_name = _("product")
         verbose_name_plural = _("products")
