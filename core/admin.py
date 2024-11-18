@@ -438,7 +438,6 @@ class ProductAdmin(admin.ModelAdmin):
         }),
     )
     inlines = (TermsAndConditionsProductInline,)
-    # readonly_fields = ("slug",)
 
 
 class PlanAdmin(admin.ModelAdmin):
