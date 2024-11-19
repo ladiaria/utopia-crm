@@ -778,9 +778,9 @@ class Contact(models.Model):
         for product_slug in computed_slug_set:
             try:
                 self.add_newsletter_by_slug(product_slug)
-            except Exception as e:
+            except Exception as exc:
                 if settings.DEBUG:
-                    print(e)
+                    print(f"DEBUG: error in add_default_newsletters: {exc}")
             else:
                 result.append(product_slug)
         return result
@@ -2562,7 +2562,8 @@ class DynamicContactFilter(models.Model):
         emails_in_filter = self.get_emails()
         emails_in_mailtrain = get_emails_from_mailtrain_list(self.mailtrain_id)
 
-        print(("synchronizing DCF {} with list {}".format(self.id, self.mailtrain_id)))
+        if settings.DEBUG:
+            print(f"DEBUG: synchronizing DCF {self.id} with list {self.mailtrain_id}")
 
         # First we're going to delete the ones that don't belong to the list
         for email_in_mailtrain in emails_in_mailtrain:
@@ -2665,7 +2666,7 @@ class EmailReplacement(models.Model):
 def update_customer(cust, newmail, field, value):
     # TODO: rename to update_contact or similar, rename cust arg accordingly also
     if settings.DEBUG:
-        print("DEBUG: update_customer(%s[id=%d], %s, %s, %s)" % (cust, cust.id, newmail, field, value))
+        print("DEBUG: core.models.update_customer(%s[id=%d], %s, %s, %s)" % (cust, cust.id, newmail, field, value))
     if not getattr(cust, 'updatefromweb', False):
         cust.updatefromweb = True
     if field:
@@ -2724,13 +2725,16 @@ def update_web_user(contact, target_email=None, newsletter_data=None, area_newsl
                 if before_saved_value is not None and current_saved_value != before_saved_value:
                     fields_to_update.update({f: current_saved_value})
             # call for sync if there are fields to update
-            updatewebuser(
+            api_result = updatewebuser(
                 contact.id, target_email, contact.email, contact.name, contact.last_name, fields_to_update, method
             )
         except RequestException as e:
             raise ValidationError("{}: {}".format(_("CMS sync error"), e))
         except Contact.DoesNotExist:
             pass
+        else:
+            if api_result in ("TIMEOUT", "ERROR"):
+                contact.sync_error = api_result  # TODO: try to get more info from the error
 
 
 def update_web_user_newsletters(contact):
@@ -2740,10 +2744,10 @@ def update_web_user_newsletters(contact):
     """
     try:
         newsletters_slugs = list(contact.get_active_newsletters().values_list('product__slug', flat=True))
-        update_web_user(contact, contact.email, json.dumps(newsletters_slugs), method="PUT")
-    except Exception as ex:
+        update_web_user(contact, contact.email, json.dumps(newsletters_slugs))
+    except Exception as exc:
         if settings.DEBUG:
-            print("Error sending the request to CMS", str(ex))
+            print(f"DEBUG: Error sending the request to CMS: {exc}")
 
 
 class MailtrainList(models.Model):

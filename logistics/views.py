@@ -407,7 +407,8 @@ def print_labels(request, page="Roll", list_type="", route_list="", product_id=N
             mark_contacts_list = [int(item) for sublist in mark_contacts_list for item in sublist]
         else:
             mark_contacts_list = []
-        print(mark_contacts_list)
+        if settings.DEBUG:
+            print(f"DEBUG: print_labels: mark_contacts_list={mark_contacts_list}")
         if request.GET.get("date", None):
             date_string = request.GET.get("date")
             next_day = datetime.strptime(date_string, "%Y-%m-%d")

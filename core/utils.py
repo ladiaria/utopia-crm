@@ -120,7 +120,8 @@ def calc_price_from_products(products_with_copies, frequency, debug_id=""):
         debug_id += ": "
     # Fetch all Product instances needed in a single query using in_bulk
     products = Product.objects.in_bulk(products_with_copies.keys())
-    print(products)
+    if settings.DEBUG:
+        print(f"DEBUG: calc_price_from_products: products={products}")
 
     # Create the dictionary with product_id as key and (Product instance, copies) as value
     product_data = {
@@ -379,26 +380,6 @@ def cms_rest_api_kwargs(api_key, data=None):
     return result
 
 
-def updatewebuser(cid, email, newemail, name="", last_name="", fields_values={}, method="PUT"):
-    """
-    Performs a PUT or a POST to the WEB CMS REST API to update or create the CMS models related to the contact.
-    TODO: Document the usage of the fields_values parameter.
-    """
-    data = {
-        "contact_id": cid,
-        "name": name,
-        "last_name": last_name,
-        "email": email,
-        "newemail": newemail,
-        "fields": json.dumps(fields_values),
-    }
-    try:
-        cms_rest_api_request("updatewebuser", settings.WEB_UPDATE_USER_URI, data, method)
-    except Exception as e:
-        if settings.DEBUG:
-            print(f"ERROR: updatewebuser: {e}")
-
-
 def cms_rest_api_request(api_name, api_uri, post_data, method="POST"):
     """
     Performs a request to the CMS REST API.
@@ -424,7 +405,7 @@ def cms_rest_api_request(api_name, api_uri, post_data, method="POST"):
                 html2text_content = html2text(r.content.decode()).strip()
                 # TODO: can be improved splitting and stripping more unuseful info
                 print(
-                    "DEBUG: CMS api response content: " + html2text_content.split("## Request information")[0].strip()
+                    "DEBUG: CMS api response content: " + html2text_content.split("## Traceback")[0].strip()
                 )
             r.raise_for_status()
             result = r.json()
@@ -443,6 +424,25 @@ def cms_rest_api_request(api_name, api_uri, post_data, method="POST"):
         return "ERROR"
     else:
         return {"msg": "OK"}
+
+
+def updatewebuser(cid, email, newemail, name="", last_name="", fields_values={}, method="PUT"):
+    """
+    Performs a PUT or a POST to the WEB CMS REST API to update or create the CMS models related to the contact.
+    TODO: Document the usage of the fields_values parameter.
+    """
+    field_data = json.dumps(fields_values)
+    if settings.DEBUG:
+        print(f"DEBUG: updatewebuser field_data: {field_data}")
+    data = {
+        "contact_id": cid,
+        "name": name,
+        "last_name": last_name,
+        "email": email,
+        "newemail": newemail,
+        "fields": field_data,
+    }
+    return cms_rest_api_request("updatewebuser", settings.WEB_UPDATE_USER_URI, data, method)
 
 
 def validateEmailOnWeb(contact_id, email):

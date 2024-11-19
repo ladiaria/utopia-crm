@@ -57,7 +57,10 @@ class PrintableArea(object):
 
     def putLine(self, line, bold=False, br=True, font='Roboto'):
         # TODO: la implementacion del <br> no funciona
-        self.max_line_width = max(self.max_line_width, self.canvas.stringWidth(line, self.getFont(bold=bold, font=font), self.default_font_size))
+        self.max_line_width = max(
+            self.max_line_width,
+            self.canvas.stringWidth(line, self.getFont(bold=bold, font=font), self.default_font_size),
+        )
         self.lines.append((line, bold, font))
         if br:
             self.max_paragraph_height += self.lineHeight(font, self.default_font_size)
@@ -192,7 +195,7 @@ class LogisticsLabel(Label):
         # Area de comunicacion cliente o distribuidor
         p3 = PrintableArea(self.canvas, 0, self.height - barcode_h - 5 * self.octavio, self.width, 2 * self.octavio)
 
-        if not self.message_for_contact:  # No hay comunicacion cliente, podemos usar este espacio para mensaje distribuidor
+        if not self.message_for_contact:  # No hay comunic. cliente, podemos usar este espacio para msg distribuidor
             for line in self.message_for_distributor.splitlines():
                 p3.putLine(line, bold=True)
 
