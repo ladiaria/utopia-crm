@@ -50,13 +50,7 @@
     <td>{{ invoice.amount }}</td>
     <td>{{ invoice.get_payment_type_display }}</td>
     <td>{{ invoice.get_status }}</td>
-    {% if request.user|in_group:"Admins" %}
-      <td>
-        {% if "MercadoPago - Pago no aprobado" in invoice.notes and not invoice.paid and not invoice.debited and not invoice.canceled and not invoice.uncollectible %}
-          <a href="{% url 'mercadopago_resend' invoice.id %}" class="btn btn-primary">Enviar a MercadoPago</a>
-        {% endif %}
-      </td>
-    {% endif %}
+    <td></td>
     </tr>
   {% endfor %}
 </tbody>
