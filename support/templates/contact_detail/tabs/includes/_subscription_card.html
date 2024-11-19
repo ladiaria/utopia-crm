@@ -26,6 +26,10 @@
               <dd>
                 {{ subscription.get_frequency }}
               </dd>
+              <dt>{% trans "Payment type" %}:</dt>
+              <dd>
+                {{ subscription.payment_type }} {% block extrapayment %}{% endblock extrapayment %}
+              </dd>
             </div>
             <div class="col-6">
               <dt>{% trans "Price" %}:</dt>
