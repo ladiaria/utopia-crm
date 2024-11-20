@@ -222,6 +222,14 @@ class SubscriptionAdmin(SimpleHistoryAdmin):
             },
         ),
         (
+            "Corporate subscription data",
+            {
+                "fields": (
+                    ("number_of_subscriptions", "override_price"),
+                ),
+            },
+        ),
+        (
             "Billing data",
             {
                 "classes": ("collapse",),

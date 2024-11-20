@@ -224,7 +224,7 @@
             {% for a in activities %}
               <div class="list-group-item">
                 <p class="mb-1 font-weight-bold">
-                  {{ a.get_type }}
+                  {{ a.get_type_display }}
                   {% if a.campaign %}<span class="font-italic">{{ a.campaign.name }}</span>{% endif %}
                 </p>
                 {% if a.created_by %}
