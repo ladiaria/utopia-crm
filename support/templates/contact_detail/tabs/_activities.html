@@ -28,7 +28,7 @@
                 <tr role="row"
                     style="{% if activity.topic or activity.response %}border-bottom: none{% endif %}">
                   <td>{{ activity.datetime|date:"d/m/Y H:i" }}</td>
-                  <td>{{ activity.get_type }}</td>
+                  <td>{{ activity.get_type_display }}</td>
                   <td>{{ activity.get_direction }}</td>
                   <td>{{ activity.campaign|default_if_none:"-" }}</td>
                   <td>{{ activity.product|default_if_none:"-" }}</td>

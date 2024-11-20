@@ -224,8 +224,8 @@ urlpatterns = [
         name="subscription_end_date_list",
     ),
     path(
-        "subscription/<int:contact_id>/create_corporate_subscription/",
-        views.CorporateSubscriptionView.as_view(),
+        "contacts/<int:contact_id>/create_corporate_subscription/",
+        views.CorporateSubscriptionCreateView.as_view(),
         name="create_corporate_subscription",
     ),
     path(
