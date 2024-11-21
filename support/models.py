@@ -258,7 +258,7 @@ class ScheduledTask(models.Model):
         from logistics.models import RouteChange
 
         if debug:
-            print(_(f"Executing {self.get_category_display()} for contact {self.contact.id}"))
+            print(_(f"DEBUG: Executing {self.get_category_display()} for contact {self.contact.id}"))
 
         if self.category in ('PD', 'PA'):  # Total pause start/end
             self.subscription.active = self.category == 'PA'
@@ -311,7 +311,7 @@ class ScheduledTask(models.Model):
         self.save()
 
         if debug:
-            print(_("Task {} completed successfully.".format(self.id)))
+            print(f"DEBUG: Task {self.id} completed successfully.")
         if verbose:
             return _("Task {id} of type {category} for contact {contact} completed successfully.".format(
                 id=self.id, category=self.get_category(), contact=self.contact.get_full_name()

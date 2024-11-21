@@ -192,7 +192,8 @@ def agregar_direccion(request, contact_id):
         {"label": contact_obj.get_full_name(), "url": reverse("contact_detail", args=[contact_id])},
         {"label": _("Add address"), "url": ""},
     ]
-    print(georef_activated)
+    if settings.DEBUG:
+        print(f"DEBUG: agregar_direccion: georef_activated={georef_activated}")
     return render(
         request,
         "location/agregar_direccion.html",

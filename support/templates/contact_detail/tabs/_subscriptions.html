@@ -27,6 +27,11 @@
   <p>{% trans "This contact has no subscriptions" %}</p>
 {% endif %}
 <div class="text-right">
+  {% if perms.core.can_add_corporate_subscription %}
+    <a href="{% url "create_corporate_subscription" contact.id %}" class="btn btn-primary">
+      <i class="fas fa-plus-circle"></i> {% trans "Create corporate subscription" %}
+    </a>
+  {% endif %}
   <a href="{% url "new_subscription" contact.id %}" class="btn btn-primary">
     <i class="fas fa-plus-circle"></i> {% trans "Add subscription" %}
   </a>

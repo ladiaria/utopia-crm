@@ -24,7 +24,6 @@ from core.forms import EmailValidationForm
 from core.choices import ADDRESS_TYPE_CHOICES, ACTIVITY_TYPES
 from core.signals import alphanumeric
 
-
 from .models import Seller, Issue, IssueStatus, IssueSubcategory, SalesRecord
 from .choices import ISSUE_CATEGORIES
 
@@ -147,9 +146,7 @@ class NewAddressChangeScheduledTaskForm(forms.Form):
 
 class NewPromoForm(EmailValidationForm):
     name = forms.CharField(widget=forms.TextInput(attrs={"class": "form-control"}))
-    last_name = forms.CharField(
-        widget=forms.TextInput(attrs={"class": "form-control"}), required=False
-    )
+    last_name = forms.CharField(widget=forms.TextInput(attrs={"class": "form-control"}), required=False)
     phone = PhoneNumberField(
         empty_value="",
         required=False,
@@ -600,8 +597,7 @@ class NewActivityForm(forms.ModelForm):
 
 class CreateActivityForm(forms.ModelForm):
     datetime = forms.DateTimeField(
-        widget=forms.DateTimeInput(attrs={'type': 'datetime-local'}),
-        input_formats=['%Y-%m-%dT%H:%M']
+        widget=forms.DateTimeInput(attrs={'type': 'datetime-local'}), input_formats=['%Y-%m-%dT%H:%M']
     )
 
     def __init__(self, *args, **kwargs):
@@ -611,11 +607,15 @@ class CreateActivityForm(forms.ModelForm):
         self.fields["datetime"].initial = timezone.now().strftime("%Y-%m-%dT%H:%M")
         self.fields["status"].initial = "C"
         self.fields["direction"].initial = "I"
+        self.fields["topic"].required = False
+        self.fields["response"].required = False
 
     class Meta:
         model = Activity
         fields = [
             "contact",
+            "topic",
+            "response",
             "direction",
             "datetime",
             "notes",
@@ -749,6 +749,45 @@ class SalesRecordCreateForm(forms.ModelForm):
         if subscription:
             # Assuming you have a field named 'subscription' to hold the subscription_id
             self.fields['subscription'].initial = subscription
+
+
+class CorporateSubscriptionForm(forms.ModelForm):
+    product = forms.ModelChoiceField(queryset=Product.objects.all())
+    number_of_subscriptions = forms.IntegerField(min_value=1)
+    start_date = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}))
+    end_date = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}))
+    payment_method = forms.ChoiceField(choices=Subscription._meta.get_field('payment_type').choices)
+
+    class Meta:
+        model = Subscription
+        fields = [
+            'product',
+            'number_of_subscriptions',
+            'start_date',
+            'end_date',
+            'payment_method',
+        ]
+
+    def clean(self):
+        cleaned_data = super().clean()
+        start_date = cleaned_data.get('start_date')
+        end_date = cleaned_data.get('end_date')
+
+        if start_date and end_date:
+            if end_date < start_date:
+                raise forms.ValidationError("The end date must be after the start date.")
+
+        return cleaned_data
+
+
+class AffiliateSubscriptionForm(forms.Form):
+    contact = forms.ModelChoiceField(queryset=Contact.objects.all())
+    start_date = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}))
+    end_date = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}))
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['contact'].queryset = self.fields['contact'].queryset.order_by('name')
 
 
 class ImportContactsForm(forms.Form):

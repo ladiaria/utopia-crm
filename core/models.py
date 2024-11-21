@@ -50,7 +50,6 @@ from .choices import (
     PRODUCT_BILLING_FREQUENCY_CHOICES,
     PRODUCT_EDITION_FREQUENCY,
     PRODUCT_TYPE_CHOICES,
-    PRODUCT_RENEWAL_TYPE_CHOICES,
     PRODUCT_WEEKDAYS,
     PRODUCTHISTORY_CHOICES,
     SUBSCRIPTION_STATUS_CHOICES,
@@ -161,10 +160,34 @@ class Variable(models.Model):
         ordering = ("name",)
 
 
+class ProductSubscriptionPeriod(models.Model):
+    """
+    Represents a period of time for a product. This is used mainly to categorize the product by its duration.
+    """
+
+    name = models.CharField(max_length=255, unique=True)
+    months_duration = models.PositiveIntegerField(help_text=_("Number of months this period represents."))
+    description = models.TextField(blank=True, help_text=_("Optional description for this period, if needed."))
+
+    class Meta:
+        verbose_name = _("Product Subscription Period")
+        verbose_name_plural = _("Product Subscription Periods")
+        ordering = ['months_duration']
+
+    def __str__(self):
+        return self.name
+
+
 class Product(models.Model):
     """
     Products that a subscription can have. (They must have a billing priority to be billed).
     """
+
+    class RenewalTypeChoices(models.TextChoices):
+        """Choices for the renewal type"""
+
+        AUTOMATIC = "A", _("Automatic")
+        MANUAL = "M", _("Manual")
 
     name = models.CharField(max_length=100, verbose_name=_("Name"), db_index=True)
     slug = AutoSlugField(populate_from="name", null=True, blank=True, editable=True)
@@ -172,7 +195,11 @@ class Product(models.Model):
     price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     type = models.CharField(max_length=1, default="O", choices=PRODUCT_TYPE_CHOICES, db_index=True)
     weekday = models.IntegerField(default=None, choices=PRODUCT_WEEKDAYS, null=True, blank=True)
-    offerable = models.BooleanField(default=False, verbose_name=_("Allow offer"))
+    offerable = models.BooleanField(
+        default=False,
+        verbose_name=_("Allow offer"),
+        help_text=_("Allow product to be shown in the new subscription forms"),
+    )
     has_implicit_discount = models.BooleanField(default=False, verbose_name=_("Has implicit discount"))
     billing_priority = models.PositiveSmallIntegerField(null=True, blank=True)
     digital = models.BooleanField(default=False, verbose_name=_("Digital"))
@@ -192,11 +219,27 @@ class Product(models.Model):
     )
     renewal_type = models.CharField(
         max_length=1,
-        default="A",
-        choices=PRODUCT_RENEWAL_TYPE_CHOICES,
+        default=RenewalTypeChoices.AUTOMATIC,
+        choices=RenewalTypeChoices.choices,
         verbose_name=_("Renewal type"),
         null=True,
         blank=True,
+    )
+    duration_months = models.PositiveSmallIntegerField(
+        default=1,
+        verbose_name=_("Duration in months"),
+        null=True,
+        blank=True,
+    )
+    subscription_period = models.ForeignKey(
+        ProductSubscriptionPeriod,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
+    terms_and_conditions = models.ManyToManyField(
+        "core.TermsAndConditions",
+        through="core.TermsAndConditionsProduct",
     )
     objects = ProductManager()
 
@@ -222,6 +265,12 @@ class Product(models.Model):
         """
         weekdays = dict(PRODUCT_WEEKDAYS)
         return weekdays.get(self.weekday, "N/A")
+
+    def get_last_terms_and_conditions(self):
+        return self.terms_and_conditions.order_by("-date").first()
+
+    def has_terms_and_conditions(self):
+        return self.terms_and_conditions.exists()
 
     class Meta:
         verbose_name = _("product")
@@ -778,9 +827,9 @@ class Contact(models.Model):
         for product_slug in computed_slug_set:
             try:
                 self.add_newsletter_by_slug(product_slug)
-            except Exception as e:
+            except Exception as exc:
                 if settings.DEBUG:
-                    print(e)
+                    print(f"DEBUG: error in add_default_newsletters: {exc}")
             else:
                 result.append(product_slug)
         return result
@@ -1313,6 +1362,13 @@ class Subscription(models.Model):
         related_name='billed_subscriptions',
         verbose_name=_("Billing Contact"),
     )
+    terms_and_conditions = models.ForeignKey(
+        "core.TermsAndConditions",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name=_("Terms and conditions"),
+    )
 
     def __str__(self):
         return str(
@@ -1593,19 +1649,13 @@ class Subscription(models.Model):
     def get_first_day_of_the_week(self):
         """
         Returns an integer representing the first weekday (based on isoweekday) on the products this subscription has.
+        Returns 6 if no weekday products are found.
         """
-        if SubscriptionProduct.objects.filter(subscription=self, product__weekday=1).exists():
-            return 1
-        elif SubscriptionProduct.objects.filter(subscription=self, product__weekday=2).exists():
-            return 2
-        elif SubscriptionProduct.objects.filter(subscription=self, product__weekday=3).exists():
-            return 3
-        elif SubscriptionProduct.objects.filter(subscription=self, product__weekday=4).exists():
-            return 4
-        elif SubscriptionProduct.objects.filter(subscription=self, product__weekday=5).exists():
-            return 5
-        else:
-            return 6
+        # Check weekdays 1-5 in order and return the first match
+        for weekday in range(1, 6):
+            if SubscriptionProduct.objects.filter(subscription=self, product__weekday=weekday).exists():
+                return weekday
+        return 6
 
     def get_invoiceitems(self):
         """
@@ -1680,6 +1730,7 @@ class Subscription(models.Model):
     def get_price_for_full_period(self, debug_id=""):
         """Returns the price for a single period on this customer"""
         from .utils import calc_price_from_products
+
         return calc_price_from_products(self.product_summary(), self.frequency, debug_id)
 
     def get_price_for_full_period_with_pauses(self, debug_id=""):
@@ -2065,7 +2116,10 @@ class Subscription(models.Model):
     class Meta:
         verbose_name = _("subscription")
         verbose_name_plural = _("subscriptions")
-        permissions = [("can_add_free_subscription", _("Can add free subscription"))]
+        permissions = [
+            ("can_add_free_subscription", _("Can add free subscription")),
+            ("can_add_corporate_subscription", _("Can add corporate subscription")),
+        ]
 
 
 class Campaign(models.Model):
@@ -2199,6 +2253,30 @@ class Campaign(models.Model):
         )
 
 
+class ActivityTopic(models.Model):
+    """
+    Model to store the topics for activities.
+    """
+
+    name = models.CharField(max_length=255, unique=True)
+    description = models.TextField(blank=True)
+
+    def __str__(self):
+        return self.name
+
+
+class ActivityResponse(models.Model):
+    """
+    Model to store the responses for activities.
+    """
+
+    name = models.CharField(max_length=255, unique=True)
+    description = models.TextField(blank=True)
+
+    def __str__(self):
+        return self.name
+
+
 class Activity(models.Model):
     """
     Model that stores every interaction the company has with Contacts. They range from calls, to emails, in-place
@@ -2225,6 +2303,8 @@ class Activity(models.Model):
     created_by = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True, blank=True, verbose_name=_("Created by")
     )
+    topic = models.ForeignKey(ActivityTopic, on_delete=models.SET_NULL, null=True, blank=True)
+    response = models.ForeignKey(ActivityResponse, on_delete=models.SET_NULL, null=True, blank=True)
     history = HistoricalRecords()
 
     def __str__(self):
@@ -2562,7 +2642,8 @@ class DynamicContactFilter(models.Model):
         emails_in_filter = self.get_emails()
         emails_in_mailtrain = get_emails_from_mailtrain_list(self.mailtrain_id)
 
-        print(("synchronizing DCF {} with list {}".format(self.id, self.mailtrain_id)))
+        if settings.DEBUG:
+            print(f"DEBUG: synchronizing DCF {self.id} with list {self.mailtrain_id}")
 
         # First we're going to delete the ones that don't belong to the list
         for email_in_mailtrain in emails_in_mailtrain:
@@ -2665,7 +2746,7 @@ class EmailReplacement(models.Model):
 def update_customer(cust, newmail, field, value):
     # TODO: rename to update_contact or similar, rename cust arg accordingly also
     if settings.DEBUG:
-        print("DEBUG: update_customer(%s[id=%d], %s, %s, %s)" % (cust, cust.id, newmail, field, value))
+        print("DEBUG: core.models.update_customer(%s[id=%d], %s, %s, %s)" % (cust, cust.id, newmail, field, value))
     if not getattr(cust, 'updatefromweb', False):
         cust.updatefromweb = True
     if field:
@@ -2724,13 +2805,16 @@ def update_web_user(contact, target_email=None, newsletter_data=None, area_newsl
                 if before_saved_value is not None and current_saved_value != before_saved_value:
                     fields_to_update.update({f: current_saved_value})
             # call for sync if there are fields to update
-            updatewebuser(
+            api_result = updatewebuser(
                 contact.id, target_email, contact.email, contact.name, contact.last_name, fields_to_update, method
             )
         except RequestException as e:
             raise ValidationError("{}: {}".format(_("CMS sync error"), e))
         except Contact.DoesNotExist:
             pass
+        else:
+            if api_result in ("TIMEOUT", "ERROR"):
+                contact.sync_error = api_result  # TODO: try to get more info from the error
 
 
 def update_web_user_newsletters(contact):
@@ -2740,10 +2824,10 @@ def update_web_user_newsletters(contact):
     """
     try:
         newsletters_slugs = list(contact.get_active_newsletters().values_list('product__slug', flat=True))
-        update_web_user(contact, contact.email, json.dumps(newsletters_slugs), method="PUT")
-    except Exception as ex:
+        update_web_user(contact, contact.email, json.dumps(newsletters_slugs))
+    except Exception as exc:
         if settings.DEBUG:
-            print("Error sending the request to CMS", str(ex))
+            print(f"DEBUG: Error sending the request to CMS: {exc}")
 
 
 class MailtrainList(models.Model):
@@ -2765,3 +2849,23 @@ class MailtrainList(models.Model):
     class Meta:
         verbose_name = _("Mailtrain List")
         verbose_name_plural = _("Mailtrain Lists")
+
+
+class TermsAndConditions(models.Model):
+    version = models.CharField(max_length=255)
+    date = models.DateField()
+    code = models.CharField(max_length=255)
+    pdf_file = models.FileField(upload_to="terms_and_conditions", null=True, blank=True)
+    text = models.TextField()
+
+    def __str__(self) -> str:
+        return f"T&C {self.version} ({self.date})"
+
+
+class TermsAndConditionsProduct(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    terms_and_conditions = models.ForeignKey(TermsAndConditions, on_delete=models.CASCADE)
+    date = models.DateField()
+
+    def __str__(self) -> str:
+        return f"T&C {self.terms_and_conditions.version} ({self.date}) for {self.product.name}"

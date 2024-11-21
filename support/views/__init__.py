@@ -6,7 +6,6 @@ from .contacts import (  # noqa
     ContactListView,
     ContactUpdateView,
     ImportContactsView,
-    edit_newsletters,
     contact_invoices_htmx,
 )
 from .scheduled_tasks import (  # noqa
@@ -31,4 +30,6 @@ from .subscriptions import (  # noqa
     book_additional_product,
     send_promo,
     SubscriptionEndDateListView,
+    CorporateSubscriptionView,
+    AffiliateSubscriptionView,
 )

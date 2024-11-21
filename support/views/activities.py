@@ -4,7 +4,7 @@ from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.shortcuts import render
 from django.contrib.auth.models import User
 from django.contrib.admin.views.decorators import staff_member_required
-from django.views.generic import CreateView
+from django.views.generic import CreateView, UpdateView
 from django.urls import reverse_lazy, reverse
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.mixins import UserPassesTestMixin
@@ -84,4 +84,29 @@ class ActivityCreateView(UserPassesTestMixin, BreadcrumbsMixin, CreateView):
 
     def dispatch(self, request, *args, **kwargs):
         self.contact = get_object_or_404(Contact, pk=kwargs["contact_id"])
+        return super().dispatch(request, *args, **kwargs)
+
+
+class ActivityUpdateView(UserPassesTestMixin, BreadcrumbsMixin, UpdateView):
+    model = Activity
+    form_class = CreateActivityForm
+    template_name = "activities/create_activity.html"
+    success_url = reverse_lazy("contact_list")
+
+    def breadcrumbs(self):
+        return [
+            {"label": _("Contact list"), "url": reverse("contact_list")},
+            {"label": self.contact.get_full_name(), "url": reverse("contact_detail", args=[self.contact.id])},
+            {"label": _("Update activity"), "url": ""},
+        ]
+
+    def test_func(self):
+        return self.request.user.is_staff
+
+    def get_success_url(self):
+        return reverse_lazy("contact_detail", kwargs={"pk": self.object.contact.id})
+
+    def dispatch(self, request, *args, **kwargs):
+        # We need to see if the contact exists first because it's in the url
+        get_object_or_404(Contact, pk=kwargs["pk"])
         return super().dispatch(request, *args, **kwargs)

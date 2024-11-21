@@ -78,6 +78,9 @@
     </p>
   {% endif %}
 
+  {% block extensions %}
+  {% endblock extensions %}
+
   {% if subscription.payment_certificate %}
     <p class="mb-1">
       <a href="{{ subscription.payment_certificate.url }}" class="font-weight-bold">{% trans "View payment certificate" %}</a>
