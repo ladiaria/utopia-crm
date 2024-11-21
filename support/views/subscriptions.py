@@ -276,6 +276,11 @@ class SubscriptionMixin(BreadcrumbsMixin):
     def get_success_url(self):
         return self.redirect_to
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["contact"] = self.contact
+        return context
+
 
 class SubscriptionCreateView(UserPassesTestMixin, SubscriptionMixin, FormView):
 
@@ -1022,6 +1027,15 @@ class SubscriptionEndDateListView(UserPassesTestMixin, FilterView, ListView):
 
 class CorporateSubscriptionCreateView(SubscriptionMixin, FormView):
     form_class = CorporateSubscriptionForm
+
+    # TODO: Add a template for this view that allows to select products and addresses.
+    # It should also allow to select the start and end dates and the amount of subscriptions to create.
+
+    def dispatch(self, request, *args, **kwargs):
+        self.contact = self.get_contact(kwargs['contact_id'])
+        self.subscription = None
+        self.capture_variables()
+        return super().dispatch(request, *args, **kwargs)
 
 
 class AffiliateSubscriptionView(FormView):
