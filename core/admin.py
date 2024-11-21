@@ -44,6 +44,11 @@ from .models import (
     MailtrainList,
     Country,
     State,
+    ActivityTopic,
+    ActivityResponse,
+    ProductSubscriptionPeriod,
+    TermsAndConditions,
+    TermsAndConditionsProduct,
 )
 from .forms import SubscriptionAdminForm, ContactAdminForm
 
@@ -386,6 +391,12 @@ class ContactAdmin(SimpleHistoryAdmin):
                 del obj._skip_clean
 
 
+class TermsAndConditionsProductInline(admin.TabularInline):
+    model = TermsAndConditionsProduct
+    fields = ("terms_and_conditions", "date")
+    extra = 1
+
+
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
     # TODO: validations, for example target_product only makes sense on discount products
@@ -417,19 +428,16 @@ class ProductAdmin(admin.ModelAdmin):
             "fields": ("name", "slug", "type"),
         }),
         (_("Pricing & Discounts"), {
-            "fields": ("price", "offerable", "temporary_discount_months"),
-            "description": "Set the product price and any applicable discounts."
+            "fields": ("price", "offerable", "temporary_discount_months", "renewal_type"),
         }),
         (_("Scheduling & Frequency"), {
-            "fields": ("weekday", "edition_frequency"),
-            "description": "Specify scheduling options, such as day of the week and frequency."
+            "fields": ("weekday", "subscription_period", "duration_months"),
         }),
         (_("Billing & Priority"), {
-            "fields": ("billing_priority", "active"),
-            "description": "Set the billing priority and active status."
+            "fields": ("billing_priority", "active", "edition_frequency"),
         }),
     )
-    # readonly_fields = ("slug",)  TODO: explain why this line is commented or remove it at all
+    inlines = (TermsAndConditionsProductInline,)
 
 
 class PlanAdmin(admin.ModelAdmin):
@@ -565,3 +573,7 @@ admin.site.register(MailtrainList)
 admin.site.register(IdDocumentType)
 admin.site.register(Country)
 admin.site.register(State)
+admin.site.register(ActivityTopic)
+admin.site.register(ActivityResponse)
+admin.site.register(ProductSubscriptionPeriod)
+admin.site.register(TermsAndConditions)

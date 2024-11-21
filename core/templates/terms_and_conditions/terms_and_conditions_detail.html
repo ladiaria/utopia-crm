@@ -1,0 +1,102 @@
+{% extends "adminlte/base.html" %}
+{% load static %}
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+  <!-- Main content -->
+  <section class="content">
+    <div class="container-fluid">
+      <div class="row">
+        <div class="col-12">
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Version {{ terms.version }}</h3>
+              <div class="card-tools">
+                <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                  <i class="fas fa-minus"></i>
+                </button>
+              </div>
+            </div>
+            <!-- /.card-header -->
+            <div class="card-body">
+              <div class="row">
+                <div class="col-12 col-md-6">
+                  <div class="info-box">
+                    <span class="info-box-icon bg-info">
+                      <i class="far fa-calendar-alt"></i>
+                    </span>
+                    <div class="info-box-content">
+                      <span class="info-box-text">Date</span>
+                      <span class="info-box-number">{{ terms.date|date:"F j, Y" }}</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-12 col-md-6">
+                  <div class="info-box">
+                    <span class="info-box-icon bg-success">
+                      <i class="fas fa-code"></i>
+                    </span>
+                    <div class="info-box-content">
+                      <span class="info-box-text">Code</span>
+                      <span class="info-box-number">{{ terms.code }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {% if terms.pdf_file %}
+                <div class="row mt-4">
+                  <div class="col-12">
+                    <div class="callout callout-info">
+                      <h5>
+                        <i class="fas fa-file-pdf"></i> PDF Document
+                      </h5>
+                      <p>
+                        <a href="{{ terms.pdf_file.url }}"
+                           target="_blank"
+                           class="btn btn-primary">
+                          <i class="fas fa-download"></i> Download PDF
+                        </a>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              {% endif %}
+              <div class="row mt-4">
+                <div class="col-12">
+                  <div class="card">
+                    <div class="card-header">
+                      <h3 class="card-title">Terms Text</h3>
+                    </div>
+                    <div class="card-body">
+                      <div class="terms-text">{{ terms.text|linebreaks }}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <!-- /.card-body -->
+            <div class="card-footer">
+              <div class="float-right">
+                <a href="{{ request.META.HTTP_REFERER }}" class="btn btn-default">Back</a>
+                {% if perms.core.change_termsandconditions %}
+                  <a href="{% url "admin:core_termsandconditions_change" terms.pk %}" class="btn btn-primary">Edit</a>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          <!-- /.card -->
+        </div>
+      </div>
+    </div>
+  </section>
+{% endblock %}
+
+{% block extra_css %}
+  <style>
+    .terms-text {
+        font-size: 1rem;
+        line-height: 1.6;
+        color: #444;
+    }
+  </style>
+{% endblock %}

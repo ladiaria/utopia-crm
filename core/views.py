@@ -14,12 +14,14 @@ from django.http import (
     HttpResponseNotFound,
 )
 from django.shortcuts import render, get_list_or_404, get_object_or_404
+from django.views.generic import DetailView
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.decorators.cache import never_cache
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
 
-from .models import Contact, MailtrainList, update_customer
+from .models import Contact, MailtrainList, update_customer, TermsAndConditions
 from .admin import contact_is_safe_to_delete
 from .utils import (
     get_emails_from_mailtrain_list,
@@ -315,3 +317,9 @@ def create_oneshot_invoice_from_web(request):
         return HttpResponseBadRequest(str(e))
     except Exception as exc:
         return HttpResponseServerError(str(exc))
+
+
+class TermsAndConditionsDetailView(LoginRequiredMixin, DetailView):
+    model = TermsAndConditions
+    template_name = 'terms_and_conditions/terms_and_conditions_detail.html'
+    context_object_name = 'terms'

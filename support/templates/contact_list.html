@@ -92,6 +92,17 @@
                 <tr role="row">
                   <td>
                     <a href="{% url "contact_detail" contact.id %}">{{ contact.get_full_name|default_if_none:"" }}</a>
+                    {% if contact.id_document %}
+                      <br>
+                      {% if contact.id_document_type %}
+                        {{ contact.id_document_type }}
+                        <br>
+                      {% endif %}
+                      <i class="fas fa-id-card"
+                         title="{% trans "ID document" %}"
+                         data-toggle="tooltip"></i>
+                      {{ contact.id_document }}
+                    {% endif %}
                   </td>
                   <td>{{ contact.email|default_if_none:"-" }}</td>
                   <td>{{ contact.phone|default_if_none:"" }}</td>

@@ -53,6 +53,12 @@ class EmailValidationForm(forms.Form):
             return result
 
     def email_extra_clean(self, cleaned_data):
+        from django.conf import settings
+
+        # Skip validation if disabled in settings
+        if not getattr(settings, 'EMAIL_VALIDATION_ENABLED', True):
+            return cleaned_data.get('email')
+
         email, was_valid = cleaned_data.get("email"), cleaned_data.get("email_was_valid")
         replacement, suggestion = cleaned_data.get("email_replacement"), cleaned_data.get("email_suggestion")
         if was_valid:

@@ -1,0 +1,66 @@
+{% extends "adminlte/base.html" %}
+{% load static i18n widget_tweaks %}
+
+{% block stylesheets %}
+  {{ block.super }}
+  <link rel="stylesheet" href="{% static "css/chosen/chosen.min.css" %}" />
+{% endblock %}
+
+{% block title %}{% trans "Create Corporate Subscription" %}{% endblock title %}
+
+{% block no_heading %}
+<h1>{% trans "New Corporate Subscription" %}</h1>
+{% endblock %}
+
+{% block extra_js %}
+  {{ block.super }}
+  <script src="{% static "js/chosen.jquery.min.js" %}"></script>
+  <script>
+    $(document).ready(function() {
+        $('.chosen-select').chosen();
+    });
+  </script>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h3 class="card-title">{% trans "Create Corporate Subscription" %}</h3>
+  </div>
+  <div class="card-body">
+    <form method="post">
+      {% csrf_token %}
+      <div class="row">
+        <div class="col-md-6">
+          <label for="id_product">{% trans "Product" %}</label>
+          {% render_field form.product class="form-control chosen-select" %}
+        </div>
+        <div class="col-md-6">
+          <label for="id_number_of_subscriptions">{% trans "Number of subscriptions" %}</label>
+          {% render_field form.number_of_subscriptions class="form-control" %}
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-md-6">
+          <label for="id_start_date">{% trans "Start date" %}</label>
+          {% render_field form.start_date class="form-control" %}
+        </div>
+        <div class="col-md-6">
+          <label for="id_end_date">{% trans "End date" %}</label>
+          {% render_field form.end_date class="form-control" %}
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-md-6">
+          <label for="id_payment_method">{% trans "Payment method" %}</label>
+          {% render_field form.payment_method class="form-control" %}
+        </div>
+      </div>
+      <div class="form-group text-right">
+        <button type="submit" class="btn bg-gradient-primary">{% trans "Create Corporate Subscription" %}</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+

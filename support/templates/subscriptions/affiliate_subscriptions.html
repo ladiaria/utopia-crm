@@ -1,0 +1,93 @@
+{% extends "adminlte/base.html" %}
+{% load static i18n widget_tweaks %}
+
+{% block title %}
+  {% trans "Bulk Subscriptions" %}
+{% endblock title %}
+
+{% block no_heading %}
+  <h1>{% trans "Bulk Subscriptions for Main Subscription" %} #{{ main_subscription.id }}</h1>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col-md-12">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">{% trans "Main Subscription Details" %}</h3>
+      </div>
+      <div class="card-body">
+        <p><strong>{% trans "Contact" %}:</strong> {{ main_subscription.contact.name }}</p>
+        <p><strong>{% trans "Start Date" %}:</strong> {{ main_subscription.start_date }}</p>
+        <p><strong>{% trans "End Date" %}:</strong> {{ main_subscription.end_date }}</p>
+        <p><strong>{% trans "Product" %}:</strong> {{ main_subscription.subscriptionproduct_set.first.product.name }}</p>
+        <p><strong>{% trans "Copies" %}:</strong> {{ main_subscription.subscriptionproduct_set.first.copies }}</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-12">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">{% trans "Add New Bulk Subscription" %}</h3>
+      </div>
+      <div class="card-body">
+        <form method="post">
+          {% csrf_token %}
+          <div class="row">
+            <div class="col">
+              {{ form.contact.label_tag }}
+              {{ form.contact }}
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-6">
+              {{ form.start_date.label_tag }}
+              {% render_field form.start_date class="form-control" %}
+            </div>
+            <div class="col-md-6">
+              {{ form.end_date.label_tag }}
+              {% render_field form.end_date class="form-control" %}
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary">{% trans "Add Bulk Subscription" %}</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-12">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">{% trans "Current Bulk Subscriptions" %}</h3>
+      </div>
+      <div class="card-body">
+        {% if bulk_subscriptions %}
+          <table class="table table-bordered table-striped">
+            <thead>
+              <tr>
+                <th>{% trans "Contact" %}</th>
+                <th>{% trans "Start Date" %}</th>
+                <th>{% trans "End Date" %}</th>
+                <th>{% trans "Status" %}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for subscription in bulk_subscriptions %}
+              <tr>
+                <td>{{ subscription.contact.name }}</td>
+                <td>{{ subscription.start_date }}</td>
+                <td>{{ subscription.end_date }}</td>
+                <td>{{ subscription.get_status_display }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        {% else %}
+          <p>{% trans "No bulk subscriptions found." %}</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

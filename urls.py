@@ -20,6 +20,7 @@ from core.views import (
     toggle_mailtrain_subscription,
     create_oneshot_invoice_from_web,
     contact_by_emailprefix,
+    TermsAndConditionsDetailView,
 )
 
 from invoicing import api as invoicing_api
@@ -60,6 +61,7 @@ urlpatterns += [
     path(
         "api/create_oneshot_invoice_from_web/", create_oneshot_invoice_from_web, name="create_oneshot_invoice_from_web"
     ),
+    path('terms_and_conditions/<int:pk>/', TermsAndConditionsDetailView.as_view(), name='terms_and_conditions_detail'),
 ]
 
 if 'support' in settings.INSTALLED_APPS:
