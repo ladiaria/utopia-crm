@@ -165,7 +165,7 @@ def default_newsletters_dialog_redirect(request, obj, contact_id_attr_name):
 def contact_is_safe_to_delete(contact, ignore_movable=False, print_unsafe=False):
     if contact.has_active_subscription():
         if print_unsafe:
-            print(contact.get_active_subscriptions())
+            print(f"contact_is_safe_to_delete (not safe): active subscriptions={contact.get_active_subscriptions()}")
         return False
 
     non_relevant_data_max_amounts = {
@@ -186,7 +186,7 @@ def contact_is_safe_to_delete(contact, ignore_movable=False, print_unsafe=False)
             if not ignore_movable or key not in movable:
                 safety = False
                 if print_unsafe:
-                    print((key, key_count))
+                    print(f"contact_is_safe_to_delete, collector data item: {key} {key_count}")
                 break
     return safety
 
