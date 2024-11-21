@@ -24,7 +24,6 @@ from core.forms import EmailValidationForm
 from core.choices import ADDRESS_TYPE_CHOICES, ACTIVITY_TYPES
 from core.signals import alphanumeric
 
-
 from .models import Seller, Issue, IssueStatus, IssueSubcategory, SalesRecord
 from .choices import ISSUE_CATEGORIES
 

@@ -78,7 +78,7 @@ def bill_subscription(subscription_id, billing_date=None, dpp=10):
     require_route_for_billing = getattr(settings, 'REQUIRE_ROUTE_FOR_BILLING', False)
     exclude_routes_from_billing_list = getattr(settings, 'EXCLUDE_ROUTES_FROM_BILLING_LIST', [])
     envelope_price = getattr(settings, 'ENVELOPE_PRICE', 0)
-    debug_products = getattr(settings, 'DEBUG_PRODUCTS', False)
+    debug_products = getattr(settings, 'DEBUG_PRODUCTS', settings.DEBUG)
 
     billing_date = billing_date or date.today()
     subscription = get_object_or_404(Subscription, pk=subscription_id)
@@ -161,7 +161,7 @@ def bill_subscription(subscription_id, billing_date=None, dpp=10):
 
         if debug_products:
             print(
-                f"{product.name} {copies}x{'-' if product.type == 'D' else ''}"
+                f"DEBUG: bill_subscription: {product.name} {copies}x{'-' if product.type == 'D' else ''}"
                 f"{product.price} = {'-' if product.type == 'D' else ''}{product.price * copies}"
             )
 
@@ -750,7 +750,8 @@ class InvoiceNonSubscriptionCreateView(CreateView):
     def form_valid(self, form):
         context = self.get_context_data()
         formset = context['formset']
-        print(formset)
+        if settings.DEBUG:
+            print(f"DEBUG: InvoiceNonSubscriptionCreateView: formset={formset}")
         if form.is_valid() and formset.is_valid():
             products = []
             for sub_form in formset:
@@ -760,7 +761,8 @@ class InvoiceNonSubscriptionCreateView(CreateView):
             self.object = self.contact.add_single_invoice_with_products(products)
             return super().form_valid(form)
         else:
-            print(form.errors)
+            if settings.DEBUG:
+                print(f"DEBUG: InvoiceNonSubscriptionCreateView: form.errors={form.errors}")
             return self.form_invalid(form)
 
     def get_success_url(self):
