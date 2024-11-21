@@ -995,7 +995,7 @@ class SubscriptionEndDateListView(UserPassesTestMixin, FilterView, ListView):
     def export_to_csv(self):
         queryset = self.get_queryset().select_related('contact').prefetch_related('products')
         if settings.DEBUG:
-            print(queryset.count())
+            print(f"DEBUG: export_to_csv: Exporting {queryset.count()} subscriptions to CSV")
 
         data = []
         for subscription in queryset:

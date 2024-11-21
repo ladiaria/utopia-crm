@@ -13,7 +13,8 @@ def mercadopago_debit(invoice, debug=False):
     Calls the MercadoPago API to send the payment. Generates the card token and register the payment.
     """
     if getattr(settings, "DISABLE_MERCADOPAGO", False):
-        print("Mercadopago debit skipped by settings.")
+        if settings.DEBUG:
+            print("DEBUG: mercadopago_debit: Mercadopago debit skipped by settings.")
         return
 
     # avoid duplicate charge if this invoice was already paid or debited

@@ -8,22 +8,22 @@ from django.conf import settings
 from django.db import transaction
 from django.db.models import Q, Prefetch
 from django.views.generic import UpdateView, CreateView, DetailView, ListView, FormView
+from django.forms import ModelMultipleChoiceField, CheckboxSelectMultiple
 from django.utils.decorators import method_decorator
 from django.utils.translation import gettext_lazy as _
 from django.contrib.admin.views.decorators import staff_member_required
 from django.shortcuts import get_object_or_404
-from django.http import HttpResponse, HttpResponseRedirect, HttpResponseNotFound
+from django.http import HttpResponse, HttpResponseNotFound
 from django.urls import reverse, reverse_lazy
 from django.contrib import messages
-from django.views.decorators.http import require_POST
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_protect
 from django.utils.functional import cached_property
+
 from core.models import (
     Contact,
     Product,
     MailtrainList,
-    update_web_user_newsletters,
     State,
     Country,
     Address,
@@ -268,12 +268,45 @@ class ContactDetailView(BreadcrumbsMixin, DetailView):
         }
 
 
+class ContactAdminFormWithNewsletters(ContactAdminForm):
+    newsletters = ModelMultipleChoiceField(
+        queryset=Product.objects.filter(type="N", active=True), widget=CheckboxSelectMultiple, required=False,
+    )
+
+    def __init__(self, *args, request=None, **kwargs):
+        contact = kwargs.get('instance')
+        super().__init__(*args, **kwargs)
+        if contact:
+            self.fields['newsletters'].initial = contact.get_newsletter_products()
+
+    def save(self, commit=True):
+        contact = super().save(commit=False)
+        if commit:
+            contact.save()
+        # Handle newsletters explicitly
+        selected_newsletters = self.cleaned_data.get('newsletters')
+        if contact.pk:  # Ensure the contact is saved before modifying M2M
+
+            all_newsletters = self.fields['newsletters'].queryset
+            current_newsletters = self.fields['newsletters'].initial
+
+            # Add new subscriptions for newsletters
+            for newsletter in all_newsletters:
+                if newsletter not in current_newsletters and newsletter in selected_newsletters:
+                    contact.add_newsletter(newsletter.id)
+                elif newsletter in current_newsletters and newsletter not in selected_newsletters:
+                    contact.remove_newsletter(newsletter.id)
+        return contact
+
+    class Media:
+        css = {"all": ("css/contact_edit_newsletters.css",)}
+
+
 @method_decorator(staff_member_required, name="dispatch")
 class ContactUpdateView(BreadcrumbsMixin, UpdateView):
     model = Contact
-    form_class = ContactAdminForm
+    form_class = ContactAdminFormWithNewsletters
     template_name = "create_contact/create_contact.html"
-    success_url = reverse_lazy("contact_list")
 
     def breadcrumbs(self):
         return [
@@ -287,7 +320,7 @@ class ContactUpdateView(BreadcrumbsMixin, UpdateView):
         if not getattr(self.object, "_skip_clean", False):
             self.object._skip_clean, skip_clean_set = True, True
         try:
-            form.save()
+            form.save(False)
         except Exception as e:
             if skip_clean_set:
                 del self.object._skip_clean
@@ -296,18 +329,25 @@ class ContactUpdateView(BreadcrumbsMixin, UpdateView):
             if skip_clean_set:
                 del self.object._skip_clean
             messages.success(self.request, self.get_success_message())
-        return super().form_valid(form)
+        # At this point, the CMS api was already called, to avoid call it again we use the 'updatefromweb' flag
+        # TODO: Only apply the prev. line indication (commented) if fields marked to be synced are unchanged
+        # self.object.updatefromweb = True
+        result = super().form_valid(form)
+        # del self.object.updatefromweb
+        return result
 
     def get_success_message(self):
         return _("Contact saved successfully")
 
     def get_success_url(self):
+        if getattr(self.object, "sync_error", None):
+            messages.warning(self.request, f"CMS sync error: {self.object.sync_error}")
+            del self.object.sync_error
         return reverse("contact_detail", args=[self.object.id])
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["all_newsletters"] = Product.objects.filter(type="N", active=True)
-        context["contact_newsletters"] = self.object.get_newsletter_products()
         context["mailtrain_lists"] = MailtrainList.objects.filter(is_active=True)
         context["contact_mailtrain_lists"] = get_mailtrain_lists(self.object.email)
         return context
@@ -328,33 +368,6 @@ class ContactCreateView(BreadcrumbsMixin, CreateView):
 
     def get_success_url(self) -> str:
         return reverse("contact_detail", args=[self.object.id])
-
-
-@require_POST
-@staff_member_required
-def edit_newsletters(request, contact_id):
-    contact = get_object_or_404(Contact, pk=contact_id)
-    all_newsletters = Product.objects.filter(type="N", active=True)
-
-    # Track which newsletters changed
-    newsletter_changes = []
-    for newsletter in all_newsletters:
-        has_newsletter = contact.has_newsletter(newsletter.id)
-        should_have = bool(request.POST.get(str(newsletter.id)))
-
-        if has_newsletter != should_have:
-            if should_have:
-                contact.add_newsletter(newsletter.id)
-            else:
-                contact.remove_newsletter(newsletter.id)
-            newsletter_changes.append(newsletter.id)
-
-    if newsletter_changes:
-        update_web_user_newsletters(contact)
-        messages.success(request, _("Newsletters edited successfully"))
-        return HttpResponseRedirect(reverse("edit_contact", args=[contact_id]))
-
-    return HttpResponseNotFound()
 
 
 @method_decorator(staff_member_required, name="dispatch")

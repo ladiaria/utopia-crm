@@ -3,7 +3,19 @@
 
 from django.contrib import admin
 
-from .models import *
+from .models import (
+    Edition,
+    EditionRoute,
+    EditionProduct,
+    Route,
+    PickupPlace,
+    PickupPoint,
+    RouteChange,
+    Delivery,
+    Resort,
+    City,
+    Message
+)
 
 
 @admin.register(Edition)

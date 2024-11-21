@@ -32,7 +32,6 @@ from support.views import (
     advanced_export_dcf_list,
     sync_with_mailtrain,
     register_activity,
-    edit_newsletters,
     edit_envelopes,
     upload_payment_certificate,
     campaign_statistics_list,
@@ -144,7 +143,6 @@ urlpatterns = [
     path("contacts/<int:pk>/edit/", views.ContactUpdateView.as_view(), name="edit_contact"),
     path("contacts/new/", views.ContactCreateView.as_view(), name="create_contact"),
     path("contacts/<int:pk>/", views.ContactDetailView.as_view(), name="contact_detail"),
-    re_path(r"^edit_newsletters/(\d+)/$", edit_newsletters, name="edit_newsletters"),
     re_path(r"^edit_envelopes/(\d+)/$", edit_envelopes, name="edit_envelopes"),
     re_path(r"^upload_payment_certificate/(\d+)/$", upload_payment_certificate, name="upload_payment_certificate"),
     re_path(
