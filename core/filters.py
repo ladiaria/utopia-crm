@@ -1,7 +1,7 @@
 import django_filters
 
 from django.utils.translation import gettext_lazy as _
-from django.db.models import Q
+from django.db.models import Q, Func
 
 from .models import Contact, State
 
@@ -10,6 +10,10 @@ YESNO_CHOICES = (
     ("1", _("Yes")),
     ("0", _("No")),
 )
+
+
+class Unaccent(Func):
+    function = "UNACCENT"
 
 
 class ContactFilter(django_filters.FilterSet):
@@ -28,23 +32,30 @@ class ContactFilter(django_filters.FilterSet):
     def main_filter(self, queryset, name, value):
         # Split the value by spaces to handle multiple terms
         terms = value.split()
+        queryset = queryset.annotate(
+            unaccented_name=Unaccent('name'),
+            unaccented_last_name=Unaccent('last_name')
+        )
 
         if len(terms) > 1:
-            # Allow the search to have more than one term, in this case we assume that the user is searching for a
-            # name and a last name
+            # Handle multiple terms
             first_name_term = terms[0]
             last_name_term = terms[1]
             queryset = queryset.filter(
-                Q(name__icontains=first_name_term) & Q(last_name__icontains=last_name_term)
+                (
+                    Q(unaccented_name__icontains=first_name_term) &
+                    Q(unaccented_last_name__icontains=last_name_term)
+                ) |
+                Q(unaccented_name__icontains=f"{first_name_term} {last_name_term}") |
+                Q(unaccented_name__icontains=value)
             )
         else:
-            # Single term search
             queryset = queryset.filter(
                 Q(phone__contains=value)
                 | Q(mobile__contains=value)
                 | Q(work_phone__contains=value)
-                | Q(name__icontains=value)
-                | Q(last_name__icontains=value)
+                | Q(unaccented_name__icontains=value)
+                | Q(unaccented_last_name__icontains=value)
                 | Q(email__icontains=value)
                 | Q(id_document__contains=value)
             )
