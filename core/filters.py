@@ -1,5 +1,5 @@
 import django_filters
-
+from unidecode import unidecode
 from django.utils.translation import gettext_lazy as _
 from django.db.models import Q, Func
 
@@ -31,7 +31,8 @@ class ContactFilter(django_filters.FilterSet):
 
     def main_filter(self, queryset, name, value):
         # Split the value by spaces to handle multiple terms
-        terms = value.split()
+        normalized_value = unidecode(value)
+        terms = normalized_value.split()
         queryset = queryset.annotate(
             unaccented_name=Unaccent('name'),
             unaccented_last_name=Unaccent('last_name')
@@ -47,15 +48,15 @@ class ContactFilter(django_filters.FilterSet):
                     Q(unaccented_last_name__icontains=last_name_term)
                 ) |
                 Q(unaccented_name__icontains=f"{first_name_term} {last_name_term}") |
-                Q(unaccented_name__icontains=value)
+                Q(unaccented_name__icontains=normalized_value)
             )
         else:
             queryset = queryset.filter(
                 Q(phone__contains=value)
                 | Q(mobile__contains=value)
                 | Q(work_phone__contains=value)
-                | Q(unaccented_name__icontains=value)
-                | Q(unaccented_last_name__icontains=value)
+                | Q(unaccented_name__icontains=normalized_value)
+                | Q(unaccented_last_name__icontains=normalized_value)
                 | Q(email__icontains=value)
                 | Q(id_document__contains=value)
             )
