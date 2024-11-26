@@ -176,18 +176,6 @@ class SellerConsoleView(UserPassesTestMixin, TemplateView):
         """Get campaign from URL kwargs"""
         return get_object_or_404(Campaign, pk=self.kwargs['campaign_id'])
 
-    def get_console_instances(self, campaign, seller):
-        """Get queryset of console instances based on category"""
-        category = self.kwargs['category']
-        if category == "new":
-            return campaign.get_not_contacted(seller.id)
-        return campaign.activity_set.filter(
-            activity_type="C",
-            seller=seller,
-            status="P",
-            datetime__lte=datetime.now()
-        ).order_by("datetime", "id")
-
     def process_activity_result(self, contact, campaign, seller, result, new_activity_notes):
         """Process activity result and create/update related objects"""
         ccs = ContactCampaignStatus.objects.filter(campaign=campaign, contact=contact).first()
@@ -350,6 +338,8 @@ class SellerConsoleView(UserPassesTestMixin, TemplateView):
             offset=offset
         )
 
+        if not console_instance:
+            return HttpResponseRedirect(reverse("seller_console_list_campaigns"))
         contact = console_instance.contact
 
         context.update({
@@ -384,13 +374,23 @@ class SellerConsoleView(UserPassesTestMixin, TemplateView):
         return activities
 
     def get_console_instance(self, *, console_instances, activity_id, count, offset):
-        """Get the appropriate console instance based on activity_id or offset.
+        """
+        Retrieve a single console instance based on an activity ID or offset.
 
         Args:
-            console_instances: QuerySet of available instances
-            activity_id: Optional ID of specific activity to retrieve
-            count: Total count of console instances
-            offset: Current offset (1-based)
+            console_instances (QuerySet): The queryset of available console instances.
+            activity_id (int): Optional. The ID of a specific activity to retrieve.
+            count (int): The total number of console instances.
+            offset (int): The current offset (1-based index) for navigating instances.
+
+        Returns:
+            Model or None: A single console instance (e.g., Activity) or None if no valid instance is found.
+
+        Notes:
+            - If activity_id is provided, it attempts to fetch the activity with that ID.
+            - If no activity_id is provided, it uses the offset to determine the instance.
+            - Includes checks to ensure data integrity (e.g., contact is still part of the campaign).
+            - Used mainly to show the seller the current contact to call.
         """
         if activity_id:
             try:
@@ -407,20 +407,47 @@ class SellerConsoleView(UserPassesTestMixin, TemplateView):
                         self.request,
                         _("Activity was removed because the contact is no longer in the campaign")
                     )
-                    return HttpResponseRedirect(reverse("seller_console_list_campaigns"))
+                    return None
                 return activity
             except Activity.DoesNotExist:
                 messages.error(
                     self.request,
                     _("An error has occurred with activity number {}".format(activity_id))
                 )
-                return HttpResponseRedirect(reverse("seller_console_list_campaigns"))
+                return None
 
         # Get item by offset (offset is 1-based, but list indexing is 0-based)
         index = offset - 1
         if 0 <= index < count:
             return console_instances[index]
         return console_instances[0]
+
+    def get_console_instances(self, campaign, seller):
+        """
+        Retrieve a queryset of console instances based on the campaign and seller.
+
+        Args:
+            campaign (Campaign): The campaign instance to filter console instances.
+            seller (Seller): The seller instance associated with the current user.
+
+        Returns:
+            QuerySet: A queryset of console instances matching the given criteria.
+
+        Notes:
+            - If the category is "new", it retrieves contacts not yet contacted by the seller.
+            - Otherwise, it filters activities with type "C" (e.g., calls) and specific statuses.
+            - Used mainly to show the seller the list of contacts to call.
+            - It's also used to check if the list is empty and redirect to the list of campaigns if it is.
+        """
+        category = self.kwargs['category']
+        if category == "new":
+            return campaign.get_not_contacted(seller.id)
+        return campaign.activity_set.filter(
+            activity_type="C",
+            seller=seller,
+            status="P",
+            datetime__lte=datetime.now()
+        ).order_by("datetime", "id")
 
     def post(self, request, *args, **kwargs):
         return self.handle_post_request()
