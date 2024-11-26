@@ -19,7 +19,7 @@ from django.shortcuts import get_object_or_404, render
 from django.urls import reverse, reverse_lazy
 from django.utils.text import format_lazy
 from django.utils.translation import gettext as _
-from django.views.generic import FormView, ListView, CreateView
+from django.views.generic import FormView, ListView
 from django_filters.views import FilterView
 from requests.exceptions import RequestException
 
@@ -61,7 +61,7 @@ class SubscriptionMixin(BreadcrumbsMixin):
         return [
             {"label": _("Contact list"), "url": reverse("contact_list")},
             {"label": self.contact.get_full_name(), "url": reverse("contact_detail", args=[self.contact.id])},
-            {"label": _("Edit subscription") if self.subscription else _("Add subscription"), "url": ""},
+            {"label": _("Edit subscription") if hasattr(self, "subscription") else _("Add subscription"), "url": ""},
         ]
 
     def get_contact(self, contact_id):
@@ -175,6 +175,12 @@ class SubscriptionMixin(BreadcrumbsMixin):
         subscription.status = "OK"
         subscription.save()
 
+    def handle_subscription_type(self, subscription):
+        if subscription.number_of_subscriptions > 1 and subscription.override_price:
+            subscription.type = "C"
+        else:
+            subscription.type = "N"
+
     def remove_unselected_products(self, subscription, new_products_list):
         for subscriptionproduct in SubscriptionProduct.objects.filter(subscription=subscription):
             if subscriptionproduct.product not in new_products_list:
@@ -185,6 +191,7 @@ class SubscriptionMixin(BreadcrumbsMixin):
         if not form.errors:
             subscription = form.save()
             new_products_list = self.process_subscription_products(self.request, subscription)
+            self.handle_subscription_type(subscription)
             self.handle_subscription_status(subscription)
             self.remove_unselected_products(subscription, new_products_list)
             return subscription
@@ -268,6 +275,11 @@ class SubscriptionMixin(BreadcrumbsMixin):
 
     def get_success_url(self):
         return self.redirect_to
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["contact"] = self.contact
+        return context
 
 
 class SubscriptionCreateView(UserPassesTestMixin, SubscriptionMixin, FormView):
@@ -1013,53 +1025,17 @@ class SubscriptionEndDateListView(UserPassesTestMixin, FilterView, ListView):
         return response
 
 
-class CorporateSubscriptionView(CreateView):
-    template_name = 'subscriptions/corporate_subscription.html'
+class CorporateSubscriptionCreateView(SubscriptionMixin, FormView):
     form_class = CorporateSubscriptionForm
-    success_url = reverse_lazy('corporate_subscription')
 
-    def breadcrumbs(self):
-        return [
-            {'url': reverse_lazy('contact_list'), 'label': _('Contact list')},
-            {'url': reverse_lazy('contact_detail', args=[self.contact.id]), 'label': self.contact.name},
-            {'url': '', 'label': _('Create Corporate Subscription')},
-        ]
+    # TODO: Add a template for this view that allows to select products and addresses.
+    # It should also allow to select the start and end dates and the amount of subscriptions to create.
 
     def dispatch(self, request, *args, **kwargs):
-        self.contact = get_object_or_404(Contact, id=self.kwargs['contact_id'])
+        self.contact = self.get_contact(kwargs['contact_id'])
+        self.subscription = None
+        self.capture_variables()
         return super().dispatch(request, *args, **kwargs)
-
-    def get_form_class(self):
-        form_class = super().get_form_class()
-        form_class.base_fields.pop('contact', None)
-        return form_class
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['contact'] = self.contact
-        context['breadcrumbs'] = self.breadcrumbs()
-        return context
-
-    def form_valid(self, form):
-        # Create the main subscription
-        subscription = form.save(commit=False)
-        subscription.contact = self.contact
-        subscription.start_date = form.cleaned_data['start_date']
-        subscription.end_date = form.cleaned_data['end_date']
-        subscription.payment_type = form.cleaned_data['payment_method']
-        subscription.type = "N"  # Normal
-        subscription.save()
-
-        # Create the SubscriptionProduct
-        product = form.cleaned_data['product']
-        copies = form.cleaned_data['number_of_subscriptions']
-        SubscriptionProduct.objects.create(subscription=subscription, product=product, copies=copies)
-
-        # Set the success URL with the subscription ID
-        self.success_url = reverse_lazy(
-            'affiliate_subscriptions', kwargs={'corporate_subscription_id': subscription.id}
-        )
-        return super().form_valid(form)
 
 
 class AffiliateSubscriptionView(FormView):

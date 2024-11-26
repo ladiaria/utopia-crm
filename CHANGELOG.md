@@ -1,3 +1,13 @@
+# version 0.4.8 (2024-12-15)
+
+Not yet released. The changelog of this update is not tracked because of the large ammount of fixes and new features, the next list will describe the most important that we can remember:
+
+- TODO: complete the list before the release day.
+- 
+- 
+-
+...
+
 # version 0.4.7 (2023-12-31)
 
 - Email validation using a better python module.

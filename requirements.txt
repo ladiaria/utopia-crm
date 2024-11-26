@@ -32,3 +32,4 @@ reportlab
 requests
 setuptools
 tqdm
+unidecode

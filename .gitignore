@@ -18,3 +18,5 @@ wsgi.py
 *.sqlite
 .DS_Store
 .vscode
+.venv
+.python-version

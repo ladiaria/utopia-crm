@@ -56,6 +56,7 @@ Note: the default password we use in the sample settings file in the next step i
 sudo -u postgres createuser -DPS utopiadev_django
 sudo -u postgres createdb -O utopiadev_django utopiadev
 sudo -u postgres psql -c "CREATE EXTENSION postgis;" utopiadev
+sudo -u postgres psql -c "CREATE EXTENSION unaccent;" utopiadev
 ```
 
 ### Local configuration

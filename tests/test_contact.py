@@ -132,9 +132,9 @@ class TestCoreContact(TestCase):
 
         product = create_product('news', 500)
         # test for default
-        self.assertEqual(product.get_type(), _("Subscription"))
+        self.assertEqual(product.get_type_display(), _("Subscription"))
         product.type = 'N'
-        self.assertEqual(product.get_type(), _("Newsletter"))
+        self.assertEqual(product.get_type_display(), _("Newsletter"))
         self.assertEqual(product.get_weekday(), 'N/A')
 
         basic_print = str(product)
@@ -168,7 +168,7 @@ class TestCoreContact(TestCase):
             str(address),
         )
 
-        address_type = address.get_type()
+        address_type = address.get_type_display()
         self.assertEqual(address_type, _('Physical'))
 
     def test8_basic_print(self):

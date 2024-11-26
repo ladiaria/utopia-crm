@@ -252,13 +252,6 @@ class Product(models.Model):
     def natural_key(self):
         return (self.slug,)
 
-    def get_type(self):
-        """
-        Returns the type of product
-        """
-        types = dict(PRODUCT_TYPE_CHOICES)
-        return types.get(self.type, "N/A")
-
     def get_weekday(self):
         """
         Returns the weekday of the product. Used only for products that are bound to a specific day.
@@ -1122,13 +1115,6 @@ class Address(models.Model):
     def __str__(self):
         return ' '.join(filter(None, (self.address_1, self.address_2, self.city, self.state_name, self.country_name)))
 
-    def get_type(self):
-        """
-        Returns the type of the address.
-        """
-        types = dict(ADDRESS_TYPE_CHOICES)
-        return types.get(self.address_type, "N/A")
-
     def add_note(self, note):
         self.notes = f"{note}" if not self.notes else self.notes + f"\n{note}"
         self.save()
@@ -1368,6 +1354,17 @@ class Subscription(models.Model):
         null=True,
         blank=True,
         verbose_name=_("Terms and conditions"),
+    )
+    number_of_subscriptions = models.IntegerField(
+        default=1,
+        help_text="Number of subscriptions to create, more than 1 for corporate subscriptions",
+        verbose_name=_("Number of subscriptions"),
+    )
+    override_price = models.IntegerField(
+        null=True,
+        blank=True,
+        help_text="Override the price of the subscription, useful for corporate subscriptions",
+        verbose_name=_("Override price"),
     )
 
     def __str__(self):
@@ -1958,13 +1955,6 @@ class Subscription(models.Model):
         states = dict(SUBSCRIPTION_STATUS_CHOICES)
         return states.get(self.status, "N/A")
 
-    def get_type(self):
-        """
-        Returns the type.
-        """
-        types = dict(SUBSCRIPTION_TYPE_CHOICES)
-        return types.get(self.type, "N/A")
-
     def get_frequency(self):
         """
         Returns the frequency.
@@ -2322,13 +2312,6 @@ class Activity(models.Model):
         """
         priorities = dict(PRIORITY_CHOICES)
         return priorities.get(self.priority, "N/A")
-
-    def get_type(self):
-        """
-        Returns a description of the type for this activity.
-        """
-        types = dict(ACTIVITY_TYPES)
-        return types.get(self.activity_type, "N/A")
 
     def get_status(self):
         """

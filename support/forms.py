@@ -751,33 +751,9 @@ class SalesRecordCreateForm(forms.ModelForm):
             self.fields['subscription'].initial = subscription
 
 
-class CorporateSubscriptionForm(forms.ModelForm):
-    product = forms.ModelChoiceField(queryset=Product.objects.all())
-    number_of_subscriptions = forms.IntegerField(min_value=1)
-    start_date = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}))
-    end_date = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}))
-    payment_method = forms.ChoiceField(choices=Subscription._meta.get_field('payment_type').choices)
-
-    class Meta:
-        model = Subscription
-        fields = [
-            'product',
-            'number_of_subscriptions',
-            'start_date',
-            'end_date',
-            'payment_method',
-        ]
-
-    def clean(self):
-        cleaned_data = super().clean()
-        start_date = cleaned_data.get('start_date')
-        end_date = cleaned_data.get('end_date')
-
-        if start_date and end_date:
-            if end_date < start_date:
-                raise forms.ValidationError("The end date must be after the start date.")
-
-        return cleaned_data
+class CorporateSubscriptionForm(NewSubscriptionForm):
+    class Meta(NewSubscriptionForm.Meta):
+        fields = NewSubscriptionForm.Meta.fields + ('number_of_subscriptions', 'override_price')
 
 
 class AffiliateSubscriptionForm(forms.Form):

@@ -396,7 +396,7 @@
               <div class="card-body">
                 <dl>
                   {% for s in all_subscriptions %}
-                    <dt {% if forloop.counter != 1 %}class="border-top mt-4 pt-3"{% endif %}>{% trans "Type:" %} {{ s.get_type }}</dt>
+                    <dt {% if forloop.counter != 1 %}class="border-top mt-4 pt-3"{% endif %}>{% trans "Type:" %} {{ s.get_type_display }}</dt>
                     <dd>
                       <b>{% trans "Active" %}:</b> {{ s.active }}
                     </dd>

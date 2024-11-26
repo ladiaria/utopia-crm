@@ -26,14 +26,7 @@ class _Menu:
             id_ = label
 
         if parent != '':
-            child = {
-                id_: {
-                    'label': label,
-                    'link': link,
-                    'icon': icon,
-                    'children': []
-                }
-            }
+            child = {id_: {'label': label, 'link': link, 'icon': icon, 'children': []}}
 
             self.children.append(child)
 
@@ -47,14 +40,7 @@ class _Menu:
                             self.children[idx][parent]['children'].append(child)
 
         else:
-            self.parents.append({
-                id_: {
-                    'label': label,
-                    'link': link,
-                    'icon': icon,
-                    'children': []
-                }
-            })
+            self.parents.append({id_: {'label': label, 'link': link, 'icon': icon, 'children': []}})
 
     def render(self, context, menus=None):
         menus = {} if menus is None else menus
@@ -65,10 +51,25 @@ class _Menu:
         if len(menus) <= 0:
             # sorted(self.parents)
             menus = self.parents
-            if(request.path == reverse('admin:index')):
-                r = '<li class="nav-item"><a href="' + reverse('admin:index') + '" class="nav-link active"><i class="nav-icon fas fa-tachometer-alt"></i> <p>Home</p></a></li>'
-            else:
-                r = '<li class="nav-item"><a href="' + reverse('admin:index') + '" class="nav-link"><i class="nav-icon fas fa-tachometer-alt"></i> <p>Home</p></a></li>'
+            r = (
+                '<li class="nav-item">'
+                f'<a href="{reverse("home")}" class="nav-link">'
+                '<i class="nav-icon fas fa-home"></i>'
+                '<p>Home</p>'
+                '</a>'
+                '</li>'
+            )
+
+            admin_url = reverse('admin:index')
+            admin_active = ' active' if request.path == admin_url else ''
+            r += (
+                '<li class="nav-item">'
+                f'<a href="{admin_url}" class="nav-link{admin_active}">'
+                '<i class="nav-icon fas fa-tachometer-alt"></i>'
+                '<p>Admin</p>'
+                '</a>'
+                '</li>'
+            )
 
         for group in menus:
             key = [key for key in group][0]
@@ -78,33 +79,44 @@ class _Menu:
                 if re.match(r'\<([a-z]*)\b[^\>]*\>(.*?)\<\/\1\>', group[key]['icon']):
                     icon = group[key]['icon']
                 else:
-                    icon = '<i class="%s"></i>' % (group[key]['icon'])
+                    icon = f'<i class="{group[key]["icon"]}"></i>'
 
             if len(group[key]['children']) > 0:
-                r += '<li class="nav-item has-treeview"><a href="#" class="nav-link">%s <span>%s</span><span class="pull-right-container"><i class="fas fa-angle-left right"></i></span></a><ul class="treeview-menu">\n' % (
-                    icon, group[key]['label'])
-
+                r += (
+                    '<li class="nav-item has-treeview">'
+                    f'<a href="#" class="nav-link">{icon} <span>{group[key]["label"]}</span>'
+                    '<span class="pull-right-container"><i class="fas fa-angle-left right"></i></span></a>'
+                    '<ul class="treeview-menu">\n'
+                )
                 r += self.render(context, group[key]['children'])
-
                 r += '</ul></li>\n'
-
             else:
-                if(request.path == reverse('admin:index')):
-                    r += '<li class="nav-item"><a href="%s" class="nav-link">%s <p>%s</p></a></li>\n' % (
-                        group[key]['link'], icon, group[key]['label'])
-                else:
-                    r += '<li class="nav-item"><a href="%s" class="nav-link">%s <p>%s</p></a></li>\n' % (
-                        group[key]['link'], icon, group[key]['label'])
+                r += (
+                    '<li class="nav-item">'
+                    f'<a href="{group[key]["link"]}" class="nav-link">'
+                    f'{icon} <p>{group[key]["label"]}</p>'
+                    '</a>'
+                    '</li>\n'
+                )
 
         return r
 
     def admin_apps(self, context, r):
         request = context['request']
         for app in context['available_apps']:
-            if(str(app['app_url']) in request.path):
-                r += '<li class="nav-item has-treeview menu-open"><a href="#" class="nav-link active"><i class="nav-icon fas fa-edit"></i> <p>%s</p><p><i class="fas fa-angle-left right"></i></p></a><ul class="nav nav-treeview">\n' % str(app['name'])
-            else:
-                r += '<li class="nav-item has-treeview"><a href="#" class="nav-link"><i class="nav-icon fas fa-edit"></i> <p>%s</p><p><i class="fas fa-angle-left right"></i></p></a><ul class="nav nav-treeview">\n' % str(app['name'])
+            is_active = str(app['app_url']) in request.path
+            active_class = ' active' if is_active else ''
+            menu_open = ' menu-open' if is_active else ''
+
+            r += (
+                f'<li class="nav-item has-treeview{menu_open}">'
+                f'<a href="#" class="nav-link{active_class}">'
+                '<i class="nav-icon fas fa-edit"></i>'
+                f'<p>{app["name"]}</p>'
+                '<p><i class="fas fa-angle-left right"></i></p>'
+                '</a>'
+                '<ul class="nav nav-treeview">\n'
+            )
 
             for model in app['models']:
                 if 'add_url' in model:
@@ -122,15 +134,14 @@ class _Menu:
                 icon = '<i class="far fa-circle nav-icon"></i>'
                 if model['object_name'].title() in self.models_icon:
                     if self.models_icon[model['object_name'].title()] != '':
-                        if re.match(r'\<([a-z]*)\b[^\>]*\>(.*?)\<\/\1\>', self.models_icon[model['object_name'].title()]):
+                        if re.match(
+                            r'\<([a-z]*)\b[^\>]*\>(.*?)\<\/\1\>', self.models_icon[model['object_name'].title()]
+                        ):
                             icon = self.models_icon[model['object_name'].title()]
                         else:
-                            icon = '<i class="%s"></i>' % (self.models_icon[model['object_name'].title()])
-                if(request.path == url):
-                    r += '<li class="nav-item"><a href="%s" class="nav-link active">%s %s</a></li>' % (url, icon, model['name'])
-                else:
-                    r += '<li class="nav-item"><a href="%s" class="nav-link">%s %s</a></li>' % (url, icon, model['name'])
-
+                            icon = f'<i class="{self.models_icon[model["object_name"].title()]}"></i>'
+                active = ' active' if request.path == url else ''
+                r += f'<li class="nav-item"><a href="{url}" class="nav-link{active}">{icon} {model["name"]}</a></li>'
             r += '</ul></li>\n'
 
         return r
@@ -139,15 +150,14 @@ class _Menu:
         self.models_icon[model_name.title()] = icon
 
     def get_model_icon(self, context):
-
         icon = '<i class="far fa-circle nav-icon"></i>'
         if context['model']['object_name'].title() in self.models_icon:
-
             if self.models_icon[context['model']['object_name'].title()] != '':
-                if re.match(r'<([a-z]*)\b[^>]*>(.*?)</\1>', self.models_icon[context['model']['object_name'].title()]):
-                    icon = self.models_icon[context['model']['object_name']]
+                model_icon = self.models_icon[context['model']['object_name'].title()]
+                if re.match(r'<([a-z]*)\b[^>]*>(.*?)</\1>', model_icon):
+                    icon = model_icon
                 else:
-                    icon = '<i class="%s"></i>' % (self.models_icon[context['model']['object_name'].title()])
+                    icon = f'<i class="{model_icon}"></i>'
 
         return icon
 
