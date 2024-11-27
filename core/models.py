@@ -1390,6 +1390,20 @@ class Subscription(models.Model):
         """
         return self.products.count()
 
+    def get_used_affiliate_slots(self):
+        """
+        Returns the number of used affiliate slots for the parent subscription. It already adds the current
+        subscription.
+        """
+        return self.affiliate_subscriptions.count() + 1
+
+    def get_available_affiliate_slots(self):
+        """
+        Returns the number of available affiliate slots for the parent subscription. It already subtracts the current
+        subscription from the total number of subscriptions.
+        """
+        return self.number_of_subscriptions - self.affiliate_subscriptions.count() - 1
+
     def edit_products_field(self):
         """
         Simple function that shows a link to edit the current subscription under a list of products.
