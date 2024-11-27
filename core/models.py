@@ -1366,6 +1366,14 @@ class Subscription(models.Model):
         help_text="Override the price of the subscription, useful for corporate subscriptions",
         verbose_name=_("Override price"),
     )
+    parent_subscription = models.ForeignKey(
+        "core.Subscription",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name=_("Parent subscription"),
+        related_name="affiliate_subscriptions",
+    )
 
     def __str__(self):
         return str(
