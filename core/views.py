@@ -13,7 +13,7 @@ from django.http import (
     HttpResponseServerError,
     HttpResponseNotFound,
 )
-from django.shortcuts import render, get_list_or_404, get_object_or_404
+from django.shortcuts import render, get_object_or_404
 from django.views.generic import DetailView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.decorators.cache import never_cache
@@ -23,6 +23,7 @@ from django.contrib.auth.decorators import login_required
 
 from .models import Contact, MailtrainList, update_customer, TermsAndConditions
 from .admin import contact_is_safe_to_delete
+from .filters import apply_main_filter
 from .utils import (
     get_emails_from_mailtrain_list,
     get_mailtrain_lists,
@@ -156,9 +157,11 @@ def search_contacts_htmx(request, name="contact"):
     Returns an html with a select dropdown with the filtered contacts with a limit of 100 results.
     """
     if request.GET:
-        q = request.GET.get("contact_id")
-        contacts = get_list_or_404(Contact, pk__icontains=q)
-        # limit this only to the first 100 results
+        search_query = request.GET.get("q")
+        contacts = Contact.objects.all()
+        if search_query:
+            contacts = apply_main_filter(contacts, search_query)
+
         contacts = contacts[:100]
         context = {'contacts': contacts, 'name': name}
         return render(request, "partials/search_contacts_results.html", context)
