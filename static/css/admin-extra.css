@@ -73,8 +73,20 @@ select[multiple] {
 }
 
 .inline-group .tabular tr.has_original td {
-    padding-top: 10px;
     vertical-align: top;
+}
+
+.inline-group .tabular td.original p {
+    height: auto;
+}
+
+.content-wrapper {
+    overflow: scroll;
+}
+
+fieldset.module {
+    overflow: scroll;
+    min-width: auto;
 }
 
 .related-widget-wrapper-link {
