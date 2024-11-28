@@ -444,6 +444,9 @@ class ProductAdmin(admin.ModelAdmin):
         (_("Billing & Priority"), {
             "fields": ("billing_priority", "active", "edition_frequency"),
         }),
+        (_("MercadoPago and others"), {
+            "fields": ("mercadopago_id", "internal_code"),
+        }),
     )
     inlines = (TermsAndConditionsProductInline,)
 
