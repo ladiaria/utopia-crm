@@ -242,6 +242,7 @@ class Product(models.Model):
         "core.TermsAndConditions",
         through="core.TermsAndConditionsProduct",
     )
+    mercadopago_id = models.CharField(max_length=255, blank=True, null=True, verbose_name=_("MercadoPago ID"))
     objects = ProductManager()
 
     def __str__(self):
