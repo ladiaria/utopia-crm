@@ -188,6 +188,7 @@ class Product(models.Model):
 
         AUTOMATIC = "A", _("Automatic")
         MANUAL = "M", _("Manual")
+        BOTH = "X", _("Both")
 
     name = models.CharField(max_length=100, verbose_name=_("Name"), db_index=True)
     slug = AutoSlugField(populate_from="name", null=True, blank=True, editable=True)
