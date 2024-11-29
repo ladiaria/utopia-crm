@@ -6,9 +6,9 @@ from django.db.models.signals import pre_save, post_save, post_delete
 from django.dispatch import receiver
 from django.forms import ValidationError
 
-from .models import Contact, Subscription, regex_alphanumeric, regex_alphanumeric_msg, update_web_user
-from .forms import no_email_validation_msg
-from .utils import cms_rest_api_request, mail_managers_on_errors
+from core.models import Contact, Subscription, regex_alphanumeric, regex_alphanumeric_msg, update_web_user
+from core.forms import no_email_validation_msg
+from core.utils import cms_rest_api_request, mail_managers_on_errors
 
 
 alphanumeric = re.compile(regex_alphanumeric)
