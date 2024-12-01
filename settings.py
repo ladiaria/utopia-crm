@@ -82,6 +82,7 @@ MIDDLEWARE = [
 ROOT_URLCONF = "urls"
 
 INSTALLED_APPS = [
+    "jazzmin",
     "django.contrib.admin",
     "django.contrib.admindocs",
     "django.contrib.auth",
@@ -239,6 +240,23 @@ WEB_CREATE_USER_ENABLED = None
 WEB_CREATE_USER_POST_WHITELIST = []
 
 GEOREF_SERVICES = False
+
+JAZZMIN_SETTINGS = {
+    "site_brand": "Utopía CRM",
+    "site_logo": "img/ladiaria_logo_blanco.png",
+    "welcome_sign": "Welcome to Utopia CRM",
+    "show_ui_builder": True,
+    "body_small_text": True,
+    "topmenu_links": [
+        {
+            "name": "Home",
+            "url": "/",
+            "icon": "fas fa-home",
+            "permissions": []
+        }
+    ],
+    "site_logo_classes": "img-fluid",
+}
 
 # Import local settings if they exist
 # TODO: - improve hardcoded load of community settings (which are this community settings?)

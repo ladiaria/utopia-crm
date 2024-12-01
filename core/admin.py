@@ -102,13 +102,9 @@ class TaggitListFilter(SimpleListFilter):
             return queryset.filter(tags__name__in=[self.value()])
 
 
-class SubscriptionProductInline(admin.TabularInline):
+class SubscriptionProductInline(admin.StackedInline):
     model = SubscriptionProduct
-    fields = (
-        ("product", "copies", "address"),
-        ("order", "label_contact", "seller"),
-        ("has_envelope", "active"),
-    )
+    fields = ("product", "copies", "address", "order", "label_contact", "seller", "has_envelope", "active")
     raw_id_fields = ["label_contact", "seller"]
 
     def __init__(self, *args, **kwargs):
@@ -209,24 +205,31 @@ class SubscriptionAdmin(SimpleHistoryAdmin):
             "Subscription data",
             {
                 "fields": (
-                    ("active", "type"),
-                    ("start_date", "end_date"),
-                    ("next_billing", "payment_type"),
-                    ("balance", "frequency"),
-                    ("status", "send_bill_copy_by_email", "send_pdf"),
-                    ("payment_certificate"),
-                    ("updated_from", "campaign"),
-                    ("free_subscription_requested_by"),
-                    ("validated", "validated_by", "validated_date"),
+                    "active",
+                    "type",
+                    "start_date",
+                    "end_date",
+                    "next_billing",
+                    "payment_type",
+                    "balance",
+                    "frequency",
+                    "status",
+                    "send_bill_copy_by_email",
+                    "send_pdf",
+                    "payment_certificate",
+                    "updated_from",
+                    "campaign",
+                    "free_subscription_requested_by",
+                    "validated",
+                    "validated_by",
+                    "validated_date",
                 )
             },
         ),
         (
             "Corporate subscription data",
             {
-                "fields": (
-                    ("number_of_subscriptions", "override_price"),
-                ),
+                "fields": ("number_of_subscriptions", "override_price"),
             },
         ),
         (
@@ -234,13 +237,12 @@ class SubscriptionAdmin(SimpleHistoryAdmin):
             {
                 "classes": ("collapse",),
                 "fields": (
-                    (
-                        "billing_name",
-                        "billing_address",
-                    ),
-                    ("billing_phone", "billing_email"),
-                    ("billing_id_doc",),
-                    ("rut",),
+                    "billing_name",
+                    "billing_address",
+                    "billing_phone",
+                    "billing_email",
+                    "billing_id_doc",
+                    "rut",
                 ),
             },
         ),
@@ -249,12 +251,14 @@ class SubscriptionAdmin(SimpleHistoryAdmin):
             {
                 "classes": ("collapse",),
                 "fields": (
-                    ("inactivity_reason",),
-                    ("unsubscription_channel", "unsubscription_type"),
+                    "inactivity_reason",
+                    "unsubscription_channel",
+                    "unsubscription_type",
                     "unsubscription_products",
                     "unsubscription_reason",
                     "unsubscription_addendum",
-                    ("unsubscription_date", "unsubscription_manager"),
+                    "unsubscription_date",
+                    "unsubscription_manager",
                 ),
             },
         ),
@@ -325,18 +329,26 @@ class ContactAdmin(SimpleHistoryAdmin):
             _("Contact details"),
             {
                 "fields": (
-                    ("name", "last_name"),
+                    "name",
+                    "last_name",
                     "tags",
-                    ("email", "no_email"),
-                    ("id_document_type", "id_document"),
-                    ("phone", "mobile"),
+                    "email",
+                    "no_email",
+                    "id_document_type",
+                    "id_document",
+                    "phone",
+                    "mobile",
                     "work_phone",
-                    ("gender", "education", "ranking"),
+                    "gender",
+                    "education",
+                    "ranking",
                     # TODO: include "occupation" right here after its name got fixed from single "c" to "cc"
-                    ("birthdate", "private_birthdate"),
+                    "birthdate",
+                    "private_birthdate",
                     "notes",
                     "institution",
-                    ("protected", "protection_reason"),
+                    "protected",
+                    "protection_reason",
                 ),
             },
         ),
@@ -432,21 +444,36 @@ class ProductAdmin(admin.ModelAdmin):
         "temporary_discount_months",
     ]
     fieldsets = (
-        (_("Information"), {
-            "fields": ("name", "slug", "type"),
-        }),
-        (_("Pricing & Discounts"), {
-            "fields": ("price", "offerable", "temporary_discount_months", "renewal_type"),
-        }),
-        (_("Scheduling & Frequency"), {
-            "fields": ("weekday", "subscription_period", "duration_months"),
-        }),
-        (_("Billing & Priority"), {
-            "fields": ("billing_priority", "active", "edition_frequency"),
-        }),
-        (_("MercadoPago and others"), {
-            "fields": ("mercadopago_id", "internal_code"),
-        }),
+        (
+            _("Information"),
+            {
+                "fields": ("name", "slug", "type"),
+            },
+        ),
+        (
+            _("Pricing & Discounts"),
+            {
+                "fields": ("price", "offerable", "temporary_discount_months", "renewal_type"),
+            },
+        ),
+        (
+            _("Scheduling & Frequency"),
+            {
+                "fields": ("weekday", "subscription_period", "duration_months"),
+            },
+        ),
+        (
+            _("Billing & Priority"),
+            {
+                "fields": ("billing_priority", "active", "edition_frequency"),
+            },
+        ),
+        (
+            _("MercadoPago and others"),
+            {
+                "fields": ("mercadopago_id", "internal_code"),
+            },
+        ),
     )
     inlines = (TermsAndConditionsProductInline,)
 
