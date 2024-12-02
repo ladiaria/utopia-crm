@@ -168,7 +168,7 @@ class TestCoreContact(TestCase):
             str(address),
         )
 
-        address_type = address.get_type_display()
+        address_type = address.get_address_type_display()
         self.assertEqual(address_type, _('Physical'))
 
     def test8_basic_print(self):
