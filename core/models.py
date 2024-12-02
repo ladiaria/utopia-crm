@@ -49,7 +49,6 @@ from .choices import (
     PRIORITY_CHOICES,
     PRODUCT_BILLING_FREQUENCY_CHOICES,
     PRODUCT_EDITION_FREQUENCY,
-    PRODUCT_TYPE_CHOICES,
     PRODUCT_WEEKDAYS,
     PRODUCTHISTORY_CHOICES,
     SUBSCRIPTION_STATUS_CHOICES,
@@ -190,11 +189,21 @@ class Product(models.Model):
         MANUAL = "M", _("Manual")
         BOTH = "X", _("Both")
 
+    class ProductTypeChoices(models.TextChoices):
+        """Choices for the product type"""
+
+        SUBSCRIPTION = "S", _("Subscription")
+        NEWSLETTER = "N", _("Newsletter")
+        DISCOUNT = "D", _("Discount")
+        PERCENTAGE_DISCOUNT = "P", _("Percentage discount")
+        ADVANCED_DISCOUNT = "A", _("Advanced discount")
+        OTHER = "O", _("Other")
+
     name = models.CharField(max_length=100, verbose_name=_("Name"), db_index=True)
     slug = AutoSlugField(populate_from="name", null=True, blank=True, editable=True)
     active = models.BooleanField(default=False, verbose_name=_("Active"))
     price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    type = models.CharField(max_length=1, default="O", choices=PRODUCT_TYPE_CHOICES, db_index=True)
+    type = models.CharField(max_length=1, default="O", choices=ProductTypeChoices.choices, db_index=True)
     weekday = models.IntegerField(default=None, choices=PRODUCT_WEEKDAYS, null=True, blank=True)
     offerable = models.BooleanField(
         default=False,

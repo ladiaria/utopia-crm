@@ -1,5 +1,6 @@
 # coding=utf-8
 from datetime import date
+from typing import Iterable
 
 from simple_history.models import HistoricalRecords
 
@@ -206,12 +207,12 @@ class InvoiceCopy(Invoice):
 
 class InvoiceItem(models.Model):
     invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, blank=True, null=True)
-    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    amount = models.DecimalField(max_digits=10, decimal_places=2, help_text=_("Total amount"), readonly=True)
     product = models.ForeignKey("core.Product", blank=True, null=True, on_delete=models.SET_NULL)
     subscription = models.ForeignKey("core.Subscription", blank=True, null=True, on_delete=models.SET_NULL)
     copies = models.PositiveSmallIntegerField(default=1)
     description = models.CharField(max_length=500)
-    price = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    price = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True, help_text=_("Price per copy"))
     discount = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     notes = models.TextField(blank=True, null=True)
     service_from = models.DateField(null=True, blank=True)
@@ -223,6 +224,13 @@ class InvoiceItem(models.Model):
 
     def __str__(self):
         return str(self.description)
+
+    def save(self, *args, **kwargs):
+        if self.type == "I":
+            self.amount = self.price * self.copies
+        else:
+            self.amount = self.price
+        return super().save(*args, **kwargs)
 
     class Meta:
         verbose_name = "invoice item"
