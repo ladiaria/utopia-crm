@@ -2,6 +2,6 @@
 <label for="id_main_contact">{% trans "Select contact" %}:</label>
 <select id="id_main_contact" name="{{ name }}" class="form-control">
   {% for contact in contacts %}
-    <option value="{{ contact.id }}">{{ contact.id }} - {{ contact.get_full_name }}</option>
+    <option value="{{ contact.id }}">{{ contact.id }} - Documento: {{ contact.id_document_type }} - Número: {{ contact.id_document }} - {{ contact.get_full_name }}</option>
   {% endfor %}
 </select>

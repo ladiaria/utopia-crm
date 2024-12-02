@@ -43,7 +43,7 @@
               <div class="row mt-2">
                 <div class="col-4">
                   <label for="contact">{% trans "Search contact by ID" %}:</label>
-                  <input type="text" id="contact_search" hx-get="{% url "htmx_search_contacts_alt" "main_contact" %}" hx-trigger="keyup changed delay:500ms" hx-target="#select_contact" class="form-control" name="contact_id" {% if main_contact %}value="{{ main_contact.id }}"{% endif %}>
+                  <input type="text" id="contact_search" hx-get="{% url "search_contacts_htmx_alt" "main_contact" %}" hx-trigger="keyup changed delay:500ms" hx-target="#select_contact" class="form-control" name="contact_id" {% if main_contact %}value="{{ main_contact.id }}"{% endif %}>
                 </div>
                 <div class="col-4" id="select_contact">
                   <label for="contact">{% trans "Current contact" %}:</label>

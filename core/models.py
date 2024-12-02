@@ -188,6 +188,7 @@ class Product(models.Model):
 
         AUTOMATIC = "A", _("Automatic")
         MANUAL = "M", _("Manual")
+        BOTH = "X", _("Both")
 
     name = models.CharField(max_length=100, verbose_name=_("Name"), db_index=True)
     slug = AutoSlugField(populate_from="name", null=True, blank=True, editable=True)
@@ -241,6 +242,7 @@ class Product(models.Model):
         "core.TermsAndConditions",
         through="core.TermsAndConditionsProduct",
     )
+    mercadopago_id = models.CharField(max_length=255, blank=True, null=True, verbose_name=_("MercadoPago ID"))
     objects = ProductManager()
 
     def __str__(self):
@@ -268,7 +270,7 @@ class Product(models.Model):
     class Meta:
         verbose_name = _("product")
         verbose_name_plural = _("products")
-        ordering = ("-type", "id")
+        ordering = ("id", )
 
 
 class EmailBounceActionLog(models.Model):
@@ -1366,6 +1368,14 @@ class Subscription(models.Model):
         help_text="Override the price of the subscription, useful for corporate subscriptions",
         verbose_name=_("Override price"),
     )
+    parent_subscription = models.ForeignKey(
+        "core.Subscription",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name=_("Parent subscription"),
+        related_name="affiliate_subscriptions",
+    )
 
     def __str__(self):
         return str(
@@ -1381,6 +1391,20 @@ class Subscription(models.Model):
         Returns the amount of products in this subscription
         """
         return self.products.count()
+
+    def get_used_affiliate_slots(self):
+        """
+        Returns the number of used affiliate slots for the parent subscription. It already adds the current
+        subscription.
+        """
+        return self.affiliate_subscriptions.count() + 1
+
+    def get_available_affiliate_slots(self):
+        """
+        Returns the number of available affiliate slots for the parent subscription. It already subtracts the current
+        subscription from the total number of subscriptions.
+        """
+        return self.number_of_subscriptions - self.affiliate_subscriptions.count() - 1
 
     def edit_products_field(self):
         """

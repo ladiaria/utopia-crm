@@ -16,6 +16,54 @@ class Unaccent(Func):
     function = "UNACCENT"
 
 
+def apply_main_filter(queryset, value):
+    """
+    Reusable function to apply the main filter logic to a queryset.
+
+    Args:
+    - queryset: The queryset to filter.
+    - value: The search term(s) to filter by.
+
+    Returns:
+    - Filtered queryset.
+    """
+    # Normalize the search value
+    normalized_value = unidecode(value)
+    terms = normalized_value.split()
+
+    # Annotate for unaccented searches
+    queryset = queryset.annotate(
+        unaccented_name=Unaccent('name'),
+        unaccented_last_name=Unaccent('last_name')
+    )
+
+    if len(terms) > 1:
+        # Handle multiple terms
+        first_name_term = terms[0]
+        last_name_term = terms[1]
+        queryset = queryset.filter(
+            (
+                Q(unaccented_name__icontains=first_name_term) &
+                Q(unaccented_last_name__icontains=last_name_term)
+            ) |
+            Q(unaccented_name__icontains=f"{first_name_term} {last_name_term}") |
+            Q(unaccented_name__icontains=normalized_value)
+        )
+    else:
+        queryset = queryset.filter(
+            Q(id__contains=value)
+            | Q(phone__contains=value)
+            | Q(mobile__contains=value)
+            | Q(work_phone__contains=value)
+            | Q(unaccented_name__icontains=normalized_value)
+            | Q(unaccented_last_name__icontains=normalized_value)
+            | Q(email__icontains=value)
+            | Q(id_document__contains=value)
+        )
+
+    return queryset
+
+
 class ContactFilter(django_filters.FilterSet):
     filter_multiple = django_filters.CharFilter(method="main_filter")
     state = django_filters.ModelChoiceFilter(queryset=State.objects.filter(active=True), method="by_state")
@@ -30,38 +78,7 @@ class ContactFilter(django_filters.FilterSet):
         fields = ["filter_multiple", "subtype"]
 
     def main_filter(self, queryset, name, value):
-        # Split the value by spaces to handle multiple terms
-        normalized_value = unidecode(value)
-        terms = normalized_value.split()
-        queryset = queryset.annotate(
-            unaccented_name=Unaccent('name'),
-            unaccented_last_name=Unaccent('last_name')
-        )
-
-        if len(terms) > 1:
-            # Handle multiple terms
-            first_name_term = terms[0]
-            last_name_term = terms[1]
-            queryset = queryset.filter(
-                (
-                    Q(unaccented_name__icontains=first_name_term) &
-                    Q(unaccented_last_name__icontains=last_name_term)
-                ) |
-                Q(unaccented_name__icontains=f"{first_name_term} {last_name_term}") |
-                Q(unaccented_name__icontains=normalized_value)
-            )
-        else:
-            queryset = queryset.filter(
-                Q(phone__contains=value)
-                | Q(mobile__contains=value)
-                | Q(work_phone__contains=value)
-                | Q(unaccented_name__icontains=normalized_value)
-                | Q(unaccented_last_name__icontains=normalized_value)
-                | Q(email__icontains=value)
-                | Q(id_document__contains=value)
-            )
-
-        return queryset
+        return apply_main_filter(queryset, value)
 
     def by_state(self, queryset, name, value):
         return queryset.filter(addresses__state=value).distinct()

@@ -1,5 +1,5 @@
 from django.views.generic import TemplateView
-from django.contrib.auth.mixins import UserPassesTestMixin
+from django.contrib.auth.mixins import UserPassesTestMixin, LoginRequiredMixin
 from django.conf import settings
 from django.contrib import messages
 from django.db.models import Q
@@ -139,7 +139,7 @@ def seller_console_list_campaigns(request, seller_id=None):
     )
 
 
-class SellerConsoleView(UserPassesTestMixin, TemplateView):
+class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
     template_name = 'seller_console.html'
 
     def test_func(self):
@@ -235,6 +235,9 @@ class SellerConsoleView(UserPassesTestMixin, TemplateView):
         campaign = self.get_campaign()
         category = data.get("category")
         instance_id = data.get("instance_id")
+        if not instance_id:
+            messages.error(self.request, _("Missing console instance in POST data"))
+            return HttpResponseRedirect(reverse("seller_console", args=[category, campaign.id]))
         seller = Seller.objects.get(pk=data.get("seller_id"))
 
         # Process resolution reason
@@ -254,7 +257,14 @@ class SellerConsoleView(UserPassesTestMixin, TemplateView):
             activity.status = "C"
             activity.save()
         else:  # category == "new"
-            ccs = ContactCampaignStatus.objects.get(pk=instance_id)
+            try:
+                ccs = ContactCampaignStatus.objects.get(pk=instance_id)
+            except ContactCampaignStatus.DoesNotExist:
+                messages.error(
+                    self.request,
+                    _("The contact is no longer in this campaign, instance number: {}".format(instance_id)),
+                )
+                return HttpResponseRedirect(reverse("seller_console", args=[category, campaign.id]))
             contact = ccs.contact
             Activity.objects.create(
                 contact=contact,
@@ -332,39 +342,38 @@ class SellerConsoleView(UserPassesTestMixin, TemplateView):
 
         # Get console instance based on activity_id or offset
         console_instance = self.get_console_instance(
-            console_instances=console_instances,
-            activity_id=activity_id,
-            count=count,
-            offset=offset
+            console_instances=console_instances, activity_id=activity_id, count=count, offset=offset
         )
 
         if not console_instance:
             return HttpResponseRedirect(reverse("seller_console_list_campaigns"))
         contact = console_instance.contact
 
-        context.update({
-            'campaign': campaign,
-            'times_contacted': contact.activity_set.filter(
-                activity_type="C", status="C", campaign=campaign
-            ).count(),
-            'category': category,
-            'position': offset + 1,
-            'offset': offset,
-            'seller': seller,
-            'contact': contact,
-            'count': count,
-            'addresses': Address.objects.filter(contact=contact).order_by("address_1"),
-            'call_date': call_datetime,
-            'all_activities': self.get_activities(contact, console_instance, category),
-            'all_subscriptions': Subscription.objects.filter(contact=contact).order_by("-active", "id"),
-            'console_instance': console_instance,
-            'console_instances': console_instances,
-            'url': self.request.path,
-            'pending_activities_count': seller.total_pending_activities_count(),
-            'upcoming_activity': seller.upcoming_activity(),
-            'resolution_reasons': CAMPAIGN_RESOLUTION_REASONS_CHOICES,
-            'other_campaigns': ContactCampaignStatus.objects.filter(contact=contact).exclude(campaign=campaign),
-        })
+        context.update(
+            {
+                'campaign': campaign,
+                'times_contacted': contact.activity_set.filter(
+                    activity_type="C", status="C", campaign=campaign
+                ).count(),
+                'category': category,
+                'position': offset + 1,
+                'offset': offset,
+                'seller': seller,
+                'contact': contact,
+                'count': count,
+                'addresses': Address.objects.filter(contact=contact).order_by("address_1"),
+                'call_date': call_datetime,
+                'all_activities': self.get_activities(contact, console_instance, category),
+                'all_subscriptions': Subscription.objects.filter(contact=contact).order_by("-active", "id"),
+                'console_instance': console_instance,
+                'console_instances': console_instances,
+                'url': self.request.path,
+                'pending_activities_count': seller.total_pending_activities_count(),
+                'upcoming_activity': seller.upcoming_activity(),
+                'resolution_reasons': CAMPAIGN_RESOLUTION_REASONS_CHOICES,
+                'other_campaigns': ContactCampaignStatus.objects.filter(contact=contact).exclude(campaign=campaign),
+            }
+        )
         return context
 
     def get_activities(self, contact, console_instance, category):
@@ -397,23 +406,16 @@ class SellerConsoleView(UserPassesTestMixin, TemplateView):
                 activity = console_instances.get(pk=activity_id)
                 # Check if the contact is still in the campaign
                 campaign = activity.campaign
-                if not ContactCampaignStatus.objects.filter(
-                    campaign=campaign,
-                    contact=activity.contact
-                ).exists():
+                if not ContactCampaignStatus.objects.filter(campaign=campaign, contact=activity.contact).exists():
                     # Contact is not in campaign anymore, delete the orphaned activity
                     activity.delete()
                     messages.warning(
-                        self.request,
-                        _("Activity was removed because the contact is no longer in the campaign")
+                        self.request, _("Activity was removed because the contact is no longer in the campaign")
                     )
                     return None
                 return activity
             except Activity.DoesNotExist:
-                messages.error(
-                    self.request,
-                    _("An error has occurred with activity number {}".format(activity_id))
-                )
+                messages.error(self.request, _("An error has occurred with activity number {}".format(activity_id)))
                 return None
 
         # Get item by offset (offset is 1-based, but list indexing is 0-based)
@@ -443,10 +445,7 @@ class SellerConsoleView(UserPassesTestMixin, TemplateView):
         if category == "new":
             return campaign.get_not_contacted(seller.id)
         return campaign.activity_set.filter(
-            activity_type="C",
-            seller=seller,
-            status="P",
-            datetime__lte=datetime.now()
+            activity_type="C", seller=seller, status="P", datetime__lte=datetime.now()
         ).order_by("datetime", "id")
 
     def post(self, request, *args, **kwargs):
