@@ -224,13 +224,6 @@ class InvoiceItem(models.Model):
     def __str__(self):
         return str(self.description)
 
-    def pre_save(self, *args, **kwargs):
-        if self.type == "I":
-            self.amount = self.price * self.copies
-        else:
-            self.amount = self.price
-        return super().save(*args, **kwargs)
-
     class Meta:
         verbose_name = "invoice item"
         verbose_name_plural = "invoice items"

@@ -152,11 +152,11 @@ def calc_price_from_products(products_with_copies, frequency, debug_id="", creat
 
     # 1. partition the input by discount products / non discount products
     for product, copies in product_data.values():
-        if product.type in ('D', 'P', 'A'):
+        if product.type in ('D', 'P', 'A'):  # Discount, Percentage and Advanced discounts
             discount_product_list.append(product)
-        elif product.type == "S":
+        elif product.type == "S":  # Subscription products
             subscription_product_list.append(product)
-        elif product.type == "O":
+        elif product.type == "O":  # Other products
             other_product_list.append(product)
 
     # 2. obtain 2 total cost amounts: affectable/non-affectable by discounts
@@ -171,17 +171,18 @@ def calc_price_from_products(products_with_copies, frequency, debug_id="", creat
                 if frequency > 1 and product.edition_frequency != 4
                 else ''
             )
+            price = product.price * frequency
             item = InvoiceItem(
                 subscription=subscription,
                 invoice=None,  # They will be added to the invoice later
                 copies=copies,
-                price=product.price * frequency,
+                price=price,
                 product=product,
                 description=format_lazy(
                     '{product_name} {frequency_extra}', product_name=product.name, frequency_extra=frequency_extra
                 ),
                 type='I',
-                amount=product.price * copies,
+                amount=price * copies,
             )
             invoice_items.append(item)
 
@@ -190,7 +191,7 @@ def calc_price_from_products(products_with_copies, frequency, debug_id="", creat
                 f"{debug_id}{product.name} {copies}x{'-' if product.type == 'D' else ''}"
                 f"{product.price} = {'-' if product.type == 'D' else ''}{product.price * copies}"
             )
-        # check first if this product is affected to any of the discounts
+        # Check if this product is affected to any of the discounts first
         affectable = False
         for discount_product in [d for d in discount_product_list if d.target_product == product]:
             affectable_delta = product.price * copies
@@ -204,7 +205,7 @@ def calc_price_from_products(products_with_copies, frequency, debug_id="", creat
             affectable = True
             break
         if not affectable:
-            # not affected by discounts but the product price can be also "affectable" if has_implicit_discount
+            # Not affected by discounts but the product price can be also "affectable" if has_implicit_discount
             product_delta = product.price * copies
             if product.has_implicit_discount:
                 total_affectable += product_delta
@@ -295,11 +296,11 @@ def calc_price_from_products(products_with_copies, frequency, debug_id="", creat
             )
             invoice_items.append(frequency_discount_item)
 
-    if debug:
-        print(
-            debug_id
-            + f"After frequency discount total_price={total_price} (Discount: {discount_pct}% - {discount_amount})"
-        )
+        if debug:
+            print(
+                debug_id
+                + f"After frequency discount total_price={total_price} (Discount: {discount_pct}% - {discount_amount})"
+            )
 
     # Finally we add the price of the one-shot products
     for product in other_product_list:
@@ -330,6 +331,7 @@ def calc_price_from_products(products_with_copies, frequency, debug_id="", creat
                 invoice=None,
                 description=_("Rounding"),
                 amount=total_price % 1,
+                price=total_price % 1,
                 type='R' if total_price > 0 else 'D',  # "R" for surcharge, "D" for discount
                 type_dr=1,
             )
