@@ -1,6 +1,5 @@
 # coding=utf-8
 from datetime import date
-from typing import Iterable
 
 from simple_history.models import HistoricalRecords
 
@@ -207,7 +206,7 @@ class InvoiceCopy(Invoice):
 
 class InvoiceItem(models.Model):
     invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, blank=True, null=True)
-    amount = models.DecimalField(max_digits=10, decimal_places=2, help_text=_("Total amount"), readonly=True)
+    amount = models.DecimalField(max_digits=10, decimal_places=2, help_text=_("Total amount"))
     product = models.ForeignKey("core.Product", blank=True, null=True, on_delete=models.SET_NULL)
     subscription = models.ForeignKey("core.Subscription", blank=True, null=True, on_delete=models.SET_NULL)
     copies = models.PositiveSmallIntegerField(default=1)

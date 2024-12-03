@@ -279,7 +279,7 @@ class Product(models.Model):
     class Meta:
         verbose_name = _("product")
         verbose_name_plural = _("products")
-        ordering = ("id", )
+        ordering = ("id",)
 
 
 class EmailBounceActionLog(models.Model):
@@ -1589,7 +1589,9 @@ class Subscription(models.Model):
         """
         Returns the first product by priority
         """
-        products = self.products.filter(type__in="SO").order_by("billing_priority")
+        products = self.products.filter(
+            type__in=[Product.ProductTypeChoices.SUBSCRIPTION, Product.ProductTypeChoices.OTHER]
+        ).order_by("billing_priority")
         if products.exists():
             return products.first()
         else:
