@@ -1,18 +1,20 @@
 from datetime import date, timedelta
 from dateutil.relativedelta import relativedelta
 from django.conf import settings
-from django.shortcuts import get_object_or_404
 from django.utils.translation import gettext_lazy as _
 
-from core.models import Subscription, SubscriptionProduct
-from invoicing.models import Invoice, InvoiceItem
+from core.models import SubscriptionProduct
+from invoicing.models import InvoiceItem
 from core.utils import calc_price_from_products
 
+from invoicing.models import Invoice
 
-def bill_subscription(subscription_id, billing_date=None, dpp=10):
+
+def bill_subscription(subscription, billing_date=None, dpp=10):
     """
     Bills a single subscription into an only invoice. Returns the created invoice.
     """
+
     # Safely get settings with default values
     billing_extra_days = getattr(settings, 'BILLING_EXTRA_DAYS', 0)
     force_dummy_missing_billing_data = getattr(settings, 'FORCE_DUMMY_MISSING_BILLING_DATA', False)
@@ -21,7 +23,6 @@ def bill_subscription(subscription_id, billing_date=None, dpp=10):
     envelope_price = getattr(settings, 'ENVELOPE_PRICE', 0)
 
     billing_date = billing_date or date.today()
-    subscription = get_object_or_404(Subscription, pk=subscription_id)
     invoice = None
 
     # Check that the subscription is active
@@ -75,10 +76,11 @@ def bill_subscription(subscription_id, billing_date=None, dpp=10):
     amount, invoice_items = calc_price_from_products(
         product_summary,
         subscription.frequency,
-        debug_id=f"subscription_{subscription_id}",
-        invoice=True,
+        debug_id=f"subscription_{subscription.id}",
+        create_items=True,
         subscription=subscription
     )
+    print("Invoice items are:", invoice_items, "amount is", amount)
 
     # Handle envelope price if needed
     if envelope_price and SubscriptionProduct.objects.filter(subscription=subscription, has_envelope=1).exists():
@@ -94,7 +96,7 @@ def bill_subscription(subscription_id, billing_date=None, dpp=10):
         invoice_items.append(envelope_item)
         amount += envelope_amount
 
-    expiration_date = billing_date + timedelta(int(dpp))
+    overdue_date = billing_date + timedelta(int(dpp))
     service_from = subscription.next_billing
 
     try:
@@ -112,7 +114,7 @@ def bill_subscription(subscription_id, billing_date=None, dpp=10):
                 billing_city=billing_data['city'],
                 route=billing_data['route'],
                 order=billing_data['order'],
-                expiration_date=expiration_date,
+                expiration_date=overdue_date,
                 billing_document=subscription.get_billing_document(),
                 subscription=subscription,
                 amount=amount,
@@ -120,6 +122,7 @@ def bill_subscription(subscription_id, billing_date=None, dpp=10):
 
             # Add all invoice items to the invoice
             for item in invoice_items:
+                print("Adding item", item.product.slug)
                 item.save()
                 invoice.invoiceitem_set.add(item)
                 # TODO: We need a better way to identify one-shot products than checking the edition frequency
@@ -132,9 +135,11 @@ def bill_subscription(subscription_id, billing_date=None, dpp=10):
                         invoice.subscription.save()
 
             # Remove temporary discounts if applicable
-            ii_qs = invoice.invoiceitem_set.filter(product__temporary_discount_months__gte=1)
-            for ii in ii_qs:
-                temporary_discount = ii.product
+            invoiceitems_with_temporary_discount = invoice.invoiceitem_set.filter(
+                product__temporary_discount_months__gte=1
+            )
+            for invoiceitem in invoiceitems_with_temporary_discount:
+                temporary_discount = invoiceitem.product
                 months = temporary_discount.temporary_discount_months
                 if invoice.subscription.months_in_invoices_with_product(temporary_discount.slug) >= months:
                     invoice.subscription.remove_product(temporary_discount)
