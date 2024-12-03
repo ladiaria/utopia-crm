@@ -224,7 +224,7 @@ class InvoiceItem(models.Model):
     def __str__(self):
         return str(self.description)
 
-    def save(self, *args, **kwargs):
+    def pre_save(self, *args, **kwargs):
         if self.type == "I":
             self.amount = self.price * self.copies
         else:
