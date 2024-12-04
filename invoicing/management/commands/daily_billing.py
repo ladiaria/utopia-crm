@@ -6,7 +6,6 @@ from django.core.management import BaseCommand
 from django.db.models import Q
 
 from core.models import Subscription
-from invoicing.views import bill_subscription
 
 
 class Command(BaseCommand):
@@ -23,7 +22,7 @@ class Command(BaseCommand):
             try:
                 c = subscription.contact
                 print(('Billing contact {}\'s subscription {}'.format(c.id, subscription.id)))
-                invoice = bill_subscription(subscription.id, billing_date, 10)
+                invoice = subscription.bill(billing_date, 10)
                 print(('Generated invoice {} for ${}. Contact: {}'.format(invoice.id, invoice.amount, c.id)))
                 # invoice.save()
             except Exception as e:

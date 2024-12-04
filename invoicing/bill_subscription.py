@@ -2,7 +2,7 @@ from datetime import date, timedelta
 from dateutil.relativedelta import relativedelta
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
-
+from decimal import Decimal
 from core.models import SubscriptionProduct
 from invoicing.models import InvoiceItem
 from core.utils import calc_price_from_products
@@ -80,7 +80,6 @@ def bill_subscription(subscription, billing_date=None, dpp=10):
         create_items=True,
         subscription=subscription
     )
-    print("Invoice items are:", invoice_items, "amount is", amount)
 
     # Handle envelope price if needed
     if envelope_price and SubscriptionProduct.objects.filter(subscription=subscription, has_envelope=1).exists():
@@ -98,6 +97,18 @@ def bill_subscription(subscription, billing_date=None, dpp=10):
 
     overdue_date = billing_date + timedelta(int(dpp))
     service_from = subscription.next_billing
+    # Check if the subscription has a balance
+    if subscription.balance and subscription.balance != 0:
+        balance_amount = abs(subscription.balance)
+        print(f"I have a balance of {balance_amount}")
+        balance_item = InvoiceItem(
+            description=_('Balance' if subscription.balance > 0 else 'Balance owed'),
+            type='D' if subscription.balance > 0 else 'R',
+            amount=min(balance_amount, amount) if subscription.balance > 0 else balance_amount,
+            type_dr=1
+        )
+        amount += (-1 if subscription.balance > 0 else 1) * float(balance_item.amount)
+        invoice_items.append(balance_item)
 
     try:
         # Create invoice if amount is greater than 0
@@ -122,7 +133,7 @@ def bill_subscription(subscription, billing_date=None, dpp=10):
 
             # Add all invoice items to the invoice
             for item in invoice_items:
-                print("Adding item", item.product.slug)
+                print(f"item: {item.description} {item.amount} {item.type}")
                 item.save()
                 invoice.invoiceitem_set.add(item)
                 # TODO: We need a better way to identify one-shot products than checking the edition frequency
@@ -144,12 +155,20 @@ def bill_subscription(subscription, billing_date=None, dpp=10):
                 if invoice.subscription.months_in_invoices_with_product(temporary_discount.slug) >= months:
                     invoice.subscription.remove_product(temporary_discount)
 
+        # Subscription balance needs to be updated if there's a balance item
+        if subscription.balance:
+            if subscription.balance > 0 and balance_item:
+                subscription.balance -= Decimal(balance_item.amount)
+            if subscription.balance <= 0:
+                subscription.balance = None
+
         # Update subscription billing date
         subscription.next_billing = (subscription.next_billing or subscription.start_date) + relativedelta(
             months=subscription.frequency
         )
         subscription.save()
 
+        print(f"amount: {amount}")
         assert amount, _("This subscription wasn't billed since amount is 0")
 
     except Exception as e:

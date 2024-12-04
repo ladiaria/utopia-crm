@@ -14,7 +14,6 @@ from rest_framework_api_key.permissions import HasAPIKey
 from core.models import Contact
 from core.utils import api_view_auth_decorator
 from .models import Subscription
-from .views import bill_subscription
 from .utils import contact_update_mp_wrapper, create_mp_subscription_for_contact, mercadopago_debit
 
 
@@ -162,7 +161,7 @@ def createinvoicefromweb(request):
 
     invoice, bill_exc = None, None
     try:
-        invoice = bill_subscription(subscription.id, date.today(), 30)
+        invoice = subscription.bill(date.today(), 30)
         mercadopago_debit(invoice)
     except Exception as exc:
         bill_exc = exc

@@ -2142,7 +2142,7 @@ class Subscription(models.Model):
         pass
 
     def bill(self, billing_date=None, dpp=10):
-        from invoicing.bill_subscription import bill_subscription
+        from invoicing.utils import bill_subscription
         return bill_subscription(self, billing_date, dpp)
 
     class Meta:
