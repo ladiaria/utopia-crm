@@ -5,7 +5,6 @@ from . import views
 
 
 urlpatterns = [
-    re_path(r'^bill_subscription/(\d+)/$', views.bill_subscription, name='bill_subscription'),
     re_path(r'^contact_invoices/(\d+)/$', views.contact_invoices, name='contact_invoices'),
     re_path(r'^bill_one_contact/(\d+)/$', views.bill_subscriptions_for_one_contact, name='bill_one_contact'),
     re_path(r'^cancel_invoice/(\d+)/$', views.cancel_invoice, name='cancel_invoice'),

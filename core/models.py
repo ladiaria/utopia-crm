@@ -49,7 +49,6 @@ from .choices import (
     PRIORITY_CHOICES,
     PRODUCT_BILLING_FREQUENCY_CHOICES,
     PRODUCT_EDITION_FREQUENCY,
-    PRODUCT_TYPE_CHOICES,
     PRODUCT_WEEKDAYS,
     PRODUCTHISTORY_CHOICES,
     SUBSCRIPTION_STATUS_CHOICES,
@@ -190,11 +189,21 @@ class Product(models.Model):
         MANUAL = "M", _("Manual")
         BOTH = "X", _("Both")
 
+    class ProductTypeChoices(models.TextChoices):
+        """Choices for the product type"""
+
+        SUBSCRIPTION = "S", _("Subscription")
+        NEWSLETTER = "N", _("Newsletter")
+        DISCOUNT = "D", _("Discount")
+        PERCENTAGE_DISCOUNT = "P", _("Percentage discount")
+        ADVANCED_DISCOUNT = "A", _("Advanced discount")
+        OTHER = "O", _("Other")
+
     name = models.CharField(max_length=100, verbose_name=_("Name"), db_index=True)
     slug = AutoSlugField(populate_from="name", null=True, blank=True, editable=True)
     active = models.BooleanField(default=False, verbose_name=_("Active"))
     price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    type = models.CharField(max_length=1, default="O", choices=PRODUCT_TYPE_CHOICES, db_index=True)
+    type = models.CharField(max_length=1, default="O", choices=ProductTypeChoices.choices, db_index=True)
     weekday = models.IntegerField(default=None, choices=PRODUCT_WEEKDAYS, null=True, blank=True)
     offerable = models.BooleanField(
         default=False,
@@ -270,7 +279,7 @@ class Product(models.Model):
     class Meta:
         verbose_name = _("product")
         verbose_name_plural = _("products")
-        ordering = ("id", )
+        ordering = ("id",)
 
 
 class EmailBounceActionLog(models.Model):
@@ -1580,7 +1589,9 @@ class Subscription(models.Model):
         """
         Returns the first product by priority
         """
-        products = self.products.filter(type__in="SO").order_by("billing_priority")
+        products = self.products.filter(
+            type__in=[Product.ProductTypeChoices.SUBSCRIPTION, Product.ProductTypeChoices.OTHER]
+        ).order_by("billing_priority")
         if products.exists():
             return products.first()
         else:
@@ -2126,6 +2137,13 @@ class Subscription(models.Model):
             return self.unsubscription_manager.get_full_name()
         else:
             return self.unsubscription_manager.username
+
+    def billing_requirements_met(self):
+        pass
+
+    def bill(self, billing_date=None, dpp=10):
+        from invoicing.utils import bill_subscription
+        return bill_subscription(self, billing_date, dpp)
 
     class Meta:
         verbose_name = _("subscription")

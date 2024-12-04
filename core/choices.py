@@ -135,15 +135,6 @@ ACTIVITY_TYPES = (
     ("I", _("In-place visit")),
 )
 
-PRODUCT_TYPE_CHOICES = (
-    ("S", _("Subscription")),
-    ("N", _("Newsletter")),
-    ("D", _("Discount")),
-    ("P", _("Percentage discount")),
-    ("A", _("Advanced discount")),
-    ("O", _("Other")),
-)
-
 PRODUCT_WEEKDAYS = (
     (1, _("Monday")),
     (2, _("Tuesday")),

@@ -6,7 +6,6 @@ from django.test import TestCase
 from core.models import Product
 from logistics.models import Route
 from invoicing.models import Invoice
-from invoicing.views import bill_subscription
 
 from tests.factory import create_contact, create_subscription, create_product, create_address, create_route
 
@@ -33,6 +32,6 @@ class TestInvoicing(TestCase):
 
         self.assertTrue(subscription.active)
         self.assertFalse(contact.is_debtor())
-        invoice = bill_subscription(subscription.id, date.today(), 10)
+        invoice = subscription.bill(date.today(), 10)
         self.assertTrue(isinstance(invoice, Invoice))
         self.assertEqual(invoice.amount, product.price)
