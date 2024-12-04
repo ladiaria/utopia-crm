@@ -13,6 +13,8 @@ from django.conf import settings
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
 from django.core.mail import mail_managers
+from django.utils.translation import gettext as _
+from django.utils.text import format_lazy
 from rest_framework.decorators import authentication_classes
 
 
@@ -107,12 +109,28 @@ def addMonth(d, n=1):
     return eom.replace(day=d.day)
 
 
-def calc_price_from_products(products_with_copies, frequency, debug_id=""):
+def calc_price_from_products(products_with_copies, frequency, debug_id="", create_items=None, subscription=None):
     """
-    Returns the prices, we need the products already processed.
+    Returns the prices and optionally creates invoice items if invoice is provided.
+    Args:
+        products_with_copies: Dictionary of product IDs and their quantities
+        frequency: Billing frequency
+        debug_id: Debug identifier. If provided, debug messages will be printed when prices are calculated.
+        invoice: Optional Invoice object to create items for
+        subscription: Optional Subscription object (required if invoice is provided)
+    Returns:
+        If invoice is None: returns calculated total price
+        If invoice is provided: returns (total_price, invoice_items)
+    Notes:
+        - Affectable: products that are affected by discounts
+        - Non-affectable: products that are not affected by discounts
+        - Frequency discount: discount applied to the total price based on the frequency
+        - One-shot products: products that are not affected by discounts and are not part of a subscription
     """
     from core.models import Product
+    from invoicing.models import InvoiceItem
 
+    invoice_items = [] if create_items else None
     total_price, discount_pct, frequency = 0, 0, int(frequency)
 
     percentage_discount, debug = None, getattr(settings, 'DEBUG_PRODUCTS', False)
@@ -120,7 +138,7 @@ def calc_price_from_products(products_with_copies, frequency, debug_id=""):
         debug_id += ": "
     # Fetch all Product instances needed in a single query using in_bulk
     products = Product.objects.in_bulk(products_with_copies.keys())
-    if settings.DEBUG:
+    if debug:
         print(f"DEBUG: calc_price_from_products: products={products}")
 
     # Create the dictionary with product_id as key and (Product instance, copies) as value
@@ -134,37 +152,79 @@ def calc_price_from_products(products_with_copies, frequency, debug_id=""):
 
     # 1. partition the input by discount products / non discount products
     for product, copies in product_data.values():
-        if product.type in ('D', 'P', 'A'):
+        if product.type in ('D', 'P', 'A'):  # Discount, Percentage and Advanced discounts
             discount_product_list.append(product)
-        elif product.type == "S":
+        elif product.type == "S":  # Subscription products
             subscription_product_list.append(product)
-        elif product.type == "O":
+        elif product.type == "O":  # Other products
             other_product_list.append(product)
 
     # 2. obtain 2 total cost amounts: affectable/non-affectable by discounts
     total_affectable, total_non_affectable = 0, 0
     for product in subscription_product_list:
         copies = int(products_with_copies[product.id])
+
+        # Create invoice item if needed
+        if create_items:
+            frequency_extra = (
+                _(' {frequency} months'.format(frequency=frequency))
+                if frequency > 1 and product.edition_frequency != 4
+                else ''
+            )
+            price = product.price * frequency
+            item = InvoiceItem(
+                subscription=subscription,
+                invoice=None,  # They will be added to the invoice later
+                copies=copies,
+                price=price,
+                product=product,
+                description=format_lazy(
+                    '{product_name} {frequency_extra}', product_name=product.name, frequency_extra=frequency_extra
+                ),
+                type='I',
+                amount=price * copies,
+            )
+            invoice_items.append(item)
+
         if debug:
             print(
                 f"{debug_id}{product.name} {copies}x{'-' if product.type == 'D' else ''}"
                 f"{product.price} = {'-' if product.type == 'D' else ''}{product.price * copies}"
             )
-        # check first if this product is affected to any of the discounts
+
+        # Check if this product is affected to any of the discounts first. This also needs to create the invoice item.
         affectable = False
         for discount_product in [d for d in discount_product_list if d.target_product == product]:
             affectable_delta = product.price * copies
+            discount_copies = int(products_with_copies[discount_product.id])
             if discount_product.type == "D":
-                affectable_delta -= discount_product.price * int(products_with_copies[discount_product.id])
+                affectable_delta -= discount_product.price * discount_copies
             elif discount_product.type == "P":
                 affectable_delta_discount = (affectable_delta * discount_product.price) / 100
                 affectable_delta -= affectable_delta_discount
             total_affectable += affectable_delta
+            # We also need to create a product item for the discount
+            if create_items:
+                frequency_extra = (
+                    _(' {frequency} months'.format(frequency=frequency))
+                    if frequency > 1 and discount_product.edition_frequency != 4
+                    else ''
+                )
+                item_discount = InvoiceItem(
+                    description=format_lazy('{} {}', discount_product.name, frequency_extra),
+                    price=discount_product.price * frequency,
+                    product=discount_product,
+                    copies=discount_copies,
+                    type='D',
+                    amount=discount_product.price * discount_copies,
+                )
+
+                invoice_items.append(item_discount)
             discount_product_list.remove(discount_product)
             affectable = True
             break
         if not affectable:
-            # not affected by discounts but the product price can be also "affectable" if has_implicit_discount
+            # Not affected by discounts but the product price can be also "affectable" if has_implicit_discount
             product_delta = product.price * copies
             if product.has_implicit_discount:
                 total_affectable += product_delta
@@ -172,11 +232,26 @@ def calc_price_from_products(products_with_copies, frequency, debug_id=""):
                 total_non_affectable += product_delta
 
     if debug:
-        print(debug_id + f"before3 affectable={total_affectable}, non-affectable={total_non_affectable}")
+        print(
+            debug_id
+            + f"Before iteration over discounts affectable={total_affectable}, non-affectable={total_non_affectable}"
+        )
 
     # 3. iterate over discounts left
     for product in discount_product_list:
         if product.type == 'D':
+            if create_items:
+                item = InvoiceItem(
+                    subscription=subscription,
+                    invoice=None,
+                    copies=int(products_with_copies[product.id]),
+                    price=product.price * frequency,
+                    product=product,
+                    description=format_lazy('{} {}', product.name, frequency_extra),
+                    type='D',
+                    amount=product.price * int(products_with_copies[product.id]),
+                )
+                invoice_items.append(item)
             total_non_affectable -= product.price * int(products_with_copies[product.id])
         elif product.type == 'P':
             percentage_discount = product  # only one percentage discount product (the last one found in the list).
@@ -184,54 +259,110 @@ def calc_price_from_products(products_with_copies, frequency, debug_id=""):
             advanced_discount_list.append(product)
 
     if debug:
-        print(debug_id + f"after3 affectable={total_affectable}, non-affectable={total_non_affectable}")
+        print(
+            debug_id
+            + f"After iteration over discounts affectable={total_affectable}, non-affectable={total_non_affectable}"
+        )
 
-    # TODO: Unused and debatible if it is needed. This probably needs to be refactored.
-    # After calculating the prices of the product, we check out every product in the advanced_discount_list
-    # for discount_product in advanced_discount_list:
-    #     try:
-    #         advanced_discount = AdvancedDiscount.objects.get(discount_product=discount_product)
-    #     except AdvancedDiscount.DoesNotExist:
-    #         continue
-    #     else:
-    #         if advanced_discount.value_mode == 1:
-    #             discounted_product_price = advanced_discount.value
-    #         else:
-    #             discounted_product_price = 0
-    #             for product in advanced_discount.find_products.all():
-    #                 if product.id in products_with_copies:
-    #                     if product.type == 'S':
-    #                         discounted_product_price += int(products_with_copies[product.id]) * product.price
-    #                     else:
-    #                         discounted_product_price -= int(products_with_copies[product.id]) * product.price
-    #             discounted_product_price = (discounted_product_price * advanced_discount.value) / 100
-    #         total_non_affectable -= discounted_product_price
-    # if debug:
-    #     print(debug_id + f"before_pd affectable={total_affectable}, non-affectable={total_non_affectable}")
-
-    # After calculating the prices of S and D products, we need to calculate the one for P.
+    # Handle percentage discount
     if percentage_discount:
-        total_non_affectable -= (total_non_affectable * percentage_discount.price) / 100
+        discount_amount = (total_non_affectable * percentage_discount.price) / 100
+        if create_items:
+            item = InvoiceItem(
+                subscription=subscription,
+                invoice=None,
+                copies=1,
+                price=discount_amount,
+                product=percentage_discount,
+                description=format_lazy('{} {}', percentage_discount.name, frequency_extra),
+                type='D',
+                amount=discount_amount,
+            )
+            invoice_items.append(item)
+        total_non_affectable -= discount_amount
 
     if debug:
-        print(debug_id + f"after_pd affectable={total_affectable}, non-affectable={total_non_affectable}")
+        print(
+            debug_id
+            + f"After percentage discount affectable={total_affectable}, non-affectable={total_non_affectable}"
+        )
+        print(f"Frequency operation: {total_affectable + total_non_affectable} * {frequency}.")
 
-    # Then we multiply all this by the frequency
+    # Calculate total price by multiplying the sum of affectable and non-affectable by the frequency
     total_price = float((total_affectable + total_non_affectable) * frequency)
 
-    # Next step is determining if there's a discount for frequency.
-    discount_pct = getattr(settings, 'DISCOUNT_%d_MONTHS' % frequency, 0)
-    if discount_pct:
-        total_price -= (total_price * discount_pct) / 100
+    if debug:
+        print(debug_id + f"Before frequency discount total_price={total_price}")
 
-    # Finally we add the price of the one-shot products since they're not affected by the frequency discount.
+    # Handle frequency discount
+    discount_pct = getattr(settings, f'DISCOUNT_{frequency}_MONTHS', 0)
+    if discount_pct:
+        discount_amount = (total_price * discount_pct) / 100
+        total_price -= discount_amount
+
+        if create_items:
+            frequency_discount_item = InvoiceItem(
+                subscription=subscription,
+                invoice=None,
+                description=_(
+                    '{frequency} months discount ({discount_pct}% discount)'.format(
+                        frequency=frequency, discount_pct=discount_pct
+                    )
+                ),
+                amount=discount_amount,
+                type='D',  # This means the item is a discount
+                type_dr=1,  # 1 means it's a plain value
+            )
+            invoice_items.append(frequency_discount_item)
+
+        if debug:
+            print(
+                debug_id
+                + f"After frequency discount total_price={total_price} (Discount: {discount_pct}% - {discount_amount})"
+            )
+
+    # Finally we add the price of the one-shot products
     for product in other_product_list:
-        total_price += float(product.price)
+        product_price = float(product.price)
+        total_price += product_price
+
+        if create_items:
+            item = InvoiceItem(
+                subscription=subscription,
+                invoice=None,
+                copies=1,
+                price=product_price,
+                product=product,
+                description=product.name,
+                type='I',
+                amount=product_price,
+            )
+            invoice_items.append(item)
+
+    if debug:
+        print(debug_id + f"Before rounding total_price={total_price}")
+
+    # We need to add a rounding item if the total price is not an integer
+    if total_price % 1 != 0:
+        if create_items:
+            rounding_item = InvoiceItem(
+                subscription=subscription,
+                invoice=None,
+                description=_("Rounding"),
+                amount=total_price % 1,
+                price=total_price % 1,
+                type='R' if total_price > 0 else 'D',  # "R" for surcharge, "D" for discount
+                type_dr=1,
+            )
+            invoice_items.append(rounding_item)
+        total_price = round(total_price)
 
     if debug:
         print(debug_id + f"Total {total_price}")
 
-    return round(total_price)
+    if create_items:
+        return total_price, invoice_items
+    return total_price
 
 
 def process_products(input_product_dict: dict) -> dict:
@@ -319,9 +450,7 @@ def process_products(input_product_dict: dict) -> dict:
                         str(products_in_list_and_pool[0].id)
                     ]
                     # We're going to exclude the products that were not used here so they can be used by other rules.
-                    input_products_list = [
-                        product for product in input_products_list if product not in pool
-                    ]
+                    input_products_list = [product for product in input_products_list if product not in pool]
                     # Increment "non discount" counter if is the case
                     if (
                         pricerule_resulting_product.type not in "DP"
@@ -404,9 +533,7 @@ def cms_rest_api_request(api_name, api_uri, post_data, method="POST"):
             if settings.DEBUG:
                 html2text_content = html2text(r.content.decode()).strip()
                 # TODO: can be improved splitting and stripping more unuseful info
-                print(
-                    "DEBUG: CMS api response content: " + html2text_content.split("## Traceback")[0].strip()
-                )
+                print("DEBUG: CMS api response content: " + html2text_content.split("## Traceback")[0].strip())
             r.raise_for_status()
             result = r.json()
             if settings.DEBUG:
