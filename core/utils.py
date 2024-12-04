@@ -197,12 +197,30 @@ def calc_price_from_products(products_with_copies, frequency, debug_id="", creat
         affectable = False
         for discount_product in [d for d in discount_product_list if d.target_product == product]:
             affectable_delta = product.price * copies
+            discount_copies = int(products_with_copies[discount_product.id])
             if discount_product.type == "D":
-                affectable_delta -= discount_product.price * int(products_with_copies[discount_product.id])
+                affectable_delta -= discount_product.price * discount_copies
             elif discount_product.type == "P":
                 affectable_delta_discount = (affectable_delta * discount_product.price) / 100
                 affectable_delta -= affectable_delta_discount
             total_affectable += affectable_delta
+            # We also need to create a product item for the discount
+            if create_items:
+                frequency_extra = (
+                    _(' {frequency} months'.format(frequency=frequency))
+                    if frequency > 1 and discount_product.edition_frequency != 4
+                    else ''
+                )
+                item_discount = InvoiceItem(
+                    description=format_lazy('{} {}', discount_product.name, frequency_extra),
+                    price=discount_product.price * frequency,
+                    product=discount_product,
+                    copies=discount_copies,
+                    type='D',
+                    amount=discount_product.price * discount_copies,
+                )
+
+                invoice_items.append(item_discount)
             discount_product_list.remove(discount_product)
             affectable = True
             break
