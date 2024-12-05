@@ -168,10 +168,16 @@ def calc_price_from_products(products_with_copies, frequency, debug_id="", creat
         if create_items:
             frequency_extra = (
                 _(' {frequency} months'.format(frequency=frequency))
-                if frequency > 1 and product.edition_frequency != 4
+                if frequency > 1
+                and product.edition_frequency != 4
+                and product.billing_mode == Product.BillingModeChoices.PER_FREQUENCY
                 else ''
             )
-            price = product.price * frequency
+            price = (
+                product.price * frequency
+                if product.billing_mode == Product.BillingModeChoices.PER_FREQUENCY
+                else product.price
+            )
             item = InvoiceItem(
                 subscription=subscription,
                 invoice=None,  # They will be added to the invoice later
@@ -207,7 +213,9 @@ def calc_price_from_products(products_with_copies, frequency, debug_id="", creat
             if create_items:
                 frequency_extra = (
                     _(' {frequency} months'.format(frequency=frequency))
-                    if frequency > 1 and discount_product.edition_frequency != 4
+                    if frequency > 1
+                    and discount_product.edition_frequency != 4
+                    and discount_product.billing_mode == Product.BillingModeChoices.PER_FREQUENCY
                     else ''
                 )
                 item_discount = InvoiceItem(
@@ -286,10 +294,23 @@ def calc_price_from_products(products_with_copies, frequency, debug_id="", creat
             debug_id
             + f"After percentage discount affectable={total_affectable}, non-affectable={total_non_affectable}"
         )
-        print(f"Frequency operation: {total_affectable + total_non_affectable} * {frequency}.")
 
-    # Calculate total price by multiplying the sum of affectable and non-affectable by the frequency
-    total_price = float((total_affectable + total_non_affectable) * frequency)
+    # Let's decide what billing mode we're using for the subscription and calculate the total price accordingly
+    billing_modes = {product.billing_mode for product in subscription_product_list}
+
+    # Calculate total price based on aggregated billing modes
+    if Product.BillingModeChoices.PER_FREQUENCY in billing_modes:
+        # Frequency-based logic
+        if debug:
+            print(f"Frequency operation: {total_affectable + total_non_affectable} * {frequency}.")
+        total_price = float((total_affectable + total_non_affectable) * frequency)
+    elif Product.BillingModeChoices.FIXED in billing_modes:
+        # Fixed-price logic
+        if debug:
+            print(f"Fixed price operation: {total_affectable + total_non_affectable}.")
+        total_price = float(total_affectable + total_non_affectable)
+    else:
+        raise ValueError("Unsupported billing modes for subscription products.")
 
     if debug:
         print(debug_id + f"Before frequency discount total_price={total_price}")

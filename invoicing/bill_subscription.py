@@ -100,7 +100,6 @@ def bill_subscription(subscription, billing_date=None, dpp=10):
     # Check if the subscription has a balance
     if subscription.balance and subscription.balance != 0:
         balance_amount = abs(subscription.balance)
-        print(f"I have a balance of {balance_amount}")
         balance_item = InvoiceItem(
             description=_('Balance' if subscription.balance > 0 else 'Balance owed'),
             type='D' if subscription.balance > 0 else 'R',
@@ -133,7 +132,6 @@ def bill_subscription(subscription, billing_date=None, dpp=10):
 
             # Add all invoice items to the invoice
             for item in invoice_items:
-                print(f"item: {item.description} {item.amount} {item.type}")
                 item.save()
                 invoice.invoiceitem_set.add(item)
                 # TODO: We need a better way to identify one-shot products than checking the edition frequency

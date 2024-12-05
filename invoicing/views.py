@@ -75,6 +75,15 @@ def bill_subscriptions_for_one_contact(request, contact_id):
     contact = get_object_or_404(Contact, pk=contact_id)
     active_subscriptions = contact.subscriptions.filter(active=True, type="N", next_billing__lte=date.today())
 
+    # Precompute subscription prices
+    subscriptions_with_prices = []
+    for subscription in active_subscriptions:
+        price = subscription.get_price_for_full_period()  # Call it once per subscription
+        subscriptions_with_prices.append({
+            'subscription': subscription,
+            'price': price,
+        })
+
     if request.POST.get('creation_date'):
         creation_date = request.POST.get('creation_date', date.today())
         creation_date = datetime.strptime(creation_date, "%Y-%m-%d").date()
@@ -104,6 +113,7 @@ def bill_subscriptions_for_one_contact(request, contact_id):
             'today': date.today(),
             'breadcrumbs': breadcrumbs,
             'active_subscriptions': active_subscriptions,
+            'subscriptions_with_prices': subscriptions_with_prices,
         },
     )
 
