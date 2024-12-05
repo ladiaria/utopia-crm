@@ -178,6 +178,9 @@ class ContactAdminForm(EmailValidationForm, forms.ModelForm):
 
 
 class SubscriptionAdminForm(forms.ModelForm):
+
+    frequency = forms.IntegerField(required=True, help_text=_("Frequency of billing in months"))
+
     class Meta:
         model = Subscription
         fields = "__all__"
