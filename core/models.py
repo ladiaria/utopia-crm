@@ -273,7 +273,7 @@ class Product(models.Model):
     class Meta:
         verbose_name = _("product")
         verbose_name_plural = _("products")
-        ordering = ("-type", "id")
+        ordering = ("id", )
 
 
 class EmailBounceActionLog(models.Model):
