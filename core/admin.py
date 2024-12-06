@@ -104,7 +104,7 @@ class TaggitListFilter(SimpleListFilter):
 
 class SubscriptionProductInline(admin.StackedInline):
     model = SubscriptionProduct
-    fields = ("product", "copies", "address", "order", "label_contact", "seller", "has_envelope", "active")
+    fields = ("product", "copies", "address", "has_envelope", "active")
     raw_id_fields = ["label_contact", "seller"]
 
     def __init__(self, *args, **kwargs):
