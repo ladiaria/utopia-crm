@@ -49,7 +49,6 @@ from .choices import (
     PRIORITY_CHOICES,
     PRODUCT_BILLING_FREQUENCY_CHOICES,
     PRODUCT_EDITION_FREQUENCY,
-    PRODUCT_TYPE_CHOICES,
     PRODUCT_WEEKDAYS,
     PRODUCTHISTORY_CHOICES,
     SUBSCRIPTION_STATUS_CHOICES,
@@ -190,11 +189,26 @@ class Product(models.Model):
         MANUAL = "M", _("Manual")
         BOTH = "X", _("Both")
 
+    class ProductTypeChoices(models.TextChoices):
+        """Choices for the product type"""
+
+        SUBSCRIPTION = "S", _("Subscription")
+        NEWSLETTER = "N", _("Newsletter")
+        DISCOUNT = "D", _("Discount")
+        PERCENTAGE_DISCOUNT = "P", _("Percentage discount")
+        ADVANCED_DISCOUNT = "A", _("Advanced discount")
+        OTHER = "O", _("Other")
+
+    class BillingModeChoices(models.TextChoices):
+        PER_FREQUENCY = "F", _("Per Frequency")
+        FIXED = "X", _("Fixed Price")
+        CUSTOM = "C", _("Custom")
+
     name = models.CharField(max_length=100, verbose_name=_("Name"), db_index=True)
     slug = AutoSlugField(populate_from="name", null=True, blank=True, editable=True)
     active = models.BooleanField(default=False, verbose_name=_("Active"))
     price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    type = models.CharField(max_length=1, default="O", choices=PRODUCT_TYPE_CHOICES, db_index=True)
+    type = models.CharField(max_length=1, default="O", choices=ProductTypeChoices.choices, db_index=True)
     weekday = models.IntegerField(default=None, choices=PRODUCT_WEEKDAYS, null=True, blank=True)
     offerable = models.BooleanField(
         default=False,
@@ -243,6 +257,14 @@ class Product(models.Model):
         through="core.TermsAndConditionsProduct",
     )
     mercadopago_id = models.CharField(max_length=255, blank=True, null=True, verbose_name=_("MercadoPago ID"))
+    billing_mode = models.CharField(
+        max_length=1,
+        default=BillingModeChoices.PER_FREQUENCY,
+        choices=BillingModeChoices.choices,
+        verbose_name=_("Billing mode"),
+        help_text=_("How the product is billed. Fixed uses the price set in the product, per frequency uses the "
+                    "price calculated from the products in the subscription with the frequency set in the product."),
+    )
     objects = ProductManager()
 
     def __str__(self):
@@ -1199,9 +1221,7 @@ class SubscriptionProduct(models.Model):
         else:
             address = ""
 
-        return "{} - {} - (Suscripción de ${})".format(
-            self.product, address, self.subscription.get_price_for_full_period()
-        )
+        return f"{self.product} - {address} - {self.subscription.contact.get_full_name()}"
 
     def get_subscription_active(self):
         return self.subscription.active
@@ -1314,7 +1334,9 @@ class Subscription(models.Model):
 
     # Product
     products = models.ManyToManyField(Product, through="SubscriptionProduct")
-    frequency = models.PositiveSmallIntegerField(default=1, choices=FREQUENCY_CHOICES)
+    frequency = models.PositiveSmallIntegerField(
+        default=1, help_text=_("Frequency of billing in months")
+    )
     payment_type = models.CharField(
         max_length=2,
         choices=settings.SUBSCRIPTION_PAYMENT_METHODS,
@@ -1590,7 +1612,9 @@ class Subscription(models.Model):
         """
         Returns the first product by priority
         """
-        products = self.products.filter(type__in="SO").order_by("billing_priority")
+        products = self.products.filter(
+            type__in=[Product.ProductTypeChoices.SUBSCRIPTION, Product.ProductTypeChoices.OTHER]
+        ).order_by("billing_priority")
         if products.exists():
             return products.first()
         else:
@@ -2136,6 +2160,14 @@ class Subscription(models.Model):
             return self.unsubscription_manager.get_full_name()
         else:
             return self.unsubscription_manager.username
+
+    def billing_requirements_met(self):
+        pass
+
+    def bill(self, billing_date=None, dpp=10):
+        from invoicing.utils import bill_subscription
+
+        return bill_subscription(self, billing_date, dpp)
 
     class Meta:
         verbose_name = _("subscription")
