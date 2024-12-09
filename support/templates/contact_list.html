@@ -105,7 +105,17 @@
                     {% endif %}
                   </td>
                   <td>{{ contact.email|default_if_none:"-" }}</td>
-                  <td>{{ contact.phone|default_if_none:"" }}</td>
+                  <td>
+                    {% if contact.phone %}
+                      <i class="fas fa-phone"></i> {{ contact.phone|default_if_none:"" }}
+                    {% endif %}
+                    {% if contact.phone and contact.mobile %}
+                      <br>
+                    {% endif %}
+                    {% if contact.mobile %}
+                      <i class="fas fa-mobile"></i> {{ contact.mobile|default_if_none:"" }}
+                    {% endif %}
+                  </td>
                   <td>
                     {% for sp in contact.get_active_subscriptionproducts %}
                       {% if sp.has_envelope == 1 %}

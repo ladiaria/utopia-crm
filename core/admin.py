@@ -49,6 +49,8 @@ from .models import (
     ProductSubscriptionPeriod,
     TermsAndConditions,
     TermsAndConditionsProduct,
+    PersonType,
+    BusinessEntityType,
 )
 from .forms import SubscriptionAdminForm, ContactAdminForm
 
@@ -588,3 +590,5 @@ admin.site.register(ActivityTopic)
 admin.site.register(ActivityResponse)
 admin.site.register(ProductSubscriptionPeriod)
 admin.site.register(TermsAndConditions)
+admin.site.register(PersonType)
+admin.site.register(BusinessEntityType)
