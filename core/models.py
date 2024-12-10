@@ -1047,9 +1047,9 @@ class Country(models.Model):
 
 
 class State(models.Model):
-    name = models.CharField(max_length=50)
+    name = models.CharField(max_length=100)
     code = models.CharField(max_length=10)  # State/region code
-    country = models.ForeignKey(Country, on_delete=models.PROTECT)
+    country = models.ForeignKey(Country, on_delete=models.SET_NULL, null=True)
     active = models.BooleanField(default=True)
 
     def __str__(self):
