@@ -18,6 +18,7 @@ from django.utils.translation import gettext_lazy as _
 from django_extensions.db.fields import AutoSlugField
 from django.utils.html import mark_safe
 from django.utils.functional import cached_property
+from django.utils.text import format_lazy
 from django.urls import reverse
 from django.utils import timezone
 
@@ -414,6 +415,16 @@ class Contact(models.Model):
     allow_promotions = models.BooleanField(default=True, verbose_name=_("Allows promotions"))
     cms_date_joined = models.DateTimeField(blank=True, null=True, verbose_name=_("CMS join date"))
     ranking = models.PositiveSmallIntegerField(blank=True, null=True, verbose_name=_("Ranking"))
+    person_type = models.ForeignKey(
+        'core.PersonType', blank=True, null=True, verbose_name=_("Person type"), on_delete=models.SET_NULL
+    )
+    business_entity_type = models.ForeignKey(
+        'core.BusinessEntityType',
+        blank=True,
+        null=True,
+        verbose_name=_("Business entity type"),
+        on_delete=models.SET_NULL,
+    )
     history = HistoricalRecords()
 
     def __str__(self):
@@ -439,7 +450,7 @@ class Contact(models.Model):
     def clean(self, debug=False):
         email = self.get_normalized_email()
 
-        if self.id:
+        if self.pk and self.__class__.objects.filter(pk=self.pk).exists():
             old_email = self.get_old_email()
             if old_email and old_email != email:
                 if EmailBounceActionLog.email_is_bouncer(email):
@@ -1040,9 +1051,9 @@ class Country(models.Model):
 
 
 class State(models.Model):
-    name = models.CharField(max_length=50)
+    name = models.CharField(max_length=100)
     code = models.CharField(max_length=10)  # State/region code
-    country = models.ForeignKey(Country, on_delete=models.PROTECT)
+    country = models.ForeignKey(Country, on_delete=models.SET_NULL, null=True)
     active = models.BooleanField(default=True)
 
     def __str__(self):
@@ -1116,7 +1127,7 @@ class Address(models.Model):
     # New fields with explicit column names
     country = models.ForeignKey(
         'core.Country',
-        on_delete=models.PROTECT,
+        on_delete=models.SET_NULL,
         null=True,
         blank=True,
         verbose_name=_("Country"),
@@ -1124,7 +1135,7 @@ class Address(models.Model):
     )
     state = models.ForeignKey(
         'core.State',
-        on_delete=models.PROTECT,
+        on_delete=models.SET_NULL,
         null=True,
         blank=True,
         verbose_name=_("State"),
@@ -2011,7 +2022,10 @@ class Subscription(models.Model):
         Returns the frequency.
         """
         frequencies = dict(FREQUENCY_CHOICES)
-        return frequencies.get(self.frequency, "N/A")
+        return frequencies.get(
+            self.frequency,
+            format_lazy("{months} months", months=self.frequency)
+        )
 
     def get_copies_for_product(self, product_id):
         try:
@@ -2911,3 +2925,19 @@ class TermsAndConditionsProduct(models.Model):
 
     def __str__(self) -> str:
         return f"T&C {self.terms_and_conditions.version} ({self.date}) for {self.product.name}"
+
+
+class BusinessEntityType(models.Model):
+    name = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+
+    def __str__(self) -> str:
+        return self.name
+
+
+class PersonType(models.Model):
+    name = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+
+    def __str__(self) -> str:
+        return self.name

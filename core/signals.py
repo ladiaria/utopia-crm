@@ -21,7 +21,7 @@ def contact_pre_save_signal(sender, instance, **kwargs):
     if instance.no_email and instance.email:
         raise ValidationError(no_email_validation_msg)
 
-    if not alphanumeric.match(instance.name):
+    if not alphanumeric.match(instance.name) and getattr(settings, "ENABLE_ALPHANUMERIC_VALIDATION_FOR_NAME", True):
         raise ValidationError(regex_alphanumeric_msg)
     try:
         saved_email = Contact.objects.values_list("email", flat=True).get(pk=instance.id)
@@ -76,5 +76,5 @@ def contact_post_delete(sender, instance, **kwargs):
             mail_managers_on_errors(process_name, str(ex), tb)
             if settings.DEBUG:
                 print(f"ERROR: (contact_post_delete) sending delete request: {ex} trace: {tb}")
-    elif settings.DEBUG:
+    elif settings.DEBUG and getattr(settings, "DEBUG_NOOP_SIGNALS", True):
         print("DEBUG: (contact_post_delete) signal called - noop")

@@ -133,6 +133,7 @@ ACTIVITY_TYPES = (
     ("W", _("WhatsApp message or other apps")),
     ("E", _("Event participation")),
     ("I", _("In-place visit")),
+    ("N", _("Internal")),
 )
 
 PRODUCT_WEEKDAYS = (
