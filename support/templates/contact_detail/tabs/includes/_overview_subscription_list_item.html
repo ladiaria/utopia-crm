@@ -31,7 +31,7 @@
   </p>
   {% if subscription.type == "N" %}
     <p class="mb-1">
-      <span class="font-weight-bold">{% trans "Frequency" %}:</span> {{ subscription.get_frequency_display }}
+      <span class="font-weight-bold">{% trans "Frequency" %}:</span> {{ subscription.frequency }}
     </p>
     <p class="mb-1">
       <span class="font-weight-bold">{% trans "Price" %}:</span> {{ subscription.get_price_for_full_period }}
