@@ -18,6 +18,7 @@ from django.utils.translation import gettext_lazy as _
 from django_extensions.db.fields import AutoSlugField
 from django.utils.html import mark_safe
 from django.utils.functional import cached_property
+from django.utils.text import format_lazy
 from django.urls import reverse
 from django.utils import timezone
 
@@ -2018,7 +2019,10 @@ class Subscription(models.Model):
         Returns the frequency.
         """
         frequencies = dict(FREQUENCY_CHOICES)
-        return frequencies.get(self.frequency, "N/A")
+        return frequencies.get(
+            self.frequency,
+            format_lazy("{months} months", months=self.frequency)
+        )
 
     def get_copies_for_product(self, product_id):
         try:
