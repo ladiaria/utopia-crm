@@ -496,7 +496,7 @@ class SalesRecord(models.Model):
         # Show all these in a separate line with a label
         cpt = f"{self.set_commission_for_payment_type(return_value=True)} ({self.subscription.get_payment_type_display()})"  # noqa
         cfp = f"{self.set_commission_for_products_sold(return_value=True)} ({self.max_products_count()})"
-        cfs = f"{self.set_commission_for_subscription_frequency(return_value=True)} ({self.subscription.get_frequency_display()})"  # noqa
+        cfs = f"{self.set_commission_for_subscription_frequency(return_value=True)} ({self.subscription.frequency})"  # noqa
         # Error catching
         try:
             return f"{cpt} + {cfp} + {cfs} = {self.calculate_total_commission()}"
