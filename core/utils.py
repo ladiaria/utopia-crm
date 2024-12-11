@@ -310,7 +310,13 @@ def calc_price_from_products(products_with_copies, frequency, debug_id="", creat
             print(f"Fixed price operation: {total_affectable + total_non_affectable}.")
         total_price = float(total_affectable + total_non_affectable)
     else:
-        raise ValueError("Unsupported billing modes for subscription products.")
+        # Default to fixed price for now
+        if debug:
+            print(
+                "Defaulting to fixed price because billing mode is not supported",
+                f"total_affectable={total_affectable}, total_non_affectable={total_non_affectable}",
+            )
+        total_price = float(total_affectable + total_non_affectable)
 
     if debug:
         print(debug_id + f"Before frequency discount total_price={total_price}")
