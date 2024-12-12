@@ -36,6 +36,31 @@ class Invoice(models.Model):
     serie = models.CharField(max_length=1, editable=False, blank=True, null=True)
     numero = models.PositiveIntegerField(editable=False, blank=True, null=True)
     pdf = models.FileField(upload_to=settings.INVOICES_PATH, editable=False, blank=True, null=True)
+    payment_method_fk = models.ForeignKey(
+        "core.PaymentMethod",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name=_("Payment method"),
+        help_text=_(
+            "Payment method used to pay for the subscription, for example: "
+            "'Cash', 'Credit Card', 'Debit Card', 'Bank Transfer', etc."
+        ),
+    )
+    payment_type_fk = models.ForeignKey(
+        "core.PaymentType",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name=_("Payment type"),
+        help_text=_(
+            "Payment type used to pay for the subscription, for example:"
+            " 'American Express', 'Visa', 'Mastercard', etc."
+        ),
+    )
+    # These two fields are used to save the payment method and type in case they are deleted from the database
+    payment_method_name = models.CharField(max_length=255, blank=True, null=True)
+    payment_type_name = models.CharField(max_length=255, blank=True, null=True)
 
     # Fields for CFE
     billing_address = models.CharField(max_length=255, blank=True, null=True, verbose_name=_("Billing Address"))
@@ -57,6 +82,15 @@ class Invoice(models.Model):
 
     billing = models.ForeignKey("invoicing.Billing", blank=True, null=True, on_delete=models.SET_NULL)
     history = HistoricalRecords()
+
+    def save(self, *args, **kwargs):
+        # Save the payment method and type in case they are deleted from the database to preserve the integrity
+        # of the invoice data.
+        if self.payment_method_fk:
+            self.payment_method_name = self.payment_method_fk.name
+        if self.payment_type_fk:
+            self.payment_type_name = self.payment_type_fk.name
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return '%s %d' % (_('Invoice'), self.id)
