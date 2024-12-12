@@ -62,7 +62,16 @@ class InvoiceAdmin(SimpleHistoryAdmin):
     )
     raw_id_fields = ['contact', 'subscription']
     inlines = (InvoiceItemInline,)
-    readonly_fields = ['canceled', 'cancelation_date', 'uuid', 'serie', 'numero', 'pdf']
+    readonly_fields = [
+        'canceled',
+        'cancelation_date',
+        'uuid',
+        'serie',
+        'numero',
+        'pdf',
+        'payment_method_name',
+        'payment_type_name',
+    ]
     ordering = ['-id']
 
 
