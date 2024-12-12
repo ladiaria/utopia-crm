@@ -1409,6 +1409,29 @@ class Subscription(models.Model):
         verbose_name=_("Parent subscription"),
         related_name="affiliate_subscriptions",
     )
+    payment_method_fk = models.ForeignKey(
+        "core.PaymentMethod",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name=_("Payment method"),
+        help_text=_(
+            "Payment method used to pay for the subscription, for example: "
+            "'Cash', 'Credit Card', 'Debit Card', 'Bank Transfer', etc."
+        ),
+    )
+    payment_type_fk = models.ForeignKey(
+        "core.PaymentType",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name=_("Payment type"),
+        help_text=_(
+            "Payment type used to pay for the subscription, for example:"
+            " 'American Express', 'Visa', 'Mastercard', etc."
+        ),
+    )
+    creation_date = models.DateTimeField(auto_now_add=True, verbose_name=_("Creation date"), null=True, blank=True)
 
     def __str__(self):
         return str(
@@ -2935,6 +2958,44 @@ class BusinessEntityType(models.Model):
 class PersonType(models.Model):
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True)
+
+    def __str__(self) -> str:
+        return self.name
+
+
+class PaymentMethod(models.Model):
+    """
+    Payment methods are the ways in which the customer can pay for the subscription. These are a higher level of
+    categorization than payment types.
+
+    This model will save the payment methods that are used in the subscription, for example:
+    - Cash
+    - Credit Card
+    - Debit Card
+    - Bank Transfer
+    - etc.
+    """
+    name = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+    active = models.BooleanField(default=True)
+
+    def __str__(self) -> str:
+        return self.name
+
+
+class PaymentType(models.Model):
+    """
+    Subcategorization of payment methods. They don't necessarily depend on the payment method.
+
+    This model will save the payment types that are used in the payment methods, for example:
+    - American Express
+    - Visa
+    - Mastercard
+    - etc.
+    """
+    name = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+    active = models.BooleanField(default=True)
 
     def __str__(self) -> str:
         return self.name
