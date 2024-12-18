@@ -1783,7 +1783,7 @@ class Subscription(models.Model):
         if with_pauses:
             subscription_products = subscription_products.filter(active=True)
 
-        dict_all_products = {str(sp.product.id): str(sp.copies) for sp in subscription_products}
+        dict_all_products = {str(sp.product.id): str(sp.copies) for sp in subscription_products if sp.product}
         return process_products(dict_all_products)
 
     # def product_summary(self):  TODO: explain why this is commented or remove it
