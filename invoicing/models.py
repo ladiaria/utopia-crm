@@ -83,6 +83,8 @@ class Invoice(models.Model):
     billing = models.ForeignKey("invoicing.Billing", blank=True, null=True, on_delete=models.SET_NULL)
     history = HistoricalRecords()
 
+    old_pk = models.PositiveIntegerField(blank=True, null=True)
+
     def save(self, *args, **kwargs):
         # Save the payment method and type in case they are deleted from the database to preserve the integrity
         # of the invoice data.
