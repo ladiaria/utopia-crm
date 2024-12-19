@@ -64,15 +64,15 @@ class Invoice(models.Model):
 
     # Fields for CFE
     billing_address = models.CharField(max_length=255, blank=True, null=True, verbose_name=_("Billing Address"))
-    billing_state = models.CharField(max_length=50, blank=True, null=True, verbose_name=_("Billing State"))
-    billing_city = models.CharField(max_length=64, blank=True, null=True, verbose_name=_("Billing City"))
+    billing_state = models.CharField(max_length=255, blank=True, null=True, verbose_name=_("Billing State"))
+    billing_city = models.CharField(max_length=255, blank=True, null=True, verbose_name=_("Billing City"))
     billing_document = models.CharField(
         max_length=20,
         blank=True,
         null=True,
         verbose_name=_("Billing Identifcation Document"),
     )
-    billing_name = models.CharField(max_length=100, verbose_name=_("Billing Name"), null=True, blank=True)
+    billing_name = models.CharField(max_length=255, verbose_name=_("Billing Name"), null=True, blank=True)
 
     # Fields for logistics
     route = models.PositiveIntegerField(blank=True, null=True)
@@ -82,6 +82,8 @@ class Invoice(models.Model):
 
     billing = models.ForeignKey("invoicing.Billing", blank=True, null=True, on_delete=models.SET_NULL)
     history = HistoricalRecords()
+
+    old_pk = models.PositiveIntegerField(blank=True, null=True)
 
     def save(self, *args, **kwargs):
         # Save the payment method and type in case they are deleted from the database to preserve the integrity
