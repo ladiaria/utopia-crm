@@ -2,7 +2,7 @@ from django.conf import settings
 from factory import Faker, SubFactory, LazyAttribute
 from factory.django import DjangoModelFactory
 from core.models import Contact, Address, Product, Subscription, Campaign, State, Country
-from core.choices import PRODUCT_TYPE_CHOICES, SUBSCRIPTION_TYPE_CHOICES, SUBSCRIPTION_STATUS_CHOICES
+from core.choices import SUBSCRIPTION_TYPE_CHOICES, SUBSCRIPTION_STATUS_CHOICES
 
 
 class ContactFactory(DjangoModelFactory):
@@ -22,7 +22,7 @@ class ProductFactory(DjangoModelFactory):
     slug = Faker("slug")
     active = Faker("boolean")
     price = Faker("pydecimal", left_digits=3, right_digits=2, positive=True)
-    type = Faker("random_element", elements=[choice[0] for choice in PRODUCT_TYPE_CHOICES])
+    type = Faker("random_element", elements=[choice[0] for choice in Product.ProductTypeChoices.choices])
     weekday = Faker("random_int", min=0, max=6)
     offerable = Faker("boolean")
     digital = Faker("boolean")

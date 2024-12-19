@@ -36,18 +36,43 @@ class Invoice(models.Model):
     serie = models.CharField(max_length=1, editable=False, blank=True, null=True)
     numero = models.PositiveIntegerField(editable=False, blank=True, null=True)
     pdf = models.FileField(upload_to=settings.INVOICES_PATH, editable=False, blank=True, null=True)
+    payment_method_fk = models.ForeignKey(
+        "core.PaymentMethod",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name=_("Payment method"),
+        help_text=_(
+            "Payment method used to pay for the subscription, for example: "
+            "'Cash', 'Credit Card', 'Debit Card', 'Bank Transfer', etc."
+        ),
+    )
+    payment_type_fk = models.ForeignKey(
+        "core.PaymentType",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name=_("Payment type"),
+        help_text=_(
+            "Payment type used to pay for the subscription, for example:"
+            " 'American Express', 'Visa', 'Mastercard', etc."
+        ),
+    )
+    # These two fields are used to save the payment method and type in case they are deleted from the database
+    payment_method_name = models.CharField(max_length=255, blank=True, null=True)
+    payment_type_name = models.CharField(max_length=255, blank=True, null=True)
 
     # Fields for CFE
     billing_address = models.CharField(max_length=255, blank=True, null=True, verbose_name=_("Billing Address"))
-    billing_state = models.CharField(max_length=50, blank=True, null=True, verbose_name=_("Billing State"))
-    billing_city = models.CharField(max_length=64, blank=True, null=True, verbose_name=_("Billing City"))
+    billing_state = models.CharField(max_length=255, blank=True, null=True, verbose_name=_("Billing State"))
+    billing_city = models.CharField(max_length=255, blank=True, null=True, verbose_name=_("Billing City"))
     billing_document = models.CharField(
         max_length=20,
         blank=True,
         null=True,
         verbose_name=_("Billing Identifcation Document"),
     )
-    billing_name = models.CharField(max_length=100, verbose_name=_("Billing Name"), null=True, blank=True)
+    billing_name = models.CharField(max_length=255, verbose_name=_("Billing Name"), null=True, blank=True)
 
     # Fields for logistics
     route = models.PositiveIntegerField(blank=True, null=True)
@@ -57,6 +82,17 @@ class Invoice(models.Model):
 
     billing = models.ForeignKey("invoicing.Billing", blank=True, null=True, on_delete=models.SET_NULL)
     history = HistoricalRecords()
+
+    old_pk = models.PositiveIntegerField(blank=True, null=True)
+
+    def save(self, *args, **kwargs):
+        # Save the payment method and type in case they are deleted from the database to preserve the integrity
+        # of the invoice data.
+        if self.payment_method_fk:
+            self.payment_method_name = self.payment_method_fk.name
+        if self.payment_type_fk:
+            self.payment_type_name = self.payment_type_fk.name
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return '%s %d' % (_('Invoice'), self.id)
@@ -206,12 +242,12 @@ class InvoiceCopy(Invoice):
 
 class InvoiceItem(models.Model):
     invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, blank=True, null=True)
-    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    amount = models.DecimalField(max_digits=10, decimal_places=2, help_text=_("Total amount"))
     product = models.ForeignKey("core.Product", blank=True, null=True, on_delete=models.SET_NULL)
     subscription = models.ForeignKey("core.Subscription", blank=True, null=True, on_delete=models.SET_NULL)
     copies = models.PositiveSmallIntegerField(default=1)
     description = models.CharField(max_length=500)
-    price = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    price = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True, help_text=_("Price per copy"))
     discount = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     notes = models.TextField(blank=True, null=True)
     service_from = models.DateField(null=True, blank=True)

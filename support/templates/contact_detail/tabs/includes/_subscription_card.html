@@ -26,12 +26,6 @@
               <dd>
                 {{ subscription.get_frequency }}
               </dd>
-              <dt>{% trans "Payment type" %}:</dt>
-              <dd>
-                {{ subscription.payment_type }} {% block extrapayment %}{% endblock extrapayment %}
-              </dd>
-            </div>
-            <div class="col-6">
               <dt>{% trans "Price" %}:</dt>
               <dd>
                 {{ subscription.get_price_for_full_period }}
@@ -39,6 +33,18 @@
                   (${{ subscription.get_price_for_full_period_with_pauses }} {% trans "because of Pause" %})
                 {% endif %}
               </dd>
+            </div>
+            <div class="col-6">
+              {% block payment_type %}
+                <dt>{% trans "Payment type" %}:</dt>
+                <dd>
+                  {{ subscription.get_payment_type_display|default_if_none:"-" }}
+                  {% block extrapayment %}
+                  {% endblock extrapayment %}
+
+                </dd>
+              {% endblock payment_type %}
+
             </div>
           </div>
         {% endif %}
@@ -79,6 +85,8 @@
           {{ subscription.end_date|date:"d/m/Y"|default:"-" }}
           ({% days_until subscription.end_date %})
         </dd>
+        {% block extra_information %}
+        {% endblock extra_information %}
       </div>
       <div class="col-3">
         {% if subscription.is_obsolete %}
@@ -108,7 +116,6 @@
           <dd>
             {{ subscription.unsubscription_manager_name }}
           </dd>
-
         {% endif %}
       </div>
     </div>
@@ -121,5 +128,5 @@
        class="btn btn-info"><i class="fas fa-envelope"></i></a>
     <a href="{% url "upload_payment_certificate" subscription.id %}"
        class="btn btn-info"><i class="fas fa-file-invoice-dollar"></i></a>
-</div>
+  </div>
 </div>

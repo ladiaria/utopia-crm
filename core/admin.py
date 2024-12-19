@@ -49,6 +49,10 @@ from .models import (
     ProductSubscriptionPeriod,
     TermsAndConditions,
     TermsAndConditionsProduct,
+    PersonType,
+    BusinessEntityType,
+    PaymentMethod,
+    PaymentType,
 )
 from .forms import SubscriptionAdminForm, ContactAdminForm
 
@@ -224,9 +228,7 @@ class SubscriptionAdmin(SimpleHistoryAdmin):
         (
             "Corporate subscription data",
             {
-                "fields": (
-                    ("number_of_subscriptions", "override_price"),
-                ),
+                "fields": (("number_of_subscriptions", "override_price"),),
             },
         ),
         (
@@ -234,10 +236,7 @@ class SubscriptionAdmin(SimpleHistoryAdmin):
             {
                 "classes": ("collapse",),
                 "fields": (
-                    (
-                        "billing_name",
-                        "billing_address",
-                    ),
+                    ("billing_name", "billing_address"),
                     ("billing_phone", "billing_email"),
                     ("billing_id_doc",),
                     ("rut",),
@@ -432,21 +431,36 @@ class ProductAdmin(admin.ModelAdmin):
         "temporary_discount_months",
     ]
     fieldsets = (
-        (_("Information"), {
-            "fields": ("name", "slug", "type"),
-        }),
-        (_("Pricing & Discounts"), {
-            "fields": ("price", "offerable", "temporary_discount_months", "renewal_type"),
-        }),
-        (_("Scheduling & Frequency"), {
-            "fields": ("weekday", "subscription_period", "duration_months"),
-        }),
-        (_("Billing & Priority"), {
-            "fields": ("billing_priority", "active", "edition_frequency"),
-        }),
-        (_("MercadoPago and others"), {
-            "fields": ("mercadopago_id", "internal_code"),
-        }),
+        (
+            _("Information"),
+            {
+                "fields": ("name", "slug", "type"),
+            },
+        ),
+        (
+            _("Pricing & Discounts"),
+            {
+                "fields": ("price", "offerable", "temporary_discount_months", "renewal_type"),
+            },
+        ),
+        (
+            _("Scheduling & Frequency"),
+            {
+                "fields": ("weekday", "subscription_period", "duration_months"),
+            },
+        ),
+        (
+            _("Billing & Priority"),
+            {
+                "fields": ("billing_priority", "active", "edition_frequency"),
+            },
+        ),
+        (
+            _("MercadoPago and others"),
+            {
+                "fields": ("mercadopago_id", "internal_code"),
+            },
+        ),
     )
     inlines = (TermsAndConditionsProductInline,)
 
@@ -588,3 +602,7 @@ admin.site.register(ActivityTopic)
 admin.site.register(ActivityResponse)
 admin.site.register(ProductSubscriptionPeriod)
 admin.site.register(TermsAndConditions)
+admin.site.register(PersonType)
+admin.site.register(BusinessEntityType)
+admin.site.register(PaymentMethod)
+admin.site.register(PaymentType)

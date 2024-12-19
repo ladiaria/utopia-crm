@@ -79,6 +79,9 @@ class CMSyncTestCase(TestCase):
                 # if it were created, this check with a different id and the same email should fail
                 # as we're testing the creation is disabled, this call return should be "ok"
                 # WARNING: Contact id sequence must be over max(contact_id) in cms.Subscriber
+                #          (or ensure contact ids are generated inside a hole bigger enough to avoid collisions)
+                #          example that will work: CRM generates 1,2,3... and CMS MIN(contact_id) is 1000
+                #          TODO: CMS endpoint to get min contact_id, then check here if the hole is big enough.
                 res = cms_rest_api_request(
                     "sync_disabled", api_uri, {"contact_id": no_sync_conctact.id + 1, "email": email}
                 )

@@ -133,15 +133,7 @@ ACTIVITY_TYPES = (
     ("W", _("WhatsApp message or other apps")),
     ("E", _("Event participation")),
     ("I", _("In-place visit")),
-)
-
-PRODUCT_TYPE_CHOICES = (
-    ("S", _("Subscription")),
-    ("N", _("Newsletter")),
-    ("D", _("Discount")),
-    ("P", _("Percentage discount")),
-    ("A", _("Advanced discount")),
-    ("O", _("Other")),
+    ("N", _("Internal")),
 )
 
 PRODUCT_WEEKDAYS = (

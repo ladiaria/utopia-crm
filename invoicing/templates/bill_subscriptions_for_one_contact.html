@@ -69,17 +69,17 @@
                   </tr>
                 </thead>
                 <tbody>
-                  {% for subscription in active_subscriptions %}
+                  {% for item in subscriptions_with_prices %}
                     <tr>
-                      <td>{{ subscription.id }}</td>
-                      <td>{% for sp in subscription.get_subscriptionproducts %}
+                      <td>{{ item.subscription.id }}</td>
+                      <td>{% for sp in item.subscription.get_subscriptionproducts %}
                         {% include "contact_detail/tabs/includes/_subscription_icons.html" with sp=sp %}
                         {{ sp.product.name }}
                         {% if sp.label_contact %}({{ sp.label_contact.get_full_name }}){% endif %}
                         <br>
                       {% endfor %}</td>
-                      <td>{{ subscription.get_price_for_full_period }}</td>
-                      <td>{{ subscription.frequency }}</td>
+                      <td>{{ item.price }}</td>
+                      <td>{{ item.subscription.frequency }}</td>
                     </tr>
                   {% endfor %}
                 </tbody>

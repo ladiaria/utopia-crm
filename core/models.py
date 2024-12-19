@@ -18,6 +18,7 @@ from django.utils.translation import gettext_lazy as _
 from django_extensions.db.fields import AutoSlugField
 from django.utils.html import mark_safe
 from django.utils.functional import cached_property
+from django.utils.text import format_lazy
 from django.urls import reverse
 from django.utils import timezone
 
@@ -49,7 +50,6 @@ from .choices import (
     PRIORITY_CHOICES,
     PRODUCT_BILLING_FREQUENCY_CHOICES,
     PRODUCT_EDITION_FREQUENCY,
-    PRODUCT_TYPE_CHOICES,
     PRODUCT_WEEKDAYS,
     PRODUCTHISTORY_CHOICES,
     SUBSCRIPTION_STATUS_CHOICES,
@@ -190,11 +190,26 @@ class Product(models.Model):
         MANUAL = "M", _("Manual")
         BOTH = "X", _("Both")
 
+    class ProductTypeChoices(models.TextChoices):
+        """Choices for the product type"""
+
+        SUBSCRIPTION = "S", _("Subscription")
+        NEWSLETTER = "N", _("Newsletter")
+        DISCOUNT = "D", _("Discount")
+        PERCENTAGE_DISCOUNT = "P", _("Percentage discount")
+        ADVANCED_DISCOUNT = "A", _("Advanced discount")
+        OTHER = "O", _("Other")
+
+    class BillingModeChoices(models.TextChoices):
+        PER_FREQUENCY = "F", _("Per Frequency")
+        FIXED = "X", _("Fixed Price")
+        CUSTOM = "C", _("Custom")
+
     name = models.CharField(max_length=100, verbose_name=_("Name"), db_index=True)
     slug = AutoSlugField(populate_from="name", null=True, blank=True, editable=True)
     active = models.BooleanField(default=False, verbose_name=_("Active"))
     price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    type = models.CharField(max_length=1, default="O", choices=PRODUCT_TYPE_CHOICES, db_index=True)
+    type = models.CharField(max_length=1, default="O", choices=ProductTypeChoices.choices, db_index=True)
     weekday = models.IntegerField(default=None, choices=PRODUCT_WEEKDAYS, null=True, blank=True)
     offerable = models.BooleanField(
         default=False,
@@ -243,6 +258,14 @@ class Product(models.Model):
         through="core.TermsAndConditionsProduct",
     )
     mercadopago_id = models.CharField(max_length=255, blank=True, null=True, verbose_name=_("MercadoPago ID"))
+    billing_mode = models.CharField(
+        max_length=1,
+        default=BillingModeChoices.PER_FREQUENCY,
+        choices=BillingModeChoices.choices,
+        verbose_name=_("Billing mode"),
+        help_text=_("How the product is billed. Fixed uses the price set in the product, per frequency uses the "
+                    "price calculated from the products in the subscription with the frequency set in the product."),
+    )
     objects = ProductManager()
 
     def __str__(self):
@@ -270,7 +293,7 @@ class Product(models.Model):
     class Meta:
         verbose_name = _("product")
         verbose_name_plural = _("products")
-        ordering = ("id", )
+        ordering = ("id",)
 
 
 class EmailBounceActionLog(models.Model):
@@ -389,6 +412,16 @@ class Contact(models.Model):
     allow_promotions = models.BooleanField(default=True, verbose_name=_("Allows promotions"))
     cms_date_joined = models.DateTimeField(blank=True, null=True, verbose_name=_("CMS join date"))
     ranking = models.PositiveSmallIntegerField(blank=True, null=True, verbose_name=_("Ranking"))
+    person_type = models.ForeignKey(
+        'core.PersonType', blank=True, null=True, verbose_name=_("Person type"), on_delete=models.SET_NULL
+    )
+    business_entity_type = models.ForeignKey(
+        'core.BusinessEntityType',
+        blank=True,
+        null=True,
+        verbose_name=_("Business entity type"),
+        on_delete=models.SET_NULL,
+    )
     history = HistoricalRecords()
 
     def __str__(self):
@@ -414,7 +447,7 @@ class Contact(models.Model):
     def clean(self, debug=False):
         email = self.get_normalized_email()
 
-        if self.id:
+        if self.pk and self.__class__.objects.filter(pk=self.pk).exists():
             old_email = self.get_old_email()
             if old_email and old_email != email:
                 if EmailBounceActionLog.email_is_bouncer(email):
@@ -1015,9 +1048,9 @@ class Country(models.Model):
 
 
 class State(models.Model):
-    name = models.CharField(max_length=50)
+    name = models.CharField(max_length=100)
     code = models.CharField(max_length=10)  # State/region code
-    country = models.ForeignKey(Country, on_delete=models.PROTECT)
+    country = models.ForeignKey(Country, on_delete=models.SET_NULL, null=True)
     active = models.BooleanField(default=True)
 
     def __str__(self):
@@ -1091,7 +1124,7 @@ class Address(models.Model):
     # New fields with explicit column names
     country = models.ForeignKey(
         'core.Country',
-        on_delete=models.PROTECT,
+        on_delete=models.SET_NULL,
         null=True,
         blank=True,
         verbose_name=_("Country"),
@@ -1099,7 +1132,7 @@ class Address(models.Model):
     )
     state = models.ForeignKey(
         'core.State',
-        on_delete=models.PROTECT,
+        on_delete=models.SET_NULL,
         null=True,
         blank=True,
         verbose_name=_("State"),
@@ -1189,9 +1222,7 @@ class SubscriptionProduct(models.Model):
         else:
             address = ""
 
-        return "{} - {} - (Suscripción de ${})".format(
-            self.product, address, self.subscription.get_price_for_full_period()
-        )
+        return f"{self.product} - {address} - {self.subscription.contact.get_full_name()}"
 
     def get_subscription_active(self):
         return self.subscription.active
@@ -1304,7 +1335,9 @@ class Subscription(models.Model):
 
     # Product
     products = models.ManyToManyField(Product, through="SubscriptionProduct")
-    frequency = models.PositiveSmallIntegerField(default=1, choices=FREQUENCY_CHOICES)
+    frequency = models.PositiveSmallIntegerField(
+        default=1, help_text=_("Frequency of billing in months")
+    )
     payment_type = models.CharField(
         max_length=2,
         choices=settings.SUBSCRIPTION_PAYMENT_METHODS,
@@ -1376,6 +1409,29 @@ class Subscription(models.Model):
         verbose_name=_("Parent subscription"),
         related_name="affiliate_subscriptions",
     )
+    payment_method_fk = models.ForeignKey(
+        "core.PaymentMethod",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name=_("Payment method"),
+        help_text=_(
+            "Payment method used to pay for the subscription, for example: "
+            "'Cash', 'Credit Card', 'Debit Card', 'Bank Transfer', etc."
+        ),
+    )
+    payment_type_fk = models.ForeignKey(
+        "core.PaymentType",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name=_("Payment type"),
+        help_text=_(
+            "Payment type used to pay for the subscription, for example:"
+            " 'American Express', 'Visa', 'Mastercard', etc."
+        ),
+    )
+    creation_date = models.DateTimeField(auto_now_add=True, verbose_name=_("Creation date"), null=True, blank=True)
 
     def __str__(self):
         return str(
@@ -1580,7 +1636,9 @@ class Subscription(models.Model):
         """
         Returns the first product by priority
         """
-        products = self.products.filter(type__in="SO").order_by("billing_priority")
+        products = self.products.filter(
+            type__in=[Product.ProductTypeChoices.SUBSCRIPTION, Product.ProductTypeChoices.OTHER]
+        ).order_by("billing_priority")
         if products.exists():
             return products.first()
         else:
@@ -1725,7 +1783,7 @@ class Subscription(models.Model):
         if with_pauses:
             subscription_products = subscription_products.filter(active=True)
 
-        dict_all_products = {str(sp.product.id): str(sp.copies) for sp in subscription_products}
+        dict_all_products = {str(sp.product.id): str(sp.copies) for sp in subscription_products if sp.product}
         return process_products(dict_all_products)
 
     # def product_summary(self):  TODO: explain why this is commented or remove it
@@ -1984,7 +2042,10 @@ class Subscription(models.Model):
         Returns the frequency.
         """
         frequencies = dict(FREQUENCY_CHOICES)
-        return frequencies.get(self.frequency, "N/A")
+        return frequencies.get(
+            self.frequency,
+            format_lazy("{months} months", months=self.frequency)
+        )
 
     def get_copies_for_product(self, product_id):
         try:
@@ -2126,6 +2187,14 @@ class Subscription(models.Model):
             return self.unsubscription_manager.get_full_name()
         else:
             return self.unsubscription_manager.username
+
+    def billing_requirements_met(self):
+        pass
+
+    def bill(self, billing_date=None, dpp=10):
+        from invoicing.utils import bill_subscription
+
+        return bill_subscription(self, billing_date, dpp)
 
     class Meta:
         verbose_name = _("subscription")
@@ -2876,3 +2945,57 @@ class TermsAndConditionsProduct(models.Model):
 
     def __str__(self) -> str:
         return f"T&C {self.terms_and_conditions.version} ({self.date}) for {self.product.name}"
+
+
+class BusinessEntityType(models.Model):
+    name = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+
+    def __str__(self) -> str:
+        return self.name
+
+
+class PersonType(models.Model):
+    name = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+
+    def __str__(self) -> str:
+        return self.name
+
+
+class PaymentMethod(models.Model):
+    """
+    Payment methods are the ways in which the customer can pay for the subscription. These are a higher level of
+    categorization than payment types.
+
+    This model will save the payment methods that are used in the subscription, for example:
+    - Cash
+    - Credit Card
+    - Debit Card
+    - Bank Transfer
+    - etc.
+    """
+    name = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+    active = models.BooleanField(default=True)
+
+    def __str__(self) -> str:
+        return self.name
+
+
+class PaymentType(models.Model):
+    """
+    Subcategorization of payment methods. They don't necessarily depend on the payment method.
+
+    This model will save the payment types that are used in the payment methods, for example:
+    - American Express
+    - Visa
+    - Mastercard
+    - etc.
+    """
+    name = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+    active = models.BooleanField(default=True)
+
+    def __str__(self) -> str:
+        return self.name
