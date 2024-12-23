@@ -119,9 +119,9 @@ def days_until(target_date):
     current_date = timezone.now().date()
     try:
         if current_date > target_date:
-            return ""
+            return _("Expired")
     except Exception:
-        return ""
+        return "-"
 
     delta = target_date - current_date
 
