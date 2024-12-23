@@ -249,7 +249,8 @@ class ContactDetailView(BreadcrumbsMixin, DetailView):
                 'title': _("Inactive subscriptions"),
                 'subscriptions': self.get_subscriptions()
                 .filter(active=False, start_date__lt=date.today())
-                .exclude(status__in=("AP", "ER")),
+                .exclude(status__in=("AP", "ER"))
+                .order_by('-start_date'),
                 'collapsed': True,
             },
         ]
