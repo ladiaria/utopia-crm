@@ -11,7 +11,7 @@ from invoicing.models import CreditNote, Invoice, InvoiceItem, Billing
 class CreditNoteAdmin(SimpleHistoryAdmin):
     model = CreditNote
     search_fields = ('numero', 'invoice__id', 'invoice__contact__id')
-    list_display = ('invoice', 'serie', 'numero', 'get_contact_id')
+    list_display = ('invoice', 'serie', 'numero', 'get_contact_id', 'amount')
     raw_id_fields = ['invoice']
     readonly_fields = ['invoice', 'uuid', 'serie', 'numero']
     ordering = ["-id"]

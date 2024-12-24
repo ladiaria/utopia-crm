@@ -353,6 +353,7 @@ class CreditNote(models.Model):
     uuid = models.CharField(max_length=36, blank=True, null=True)
     serie = models.CharField(max_length=1, editable=False, blank=True, null=True)
     numero = models.PositiveIntegerField(editable=False, blank=True, null=True)
+    amount = models.PositiveIntegerField(blank=True, null=True)
     history = HistoricalRecords()
 
     class Meta:
