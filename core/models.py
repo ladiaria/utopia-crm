@@ -1250,8 +1250,8 @@ class Subscription(models.Model):
     """
 
     class RENEWAL_TYPE_CHOICES(models.TextChoices):
-        AUTOMATIC = "A", _("Auto-renewal")
-        MANUAL = "M", _("One-time")
+        AUTOMATIC = "A", _("Auto-renewal subscription")
+        MANUAL = "M", _("One-time subscription")
 
     campaign = models.ForeignKey(
         "core.Campaign", blank=True, null=True, verbose_name=_("Campaign"), on_delete=models.SET_NULL
