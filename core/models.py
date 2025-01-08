@@ -1030,6 +1030,21 @@ class Contact(models.Model):
             return address
         return None
 
+    def get_last_subscription(self):
+        return self.subscriptions.order_by("-id").first()
+
+    def get_last_subscription_renewal_type(self):
+        last_subscription = self.get_last_subscription()
+        if last_subscription:
+            return last_subscription.get_renewal_type_display()
+        return None
+
+    def get_last_subscription_end_date(self):
+        last_subscription = self.get_last_subscription()
+        if last_subscription:
+            return last_subscription.end_date
+        return None
+
     class Meta:
         verbose_name = _("contact")
         verbose_name_plural = _("contacts")
@@ -1788,14 +1803,6 @@ class Subscription(models.Model):
 
         dict_all_products = {str(sp.product.id): str(sp.copies) for sp in subscription_products if sp.product}
         return process_products(dict_all_products)
-
-    # def product_summary(self):  TODO: explain why this is commented or remove it
-    #     """Cached version of product summary to avoid repeated queries"""
-    #     subscription_products = self.subscriptionproduct_set.select_related('product').all()
-    #     dict_all_products = {str(sp.product.id): str(sp.copies) for sp in subscription_products}
-    #     from .utils import process_products
-
-    #     return process_products(dict_all_products)
 
     def product_summary_list(self, with_pauses=False) -> list:
         summary = self.product_summary(with_pauses)
