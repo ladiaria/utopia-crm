@@ -17,7 +17,7 @@
 
 {% block form_top %}
   {% with form=adminform.form %}
-    {% include 'email_suggestion_dialog.html' %}
+    {% include "email_suggestion_dialog.html" %}
     {% if errors %}
       {{ form.email_was_valid }}{{ form.email_replaced }}{{ form.email_replacement }}{{ form.email_suggestion }}
     {% endif %}
