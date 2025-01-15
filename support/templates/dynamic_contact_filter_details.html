@@ -1,54 +1,68 @@
-{% extends 'adminlte/base.html' %}
+{% extends "adminlte/base.html" %}
 {% load i18n %}
-
-{% block title %}{% trans "Dynamic contact filters" %}{% endblock %}
+{% block title %}
+  {% trans "Dynamic contact filters" %}
+{% endblock %}
 
 {% block no_heading %}
-<h1>{% trans "Support" %} &raquo; <a href="{% url 'dynamic_contact_filter_list' %}">{% trans 'Mailing lists' %}</a> &raquo; {% trans "Edit list" %} #{{dcf.id}} - {{dcf.description}}</h1>
+  <h1>
+    {% trans "Support" %} » <a href="{% url 'dynamic_contact_filter_list' %}">{% trans "Mailing lists" %}</a> » {% trans "Edit list" %} #{{ dcf.id }} - {{ dcf.description }}
+  </h1>
 {% endblock %}
 
 {% block content %}
-<div class="mb-3">
-  <a href="{% url 'dynamic_contact_filter_add' %}" class="btn btn-primary"><i class="fas fa-plus"></i> {% trans "New filter" %}</a>
-  <a href="{% url 'export_dcf_emails' dcf.id %}" class="btn btn-primary"><i class="fas fa-upload"></i>{% trans " Export emails" %}</a>
-  <a href="{% url 'advanced_export_dcf_list' dcf.id %}" class="btn btn-primary"><i class="fas fa-upload"></i>{% trans " Export contacts" %}</a>
-  <a href="{% url 'dynamic_contact_filter_list' %}" class="btn btn-primary"><i class="fas fa-list"></i> {% trans "Back to list" %}</a>
-</div>
-<div class="card">
-  <div class="card-header">
-    <h2 class="card-title">{{dcf.description}} ({{dcf.get_mode}})</h2>
+  <div class="mb-3">
+    <a href="{% url 'dynamic_contact_filter_add' %}" class="btn btn-primary"><i class="fas fa-plus"></i> {% trans "New filter" %}</a>
+    <a href="{% url 'export_dcf_emails' dcf.id %}" class="btn btn-primary"><i class="fas fa-upload"></i>{% trans " Export emails" %}</a>
+    <a href="{% url 'advanced_export_dcf_list' dcf.id %}"
+       class="btn btn-primary"><i class="fas fa-upload"></i>{% trans " Export contacts" %}</a>
+    <a href="{% url 'dynamic_contact_filter_list' %}"
+       class="btn btn-primary"><i class="fas fa-list"></i> {% trans "Back to list" %}</a>
   </div>
-
-  <div class="card-body">
-    <div class="row">
-      <div class="col">
-        <form method="post">
-          {% csrf_token %}
-          {{form.as_p}}
-          {% if confirm %}
-          <p><b>{% trans "New amount of emails" %}:</b> {{count}}</p>
-          {% else %}
-          <p>{% trans "Amount of emails" %}: {{dcf.get_email_count}}</p>
-          {% endif %}
-          <div class="text-right">
-            <input type="submit" name="submit" class="btn bg-gradient-primary" value="Preview">
+  <div class="card">
+    <div class="card-header">
+      <h2 class="card-title">{{ dcf.description }} ({{ dcf.get_mode }})</h2>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col">
+          <form method="post">
+            {% csrf_token %}
+            {{ form.as_p }}
             {% if confirm %}
-            <input type="submit" name="confirm" value="Save list" class="btn bg-gradient-success">
+              <p>
+                <b>{% trans "New amount of emails" %}:</b> {{ count }}
+              </p>
+            {% else %}
+              <p>{% trans "Amount of emails" %}: {{ dcf.get_email_count }}</p>
             {% endif %}
-          </div>
-        </form>
+            <div class="text-right">
+              <input type="submit"
+                     name="submit"
+                     class="btn bg-gradient-primary"
+                     value="Preview">
+              {% if confirm %}
+                <input type="submit"
+                       name="confirm"
+                       value="Save list"
+                       class="btn bg-gradient-success">
+              {% endif %}
+            </div>
+          </form>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-1">
+          <b>{% trans "Last time synced" %}:</b>
+          <br>
+          {{ dcf.last_time_synced|default_if_none:"N/A" }}
+          <br>
+        </div>
+        <div class="col-1">
+          <a href="{% url 'sync_with_mailtrain' dcf.id %}"
+             class="btn btn-sm btn-success"><i class="fas fa-sync"></i> {% trans "Sync now" %}</a>
+        </div>
       </div>
     </div>
-    <div class="row">
-      <div class="col-1">
-        <b>{% trans "Last time synced" %}:</b><br> {{dcf.last_time_synced|default_if_none:"N/A"}}<br>
-        
-      </div>
-      <div class="col-1">
-        <a href="{% url 'sync_with_mailtrain' dcf.id %}" class="btn btn-sm btn-success"><i class="fas fa-sync"></i> {% trans "Sync now" %}</a>
-      </div>
-    </div>
-
   </div>
-</div>
 {% endblock %}
