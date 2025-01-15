@@ -150,7 +150,8 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
         redirect_url = self.check_end_of_list()
         if redirect_url:
             messages.success(request, _("You've reached the end of this list"))
-            return HttpResponseRedirect(redirect_url)
+            # Ensure redirect_url is a string
+            return HttpResponseRedirect(str(redirect_url))
 
         return super().get(request, *args, **kwargs)
 
@@ -167,13 +168,13 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
             # Additional check to ensure offset is positive
             if offset < 1:
                 messages.warning(self.request, _("Invalid offset value. Using first item."))
-                return HttpResponseRedirect(self.request.path)
+                return str(self.request.path)  # Convert to string
         except ValueError:
             messages.warning(self.request, _("Invalid offset value. Using first item."))
-            return HttpResponseRedirect(self.request.path)
+            return str(self.request.path)  # Convert to string
 
         if count == 0 or offset - 1 >= count:
-            return HttpResponseRedirect(reverse("seller_console_list_campaigns"))
+            return str(reverse("seller_console_list_campaigns"))  # Convert to string
         return None
 
     def get_seller(self):
