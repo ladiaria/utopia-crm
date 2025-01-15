@@ -227,6 +227,7 @@ class Invoice(models.Model):
             ("can_generate_invoices", "Can generate invoices"),
             ("can_send_duplicate_via_email", "Can send duplicate via email"),
             ("can_send_to_mercadopago", "Can send to MercadoPago"),
+            ("can_send_to_provider", "Can send to provider"),
         ]
 
 
