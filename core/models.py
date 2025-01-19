@@ -13,6 +13,7 @@ from django.conf import settings
 from django.core.validators import RegexValidator, MinValueValidator, MaxValueValidator
 from django.db import models
 from django.db.models import Q, Sum, Count, Max, Prefetch
+from django.db.utils import IntegrityError
 from django.forms import ValidationError
 from django.utils.translation import gettext_lazy as _
 from django_extensions.db.fields import AutoSlugField
@@ -492,12 +493,19 @@ class Contact(models.Model):
                     raise ValidationError({"email": msg})
 
     def save(self, *args, **kwargs):
-        if not getattr(self, "updatefromweb", False) and not getattr(self, "_skip_clean", False):
+        skip_clean = getattr(self, "_skip_clean", False)
+        if not getattr(self, "updatefromweb", False) and not skip_clean:
             self.clean(debug=settings.DEBUG_CONTACT_CLEAN)
         # TODO: next line breaks test_subscriptor.TestContact.test2_cliente_que_no_tiene_email_debe_tener_email_en_...
         #       Fix the test and explain why the field is not needed anymore or submit a different solution.
         self.no_email = self.email is None
-        return super().save(*args, **kwargs)
+        try:
+            return super().save(*args, **kwargs)
+        except IntegrityError as ie_exc:
+            if skip_clean:
+                raise ValidationError(ie_exc)
+            else:
+                raise
 
     def is_debtor(self):
         """
@@ -1030,6 +1038,21 @@ class Contact(models.Model):
             return address
         return None
 
+    def get_last_subscription(self):
+        return self.subscriptions.order_by("-id").first()
+
+    def get_last_subscription_renewal_type(self):
+        last_subscription = self.get_last_subscription()
+        if last_subscription:
+            return last_subscription.get_renewal_type_display()
+        return None
+
+    def get_last_subscription_end_date(self):
+        last_subscription = self.get_last_subscription()
+        if last_subscription:
+            return last_subscription.end_date
+        return None
+
     class Meta:
         verbose_name = _("contact")
         verbose_name_plural = _("contacts")
@@ -1253,8 +1276,8 @@ class Subscription(models.Model):
     """
 
     class RENEWAL_TYPE_CHOICES(models.TextChoices):
-        AUTOMATIC = "A", _("Auto-renewal")
-        MANUAL = "M", _("One-time")
+        AUTOMATIC = "A", _("Auto-renewal subscription")
+        MANUAL = "M", _("One-time subscription")
 
     campaign = models.ForeignKey(
         "core.Campaign", blank=True, null=True, verbose_name=_("Campaign"), on_delete=models.SET_NULL
@@ -1788,14 +1811,6 @@ class Subscription(models.Model):
 
         dict_all_products = {str(sp.product.id): str(sp.copies) for sp in subscription_products if sp.product}
         return process_products(dict_all_products)
-
-    # def product_summary(self):  TODO: explain why this is commented or remove it
-    #     """Cached version of product summary to avoid repeated queries"""
-    #     subscription_products = self.subscriptionproduct_set.select_related('product').all()
-    #     dict_all_products = {str(sp.product.id): str(sp.copies) for sp in subscription_products}
-    #     from .utils import process_products
-
-    #     return process_products(dict_all_products)
 
     def product_summary_list(self, with_pauses=False) -> list:
         summary = self.product_summary(with_pauses)

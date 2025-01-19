@@ -227,6 +227,7 @@ class Invoice(models.Model):
             ("can_generate_invoices", "Can generate invoices"),
             ("can_send_duplicate_via_email", "Can send duplicate via email"),
             ("can_send_to_mercadopago", "Can send to MercadoPago"),
+            ("can_send_to_provider", "Can send to provider"),
         ]
 
 
@@ -353,6 +354,7 @@ class CreditNote(models.Model):
     uuid = models.CharField(max_length=36, blank=True, null=True)
     serie = models.CharField(max_length=1, editable=False, blank=True, null=True)
     numero = models.PositiveIntegerField(editable=False, blank=True, null=True)
+    amount = models.PositiveIntegerField(blank=True, null=True)
     history = HistoricalRecords()
 
     class Meta:

@@ -9,9 +9,9 @@ from django.utils.translation import gettext_lazy as _
 import mercadopago
 
 from invoicing.models import MercadoPagoData
-from invoicing.bill_subscription import calc_price_from_products
 from invoicing.models import InvoiceItem, Invoice
 from core.models import Address, Subscription, Product, SubscriptionProduct  # Updated import
+from core.utils import calc_price_from_products
 
 
 def mercadopago_debit(invoice, debug=False):
