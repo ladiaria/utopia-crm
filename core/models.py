@@ -13,6 +13,7 @@ from django.conf import settings
 from django.core.validators import RegexValidator, MinValueValidator, MaxValueValidator
 from django.db import models
 from django.db.models import Q, Sum, Count, Max, Prefetch
+from django.db.utils import IntegrityError
 from django.forms import ValidationError
 from django.utils.translation import gettext_lazy as _
 from django_extensions.db.fields import AutoSlugField
@@ -489,12 +490,19 @@ class Contact(models.Model):
                     raise ValidationError({"email": msg})
 
     def save(self, *args, **kwargs):
-        if not getattr(self, "updatefromweb", False) and not getattr(self, "_skip_clean", False):
+        skip_clean = getattr(self, "_skip_clean", False)
+        if not getattr(self, "updatefromweb", False) and not skip_clean:
             self.clean(debug=settings.DEBUG_CONTACT_CLEAN)
         # TODO: next line breaks test_subscriptor.TestContact.test2_cliente_que_no_tiene_email_debe_tener_email_en_...
         #       Fix the test and explain why the field is not needed anymore or submit a different solution.
         self.no_email = self.email is None
-        return super().save(*args, **kwargs)
+        try:
+            return super().save(*args, **kwargs)
+        except IntegrityError as ie_exc:
+            if skip_clean:
+                raise ValidationError(ie_exc)
+            else:
+                raise
 
     def is_debtor(self):
         """
