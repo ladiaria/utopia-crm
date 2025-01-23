@@ -632,8 +632,11 @@ class Contact(models.Model):
         """
         return self.subscriptions.all()
 
-    def get_active_subscriptions(self):
-        return self.subscriptions.filter(active=True)
+    def get_active_subscriptions(self, exclude_id=None):
+        result = self.subscriptions.filter(active=True)
+        if exclude_id:
+            result = result.exclude(id=exclude_id)
+        return result
 
     def get_active_subscriptionproducts(self):
         return (
