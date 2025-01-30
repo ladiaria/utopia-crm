@@ -113,7 +113,11 @@ def contact_api(request):
                     new_contact = Contact()
                     new_contact.name = request.data.get("name")
                     new_contact.updatefromweb = True
-                    new_contact.save()
+                    try:
+                        new_contact.save()
+                    except IntegrityError as ie_exc:
+                        # TODO Notificar por mail a los managers
+                        return HttpResponseBadRequest(ie_exc)
                     update_customer(new_contact, mail, field, value)
                     id_contact = new_contact.id
             except (Contact.MultipleObjectsReturned, IntegrityError) as m_ie_exc:

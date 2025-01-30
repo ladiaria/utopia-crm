@@ -9,9 +9,10 @@ from django.utils.translation import gettext_lazy as _
 import mercadopago
 
 from invoicing.models import MercadoPagoData
-from invoicing.bill_subscription import calc_price_from_products
 from invoicing.models import InvoiceItem, Invoice
+# TODO: explain or remove the "Updated import" comment in next line
 from core.models import Address, Subscription, Product, SubscriptionProduct  # Updated import
+from core.utils import calc_price_from_products
 
 
 def mercadopago_debit(invoice, debug=False):
@@ -322,7 +323,7 @@ def contact_update_mp_wrapper(
     return result
 
 
-def bill_subscription(subscription, billing_date=None, dpp=10):
+def bill_subscription(subscription, billing_date=None, dpp=10, payment_reference=None):
     """
     Bills a single subscription into an only invoice. Returns the created invoice.
     """
@@ -440,6 +441,7 @@ def bill_subscription(subscription, billing_date=None, dpp=10):
                 billing_document=subscription.get_billing_document(),
                 subscription=subscription,
                 amount=amount,
+                payment_reference=payment_reference,
             )
 
             # Add all invoice items to the invoice

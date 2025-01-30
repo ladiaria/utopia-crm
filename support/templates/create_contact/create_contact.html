@@ -1,6 +1,5 @@
 {% extends "adminlte/base.html" %}
 {% load static i18n widget_tweaks %}
-
 {% block extra_head %}
   <link rel="stylesheet"
         type="text/css"
@@ -67,10 +66,13 @@
                     <div class="tab-pane" id="newsletters">{% include "create_contact/tabs/_newsletters.html" %}</div>
                   {% endif %}
                 </div>
-                <div class="text-right">
-                  <button class="btn btn-primary" type="submit" id="send_form">{% trans "Save" %}</button>
-                </div>
               </form>
+            </div>
+            <div class="card-footer text-right">
+              <button class="btn btn-primary"
+                      type="submit"
+                      form="contact-form"
+                      id="send_form">{% trans "Save" %}</button>
             </div>
           </div>
         </div>
