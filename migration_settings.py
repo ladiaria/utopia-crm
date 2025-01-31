@@ -160,6 +160,7 @@ BILLING_EXTRA_DAYS = 2
 
 REQUIRE_ROUTE_FOR_BILLING = False
 
+ENV_HTTP_BASIC_AUTH = False
 try:
     from local_migration_settings import *
 except ImportError:
