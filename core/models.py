@@ -1457,6 +1457,7 @@ class Subscription(models.Model):
             " 'American Express', 'Visa', 'Mastercard', etc."
         ),
     )
+    purchase_date = models.DateField(default=date.today, verbose_name=_("Purchase date"), null=True, blank=True)
     creation_date = models.DateTimeField(auto_now_add=True, verbose_name=_("Creation date"), null=True, blank=True)
 
     def __str__(self):
