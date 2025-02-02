@@ -632,8 +632,11 @@ class Contact(models.Model):
         """
         return self.subscriptions.all()
 
-    def get_active_subscriptions(self):
-        return self.subscriptions.filter(active=True)
+    def get_active_subscriptions(self, exclude_id=None):
+        result = self.subscriptions.filter(active=True)
+        if exclude_id:
+            result = result.exclude(id=exclude_id)
+        return result
 
     def get_active_subscriptionproducts(self):
         return (
@@ -844,21 +847,21 @@ class Contact(models.Model):
         return self.activity_set.count()
 
     def offer_default_newsletters_condition(self):
-        return all(
-            (
-                getattr(settings, "CORE_DEFAULT_NEWSLETTERS", {}),
-                self.email,
-                not self.get_newsletters(),
-                self.get_active_subscriptions(),
-            )
-        )
+        result = settings.CORE_DEFAULT_NEWSLETTERS and self.email and not self.get_newsletters()
+        if result and getattr(settings, "CORE_DEFAULT_NEWSLETTERS_ACTIVE_SUBSCRIPTION_REQUIRED", False):
+            result = bool(self.get_active_subscriptions())
+        return result
 
     def add_default_newsletters(self):
         computed_slug_set, result = set(), []
-        for func_path, nl_slugs in list(getattr(settings, "CORE_DEFAULT_NEWSLETTERS", {}).items()):
-            func_module, func_name = func_path.rsplit(".", 1)
-            func_def = getattr(import_module(func_module), func_name, None)
-            if func_def and func_def(self):
+        for func_path, nl_slugs in list(settings.CORE_DEFAULT_NEWSLETTERS.items()):
+            add_nl_slugs = func_path is True
+            if not add_nl_slugs:
+                func_module, func_name = func_path.rsplit(".", 1)
+                func_def = getattr(import_module(func_module), func_name, None)
+                if func_def and func_def(self):
+                    add_nl_slugs = True
+            if add_nl_slugs:
                 computed_slug_set = computed_slug_set.union(set(nl_slugs))
         for product_slug in computed_slug_set:
             try:
@@ -1454,6 +1457,7 @@ class Subscription(models.Model):
             " 'American Express', 'Visa', 'Mastercard', etc."
         ),
     )
+    purchase_date = models.DateField(default=date.today, verbose_name=_("Purchase date"), null=True, blank=True)
     creation_date = models.DateTimeField(auto_now_add=True, verbose_name=_("Creation date"), null=True, blank=True)
 
     def __str__(self):

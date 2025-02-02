@@ -516,7 +516,9 @@ def no_op_decorator(func):
 
 # Endpoints must be decorated with no auth classes if the deployment is under http basic auth, when no basic auth is
 # set, the decorator is no_op_decorator, which does nothing and let the endpoint acts as if it was not decorated.
-api_view_auth_decorator = authentication_classes([]) if settings.ENV_HTTP_BASIC_AUTH else no_op_decorator
+api_view_auth_decorator = (
+    authentication_classes([]) if getattr(settings, "ENV_HTTP_BASIC_AUTH", False) else no_op_decorator
+)
 
 
 def cms_rest_api_kwargs(api_key, data=None):

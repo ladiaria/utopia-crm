@@ -128,6 +128,9 @@ INVOICE_LOGO = LOGO
 MAX_ATTEMPTS = 1
 MAX_RUN_TIME = 10800
 
+# core
+CORE_DEFAULT_NEWSLETTERS = {}
+
 # Predefined states in Address model. If you don't want to use a choice for the states, override this to False.
 USE_STATES_CHOICE = False
 
@@ -160,7 +163,8 @@ BILLING_EXTRA_DAYS = 2
 
 REQUIRE_ROUTE_FOR_BILLING = False
 
+ENV_HTTP_BASIC_AUTH = False
 try:
-    from local_migration_settings import *
+    from local_migration_settings import *  # noqa
 except ImportError:
     pass

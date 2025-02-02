@@ -157,6 +157,11 @@ MAX_RUN_TIME = 10800
 # django-select2
 SELECT2_CACHE_BACKEND = "default"  # it can use any other cache backend supported by Django like redis
 
+# default NLs map, format:
+# key=function to eval receiving contact as arg, value: default NLs product slugs to add if key function returns True
+# use special key True to add default NLs in the entry for all contacts, example: {True: ["default"]}
+CORE_DEFAULT_NEWSLETTERS = {}
+
 # Predefined states in Address model. If you don't want to use a choice for the states, override this to False
 USE_STATES_CHOICE = True
 # The values to use if the previous setting is True
