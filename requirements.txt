@@ -13,7 +13,7 @@ django-select2==8.2.1
 django-simple-history
 django-taggit
 django-widget-tweaks
-Django<4.2
+Django<5
 djangorestframework-api-key
 factory-boy==3.3.1
 html2text
