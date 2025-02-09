@@ -418,19 +418,13 @@ class ProductAdmin(admin.ModelAdmin):
         "weekday",
         "slug",
         "offerable",
-        "billing_priority",
-        "edition_frequency",
-        "temporary_discount_months",
     )
     list_editable = [
         "name",
         "type",
         "price",
         "weekday",
-        "billing_priority",
         "offerable",
-        "edition_frequency",
-        "temporary_discount_months",
     ]
     fieldsets = (
         (
@@ -465,6 +459,9 @@ class ProductAdmin(admin.ModelAdmin):
         ),
     )
     inlines = (TermsAndConditionsProductInline,)
+
+    class Media:
+        css = {"all": ("css/product_admin.css",)}
 
 
 class PlanAdmin(admin.ModelAdmin):
