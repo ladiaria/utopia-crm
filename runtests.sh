@@ -8,7 +8,7 @@ fi
 if [ -n "$EXTRA_TEST_MODULES" ]; then
     TEST_MODULES="$TEST_MODULES $EXTRA_TEST_MODULES"
 fi
-
+python -W ignore manage.py compilemessages --settings=test_settings
 # exit now if we are being sourced by another script or shell (or utopia_crm_exit envvar=1 for zsh compatibility)
 [[ "${#BASH_SOURCE[@]}" -gt "1" ]] && { return 0; }
 [[ $utopia_crm_exit = 1 ]] && { return 0; }
