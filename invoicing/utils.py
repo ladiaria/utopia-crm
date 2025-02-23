@@ -10,6 +10,7 @@ import mercadopago
 
 from invoicing.models import MercadoPagoData
 from invoicing.models import InvoiceItem, Invoice
+
 # TODO: explain or remove the "Updated import" comment in next line
 from core.models import Address, Subscription, Product, SubscriptionProduct  # Updated import
 from core.utils import calc_price_from_products
@@ -323,11 +324,10 @@ def contact_update_mp_wrapper(
     return result
 
 
-def bill_subscription(subscription, billing_date=None, dpp=10, payment_reference=None):
+def bill_subscription(subscription, billing_date=None, dpp=10, force_by_date=False, billing_date_override=None):
     """
     Bills a single subscription into an only invoice. Returns the created invoice.
     """
-
     # Safely get settings with default values
     billing_extra_days = getattr(settings, 'BILLING_EXTRA_DAYS', 0)
     force_dummy_missing_billing_data = getattr(settings, 'FORCE_DUMMY_MISSING_BILLING_DATA', False)
@@ -338,25 +338,28 @@ def bill_subscription(subscription, billing_date=None, dpp=10, payment_reference
     billing_date = billing_date or date.today()
     invoice = None
 
-    # Check that the subscription is active
-    assert subscription.active, _('This subscription is not active and should not be billed.')
-
     # Check that the subscription is normal
     assert subscription.type in ('N', 'C'), _('This subscription is not normal or corporate and should not be billed.')
 
-    # Check that the next billing date exists or we need to raise an exception.
-    assert subscription.next_billing, _("Could not bill because next billing date does not exist")
+    if not force_by_date:
+        # Check that the next billing date exists or we need to raise an exception.
+        assert subscription.next_billing, _("Could not bill because next billing date does not exist")
+
+        if subscription.next_billing > billing_date + timedelta(billing_extra_days):
+            raise Exception(_('This subscription should not be billed yet.'))
+
+        # Check that the subscription is active
+        assert subscription.active, _('This subscription is not active and should not be billed.')
 
     # Check that the subscription has a payment type
-    assert subscription.payment_type, _("The subscription has no payment type, it can't be billed")
+    assert subscription.payment_type or (subscription.payment_type_fk and subscription.payment_method_fk), _(
+        "The subscription has no payment type, it can't be billed"
+    )
 
     # Check that the subscription's next billing is smaller than end date if it has it
     if subscription.end_date:
         error_msg = _("This subscription has an end date greater than its next billing")
         assert subscription.next_billing < subscription.end_date, error_msg
-
-    if subscription.next_billing > billing_date + timedelta(billing_extra_days):
-        raise Exception(_('This subscription should not be billed yet.'))
 
     # We need to get all the subscription data
     billing_data = subscription.get_billing_data_by_priority()
@@ -391,7 +394,7 @@ def bill_subscription(subscription, billing_date=None, dpp=10, payment_reference
         subscription.frequency,
         debug_id=f"subscription_{subscription.id}",
         create_items=True,
-        subscription=subscription
+        subscription=subscription,
     )
 
     # Handle envelope price if needed
@@ -400,11 +403,7 @@ def bill_subscription(subscription, billing_date=None, dpp=10, payment_reference
             subscription=subscription, has_envelope=1
         ).count()
         envelope_amount = products_with_envelope_count * envelope_price * subscription.frequency
-        envelope_item = InvoiceItem(
-            description=_('Envelope'),
-            amount=envelope_amount,
-            subscription=subscription
-        )
+        envelope_item = InvoiceItem(description=_('Envelope'), amount=envelope_amount, subscription=subscription)
         invoice_items.append(envelope_item)
         amount += envelope_amount
 
@@ -417,7 +416,7 @@ def bill_subscription(subscription, billing_date=None, dpp=10, payment_reference
             description=_('Balance' if subscription.balance > 0 else 'Balance owed'),
             type='D' if subscription.balance > 0 else 'R',
             amount=min(balance_amount, amount) if subscription.balance > 0 else balance_amount,
-            type_dr=1
+            type_dr=1,
         )
         amount += (-1 if subscription.balance > 0 else 1) * float(balance_item.amount)
         invoice_items.append(balance_item)
@@ -441,7 +440,8 @@ def bill_subscription(subscription, billing_date=None, dpp=10, payment_reference
                 billing_document=subscription.get_billing_document(),
                 subscription=subscription,
                 amount=amount,
-                payment_reference=payment_reference,
+                payment_type_fk=subscription.payment_type_fk,
+                payment_method_fk=subscription.payment_method_fk,
             )
 
             # Add all invoice items to the invoice
@@ -474,10 +474,13 @@ def bill_subscription(subscription, billing_date=None, dpp=10, payment_reference
             if subscription.balance <= 0:
                 subscription.balance = None
 
-        # Update subscription billing date
-        subscription.next_billing = (subscription.next_billing or subscription.start_date) + relativedelta(
-            months=subscription.frequency
-        )
+        # Update subscription billing date. If force_by_date is True, we will use the billing_date_override.
+        if force_by_date and billing_date_override:
+            subscription.next_billing = billing_date_override
+        else:
+            subscription.next_billing = (subscription.next_billing or subscription.start_date) + relativedelta(
+                months=subscription.frequency
+            )
         subscription.save()
 
         assert amount > 0, _("This subscription wasn't billed since amount is not greater than 0")
