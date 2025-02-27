@@ -1463,6 +1463,10 @@ class Subscription(models.Model):
     purchase_date = models.DateField(default=date.today, verbose_name=_("Purchase date"), null=True, blank=True)
     creation_date = models.DateTimeField(auto_now_add=True, verbose_name=_("Creation date"), null=True, blank=True)
 
+    # Zoho fields
+    zoho_synced = models.BooleanField(default=False, verbose_name="Zoho Synced")
+    zoho_sync_date = models.DateTimeField(blank=True, null=True, verbose_name="Zoho Sync Date")
+
     def __str__(self):
         return str(
             _("{active} subscription for the contact {contact} with {products} products").format(
