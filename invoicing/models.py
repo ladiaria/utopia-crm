@@ -426,6 +426,6 @@ class TransactionType(models.Model):
     def save(self, *args, **kwargs):
         if not self.code:
             base = unidecode(self.name)
-            code = slugify(base)
+            code = slugify(base).replace('-', '_')
             self.code = code
         super().save(*args, **kwargs)
