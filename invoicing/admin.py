@@ -4,7 +4,7 @@ from django.utils.translation import gettext_lazy as _
 
 from simple_history.admin import SimpleHistoryAdmin
 
-from invoicing.models import CreditNote, Invoice, InvoiceItem, Billing
+from invoicing.models import CreditNote, Invoice, InvoiceItem, TransactionType
 
 
 @admin.register(CreditNote)
@@ -80,25 +80,8 @@ class InvoiceItemAdmin(admin.ModelAdmin):
     pass
 
 
-@admin.register(Billing)
-class BillingAdmin(admin.ModelAdmin):
-    list_display = ('id', 'product', 'start', 'amount_billed', 'count', 'progress', 'status')
-    # readonly_fields = ['exclude']
-
-    def get_readonly_fields(self, request, obj=None):
-        if request.user.is_staff:
-            if request.user.is_superuser:
-                return (
-                    'id',
-                    'start',
-                    'exclude',
-                    'errors',
-                    'created_by',
-                    'started_by',
-                    'dpp',
-                    'billing_date',
-                    'end',
-                    'subscriber_amount',
-                )
-            else:
-                return [f.name for f in self.model._meta.fields]
+@admin.register(TransactionType)
+class TransactionTypeAdmin(admin.ModelAdmin):
+    list_display = ('name', 'code')
+    search_fields = ('name', 'code')
+    ordering = ['-id']
