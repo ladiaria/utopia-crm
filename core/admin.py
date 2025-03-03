@@ -459,6 +459,7 @@ class ProductAdmin(admin.ModelAdmin):
         ),
     )
     inlines = (TermsAndConditionsProductInline,)
+    search_fields = ("name", "slug", "internal_code")
 
     class Media:
         css = {"all": ("css/product_admin.css",)}
