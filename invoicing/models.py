@@ -1,5 +1,6 @@
 # coding=utf-8
 from datetime import date
+from unidecode import unidecode
 
 from simple_history.models import HistoricalRecords
 
@@ -7,6 +8,7 @@ from django.conf import settings
 from django.db import models
 from django.db.models import Sum, Q
 from django.contrib.auth.models import User
+from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
 
 from core.models import Subscription, Contact
@@ -85,6 +87,13 @@ class Invoice(models.Model):
     order = models.PositiveIntegerField(blank=True, null=True)
     fiscal_invoice_code = models.CharField(max_length=50, blank=True, null=True)
     internal_provider_text = models.TextField(blank=True, null=True)
+
+    transaction_type = models.ForeignKey(
+        "invoicing.TransactionType",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
 
     billing = models.ForeignKey("invoicing.Billing", blank=True, null=True, on_delete=models.SET_NULL)
     history = HistoricalRecords()
@@ -400,3 +409,23 @@ class MercadoPagoData(models.Model):
     class Meta:
         verbose_name = "Mercado Pago Data"
         verbose_name_plural = "Mercado Pago Data"
+
+
+class TransactionType(models.Model):
+    name = models.CharField(max_length=255, unique=True)
+    code = models.CharField(max_length=255, unique=True, null=True, blank=True)
+    description = models.TextField(blank=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = _("Transaction Type")
+        verbose_name_plural = _("Transaction Types")
+
+    def save(self, *args, **kwargs):
+        if not self.code:
+            base = unidecode(self.name)
+            code = slugify(base)
+            self.code = code
+        super().save(*args, **kwargs)
