@@ -13,7 +13,9 @@
 {% if request.user|in_group:"Finances" %}
   <div class="col-md-12">
     <a class="btn btn-sm btn-primary float-right mb-2"
-       href="{% url 'bill_one_contact' contact.id %}">{% trans "Bill contact subscriptions" %}</a>
+       href="{% url 'facturar_suscripciones_de_un_contacto_cambio' contact.id %}">
+      Facturar suscripciones sin factura
+    </a>
   </div>
 {% endif %}
 <div id="invoices-htmx"

@@ -21,7 +21,13 @@ class Invoice(models.Model):
     service_to = models.DateField()
     balance = models.DecimalField(_("Balance"), max_digits=10, decimal_places=2, blank=True, null=True)
     amount = models.DecimalField(_("Amount"), max_digits=10, decimal_places=2, blank=True, null=True)
-    payment_type = models.CharField(_("Payment type"), max_length=2, choices=settings.INVOICE_PAYMENT_METHODS)
+    payment_type = models.CharField(
+        _("Payment type"),
+        max_length=2,
+        choices=settings.INVOICE_PAYMENT_METHODS,
+        blank=True,
+        null=True,
+    )
     debited = models.BooleanField(_("Debited"), default=False)
     paid = models.BooleanField(_("Paid"), default=False)
     payment_date = models.DateField(_("Payment date"), blank=True, null=True)
@@ -355,6 +361,7 @@ class CreditNote(models.Model):
     serie = models.CharField(max_length=1, editable=False, blank=True, null=True)
     numero = models.PositiveIntegerField(editable=False, blank=True, null=True)
     amount = models.PositiveIntegerField(blank=True, null=True)
+    old_pk = models.PositiveIntegerField(blank=True, null=True)
     history = HistoricalRecords()
 
     class Meta:

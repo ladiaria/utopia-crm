@@ -2210,10 +2210,10 @@ class Subscription(models.Model):
     def billing_requirements_met(self):
         pass
 
-    def bill(self, billing_date=None, dpp=10):
+    def bill(self, billing_date=None, dpp=10, force_by_date=False, billing_date_override=None):
         from invoicing.utils import bill_subscription
 
-        return bill_subscription(self, billing_date, dpp)
+        return bill_subscription(self, billing_date, dpp, force_by_date, billing_date_override)
 
     class Meta:
         verbose_name = _("subscription")

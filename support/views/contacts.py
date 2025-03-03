@@ -35,7 +35,7 @@ from core.utils import get_mailtrain_lists
 
 from support.forms import ImportContactsForm
 
-from invoicing.models import Invoice
+from invoicing.models import Invoice, CreditNote
 
 
 @method_decorator(staff_member_required, name="dispatch")
@@ -271,7 +271,9 @@ class ContactDetailView(BreadcrumbsMixin, DetailView):
 
 class ContactAdminFormWithNewsletters(ContactAdminForm):
     newsletters = ModelMultipleChoiceField(
-        queryset=Product.objects.filter(type="N", active=True), widget=CheckboxSelectMultiple, required=False,
+        queryset=Product.objects.filter(type="N", active=True),
+        widget=CheckboxSelectMultiple,
+        required=False,
     )
 
     def __init__(self, *args, request=None, **kwargs):
@@ -572,4 +574,7 @@ def contact_invoices_htmx(request, contact_id):
         .select_related("subscription", "contact")
         .prefetch_related("invoiceitem_set")
     ).order_by("-id")
-    return render(request, "contact_detail/htmx/_invoices_htmx.html", {"invoices": invoices})
+    credit_notes = CreditNote.objects.filter(invoice__in=invoices)
+    return render(
+        request, "contact_detail/htmx/_invoices_htmx.html", {"invoices": invoices, "credit_notes": credit_notes}
+    )
