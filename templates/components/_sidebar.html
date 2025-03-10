@@ -63,14 +63,7 @@
                 {% if request.user|in_group:"Advertisement" %}
                   {% include "components/sidebar_items/_advertisement.html" %}
                 {% endif %}
-                {% if request.user|in_group:"Managers" %}
-                  <li class="nav-item">
-                    <a href="{% url "admin:index" %}" class="nav-link">
-                      <i class="nav-icon fas fa-cogs"></i>
-                      <p>{% trans "Admin panel" %}</p>
-                    </a>
-                  </li>
-                {% endif %}
+                {% include_if_exists "sidebar_extra.html" %}
                 {% if request.user|in_group:"Sellers" %}
                   <li class="nav-item">
                     <a href="{{ seller_console_list_campaigns }}"
@@ -87,7 +80,14 @@
                     </a>
                   </li>
                 {% endif %}
-                {% include_if_exists "sidebar_extra.html" %}
+                {% if request.user|in_group:"Managers" %}
+                  <li class="nav-item">
+                    <a href="{% url "admin:index" %}" class="nav-link">
+                      <i class="nav-icon fas fa-cogs"></i>
+                      <p>{% trans "Admin panel" %}</p>
+                    </a>
+                  </li>
+                {% endif %}
                 <li class="nav-item">
                   <a href="{% url "logout" %}" class="nav-link">
                     <i class="nav-icon fas fa-sign-out-alt"></i>
