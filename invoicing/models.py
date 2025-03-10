@@ -72,6 +72,7 @@ class Invoice(models.Model):
 
     # Fields for CFE
     billing_address = models.CharField(max_length=255, blank=True, null=True, verbose_name=_("Billing Address"))
+    billing_country = models.CharField(max_length=255, blank=True, null=True, verbose_name=_("Billing Country"))
     billing_state = models.CharField(max_length=255, blank=True, null=True, verbose_name=_("Billing State"))
     billing_city = models.CharField(max_length=255, blank=True, null=True, verbose_name=_("Billing City"))
     billing_document = models.CharField(

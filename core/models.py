@@ -291,6 +291,24 @@ class Product(models.Model):
     def has_terms_and_conditions(self):
         return self.terms_and_conditions.exists()
 
+    @property
+    def duration_days(self):
+        if self.duration_months == 12:
+            return 365
+        elif self.duration_months == 24:
+            return 730
+        else:
+            return self.duration_months * 30
+
+    @property
+    def duration_days(self):
+        if self.duration_months == 12:
+            return 365
+        elif self.duration_months == 24:
+            return 730
+        else:
+            return self.duration_months * 30
+
     class Meta:
         verbose_name = _("product")
         verbose_name_plural = _("products")
@@ -2218,6 +2236,15 @@ class Subscription(models.Model):
         from invoicing.utils import bill_subscription
 
         return bill_subscription(self, billing_date, dpp, force_by_date, billing_date_override)
+
+    @property
+    def frequency_days(self):
+        if self.frequency == 12:
+            return 365
+        elif self.frequency == 24:
+            return 730
+        else:
+            return self.frequency * 30
 
     class Meta:
         verbose_name = _("subscription")
