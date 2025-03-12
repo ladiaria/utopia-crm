@@ -295,15 +295,6 @@ class Product(models.Model):
             ).order_by("-date").first().terms_and_conditions
         return None
 
-    @property
-    def duration_days(self):
-        if self.duration_months == 12:
-            return 365
-        elif self.duration_months == 24:
-            return 730
-        else:
-            return self.duration_months * 30
-
     class Meta:
         verbose_name = _("product")
         verbose_name_plural = _("products")
