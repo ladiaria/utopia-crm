@@ -235,6 +235,11 @@ class Invoice(models.Model):
             total=Sum('amount')
         )['total'] or 0
 
+    def get_rounding_total(self):
+        return self.invoiceitem_set.filter(type="R").aggregate(
+            total=Sum('amount')
+        )['total'] or 0
+
     class Meta:
         verbose_name = "invoice"
         verbose_name_plural = "invoices"

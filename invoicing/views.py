@@ -431,7 +431,7 @@ class InvoiceDetailView(BreadcrumbsMixin, LoginRequiredMixin, DetailView):
         ).select_related('contact', 'subscription').prefetch_related(
             Prefetch(
                 'invoiceitem_set',
-                queryset=InvoiceItem.objects.exclude(type='D').select_related('product', 'product__target_product'),
+                queryset=InvoiceItem.objects.filter(type='I').select_related('product', 'product__target_product'),
                 to_attr='product_items'
             ),
             Prefetch(
