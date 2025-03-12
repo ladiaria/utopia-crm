@@ -96,6 +96,8 @@ class Invoice(models.Model):
         blank=True,
     )
 
+    consecutive_payment = models.PositiveIntegerField(blank=True, null=True)
+
     billing = models.ForeignKey("invoicing.Billing", blank=True, null=True, on_delete=models.SET_NULL)
     history = HistoricalRecords()
 
