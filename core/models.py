@@ -300,15 +300,6 @@ class Product(models.Model):
         else:
             return self.duration_months * 30
 
-    @property
-    def duration_days(self):
-        if self.duration_months == 12:
-            return 365
-        elif self.duration_months == 24:
-            return 730
-        else:
-            return self.duration_months * 30
-
     class Meta:
         verbose_name = _("product")
         verbose_name_plural = _("products")
