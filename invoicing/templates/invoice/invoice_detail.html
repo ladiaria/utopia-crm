@@ -236,12 +236,6 @@
                       </tbody>
                     </table>
                   </div>
-                  <div class="d-flex justify-content-end mb-4">
-                    <div class="px-3">
-                      <strong>{% trans "Products Total" %}:</strong>
-                      <strong class="ms-2">{{ object.get_product_total }}</strong>
-                    </div>
-                  </div>
                 {% endif %}
                 <!-- Discounts table -->
                 {% if object.discount_items %}
@@ -257,7 +251,7 @@
                       <tbody>
                         {% for item in object.discount_items %}
                           <tr>
-                            <td>{{ item.product }}</td>
+                            <td>{{ item.product|default_if_none:"-" }}</td>
                             <td>{{ item.description }}</td>
                             <td>{{ item.amount }}</td>
                           </tr>
@@ -265,10 +259,24 @@
                       </tbody>
                     </table>
                   </div>
+                {% endif %}
+                <div class="d-flex justify-content-end mb-3">
+                  <div class="px-3">
+                    <strong>{% trans "Products Total" %}:</strong>
+                    <strong class="ms-2">{{ object.get_product_total }}</strong>
+                  </div>
+                </div>
+                <div class="d-flex justify-content-end">
+                  <div class="px-3">
+                    <strong>{% trans "Discounts Total" %}:</strong>
+                    <strong class="ms-2">{{ object.get_discount_total }}</strong>
+                  </div>
+                </div>
+                {% if object.get_rounding_total %}
                   <div class="d-flex justify-content-end">
-                    <div class="px-3">
-                      <strong>{% trans "Discounts Total" %}:</strong>
-                      <strong class="ms-2">{{ object.get_discount_total }}</strong>
+                    <div class="px-3 mt-3">
+                      <strong>{% trans "Rounding" %}:</strong>
+                      <strong class="ms-2">{{ object.get_rounding_total }}</strong>
                     </div>
                   </div>
                 {% endif %}
