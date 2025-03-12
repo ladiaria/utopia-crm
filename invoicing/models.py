@@ -229,7 +229,7 @@ class Invoice(models.Model):
 
     def get_product_total(self):
         """Returns the total amount of all product items"""
-        return self.invoiceitem_set.filter(type="I").aggregate(
+        return self.invoiceitem_set.filter(type__in=["I", "R"]).aggregate(
             total=Sum('amount')
         )['total'] or 0
 
