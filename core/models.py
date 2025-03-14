@@ -1866,10 +1866,18 @@ class Subscription(models.Model):
         return self.get_price_for_full_period() / (self.period_end() - self.period_start()).days
 
     def days_elapsed_since_period_start(self):
-        return (date.today() - self.period_start()).days
+        period_start = self.period_start()
+        if not period_start:
+            return 0
+        return (date.today() - period_start).days
 
     def days_remaining_in_period(self):
-        return (self.period_end() - date.today()).days
+        period_end = self.period_end()
+        if not period_end:
+            return 0
+        if (period_end - date.today()).days < 0:
+            return 0
+        return (period_end - date.today()).days
 
     def amount_already_paid_in_period(self):
         """
@@ -1882,6 +1890,8 @@ class Subscription(models.Model):
         """
         assert self.type == "N", _("Subscription must be normal to use this method")
         period_start = self.period_start()
+        if not period_start:
+            return 0
         days_already_used = (date.today() - period_start).days
         amount = int(self.price_per_day() * days_already_used)
         if amount > self.get_price_for_full_period():
@@ -1898,9 +1908,11 @@ class Subscription(models.Model):
         """
         assert self.type == "N", _("Subscription must be normal to use this method")
         period_start, period_end = self.get_current_period()
+        if not period_start or not period_end:
+            return 0
         price_per_day = self.get_price_for_full_period() / (period_end - period_start).days
         days_not_used = 30 * self.frequency - (date.today() - period_start).days
-        return int(price_per_day * days_not_used)
+        return int(price_per_day * days_not_used) if days_not_used > 0 else 0
 
     def render_weekdays(self):
         """
