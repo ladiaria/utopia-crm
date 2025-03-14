@@ -71,6 +71,7 @@ class InvoiceAdmin(SimpleHistoryAdmin):
         'pdf',
         'payment_method_name',
         'payment_type_name',
+        "consecutive_payment",
     ]
     ordering = ['-id']
 
