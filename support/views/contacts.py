@@ -6,7 +6,7 @@ from operator import or_
 
 from django.conf import settings
 from django.db import transaction
-from django.db.models import Q, Prefetch, Case, When, Value, BooleanField
+from django.db.models import Q, Prefetch, Case, When, Value, BooleanField, Count
 from django.views.generic import UpdateView, CreateView, DetailView, ListView, FormView
 from django.forms import ModelMultipleChoiceField, CheckboxSelectMultiple
 from django.utils.decorators import method_decorator
@@ -607,35 +607,36 @@ class CheckForExistingContactsView(BreadcrumbsMixin, FormView):
     def find_matching_contacts(self, email, phone, mobile):
         # Find matching contacts based on email, phone, and mobile
         # Returns a list of contacts that match the given criteria
-        contacts = Contact.objects.filter(
-            Q(email__iexact=email) | Q(phone__iexact=phone) | Q(mobile__iexact=mobile)
-        ).prefetch_related(
-            Prefetch(
-                'subscriptions',
-                queryset=Subscription.objects.filter(
-                    active=True,
-                    status__in=['OK', 'G']
+        contacts = (
+            Contact.objects.filter(Q(email__iexact=email) | Q(phone__iexact=phone) | Q(mobile__iexact=mobile))
+            .prefetch_related(
+                Prefetch('subscriptions', queryset=Subscription.objects.filter(active=True, status__in=['OK', 'G']))
+            )
+            .prefetch_related('contactcampaignstatus_set')
+            # Annotate matches in a single query
+            .annotate(
+                is_email_match=Case(
+                    When(email__iexact=email, then=Value(True)),
+                    default=Value(False),
+                    output_field=BooleanField(),
+                ),
+                is_phone_match=Case(
+                    When(phone__iexact=phone, then=Value(True)),
+                    default=Value(False),
+                    output_field=BooleanField(),
+                ),
+                is_mobile_match=Case(
+                    When(mobile__iexact=mobile, then=Value(True)),
+                    default=Value(False),
+                    output_field=BooleanField(),
+                ),
+                active_campaign_count=Count(
+                    'contactcampaignstatus',
+                    filter=Q(contactcampaignstatus__campaign__active=True),
+                    distinct=True
                 )
             )
-        ).distinct()
-
-        # Annotate matches in a single query
-        contacts = contacts.annotate(
-            is_email_match=Case(
-                When(email__iexact=email, then=Value(True)),
-                default=Value(False),
-                output_field=BooleanField(),
-            ),
-            is_phone_match=Case(
-                When(phone__iexact=phone, then=Value(True)),
-                default=Value(False),
-                output_field=BooleanField(),
-            ),
-            is_mobile_match=Case(
-                When(mobile__iexact=mobile, then=Value(True)),
-                default=Value(False),
-                output_field=BooleanField(),
-            )
+            .distinct()
         )
 
         return contacts
@@ -656,18 +657,21 @@ class CheckForExistingContactsView(BreadcrumbsMixin, FormView):
 
             if contacts:
                 for contact in contacts:
-                    results.append({
-                        'contact': contact,
-                        'count': len(contacts),
-                        'email_matches': contact.is_email_match,
-                        'phone_matches': contact.is_phone_match,
-                        'mobile_matches': contact.is_mobile_match,
-                        'has_active_subscription': bool(contact.subscriptions.all()),
-                        'csv_email': email,
-                        'csv_phone': phone,
-                        'csv_mobile': mobile,
-                        'csv_row': row_number + 1,
-                    })
+                    results.append(
+                        {
+                            'contact': contact,
+                            'count': contacts.count(),
+                            'email_matches': contact.is_email_match,
+                            'phone_matches': contact.is_phone_match,
+                            'mobile_matches': contact.is_mobile_match,
+                            'has_active_subscription': bool(contact.subscriptions.all()),
+                            'is_in_active_campaign': contact.active_campaign_count > 0,
+                            'csv_email': email,
+                            'csv_phone': phone,
+                            'csv_mobile': mobile,
+                            'csv_row': row_number + 1,
+                        }
+                    )
             else:
                 non_matches.append(row)
 
@@ -685,4 +689,6 @@ class CheckForExistingContactsView(BreadcrumbsMixin, FormView):
         context['non_matches'] = non_matches
         active_subscriptions = sum(1 for result in results if result['has_active_subscription'])
         context['active_subscriptions'] = active_subscriptions
+        active_campaigns = sum(1 for result in results if result['is_in_active_campaign'])
+        context['active_campaigns'] = active_campaigns
         return self.render_to_response(context)
