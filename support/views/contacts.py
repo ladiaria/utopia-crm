@@ -683,4 +683,6 @@ class CheckForExistingContactsView(BreadcrumbsMixin, FormView):
         context = self.get_context_data(form=form)
         context['results'] = results
         context['non_matches'] = non_matches
+        active_subscriptions = sum(1 for result in results if result['has_active_subscription'])
+        context['active_subscriptions'] = active_subscriptions
         return self.render_to_response(context)
