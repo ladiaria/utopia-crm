@@ -6,7 +6,7 @@ from operator import or_
 
 from django.conf import settings
 from django.db import transaction
-from django.db.models import Q, Prefetch
+from django.db.models import Q, Prefetch, Case, When, Value, BooleanField
 from django.views.generic import UpdateView, CreateView, DetailView, ListView, FormView
 from django.forms import ModelMultipleChoiceField, CheckboxSelectMultiple
 from django.utils.decorators import method_decorator
@@ -19,6 +19,7 @@ from django.contrib import messages
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_protect
 from django.utils.functional import cached_property
+import io
 
 from core.models import (
     Contact,
@@ -27,13 +28,14 @@ from core.models import (
     State,
     Country,
     Address,
+    Subscription,
 )
 from core.filters import ContactFilter
 from core.forms import ContactAdminForm
 from core.mixins import BreadcrumbsMixin
 from core.utils import get_mailtrain_lists
 
-from support.forms import ImportContactsForm
+from support.forms import ImportContactsForm, CheckForExistingContactsForm
 
 from invoicing.models import Invoice, CreditNote
 
@@ -383,10 +385,10 @@ class ImportContactsView(FormView):
         return ['address_1', 'address_2', 'city', 'state', 'country']
 
     def form_valid(self, form):
-        csv_file = form.cleaned_data['file']
+        csvfile = form.cleaned_data['file']
         tags = self.parse_tags(form.cleaned_data)
 
-        results = self.process_csv(csv_file, tags)
+        results = self.process_csv(csvfile, tags)
 
         self.display_messages(results)
 
@@ -578,3 +580,107 @@ def contact_invoices_htmx(request, contact_id):
     return render(
         request, "contact_detail/htmx/_invoices_htmx.html", {"invoices": invoices, "credit_notes": credit_notes}
     )
+
+
+class CheckForExistingContactsView(BreadcrumbsMixin, FormView):
+    template_name = "check_for_existing_contacts.html"
+    form_class = CheckForExistingContactsForm
+
+    def breadcrumbs(self):
+        return [
+            {"url": reverse("home"), "label": "Home"},
+            {"url": reverse("contact_list"), "label": "Contacts"},
+            {"label": "Check for existing contacts"},
+        ]
+
+    def get_success_url(self):
+        return reverse("contact_list")
+
+    def check_contact(self, email, phone, mobile):
+        # Checks for a contact. Returns the contact if found, and what made it unique
+        # Returns None if no contact was found
+        contact = Contact.objects.filter(email=email).first()
+        if not contact:
+            return None
+        return contact
+
+    def find_matching_contacts(self, email, phone, mobile):
+        # Find matching contacts based on email, phone, and mobile
+        # Returns a list of contacts that match the given criteria
+        contacts = Contact.objects.filter(
+            Q(email__iexact=email) | Q(phone__iexact=phone) | Q(mobile__iexact=mobile)
+        ).prefetch_related(
+            Prefetch(
+                'subscriptions',
+                queryset=Subscription.objects.filter(
+                    active=True,
+                    status__in=['OK', 'G']
+                )
+            )
+        ).distinct()
+
+        # Annotate matches in a single query
+        contacts = contacts.annotate(
+            is_email_match=Case(
+                When(email__iexact=email, then=Value(True)),
+                default=Value(False),
+                output_field=BooleanField(),
+            ),
+            is_phone_match=Case(
+                When(phone__iexact=phone, then=Value(True)),
+                default=Value(False),
+                output_field=BooleanField(),
+            ),
+            is_mobile_match=Case(
+                When(mobile__iexact=mobile, then=Value(True)),
+                default=Value(False),
+                output_field=BooleanField(),
+            )
+        )
+
+        return contacts
+
+    def process_file(self, file):
+        results = []
+        non_matches = []
+        for row_number, row in enumerate(csv.DictReader(file, delimiter=',', quotechar='"', lineterminator='\r\n')):
+            email = row.get('email', None)
+            phone = row.get('phone', None)
+            mobile = row.get('mobile', None)
+
+            if not any([email, phone, mobile]):
+                non_matches.append(row)
+                continue
+
+            contacts = self.find_matching_contacts(email, phone, mobile)
+
+            if contacts:
+                for contact in contacts:
+                    results.append({
+                        'contact': contact,
+                        'count': len(contacts),
+                        'email_matches': contact.is_email_match,
+                        'phone_matches': contact.is_phone_match,
+                        'mobile_matches': contact.is_mobile_match,
+                        'has_active_subscription': bool(contact.subscriptions.all()),
+                        'csv_email': email,
+                        'csv_phone': phone,
+                        'csv_mobile': mobile,
+                        'csv_row': row_number + 1,
+                    })
+            else:
+                non_matches.append(row)
+
+            if (row_number + 1) % 100 == 0 and settings.DEBUG:
+                print(f"processed {row_number + 1} rows")
+
+        return results, non_matches
+
+    def form_valid(self, form):
+        csvfile = form.cleaned_data['file']
+        decoded_file = io.StringIO(csvfile.read().decode('utf-8'))
+        results, non_matches = self.process_file(decoded_file)
+        context = self.get_context_data(form=form)
+        context['results'] = results
+        context['non_matches'] = non_matches
+        return self.render_to_response(context)

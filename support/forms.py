@@ -785,3 +785,22 @@ class ImportContactsForm(forms.Form):
         required=False,
         widget=forms.TextInput(attrs={'placeholder': 'Tags for contacts in campaign', 'class': 'form-control'}),
     )
+
+
+class CheckForExistingContactsForm(forms.Form):
+    file = forms.FileField(
+        label=_('CSV File'), help_text=_('Please upload a CSV file'), widget=forms.FileInput(attrs={'accept': '.csv'})
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['file'].widget.attrs['class'] = 'form-control'
+        self.fields['file'].widget.attrs['accept'] = '.csv'
+        self.fields['file'].widget.attrs['placeholder'] = _('Upload CSV file')
+        self.fields['file'].widget.attrs['required'] = True
+
+    def clean_file(self):
+        file = self.cleaned_data['file']
+        if not file.name.endswith('.csv'):
+            raise forms.ValidationError(_('File must be a CSV file'))
+        return file

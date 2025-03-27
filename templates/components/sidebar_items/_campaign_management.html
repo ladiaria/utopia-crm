@@ -9,6 +9,7 @@
 {% url 'release_seller_contacts' as release_seller_contacts %}
 {% url 'upload_do_not_call_numbers' as upload_do_not_call_numbers %}
 {% url 'sales_record_filter' as sales_record_filter %}
+{% url "check_for_existing_contacts" as check_for_existing_contacts %}
 
 <li class="nav-item has-treeview">
   <a href="#" class="nav-link">
@@ -24,6 +25,13 @@
          class="nav-link {% if request.path == import_contacts %}active{% endif %}">
         <i class="nav-icon fas fa-download"></i>
         <p>{% trans "Import Contacts" %}</p>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a href="{{ check_for_existing_contacts }}"
+         class="nav-link {% if request.path == check_for_existing_contacts %}active{% endif %}">
+        <i class="nav-icon fas fa-check"></i>
+        <p>{% trans "Check for existing contacts" %}</p>
       </a>
     </li>
     <li class="nav-item">
