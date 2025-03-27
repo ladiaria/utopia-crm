@@ -38,7 +38,7 @@
   {% if results %}
     <div class="card mt-4">
       <div class="card-header">
-        <h3 class="card-title">{% trans "Matching Contacts Found" %} ({{ results|length }})</h3>
+        <h3 class="card-title">{% trans "Matching Contacts Found" %} ({{ results|length }}) ({{ active_subscriptions }} {% trans "Active Subscriptions" %})</h3>
       </div>
       <div class="card-body">
         <div class="table-responsive">
