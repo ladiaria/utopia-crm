@@ -233,4 +233,9 @@ urlpatterns = [
     ),
     path("contacts/<int:contact_id>/create_activity/", views.ActivityCreateView.as_view(), name="create_activity"),
     path("contact_invoices_htmx/<int:contact_id>/", views.contact_invoices_htmx, name="contact_invoices_htmx"),
+    path(
+        "check_for_existing_contacts/",
+        views.CheckForExistingContactsView.as_view(),
+        name="check_for_existing_contacts",
+    ),
 ]
