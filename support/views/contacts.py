@@ -1,8 +1,6 @@
 import csv
 import pandas as pd
 from datetime import date
-from functools import reduce
-from operator import or_
 
 from django.conf import settings
 from django.db import transaction
@@ -466,33 +464,21 @@ class ImportContactsView(FormView):
 
     @transaction.atomic
     def process_contact(self, contact_data, tags, results):
-        matches = self.find_matching_contacts(contact_data)
+        matches = self.find_matching_contacts_by_email(contact_data['email'])
 
         if matches.exists():
             self.update_existing_contacts(matches, contact_data, tags, results)
         else:
             self.create_new_contact(contact_data, tags, results)
 
-    def find_matching_contacts(self, contact_data):
-        # Build a list of Q objects for fields that are not empty (email, phone, or mobile)
-        conditions = [
-            Q(**{field: contact_data[field]}) for field in ['email', 'phone', 'mobile'] if contact_data[field]
-        ]
-
-        # If we have any conditions, combine them with an OR operator (|).
-        # The reduce function here takes all Q objects in the list and applies the OR (|) operator between them.
-        # The 'or_' from the operator module is used to apply this OR operator between all Q objects.
-        # If no conditions exist (list is empty), we fall back to an empty Q() object.
-        query = reduce(or_, conditions, Q())
-
-        # Return the filtered Contact objects based on the query we built
-        return Contact.objects.filter(query)
+    def find_matching_contacts_by_email(self, email):
+        return Contact.objects.filter(email=email)
 
     def update_existing_contacts(self, matches, contact_data, tags, results):
         for contact in matches:
             self.categorize_contact(contact, tags, results)
             if matches.count() == 1:
-                self.update_contact_info(contact, contact_data, results)
+                self.update_contact_phone(contact, contact_data, results)
 
     def categorize_contact(self, contact, tags, results):
         if contact.contactcampaignstatus_set.filter(campaign__active=True).exists():
@@ -505,17 +491,19 @@ class ImportContactsView(FormView):
             results['existing_inactive_contacts'].append(contact.id)
             self.add_tags(contact, tags['tags_existing'])
 
-    def update_contact_info(self, contact, contact_data, results):
-        for field in ['email', 'phone', 'mobile']:
-            if not getattr(contact, field) and contact_data[field]:
-                try:
-                    setattr(contact, field, contact_data[field])
-                    contact.save()
-                    results[f'added_{field}s'] += 1
-                except Exception as e:
-                    results['errors'].append(
-                        f"Could not add {field} {contact_data[field]} to contact {contact.id}: {e}"
-                    )
+    def update_contact_phone(self, contact, contact_data, results):
+        try:
+            # If phone already exists, update the mobile field, else update the phone field
+            if contact.phone is not None:
+                setattr(contact, 'mobile', contact_data['phone'])
+            else:
+                setattr(contact, 'phone', contact_data['phone'])
+            contact.save()
+            results['added_phones'] += 1
+        except Exception as e:
+            results['errors'].append(
+                f"Could not add phone {contact_data['phone']} to contact {contact.id}: {e}"
+            )
 
     def create_new_contact(self, contact_data, tags, results):
         new_contact = Contact.objects.create(
@@ -604,11 +592,11 @@ class CheckForExistingContactsView(BreadcrumbsMixin, FormView):
             return None
         return contact
 
-    def find_matching_contacts(self, email, phone, mobile):
+    def find_matching_contacts_by_email(self, email):
         # Find matching contacts based on email, phone, and mobile
         # Returns a list of contacts that match the given criteria
         contacts = (
-            Contact.objects.filter(Q(email__iexact=email) | Q(phone__iexact=phone) | Q(mobile__iexact=mobile))
+            Contact.objects.filter(email__iexact=email)
             .prefetch_related(
                 Prefetch('subscriptions', queryset=Subscription.objects.filter(active=True, status__in=['OK', 'G']))
             )
@@ -617,16 +605,6 @@ class CheckForExistingContactsView(BreadcrumbsMixin, FormView):
             .annotate(
                 is_email_match=Case(
                     When(email__iexact=email, then=Value(True)),
-                    default=Value(False),
-                    output_field=BooleanField(),
-                ),
-                is_phone_match=Case(
-                    When(phone__iexact=phone, then=Value(True)),
-                    default=Value(False),
-                    output_field=BooleanField(),
-                ),
-                is_mobile_match=Case(
-                    When(mobile__iexact=mobile, then=Value(True)),
                     default=Value(False),
                     output_field=BooleanField(),
                 ),
@@ -646,14 +624,12 @@ class CheckForExistingContactsView(BreadcrumbsMixin, FormView):
         non_matches = []
         for row_number, row in enumerate(csv.DictReader(file, delimiter=',', quotechar='"', lineterminator='\r\n')):
             email = row.get('email', None)
-            phone = row.get('phone', None)
-            mobile = row.get('mobile', None)
 
-            if not any([email, phone, mobile]):
+            if not email:
                 non_matches.append(row)
                 continue
 
-            contacts = self.find_matching_contacts(email, phone, mobile)
+            contacts = self.find_matching_contacts_by_email(email)
 
             if contacts:
                 for contact in contacts:
@@ -662,13 +638,9 @@ class CheckForExistingContactsView(BreadcrumbsMixin, FormView):
                             'contact': contact,
                             'count': contacts.count(),
                             'email_matches': contact.is_email_match,
-                            'phone_matches': contact.is_phone_match,
-                            'mobile_matches': contact.is_mobile_match,
                             'has_active_subscription': bool(contact.subscriptions.all()),
                             'is_in_active_campaign': contact.active_campaign_count > 0,
                             'csv_email': email,
-                            'csv_phone': phone,
-                            'csv_mobile': mobile,
                             'csv_row': row_number + 1,
                         }
                     )
