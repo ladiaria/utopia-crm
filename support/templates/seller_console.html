@@ -446,6 +446,7 @@
             </div>
           {% endif %}
         {% endif %}
+        <div hx-get="{% url 'last_read_articles' contact.id %}" hx-trigger="load"></div>
       </form>
     </div>
   </div>

@@ -1754,3 +1754,9 @@ class SalesRecordCreateView(CreateView):
         )
         self.subscription.validate(user=self.request.user)
         return super().form_valid(form)
+
+
+def last_read_articles(request, contact_id):
+    # TODO: Move this from la diaria project to the main project. This is an htmx view.
+    # contact = get_object_or_404(Contact, id=contact_id)
+    return HttpResponse("")
