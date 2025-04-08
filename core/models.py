@@ -1084,7 +1084,7 @@ class Country(models.Model):
 
 class State(models.Model):
     name = models.CharField(max_length=100)
-    code = models.CharField(max_length=10)  # State/region code
+    code = models.CharField(max_length=10, null=True, blank=True)  # State/region code
     country = models.ForeignKey(Country, on_delete=models.SET_NULL, null=True)
     active = models.BooleanField(default=True)
 
@@ -1096,6 +1096,21 @@ class State(models.Model):
         verbose_name_plural = _("states")
         ordering = ('name',)
         unique_together = [['code', 'country']]
+
+
+class City(models.Model):
+    name = models.CharField(max_length=100)
+    code = models.CharField(max_length=10, null=True, blank=True)
+    state = models.ForeignKey(State, on_delete=models.SET_NULL, null=True)
+    active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = _("city")
+        verbose_name_plural = _("cities")
+        ordering = ('name',)
 
 
 class Address(models.Model):
@@ -1172,6 +1187,14 @@ class Address(models.Model):
         blank=True,
         verbose_name=_("State"),
         db_column='state_fk',  # Explicit different column name
+    )
+    city_fk = models.ForeignKey(
+        'core.City',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name=_("City"),
+        db_column='city_fk',  # Explicit different column name
     )
 
     @cached_property
