@@ -87,7 +87,7 @@ def seller_console_list_campaigns(request, seller_id=None):
 
     if logistics_is_installed():
         special_routes = {}
-        for route_id in settings.SPECIAL_ROUTES_FOR_SELLERS_LIST:
+        for route_id in getattr(settings, "SPECIAL_ROUTES_FOR_SELLERS_LIST", []):
             route = Route.objects.get(pk=route_id)
             counter = SubscriptionProduct.objects.filter(
                 seller=seller, route_id=route_id, subscription__active=True
@@ -97,10 +97,15 @@ def seller_console_list_campaigns(request, seller_id=None):
 
     # We'll make these lists so we can append the sub count to each campaign
     campaigns_with_not_contacted, campaigns_with_activities_to_do = [], []
-    issues_never_paid = Issue.objects.filter(
-        sub_category__slug=settings.ISSUE_SUBCATEGORY_NEVER_PAID,
-        assigned_to=user,
-    ).exclude(status__slug__in=settings.ISSUE_STATUS_FINISHED_LIST)
+    if getattr(settings, "ISSUE_SUBCATEGORY_NEVER_PAID", None) and getattr(
+        settings, "ISSUE_STATUS_FINISHED_LIST", None
+    ):
+        issues_never_paid = Issue.objects.filter(
+            sub_category__slug=getattr(settings, "ISSUE_SUBCATEGORY_NEVER_PAID", ""),
+            assigned_to=user,
+        ).exclude(status__slug__in=getattr(settings, "ISSUE_STATUS_FINISHED_LIST", []))
+    else:
+        issues_never_paid = []
 
     not_contacted_campaigns = seller.get_campaigns_by_status([1, 3])
     all_campaigns = seller.get_unfinished_campaigns()
@@ -382,29 +387,31 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
 
         contact = console_instance.contact
 
-        context.update({
-            'campaign': campaign,
-            'times_contacted': contact.activity_set.filter(
-                activity_type="C", status="C", campaign=campaign
-            ).count(),
-            'category': category,
-            'position': offset + 1,
-            'offset': offset,
-            'seller': seller,
-            'contact': contact,
-            'count': count,
-            'addresses': Address.objects.filter(contact=contact).order_by("address_1"),
-            'call_date': call_datetime,
-            'all_activities': self.get_activities(contact, console_instance, category),
-            'all_subscriptions': Subscription.objects.filter(contact=contact).order_by("-active", "id"),
-            'console_instance': console_instance,
-            'console_instances': console_instances,
-            'url': self.request.path,
-            'pending_activities_count': seller.total_pending_activities_count(),
-            'upcoming_activity': seller.upcoming_activity(),
-            'resolution_reasons': CAMPAIGN_RESOLUTION_REASONS_CHOICES,
-            'other_campaigns': ContactCampaignStatus.objects.filter(contact=contact).exclude(campaign=campaign),
-        })
+        context.update(
+            {
+                'campaign': campaign,
+                'times_contacted': contact.activity_set.filter(
+                    activity_type="C", status="C", campaign=campaign
+                ).count(),
+                'category': category,
+                'position': offset + 1,
+                'offset': offset,
+                'seller': seller,
+                'contact': contact,
+                'count': count,
+                'addresses': Address.objects.filter(contact=contact).order_by("address_1"),
+                'call_date': call_datetime,
+                'all_activities': self.get_activities(contact, console_instance, category),
+                'all_subscriptions': Subscription.objects.filter(contact=contact).order_by("-active", "id"),
+                'console_instance': console_instance,
+                'console_instances': console_instances,
+                'url': self.request.path,
+                'pending_activities_count': seller.total_pending_activities_count(),
+                'upcoming_activity': seller.upcoming_activity(),
+                'resolution_reasons': CAMPAIGN_RESOLUTION_REASONS_CHOICES,
+                'other_campaigns': ContactCampaignStatus.objects.filter(contact=contact).exclude(campaign=campaign),
+            }
+        )
         return context
 
     def get_activities(self, contact, console_instance, category):
