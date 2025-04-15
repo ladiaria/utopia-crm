@@ -48,7 +48,7 @@
               {% if address.address_1 == None %}
               {% else %}
                 <dd>
-                  - {{ address.address_1 }} {{ address.address_2 }} {{ address.city|default_if_none:"" }} {{ address.state_name|default_if_none:"" }} {{ address.country_name|default_if_none:"" }}
+                  - {{ address }}
                   {% if georef_activated %}
                     {% if address.needs_georef %}<i class="fas fa-times-circle text-danger"></i>{% endif %}
                     {% if not address.verified %}
