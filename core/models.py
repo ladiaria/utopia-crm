@@ -264,8 +264,10 @@ class Product(models.Model):
         default=BillingModeChoices.PER_FREQUENCY,
         choices=BillingModeChoices.choices,
         verbose_name=_("Billing mode"),
-        help_text=_("How the product is billed. Fixed uses the price set in the product, per frequency uses the "
-                    "price calculated from the products in the subscription with the frequency set in the product."),
+        help_text=_(
+            "How the product is billed. Fixed uses the price set in the product, per frequency uses the "
+            "price calculated from the products in the subscription with the frequency set in the product."
+        ),
     )
     objects = ProductManager()
 
@@ -1206,7 +1208,9 @@ class Address(models.Model):
         return self.state.name if self.state else None
 
     def __str__(self):
-        return ' '.join(filter(None, (self.address_1, self.address_2, self.city, self.state_name, self.country_name)))
+        return ', '.join(
+            filter(None, (self.address_1, self.address_2, self.get_city(), self.state_name, self.country_name))
+        )
 
     def add_note(self, note):
         self.notes = f"{note}" if not self.notes else self.notes + f"\n{note}"
@@ -1239,6 +1243,9 @@ class Address(models.Model):
         if self.state_georef_id and self.city_georef_id and self.georef_point:
             self.verified = True
         super(Address, self).save(*args, **kwargs)
+
+    def get_city(self):
+        return self.city_fk.name if self.city_fk else self.city
 
     class Meta:
         verbose_name = _("address")
@@ -1393,9 +1400,7 @@ class Subscription(models.Model):
 
     # Product
     products = models.ManyToManyField(Product, through="SubscriptionProduct")
-    frequency = models.PositiveSmallIntegerField(
-        default=1, help_text=_("Frequency of billing in months")
-    )
+    frequency = models.PositiveSmallIntegerField(default=1, help_text=_("Frequency of billing in months"))
     payment_type = models.CharField(
         max_length=2,
         choices=settings.SUBSCRIPTION_PAYMENT_METHODS,
@@ -2109,10 +2114,7 @@ class Subscription(models.Model):
         Returns the frequency.
         """
         frequencies = dict(FREQUENCY_CHOICES)
-        return frequencies.get(
-            self.frequency,
-            format_lazy("{months} months", months=self.frequency)
-        )
+        return frequencies.get(self.frequency, format_lazy("{months} months", months=self.frequency))
 
     def get_copies_for_product(self, product_id):
         try:
@@ -2423,6 +2425,11 @@ class ActivityTopic(models.Model):
     def __str__(self):
         return self.name
 
+    class Meta:
+        verbose_name = _("activity topic")
+        verbose_name_plural = _("activity topics")
+        ordering = ["name"]
+
 
 class ActivityResponse(models.Model):
     """
@@ -2434,6 +2441,11 @@ class ActivityResponse(models.Model):
 
     def __str__(self):
         return self.name
+
+    class Meta:
+        verbose_name = _("activity response")
+        verbose_name_plural = _("activity responses")
+        ordering = ["name"]
 
 
 class Activity(models.Model):
@@ -2556,6 +2568,11 @@ class ContactProductHistory(models.Model):
         statuses = dict(PRODUCTHISTORY_CHOICES)
         return statuses.get(self.status, "N/A")
 
+    class Meta:
+        verbose_name = _("Contact Product History")
+        verbose_name_plural = _("Contact Product Histories")
+        ordering = ["id"]
+
 
 class ContactCampaignStatus(models.Model):
     """
@@ -2575,6 +2592,9 @@ class ContactCampaignStatus(models.Model):
 
     class Meta:
         unique_together = ["contact", "campaign"]
+        verbose_name = _("Contact Campaign Status")
+        verbose_name_plural = _("Contact Campaign Statuses")
+        ordering = ["id"]
 
     def get_last_activity(self):
         """
@@ -2704,6 +2724,11 @@ class PriceRule(models.Model):
     # TODO: describe this field
     history = HistoricalRecords()
 
+    class Meta:
+        verbose_name = _("Price Rule")
+        verbose_name_plural = _("Price Rules")
+        ordering = ["id"]
+
 
 class DynamicContactFilter(models.Model):
     """
@@ -2824,9 +2849,19 @@ class DynamicContactFilter(models.Model):
     def get_autosync(self):
         return _("Active") if self.autosync else _("Inactive")
 
+    class Meta:
+        verbose_name = _("Dynamic Contact Filter")
+        verbose_name_plural = _("Dynamic Contact Filters")
+        ordering = ["id"]
+
 
 class ProductBundle(models.Model):
     products = models.ManyToManyField(Product)
+
+    class Meta:
+        verbose_name = _("Product Bundle")
+        verbose_name_plural = _("Product Bundles")
+        ordering = ["id"]
 
     def __str__(self):
         return_str = "Bundle: "
@@ -2872,6 +2907,8 @@ class DoNotCallNumber(models.Model):
         return self.number
 
     class Meta:
+        verbose_name = _("Do Not Call Number")
+        verbose_name_plural = _("Do Not Call Numbers")
         ordering = ["number"]
 
 
@@ -3051,9 +3088,15 @@ class PaymentMethod(models.Model):
     - Bank Transfer
     - etc.
     """
+
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True)
     active = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = _("Payment Method")
+        verbose_name_plural = _("Payment Methods")
+        ordering = ["name"]
 
     def __str__(self) -> str:
         return self.name
@@ -3069,9 +3112,15 @@ class PaymentType(models.Model):
     - Mastercard
     - etc.
     """
+
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True)
     active = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = _("Payment Type")
+        verbose_name_plural = _("Payment Types")
+        ordering = ["name"]
 
     def __str__(self) -> str:
         return self.name
