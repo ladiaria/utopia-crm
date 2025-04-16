@@ -1,4 +1,4 @@
-{% extends 'adminlte/base.html' %}
+{% extends "adminlte/base.html" %}
 {% load static %}
 {% load i18n %}
 
@@ -6,6 +6,6 @@
 <div class="error-page text-center">
   <h3>Página no encontrada</h3>
   <p>La pagina a la que intentas acceder no existe.</p>
-  <a href="/">Ir al inicio</a>
+  <a href="{% url 'index' %}">Ir al inicio</a>
 </div>
 {% endblock %}
