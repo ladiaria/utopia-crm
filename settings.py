@@ -254,6 +254,12 @@ try:
 except ImportError:
     pass
 
+if locals().get("DEBUG_TOOLBAR_ENABLE"):
+    # NOTE when enabled, you need to: pip install django-debug-toolbar && ./manage.py collectstatic
+    INTERNAL_IPS = ('127.0.0.1', )  # '0.0.0.0' or '*' also can be used here
+    INSTALLED_APPS.append('debug_toolbar')
+    MIDDLEWARE.append('debug_toolbar.middleware.DebugToolbarMiddleware')
+
 # utopia-cms interoperability default urls. TODO: s/(WEB_|LDSOCIAL_)/UTOPIACMS_/
 if LDSOCIAL_URL:
     WEB_UPDATE_USER_URI = WEB_UPDATE_USER_URI or (LDSOCIAL_URL + 'usuarios/fromcrm')
