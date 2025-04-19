@@ -206,8 +206,8 @@ class Product(models.Model):
         FIXED = "X", _("Fixed Price")
         CUSTOM = "C", _("Custom")
 
-    name = models.CharField(max_length=100, verbose_name=_("Name"), db_index=True)
-    slug = AutoSlugField(populate_from="name", null=True, blank=True, editable=True)
+    name = models.CharField(max_length=100, verbose_name=_("Name"), unique=True, db_index=True)
+    slug = AutoSlugField(populate_from="name", max_length=100, unique=True, editable=True)
     active = models.BooleanField(default=False, verbose_name=_("Active"))
     price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     type = models.CharField(max_length=1, default="O", choices=ProductTypeChoices.choices, db_index=True)
