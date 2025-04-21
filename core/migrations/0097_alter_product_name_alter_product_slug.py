@@ -7,7 +7,7 @@ import django_extensions.db.fields
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("core", "0092_historicalsubscription_zoho_sync_date_and_more"),
+        ("core", "0096_alter_state_code"),
     ]
 
     operations = [
