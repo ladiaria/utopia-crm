@@ -53,6 +53,7 @@ from .models import (
     BusinessEntityType,
     PaymentMethod,
     PaymentType,
+    City,
 )
 from .forms import SubscriptionAdminForm, ContactAdminForm
 
@@ -459,6 +460,7 @@ class ProductAdmin(admin.ModelAdmin):
         ),
     )
     inlines = (TermsAndConditionsProductInline,)
+    search_fields = ("name", "slug", "internal_code")
 
     class Media:
         css = {"all": ("css/product_admin.css",)}
@@ -589,14 +591,35 @@ class EmailBounceActionLogAdmin(DeleteOnlyModelAdmin):
     fieldsets = ((_("Bounce action log details"), {"fields": (("created", "action"), ("contact", "email"))}),)
 
 
+@admin.register(City)
+class CityAdmin(admin.ModelAdmin):
+    list_display = ("name", "state", "active")
+    list_filter = ("state", "active")
+    search_fields = ("name", "state__name")
+    raw_id_fields = ("state",)
+
+
+@admin.register(Country)
+class CountryAdmin(admin.ModelAdmin):
+    list_display = ("name", "code", "active")
+    list_filter = ("active",)
+    search_fields = ("name", "code")
+
+
+@admin.register(State)
+class StateAdmin(admin.ModelAdmin):
+    list_display = ("name", "code", "country", "active")
+    list_filter = ("country", "active")
+    search_fields = ("name", "code", "country__name")
+    raw_id_fields = ("country",)
+
+
 admin.site.register(DynamicContactFilter)
 admin.site.register(ProductBundle)
 admin.site.register(AdvancedDiscount)
 admin.site.register(DoNotCallNumber)
 admin.site.register(MailtrainList)
 admin.site.register(IdDocumentType)
-admin.site.register(Country)
-admin.site.register(State)
 admin.site.register(ActivityTopic)
 admin.site.register(ActivityResponse)
 admin.site.register(ProductSubscriptionPeriod)

@@ -1,0 +1,181 @@
+{% extends "adminlte/base.html" %}
+{% load i18n %}
+{% load static %}
+{% block title %}
+  {% trans "Check for Existing Contacts" %}
+{% endblock title %}
+
+{% block no_heading %}
+  <h1>{% trans "Check for Existing Contacts" %}</h1>
+{% endblock %}
+
+{% block content %}
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">{% trans "Upload Form" %}</h3>
+      <div class="card-tools">
+        <button type="button" class="btn btn-tool" data-card-widget="collapse">
+          <i class="fas fa-minus"></i>
+        </button>
+      </div>
+    </div>
+    <div class="card-body">
+      {% if form.errors %}
+        <h4>{% trans "Form has encountered some errors" %}:</h4>
+        <ul>
+          {% for error in form.errors %}
+            <li>{% trans "Error" %}: {{ error }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="form-group">
+          <label for="file">
+            {% trans "Choose a CSV file to check for existing contacts. The file should have at least the following columns" %}:
+          </label>
+          <pre>email, phone, mobile</pre>
+          <p>{% trans "All columns must be present in the header." %}</p>
+          {{ form.file }}
+        </div>
+        <button type="submit" class="btn btn-primary">{% trans "Upload and Check" %}</button>
+      </form>
+    </div>
+  </div>
+
+  {% if results %}
+    <div class="card mt-4">
+      <div class="card-header">
+        <h3 class="card-title">{% trans "Matching Contacts Found" %} ({{ results|length }}) ({{ active_subscriptions }} {% trans "Active Subscriptions" %}) ({{ active_campaigns }} {% trans "In Active Campaigns" %})</h3>
+        <div class="card-tools">
+          <button type="button" class="btn btn-tool" data-card-widget="collapse">
+            <i class="fas fa-minus"></i>
+          </button>
+          <button type="button" class="btn btn-success btn-sm ml-2" onclick="exportTableToCSV('matching-contacts.csv', 'results-table')">
+            <i class="fas fa-download"></i> {% trans "Export to CSV" %}
+          </button>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-bordered" id="results-table">
+            <thead>
+              <tr>
+                <th>{% trans "Contact ID" %}</th>
+                <th>{% trans "CSV Row" %}</th>
+                <th>{% trans "Contact" %}</th>
+                <th>{% trans "Matching Email" %}</th>
+                <th>{% trans "Has Active Subscription" %}</th>
+                <th>{% trans "In Active Campaign" %}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for result in results %}
+                <tr>
+                  <td>{{ result.contact.id }}</td>
+                  <td>{{ result.csv_row }}</td>
+                  <td>
+                    <a href="{% url 'contact_detail' result.contact.id %}">{{ result.contact }}</a>
+                  </td>
+                  <td>
+                    <ul class="list-unstyled mb-0">
+                      {% if result.email_matches %}
+                        <li class="d-inline-block mr-2">
+                          {{ result.csv_email }}
+                        </li>
+                      {% endif %}
+                    </ul>
+                  </td>
+                  <td>
+                    {% if result.has_active_subscription %}
+                      <span class="badge bg-success">{% trans "Yes" %}</span>
+                    {% else %}
+                      <span class="badge bg-danger">{% trans "No" %}</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if result.is_in_active_campaign %}
+                      <span class="badge bg-success">{% trans "Yes" %}</span>
+                    {% else %}
+                      <span class="badge bg-danger">{% trans "No" %}</span>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
+  {% if non_matches %}
+    <div class="card mt-4">
+      <div class="card-header">
+        <h3 class="card-title">{% trans "No Matches Found" %} ({{ non_matches|length }})</h3>
+        <div class="card-tools">
+          <button type="button" class="btn btn-tool" data-card-widget="collapse">
+            <i class="fas fa-minus"></i>
+          </button>
+          <button type="button" class="btn btn-success btn-sm ml-2" onclick="exportTableToCSV('no-matches.csv', 'non-matches-table')">
+            <i class="fas fa-download"></i> {% trans "Export to CSV" %}
+          </button>
+        </div>
+      </div>
+      <div class="card-body">
+        <p>{% trans "The following entries had no matching contacts:" %}</p>
+        <div class="table-responsive">
+          <table class="table table-bordered" id="non-matches-table">
+            <thead>
+              <tr>
+                <th>{% trans "Email" %}</th>
+                <th>{% trans "Phone" %}</th>
+                <th>{% trans "Mobile" %}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in non_matches %}
+                <tr>
+                  <td>{{ row.email|default:"-" }}</td>
+                  <td>{{ row.phone|default:"-" }}</td>
+                  <td>{{ row.mobile|default:"-" }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function exportTableToCSV(filename, tableId) {
+    var csv = [];
+    var rows = document.getElementById(tableId).querySelectorAll('tr');
+
+    for (var i = 0; i < rows.length; i++) {
+        var row = [], cols = rows[i].querySelectorAll('td, th');
+
+        for (var j = 0; j < cols.length; j++) {
+            // Clean the text content to handle commas and quotes
+            var text = cols[j].textContent.replace(/"/g, '""');
+            row.push('"' + text.trim() + '"');
+        }
+
+        csv.push(row.join(','));
+    }
+
+    // Download CSV file
+    var csvFile = new Blob([csv.join('\n')], {type: "text/csv"});
+    var downloadLink = document.createElement("a");
+    downloadLink.download = filename;
+    downloadLink.href = window.URL.createObjectURL(csvFile);
+    downloadLink.style.display = "none";
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+}
+</script>
+{% endblock %}

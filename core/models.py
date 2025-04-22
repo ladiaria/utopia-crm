@@ -206,8 +206,8 @@ class Product(models.Model):
         FIXED = "X", _("Fixed Price")
         CUSTOM = "C", _("Custom")
 
-    name = models.CharField(max_length=100, verbose_name=_("Name"), db_index=True)
-    slug = AutoSlugField(populate_from="name", null=True, blank=True, editable=True)
+    name = models.CharField(max_length=100, verbose_name=_("Name"), unique=True, db_index=True)
+    slug = AutoSlugField(populate_from="name", max_length=100, unique=True, editable=True)
     active = models.BooleanField(default=False, verbose_name=_("Active"))
     price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     type = models.CharField(max_length=1, default="O", choices=ProductTypeChoices.choices, db_index=True)
@@ -264,8 +264,10 @@ class Product(models.Model):
         default=BillingModeChoices.PER_FREQUENCY,
         choices=BillingModeChoices.choices,
         verbose_name=_("Billing mode"),
-        help_text=_("How the product is billed. Fixed uses the price set in the product, per frequency uses the "
-                    "price calculated from the products in the subscription with the frequency set in the product."),
+        help_text=_(
+            "How the product is billed. Fixed uses the price set in the product, per frequency uses the "
+            "price calculated from the products in the subscription with the frequency set in the product."
+        ),
     )
     objects = ProductManager()
 
@@ -290,6 +292,15 @@ class Product(models.Model):
 
     def has_terms_and_conditions(self):
         return self.terms_and_conditions.exists()
+
+    @property
+    def duration_days(self):
+        if self.duration_months == 12:
+            return 365
+        elif self.duration_months == 24:
+            return 730
+        else:
+            return self.duration_months * 30
 
     class Meta:
         verbose_name = _("product")
@@ -1075,7 +1086,7 @@ class Country(models.Model):
 
 class State(models.Model):
     name = models.CharField(max_length=100)
-    code = models.CharField(max_length=10)  # State/region code
+    code = models.CharField(max_length=10, null=True, blank=True)  # State/region code
     country = models.ForeignKey(Country, on_delete=models.SET_NULL, null=True)
     active = models.BooleanField(default=True)
 
@@ -1087,6 +1098,21 @@ class State(models.Model):
         verbose_name_plural = _("states")
         ordering = ('name',)
         unique_together = [['code', 'country']]
+
+
+class City(models.Model):
+    name = models.CharField(max_length=100)
+    code = models.CharField(max_length=10, null=True, blank=True)
+    state = models.ForeignKey(State, on_delete=models.SET_NULL, null=True)
+    active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = _("city")
+        verbose_name_plural = _("cities")
+        ordering = ('name',)
 
 
 class Address(models.Model):
@@ -1164,6 +1190,14 @@ class Address(models.Model):
         verbose_name=_("State"),
         db_column='state_fk',  # Explicit different column name
     )
+    city_fk = models.ForeignKey(
+        'core.City',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name=_("City"),
+        db_column='city_fk',  # Explicit different column name
+    )
 
     @cached_property
     def country_name(self):
@@ -1174,7 +1208,9 @@ class Address(models.Model):
         return self.state.name if self.state else None
 
     def __str__(self):
-        return ' '.join(filter(None, (self.address_1, self.address_2, self.city, self.state_name, self.country_name)))
+        return ', '.join(
+            filter(None, (self.address_1, self.address_2, self.get_city(), self.state_name, self.country_name))
+        )
 
     def add_note(self, note):
         self.notes = f"{note}" if not self.notes else self.notes + f"\n{note}"
@@ -1207,6 +1243,9 @@ class Address(models.Model):
         if self.state_georef_id and self.city_georef_id and self.georef_point:
             self.verified = True
         super(Address, self).save(*args, **kwargs)
+
+    def get_city(self):
+        return self.city_fk.name if self.city_fk else self.city
 
     class Meta:
         verbose_name = _("address")
@@ -1361,9 +1400,7 @@ class Subscription(models.Model):
 
     # Product
     products = models.ManyToManyField(Product, through="SubscriptionProduct")
-    frequency = models.PositiveSmallIntegerField(
-        default=1, help_text=_("Frequency of billing in months")
-    )
+    frequency = models.PositiveSmallIntegerField(default=1, help_text=_("Frequency of billing in months"))
     payment_type = models.CharField(
         max_length=2,
         choices=settings.SUBSCRIPTION_PAYMENT_METHODS,
@@ -1459,6 +1496,10 @@ class Subscription(models.Model):
     )
     purchase_date = models.DateField(default=date.today, verbose_name=_("Purchase date"), null=True, blank=True)
     creation_date = models.DateTimeField(auto_now_add=True, verbose_name=_("Creation date"), null=True, blank=True)
+
+    # Zoho fields
+    zoho_synced = models.BooleanField(default=False, verbose_name="Zoho Synced")
+    zoho_sync_date = models.DateTimeField(blank=True, null=True, verbose_name="Zoho Sync Date")
 
     def __str__(self):
         return str(
@@ -1858,10 +1899,18 @@ class Subscription(models.Model):
         return self.get_price_for_full_period() / (self.period_end() - self.period_start()).days
 
     def days_elapsed_since_period_start(self):
-        return (date.today() - self.period_start()).days
+        period_start = self.period_start()
+        if not period_start:
+            return 0
+        return (date.today() - period_start).days
 
     def days_remaining_in_period(self):
-        return (self.period_end() - date.today()).days
+        period_end = self.period_end()
+        if not period_end:
+            return 0
+        if (period_end - date.today()).days < 0:
+            return 0
+        return (period_end - date.today()).days
 
     def amount_already_paid_in_period(self):
         """
@@ -1874,6 +1923,8 @@ class Subscription(models.Model):
         """
         assert self.type == "N", _("Subscription must be normal to use this method")
         period_start = self.period_start()
+        if not period_start:
+            return 0
         days_already_used = (date.today() - period_start).days
         amount = int(self.price_per_day() * days_already_used)
         if amount > self.get_price_for_full_period():
@@ -1890,9 +1941,11 @@ class Subscription(models.Model):
         """
         assert self.type == "N", _("Subscription must be normal to use this method")
         period_start, period_end = self.get_current_period()
+        if not period_start or not period_end:
+            return 0
         price_per_day = self.get_price_for_full_period() / (period_end - period_start).days
         days_not_used = 30 * self.frequency - (date.today() - period_start).days
-        return int(price_per_day * days_not_used)
+        return int(price_per_day * days_not_used) if days_not_used > 0 else 0
 
     def render_weekdays(self):
         """
@@ -2061,10 +2114,7 @@ class Subscription(models.Model):
         Returns the frequency.
         """
         frequencies = dict(FREQUENCY_CHOICES)
-        return frequencies.get(
-            self.frequency,
-            format_lazy("{months} months", months=self.frequency)
-        )
+        return frequencies.get(self.frequency, format_lazy("{months} months", months=self.frequency))
 
     def get_copies_for_product(self, product_id):
         try:
@@ -2210,10 +2260,19 @@ class Subscription(models.Model):
     def billing_requirements_met(self):
         pass
 
-    def bill(self, billing_date=None, dpp=10):
+    def bill(self, billing_date=None, dpp=10, force_by_date=False, billing_date_override=None):
         from invoicing.utils import bill_subscription
 
-        return bill_subscription(self, billing_date, dpp)
+        return bill_subscription(self, billing_date, dpp, force_by_date, billing_date_override)
+
+    @property
+    def frequency_days(self):
+        if self.frequency == 12:
+            return 365
+        elif self.frequency == 24:
+            return 730
+        else:
+            return self.frequency * 30
 
     class Meta:
         verbose_name = _("subscription")
@@ -2366,6 +2425,11 @@ class ActivityTopic(models.Model):
     def __str__(self):
         return self.name
 
+    class Meta:
+        verbose_name = _("activity topic")
+        verbose_name_plural = _("activity topics")
+        ordering = ["name"]
+
 
 class ActivityResponse(models.Model):
     """
@@ -2377,6 +2441,11 @@ class ActivityResponse(models.Model):
 
     def __str__(self):
         return self.name
+
+    class Meta:
+        verbose_name = _("activity response")
+        verbose_name_plural = _("activity responses")
+        ordering = ["name"]
 
 
 class Activity(models.Model):
@@ -2499,6 +2568,11 @@ class ContactProductHistory(models.Model):
         statuses = dict(PRODUCTHISTORY_CHOICES)
         return statuses.get(self.status, "N/A")
 
+    class Meta:
+        verbose_name = _("Contact Product History")
+        verbose_name_plural = _("Contact Product Histories")
+        ordering = ["id"]
+
 
 class ContactCampaignStatus(models.Model):
     """
@@ -2518,6 +2592,9 @@ class ContactCampaignStatus(models.Model):
 
     class Meta:
         unique_together = ["contact", "campaign"]
+        verbose_name = _("Contact Campaign Status")
+        verbose_name_plural = _("Contact Campaign Statuses")
+        ordering = ["id"]
 
     def get_last_activity(self):
         """
@@ -2647,6 +2724,11 @@ class PriceRule(models.Model):
     # TODO: describe this field
     history = HistoricalRecords()
 
+    class Meta:
+        verbose_name = _("Price Rule")
+        verbose_name_plural = _("Price Rules")
+        ordering = ["id"]
+
 
 class DynamicContactFilter(models.Model):
     """
@@ -2767,9 +2849,19 @@ class DynamicContactFilter(models.Model):
     def get_autosync(self):
         return _("Active") if self.autosync else _("Inactive")
 
+    class Meta:
+        verbose_name = _("Dynamic Contact Filter")
+        verbose_name_plural = _("Dynamic Contact Filters")
+        ordering = ["id"]
+
 
 class ProductBundle(models.Model):
     products = models.ManyToManyField(Product)
+
+    class Meta:
+        verbose_name = _("Product Bundle")
+        verbose_name_plural = _("Product Bundles")
+        ordering = ["id"]
 
     def __str__(self):
         return_str = "Bundle: "
@@ -2815,6 +2907,8 @@ class DoNotCallNumber(models.Model):
         return self.number
 
     class Meta:
+        verbose_name = _("Do Not Call Number")
+        verbose_name_plural = _("Do Not Call Numbers")
         ordering = ["number"]
 
 
@@ -2994,9 +3088,15 @@ class PaymentMethod(models.Model):
     - Bank Transfer
     - etc.
     """
+
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True)
     active = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = _("Payment Method")
+        verbose_name_plural = _("Payment Methods")
+        ordering = ["name"]
 
     def __str__(self) -> str:
         return self.name
@@ -3012,9 +3112,15 @@ class PaymentType(models.Model):
     - Mastercard
     - etc.
     """
+
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True)
     active = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = _("Payment Type")
+        verbose_name_plural = _("Payment Types")
+        ordering = ["name"]
 
     def __str__(self) -> str:
         return self.name

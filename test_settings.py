@@ -4,7 +4,7 @@ from local_settings import *  # noqa
 
 
 ALLOWED_HOSTS = ['testserver', ]
-
+LANGUAGE_CODE = 'en-us'
 IGNORE_WEB_UPDATE_NEWSLETTERS = True  # TODO: explain this setting
 
 

@@ -1,11 +1,11 @@
-{% extends 'adminlte/base.html' %}
+{% extends "adminlte/base.html" %}
 {% load static %}
 {% load i18n %}
 
 {% block content %}
 <div class="error-page text-center">
   <h3>Permiso denegado</h3>
-  <p>No tienes permiso de acceso a esta p&aacute;gina.</p>
-  <a href="/">Ir al inicio</a>
+  <p>No tienes permiso de acceso a esta página.</p>
+  <a href="{% url 'home' %}">Ir al inicio</a>
 </div>
 {% endblock %}

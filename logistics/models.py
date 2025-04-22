@@ -302,7 +302,7 @@ class Edition(models.Model):
         unique_together = ('product', 'date')
 
     def __str__(self):
-        return _('Edition %s %s') % (self.product, self.date)
+        return _("Edition {product} {date}").format(product=self.product, date=self.date)
 
 
 class EditionRoute(models.Model):
