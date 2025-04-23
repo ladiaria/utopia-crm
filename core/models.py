@@ -288,7 +288,11 @@ class Product(models.Model):
         return weekdays.get(self.weekday, "N/A")
 
     def get_last_terms_and_conditions(self):
-        return self.terms_and_conditions.order_by("-date").first()
+        if self.has_terms_and_conditions():
+            return self.terms_and_conditions.through.objects.filter(
+                product=self
+            ).order_by("-date").first().terms_and_conditions
+        return None
 
     def has_terms_and_conditions(self):
         return self.terms_and_conditions.exists()
