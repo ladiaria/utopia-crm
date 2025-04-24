@@ -43,6 +43,14 @@
   {% endif %}
 {% endblock no_heading %}
 
+{% block title %}
+  {% if contact %}
+    {{ contact.id }} - {{ contact.get_full_name }} - {% trans "Edit contact" %}
+  {% else %}
+    {% trans "New contact" %}
+  {% endif %}
+{% endblock title %}
+
 {% block content %}
   <section class="content">
     <div class="container-fluid">
