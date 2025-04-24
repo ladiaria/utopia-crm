@@ -7,6 +7,15 @@
   <link rel="stylesheet"
         type="text/css"
         href="{% static 'tagify/tagify.css' %}">
+  <style>
+    .tagify {
+      max-height: 150px;
+      overflow-y: auto;
+      border: 1px solid #ced4da;
+      padding-right: 10px;  /* space for scroll bar */
+      background: linear-gradient(to bottom, white 60%, #f8f9fa);
+    }
+  </style>
 {% endblock %}
 
 {% block extra_js %}
