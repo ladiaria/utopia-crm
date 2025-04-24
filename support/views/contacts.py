@@ -1,4 +1,5 @@
 import csv
+import json
 import pandas as pd
 from datetime import date
 
@@ -336,6 +337,7 @@ class ContactUpdateView(BreadcrumbsMixin, UpdateView):
         # TODO: Only apply the prev. line indication (commented) if fields marked to be synced are unchanged
         # self.object.updatefromweb = True
         result = super().form_valid(form)
+        self.save_tags()
         # del self.object.updatefromweb
         return result
 
@@ -347,6 +349,20 @@ class ContactUpdateView(BreadcrumbsMixin, UpdateView):
             messages.warning(self.request, f"CMS sync error: {self.object.sync_error}")
             del self.object.sync_error
         return reverse("contact_detail", args=[self.object.id])
+
+    def save_tags(self):
+        # This method had to be added because in this update logic, the tags are not saved for whatever reason
+        raw_tags = self.request.POST.get("tags")
+        if raw_tags and raw_tags != "[]":
+            try:
+                parsed_tags = json.loads(raw_tags)
+                if isinstance(parsed_tags, list) and all("value" in tag for tag in parsed_tags):
+                    tag_list = [tag["value"] for tag in parsed_tags]
+                    self.object.tags.set(tag_list)
+            except json.JSONDecodeError:
+                pass
+        else:
+            self.object.tags.clear()
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -531,8 +547,10 @@ class ImportContactsView(FormView):
         self.add_tags(new_contact, tags['tags'])
 
     def add_tags(self, contact, tag_list):
-        for tag in tag_list:
-            contact.tags.add(tag)
+        tag_list = [tag for tag in tag_list if isinstance(tag, str) and tag.strip()]
+        if not tag_list and not contact.tags.exists():
+            return
+        contact.tags.set(tag_list)
 
     def display_messages(self, results):
         messages.success(self.request, f"{len(results['new_contacts'])} contacts imported successfully")
