@@ -4,6 +4,9 @@
   <link rel="stylesheet"
         type="text/css"
         href="{% static 'css/email_suggestion_dialog.css' %}">
+  <link rel="stylesheet"
+        type="text/css"
+        href="{% static 'tagify/tagify.css' %}">
 {% endblock %}
 
 {% block extra_js %}
@@ -12,6 +15,13 @@
     $(function(){
       $(".datepicker").datepicker({ dateFormat: 'yy-mm-dd' });
       {% include 'email_suggestion_dialog_js.html' %}
+    });
+  </script>
+  <script type="text/javascript" src="{% static 'tagify/tagify.js' %}"></script>
+  <script type="text/javascript">
+    document.addEventListener("DOMContentLoaded", function () {
+      const tag_input = document.querySelector('input[name="tags"]');
+      new Tagify(tag_input);
     });
   </script>
 {% endblock extra_js %}

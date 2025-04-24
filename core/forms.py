@@ -1,5 +1,6 @@
 # coding=utf-8
 from pymailcheck import split_email
+import json
 
 from django import forms
 from django.core.mail import mail_managers
@@ -137,6 +138,18 @@ class ContactAdminForm(EmailValidationForm, forms.ModelForm):
             email = cleaned_data.get("email")
             if email:
                 email = self.email_extra_clean(cleaned_data)
+
+        raw_tags = self.data.get("tags")
+        if raw_tags:
+            try:
+                parsed_tags = json.loads(raw_tags)
+                if isinstance(parsed_tags, list) and all("value" in tag for tag in parsed_tags):
+                    cleaned_data["tags"] = [tag["value"] for tag in parsed_tags]
+            except json.JSONDecodeError:
+                pass
+        else:
+            cleaned_data["tags"] = []
+
         return cleaned_data
 
     def clean_id_document(self):
