@@ -547,8 +547,10 @@ class ImportContactsView(FormView):
         self.add_tags(new_contact, tags['tags'])
 
     def add_tags(self, contact, tag_list):
-        for tag in tag_list:
-            contact.tags.add(tag)
+        tag_list = [tag for tag in tag_list if isinstance(tag, str) and tag.strip()]
+        if not tag_list and not contact.tags.exists():
+            return
+        contact.tags.set(tag_list)
 
     def display_messages(self, results):
         messages.success(self.request, f"{len(results['new_contacts'])} contacts imported successfully")
