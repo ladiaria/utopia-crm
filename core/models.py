@@ -691,7 +691,12 @@ class Contact(models.Model):
         Returns the latest activity of this contact.
         """
         if self.activity_set.exists():
-            return self.activity_set.latest("id")
+            if hasattr(self, "_prefetched_objects_cache") and "activity_set" in self._prefetched_objects_cache:
+                try:
+                    return max(self._prefetched_objects_cache["activity_set"], key=lambda a: a.id)
+                except ValueError:
+                    return None
+            return self.activity_set.order_by("-id").first()
         else:
             return None
 
