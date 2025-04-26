@@ -437,7 +437,14 @@ class ProductAdmin(admin.ModelAdmin):
         (
             _("Pricing & Discounts"),
             {
-                "fields": ("price", "offerable", "temporary_discount_months", "renewal_type"),
+                "fields": (
+                    "price",
+                    "offerable",
+                    "temporary_discount_months",
+                    "renewal_type",
+                    "has_implicit_discount",
+                    "target_product",
+                ),
             },
         ),
         (
