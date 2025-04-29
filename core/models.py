@@ -293,9 +293,12 @@ class Product(models.Model):
 
     def get_last_terms_and_conditions(self):
         if self.has_terms_and_conditions():
-            return self.terms_and_conditions.through.objects.filter(
-                product=self
-            ).order_by("-date").first().terms_and_conditions
+            return (
+                self.terms_and_conditions.through.objects.filter(product=self)
+                .order_by("-date")
+                .first()
+                .terms_and_conditions
+            )
         return None
 
     @property
@@ -1200,6 +1203,13 @@ class Address(models.Model):
         verbose_name=_("City"),
         db_column='city_fk',  # Explicit different column name
     )
+    name = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        verbose_name=_("Name"),
+        help_text=_("Name of the address. It can be a reference to the address or the name of the person"),
+    )
 
     @cached_property
     def country_name(self):
@@ -1210,9 +1220,13 @@ class Address(models.Model):
         return self.state.name if self.state else None
 
     def __str__(self):
-        return ', '.join(
-            filter(None, (self.address_1, self.address_2, self.get_city(), self.state_name, self.country_name))
+        address_str = ', '.join(
+            filter(
+                None,
+                (self.address_1, self.address_2, self.get_city(), self.state_name, self.country_name)
+            )
         )
+        return f"{address_str} ({self.name})" if self.name else address_str
 
     def add_note(self, note):
         self.notes = f"{note}" if not self.notes else self.notes + f"\n{note}"
