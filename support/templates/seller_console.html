@@ -226,63 +226,49 @@
                 <button class="btn btn-block bg-gradient-warning btn-sm"
                         type="submit"
                         name="result"
-                        value="call-later">
-                    No encontrado, llamar más tarde
-                </button>
+                        value="call-later">No encontrado, llamar más tarde</button>
                 <button class="btn btn-block bg-gradient-warning btn-sm"
                         type="submit"
                         name="result"
                         value="error-promotion"
                         onclick="return confirm('{% trans "Do you want to continue?" %}');">
-                    Error en la promoción
+                  Error en la promoción
                 </button>
                 <button class="btn btn-block bg-gradient-warning btn-sm"
                         type="submit"
                         name="result"
                         value="uncontactable"
                         onclick="return confirm('{% trans "Do you want to continue?" %}');">
-                    Inubicable, remover de la campaña
+                  Inubicable, remover de la campaña
                 </button>
                 <button class="btn btn-block bg-gradient-warning btn-sm"
                         type="submit"
                         name="result"
                         value="move-morning"
-                        onclick="return confirm('{% trans "Do you want to continue?" %}');">
-                    Mover a la mañana
-                </button>
+                        onclick="return confirm('{% trans "Do you want to continue?" %}');">Mover a la mañana</button>
                 <button class="btn btn-block bg-gradient-warning btn-sm"
                         type="submit"
                         name="result"
                         value="move-afternoon"
-                        onclick="return confirm('{% trans "Do you want to continue?" %}');">
-                    Mover a la tarde
-                </button>
+                        onclick="return confirm('{% trans "Do you want to continue?" %}');">Mover a la tarde</button>
               </div>
               <div class="col-sm-3">
                 <button class="reject btn btn-block bg-gradient-danger btn-sm"
                         type="submit"
                         name="result"
-                        value="do-not-call">
-                    No volver a llamar
-                </button>
+                        value="do-not-call">No volver a llamar</button>
                 <button class="reject btn btn-block bg-gradient-danger btn-sm"
                         type="submit"
                         name="result"
-                        value="not-interested">
-                    No interesado
-                </button>
+                        value="not-interested">No interesado</button>
                 <button class="reject btn btn-block bg-gradient-danger btn-sm"
                         type="submit"
                         name="result"
-                        value="logistics">
-                    Logística
-                </button>
+                        value="logistics">Logística</button>
                 <button class="reject btn btn-block bg-gradient-danger btn-sm"
                         type="submit"
                         name="result"
-                        value="already-subscriber">
-                    Ya es suscriptor
-                </button>
+                        value="already-subscriber">Ya es suscriptor</button>
               </div>
               <div class="col-sm-3">
                 {% if not contact.has_active_subscription %}
@@ -291,14 +277,15 @@
                 {% endif %}
                 {% if contact.has_active_subscription %}
                   {% if campaign.product.edition_frequency == 4 %}
+                    <p class="d-block mb-0"><span class="font-weight-bold">Opciones sin reemplazo de suscripción.</span> Utilizar cuando se quiere agregar un producto de única facturación que debe ser pagado con la siguiente factura sin modificar su fecha de facturación:</p>
                     <a href="{% url 'edit_subscription' contact.id contact.get_first_active_subscription.id %}?url={{ url }}&offset={{ offset }}&{{ category }}={{ console_instance.id }}"
-                       class="btn btn-block bg-gradient-success btn-sm">{% trans "Edit subscription" %}</a>
-                  {% else %}
-                    <a href="{% url 'additional_product' contact.get_first_active_subscription.id %}?url={{ url }}&offset={{ offset }}&{{ category }}={{ console_instance.id }}"
-                       class="btn btn-block bg-gradient-success btn-sm">Agregar productos</a>
-                    <a href="{% url 'product_change' contact.get_first_active_subscription.id %}?url={{ url }}&offset={{ offset }}&{{ category }}={{ console_instance.id }}"
-                       class="btn btn-block bg-gradient-success btn-sm">Cambiar productos</a>
+                       class="btn btn-block bg-gradient-success btn-sm mb-2">{% trans "Edit subscription" %}</a>
                   {% endif %}
+                  <p class="d-block mb-0"><span class="font-weight-bold">Opciones con reemplazo de suscripción.</span> Utilizar cuando se quiere agregar un producto de suscripción que debe ser facturado inmediatamente creando una nueva suscripción:</p>
+                  <a href="{% url 'additional_product' contact.get_first_active_subscription.id %}?url={{ url }}&offset={{ offset }}&{{ category }}={{ console_instance.id }}"
+                     class="btn btn-block bg-gradient-success btn-sm">{% trans "Add product" %}</a>
+                  <a href="{% url 'product_change' contact.get_first_active_subscription.id %}?url={{ url }}&offset={{ offset }}&{{ category }}={{ console_instance.id }}"
+                     class="btn btn-block bg-gradient-success btn-sm">{% trans "Change product" %}</a>
                 {% else %}
                   <a href="{% url 'new_subscription' contact.id %}?url={{ url }}&offset={{ offset }}&{{ category }}={{ console_instance.id }}"
                      class="btn btn-block bg-gradient-success btn-sm">{% trans "Sell" %}</a>
@@ -338,9 +325,7 @@
                 <button type="submit"
                         class="btn btn-sm btn-primary float-right"
                         name="result"
-                        value="schedule">
-                    {% trans "Schedule" %}
-                </button>
+                        value="schedule">{% trans "Schedule" %}</button>
               </div>
             </div>
           </div>
@@ -396,7 +381,9 @@
               <div class="card-body">
                 <dl>
                   {% for s in all_subscriptions %}
-                    <dt {% if forloop.counter != 1 %}class="border-top mt-4 pt-3"{% endif %}>{% trans "Type:" %} {{ s.get_type_display }}</dt>
+                    <dt {% if forloop.counter != 1 %}class="border-top mt-4 pt-3"{% endif %}>
+                      {% trans "Type:" %} {{ s.get_type_display }}
+                    </dt>
                     <dd>
                       <b>{% trans "Active" %}:</b> {{ s.active }}
                     </dd>
