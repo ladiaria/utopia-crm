@@ -694,7 +694,7 @@ class Contact(models.Model):
         """
         Returns the latest activity of this contact.
         """
-        return get_latest_from_prefetch(self, "activity_set", to_attr="prefetched_last_activity")
+        return get_latest_from_prefetch(self, "activity_set")
 
     def get_last_activity_formatted(self):
         last_activity = self.last_activity()
