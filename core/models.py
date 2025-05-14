@@ -1221,10 +1221,7 @@ class Address(models.Model):
 
     def __str__(self):
         address_str = ', '.join(
-            filter(
-                None,
-                (self.address_1, self.address_2, self.get_city(), self.state_name, self.country_name)
-            )
+            filter(None, (self.address_1, self.address_2, self.get_city(), self.state_name, self.country_name))
         )
         return f"{address_str} ({self.name})" if self.name else address_str
 
@@ -2493,6 +2490,9 @@ class Activity(models.Model):
     topic = models.ForeignKey(ActivityTopic, on_delete=models.SET_NULL, null=True, blank=True)
     response = models.ForeignKey(ActivityResponse, on_delete=models.SET_NULL, null=True, blank=True)
     history = HistoricalRecords()
+    seller_console_action = models.ForeignKey(
+        "support.SellerConsoleAction", on_delete=models.SET_NULL, null=True, blank=True
+    )
 
     def __str__(self):
         return str(_("Activity {} for contact {}".format(self.id, self.contact.id)))
