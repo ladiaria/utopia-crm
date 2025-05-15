@@ -597,7 +597,7 @@ class NewActivityForm(forms.ModelForm):
 
 class CreateActivityForm(forms.ModelForm):
     datetime = forms.DateTimeField(
-        widget=forms.DateTimeInput(attrs={'type': 'datetime-local'}), input_formats=['%Y-%m-%dT%H:%M']
+        widget=forms.DateTimeInput(attrs={'type': 'datetime-local'}), input_formats=['%Y-%m-%dT%H:%M'], label=_("Date")
     )
 
     def __init__(self, *args, **kwargs):

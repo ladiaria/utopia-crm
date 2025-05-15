@@ -209,9 +209,9 @@ class SubscriptionAdmin(SimpleHistoryAdmin):
         return form
 
     fieldsets = (
-        ("Contact data", {"fields": ("contact",)}),
+        (_("Contact data"), {"fields": ("contact",)}),
         (
-            "Subscription data",
+            _("Subscription data"),
             {
                 "fields": (
                     ("active", "type"),
@@ -228,13 +228,13 @@ class SubscriptionAdmin(SimpleHistoryAdmin):
             },
         ),
         (
-            "Corporate subscription data",
+            _("Corporate subscription data"),
             {
                 "fields": (("number_of_subscriptions", "override_price"),),
             },
         ),
         (
-            "Billing data",
+            _("Billing data"),
             {
                 "classes": ("collapse",),
                 "fields": (
@@ -246,7 +246,7 @@ class SubscriptionAdmin(SimpleHistoryAdmin):
             },
         ),
         (
-            "Inactivity",
+            _("Inactivity"),
             {
                 "classes": ("collapse",),
                 "fields": (
