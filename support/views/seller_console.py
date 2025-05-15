@@ -12,7 +12,7 @@ from django.contrib.auth.models import User
 from django.utils.translation import gettext_lazy as _
 from datetime import date, timedelta, datetime
 
-from support.models import Seller, Issue
+from support.models import Seller, Issue, SellerConsoleAction
 from core.models import Address, SubscriptionProduct, Activity, ContactCampaignStatus, Campaign, Subscription
 from core.utils import logistics_is_installed
 from core.choices import CAMPAIGN_RESOLUTION_REASONS_CHOICES
@@ -190,10 +190,10 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
         """Get campaign from URL kwargs"""
         return get_object_or_404(Campaign, pk=self.kwargs['campaign_id'])
 
-    def process_activity_result(self, contact, campaign, seller, result, new_activity_notes):
+    def process_activity_result(self, activity, campaign, seller, result, notes):
         """Process activity result and create/update related objects"""
         try:
-            ccs = ContactCampaignStatus.objects.filter(campaign=campaign, contact=contact).first()
+            ccs = ContactCampaignStatus.objects.filter(campaign=campaign, contact=activity.contact).first()
             if not ccs:
                 messages.error(self.request, _("Contact is no longer in this campaign"))
                 return None
@@ -225,7 +225,7 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
             messages.error(self.request, str(e))
             return None
 
-    def create_scheduled_activity(self, contact, campaign, seller, call_datetime):
+    def create_scheduled_activity(self, contact, campaign, seller, call_datetime, action_slug):
         """Create a scheduled activity"""
         return Activity.objects.create(
             contact=contact,
@@ -248,6 +248,59 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
         }
         return status_messages.get(status, _("updated"))
 
+    def register_new_activity(self, instance_id, category, campaign, seller, notes, result):
+        if category == "new":
+            try:
+                ccs = ContactCampaignStatus.objects.get(pk=instance_id)
+            except ContactCampaignStatus.DoesNotExist:
+                messages.error(
+                    self.request,
+                    _("The contact is no longer in this campaign, instance number: {}".format(instance_id)),
+                )
+                return HttpResponseRedirect(reverse("seller_console", args=[category, campaign.id]))
+            contact = ccs.contact
+        else:
+            try:
+                activity = Activity.objects.get(pk=instance_id)
+            except Activity.DoesNotExist:
+                messages.error(self.request, _("Activity not found"))
+                return HttpResponseRedirect(reverse("seller_console", args=[category, campaign.id]))
+            contact = activity.contact
+        try:
+            seller_console_action_obj = SellerConsoleAction.objects.get(slug=result)
+        except SellerConsoleAction.DoesNotExist:
+            messages.warning(self.request, _("Invalid action slug"))
+            seller_console_action_obj = None
+        # If we're using the setting to keep contacts in campaigns indefinitely, we'll need to set the datetime
+        # to a future date, otherwise we'll use the current date and set this as closed. Anyways we'll mark the
+        # current activity as closed and create a new one with the future datetime.
+        if getattr(settings, "KEEP_CONTACTS_IN_CAMPAIGNS_INDEFINITELY", False):
+            # activity.status = "C"
+            # activity.datetime = datetime.now()  # Set the datetime to the current time
+            # activity.save()
+            new_activity = Activity.objects.create(
+                contact=contact,
+                activity_type="C",  # Call
+                datetime=datetime.now() + timedelta(days=getattr(settings, "SELLER_CONSOLE_CALL_LATER_DAYS", 7)),
+                campaign=campaign,
+                seller=seller,
+                status="P",  # Pending
+                seller_console_action=seller_console_action_obj,
+                notes="",
+            )
+            return new_activity
+        new_activity = Activity.objects.create(
+            contact=contact,
+            activity_type="C",  # Call
+            datetime=datetime.now(),
+            campaign=campaign,
+            seller=seller,
+            status="C",  # Completed
+            notes=notes,
+            seller_console_action=seller_console_action_obj,
+        )
+        return new_activity
+
     def handle_post_request(self):
         """Handle POST request logic"""
         data = self.request.POST
@@ -256,6 +309,8 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
         campaign = self.get_campaign()
         category = data.get("category")
         instance_id = data.get("instance_id")
+        notes = data.get("notes")
+        reason = data.get("campaign_resolution_reason")
 
         if not instance_id:
             messages.error(self.request, _("Missing console instance in POST data"))
@@ -267,15 +322,6 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
             messages.error(self.request, _("Invalid seller ID"))
             return HttpResponseRedirect(reverse("seller_console", args=[category, campaign.id]))
 
-        # Process resolution reason
-        resolution_reason = (
-            int(data.get("campaign_resolution_reason")) if data.get("campaign_resolution_reason") else None
-        )
-        chosen_resolution_reason = dict(CAMPAIGN_RESOLUTION_REASONS_CHOICES).get(resolution_reason)
-
-        # Build activity notes
-        new_activity_notes = self.build_activity_notes(result, chosen_resolution_reason, data.get("notes"))
-
         # Process based on category
         if category == "act":
             try:
@@ -283,46 +329,32 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
             except Activity.DoesNotExist:
                 messages.error(self.request, _("Activity not found"))
                 return HttpResponseRedirect(reverse("seller_console", args=[category, campaign.id]))
-            contact = activity.contact
-            activity.notes = new_activity_notes
+            activity.notes = data.get("notes")
             activity.status = "C"
+            activity.datetime = datetime.now()  # Set the datetime to the current time
             activity.save()
+            if getattr(settings, "KEEP_CONTACTS_IN_CAMPAIGNS_INDEFINITELY", False):
+                # This is only here so that we can register a new activity if the setting is enabled
+                new_activity = self.register_new_activity(instance_id, category, campaign, seller, notes, result)
         else:  # category == "new"
-            try:
-                ccs = ContactCampaignStatus.objects.get(pk=instance_id)
-            except ContactCampaignStatus.DoesNotExist:
-                messages.error(
-                    self.request,
-                    _("The contact is no longer in this campaign, instance number: {}".format(instance_id)),
-                )
-                return HttpResponseRedirect(reverse("seller_console", args=[category, campaign.id]))
-            contact = ccs.contact
-            Activity.objects.create(
-                contact=contact,
-                activity_type="C",
-                datetime=datetime.now(),
-                campaign=campaign,
-                seller=seller,
-                status="C",
-                notes=new_activity_notes,
-            )
+            new_activity = self.register_new_activity(instance_id, category, campaign, seller, notes, result)
 
         # Process the result
-        ccs = self.process_activity_result(contact, campaign, seller, result, new_activity_notes)
+        ccs = self.process_activity_result(new_activity, campaign, seller, result, notes)
 
         # Handle scheduling if needed
         if result == "schedule":
             call_datetime = self.get_call_datetime(data)
-            self.create_scheduled_activity(contact, campaign, seller, call_datetime)
+            self.create_scheduled_activity(new_activity.contact, campaign, seller, call_datetime)
 
         # Save any resolution reason
-        if data.get("campaign_resolution_reason"):
-            ccs.resolution_reason = data.get("campaign_resolution_reason")
+        if reason:
+            ccs.resolution_reason = reason
         ccs.save()
 
         # Show success message
         action = self.get_status_action_message(ccs.status)
-        messages.success(self.request, _("Contact {id} {action}".format(id=contact.id, action=action)))
+        messages.success(self.request, _("Contact {id} {action}".format(id=new_activity.contact.id, action=action)))
 
         # Convert offset to int and increment it only for "Call later" result
         try:
@@ -332,15 +364,6 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
             offset = 2  # If offset is None or invalid, start at 2 (next item)
 
         return self.get_redirect_response(category, campaign.id, offset)
-
-    def build_activity_notes(self, result, chosen_resolution_reason, additional_notes):
-        """Build complete activity notes string"""
-        notes = [result]
-        if chosen_resolution_reason:
-            notes.append(f"({chosen_resolution_reason})")
-        if additional_notes:
-            notes.append(additional_notes)
-        return "\n".join(notes)
 
     def get_call_datetime(self, data):
         """Convert date and time strings to datetime object"""
@@ -482,6 +505,10 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
         category = self.kwargs['category']
         if category == "new":
             return campaign.get_not_contacted(seller.id)
+        if getattr(settings, "ALLOW_ACCESSING_FUTURE_ACTIVITIES_IN_SELLER_CONSOLE", False):
+            return campaign.activity_set.filter(
+                activity_type="C", seller=seller, status="P"
+            ).order_by("datetime", "id")
         return campaign.activity_set.filter(
             activity_type="C", seller=seller, status="P", datetime__lte=datetime.now()
         ).order_by("datetime", "id")

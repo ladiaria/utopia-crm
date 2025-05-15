@@ -8,7 +8,7 @@ from django.contrib.auth.models import User
 from django.db.models import Q
 
 from core.models import Activity, ContactCampaignStatus, Subscription, Campaign, Product
-from .models import Issue, IssueSubcategory, Seller, ScheduledTask, SalesRecord
+from .models import Issue, IssueSubcategory, Seller, ScheduledTask, SalesRecord, SellerConsoleAction
 
 
 CREATION_CHOICES = (
@@ -65,9 +65,11 @@ class InvoicingIssueFilter(IssueFilter):
 
 
 class ScheduledActivityFilter(django_filters.FilterSet):
+    seler_console_action = django_filters.ModelChoiceFilter(queryset=SellerConsoleAction.objects.filter(is_active=True))
+
     class Meta:
         model = Activity
-        fields = ['status', 'campaign']
+        fields = ['status', 'campaign', 'seller_console_action']
 
 
 class ContactCampaignStatusFilter(django_filters.FilterSet):
@@ -75,7 +77,7 @@ class ContactCampaignStatusFilter(django_filters.FilterSet):
 
     class Meta:
         model = ContactCampaignStatus
-        fields = ["seller"]
+        fields = ["seller", "status"]
 
 
 class UnsubscribedSubscriptionsByEndDateFilter(django_filters.FilterSet):
