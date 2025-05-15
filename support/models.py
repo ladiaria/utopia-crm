@@ -512,3 +512,21 @@ class SalesRecord(models.Model):
             )
             return value
         return 0
+
+
+class SellerConsoleAction(models.Model):
+    """
+    Model to store which actions the seller has done in the console. It is stored in the activity.
+    """
+    slug = models.SlugField(max_length=100, primary_key=True)
+    name = models.CharField(max_length=100, blank=True, null=True)
+    description = models.TextField(blank=True, null=True)
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = _("Seller Console Action")
+        verbose_name_plural = _("Seller Console Actions")
+        ordering = ("name",)
