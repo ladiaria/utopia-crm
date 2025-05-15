@@ -190,10 +190,10 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
         """Get campaign from URL kwargs"""
         return get_object_or_404(Campaign, pk=self.kwargs['campaign_id'])
 
-    def process_activity_result(self, activity, campaign, seller, result, notes):
+    def process_activity_result(self, contact, campaign, seller, result, notes):
         """Process activity result and create/update related objects"""
         try:
-            ccs = ContactCampaignStatus.objects.filter(campaign=campaign, contact=activity.contact).first()
+            ccs = ContactCampaignStatus.objects.filter(campaign=campaign, contact=contact).first()
             if not ccs:
                 messages.error(self.request, _("Contact is no longer in this campaign"))
                 return None
@@ -225,7 +225,7 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
             messages.error(self.request, str(e))
             return None
 
-    def create_scheduled_activity(self, contact, campaign, seller, call_datetime, action_slug):
+    def create_scheduled_activity(self, contact, campaign, seller, call_datetime):
         """Create a scheduled activity"""
         return Activity.objects.create(
             contact=contact,
@@ -257,14 +257,14 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
                     self.request,
                     _("The contact is no longer in this campaign, instance number: {}".format(instance_id)),
                 )
-                return HttpResponseRedirect(reverse("seller_console", args=[category, campaign.id]))
+                return None
             contact = ccs.contact
         else:
             try:
                 activity = Activity.objects.get(pk=instance_id)
             except Activity.DoesNotExist:
                 messages.error(self.request, _("Activity not found"))
-                return HttpResponseRedirect(reverse("seller_console", args=[category, campaign.id]))
+                return None
             contact = activity.contact
         try:
             seller_console_action_obj = SellerConsoleAction.objects.get(slug=result)
@@ -275,9 +275,6 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
         # to a future date, otherwise we'll use the current date and set this as closed. Anyways we'll mark the
         # current activity as closed and create a new one with the future datetime.
         if getattr(settings, "KEEP_CONTACTS_IN_CAMPAIGNS_INDEFINITELY", False):
-            # activity.status = "C"
-            # activity.datetime = datetime.now()  # Set the datetime to the current time
-            # activity.save()
             new_activity = Activity.objects.create(
                 contact=contact,
                 activity_type="C",  # Call
@@ -326,6 +323,7 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
         if category == "act":
             try:
                 activity = Activity.objects.get(pk=instance_id)
+                contact = activity.contact
             except Activity.DoesNotExist:
                 messages.error(self.request, _("Activity not found"))
                 return HttpResponseRedirect(reverse("seller_console", args=[category, campaign.id]))
@@ -338,14 +336,15 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
                 new_activity = self.register_new_activity(instance_id, category, campaign, seller, notes, result)
         else:  # category == "new"
             new_activity = self.register_new_activity(instance_id, category, campaign, seller, notes, result)
+            contact = new_activity.contact
 
         # Process the result
-        ccs = self.process_activity_result(new_activity, campaign, seller, result, notes)
+        ccs = self.process_activity_result(contact, campaign, seller, result, notes)
 
         # Handle scheduling if needed
         if result == "schedule":
             call_datetime = self.get_call_datetime(data)
-            self.create_scheduled_activity(new_activity.contact, campaign, seller, call_datetime)
+            self.create_scheduled_activity(contact, campaign, seller, call_datetime)
 
         # Save any resolution reason
         if reason:
@@ -354,7 +353,7 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
 
         # Show success message
         action = self.get_status_action_message(ccs.status)
-        messages.success(self.request, _("Contact {id} {action}".format(id=new_activity.contact.id, action=action)))
+        messages.success(self.request, _("Contact {id} {action}".format(id=contact.id, action=action)))
 
         # Convert offset to int and increment it only for "Call later" result
         try:
