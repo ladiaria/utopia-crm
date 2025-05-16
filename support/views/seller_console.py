@@ -248,24 +248,29 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
         }
         return status_messages.get(status, _("updated"))
 
-    def register_new_activity(self, instance_id, category, campaign, seller, notes, result):
-        if category == "new":
+    def get_contact_from_instance_id(self, instance_id, category):
+        if category == "act":
+            try:
+                activity = Activity.objects.get(pk=instance_id)
+                return activity.contact
+            except Activity.DoesNotExist:
+                messages.error(self.request, _("Activity not found"))
+                return None
+        else:
             try:
                 ccs = ContactCampaignStatus.objects.get(pk=instance_id)
+                return ccs.contact
             except ContactCampaignStatus.DoesNotExist:
                 messages.error(
                     self.request,
                     _("The contact is no longer in this campaign, instance number: {}".format(instance_id)),
                 )
                 return None
-            contact = ccs.contact
-        else:
-            try:
-                activity = Activity.objects.get(pk=instance_id)
-            except Activity.DoesNotExist:
-                messages.error(self.request, _("Activity not found"))
-                return None
-            contact = activity.contact
+
+    def register_new_activity(self, instance_id, category, campaign, seller, notes, result):
+        contact = self.get_contact_from_instance_id(instance_id, category)
+        if not contact:
+            return None
         try:
             seller_console_action_obj = SellerConsoleAction.objects.get(slug=result)
         except SellerConsoleAction.DoesNotExist:
@@ -275,7 +280,7 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
         # to a future date, otherwise we'll use the current date and set this as closed. Anyways we'll mark the
         # current activity as closed and create a new one with the future datetime.
         if getattr(settings, "KEEP_CONTACTS_IN_CAMPAIGNS_INDEFINITELY", False):
-            new_activity = Activity.objects.create(
+            Activity.objects.create(
                 contact=contact,
                 activity_type="C",  # Call
                 datetime=datetime.now() + timedelta(days=getattr(settings, "SELLER_CONSOLE_CALL_LATER_DAYS", 7)),
@@ -285,18 +290,18 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
                 seller_console_action=seller_console_action_obj,
                 notes="",
             )
-            return new_activity
-        new_activity = Activity.objects.create(
-            contact=contact,
-            activity_type="C",  # Call
-            datetime=datetime.now(),
-            campaign=campaign,
-            seller=seller,
-            status="C",  # Completed
-            notes=notes,
-            seller_console_action=seller_console_action_obj,
-        )
-        return new_activity
+        if category == "new":
+            # If this is the first time we're seeing this contact, we'll create an activity for it
+            Activity.objects.create(
+                contact=contact,
+                activity_type="C",  # Call
+                datetime=datetime.now(),
+                campaign=campaign,
+                seller=seller,
+                status="C",  # Completed
+                notes=notes,
+                seller_console_action=seller_console_action_obj,
+            )
 
     def handle_post_request(self):
         """Handle POST request logic"""
@@ -312,7 +317,10 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
         if not instance_id:
             messages.error(self.request, _("Missing console instance in POST data"))
             return HttpResponseRedirect(reverse("seller_console", args=[category, campaign.id]))
-
+        contact = self.get_contact_from_instance_id(instance_id, category)
+        if not contact:
+            messages.error(self.request, _("Contact not found"))
+            return HttpResponseRedirect(reverse("seller_console", args=[category, campaign.id]))
         try:
             seller = Seller.objects.get(pk=data.get("seller_id"))
         except Seller.DoesNotExist:
@@ -323,7 +331,6 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
         if category == "act":
             try:
                 activity = Activity.objects.get(pk=instance_id)
-                contact = activity.contact
             except Activity.DoesNotExist:
                 messages.error(self.request, _("Activity not found"))
                 return HttpResponseRedirect(reverse("seller_console", args=[category, campaign.id]))
@@ -333,10 +340,9 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
             activity.save()
             if getattr(settings, "KEEP_CONTACTS_IN_CAMPAIGNS_INDEFINITELY", False):
                 # This is only here so that we can register a new activity if the setting is enabled
-                new_activity = self.register_new_activity(instance_id, category, campaign, seller, notes, result)
+                self.register_new_activity(instance_id, category, campaign, seller, notes, result)
         else:  # category == "new"
-            new_activity = self.register_new_activity(instance_id, category, campaign, seller, notes, result)
-            contact = new_activity.contact
+            self.register_new_activity(instance_id, category, campaign, seller, notes, result)
 
         # Process the result
         ccs = self.process_activity_result(contact, campaign, seller, result, notes)
