@@ -13,7 +13,7 @@ from invoicing.models import InvoiceItem, Invoice
 
 # TODO: explain or remove the "Updated import" comment in next line
 from core.models import Address, Subscription, Product, SubscriptionProduct  # Updated import
-from core.utils import calc_price_from_products
+from core.utils import calc_price_from_products, create_invoiceitem_for_corporate_subscription
 
 
 def mercadopago_debit(invoice, debug=False):
@@ -389,13 +389,17 @@ def bill_subscription(subscription, billing_date=None, dpp=10, force_by_date=Fal
     product_summary = subscription.product_summary(with_pauses=True)
 
     # Calculate price and get invoice items
-    amount, invoice_items = calc_price_from_products(
-        product_summary,
-        subscription.frequency,
-        debug_id=f"subscription_{subscription.id}",
-        create_items=True,
-        subscription=subscription,
-    )
+    if subscription.type == "C" and subscription.override_price:
+        amount = subscription.override_price
+        invoice_items = create_invoiceitem_for_corporate_subscription(subscription=subscription)
+    else:
+        amount, invoice_items = calc_price_from_products(
+            product_summary,
+            subscription.frequency,
+            debug_id=f"subscription_{subscription.id}",
+            create_items=True,
+            subscription=subscription,
+        )
 
     # Handle envelope price if needed
     if envelope_price and SubscriptionProduct.objects.filter(subscription=subscription, has_envelope=1).exists():
