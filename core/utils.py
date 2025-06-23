@@ -419,6 +419,36 @@ def calc_price_from_products(products_with_copies, frequency, debug_id="", creat
     return total_price
 
 
+def create_invoiceitem_for_corporate_subscription(subscription):
+    """This function assumes the subscription has a single product and it creates an invoiceitem for it.
+
+    Args:
+        subscription (Subscription): The subscription that will be processed
+
+    Returns:
+        list[InvoiceItem]: The created invoice item. This is a list because the main function calc_price_from_products
+        returns a list of invoice items, and this is mimicking that behavior.
+    """
+    from invoicing.models import InvoiceItem
+
+    if not subscription.type == "C":
+        raise ValidationError(_("The subscription needs to be corporate to use this function"))
+
+    product = subscription.products.first()
+    item = InvoiceItem(
+        subscription=subscription,
+        product=product,
+        invoice=None,
+        copies=1,
+        description=product.name,
+        amount=subscription.override_price,
+        price=subscription.override_price,
+        type="I",
+        type_dr=1,
+    )
+    return [item]
+
+
 def process_products(input_product_dict: dict) -> dict:
     """
     Takes products from a product list (for example from a subscription products list) and turns them into new products

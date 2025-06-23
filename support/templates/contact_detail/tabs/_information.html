@@ -99,6 +99,12 @@
                       {{ address.address_2|default_if_none:"-" }}
                     </dd>
                   {% endif %}
+                  {% if address.name %}
+                    <dt>{% trans "Name" %}</dt>
+                    <dd>
+                      {{ address.name|default_if_none:"-" }}
+                    </dd>
+                  {% endif %}
                 </div>
                 <div class="col">
                   <dt>{% trans "City" %}</dt>
@@ -164,6 +170,6 @@
     <div class="card-header">
       <h3 class="card-title">{% trans "Notes" %}</h3>
     </div>
-    <div class="card-body">{{ contact.notes|linebreaksbr|default_if_none:"-" }}</div>
+    <div class="card-body">{{ contact.notes|default_if_none:"-"|linebreaksbr }}</div>
   </div>
 </div>

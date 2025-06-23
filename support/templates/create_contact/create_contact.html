@@ -4,6 +4,18 @@
   <link rel="stylesheet"
         type="text/css"
         href="{% static 'css/email_suggestion_dialog.css' %}">
+  <link rel="stylesheet"
+        type="text/css"
+        href="{% static 'tagify/tagify.css' %}">
+  <style>
+    .tagify {
+      max-height: 150px;
+      overflow-y: auto;
+      border: 1px solid #ced4da;
+      padding-right: 10px;  /* space for scroll bar */
+      background: linear-gradient(to bottom, white 60%, #f8f9fa);
+    }
+  </style>
 {% endblock %}
 
 {% block extra_js %}
@@ -12,6 +24,13 @@
     $(function(){
       $(".datepicker").datepicker({ dateFormat: 'yy-mm-dd' });
       {% include 'email_suggestion_dialog_js.html' %}
+    });
+  </script>
+  <script type="text/javascript" src="{% static 'tagify/tagify.js' %}"></script>
+  <script type="text/javascript">
+    document.addEventListener("DOMContentLoaded", function () {
+      const tag_input = document.querySelector('input[name="tags"]');
+      new Tagify(tag_input);
     });
   </script>
 {% endblock extra_js %}
@@ -23,6 +42,14 @@
     <h1>{% trans "New contact" %}</h1>
   {% endif %}
 {% endblock no_heading %}
+
+{% block title %}
+  {% if contact %}
+    {{ contact.id }} - {{ contact.get_full_name }} - {% trans "Edit contact" %}
+  {% else %}
+    {% trans "New contact" %}
+  {% endif %}
+{% endblock title %}
 
 {% block content %}
   <section class="content">
