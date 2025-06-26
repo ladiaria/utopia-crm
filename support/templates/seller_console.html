@@ -213,7 +213,7 @@
           {% if not all_activities %}
             <p>{% trans "There are no previous activities" %}</p>
           {% endif %}
-          <form method="post">
+          <form method="post" id="consoleForm">
             {% csrf_token %}
             <input type="hidden" name="offset" value="{{ offset }}" />
             <input type="hidden" name="category" value="{{ category }}" />
@@ -221,6 +221,7 @@
             <input type="hidden" name="campaign_id" value="{{ campaign.id }}" />
             <input type="hidden" name="seller_id" value="{{ seller.id }}" />
             <input type="hidden" name="url" value="{{ url }}" />
+            <input type="hidden" name="result" id="resultValue" value="" />
             <div class="form-group">
               <label for="notes">{% trans "Register activity" %}</label>
               <br>
@@ -243,52 +244,43 @@
             <br>
             <div class="row">
               <div class="col-sm-3">
-                <button class="btn btn-block bg-gradient-warning btn-sm"
-                        type="submit"
-                        name="result"
-                        value="call-later">No encontrado, llamar más tarde</button>
-                <button class="btn btn-block bg-gradient-warning btn-sm"
-                        type="submit"
-                        name="result"
-                        value="error-promotion"
-                        onclick="return confirm('{% trans "Do you want to continue?" %}');">
+                <button class="btn btn-block bg-gradient-warning btn-sm result-btn"
+                        type="button"
+                        data-result="call-later">No encontrado, llamar más tarde</button>
+                <button class="btn btn-block bg-gradient-warning btn-sm result-btn"
+                        type="button"
+                        data-result="error-promotion"
+                        data-confirm="{% trans "Do you want to continue?" %}">
                   Error en la promoción
                 </button>
-                <button class="btn btn-block bg-gradient-warning btn-sm"
-                        type="submit"
-                        name="result"
-                        value="uncontactable"
-                        onclick="return confirm('{% trans "Do you want to continue?" %}');">
+                <button class="btn btn-block bg-gradient-warning btn-sm result-btn"
+                        type="button"
+                        data-result="uncontactable"
+                        data-confirm="{% trans "Do you want to continue?" %}">
                   Inubicable, remover de la campaña
                 </button>
-                <button class="btn btn-block bg-gradient-warning btn-sm"
-                        type="submit"
-                        name="result"
-                        value="move-morning"
-                        onclick="return confirm('{% trans "Do you want to continue?" %}');">Mover a la mañana</button>
-                <button class="btn btn-block bg-gradient-warning btn-sm"
-                        type="submit"
-                        name="result"
-                        value="move-afternoon"
-                        onclick="return confirm('{% trans "Do you want to continue?" %}');">Mover a la tarde</button>
+                <button class="btn btn-block bg-gradient-warning btn-sm result-btn"
+                        type="button"
+                        data-result="move-morning"
+                        data-confirm="{% trans "Do you want to continue?" %}">Mover a la mañana</button>
+                <button class="btn btn-block bg-gradient-warning btn-sm result-btn"
+                        type="button"
+                        data-result="move-afternoon"
+                        data-confirm="{% trans "Do you want to continue?" %}">Mover a la tarde</button>
               </div>
               <div class="col-sm-3">
-                <button class="reject btn btn-block bg-gradient-danger btn-sm"
-                        type="submit"
-                        name="result"
-                        value="do-not-call">No volver a llamar</button>
-                <button class="reject btn btn-block bg-gradient-danger btn-sm"
-                        type="submit"
-                        name="result"
-                        value="not-interested">No interesado</button>
-                <button class="reject btn btn-block bg-gradient-danger btn-sm"
-                        type="submit"
-                        name="result"
-                        value="logistics">Logística</button>
-                <button class="reject btn btn-block bg-gradient-danger btn-sm"
-                        type="submit"
-                        name="result"
-                        value="already-subscriber">Ya es suscriptor</button>
+                <button class="reject btn btn-block bg-gradient-danger btn-sm result-btn"
+                        type="button"
+                        data-result="do-not-call">No volver a llamar</button>
+                <button class="reject btn btn-block bg-gradient-danger btn-sm result-btn"
+                        type="button"
+                        data-result="not-interested">No interesado</button>
+                <button class="reject btn btn-block bg-gradient-danger btn-sm result-btn"
+                        type="button"
+                        data-result="logistics">Logística</button>
+                <button class="reject btn btn-block bg-gradient-danger btn-sm result-btn"
+                        type="button"
+                        data-result="already-subscriber">Ya es suscriptor</button>
               </div>
               <div class="col-sm-3">
                 {% if not contact.has_active_subscription %}
@@ -319,6 +311,27 @@
                 hacer nada)</a>
               </div>
               <div class="col-sm-3">
+                <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                  const resultButtons = document.querySelectorAll('.result-btn');
+                  const form = document.getElementById('consoleForm');
+                  const resultInput = document.getElementById('resultValue');
+
+                  resultButtons.forEach(button => {
+                    button.addEventListener('click', function() {
+                      const result = this.getAttribute('data-result');
+                      const confirmMsg = this.getAttribute('data-confirm');
+
+                      if (confirmMsg && !confirm(confirmMsg)) {
+                        return;
+                      }
+
+                      resultInput.value = result;
+                      form.submit();
+                    });
+                  });
+                });
+                </script>
                 <div class="form-group row">
                   <div class="col-sm-3">
                     <label for="call_date">{% trans "Date" %}:</label>
@@ -346,10 +359,9 @@
                            max="21:00" />
                   </div>
                 </div>
-                <button type="submit"
-                        class="btn btn-sm btn-primary float-right"
-                        name="result"
-                        value="schedule">{% trans "Schedule" %}</button>
+                <button type="button"
+                        class="btn btn-sm btn-primary float-right result-btn"
+                        data-result="schedule">{% trans "Schedule" %}</button>
               </div>
             </div>
           </div>
