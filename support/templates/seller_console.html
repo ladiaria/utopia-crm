@@ -44,26 +44,6 @@
     rejectHandler();
 
     $("#campaign_resolution_reason").change(rejectHandler);
-
-    // Prevent double form submissions
-    $("form").submit(function() {
-      // Find all submit buttons in the form
-      var submitButtons = $(this).find("button[type='submit']");
-
-      // Disable all submit buttons and add loading indicator
-      submitButtons.each(function() {
-        var button = $(this);
-        var originalText = button.html();
-
-        // Store original text and disable button
-        button.data('original-text', originalText);
-        button.html('<i class="fas fa-spinner fa-spin"></i> ' + originalText);
-        button.prop('disabled', true);
-      });
-
-      // Allow the form to submit
-      return true;
-    });
   });
   </script>
 {% endblock %}

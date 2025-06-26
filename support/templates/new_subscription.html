@@ -65,33 +65,6 @@
         });
       });
       {% include 'email_suggestion_dialog_js.html' %}
-
-      // Prevent double form submissions using vanilla JavaScript
-      document.getElementById('subscription_form').addEventListener('submit', function(event) {
-        // Find the submit button
-        var submitButton = document.getElementById('send_form');
-        var originalText = submitButton.value;
-
-        // Check if this is a resubmission (button already disabled)
-        if (submitButton.disabled) {
-          event.preventDefault();
-          return false;
-        }
-
-        // Store original text in a data attribute
-        submitButton.setAttribute('data-original-text', originalText);
-
-        // Create a hidden input with the same name and value as the submit button
-        var hiddenInput = document.createElement('input');
-        hiddenInput.type = 'hidden';
-        hiddenInput.name = submitButton.name;
-        hiddenInput.value = originalText;
-        this.appendChild(hiddenInput);
-
-        // Now we can safely change the button text and disable it
-        submitButton.value = 'Enviando...';
-        submitButton.disabled = true;
-      });
     });
   </script>
   {% block extra_scripts %}{% endblock %}
