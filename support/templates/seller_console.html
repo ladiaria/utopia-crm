@@ -180,6 +180,9 @@
                   {% if a.seller %}
                     - {% trans "Seller" %}: {{ a.seller }}
                   {% endif %}
+                  {% if a.seller_console_action %}
+                    - {% trans "Action" %}: {{ a.seller_console_action }}
+                  {% endif %}
                 </h3>
                 <div class="card-tools">
                   <button type="button" class="btn btn-tool" data-card-widget="collapse">
