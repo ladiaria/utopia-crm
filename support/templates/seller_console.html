@@ -44,6 +44,26 @@
     rejectHandler();
 
     $("#campaign_resolution_reason").change(rejectHandler);
+
+    // Prevent double form submissions
+    $("form").submit(function() {
+      // Find all submit buttons in the form
+      var submitButtons = $(this).find("button[type='submit']");
+
+      // Disable all submit buttons and add loading indicator
+      submitButtons.each(function() {
+        var button = $(this);
+        var originalText = button.html();
+
+        // Store original text and disable button
+        button.data('original-text', originalText);
+        button.html('<i class="fas fa-spinner fa-spin"></i> ' + originalText);
+        button.prop('disabled', true);
+      });
+
+      // Allow the form to submit
+      return true;
+    });
   });
   </script>
 {% endblock %}
@@ -277,11 +297,15 @@
                 {% endif %}
                 {% if contact.has_active_subscription %}
                   {% if campaign.product.edition_frequency == 4 %}
-                    <p class="d-block mb-0"><span class="font-weight-bold">Opciones sin reemplazo de suscripción.</span> Utilizar cuando se quiere agregar un producto de única facturación que debe ser pagado con la siguiente factura sin modificar su fecha de facturación:</p>
+                    <p class="d-block mb-0">
+                      <span class="font-weight-bold">Opciones sin reemplazo de suscripción.</span> Utilizar cuando se quiere agregar un producto de única facturación que debe ser pagado con la siguiente factura sin modificar su fecha de facturación:
+                    </p>
                     <a href="{% url 'edit_subscription' contact.id contact.get_first_active_subscription.id %}?url={{ url }}&offset={{ offset }}&{{ category }}={{ console_instance.id }}"
                        class="btn btn-block bg-gradient-success btn-sm mb-2">{% trans "Edit subscription" %}</a>
                   {% endif %}
-                  <p class="d-block mb-0"><span class="font-weight-bold">Opciones con reemplazo de suscripción.</span> Utilizar cuando se quiere agregar un producto de suscripción que debe ser facturado inmediatamente creando una nueva suscripción:</p>
+                  <p class="d-block mb-0">
+                    <span class="font-weight-bold">Opciones con reemplazo de suscripción.</span> Utilizar cuando se quiere agregar un producto de suscripción que debe ser facturado inmediatamente creando una nueva suscripción:
+                  </p>
                   <a href="{% url 'additional_product' contact.get_first_active_subscription.id %}?url={{ url }}&offset={{ offset }}&{{ category }}={{ console_instance.id }}"
                      class="btn btn-block bg-gradient-success btn-sm">{% trans "Add product" %}</a>
                   <a href="{% url 'product_change' contact.get_first_active_subscription.id %}?url={{ url }}&offset={{ offset }}&{{ category }}={{ console_instance.id }}"
