@@ -46,6 +46,36 @@
     $("#campaign_resolution_reason").change(rejectHandler);
   });
   </script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const resultButtons = document.querySelectorAll('.result-btn');
+      const form = document.getElementById('consoleForm');
+      const resultInput = document.getElementById('resultValue');
+
+      let submitted = false;
+
+      resultButtons.forEach(button => {
+        button.addEventListener('click', function() {
+          if (submitted) return; // Prevent second submission
+
+          const result = this.getAttribute('data-result');
+          const confirmMsg = this.getAttribute('data-confirm');
+
+          if (confirmMsg && !confirm(confirmMsg)) {
+            return;
+          }
+
+          submitted = true;
+
+          // Optional: disable all buttons to give visual feedback
+          resultButtons.forEach(btn => btn.disabled = true);
+
+          resultInput.value = result;
+          form.submit();
+        });
+      });
+    });
+    </script>
 {% endblock %}
 
 {% block content %}
@@ -294,27 +324,6 @@
                 hacer nada)</a>
               </div>
               <div class="col-sm-3">
-                <script>
-                document.addEventListener('DOMContentLoaded', function() {
-                  const resultButtons = document.querySelectorAll('.result-btn');
-                  const form = document.getElementById('consoleForm');
-                  const resultInput = document.getElementById('resultValue');
-
-                  resultButtons.forEach(button => {
-                    button.addEventListener('click', function() {
-                      const result = this.getAttribute('data-result');
-                      const confirmMsg = this.getAttribute('data-confirm');
-
-                      if (confirmMsg && !confirm(confirmMsg)) {
-                        return;
-                      }
-
-                      resultInput.value = result;
-                      form.submit();
-                    });
-                  });
-                });
-                </script>
                 <div class="form-group row">
                   <div class="col-sm-3">
                     <label for="call_date">{% trans "Date" %}:</label>
