@@ -2,7 +2,6 @@ from django.views.generic import TemplateView
 from django.contrib.auth.mixins import UserPassesTestMixin, LoginRequiredMixin
 from django.conf import settings
 from django.contrib import messages
-from django.db.models import Q
 from django.utils import timezone
 from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render
@@ -96,7 +95,7 @@ def seller_console_list_campaigns(request, seller_id=None):
                 special_routes[route_id] = (route.name, counter)
 
     # We'll make these lists so we can append the sub count to each campaign
-    campaigns_with_not_contacted, campaigns_with_activities_to_do = [], []
+    campaigns_with_not_contacted_list, campaigns_with_activities_list = [], []
     if getattr(settings, "ISSUE_SUBCATEGORY_NEVER_PAID", None) and getattr(
         settings, "ISSUE_STATUS_FINISHED_LIST", None
     ):
@@ -108,14 +107,13 @@ def seller_console_list_campaigns(request, seller_id=None):
         issues_never_paid = []
 
     not_contacted_campaigns = seller.get_campaigns_by_status([1, 3])
-    all_campaigns = seller.get_unfinished_campaigns()
+    campaigns_with_activities = seller.get_campaigns_with_activities()
     for campaign in not_contacted_campaigns:
         campaign.count = campaign.get_not_contacted_count(seller.id)
         campaign.successful = campaign.get_successful_count(seller.id)
-        campaigns_with_not_contacted.append(campaign)
-    for campaign in all_campaigns:
+        campaigns_with_not_contacted_list.append(campaign)
+    for campaign in campaigns_with_activities:
         campaign.pending = campaign.activity_set.filter(
-            Q(campaign__end_date__isnull=True) | Q(campaign__end_date__gte=timezone.now()),
             seller=seller,
             status="P",
             activity_type="C",
@@ -123,13 +121,13 @@ def seller_console_list_campaigns(request, seller_id=None):
         ).count()
         campaign.successful = campaign.get_successful_count(seller.id)
         if campaign.pending:
-            campaigns_with_activities_to_do.append(campaign)
+            campaigns_with_activities_list.append(campaign)
     upcoming_activity = seller.upcoming_activity()
     total_pending_activities = seller.total_pending_activities_count()
 
     context = {
-        "campaigns_with_not_contacted": campaigns_with_not_contacted,
-        "campaigns_with_activities_to_do": campaigns_with_activities_to_do,
+        "campaigns_with_not_contacted": campaigns_with_not_contacted_list,
+        "campaigns_with_activities_to_do": campaigns_with_activities_list,
         "seller": seller,
         "total_pending_activities": total_pending_activities,
         "upcoming_activity": upcoming_activity,
