@@ -807,7 +807,7 @@ def advanced_export_dcf_list(request, dcf_id):
         _("id document"),
         _("Phone"),
         _("Mobile"),
-        _("Work phone"),
+        _("Institutional phone"),
     ]
     writer.writerow(header)
     for contact in dcf.get_contacts():
