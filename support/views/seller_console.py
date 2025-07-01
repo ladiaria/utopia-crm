@@ -206,6 +206,7 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
                 "already-subscriber": (4, "AS"),
                 "uncontactable": (5, "UN"),
                 "error-promotion": (5, "EP"),
+                "close-without-contact": (5, "CW"),
                 "move-morning": (6, None),
                 "move-afternoon": (7, None),
             }
@@ -243,6 +244,7 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
             5: _("marked as uncontactable"),
             6: _("moved to morning"),
             7: _("moved to afternoon"),
+            8: _("closed without contact"),
         }
         return status_messages.get(status, _("updated"))
 

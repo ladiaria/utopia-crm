@@ -262,18 +262,6 @@
                         data-result="call-later">No encontrado, llamar más tarde</button>
                 <button class="btn btn-block bg-gradient-warning btn-sm result-btn"
                         type="button"
-                        data-result="error-promotion"
-                        data-confirm="{% trans "Do you want to continue?" %}">
-                  Error en la promoción
-                </button>
-                <button class="btn btn-block bg-gradient-warning btn-sm result-btn"
-                        type="button"
-                        data-result="uncontactable"
-                        data-confirm="{% trans "Do you want to continue?" %}">
-                  Inubicable, remover de la campaña
-                </button>
-                <button class="btn btn-block bg-gradient-warning btn-sm result-btn"
-                        type="button"
                         data-result="move-morning"
                         data-confirm="{% trans "Do you want to continue?" %}">Mover a la mañana</button>
                 <button class="btn btn-block bg-gradient-warning btn-sm result-btn"
@@ -290,10 +278,25 @@
                         data-result="not-interested">No interesado</button>
                 <button class="reject btn btn-block bg-gradient-danger btn-sm result-btn"
                         type="button"
-                        data-result="logistics">Logística</button>
+                        data-result="logistics">Error de logística</button>
                 <button class="reject btn btn-block bg-gradient-danger btn-sm result-btn"
                         type="button"
                         data-result="already-subscriber">Ya es suscriptor</button>
+                <button class="btn btn-block bg-gradient-danger btn-sm result-btn"
+                        type="button"
+                        data-result="close-without-contact">Cerrar sin contacto</button>
+                <button class="btn btn-block bg-gradient-danger btn-sm result-btn"
+                        type="button"
+                        data-result="error-promotion"
+                        data-confirm="{% trans "Do you want to continue?" %}">
+                  Error en la promoción
+                </button>
+                <button class="btn btn-block bg-gradient-danger btn-sm result-btn"
+                        type="button"
+                        data-result="uncontactable"
+                        data-confirm="{% trans "Do you want to continue?" %}">
+                  Inubicable, remover de la campaña
+                </button>
               </div>
               <div class="col-sm-3">
                 {% if not contact.has_active_subscription %}
