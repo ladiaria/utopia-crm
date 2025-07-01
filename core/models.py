@@ -71,6 +71,7 @@ from .utils import (
     validateEmailOnWeb,
     updatewebuser,
 )
+from .orm_helpers import get_latest_from_prefetch
 
 
 regex_alphanumeric = r"^[@A-Za-z0-9ñüáéíóúÑÜÁÉÍÓÚ _'.\-]*$"  # noqa
@@ -206,8 +207,8 @@ class Product(models.Model):
         FIXED = "X", _("Fixed Price")
         CUSTOM = "C", _("Custom")
 
-    name = models.CharField(max_length=100, verbose_name=_("Name"), db_index=True)
-    slug = AutoSlugField(populate_from="name", null=True, blank=True, editable=True)
+    name = models.CharField(max_length=100, verbose_name=_("Name"), unique=True, db_index=True)
+    slug = AutoSlugField(populate_from="name", max_length=100, unique=True, editable=True)
     active = models.BooleanField(default=False, verbose_name=_("Active"))
     price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     type = models.CharField(max_length=1, default="O", choices=ProductTypeChoices.choices, db_index=True)
@@ -681,10 +682,7 @@ class Contact(models.Model):
         """
         Returns the latest activity of this contact.
         """
-        if self.activity_set.exists():
-            return self.activity_set.latest("id")
-        else:
-            return None
+        return get_latest_from_prefetch(self, "activity_set")
 
     def get_last_activity_formatted(self):
         last_activity = self.last_activity()
@@ -1193,6 +1191,13 @@ class Address(models.Model):
         verbose_name=_("City"),
         db_column='city_fk',  # Explicit different column name
     )
+    name = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        verbose_name=_("Name"),
+        help_text=_("Name of the address. It can be a reference to the address or the name of the person"),
+    )
 
     @cached_property
     def country_name(self):
@@ -1203,9 +1208,10 @@ class Address(models.Model):
         return self.state.name if self.state else None
 
     def __str__(self):
-        return ', '.join(
+        address_str = ', '.join(
             filter(None, (self.address_1, self.address_2, self.get_city(), self.state_name, self.country_name))
         )
+        return f"{address_str} ({self.name})" if self.name else address_str
 
     def add_note(self, note):
         self.notes = f"{note}" if not self.notes else self.notes + f"\n{note}"
@@ -1254,10 +1260,12 @@ class SubscriptionProduct(models.Model):
     is delivered, and route/order.
     """
 
-    product = models.ForeignKey("core.Product", on_delete=models.CASCADE, null=True)
-    subscription = models.ForeignKey("core.Subscription", on_delete=models.CASCADE)
-    copies = models.PositiveSmallIntegerField(default=1)
-    address = models.ForeignKey("core.Address", blank=True, null=True, on_delete=models.SET_NULL)
+    product = models.ForeignKey("core.Product", on_delete=models.CASCADE, null=True, verbose_name=_("Product"))
+    subscription = models.ForeignKey("core.Subscription", on_delete=models.CASCADE, verbose_name=_("Subscription"))
+    copies = models.PositiveSmallIntegerField(default=1, verbose_name=_("Copies"))
+    address = models.ForeignKey(
+        "core.Address", blank=True, null=True, on_delete=models.SET_NULL, verbose_name=_("Address")
+    )
     route = models.ForeignKey(
         "logistics.Route",
         blank=True,
@@ -1266,10 +1274,14 @@ class SubscriptionProduct(models.Model):
         on_delete=models.SET_NULL,
     )
     order = models.PositiveSmallIntegerField(verbose_name=_("Order"), blank=True, null=True)
-    label_message = models.CharField(max_length=40, blank=True, null=True)
-    special_instructions = models.TextField(blank=True, null=True)
-    label_contact = models.ForeignKey("core.contact", blank=True, null=True, on_delete=models.SET_NULL)
-    seller = models.ForeignKey("support.Seller", blank=True, null=True, on_delete=models.SET_NULL)
+    label_message = models.CharField(max_length=40, blank=True, null=True, verbose_name=_("Label message"))
+    special_instructions = models.TextField(blank=True, null=True, verbose_name=_("Special instructions"))
+    label_contact = models.ForeignKey(
+        "core.contact", blank=True, null=True, on_delete=models.SET_NULL, verbose_name=_("Label contact")
+    )
+    seller = models.ForeignKey(
+        "support.Seller", blank=True, null=True, on_delete=models.SET_NULL, verbose_name=_("Seller")
+    )
     has_envelope = models.PositiveSmallIntegerField(
         blank=True, null=True, verbose_name=_("Envelope"), choices=ENVELOPE_CHOICES
     )
@@ -1286,6 +1298,10 @@ class SubscriptionProduct(models.Model):
 
     def get_subscription_active(self):
         return self.subscription.active
+
+    class Meta:
+        verbose_name = _("Subscription Product")
+        verbose_name_plural = _("Subscription Products")
 
 
 class SubscriptionNewsletter(models.Model):
@@ -1320,15 +1336,17 @@ class Subscription(models.Model):
     contact = models.ForeignKey(
         Contact, on_delete=models.CASCADE, verbose_name=_("Contact"), related_name="subscriptions"
     )
-    type = models.CharField(max_length=1, default="N", choices=SUBSCRIPTION_TYPE_CHOICES)
-    status = models.CharField(default="OK", max_length=2, choices=SUBSCRIPTION_STATUS_CHOICES)
+    type = models.CharField(max_length=1, default="N", choices=SUBSCRIPTION_TYPE_CHOICES, verbose_name=_("Type"))
+    status = models.CharField(
+        default="OK", max_length=2, choices=SUBSCRIPTION_STATUS_CHOICES, verbose_name=_("Status")
+    )
 
     # Billing information. This is added in case it's necessary.
     billing_name = models.CharField(max_length=100, blank=True, null=True, verbose_name=_("Billing name"))
     billing_id_doc = models.CharField(
         max_length=20, blank=True, null=True, verbose_name=_("Billing Identification Document")
     )
-    rut = models.CharField(max_length=12, blank=True, null=True, verbose_name=_("R.U.T."))
+    rut = models.CharField(max_length=12, blank=True, null=True, verbose_name=_("UTR"))
     billing_phone = PhoneNumberField(blank=True, default="", verbose_name=_("Billing phone"), db_index=True)
     billing_phone_extension = models.CharField(
         blank=True, default="", max_length=16, verbose_name=_("Billing phone extension")
@@ -1394,8 +1412,10 @@ class Subscription(models.Model):
     )
 
     # Product
-    products = models.ManyToManyField(Product, through="SubscriptionProduct")
-    frequency = models.PositiveSmallIntegerField(default=1, help_text=_("Frequency of billing in months"))
+    products = models.ManyToManyField(Product, through="SubscriptionProduct", verbose_name=_("Products"))
+    frequency = models.PositiveSmallIntegerField(
+        default=1, help_text=_("Frequency of billing in months"), verbose_name=_("Frequency")
+    )
     payment_type = models.CharField(
         max_length=2,
         choices=settings.SUBSCRIPTION_PAYMENT_METHODS,
@@ -1404,8 +1424,12 @@ class Subscription(models.Model):
         verbose_name=_("Payment type"),
     )
 
-    updated_from = models.OneToOneField("core.Subscription", on_delete=models.SET_NULL, blank=True, null=True)
-    payment_certificate = models.FileField(upload_to="certificates/", blank=True, null=True)
+    updated_from = models.OneToOneField(
+        "core.Subscription", on_delete=models.SET_NULL, blank=True, null=True, verbose_name=_("Updated from")
+    )
+    payment_certificate = models.FileField(
+        upload_to="certificates/", blank=True, null=True, verbose_name=_("Payment certificate")
+    )
 
     free_subscription_requested_by = models.CharField(
         max_length=2,
@@ -1438,7 +1462,7 @@ class Subscription(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='billed_subscriptions',
+        related_name="billed_subscriptions",
         verbose_name=_("Billing Contact"),
     )
     terms_and_conditions = models.ForeignKey(
@@ -2414,8 +2438,8 @@ class ActivityTopic(models.Model):
     Model to store the topics for activities.
     """
 
-    name = models.CharField(max_length=255, unique=True)
-    description = models.TextField(blank=True)
+    name = models.CharField(max_length=255, unique=True, verbose_name=_("Name"))
+    description = models.TextField(blank=True, verbose_name=_("Description"))
 
     def __str__(self):
         return self.name
@@ -2431,8 +2455,8 @@ class ActivityResponse(models.Model):
     Model to store the responses for activities.
     """
 
-    name = models.CharField(max_length=255, unique=True)
-    description = models.TextField(blank=True)
+    name = models.CharField(max_length=255, unique=True, verbose_name=_("Name"))
+    description = models.TextField(blank=True, verbose_name=_("Description"))
 
     def __str__(self):
         return self.name
@@ -2449,29 +2473,42 @@ class Activity(models.Model):
     visits or comments on a website.
     """
 
-    contact = models.ForeignKey(Contact, on_delete=models.CASCADE, null=True, blank=True)
-    campaign = models.ForeignKey(Campaign, on_delete=models.CASCADE, null=True, blank=True)
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, null=True, blank=True)
+    contact = models.ForeignKey(Contact, on_delete=models.CASCADE, null=True, blank=True, verbose_name=_("Contact"))
+    campaign = models.ForeignKey(Campaign, on_delete=models.CASCADE, null=True, blank=True, verbose_name=_("Campaign"))
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, null=True, blank=True, verbose_name=_("Product"))
     seller = models.ForeignKey(
         "support.Seller", on_delete=models.CASCADE, blank=True, null=True, verbose_name=_("Seller")
     )
     issue = models.ForeignKey(
         "support.Issue", on_delete=models.CASCADE, blank=True, null=True, verbose_name=_("Issue")
     )
-    datetime = models.DateTimeField(blank=True, null=True)
-    asap = models.BooleanField(default=False)
-    notes = models.TextField(blank=True, null=True)
+    datetime = models.DateTimeField(blank=True, null=True, verbose_name=_("Date"))
+    asap = models.BooleanField(default=False, verbose_name=_("ASAP"))
+    notes = models.TextField(blank=True, null=True, verbose_name=_("Notes"))
 
-    priority = models.SmallIntegerField(choices=PRIORITY_CHOICES, default=3)
-    activity_type = models.CharField(choices=ACTIVITY_TYPES, max_length=1, null=True, blank=True)
-    status = models.CharField(choices=ACTIVITY_STATUS_CHOICES, default="P", max_length=1)
-    direction = models.CharField(choices=ACTIVITY_DIRECTION_CHOICES, default="O", max_length=1)
+    priority = models.SmallIntegerField(choices=PRIORITY_CHOICES, default=3, verbose_name=_("Priority"))
+    activity_type = models.CharField(
+        choices=ACTIVITY_TYPES, max_length=1, null=True, blank=True, verbose_name=_("Type")
+    )
+    status = models.CharField(choices=ACTIVITY_STATUS_CHOICES, default="P", max_length=1, verbose_name=_("Status"))
+    direction = models.CharField(
+        choices=ACTIVITY_DIRECTION_CHOICES, default="O", max_length=1, verbose_name=_("Direction")
+    )
     created_by = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True, blank=True, verbose_name=_("Created by")
     )
-    topic = models.ForeignKey(ActivityTopic, on_delete=models.SET_NULL, null=True, blank=True)
-    response = models.ForeignKey(ActivityResponse, on_delete=models.SET_NULL, null=True, blank=True)
+    topic = models.ForeignKey(ActivityTopic, on_delete=models.SET_NULL, null=True, blank=True, verbose_name=_("Topic"))
+    response = models.ForeignKey(
+        ActivityResponse, on_delete=models.SET_NULL, null=True, blank=True, verbose_name=_("Response")
+    )
     history = HistoricalRecords()
+    seller_console_action = models.ForeignKey(
+        "support.SellerConsoleAction",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name=_("Seller console action"),
+    )
 
     def __str__(self):
         return str(_("Activity {} for contact {}".format(self.id, self.contact.id)))

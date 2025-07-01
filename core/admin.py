@@ -209,9 +209,9 @@ class SubscriptionAdmin(SimpleHistoryAdmin):
         return form
 
     fieldsets = (
-        ("Contact data", {"fields": ("contact",)}),
+        (_("Contact data"), {"fields": ("contact",)}),
         (
-            "Subscription data",
+            _("Subscription data"),
             {
                 "fields": (
                     ("active", "type"),
@@ -228,13 +228,13 @@ class SubscriptionAdmin(SimpleHistoryAdmin):
             },
         ),
         (
-            "Corporate subscription data",
+            _("Corporate subscription data"),
             {
                 "fields": (("number_of_subscriptions", "override_price"),),
             },
         ),
         (
-            "Billing data",
+            _("Billing data"),
             {
                 "classes": ("collapse",),
                 "fields": (
@@ -246,7 +246,7 @@ class SubscriptionAdmin(SimpleHistoryAdmin):
             },
         ),
         (
-            "Inactivity",
+            _("Inactivity"),
             {
                 "classes": ("collapse",),
                 "fields": (
@@ -437,7 +437,14 @@ class ProductAdmin(admin.ModelAdmin):
         (
             _("Pricing & Discounts"),
             {
-                "fields": ("price", "offerable", "temporary_discount_months", "renewal_type"),
+                "fields": (
+                    "price",
+                    "offerable",
+                    "temporary_discount_months",
+                    "renewal_type",
+                    "has_implicit_discount",
+                    "target_product",
+                ),
             },
         ),
         (
@@ -480,6 +487,7 @@ class AddressAdmin(SimpleHistoryAdmin, LeafletGeoAdmin):
 class CampaignAdmin(admin.ModelAdmin):
     list_display = ("name", "start_date", "end_date", "active", "priority")
     list_editable = ("start_date", "end_date")
+    search_fields = ("name",)
 
 
 @admin.register(Ocupation)

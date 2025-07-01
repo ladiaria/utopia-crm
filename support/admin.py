@@ -6,7 +6,7 @@ from django.contrib import admin
 from simple_history.admin import SimpleHistoryAdmin
 
 from .forms import SellerForm
-from .models import ScheduledTask, Issue, Seller, IssueStatus, IssueSubcategory, SalesRecord
+from .models import ScheduledTask, Issue, Seller, IssueStatus, IssueSubcategory, SalesRecord, SellerConsoleAction
 
 
 @admin.register(Seller)
@@ -73,3 +73,11 @@ class SalesRecordAdmin(admin.ModelAdmin):
     save_on_top = True
     save_as = True
     save_as_continue = True
+
+
+@admin.register(SellerConsoleAction)
+class SellerConsoleActionAdmin(admin.ModelAdmin):
+    list_display = ["slug", "name"]
+    list_display_links = ["slug"]
+    readonly_fields = ["slug"]
+    list_editable = ["name"]

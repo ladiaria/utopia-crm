@@ -140,7 +140,7 @@
                     </ul>
                   </td>
                   <td>
-                    {{ contact.get_last_activity_formatted|default_if_none:"-" }}
+                    {{ contact.get_last_activity_formatted|default_if_none:"" }}
                   </td>
                   <td>
                     <a href="{% url "contact_detail" contact.id %}" class="btn btn-primary"><i class="fa fa-eye"></i></a>

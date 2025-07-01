@@ -11,21 +11,15 @@
       </div>
       <div class="card-body">
         <div class="row">
-          <div class="form-group col-6">
-            <label for="">{% trans "First name" %}</label>
+          <div class="form-group col-4">
+            <label for="">{% trans "Name" %}</label>
             {% render_field form.name class="form-control" %}
           </div>
-          <div class="form-group col-6">
+          <div class="form-group col-4">
             <label for="">{% trans "Last name" %}</label>
             {% render_field form.last_name class="form-control" %}
           </div>
-        </div>
-        <div class="row">
-          <div class="form-group col-6">
-            <label for="">{% trans "Tags" %}</label>
-            {% render_field form.tags class="form-control" %}
-          </div>
-          <div class="form-group col-6">
+          <div class="form-group col-4">
             <label for="">{% trans "Email" %}</label>
             {% render_field form.email class="form-control" %}
           </div>
@@ -66,6 +60,15 @@
           <div class="form-group col-6">
             <label for="">{% trans "Education" %}</label>
             {% render_field form.education class="form-control" %}
+          </div>
+        </div>
+        <div class="row">
+          <div class="form-group col-12">
+            <label for="">{% trans "Tags" %}</label>
+            {% render_field form.tags class="form-control" %}
+            <small class="form-text text-muted">
+              {% trans "Scroll to view all tags" %}
+            </small>
           </div>
         </div>
         <div class="form-group">
