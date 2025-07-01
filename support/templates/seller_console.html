@@ -75,7 +75,7 @@
         });
       });
     });
-    </script>
+  </script>
 {% endblock %}
 
 {% block content %}
@@ -282,21 +282,19 @@
                 <button class="reject btn btn-block bg-gradient-danger btn-sm result-btn"
                         type="button"
                         data-result="already-subscriber">Ya es suscriptor</button>
-                <button class="btn btn-block bg-gradient-danger btn-sm result-btn"
-                        type="button"
-                        data-result="close-without-contact">Cerrar sin contacto</button>
-                <button class="btn btn-block bg-gradient-danger btn-sm result-btn"
+                <button class="reject btn btn-block bg-gradient-danger btn-sm result-btn"
                         type="button"
                         data-result="error-promotion"
-                        data-confirm="{% trans "Do you want to continue?" %}">
-                  Error en la promoción
-                </button>
-                <button class="btn btn-block bg-gradient-danger btn-sm result-btn"
+                        data-confirm="{% trans "Do you want to continue?" %}">Error en la promoción</button>
+                <button class="reject btn btn-block bg-gradient-danger btn-sm result-btn"
                         type="button"
                         data-result="uncontactable"
                         data-confirm="{% trans "Do you want to continue?" %}">
                   Inubicable, remover de la campaña
                 </button>
+                <button class="btn btn-block bg-gradient-danger btn-sm result-btn"
+                        type="button"
+                        data-result="close-without-contact">Cerrar sin contacto</button>
               </div>
               <div class="col-sm-3">
                 {% if not contact.has_active_subscription %}
