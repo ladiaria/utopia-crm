@@ -402,7 +402,7 @@ class Contact(models.Model):
     phone = PhoneNumberField(blank=True, default="", verbose_name=_("Phone"), db_index=True)
     phone_extension = models.CharField(blank=True, default="", max_length=16, verbose_name=_("Phone extension"))
     mobile = PhoneNumberField(blank=True, default="", verbose_name=_("Mobile"), db_index=True)
-    work_phone = models.CharField(blank=True, default="", verbose_name=_("Work phone"), db_index=True)
+    work_phone = models.CharField(blank=True, default="", max_length=50, verbose_name=_("Work phone"), db_index=True)
     work_phone_extension = models.CharField(
         blank=True,
         default="",
