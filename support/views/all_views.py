@@ -306,7 +306,7 @@ def release_seller_contacts(request, seller_id=None):
 @staff_member_required
 def release_seller_contacts_by_campaign(request, seller_id, campaign_id=None):
     seller_obj = get_object_or_404(Seller, pk=seller_id)
-    active_campaigns = seller_obj.get_unfinished_campaigns()
+    active_campaigns = seller_obj.get_active_campaigns()
     if campaign_id:
         campaign_obj = get_object_or_404(Campaign, pk=campaign_id)
         seller_obj.contactcampaignstatus_set.filter(status__lt=4, campaign=campaign_obj).update(seller=None)
@@ -807,7 +807,7 @@ def advanced_export_dcf_list(request, dcf_id):
         _("id document"),
         _("Phone"),
         _("Mobile"),
-        _("Work phone"),
+        _("Institutional phone"),
     ]
     writer.writerow(header)
     for contact in dcf.get_contacts():

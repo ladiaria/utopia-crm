@@ -95,7 +95,7 @@
                   <td>{{ activity.campaign.name }}</td>
                   <td>{{ activity.get_status }}</td>
                   <td>{{ activity.datetime }}</td>
-                  <td>{{ activity.seller_console_action }}</td>
+                  <td>{{ activity.seller_console_action|default:"N/A" }}</td>
                   <td class="text-center">
                     <div class="btn-group">
                       <a class="btn btn-sm btn-outline-primary" title="{% trans "See in console" %}"

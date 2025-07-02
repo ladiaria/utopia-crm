@@ -2,7 +2,6 @@
 from datetime import date
 
 from django.db import models
-from django.db.models import Q
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.utils import timezone
@@ -40,9 +39,32 @@ class Seller(models.Model):
     def get_contact_count(self):
         return self.contact_set.all().count()
 
-    def get_unfinished_campaigns(self):
+    def get_all_campaigns(self):
         seller_campaigns = Campaign.objects.filter(
-            Q(end_date__isnull=True) | Q(end_date__gte=timezone.now()),
+            contactcampaignstatus__seller=self,
+            contactcampaignstatus__status__lt=4,
+        ).distinct()
+        return seller_campaigns
+
+    def get_active_campaigns(self):
+        seller_campaigns = Campaign.objects.filter(
+            active=True,
+            contactcampaignstatus__seller=self,
+            contactcampaignstatus__status__lt=4,
+        ).distinct()
+        return seller_campaigns
+
+    def get_campaigns_with_activities(self):
+        seller_campaigns = Campaign.objects.filter(
+            activity__seller=self,
+            activity__status="P",
+            activity__activity_type="C",
+            activity__datetime__lte=timezone.now(),
+        ).distinct()
+        return seller_campaigns
+
+    def get_pending_campaigns(self):
+        seller_campaigns = Campaign.objects.filter(
             contactcampaignstatus__seller=self,
             contactcampaignstatus__status__lt=4,
         ).distinct()
@@ -50,7 +72,7 @@ class Seller(models.Model):
 
     def get_campaigns_by_status(self, status):
         seller_campaigns = Campaign.objects.filter(
-            Q(end_date__isnull=True) | Q(end_date__gte=timezone.now()),
+            active=True,
             contactcampaignstatus__seller=self,
             contactcampaignstatus__status__in=status,
         ).distinct()
@@ -59,7 +81,6 @@ class Seller(models.Model):
     def upcoming_activity(self):
         return (
             self.activity_set.filter(
-                Q(campaign__end_date__isnull=True) | Q(campaign__end_date__gte=timezone.now()),
                 status="P",
                 activity_type="C",
             )
@@ -69,14 +90,12 @@ class Seller(models.Model):
 
     def total_pending_activities(self):
         return self.activity_set.filter(
-            Q(campaign__end_date__isnull=True) | Q(campaign__end_date__gte=timezone.now()),
             status="P",
             activity_type="C",
         ).order_by("datetime")
 
     def total_pending_activities_count(self):
         activity_qs = self.activity_set.filter(
-            Q(campaign__end_date__isnull=True) | Q(campaign__end_date__gte=timezone.now()),
             status="P",
             activity_type="C",
             datetime__lte=timezone.now(),
