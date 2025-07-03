@@ -46,7 +46,7 @@ from core.utils import (
     logistics_is_installed,
     process_products,
 )
-from support.choices import ISSUE_ANSWERS, ISSUE_CATEGORIES
+from support.choices import ISSUE_ANSWERS, get_issue_categories
 from support.filters import (
     CampaignFilter,
     ContactCampaignStatusFilter,
@@ -479,7 +479,7 @@ def new_issue(request, contact_id, category="L"):
         )  # Invoicing and collections share subcategories
     else:
         form.fields["sub_category"].queryset = IssueSubcategory.objects.filter(category=category)
-    dict_categories = dict(ISSUE_CATEGORIES)
+    dict_categories = dict(get_issue_categories())
     category_name = dict_categories[category]
     breadcrumbs = [
         {"url": reverse("contact_list"), "label": _("Contacts")},
