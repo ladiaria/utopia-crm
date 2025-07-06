@@ -2,7 +2,6 @@
 from datetime import date
 
 from django.db import models
-from django.db.models import Q
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.utils import timezone
@@ -16,7 +15,7 @@ from core.models import Campaign
 from simple_history.models import HistoricalRecords
 
 from support.choices import (
-    ISSUE_CATEGORIES,
+    get_issue_categories,
     ISSUE_ANSWERS,
     ISSUE_SUBCATEGORIES,
     SCHEDULED_TASK_CATEGORIES,
@@ -40,9 +39,32 @@ class Seller(models.Model):
     def get_contact_count(self):
         return self.contact_set.all().count()
 
-    def get_unfinished_campaigns(self):
+    def get_all_campaigns(self):
         seller_campaigns = Campaign.objects.filter(
-            Q(end_date__isnull=True) | Q(end_date__gte=timezone.now()),
+            contactcampaignstatus__seller=self,
+            contactcampaignstatus__status__lt=4,
+        ).distinct()
+        return seller_campaigns
+
+    def get_active_campaigns(self):
+        seller_campaigns = Campaign.objects.filter(
+            active=True,
+            contactcampaignstatus__seller=self,
+            contactcampaignstatus__status__lt=4,
+        ).distinct()
+        return seller_campaigns
+
+    def get_campaigns_with_activities(self):
+        seller_campaigns = Campaign.objects.filter(
+            activity__seller=self,
+            activity__status="P",
+            activity__activity_type="C",
+            activity__datetime__lte=timezone.now(),
+        ).distinct()
+        return seller_campaigns
+
+    def get_pending_campaigns(self):
+        seller_campaigns = Campaign.objects.filter(
             contactcampaignstatus__seller=self,
             contactcampaignstatus__status__lt=4,
         ).distinct()
@@ -50,7 +72,7 @@ class Seller(models.Model):
 
     def get_campaigns_by_status(self, status):
         seller_campaigns = Campaign.objects.filter(
-            Q(end_date__isnull=True) | Q(end_date__gte=timezone.now()),
+            active=True,
             contactcampaignstatus__seller=self,
             contactcampaignstatus__status__in=status,
         ).distinct()
@@ -59,7 +81,6 @@ class Seller(models.Model):
     def upcoming_activity(self):
         return (
             self.activity_set.filter(
-                Q(campaign__end_date__isnull=True) | Q(campaign__end_date__gte=timezone.now()),
                 status="P",
                 activity_type="C",
             )
@@ -69,14 +90,12 @@ class Seller(models.Model):
 
     def total_pending_activities(self):
         return self.activity_set.filter(
-            Q(campaign__end_date__isnull=True) | Q(campaign__end_date__gte=timezone.now()),
             status="P",
             activity_type="C",
         ).order_by("datetime")
 
     def total_pending_activities_count(self):
         activity_qs = self.activity_set.filter(
-            Q(campaign__end_date__isnull=True) | Q(campaign__end_date__gte=timezone.now()),
             status="P",
             activity_type="C",
             datetime__lte=timezone.now(),
@@ -98,7 +117,7 @@ class Issue(models.Model):
     date_created = models.DateField(auto_now_add=True)
     contact = models.ForeignKey("core.Contact", on_delete=models.CASCADE, verbose_name=_("Contact"))
     date = models.DateField(default=date.today, verbose_name=_("Date"))
-    category = models.CharField(max_length=1, blank=True, null=True, choices=ISSUE_CATEGORIES)
+    category = models.CharField(max_length=1, blank=True, null=True, choices=get_issue_categories())
     subcategory = models.CharField(max_length=3, blank=True, null=True, choices=ISSUE_SUBCATEGORIES)
     inside = models.BooleanField(default=True)
     notes = models.TextField(blank=True, null=True)
@@ -139,7 +158,7 @@ class Issue(models.Model):
         pass
 
     def get_category(self):
-        categories = dict(ISSUE_CATEGORIES)
+        categories = dict(get_issue_categories())
         return categories.get(self.category, "N/A")
 
     def get_subcategory(self):
@@ -303,7 +322,7 @@ class ScheduledTask(models.Model):
 class IssueStatus(models.Model):
     name = models.CharField(max_length=60)
     slug = AutoSlugField(populate_from="name", always_update=True, null=True, blank=True)
-    category = models.CharField(max_length=2, blank=True, null=True, choices=ISSUE_CATEGORIES)
+    category = models.CharField(max_length=2, blank=True, null=True, choices=get_issue_categories())
 
     def __str__(self):
         return self.name
@@ -318,7 +337,7 @@ class IssueStatus(models.Model):
 class IssueSubcategory(models.Model):
     name = models.CharField(max_length=60)
     slug = AutoSlugField(populate_from="name", always_update=True, null=True, blank=True)
-    category = models.CharField(max_length=2, blank=True, null=True, choices=ISSUE_CATEGORIES)
+    category = models.CharField(max_length=2, blank=True, null=True, choices=get_issue_categories())
 
     def __str__(self):
         return self.name

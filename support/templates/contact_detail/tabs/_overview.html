@@ -37,9 +37,9 @@
             </dd>
           {% endif %}
           {% if contact.work_phone %}
-            <dt>{% trans "Work phone" %}</dt>
+            <dt>{% trans "Institutional phone" %}</dt>
             <dd>
-              {{ contact.work_phone.as_national|default_if_none:"-" }}
+              {{ contact.work_phone|default_if_none:"-" }}
             </dd>
           {% endif %}
           {% if addresses %}

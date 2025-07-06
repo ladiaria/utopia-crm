@@ -15,6 +15,7 @@ class Command(BaseCommand):
         "error-promotion",
         "move-morning",
         "move-afternoon",
+        "close-without-contact",
     ]
 
     action_map_ES = {
@@ -28,6 +29,7 @@ class Command(BaseCommand):
         "error-promotion": "Error en promoción",
         "move-morning": "Mover a la mañana",
         "move-afternoon": "Mover a la tarde",
+        "close-without-contact": "Cerrar sin contacto",
     }
 
     action_map_EN = {
@@ -41,6 +43,7 @@ class Command(BaseCommand):
         "error-promotion": "Error promotion",
         "move-morning": "Move morning",
         "move-afternoon": "Move afternoon",
+        "close-without-contact": "Close without contact",
     }
 
     def handle(self, *args, **kwargs):

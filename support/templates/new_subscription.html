@@ -64,6 +64,29 @@
           }
         });
       });
+
+      // Double-submission protection with result value setting (language-independent)
+      let submitted = false;
+      const form = document.getElementById('subscription_form');
+      const submitButton = document.getElementById('send_form');
+      const resultInput = document.getElementById('resultValue');
+
+      if (submitButton && form && resultInput) {
+        submitButton.addEventListener('click', function(e) {
+          if (submitted) {
+            e.preventDefault();
+            return;
+          }
+
+          submitted = true;
+          // Use lowercase, language-neutral code
+          resultInput.value = submitButton.dataset.result || 'send';
+
+          submitButton.disabled = true;
+          form.submit();
+        });
+      }
+
       {% include 'email_suggestion_dialog_js.html' %}
     });
   </script>
@@ -85,6 +108,7 @@
       {% block subscription_form %}
         <form method="post" id="subscription_form">
           {% csrf_token %}
+          <input type="hidden" name="result" id="resultValue" value="unknown">
           {% include "email_suggestion_dialog.html" %}
           {% if form.errors %}
             {{ form.email_was_valid }}{{ form.email_replaced }}
@@ -323,6 +347,7 @@
                        name="result"
                        id="send_form"
                        value="{% trans "Send" %}"
+                       data-result="send"
                        class="btn bg-gradient-primary">
               </div>
               <a href="{{ request.META.HTTP_REFERER }}"
