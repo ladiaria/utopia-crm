@@ -1,10 +1,7 @@
 from datetime import datetime
 
-from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
-from django.shortcuts import render
 from django.contrib.auth.models import User
-from django.contrib.admin.views.decorators import staff_member_required
-from django.views.generic import CreateView, UpdateView
+from django.views.generic import CreateView, UpdateView, ListView
 from django.urls import reverse_lazy, reverse
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.mixins import UserPassesTestMixin
@@ -17,39 +14,123 @@ from support.filters import ScheduledActivityFilter
 from support.forms import CreateActivityForm
 
 
-@staff_member_required
-def scheduled_activities(request):
-    user = User.objects.get(username=request.user.username)
-    try:
-        seller = Seller.objects.get(user=user)
-    except Seller.DoesNotExist:
-        seller = None
-    activity_queryset = seller.total_pending_activities()
-    activity_filter = ScheduledActivityFilter(request.GET, activity_queryset)
-    page_number = request.GET.get("p")
-    paginator = Paginator(activity_filter.qs, 100)
-    try:
-        activities = paginator.page(page_number)
-    except PageNotAnInteger:
-        # If page is not an integer, deliver first page.
-        activities = paginator.page(1)
-    except EmptyPage:
-        # If page is out of range (e.g. 9999), deliver last page of results.
-        activities = paginator.page(paginator.num_pages)
-    return render(
-        request,
-        "scheduled_activities.html",
-        {
-            "filter": activity_filter,
-            "activities": activities,
-            "seller": seller,
-            "page": page_number,
-            "total_pages": paginator.num_pages,
-            "count": activity_filter.qs.count(),
-            "now": datetime.now(),
-            "paginator": paginator,
-        },
-    )
+class ScheduledActivitiesView(BreadcrumbsMixin, UserPassesTestMixin, ListView):
+    model = Activity
+    template_name = "scheduled_activities.html"
+    context_object_name = "activities"
+    paginate_by = 100
+    paginate_orphans = 5
+    page_kwarg = 'p'  # Use 'p' instead of default 'page' for pagination parameter
+
+    def breadcrumbs(self):
+        return [
+            {"label": _("Home"), "url": reverse("home")},
+            {"label": _("Seller console"), "url": reverse("seller_console_list_campaigns")},
+            {"label": _("Activities"), "url": reverse("scheduled_activities")},
+        ]
+
+    def test_func(self):
+        return self.request.user.is_staff
+
+    def get_queryset(self):
+        user = User.objects.get(username=self.request.user.username)
+        try:
+            self.seller = Seller.objects.get(user=user)
+        except Seller.DoesNotExist:
+            self.seller = None
+
+        if self.seller:
+            queryset = self.seller.total_pending_activities()
+            # Apply filter
+            self.activity_filter = ScheduledActivityFilter(self.request.GET, queryset)
+            return self.activity_filter.qs
+        return Activity.objects.none()
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        # Get the page object from ListView's pagination
+        activities = context['object_list']
+
+        # Get the most recent active subscription end date for each contact
+        activities_with_subscription_data = []
+        for activity in activities:
+            if activity.contact:
+                # Get the most recent active subscription end date for this contact
+                latest_subscription = activity.contact.subscriptions.filter(active=True).order_by('-end_date').first()
+
+                latest_subscription_end_date = latest_subscription.end_date if latest_subscription else None
+
+                # Add the subscription end date to the activity object
+                activity.latest_subscription_end_date = latest_subscription_end_date
+                activities_with_subscription_data.append(activity)
+            else:
+                activity.latest_subscription_end_date = None
+                activities_with_subscription_data.append(activity)
+
+        # Apply date range filtering for subscription end date if specified
+        subscription_end_date_min = self.request.GET.get('subscription_end_date_min')
+        subscription_end_date_max = self.request.GET.get('subscription_end_date_max')
+
+        if subscription_end_date_min or subscription_end_date_max:
+            filtered_activities = []
+            for activity in activities_with_subscription_data:
+                # Skip activities without subscription end date if filtering by date
+                if activity.latest_subscription_end_date is None:
+                    continue
+
+                include_activity = True
+
+                if (
+                    subscription_end_date_min
+                    and activity.latest_subscription_end_date
+                    < datetime.strptime(subscription_end_date_min, '%Y-%m-%d').date()
+                ):
+                    include_activity = False
+
+                if (
+                    subscription_end_date_max
+                    and activity.latest_subscription_end_date
+                    > datetime.strptime(subscription_end_date_max, '%Y-%m-%d').date()
+                ):
+                    include_activity = False
+
+                if include_activity:
+                    filtered_activities.append(activity)
+
+            activities_with_subscription_data = filtered_activities
+
+        # Check if we need to sort by latest subscription end date
+        sort_by = self.request.GET.get('sort_by', 'latest_subscription_end_date')  # Default to ascending order
+
+        # Sort by latest subscription end date
+        if sort_by == 'latest_subscription_end_date' or sort_by is None:
+            # Sort by latest subscription end date ascending (None values at the end)
+            activities_with_subscription_data.sort(
+                key=lambda x: (x.latest_subscription_end_date is None, x.latest_subscription_end_date)
+            )
+        elif sort_by == '-latest_subscription_end_date':
+            # Sort by latest subscription end date in descending order (None values at the end)
+            activities_with_subscription_data.sort(
+                key=lambda x: (x.latest_subscription_end_date is None, x.latest_subscription_end_date), reverse=True
+            )
+
+        # Update context
+        context.update(
+            {
+                "filter": self.activity_filter,
+                "activities": activities_with_subscription_data,
+                "seller": self.seller,
+                "count": self.get_queryset().count(),
+                "now": datetime.now(),
+                "sort_by": sort_by  # Pass the sort parameter to the template
+            }
+        )
+
+        return context
+
+
+scheduled_activities = ScheduledActivitiesView.as_view()
 
 
 class ActivityCreateView(UserPassesTestMixin, BreadcrumbsMixin, CreateView):

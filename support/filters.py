@@ -65,7 +65,29 @@ class InvoicingIssueFilter(IssueFilter):
 
 
 class ScheduledActivityFilter(django_filters.FilterSet):
-    seler_console_action = django_filters.ModelChoiceFilter(queryset=SellerConsoleAction.objects.filter(is_active=True))
+    seller_console_action = django_filters.ModelChoiceFilter(
+        queryset=SellerConsoleAction.objects.filter(is_active=True)
+    )
+    # Add date range filters for the subscription end date
+    # These will be used in the view to filter activities after they've been annotated
+    subscription_end_date_min = django_filters.DateFilter(
+        label=_('Subscription End Date From'),
+        widget=forms.DateInput(attrs={'type': 'date'}),
+        method='filter_subscription_end_date_min',
+    )
+    subscription_end_date_max = django_filters.DateFilter(
+        label=_('Subscription End Date To'),
+        widget=forms.DateInput(attrs={'type': 'date'}),
+        method='filter_subscription_end_date_max',
+    )
+
+    def filter_subscription_end_date_min(self, queryset, name, value):
+        # This is a placeholder method - actual filtering happens in the view
+        return queryset
+
+    def filter_subscription_end_date_max(self, queryset, name, value):
+        # This is a placeholder method - actual filtering happens in the view
+        return queryset
 
     class Meta:
         model = Activity
