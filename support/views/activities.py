@@ -41,10 +41,12 @@ class ScheduledActivitiesView(BreadcrumbsMixin, UserPassesTestMixin, ListView):
 
         if self.seller:
             queryset = self.seller.total_pending_activities()
-            # Apply filter
-            self.activity_filter = ScheduledActivityFilter(self.request.GET, queryset)
-            return self.activity_filter.qs
-        return Activity.objects.none()
+        else:
+            queryset = Activity.objects.none()
+
+        # Apply filter - now this happens regardless of whether seller exists
+        self.activity_filter = ScheduledActivityFilter(self.request.GET, queryset)
+        return self.activity_filter.qs
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
