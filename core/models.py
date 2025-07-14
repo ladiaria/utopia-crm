@@ -226,7 +226,9 @@ class Product(models.Model):
     target_product = models.ForeignKey(
         "self", blank=True, null=True, on_delete=models.SET_NULL, limit_choices_to={"offerable": True, "type": "S"}
     )
-    old_pk = models.PositiveIntegerField(blank=True, null=True)
+    cms_subscription_type = models.SlugField(
+        max_length=64, unique=True, blank=True, null=True, verbose_name=_("CMS subscription type")
+    )
     internal_code = models.CharField(max_length=50, blank=True, null=True, verbose_name=_("Internal code"))
     billing_days = models.PositiveSmallIntegerField(
         default=30,
