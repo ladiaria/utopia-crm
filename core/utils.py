@@ -3,6 +3,7 @@ import collections
 from functools import wraps
 import json
 import requests
+from requests.status_codes import codes
 from requests.auth import HTTPBasicAuth
 from requests.exceptions import ReadTimeout, RequestException
 from typing import Literal
@@ -633,7 +634,7 @@ def cms_rest_api_request(api_name, api_uri, post_data, method="POST"):
     except RequestException as req_ex:
         if settings.DEBUG:
             print(f"DEBUG: {api_name} {method} request error: {str(req_ex)}")
-        return "ERROR"
+        return "NOT FOUND" if method == "PATCH" and r.status_code == codes.NOT_FOUND else "ERROR"
     else:
         return {"msg": "OK"}
 
