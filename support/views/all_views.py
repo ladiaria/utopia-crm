@@ -234,7 +234,26 @@ def list_campaigns_with_no_seller(request):
 
 class AssignSellerView(LoginRequiredMixin, BreadcrumbsMixin, TemplateView):
     """
-    Shows a list of sellers to assign contacts to.
+    Shows a list of sellers to assign contacts to with round-robin distribution.
+
+    This view handles the assignment of ContactCampaignStatus objects to Seller objects.
+    The key feature is the round-robin distribution algorithm that ensures equal
+    distribution of contacts among sellers, especially important when prioritization
+    is enabled.
+
+    Assignment Behavior:
+    - OLD: Sequential assignment (50 to seller1, then 50 to seller2, then 50 to seller3)
+    - NEW: Round-robin assignment (1 to seller1, 1 to seller2, 1 to seller3, repeat)
+
+    This ensures that when contacts are prioritized (e.g., by subscription end date),
+    the highest priority contacts are distributed equally among all sellers rather
+    than all going to the first seller in the list.
+
+    Features:
+    - Supports different shifts (morning, afternoon, regular)
+    - Optional prioritization by subscription end date
+    - Round-robin distribution for equal contact allocation
+    - Validation to prevent over-assignment
     """
 
     template_name = "assign_sellers.html"
@@ -316,6 +335,68 @@ class AssignSellerView(LoginRequiredMixin, BreadcrumbsMixin, TemplateView):
         )
         return context
 
+    def _create_round_robin_assignment_queue(self, active_sellers):
+        """
+        Creates a round-robin assignment queue for distributing contacts equally among sellers.
+
+        This method implements a round-robin distribution algorithm that ensures contacts
+        are assigned one-by-one to each seller in rotation, rather than assigning all
+        contacts for one seller before moving to the next.
+
+        Args:
+            active_sellers (list): List of tuples containing (seller_id, amount_to_assign)
+                                 Example: [('1', 50), ('2', 50), ('3', 50)]
+
+        Returns:
+            list: A list of seller IDs in round-robin order for assignment
+                 Example: ['1', '2', '3', '1', '2', '3', ...] repeated 50 times
+
+        Example:
+            If we have 3 sellers each getting 50 contacts:
+            - Old behavior: [1,1,1,...(50 times), 2,2,2,...(50 times), 3,3,3,...(50 times)]
+            - New behavior: [1,2,3,1,2,3,1,2,3,...] repeated until all 150 contacts assigned
+
+            This ensures that when prioritization is enabled (contacts ordered by end date),
+            the highest priority contacts are distributed equally among all sellers rather
+            than all going to the first seller.
+        """
+        assignment_queue = []
+
+        # Create a list of seller IDs, each repeated according to their assignment amount
+        seller_assignments = []
+        for seller_id, amount in active_sellers:
+            seller_assignments.extend([seller_id] * amount)
+
+        # Calculate how many complete rounds we need
+        total_assignments = len(seller_assignments)
+        num_sellers = len(active_sellers)
+
+        if num_sellers == 0:
+            return assignment_queue
+
+        # Create round-robin distribution
+        seller_ids = [seller_id for seller_id, _ in active_sellers]
+        seller_counters = {seller_id: amount for seller_id, amount in active_sellers}
+
+        # Distribute assignments in round-robin fashion
+        current_seller_index = 0
+        while sum(seller_counters.values()) > 0:
+            current_seller = seller_ids[current_seller_index]
+
+            # If this seller still has assignments left, assign one
+            if seller_counters[current_seller] > 0:
+                assignment_queue.append(current_seller)
+                seller_counters[current_seller] -= 1
+
+            # Move to next seller (with wraparound)
+            current_seller_index = (current_seller_index + 1) % num_sellers
+
+            # Safety check to prevent infinite loops
+            if len(assignment_queue) >= total_assignments:
+                break
+
+        return assignment_queue
+
     def post(self, request, *args, **kwargs):
         # Update prioritize_by_end_date based on POST data
         self.prioritize_by_end_date = "prioritize_by_end_date" in request.POST
@@ -358,19 +439,33 @@ class AssignSellerView(LoginRequiredMixin, BreadcrumbsMixin, TemplateView):
             messages.error(request, "Cantidad de clientes superior a la que hay.")
             return HttpResponseRedirect(reverse("assign_sellers", args=[self.campaign_id]))
 
-        # Assign contacts to sellers
+        # Assign contacts to sellers using round-robin distribution
         assigned_total = 0
-        for seller, amount in seller_list:
-            if amount:
-                amount = int(amount)
-                assigned_total += amount
-                for status in self.ccs_qs[:amount]:
-                    status.seller = Seller.objects.get(pk=seller)
-                    status.date_assigned = date.today()
-                    if status.status in (6, 7):
-                        status.status = 1
+
+        # Filter out sellers with zero assignments and prepare seller data
+        active_sellers = [(seller_id, int(amount)) for seller_id, amount in seller_list if amount and int(amount) > 0]
+
+        if active_sellers:
+            # Calculate total assignments for validation
+            assigned_total = sum(amount for _, amount in active_sellers)
+
+            # Create a round-robin assignment list
+            # This ensures equal distribution when prioritization is enabled
+            assignment_queue = self._create_round_robin_assignment_queue(active_sellers)
+
+            # Get the contacts to assign (respecting prioritization order if enabled)
+            contacts_to_assign = list(self.ccs_qs[:assigned_total])
+
+            # Assign contacts using round-robin distribution
+            for i, contact_status in enumerate(contacts_to_assign):
+                if i < len(assignment_queue):
+                    seller_id = assignment_queue[i]
+                    contact_status.seller = Seller.objects.get(pk=seller_id)
+                    contact_status.date_assigned = date.today()
+                    if contact_status.status in (6, 7):
+                        contact_status.status = 1
                     try:
-                        status.save()
+                        contact_status.save()
                     except Exception as e:
                         messages.error(request, e)
                         return HttpResponseRedirect(reverse("assign_sellers"))
