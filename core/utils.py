@@ -3,6 +3,7 @@ import collections
 from functools import wraps
 import json
 import requests
+from requests.status_codes import codes
 from requests.auth import HTTPBasicAuth
 from requests.exceptions import ReadTimeout, RequestException
 from typing import Literal
@@ -573,6 +574,7 @@ def no_op_decorator(func):
 
 # Endpoints must be decorated with no auth classes if the deployment is under http basic auth, when no basic auth is
 # set, the decorator is no_op_decorator, which does nothing and let the endpoint acts as if it was not decorated.
+api_base_uri = getattr(settings, "LDSOCIAL_API_URI", None)
 api_view_auth_decorator = (
     authentication_classes([]) if getattr(settings, "ENV_HTTP_BASIC_AUTH", False) else no_op_decorator
 )
@@ -587,7 +589,7 @@ def cms_rest_api_kwargs(api_key, data=None):
     if not getattr(settings, "WEB_UPDATE_USER_VERIFY_SSL", True):
         result["verify"] = False
     if data:
-        result["data"] = data
+        result["json" if isinstance(data, dict) else "data"] = data
     if http_basic_auth:
         result["auth"] = HTTPBasicAuth(*http_basic_auth)
     return result
@@ -602,7 +604,7 @@ def cms_rest_api_request(api_name, api_uri, post_data, method="POST"):
     @param method: Http method to be used.
     """
     api_key = settings.LDSOCIAL_API_KEY
-    if not (api_uri or api_key) or method not in ("POST", "PUT", "DELETE"):
+    if not (api_uri or api_key) or method not in ("POST", "PUT", "PATCH", "DELETE"):
         return "ERROR"
     try:
         if settings.DEBUG:
@@ -610,7 +612,7 @@ def cms_rest_api_request(api_name, api_uri, post_data, method="POST"):
 
         if (
             settings.WEB_UPDATE_USER_ENABLED
-            if method == "PUT"
+            if method in ("PUT", "PATCH")
             else (settings.WEB_CREATE_USER_ENABLED or api_uri in settings.WEB_CREATE_USER_POST_WHITELIST)
         ):
             r = getattr(requests, method.lower())(api_uri, **cms_rest_api_kwargs(api_key, post_data))
@@ -632,7 +634,7 @@ def cms_rest_api_request(api_name, api_uri, post_data, method="POST"):
     except RequestException as req_ex:
         if settings.DEBUG:
             print(f"DEBUG: {api_name} {method} request error: {str(req_ex)}")
-        return "ERROR"
+        return "NOT FOUND" if method == "PATCH" and r.status_code == codes.NOT_FOUND else "ERROR"
     else:
         return {"msg": "OK"}
 

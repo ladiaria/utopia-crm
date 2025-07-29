@@ -226,7 +226,9 @@ class Product(models.Model):
     target_product = models.ForeignKey(
         "self", blank=True, null=True, on_delete=models.SET_NULL, limit_choices_to={"offerable": True, "type": "S"}
     )
-    old_pk = models.PositiveIntegerField(blank=True, null=True)
+    cms_subscription_type = models.SlugField(
+        max_length=64, unique=True, blank=True, null=True, verbose_name=_("CMS subscription type")
+    )
     internal_code = models.CharField(max_length=50, blank=True, null=True, verbose_name=_("Internal code"))
     billing_days = models.PositiveSmallIntegerField(
         default=30,
@@ -293,10 +295,22 @@ class Product(models.Model):
 
     def get_last_terms_and_conditions(self):
         if self.has_terms_and_conditions():
-            return self.terms_and_conditions.through.objects.filter(
-                product=self
-            ).order_by("-date").first().terms_and_conditions
+            return (
+                self.terms_and_conditions.through.objects.filter(product=self)
+                .order_by("-date")
+                .first()
+                .terms_and_conditions
+            )
         return None
+
+    @property
+    def duration_days(self):
+        if self.duration_months == 12:
+            return 365
+        elif self.duration_months == 24:
+            return 730
+        else:
+            return self.duration_months * 30
 
     class Meta:
         verbose_name = _("product")
@@ -389,14 +403,14 @@ class Contact(models.Model):
     )
     phone = PhoneNumberField(blank=True, default="", verbose_name=_("Phone"), db_index=True)
     phone_extension = models.CharField(blank=True, default="", max_length=16, verbose_name=_("Phone extension"))
-    work_phone = PhoneNumberField(blank=True, default="", verbose_name=_("Work phone"), db_index=True)
+    mobile = PhoneNumberField(blank=True, default="", verbose_name=_("Mobile"), db_index=True)
+    work_phone = models.CharField(blank=True, default="", max_length=50, verbose_name=_("Work phone"), db_index=True)
     work_phone_extension = models.CharField(
         blank=True,
         default="",
         max_length=16,
         verbose_name=_("Work phone extension"),
     )
-    mobile = PhoneNumberField(blank=True, default="", verbose_name=_("Mobile"), db_index=True)
     email = models.EmailField(blank=True, null=True, unique=True, verbose_name=_("Email"))
     no_email = models.BooleanField(default=False, verbose_name=_("No email"))
     gender = models.CharField(max_length=1, choices=GENDERS, blank=True, null=True, verbose_name=_("Gender"))
@@ -879,7 +893,9 @@ class Contact(models.Model):
 
     def do_not_call(self, phone_att="phone"):
         number = getattr(self, phone_att)
-        if number is None or number.national_number is None:
+        if phone_att == "work_phone":
+            return DoNotCallNumber.objects.filter(number__iexact=number).exists()
+        elif number is None or number.national_number is None:
             return False
         return DoNotCallNumber.objects.filter(number__contains=number.national_number).exists()
 

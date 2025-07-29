@@ -28,14 +28,23 @@
           <div class="form-group col-4">
             <label for="">{% trans "Phone" %}</label>
             {% render_field form.phone class="form-control" %}
+            <small class="form-text text-muted">
+              {% trans "Enter a valid local or international phone number" %}
+            </small>
           </div>
           <div class="form-group col-4">
             <label for="">{% trans "Mobile" %}</label>
             {% render_field form.mobile class="form-control" %}
+            <small class="form-text text-muted">
+              {% trans "Enter a valid local or international mobile number" %}
+            </small>
           </div>
           <div class="form-group col-4">
-            <label for="">{% trans "Work phone" %}</label>
+            <label for="">{% trans "Institutional phone" %}</label>
             {% render_field form.work_phone class="form-control" %}
+            <small class="form-text text-muted">
+              {% trans "Use this field for non-standard numbers such as internal extensions, government hotlines, or institutional contact numbers like 1950." %}
+            </small>
           </div>
         </div>
         <div class="row">

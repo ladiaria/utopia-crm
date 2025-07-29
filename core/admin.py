@@ -462,7 +462,7 @@ class ProductAdmin(admin.ModelAdmin):
         (
             _("MercadoPago and others"),
             {
-                "fields": ("mercadopago_id", "internal_code"),
+                "fields": ("mercadopago_id", "internal_code", "cms_subscription_type"),
             },
         ),
     )

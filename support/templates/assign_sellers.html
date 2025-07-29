@@ -1,19 +1,20 @@
-{% extends 'adminlte/base.html' %}
-{% load  i18n %}
+{% extends "adminlte/base.html" %}
+{% load i18n %}
 
 {% block title %}{% trans "Assign contacts in campaigns to sellers" %}{% endblock %}
 
 {% block no_heading %}
-<h1>{% trans 'Support' %}</h1>
+<h1>{% trans "Support" %}</h1>
 {% endblock %}
 
 {% block content %}
 <div class="card">
   <div class="card-header">
     <ul class="nav nav-pills">
-      <li class="nav-item"><a class="nav-link {% if not shift %}active{% endif %}" href="{% url 'assign_sellers' campaign.id %}">Sin asignar ({{regular_count}})</a></li>
-      <li class="nav-item"><a class="nav-link {% if shift == "mo" %}active{% endif %}" href="{% url 'assign_sellers' campaign.id %}?shift=mo">Pasar a la mañana ({{morning_count}})</a></li>
-      <li class="nav-item"><a class="nav-link {% if shift == "af" %}active{% endif %}" href="{% url 'assign_sellers' campaign.id %}?shift=af">Pasar a la tarde ({{afternoon_count}})</a></li>
+      <li class="nav-item"><a class="nav-link {% if not shift %}active{% endif %}" href="{% url 'assign_sellers' campaign.id %}">Sin asignar ({{ regular_count }})</a></li>
+      <li class="nav-item"><a class="nav-link {% if shift == "mo" %}active{% endif %}" href="{% url 'assign_sellers' campaign.id %}?shift=mo">Pasar a la mañana ({{ morning_count }})</a></li>
+      <li class="nav-item"><a class="nav-link {% if shift == "af" %}active{% endif %}" href="{% url 'assign_sellers' campaign.id %}?shift=af">Pasar a la tarde ({{ afternoon_count }})</a></li>
+    </ul>
   </div>
   <div class="card-body">
     <div class="mb-4">
@@ -23,9 +24,16 @@
     {% if message %}<br/>{{ message }}{% endif %}
     {% endautoescape %}
     </div>
+    <div class="form-group mb-4">
+      <div class="form-check">
+        <input type="checkbox" class="form-check-input" name="prioritize_by_end_date" id="prioritize_by_end_date" {% if prioritize_by_end_date %}checked{% endif %}>
+        <label for="prioritize_by_end_date" class="form-check-label">{% trans "Prioritize contacts with expired or soon-to-expire subscriptions" %}</label>
+      </div>
+      <small class="form-text text-muted">{% trans "This will order contacts based on their last subscription end date, giving priority to those with older expiration dates" %}</small>
+    </div>
       <form action="" method="post">
-      {% csrf_token %}
-      <table class="table table-bordered table-striped">
+        {% csrf_token %}
+        <table class="table table-bordered table-striped">
             <tr>
                 <th width="auto">{% trans "Seller" %}</th>
                 <th width="20%">{% trans "Contacts" %}</th>
@@ -35,7 +43,7 @@
             <tr class="{% cycle 'row1' 'row2' %}">
                 <td>{{ seller.name }}</td>
                 <td class="text-center">{{ seller.contacts }}</td>
-                <td class="text-center"><input type="number" name="seller-{{ seller.id}}" value="0" size="2" tabindex="{{ forloop.counter }}" class="form-control col-3"/></td>
+                <td class="text-center"><input type="number" name="seller-{{ seller.id }}" value="0" size="2" tabindex="{{ forloop.counter }}" class="form-control col-3"/></td>
             </tr>
         {% endfor %}
       </table>

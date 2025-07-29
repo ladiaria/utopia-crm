@@ -2,7 +2,6 @@
 from datetime import date
 
 from django.db import models
-from django.db.models import Q
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.utils import timezone
@@ -16,7 +15,7 @@ from core.models import Campaign
 from simple_history.models import HistoricalRecords
 
 from support.choices import (
-    ISSUE_CATEGORIES,
+    get_issue_categories,
     ISSUE_ANSWERS,
     ISSUE_SUBCATEGORIES,
     SCHEDULED_TASK_CATEGORIES,
@@ -118,7 +117,7 @@ class Issue(models.Model):
     date_created = models.DateField(auto_now_add=True)
     contact = models.ForeignKey("core.Contact", on_delete=models.CASCADE, verbose_name=_("Contact"))
     date = models.DateField(default=date.today, verbose_name=_("Date"))
-    category = models.CharField(max_length=1, blank=True, null=True, choices=ISSUE_CATEGORIES)
+    category = models.CharField(max_length=1, blank=True, null=True, choices=get_issue_categories())
     subcategory = models.CharField(max_length=3, blank=True, null=True, choices=ISSUE_SUBCATEGORIES)
     inside = models.BooleanField(default=True)
     notes = models.TextField(blank=True, null=True)
@@ -159,7 +158,7 @@ class Issue(models.Model):
         pass
 
     def get_category(self):
-        categories = dict(ISSUE_CATEGORIES)
+        categories = dict(get_issue_categories())
         return categories.get(self.category, "N/A")
 
     def get_subcategory(self):
@@ -323,7 +322,7 @@ class ScheduledTask(models.Model):
 class IssueStatus(models.Model):
     name = models.CharField(max_length=60)
     slug = AutoSlugField(populate_from="name", always_update=True, null=True, blank=True)
-    category = models.CharField(max_length=2, blank=True, null=True, choices=ISSUE_CATEGORIES)
+    category = models.CharField(max_length=2, blank=True, null=True, choices=get_issue_categories())
 
     def __str__(self):
         return self.name
@@ -338,7 +337,7 @@ class IssueStatus(models.Model):
 class IssueSubcategory(models.Model):
     name = models.CharField(max_length=60)
     slug = AutoSlugField(populate_from="name", always_update=True, null=True, blank=True)
-    category = models.CharField(max_length=2, blank=True, null=True, choices=ISSUE_CATEGORIES)
+    category = models.CharField(max_length=2, blank=True, null=True, choices=get_issue_categories())
 
     def __str__(self):
         return self.name
