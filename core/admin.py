@@ -427,6 +427,7 @@ class ProductAdmin(admin.ModelAdmin):
         "weekday",
         "offerable",
     ]
+    list_filter = ("active", "type", "renewal_type", "offerable", "subscription_period", "duration_months")
     fieldsets = (
         (
             _("Information"),
