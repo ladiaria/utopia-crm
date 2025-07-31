@@ -537,10 +537,17 @@ class SellerConsoleAction(models.Model):
     """
     Model to store which actions the seller has done in the console. It is stored in the activity.
     """
+    class ACTION_TYPES(models.TextChoices):
+        SUCCESS = "S", _("Success")
+        DECLINED = "D", _("Declined")
+        PENDING = "P", _("Pending")
+        NO_CONTACT = "N", _("No contact")
+
     slug = models.SlugField(max_length=100, primary_key=True)
     name = models.CharField(max_length=100, blank=True, null=True)
     description = models.TextField(blank=True, null=True)
     is_active = models.BooleanField(default=True)
+    action_type = models.CharField(max_length=1, choices=ACTION_TYPES.choices, blank=True, null=True)
 
     def __str__(self):
         return self.name
