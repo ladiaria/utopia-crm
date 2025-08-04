@@ -261,7 +261,13 @@ class Product(models.Model):
         "core.TermsAndConditions",
         through="core.TermsAndConditionsProduct",
     )
-    mercadopago_id = models.CharField(max_length=255, blank=True, null=True, verbose_name=_("MercadoPago ID"))
+    mercadopago_id = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        verbose_name=_("MercadoPago ID"),
+        help_text=_("If MercadoPago product sync is enabled, this field is auto-filled when this product is created."),
+    )
     billing_mode = models.CharField(
         max_length=1,
         default=BillingModeChoices.PER_FREQUENCY,

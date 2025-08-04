@@ -16,11 +16,18 @@ from core.models import Address, Subscription, Product, SubscriptionProduct  # U
 from core.utils import calc_price_from_products, create_invoiceitem_for_corporate_subscription
 
 
+def mercadopago_access_token():
+    """
+    Returns the MercadoPago access token from settings if defined, otherwise returns an empty string.
+    """
+    return getattr(settings, "MERCADOPAGO_ACCESS_TOKEN", "") or ""
+
+
 def mercadopago_debit(invoice, debug=False):
     """
     Calls the MercadoPago API to send the payment. Generates the card token and register the payment.
     """
-    if getattr(settings, "DISABLE_MERCADOPAGO", False):
+    if not getattr(settings, "MERCADOPAGO_INVOICE_DEBIT_ENABLED", True):
         if settings.DEBUG:
             print("DEBUG: mercadopago_debit: Mercadopago debit skipped by settings.")
         return
@@ -38,7 +45,7 @@ def mercadopago_debit(invoice, debug=False):
         return
 
     # Get MercadoPago access token from settings with a fallback
-    mp_access_token = getattr(settings, "MERCADOPAGO_ACCESS_TOKEN", "")
+    mp_access_token = mercadopago_access_token()
     if not mp_access_token:
         error_status = "MercadoPago access token not found in settings"
         _update_invoice_notes(invoice, error_status, debug)

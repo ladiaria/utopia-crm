@@ -1,4 +1,10 @@
 # coding=utf-8
+import mercadopago
+from leaflet.admin import LeafletGeoAdmin
+from taggit.models import TaggedItem, Tag
+from taggit.admin import TagAdmin, TaggedItemInline
+from simple_history.admin import SimpleHistoryAdmin
+
 from django.conf import settings
 from django.db.models.deletion import Collector
 from django.http import HttpResponseRedirect
@@ -9,13 +15,9 @@ from django.contrib.messages import constants as messages
 from django.urls import resolve, reverse
 from django.forms import ValidationError
 
-from leaflet.admin import LeafletGeoAdmin
-from taggit.models import TaggedItem, Tag
-from taggit.admin import TagAdmin, TaggedItemInline
-from simple_history.admin import SimpleHistoryAdmin
-
 from community.models import ProductParticipation, Supporter
 from invoicing.models import Invoice
+from invoicing.utils import mercadopago_access_token
 from support.models import Issue
 from core.utils import logistics_is_installed
 from .models import (
@@ -56,6 +58,7 @@ from .models import (
     City,
 )
 from .forms import SubscriptionAdminForm, ContactAdminForm
+
 
 # unregister default TagAdmin to remove inlines (avoid timeout when many taggetitems), register it again changed
 if Tag in admin.site._registry:
@@ -407,6 +410,83 @@ class TermsAndConditionsProductInline(admin.TabularInline):
     extra = 1
 
 
+def build_mp_plan_data(obj, application_id):
+    back_url = getattr(settings, "MERCADOPAGO_PLAN_BACK_URL", None)
+    currency_id = getattr(settings, "MERCADOPAGO_PLAN_DEFAULT_CURRENCY", None)
+    assert back_url and currency_id, (
+        _("Settings variables MERCADOPAGO_PLAN_BACK_URL and MERCADOPAGO_PLAN_DEFAULT_CURRENCY must be set")
+    )
+    return {
+        "reason": obj.name,
+        "auto_recurring": {
+            "frequency": obj.duration_months,
+            "currency_id": currency_id,
+            "frequency_type": "months",
+            "transaction_amount": "%.2f" % obj.price,
+        },
+        "application_id": application_id,
+        "payment_methods_allowed": getattr(
+            settings,
+            "MERCADOPAGO_PAYMENT_METHODS_ALLOWED",
+            {
+                'payment_types': [{'id': 'credit_card'}, {'id': 'debit_card'}],
+                'payment_methods': [{'id': 'master'}, {'id': 'visa'}, {'id': 'debvisa'}, {'id': 'debmaster'}],
+            },
+        ),
+        "back_url": back_url,
+    }
+
+
+def mp_product_sync(obj, disable_mp_plan=False):
+    """
+    Syncs the product with a MercadoPago Plan object for "app integration" mercadopago mode.
+    The sync is performed only if:
+    - MERCADOPAGO_PRODUCT_SYNC_ENABLED is True (default: False)
+    - mercadopago_access_token() is not empty
+    - The "app integration" mode in MercadoPago is used, the app id will be obtained from the access token
+    - if MERCADOPAGO_PRODUCT_SYNC_CMS_SYNC_REQUIRED is True (default: False), obj.cms_subscription_type must be set
+    """
+    if getattr(settings, "MERCADOPAGO_PRODUCT_SYNC_ENABLED", False):
+        if getattr(settings, "MERCADOPAGO_PRODUCT_SYNC_CMS_SYNC_REQUIRED", False) and not obj.cms_subscription_type:
+            return
+        mp_access_token = mercadopago_access_token()
+        if not mp_access_token:
+            return
+        if not mp_access_token.startswith("APP_USR-"):
+            return
+        app_id = mp_access_token.split("-")[1]
+        if not app_id.isdigit():
+            return
+        sdk = mercadopago.SDK(mp_access_token)
+        if disable_mp_plan:
+            if not obj.mercadopago_id:
+                # we only can disable plans already linked to a product in CRM
+                return
+            try:
+                sdk.plan().update(obj.mercadopago_id, {"status": "inactive"})
+            except Exception as e:
+                # TODO: spanish translation = "No se pudo deshabilitar el producto en MercadoPago"
+                raise Exception(_("Failed to disable product in MercadoPago") + f": {e}")
+        else:
+            try:
+                mp_data, mp_response = build_mp_plan_data(obj, app_id), ""
+                if not obj.mercadopago_id:
+                    # TODO: consider search by some field before creating the plan, for example the name but this can
+                    #       be handled in "v2", a modal dialog to show mp's values and ask for confirmation
+                    mp_response = sdk.plan().create(mp_data)
+                    obj.mercadopago_id = mp_response["response"]["id"]
+                    obj.save()
+                else:
+                    mp_response = sdk.plan().update(obj.mercadopago_id, mp_data)
+            except Exception as e:
+                if settings.DEBUG:
+                    print(f"mp_product_sync error: {e}")
+                    if mp_response:
+                        print(f"MP response: {mp_response}")
+                # TODO: spanish translation = "No se pudo sincronizar el producto en MercadoPago"
+                raise Exception(_("Failed to sync product in MercadoPago") + f": {e}")
+
+
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
     # TODO: validations, for example target_product only makes sense on discount products
@@ -428,13 +508,9 @@ class ProductAdmin(admin.ModelAdmin):
         "offerable",
     ]
     list_filter = ("active", "type", "renewal_type", "offerable", "subscription_period", "duration_months")
+    readonly_fields = ("mercadopago_id",)
     fieldsets = (
-        (
-            _("Information"),
-            {
-                "fields": ("name", "slug", "type"),
-            },
-        ),
+        (_("Information"), {"fields": ("name", "slug", "type")}),
         (
             _("Pricing & Discounts"),
             {
@@ -448,27 +524,31 @@ class ProductAdmin(admin.ModelAdmin):
                 ),
             },
         ),
-        (
-            _("Scheduling & Frequency"),
-            {
-                "fields": ("weekday", "subscription_period", "duration_months"),
-            },
-        ),
-        (
-            _("Billing & Priority"),
-            {
-                "fields": ("billing_priority", "active", "edition_frequency"),
-            },
-        ),
-        (
-            _("MercadoPago and others"),
-            {
-                "fields": ("mercadopago_id", "internal_code", "cms_subscription_type"),
-            },
-        ),
+        (_("Scheduling & Frequency"), {"fields": ("weekday", "subscription_period", "duration_months")}),
+        (_("Billing & Priority"), {"fields": ("billing_priority", "active", "edition_frequency")}),
+        (_("MercadoPago and others"), {"fields": ("mercadopago_id", "internal_code", "cms_subscription_type")}),
     )
     inlines = (TermsAndConditionsProductInline,)
     search_fields = ("name", "slug", "internal_code")
+    # TODO: spanish translation = "No se pudo actualizar el producto en MercadoPago"
+    no_mp_sync_msg_prefix = _("The product could not be updated in MercadoPago") + ": "
+    actions = None
+    list_display_links = ("name",)
+
+    def delete_model(self, request, obj):
+        print("delete_model", obj)
+        try:
+            mp_product_sync(obj, disable_mp_plan=True)
+        except Exception as e:
+            self.message_user(request, self.no_mp_sync_msg_prefix + str(e), level=messages.WARNING)
+        super().delete_model(request, obj)
+
+    def save_model(self, request, obj, form, change):
+        try:
+            mp_product_sync(obj)
+        except Exception as e:
+            self.message_user(request, self.no_mp_sync_msg_prefix + str(e), level=messages.WARNING)
+        super().save_model(request, obj, form, change)
 
     class Media:
         css = {"all": ("css/product_admin.css",)}
