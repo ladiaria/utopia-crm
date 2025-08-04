@@ -2,8 +2,8 @@
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework_api_key.permissions import HasAPIKey
 
+from django.conf import settings
 from django.db import IntegrityError
-
 from django.http import (
     JsonResponse,
     HttpResponse,
@@ -75,6 +75,8 @@ def contact_api(request):
     Delete, update or create a contact. Sets updatefromweb flag to the contact to avoid ws loop.
     """
     try:
+        if settings.DEBUG:
+            print(f"DEBUG: contact_api request: {request.data}")
         contact_id = request.data.get("contact_id", 0)
         mail = request.data.get("email")
         newmail = request.data.get("newemail")
@@ -93,7 +95,19 @@ def contact_api(request):
             else:
                 return HttpResponseForbidden()
         else:
-            update_customer(c, newmail, field, value)
+            """
+            TODO: H O R R O R !!!!
+            this branch is a temporal fix to the mess we have been done with this sync implementation from CMS to CRM
+            All this should be migrated to DRF as vanilla as possible, like the product sync I did recently
+            """
+            if "field" in request.data and "value" in request.data:
+                # "untouched" back-compat: someone may be calling that way that was expected here
+                update_customer(c, newmail, field, value)
+            else:
+                # And this is the temporal fix, iterating adapting to the new "changeset approach" and do proper things
+                for field, value in request.data.items():
+                    if field not in ("contact_id", "email", "newemail"):
+                        update_customer(c, newmail, field, value)
             id_contact = c.id
     except Contact.DoesNotExist:
         if mail:
