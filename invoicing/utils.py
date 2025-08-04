@@ -331,7 +331,14 @@ def contact_update_mp_wrapper(
     return result
 
 
-def bill_subscription(subscription, billing_date=None, dpp=10, force_by_date=False, billing_date_override=None):
+def bill_subscription(
+    subscription,
+    billing_date=None,
+    dpp=10,
+    force_by_date=False,
+    billing_date_override=None,
+    payment_reference=None,
+):
     """
     Bills a single subscription into an only invoice. Returns the created invoice.
     """
@@ -453,6 +460,7 @@ def bill_subscription(subscription, billing_date=None, dpp=10, force_by_date=Fal
                 amount=amount,
                 payment_type_fk=subscription.payment_type_fk,
                 payment_method_fk=subscription.payment_method_fk,
+                payment_reference=payment_reference,
             )
 
             # Add all invoice items to the invoice
