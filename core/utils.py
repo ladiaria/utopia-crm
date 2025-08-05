@@ -580,7 +580,7 @@ api_view_auth_decorator = (
 )
 
 
-def cms_rest_api_kwargs(api_key, data=None):
+def cms_rest_api_kwargs(api_key, data=None, send_as_json=False):
     http_basic_auth = settings.WEB_UPDATE_HTTP_BASIC_AUTH
     result = {
         "headers": {"X-Api-Key": api_key} if http_basic_auth else {'Authorization': 'Api-Key ' + api_key},
@@ -589,7 +589,14 @@ def cms_rest_api_kwargs(api_key, data=None):
     if not getattr(settings, "WEB_UPDATE_USER_VERIFY_SSL", True):
         result["verify"] = False
     if data:
-        result["json" if isinstance(data, dict) else "data"] = data
+        # TODO: Check out if this is needed or a better logic needs to be implemented. This had to be added because
+        # some API endpoints expect the data to be sent as JSON, but others still expect it to be sent as form data.
+        # I'll leave the previous logic commented for further analysis.
+        # result["json" if isinstance(data, dict) else "data"] = data
+        if send_as_json:
+            result["json"] = data
+        else:
+            result["data"] = data
     if http_basic_auth:
         result["auth"] = HTTPBasicAuth(*http_basic_auth)
     return result
