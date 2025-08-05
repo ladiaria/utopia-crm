@@ -37,7 +37,7 @@ from .choices import (
     ADDRESS_TYPE_CHOICES,
     CAMPAIGN_RESOLUTION_CHOICES,
     CAMPAIGN_RESOLUTION_REASONS_CHOICES,
-    CAMPAIGN_STATUS_CHOICES,
+    CAMPAIGN_STATUS,
     DEBTOR_CONCACTS_CHOICES,
     DYNAMIC_CONTACT_FILTER_MODES,
     EDUCATION_CHOICES,
@@ -2629,7 +2629,7 @@ class ContactCampaignStatus(models.Model):
 
     contact = models.ForeignKey(Contact, on_delete=models.CASCADE)
     campaign = models.ForeignKey(Campaign, on_delete=models.CASCADE)
-    status = models.SmallIntegerField(choices=CAMPAIGN_STATUS_CHOICES, default=1)
+    status = models.SmallIntegerField(choices=CAMPAIGN_STATUS.choices, default=1)
     campaign_resolution = models.CharField(choices=CAMPAIGN_RESOLUTION_CHOICES, null=True, blank=True, max_length=2)
     seller = models.ForeignKey("support.Seller", on_delete=models.CASCADE, null=True, blank=True)
     date_created = models.DateField(auto_now_add=True)
@@ -2637,6 +2637,9 @@ class ContactCampaignStatus(models.Model):
     last_action_date = models.DateField(auto_now=True)
     times_contacted = models.SmallIntegerField(default=0)
     resolution_reason = models.SmallIntegerField(choices=CAMPAIGN_RESOLUTION_REASONS_CHOICES, null=True, blank=True)
+    last_console_action = models.ForeignKey(
+        "support.SellerConsoleAction", on_delete=models.SET_NULL, null=True, blank=True
+    )
 
     class Meta:
         unique_together = ["contact", "campaign"]
@@ -2654,7 +2657,7 @@ class ContactCampaignStatus(models.Model):
         """
         Returns a description of the status for this campaign on this contact.
         """
-        return dict(CAMPAIGN_STATUS_CHOICES).get(self.status, "N/A")
+        return CAMPAIGN_STATUS(self.status).label if self.status in CAMPAIGN_STATUS.values else "N/A"
 
     def get_campaign_resolution(self):
         """

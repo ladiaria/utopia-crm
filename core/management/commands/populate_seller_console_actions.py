@@ -1,6 +1,7 @@
 from django.core.management.base import BaseCommand
 from django.utils.text import slugify
 from support.models import SellerConsoleAction
+from core.choices import CAMPAIGN_STATUS
 
 
 class Command(BaseCommand):
@@ -20,20 +21,20 @@ class Command(BaseCommand):
 
     help = "Populate SellerConsoleAction models with predefined actions"
 
-    # Tuple of (action_type, action_name) pairs
+    # Tuple of (action_type, action_name, campaign_status) tuples
     # Based on the existing mapping in the original command
     action_types_and_names = (
-        (SellerConsoleAction.ACTION_TYPES.PENDING, "Agendar"),
-        (SellerConsoleAction.ACTION_TYPES.PENDING, "Llamar más tarde"),
-        (SellerConsoleAction.ACTION_TYPES.PENDING, "Mover a la mañana"),
-        (SellerConsoleAction.ACTION_TYPES.PENDING, "Mover a la tarde"),
-        (SellerConsoleAction.ACTION_TYPES.DECLINED, "No interesado"),
-        (SellerConsoleAction.ACTION_TYPES.DECLINED, "No llamar"),
-        (SellerConsoleAction.ACTION_TYPES.DECLINED, "Logística"),
-        (SellerConsoleAction.ACTION_TYPES.DECLINED, "Ya suscrito"),
-        (SellerConsoleAction.ACTION_TYPES.DECLINED, "Error en promoción"),
-        (SellerConsoleAction.ACTION_TYPES.NO_CONTACT, "No contactable"),
-        (SellerConsoleAction.ACTION_TYPES.NO_CONTACT, "Cerrar sin contacto"),
+        (SellerConsoleAction.ACTION_TYPES.PENDING, "Agendar", CAMPAIGN_STATUS.CONTACTED),
+        (SellerConsoleAction.ACTION_TYPES.PENDING, "Llamar más tarde", CAMPAIGN_STATUS.CALLED_COULD_NOT_CONTACT),
+        (SellerConsoleAction.ACTION_TYPES.PENDING, "Mover a la mañana", CAMPAIGN_STATUS.SWITCH_TO_MORNING),
+        (SellerConsoleAction.ACTION_TYPES.PENDING, "Mover a la tarde", CAMPAIGN_STATUS.SWITCH_TO_AFTERNOON),
+        (SellerConsoleAction.ACTION_TYPES.DECLINED, "No interesado", CAMPAIGN_STATUS.ENDED_WITH_CONTACT),
+        (SellerConsoleAction.ACTION_TYPES.DECLINED, "No llamar", CAMPAIGN_STATUS.ENDED_WITH_CONTACT),
+        (SellerConsoleAction.ACTION_TYPES.DECLINED, "Logística", CAMPAIGN_STATUS.ENDED_WITH_CONTACT),
+        (SellerConsoleAction.ACTION_TYPES.DECLINED, "Ya suscrito", CAMPAIGN_STATUS.ENDED_WITH_CONTACT),
+        (SellerConsoleAction.ACTION_TYPES.DECLINED, "Error en promoción", CAMPAIGN_STATUS.ENDED_WITHOUT_CONTACT),
+        (SellerConsoleAction.ACTION_TYPES.NO_CONTACT, "No contactable", CAMPAIGN_STATUS.ENDED_WITHOUT_CONTACT),
+        (SellerConsoleAction.ACTION_TYPES.NO_CONTACT, "Cerrar sin contacto", CAMPAIGN_STATUS.ENDED_WITHOUT_CONTACT),
     )
 
     def add_arguments(self, parser):
@@ -51,7 +52,7 @@ class Command(BaseCommand):
         current_slugs = set()
 
         # Create or update actions
-        for action_type, action_name in action_names:
+        for action_type, action_name, campaign_status in action_names:
             slug = slugify(action_name)
             current_slugs.add(slug)
 
@@ -60,6 +61,7 @@ class Command(BaseCommand):
                 defaults={
                     'name': action_name,
                     'action_type': action_type,
+                    'campaign_status': campaign_status,
                     'is_active': True,
                 },
             )
@@ -68,6 +70,7 @@ class Command(BaseCommand):
                 # Update existing action
                 action.name = action_name
                 action.action_type = action_type
+                action.campaign_status = campaign_status
                 action.is_active = True
                 action.save()
 
@@ -108,17 +111,17 @@ class Command(BaseCommand):
         if lang == 'EN':
             # English translations
             return (
-                (SellerConsoleAction.ACTION_TYPES.PENDING, "Schedule"),
-                (SellerConsoleAction.ACTION_TYPES.PENDING, "Call later"),
-                (SellerConsoleAction.ACTION_TYPES.PENDING, "Move to morning"),
-                (SellerConsoleAction.ACTION_TYPES.PENDING, "Move to afternoon"),
-                (SellerConsoleAction.ACTION_TYPES.DECLINED, "Not interested"),
-                (SellerConsoleAction.ACTION_TYPES.DECLINED, "Do not call"),
-                (SellerConsoleAction.ACTION_TYPES.DECLINED, "Logistics"),
-                (SellerConsoleAction.ACTION_TYPES.DECLINED, "Already subscriber"),
-                (SellerConsoleAction.ACTION_TYPES.DECLINED, "Promotion error"),
-                (SellerConsoleAction.ACTION_TYPES.NO_CONTACT, "Uncontactable"),
-                (SellerConsoleAction.ACTION_TYPES.NO_CONTACT, "Close without contact"),
+                (SellerConsoleAction.ACTION_TYPES.PENDING, "Schedule", CAMPAIGN_STATUS.CONTACTED),
+                (SellerConsoleAction.ACTION_TYPES.PENDING, "Call later", CAMPAIGN_STATUS.CALLED_COULD_NOT_CONTACT),
+                (SellerConsoleAction.ACTION_TYPES.PENDING, "Move to morning", CAMPAIGN_STATUS.SWITCH_TO_MORNING),
+                (SellerConsoleAction.ACTION_TYPES.PENDING, "Move to afternoon", CAMPAIGN_STATUS.SWITCH_TO_AFTERNOON),
+                (SellerConsoleAction.ACTION_TYPES.DECLINED, "Not interested", CAMPAIGN_STATUS.ENDED_WITH_CONTACT),
+                (SellerConsoleAction.ACTION_TYPES.DECLINED, "Do not call", CAMPAIGN_STATUS.ENDED_WITH_CONTACT),
+                (SellerConsoleAction.ACTION_TYPES.DECLINED, "Logistics", CAMPAIGN_STATUS.ENDED_WITH_CONTACT),
+                (SellerConsoleAction.ACTION_TYPES.DECLINED, "Already subscriber", CAMPAIGN_STATUS.ENDED_WITH_CONTACT),
+                (SellerConsoleAction.ACTION_TYPES.DECLINED, "Promotion error", CAMPAIGN_STATUS.ENDED_WITHOUT_CONTACT),
+                (SellerConsoleAction.ACTION_TYPES.NO_CONTACT, "Uncontactable", CAMPAIGN_STATUS.ENDED_WITHOUT_CONTACT),
+                (SellerConsoleAction.ACTION_TYPES.NO_CONTACT, "Close without contact", CAMPAIGN_STATUS.ENDED_WITHOUT_CONTACT),
             )
         else:
             # Default to Spanish

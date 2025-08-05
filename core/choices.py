@@ -1,5 +1,5 @@
 # coding=utf-8
-from django.db.models import TextChoices
+from django.db.models import TextChoices, IntegerChoices
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 
@@ -99,15 +99,17 @@ ACTIVITY_DIRECTION_CHOICES = (
     ("R", _("Renewal")),
 )
 
-CAMPAIGN_STATUS_CHOICES = (
-    (1, _("Not yet contacted")),
-    (2, _("Contacted")),
-    (3, _("Called, could not contact")),
-    (4, _("Ended with contact")),
-    (5, _("Ended without contact")),
-    (6, _("Switch to morning")),
-    (7, _("Switch to afternoon/evening")),
-)
+
+class CAMPAIGN_STATUS(IntegerChoices):
+    NOT_YET_CONTACTED = 1, _("Not yet contacted")
+    CONTACTED = 2, _("Contacted")
+    CALLED_COULD_NOT_CONTACT = 3, _("Called, could not contact")
+    ENDED_WITH_CONTACT = 4, _("Ended with contact")
+    ENDED_WITHOUT_CONTACT = 5, _("Ended without contact")
+    SWITCH_TO_MORNING = 6, _("Switch to morning")
+    SWITCH_TO_AFTERNOON = 7, _("Switch to afternoon/evening")
+
+
 
 CAMPAIGN_RESOLUTION_CHOICES = (
     ("SP", _("Started promotion")),

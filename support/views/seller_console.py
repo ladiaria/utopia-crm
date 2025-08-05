@@ -196,28 +196,41 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
                 messages.error(self.request, _("Contact is no longer in this campaign"))
                 return None
 
-            # Map results to status and campaign_resolution using action slugs
-            result_mapping = {
-                "schedule": (2, "SC"),
-                "call-later": (3, "CL"),
-                "not-interested": (4, "NI"),
-                "do-not-call": (4, "DN"),
-                "logistics": (4, "LO"),
-                "already-subscriber": (4, "AS"),
-                "uncontactable": (5, "UN"),
-                "error-promotion": (5, "EP"),
-                "close-without-contact": (5, "CW"),
-                "move-morning": (6, None),
-                "move-afternoon": (7, None),
-            }
-
-            if result in result_mapping:
-                status, campaign_resolution = result_mapping[result]
-                ccs.status = status
-                if campaign_resolution:
-                    ccs.campaign_resolution = campaign_resolution
-                if status in (6, 7):  # Morning/Afternoon moves
-                    ccs.seller = None
+            # Try to find the SellerConsoleAction by slug and update based on its configuration
+            try:
+                console_action = SellerConsoleAction.objects.get(slug=result, is_active=True)
+                ccs.last_console_action = console_action
+                
+                # Use the campaign_status from the action if it's set
+                if console_action.campaign_status:
+                    ccs.status = console_action.campaign_status
+                    
+                    # Handle special cases for morning/afternoon moves
+                    if console_action.campaign_status in (6, 7):  # Switch to morning/afternoon
+                        ccs.seller = None
+                        
+            except SellerConsoleAction.DoesNotExist:
+                # If action with this slug doesn't exist, fall back to the old mapping for backward compatibility
+                result_mapping = {
+                    "schedule": 2,
+                    "call-later": 3,
+                    "not-interested": 4,
+                    "do-not-call": 4,
+                    "logistics": 4,
+                    "already-subscriber": 4,
+                    "uncontactable": 5,
+                    "error-promotion": 5,
+                    "close-without-contact": 5,
+                    "move-morning": 6,
+                    "move-afternoon": 7,
+                }
+                
+                if result in result_mapping:
+                    status = result_mapping[result]
+                    ccs.status = status
+                    
+                    if status in (6, 7):  # Morning/Afternoon moves
+                        ccs.seller = None
 
             return ccs
         except Exception as e:

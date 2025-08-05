@@ -20,6 +20,7 @@ from support.choices import (
     ISSUE_SUBCATEGORIES,
     SCHEDULED_TASK_CATEGORIES,
 )
+from core.choices import CAMPAIGN_STATUS
 
 
 class Seller(models.Model):
@@ -307,9 +308,11 @@ class ScheduledTask(models.Model):
         if debug:
             print(f"DEBUG: Task {self.id} completed successfully.")
         if verbose:
-            return _("Task {id} of type {category} for contact {contact} completed successfully.".format(
-                id=self.id, category=self.get_category(), contact=self.contact.get_full_name()
-            ))
+            return _(
+                "Task {id} of type {category} for contact {contact} completed successfully.".format(
+                    id=self.id, category=self.get_category(), contact=self.contact.get_full_name()
+                )
+            )
         else:
             return None
 
@@ -537,6 +540,7 @@ class SellerConsoleAction(models.Model):
     """
     Model to store which actions the seller has done in the console. It is stored in the activity.
     """
+
     class ACTION_TYPES(models.TextChoices):
         SUCCESS = "S", _("Success")
         DECLINED = "D", _("Declined")
@@ -548,6 +552,12 @@ class SellerConsoleAction(models.Model):
     description = models.TextField(blank=True, null=True)
     is_active = models.BooleanField(default=True)
     action_type = models.CharField(max_length=1, choices=ACTION_TYPES.choices, blank=True, null=True)
+    campaign_status = models.PositiveSmallIntegerField(
+        choices=CAMPAIGN_STATUS.choices,
+        null=True,
+        blank=True,
+        help_text=_("Campaign status to set when this action is performed"),
+    )
 
     def __str__(self):
         return self.name
