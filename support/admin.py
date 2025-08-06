@@ -77,6 +77,6 @@ class SalesRecordAdmin(admin.ModelAdmin):
 
 @admin.register(SellerConsoleAction)
 class SellerConsoleActionAdmin(admin.ModelAdmin):
-    list_display = ["slug", "name", "action_type"]
+    list_display = ["slug", "name", "action_type", "campaign_status"]
     list_display_links = ["slug"]
-    list_editable = ["name", "action_type"]
+    list_editable = ["name", "action_type", "campaign_status"]

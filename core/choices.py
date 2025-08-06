@@ -110,7 +110,6 @@ class CAMPAIGN_STATUS(IntegerChoices):
     SWITCH_TO_AFTERNOON = 7, _("Switch to afternoon/evening")
 
 
-
 CAMPAIGN_RESOLUTION_CHOICES = (
     ("SP", _("Started promotion")),
     ("AS", _("Already a subscriber")),

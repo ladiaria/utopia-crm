@@ -261,14 +261,14 @@
                 <h6 class="text-warning"><i class="fas fa-clock"></i> <strong>Pendientes</strong></h6>
                 <button class="btn btn-block bg-gradient-warning btn-sm result-btn"
                         type="button"
-                        data-result="llamar-mas-tarde">Llamar más tarde</button>
+                        data-result="call-later">Llamar más tarde</button>
                 <button class="btn btn-block bg-gradient-warning btn-sm result-btn"
                         type="button"
-                        data-result="mover-a-la-manana"
+                        data-result="move-morning"
                         data-confirm="{% trans "Do you want to continue?" %}">Mover a la mañana</button>
                 <button class="btn btn-block bg-gradient-warning btn-sm result-btn"
                         type="button"
-                        data-result="mover-a-la-tarde"
+                        data-result="move-afternoon"
                         data-confirm="{% trans "Do you want to continue?" %}">Mover a la tarde</button>
               </div>
 
@@ -277,27 +277,27 @@
                 <h6 class="text-danger"><i class="fas fa-times-circle"></i> <strong>Rechazados / Sin Contacto</strong></h6>
                 <button class="reject btn btn-block bg-gradient-danger btn-sm result-btn"
                         type="button"
-                        data-result="no-interesado">No interesado</button>
+                        data-result="not-interested">No interesado</button>
                 <button class="reject btn btn-block bg-gradient-danger btn-sm result-btn"
                         type="button"
-                        data-result="no-llamar">No llamar</button>
+                        data-result="do-not-call">No llamar</button>
                 <button class="reject btn btn-block bg-gradient-danger btn-sm result-btn"
                         type="button"
-                        data-result="logistica">Logística</button>
+                        data-result="logistics">Logística</button>
                 <button class="reject btn btn-block bg-gradient-danger btn-sm result-btn"
                         type="button"
-                        data-result="ya-suscrito">Ya suscrito</button>
+                        data-result="already-subscriber">Ya suscrito</button>
                 <button class="reject btn btn-block bg-gradient-danger btn-sm result-btn"
                         type="button"
-                        data-result="error-en-promocion"
+                        data-result="error-promotion"
                         data-confirm="{% trans "Do you want to continue?" %}">Error en promoción</button>
                 <button class="reject btn btn-block bg-gradient-secondary btn-sm result-btn"
                         type="button"
-                        data-result="no-contactable"
+                        data-result="uncontactable"
                         data-confirm="{% trans "Do you want to continue?" %}">No contactable</button>
                 <button class="btn btn-block bg-gradient-secondary btn-sm result-btn"
                         type="button"
-                        data-result="cerrar-sin-contacto">Cerrar sin contacto</button>
+                        data-result="close-without-contact">Cerrar sin contacto</button>
               </div>
 
               <!-- SUCCESS Actions & Schedule Column -->
@@ -352,7 +352,7 @@
                 </div>
                 <button type="button"
                         class="btn btn-sm btn-primary btn-block result-btn"
-                        data-result="agendar">{% trans "Schedule" %}</button>
+                        data-result="schedule">{% trans "Schedule" %}</button>
 
                 <hr>
                 <a href="{{ url }}?offset={{ position }}"
