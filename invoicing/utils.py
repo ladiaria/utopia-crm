@@ -341,10 +341,10 @@ def bill_subscription(
 ):
     """
     Bills a single subscription into an only invoice. Returns the created invoice.
+    # TODO: Products have a field "allow billing" which may not be used here. check and make fixes if any.
     """
     # Safely get settings with default values
     billing_extra_days = getattr(settings, 'BILLING_EXTRA_DAYS', 0)
-    force_dummy_missing_billing_data = getattr(settings, 'FORCE_DUMMY_MISSING_BILLING_DATA', False)
     require_route_for_billing = getattr(settings, 'REQUIRE_ROUTE_FOR_BILLING', False)
     exclude_routes_from_billing_list = getattr(settings, 'EXCLUDE_ROUTES_FROM_BILLING_LIST', [])
     envelope_price = getattr(settings, 'ENVELOPE_PRICE', 0)
@@ -378,12 +378,7 @@ def bill_subscription(
     # We need to get all the subscription data
     billing_data = subscription.get_billing_data_by_priority()
 
-    if not billing_data and not force_dummy_missing_billing_data:
-        raise Exception(
-            f"Subscription {subscription.id} for contact {subscription.contact.id} contains no billing data."
-        )
-
-    if billing_data and billing_data["address"] is None:
+    if not billing_data or not billing_data.get("address"):
         raise Exception(
             f"Subscription {subscription.id} for contact {subscription.contact.id} requires an address to be billed."
         )

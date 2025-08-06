@@ -1764,44 +1764,25 @@ class Subscription(models.Model):
         result = {}
         product = self.get_first_product_by_priority()
         if product:
+            result.update({"name": self.get_billing_name()})
             sp = self.subscriptionproduct_set.filter(product=product).first()
-            if sp.product.edition_frequency == 4 and self.contact.email:
-                route = 56
-                address = self.contact.email
-                state = getattr(settings, "DEFAULT_STATE", None)
-                city = getattr(settings, "DEFAULT_CITY", None)
-            elif sp.product.digital and self.contact.email:
-                route = 56
-                address = self.contact.email
-                state = getattr(settings, "DEFAULT_STATE", None)
-                city = getattr(settings, "DEFAULT_CITY", None)
+            # TODO: Remove or at least explain why a hardcoded frequency of "4" has an special treatment on next line
+            # TODO: "56" route should be turned into a feature and its id should not be used in a hardcoded way
+            default_state = getattr(settings, "DEFAULT_STATE", None)
+            default_city = getattr(settings, "DEFAULT_CITY", None)
+            if (sp.product.edition_frequency == 4 or sp.product.digital) and self.contact.email:
+                route, address, state, city = 56, self.contact.email, default_state, default_city
             elif sp.address and sp.address.address_1:
-                address = sp.address.address_1
-                state = sp.address.state_name
-                city = sp.address.city
-                route = sp.route_id
+                route, address, state, city = sp.route_id, sp.address.address_1, sp.address.state_name, sp.address.city
             else:
                 route, address, state, city = None, None, None, None
-            if address:
-                result = {
-                    "route": route,
-                    "order": sp.order,
-                    "address": address,
-                    "state": state,
-                    "city": city,
-                    "name": self.get_billing_name(),
-                }
-                if settings.DEBUG:
-                    print(f"DEBUG: get_billing_data_by_priority (if address) result: {result}")
-            elif not address and getattr(settings, "DEFAULT_BILLING_ADDRESS", None):
-                result = getattr(settings, "DEFAULT_BILLING_ADDRESS", None)
-                result["name"] = self.get_billing_name()
-            elif settings.DEBUG:
-                print(("DEBUG: No address found in the billing data for subscription %d." % self.id))
+            if not address:
+                address = getattr(settings, "DEFAULT_BILLING_ADDRESS", None)
+            result.update({"address": address, "route": route, "order": sp.order, "state": state, "city": city})
+            if settings.DEBUG:
+                print(f"DEBUG: get_billing_data_by_priority (if product) result: {result}")
         elif settings.DEBUG:
             print(("DEBUG: No product found in the billing data for subscription %d." % self.id))
-        if not result and getattr(settings, "FORCE_DUMMY_MISSING_BILLING_DATA", False):
-            result = {}
         return result
 
     def get_full_address_by_priority(self):
@@ -3028,7 +3009,7 @@ def update_web_user(contact, target_email=None, newsletter_data=None, area_newsl
     """
     Sync some fields from contact with the web CMS linked subscriptor target reference.
     If newsletter_data is given, newsletters will be sent to websync.
-    @param contact: Contact object store the previous state of the contact
+    @param contact: Contact object store the previous state of the contact  TODO: THIS IS NOT CORRECT, FIX ASAP!
     @param target_email: Email used to set the connection. If not, use given contact's email
     @param newsletter_data: field data for newsletters.
     @param area_newsletters: field name for newsletters.
@@ -3042,9 +3023,12 @@ def update_web_user(contact, target_email=None, newsletter_data=None, area_newsl
 
             current_saved_contact = Contact.objects.get(pk=contact.id)
             # TODO: change this 1-field-per-request approach to a new 1-request-only approach with all chanmges
+            # NOTE: name and last_name are considered to allways be in the setting, even if not.
             for f in getattr(settings, "WEB_UPDATE_USER_CHECKED_FIELDS", []):
                 before_saved_value = getattr(contact, f)
                 current_saved_value = getattr(current_saved_contact, f)
+                if settings.DEBUG:
+                    print(f"DEBUG: update_web_user: {f} before: {before_saved_value}, current: {current_saved_value}")
                 if before_saved_value is not None and current_saved_value != before_saved_value:
                     fields_to_update.update({f: current_saved_value})
             # call for sync if there are fields to update

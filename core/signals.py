@@ -25,11 +25,11 @@ def contact_pre_save_signal(sender, instance, **kwargs):
         raise ValidationError(regex_alphanumeric_msg)
     try:
         saved_email = Contact.objects.values_list("email", flat=True).get(pk=instance.id)
-        instance.old_email = saved_email
+        instance.old_email = saved_email  # NOTE: may be deprecated with the work i'll do for the next TODO
     except Contact.DoesNotExist:
         # do nothing on the new ones
         pass
-    instance.old_contact = instance
+    instance.old_contact = instance  # TODO: (fixing) this is a very bad OO mistake, instances are always the same ref.
 
 
 @receiver(post_save, sender=Contact)
