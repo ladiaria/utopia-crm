@@ -14,7 +14,7 @@ from datetime import date, timedelta, datetime
 from support.models import Seller, Issue, SellerConsoleAction
 from core.models import Address, SubscriptionProduct, Activity, ContactCampaignStatus, Campaign, Subscription
 from core.utils import logistics_is_installed
-from core.choices import CAMPAIGN_RESOLUTION_REASONS_CHOICES, CAMPAIGN_STATUS
+from core.choices import ACTIVITY_STATUS, CAMPAIGN_RESOLUTION_REASONS_CHOICES, CAMPAIGN_STATUS
 
 if logistics_is_installed():
     from logistics.models import Route
@@ -190,11 +190,11 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
 
     def get_seller_console_action(self, result_slug, required=True):
         """Get SellerConsoleAction by slug with unified error handling
-        
+
         Args:
             result_slug (str): The action slug to lookup
             required (bool): If True, raises error and returns None. If False, shows warning and continues.
-            
+
         Returns:
             SellerConsoleAction or None
         """
@@ -269,9 +269,12 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
         contact = self.get_contact_from_instance_id(instance_id, category)
         if not contact:
             return None
-        
+
         # Get action - not required, can continue with None if missing
         seller_console_action = self.get_seller_console_action(result, required=False)
+        # If the ACTION_TYPE was DECLINED, we won't create a new activity
+        if seller_console_action.action_type == SellerConsoleAction.ACTION_TYPES.DECLINED:
+            return
         # If we're using the setting to keep contacts in campaigns indefinitely, we'll need to set the datetime
         # to a future date, otherwise we'll use the current date and set this as closed. Anyways we'll mark the
         # current activity as closed and create a new one with the future datetime.
@@ -335,7 +338,7 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
                 messages.error(self.request, _("Activity not found"))
                 return HttpResponseRedirect(reverse("seller_console", args=[category, campaign.id]))
             activity.notes = data.get("notes")
-            activity.status = "C"
+            activity.status = ACTIVITY_STATUS.COMPLETED
             activity.datetime = datetime.now()  # Set the datetime to the current time
             activity.save()
             if getattr(settings, "KEEP_CONTACTS_IN_CAMPAIGNS_INDEFINITELY", False):
@@ -346,6 +349,8 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
 
         # Process the result
         ccs = self.process_activity_result(contact, campaign, seller, seller_console_action, notes)
+        if not ccs:
+            return HttpResponseRedirect(reverse("seller_console", args=[category, campaign.id]))
 
         # Handle scheduling if needed
         if seller_console_action.action_type == SellerConsoleAction.ACTION_TYPES.SCHEDULED:

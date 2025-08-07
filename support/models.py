@@ -9,7 +9,7 @@ from django.utils.translation import gettext_lazy as _
 from django.utils.safestring import mark_safe
 from autoslug import AutoSlugField
 
-
+from core.choices import ACTIVITY_STATUS
 from core.models import Campaign
 
 from simple_history.models import HistoricalRecords
@@ -91,13 +91,13 @@ class Seller(models.Model):
 
     def total_pending_activities(self):
         return self.activity_set.filter(
-            status="P",
+            status__in=(ACTIVITY_STATUS.PENDING, ACTIVITY_STATUS.EXPIRED),
             activity_type="C",
         ).order_by("datetime")
 
     def total_pending_activities_count(self):
         activity_qs = self.activity_set.filter(
-            status="P",
+            status__in=(ACTIVITY_STATUS.PENDING, ACTIVITY_STATUS.EXPIRED),
             activity_type="C",
             datetime__lte=timezone.now(),
         )

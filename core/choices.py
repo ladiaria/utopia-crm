@@ -86,10 +86,19 @@ PRODUCTHISTORY_CHOICES = (
     ("R", _("Resumed")),
 )
 
+class ACTIVITY_STATUS(TextChoices):
+    PENDING = "P", _("Pending")
+    COMPLETED = "C", _("Completed")
+    DELAYED = "D", _("Delayed")
+    EXPIRED = "E", _("Expired")
+
+
+# Legacy tuple for backward compatibility - will be removed eventually
 ACTIVITY_STATUS_CHOICES = (
     ("P", _("Pending")),
     ("C", _("Completed")),
     ("D", _("Delayed")),
+    ("E", _("Expired")),
 )
 
 ACTIVITY_DIRECTION_CHOICES = (

@@ -32,6 +32,7 @@ from util.dates import get_default_next_billing, get_default_start_date, diff_mo
 from .managers import ProductManager
 from .choices import (
     ACTIVITY_DIRECTION_CHOICES,
+    ACTIVITY_STATUS,
     ACTIVITY_STATUS_CHOICES,
     ACTIVITY_TYPES,
     ADDRESS_TYPE_CHOICES,
@@ -2506,7 +2507,7 @@ class Activity(models.Model):
     activity_type = models.CharField(
         choices=ACTIVITY_TYPES, max_length=1, null=True, blank=True, verbose_name=_("Type")
     )
-    status = models.CharField(choices=ACTIVITY_STATUS_CHOICES, default="P", max_length=1, verbose_name=_("Status"))
+    status = models.CharField(choices=ACTIVITY_STATUS.choices, default=ACTIVITY_STATUS.PENDING, max_length=1, verbose_name=_("Status"))
     direction = models.CharField(
         choices=ACTIVITY_DIRECTION_CHOICES, default="O", max_length=1, verbose_name=_("Direction")
     )
@@ -2546,8 +2547,10 @@ class Activity(models.Model):
         """
         Returns a description of the status for this activity.
         """
-        statuses = dict(ACTIVITY_STATUS_CHOICES)
-        return statuses.get(self.status, "N/A")
+        try:
+            return ACTIVITY_STATUS(self.status).label
+        except ValueError:
+            return "N/A"
 
     def get_direction(self):
         """
@@ -2558,7 +2561,7 @@ class Activity(models.Model):
 
     def mark_as_sale(self, register_activity, campaign, subscription=None):
         # Update the activity
-        self.status = "C"
+        self.status = ACTIVITY_STATUS.COMPLETED
         activity_notes = _("Success in sale after scheduling {}\n{}").format(
             datetime.now().strftime("%Y-%m-%d %H:%M"), register_activity
         )

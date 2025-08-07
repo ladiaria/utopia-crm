@@ -1,5 +1,4 @@
 from django.core.management.base import BaseCommand
-from django.utils.text import slugify
 from support.models import SellerConsoleAction
 from core.choices import CAMPAIGN_STATUS
 
@@ -27,16 +26,56 @@ class Command(BaseCommand):
     # Tuple of (action_type, slug, action_name, campaign_status) tuples
     # Uses hardcoded English slugs to match production usage and template compatibility
     action_types_and_names = (
-        (SellerConsoleAction.ACTION_TYPES.CALL_LATER, "call-later", "Llamar más tarde", CAMPAIGN_STATUS.CALLED_COULD_NOT_CONTACT),
-        (SellerConsoleAction.ACTION_TYPES.PENDING, "move-morning", "Mover a la mañana", CAMPAIGN_STATUS.SWITCH_TO_MORNING),
-        (SellerConsoleAction.ACTION_TYPES.PENDING, "move-afternoon", "Mover a la tarde", CAMPAIGN_STATUS.SWITCH_TO_AFTERNOON),
-        (SellerConsoleAction.ACTION_TYPES.DECLINED, "not-interested", "No interesado", CAMPAIGN_STATUS.ENDED_WITH_CONTACT),
+        (
+            SellerConsoleAction.ACTION_TYPES.CALL_LATER,
+            "call-later",
+            "Llamar más tarde",
+            CAMPAIGN_STATUS.CALLED_COULD_NOT_CONTACT,
+        ),
+        (
+            SellerConsoleAction.ACTION_TYPES.PENDING,
+            "move-morning",
+            "Mover a la mañana",
+            CAMPAIGN_STATUS.SWITCH_TO_MORNING,
+        ),
+        (
+            SellerConsoleAction.ACTION_TYPES.PENDING,
+            "move-afternoon",
+            "Mover a la tarde",
+            CAMPAIGN_STATUS.SWITCH_TO_AFTERNOON,
+        ),
+        (
+            SellerConsoleAction.ACTION_TYPES.DECLINED,
+            "not-interested",
+            "No interesado",
+            CAMPAIGN_STATUS.ENDED_WITH_CONTACT,
+        ),
         (SellerConsoleAction.ACTION_TYPES.DECLINED, "do-not-call", "No llamar", CAMPAIGN_STATUS.ENDED_WITH_CONTACT),
         (SellerConsoleAction.ACTION_TYPES.DECLINED, "logistics", "Logística", CAMPAIGN_STATUS.ENDED_WITH_CONTACT),
-        (SellerConsoleAction.ACTION_TYPES.DECLINED, "already-subscriber", "Ya suscrito", CAMPAIGN_STATUS.ENDED_WITH_CONTACT),
-        (SellerConsoleAction.ACTION_TYPES.DECLINED, "error-promotion", "Error en promoción", CAMPAIGN_STATUS.ENDED_WITHOUT_CONTACT),
-        (SellerConsoleAction.ACTION_TYPES.NO_CONTACT, "uncontactable", "No contactable", CAMPAIGN_STATUS.ENDED_WITHOUT_CONTACT),
-        (SellerConsoleAction.ACTION_TYPES.NO_CONTACT, "close-without-contact", "Cerrar sin contacto", CAMPAIGN_STATUS.ENDED_WITHOUT_CONTACT),
+        (
+            SellerConsoleAction.ACTION_TYPES.DECLINED,
+            "already-subscriber",
+            "Ya suscrito",
+            CAMPAIGN_STATUS.ENDED_WITH_CONTACT,
+        ),
+        (
+            SellerConsoleAction.ACTION_TYPES.DECLINED,
+            "error-promotion",
+            "Error en promoción",
+            CAMPAIGN_STATUS.ENDED_WITHOUT_CONTACT,
+        ),
+        (
+            SellerConsoleAction.ACTION_TYPES.NO_CONTACT,
+            "uncontactable",
+            "No contactable",
+            CAMPAIGN_STATUS.ENDED_WITHOUT_CONTACT,
+        ),
+        (
+            SellerConsoleAction.ACTION_TYPES.NO_CONTACT,
+            "close-without-contact",
+            "Cerrar sin contacto",
+            CAMPAIGN_STATUS.ENDED_WITHOUT_CONTACT,
+        ),
         (SellerConsoleAction.ACTION_TYPES.SCHEDULED, "schedule", "Agendar", CAMPAIGN_STATUS.CONTACTED),
     )
 
