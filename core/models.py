@@ -3029,11 +3029,7 @@ def update_web_user(contact, target_email=None, newsletter_data=None, area_newsl
                 field = ("area_" if area_newsletters else "") + "newsletters"
                 fields_to_update.update({field: newsletter_data})
 
-            if method == 'PUT':
-                latest_date = contact.history.first().history_date if contact.history.count() > 1 else None
-                contact_prev = contact.history.filter(history_date__lt=latest_date).first() if latest_date else contact
-            else:
-                contact_prev = None
+            contact_prev = contact.history.latest().get_previous_by_history_date() if method == "PUT" else None
             # TODO: change this 1-field-per-request approach to a new 1-request-only approach with all chanmges
             # NOTE: name and last_name are considered to allways be in the setting, even if not.
             for f in getattr(settings, "WEB_UPDATE_USER_CHECKED_FIELDS", []):
