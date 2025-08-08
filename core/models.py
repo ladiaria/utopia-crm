@@ -2507,7 +2507,9 @@ class Activity(models.Model):
     activity_type = models.CharField(
         choices=ACTIVITY_TYPES, max_length=1, null=True, blank=True, verbose_name=_("Type")
     )
-    status = models.CharField(choices=ACTIVITY_STATUS.choices, default=ACTIVITY_STATUS.PENDING, max_length=1, verbose_name=_("Status"))
+    status = models.CharField(
+        choices=ACTIVITY_STATUS.choices, default=ACTIVITY_STATUS.PENDING, max_length=1, verbose_name=_("Status")
+    )
     direction = models.CharField(
         choices=ACTIVITY_DIRECTION_CHOICES, default="O", max_length=1, verbose_name=_("Direction")
     )

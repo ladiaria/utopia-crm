@@ -86,6 +86,7 @@ PRODUCTHISTORY_CHOICES = (
     ("R", _("Resumed")),
 )
 
+
 class ACTIVITY_STATUS(TextChoices):
     PENDING = "P", _("Pending")
     COMPLETED = "C", _("Completed")
