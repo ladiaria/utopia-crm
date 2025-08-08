@@ -33,7 +33,6 @@ from .managers import ProductManager
 from .choices import (
     ACTIVITY_DIRECTION_CHOICES,
     ACTIVITY_STATUS,
-    ACTIVITY_STATUS_CHOICES,
     ACTIVITY_TYPES,
     ADDRESS_TYPE_CHOICES,
     CAMPAIGN_RESOLUTION_CHOICES,
