@@ -32,12 +32,12 @@ from util.dates import get_default_next_billing, get_default_start_date, diff_mo
 from .managers import ProductManager
 from .choices import (
     ACTIVITY_DIRECTION_CHOICES,
-    ACTIVITY_STATUS_CHOICES,
+    ACTIVITY_STATUS,
     ACTIVITY_TYPES,
     ADDRESS_TYPE_CHOICES,
     CAMPAIGN_RESOLUTION_CHOICES,
     CAMPAIGN_RESOLUTION_REASONS_CHOICES,
-    CAMPAIGN_STATUS_CHOICES,
+    CAMPAIGN_STATUS,
     DEBTOR_CONCACTS_CHOICES,
     DYNAMIC_CONTACT_FILTER_MODES,
     EDUCATION_CHOICES,
@@ -2495,7 +2495,9 @@ class Activity(models.Model):
     activity_type = models.CharField(
         choices=ACTIVITY_TYPES, max_length=1, null=True, blank=True, verbose_name=_("Type")
     )
-    status = models.CharField(choices=ACTIVITY_STATUS_CHOICES, default="P", max_length=1, verbose_name=_("Status"))
+    status = models.CharField(
+        choices=ACTIVITY_STATUS.choices, default=ACTIVITY_STATUS.PENDING, max_length=1, verbose_name=_("Status")
+    )
     direction = models.CharField(
         choices=ACTIVITY_DIRECTION_CHOICES, default="O", max_length=1, verbose_name=_("Direction")
     )
@@ -2535,8 +2537,10 @@ class Activity(models.Model):
         """
         Returns a description of the status for this activity.
         """
-        statuses = dict(ACTIVITY_STATUS_CHOICES)
-        return statuses.get(self.status, "N/A")
+        try:
+            return ACTIVITY_STATUS(self.status).label
+        except ValueError:
+            return "N/A"
 
     def get_direction(self):
         """
@@ -2547,7 +2551,7 @@ class Activity(models.Model):
 
     def mark_as_sale(self, register_activity, campaign, subscription=None):
         # Update the activity
-        self.status = "C"
+        self.status = ACTIVITY_STATUS.COMPLETED
         activity_notes = _("Success in sale after scheduling {}\n{}").format(
             datetime.now().strftime("%Y-%m-%d %H:%M"), register_activity
         )
@@ -2618,7 +2622,7 @@ class ContactCampaignStatus(models.Model):
 
     contact = models.ForeignKey(Contact, on_delete=models.CASCADE)
     campaign = models.ForeignKey(Campaign, on_delete=models.CASCADE)
-    status = models.SmallIntegerField(choices=CAMPAIGN_STATUS_CHOICES, default=1)
+    status = models.SmallIntegerField(choices=CAMPAIGN_STATUS.choices, default=1)
     campaign_resolution = models.CharField(choices=CAMPAIGN_RESOLUTION_CHOICES, null=True, blank=True, max_length=2)
     seller = models.ForeignKey("support.Seller", on_delete=models.CASCADE, null=True, blank=True)
     date_created = models.DateField(auto_now_add=True)
@@ -2626,6 +2630,9 @@ class ContactCampaignStatus(models.Model):
     last_action_date = models.DateField(auto_now=True)
     times_contacted = models.SmallIntegerField(default=0)
     resolution_reason = models.SmallIntegerField(choices=CAMPAIGN_RESOLUTION_REASONS_CHOICES, null=True, blank=True)
+    last_console_action = models.ForeignKey(
+        "support.SellerConsoleAction", on_delete=models.SET_NULL, null=True, blank=True
+    )
 
     class Meta:
         unique_together = ["contact", "campaign"]
@@ -2643,7 +2650,7 @@ class ContactCampaignStatus(models.Model):
         """
         Returns a description of the status for this campaign on this contact.
         """
-        return dict(CAMPAIGN_STATUS_CHOICES).get(self.status, "N/A")
+        return CAMPAIGN_STATUS(self.status).label if self.status in CAMPAIGN_STATUS.values else "N/A"
 
     def get_campaign_resolution(self):
         """
