@@ -220,7 +220,9 @@ class Product(models.Model):
     )
     has_implicit_discount = models.BooleanField(default=False, verbose_name=_("Has implicit discount"))
     billing_priority = models.PositiveSmallIntegerField(null=True, blank=True)
-    digital = models.BooleanField(default=False, verbose_name=_("Digital"))
+    digital = models.BooleanField(
+        default=getattr(settings, "CORE_PRODUCT_DIGITAL_DEFAULT", False), verbose_name=_("Digital")
+    )
     edition_frequency = models.IntegerField(default=None, choices=PRODUCT_EDITION_FREQUENCY, null=True, blank=True)
     temporary_discount_months = models.PositiveSmallIntegerField(null=True, blank=True)
     target_product = models.ForeignKey(
@@ -2998,6 +3000,12 @@ def update_customer(cust, newmail, field, value):
         else:
             mfield = getattr(settings, "WEB_UPDATE_SUBSCRIBER_MAP", {}).get(field, None)
             if mfield:
+                # fk treatment
+                if mfield == "id_document_type":
+                    try:
+                        value = IdDocumentType.objects.get(id=value)
+                    except IdDocumentType.DoesNotExist:
+                        value = None
                 setattr(cust, mfield, eval(value) if type(getattr(cust, mfield)) is bool else value)
                 cust.save()
     else:
@@ -3009,7 +3017,7 @@ def update_web_user(contact, target_email=None, newsletter_data=None, area_newsl
     """
     Sync some fields from contact with the web CMS linked subscriptor target reference.
     If newsletter_data is given, newsletters will be sent to websync.
-    @param contact: Contact object store the previous state of the contact  TODO: THIS IS NOT CORRECT, FIX ASAP!
+    @param contact: Contact object
     @param target_email: Email used to set the connection. If not, use given contact's email
     @param newsletter_data: field data for newsletters.
     @param area_newsletters: field name for newsletters.
@@ -3021,15 +3029,24 @@ def update_web_user(contact, target_email=None, newsletter_data=None, area_newsl
                 field = ("area_" if area_newsletters else "") + "newsletters"
                 fields_to_update.update({field: newsletter_data})
 
-            current_saved_contact = Contact.objects.get(pk=contact.id)
+            if method == 'PUT':
+                latest_date = contact.history.first().history_date if contact.history.count() > 1 else None
+                contact_prev = contact.history.filter(history_date__lt=latest_date).first() if latest_date else contact
+            else:
+                contact_prev = None
             # TODO: change this 1-field-per-request approach to a new 1-request-only approach with all chanmges
             # NOTE: name and last_name are considered to allways be in the setting, even if not.
             for f in getattr(settings, "WEB_UPDATE_USER_CHECKED_FIELDS", []):
-                before_saved_value = getattr(contact, f)
-                current_saved_value = getattr(current_saved_contact, f)
+                before_saved_value = getattr(contact_prev, f) if contact_prev else None
+                current_saved_value = getattr(contact, f)
                 if settings.DEBUG:
                     print(f"DEBUG: update_web_user: {f} before: {before_saved_value}, current: {current_saved_value}")
-                if before_saved_value is not None and current_saved_value != before_saved_value:
+                if current_saved_value != before_saved_value:
+                    if current_saved_value:
+                        if f == 'phone':
+                            current_saved_value = current_saved_value.as_e164
+                        elif f == 'id_document_type':
+                            current_saved_value = current_saved_value.id
                     fields_to_update.update({f: current_saved_value})
             # call for sync if there are fields to update
             api_result = updatewebuser(
@@ -3050,7 +3067,7 @@ def update_web_user_newsletters(contact):
     @params contact: Contact instance
     """
     try:
-        newsletters_slugs = list(contact.get_active_newsletters().values_list('product__slug', flat=True))
+        newsletters_slugs = list(contact.get_newsletter_products().values_list('slug', flat=True))
         update_web_user(contact, contact.email, json.dumps(newsletters_slugs))
     except Exception as exc:
         if settings.DEBUG:

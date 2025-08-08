@@ -100,7 +100,7 @@ def contact_api(request):
             this branch is a temporal fix to the mess we have been done with this sync implementation from CMS to CRM
             All this should be migrated to DRF as vanilla as possible, like the product sync I did recently
             """
-            if "field" in request.data and "value" in request.data:
+            if "field" in request.data and (("value" in request.data) if value is not None else True):
                 # "untouched" back-compat: someone may be calling that way that was expected here
                 update_customer(c, newmail, field, value)
             else:
