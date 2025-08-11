@@ -1,5 +1,7 @@
 from rest_framework import serializers, viewsets, routers
 
+from django.conf import settings
+
 from core.models import Product, IdDocumentType
 
 
@@ -16,6 +18,7 @@ class IdDocumentTypeSerializer(serializers.ModelSerializer):
 
 
 class IdDocumentTypeViewSet(viewsets.ReadOnlyModelViewSet):
+    authentication_classes = [] if settings.ENV_HTTP_BASIC_AUTH else viewsets.ModelViewSet.authentication_classes
     queryset = IdDocumentType.objects.all()
     serializer_class = IdDocumentTypeSerializer
 
