@@ -2970,7 +2970,7 @@ class EmailReplacement(models.Model):
         return EmailReplacement.objects.filter(domain=domain, replacement=replacement, status="rejected").exists()
 
     def __str__(self):
-        return "%s -> %s (%s)" % (self.domain, self.replacement, self.get_status_display())
+        return f"{self.domain} -> {self.replacement} ({self.get_status_display()})"
 
     class Meta:
         ordering = ("status", "domain")
@@ -3099,36 +3099,40 @@ class MailtrainList(models.Model):
 
 
 class TermsAndConditions(models.Model):
-    version = models.CharField(max_length=255)
-    date = models.DateField()
-    code = models.CharField(max_length=255)
-    pdf_file = models.FileField(upload_to="terms_and_conditions", null=True, blank=True)
-    text = models.TextField()
+    version = models.CharField(max_length=255, verbose_name=_("Version"), blank=True, null=True)
+    date = models.DateField(verbose_name=_("Date"))
+    code = models.CharField(
+        max_length=255, verbose_name=_("Code"), blank=True, null=True, help_text=_("Description for internal use")
+    )
+    pdf_file = models.FileField(upload_to="terms_and_conditions", null=True, blank=True, verbose_name=_("PDF File"))
+    text = models.TextField(verbose_name=_("Text"))
 
     def __str__(self) -> str:
-        return f"T&C {self.version} ({self.date})"
+        return f"T&C {self.code} ({self.date})"
 
 
 class TermsAndConditionsProduct(models.Model):
-    product = models.ForeignKey(Product, on_delete=models.CASCADE)
-    terms_and_conditions = models.ForeignKey(TermsAndConditions, on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, verbose_name=_("Product"))
+    terms_and_conditions = models.ForeignKey(
+        TermsAndConditions, on_delete=models.CASCADE, verbose_name=_("Terms and Conditions")
+    )
     date = models.DateField()
 
     def __str__(self) -> str:
-        return f"T&C {self.terms_and_conditions.version} ({self.date}) for {self.product.name}"
+        return f"T&C {self.terms_and_conditions.code} ({self.date}) for {self.product.name}"
 
 
 class BusinessEntityType(models.Model):
-    name = models.CharField(max_length=255)
-    description = models.TextField(blank=True)
+    name = models.CharField(max_length=255, verbose_name=_("Name"))
+    description = models.TextField(blank=True, verbose_name=_("Description"))
 
     def __str__(self) -> str:
         return self.name
 
 
 class PersonType(models.Model):
-    name = models.CharField(max_length=255)
-    description = models.TextField(blank=True)
+    name = models.CharField(max_length=255, verbose_name=_("Name"))
+    description = models.TextField(blank=True, verbose_name=_("Description"))
 
     def __str__(self) -> str:
         return self.name
@@ -3147,9 +3151,9 @@ class PaymentMethod(models.Model):
     - etc.
     """
 
-    name = models.CharField(max_length=255)
-    description = models.TextField(blank=True)
-    active = models.BooleanField(default=True)
+    name = models.CharField(max_length=255, verbose_name=_("Name"))
+    description = models.TextField(blank=True, verbose_name=_("Description"))
+    active = models.BooleanField(default=True, verbose_name=_("Active"))
 
     class Meta:
         verbose_name = _("Payment Method")
@@ -3171,9 +3175,9 @@ class PaymentType(models.Model):
     - etc.
     """
 
-    name = models.CharField(max_length=255)
-    description = models.TextField(blank=True)
-    active = models.BooleanField(default=True)
+    name = models.CharField(max_length=255, verbose_name=_("Name"))
+    description = models.TextField(blank=True, verbose_name=_("Description"))
+    active = models.BooleanField(default=True, verbose_name=_("Active"))
 
     class Meta:
         verbose_name = _("Payment Type")
