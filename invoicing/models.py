@@ -145,7 +145,7 @@ class Invoice(models.Model):
         elif self.uncollectible:
             return _("Uncollectible")
         elif self.is_paid:
-            if with_date:
+            if with_date and self.payment_date:
                 return _("Paid on {}".format(self.payment_date))
             else:
                 return _("Paid")

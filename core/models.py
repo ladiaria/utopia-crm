@@ -209,7 +209,9 @@ class Product(models.Model):
 
     name = models.CharField(max_length=100, verbose_name=_("Name"), unique=True, db_index=True)
     slug = AutoSlugField(populate_from="name", max_length=100, unique=True, editable=True)
-    active = models.BooleanField(default=False, verbose_name=_("Active"))
+    active = models.BooleanField(
+        default=getattr(settings, "CORE_PRODUCT_ACTIVE_DEFAULT", False), verbose_name=_("Active")
+    )
     price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     type = models.CharField(max_length=1, default="O", choices=ProductTypeChoices.choices, db_index=True)
     weekday = models.IntegerField(default=None, choices=PRODUCT_WEEKDAYS, null=True, blank=True)
@@ -1347,6 +1349,7 @@ class Subscription(models.Model):
     Model that holds a contract in which the contact will be able to receive one or more products (see
     SubscriptionProduct). This will allow you to bill the contact for this service (invoicing app) if the subscription
     has a paid type.
+    # TODO: active field can be implemented using status field, it will be less confusing and redundant, do it ASAP
     """
 
     class RENEWAL_TYPE_CHOICES(models.TextChoices):
@@ -1441,6 +1444,7 @@ class Subscription(models.Model):
         default=1, help_text=_("Frequency of billing in months"), verbose_name=_("Frequency")
     )
     payment_type = models.CharField(
+        # TODO: Should've been deprecated when the new FKs for method and type were introduced, do it ASAP
         max_length=2,
         choices=settings.SUBSCRIPTION_PAYMENT_METHODS,
         null=True,
