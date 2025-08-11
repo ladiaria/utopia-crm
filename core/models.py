@@ -3131,7 +3131,11 @@ class TermsAndConditions(models.Model):
     version = models.CharField(max_length=255, verbose_name=_("Version"), blank=True, null=True)
     date = models.DateField(verbose_name=_("Date"))
     code = models.CharField(
-        max_length=255, verbose_name=_("Code"), blank=True, null=True, help_text=_("Description for internal use")
+        max_length=255,
+        verbose_name=_("Description code"),
+        blank=True,
+        null=True,
+        help_text=_("Description for internal use"),
     )
     pdf_file = models.FileField(upload_to="terms_and_conditions", null=True, blank=True, verbose_name=_("PDF File"))
     text = models.TextField(verbose_name=_("Text"))
@@ -3149,7 +3153,7 @@ class TermsAndConditionsProduct(models.Model):
     terms_and_conditions = models.ForeignKey(
         TermsAndConditions, on_delete=models.CASCADE, verbose_name=_("Terms and Conditions")
     )
-    date = models.DateField()
+    date = models.DateField(verbose_name=_("Date"))
 
     def __str__(self) -> str:
         return f"T&C {self.terms_and_conditions.code} ({self.date}) for {self.product.name}"

@@ -703,6 +703,15 @@ class StateAdmin(admin.ModelAdmin):
     raw_id_fields = ("country",)
 
 
+@admin.register(TermsAndConditions)
+class TermsAndConditionsAdmin(admin.ModelAdmin):
+    list_display = ("code", "active")
+    list_filter = ("active",)
+    search_fields = ("code")
+    fields = ("date", "code", "text", "pdf_file")
+    date_hierarchy = "date"
+
+
 admin.site.register(DynamicContactFilter)
 admin.site.register(ProductBundle)
 admin.site.register(AdvancedDiscount)
@@ -712,7 +721,6 @@ admin.site.register(IdDocumentType)
 admin.site.register(ActivityTopic)
 admin.site.register(ActivityResponse)
 admin.site.register(ProductSubscriptionPeriod)
-admin.site.register(TermsAndConditions)
 admin.site.register(PersonType)
 admin.site.register(BusinessEntityType)
 admin.site.register(PaymentMethod)
