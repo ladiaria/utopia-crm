@@ -156,7 +156,8 @@ class Issue(models.Model):
     history = HistoricalRecords()
 
     class Meta:
-        pass
+        verbose_name = _("Issue")
+        verbose_name_plural = _("Issues")
 
     def get_category(self):
         categories = dict(get_issue_categories())
@@ -335,6 +336,8 @@ class IssueStatus(models.Model):
 
     class Meta:
         ordering = ["category", "name"]
+        verbose_name = _("Issue Status")
+        verbose_name_plural = _("Issue Statuses")
 
 
 class IssueSubcategory(models.Model):
@@ -350,6 +353,8 @@ class IssueSubcategory(models.Model):
 
     class Meta:
         ordering = ["category", "name"]
+        verbose_name = _("Issue Subcategory")
+        verbose_name_plural = _("Issue Subcategories")
 
 
 class SalesRecord(models.Model):
