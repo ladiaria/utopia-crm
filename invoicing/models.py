@@ -17,10 +17,10 @@ from invoicing.choices import INVOICEITEM_TYPE_CHOICES, INVOICEITEM_DR_TYPE_CHOI
 
 class Invoice(models.Model):
     contact = models.ForeignKey("core.Contact", on_delete=models.CASCADE)
-    creation_date = models.DateField()
-    expiration_date = models.DateField()
-    service_from = models.DateField()
-    service_to = models.DateField()
+    creation_date = models.DateField(verbose_name=_("Creation Date"))
+    expiration_date = models.DateField(verbose_name=_("Expiration Date"))
+    service_from = models.DateField(verbose_name=_("Service From"))
+    service_to = models.DateField(verbose_name=_("Service To"))
     balance = models.DecimalField(_("Balance"), max_digits=10, decimal_places=2, blank=True, null=True)
     amount = models.DecimalField(_("Amount"), max_digits=10, decimal_places=2, blank=True, null=True)
     payment_type = models.CharField(
@@ -30,20 +30,26 @@ class Invoice(models.Model):
         blank=True,
         null=True,
     )
-    debited = models.BooleanField(_("Debited"), default=False)
-    paid = models.BooleanField(_("Paid"), default=False)
-    payment_date = models.DateField(_("Payment date"), blank=True, null=True)
-    payment_reference = models.CharField(_("Payment reference"), max_length=32, blank=True, null=True, db_index=True)
-    notes = models.TextField(_("Invoice notes"), blank=True, null=True)
-    canceled = models.BooleanField(_("Canceled"), default=False, editable=False)
-    cancelation_date = models.DateField(_("Cancelation date"), blank=True, editable=False, null=True)
-    uncollectible = models.BooleanField(_("Uncollectible"), default=False)
-    subscription = models.ForeignKey("core.Subscription", blank=True, null=True, on_delete=models.SET_NULL)
-    print_date = models.DateField(null=True, blank=True)
+    debited = models.BooleanField(default=False, verbose_name=_("Debited"))
+    paid = models.BooleanField(default=False, verbose_name=_("Paid"))
+    payment_date = models.DateField(blank=True, null=True, verbose_name=_("Payment date"))
+    payment_reference = models.CharField(
+        max_length=32, blank=True, null=True, db_index=True, verbose_name=_("Payment reference")
+    )
+    notes = models.TextField(blank=True, null=True, verbose_name=_("Invoice notes"))
+    canceled = models.BooleanField(default=False, editable=False, verbose_name=_("Canceled"))
+    cancelation_date = models.DateField(blank=True, editable=False, null=True, verbose_name=_("Cancelation date"))
+    uncollectible = models.BooleanField(default=False, verbose_name=_("Uncollectible"))
+    subscription = models.ForeignKey(
+        "core.Subscription", blank=True, null=True, on_delete=models.SET_NULL, verbose_name=_("Subscription")
+    )
+    print_date = models.DateField(null=True, blank=True, verbose_name=_("Print date"))
     uuid = models.CharField(max_length=36, editable=False, blank=True, null=True)
-    serie = models.CharField(max_length=1, editable=False, blank=True, null=True)
-    numero = models.PositiveIntegerField(editable=False, blank=True, null=True)
-    pdf = models.FileField(upload_to=settings.INVOICES_PATH, editable=False, blank=True, null=True)
+    serie = models.CharField(max_length=1, editable=False, blank=True, null=True, verbose_name=_("Serie"))
+    numero = models.PositiveIntegerField(editable=False, blank=True, null=True, verbose_name=_("Number"))
+    pdf = models.FileField(
+        upload_to=settings.INVOICES_PATH, editable=False, blank=True, null=True, verbose_name=_("PDF")
+    )
     payment_method_fk = models.ForeignKey(
         "core.PaymentMethod",
         on_delete=models.SET_NULL,
@@ -225,24 +231,18 @@ class Invoice(models.Model):
 
     def get_discount_total(self):
         """Returns the total amount of all discount items"""
-        return self.invoiceitem_set.filter(type="D").aggregate(
-            total=Sum('amount')
-        )['total'] or 0
+        return self.invoiceitem_set.filter(type="D").aggregate(total=Sum('amount'))['total'] or 0
 
     def get_product_total(self):
         """Returns the total amount of all product items"""
-        return self.invoiceitem_set.filter(type="I").aggregate(
-            total=Sum('amount')
-        )['total'] or 0
+        return self.invoiceitem_set.filter(type="I").aggregate(total=Sum('amount'))['total'] or 0
 
     def get_rounding_total(self):
-        return self.invoiceitem_set.filter(type="R").aggregate(
-            total=Sum('amount')
-        )['total'] or 0
+        return self.invoiceitem_set.filter(type="R").aggregate(total=Sum('amount'))['total'] or 0
 
     class Meta:
-        verbose_name = "invoice"
-        verbose_name_plural = "invoices"
+        verbose_name = _("invoice")
+        verbose_name_plural = _("invoices")
         ordering = ["creation_date"]
         permissions = [
             ("can_download_pdf", "Can download PDF"),
@@ -265,28 +265,48 @@ class InvoiceCopy(Invoice):
 
 
 class InvoiceItem(models.Model):
-    invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, blank=True, null=True)
-    amount = models.DecimalField(max_digits=10, decimal_places=2, help_text=_("Total amount"))
-    product = models.ForeignKey("core.Product", blank=True, null=True, on_delete=models.SET_NULL)
-    subscription = models.ForeignKey("core.Subscription", blank=True, null=True, on_delete=models.SET_NULL)
-    copies = models.PositiveSmallIntegerField(default=1)
-    description = models.CharField(max_length=500)
-    price = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True, help_text=_("Price per copy"))
-    discount = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
-    notes = models.TextField(blank=True, null=True)
-    service_from = models.DateField(null=True, blank=True)
-    service_to = models.DateField(null=True, blank=True)
+    invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, blank=True, null=True, verbose_name=_("Invoice"))
+    amount = models.DecimalField(
+        max_digits=10, decimal_places=2, help_text=_("Total amount"), verbose_name=_("Total amount")
+    )
+    product = models.ForeignKey(
+        "core.Product", blank=True, null=True, on_delete=models.SET_NULL, verbose_name=_("Product")
+    )
+    subscription = models.ForeignKey(
+        "core.Subscription", blank=True, null=True, on_delete=models.SET_NULL, verbose_name=_("Subscription")
+    )
+    copies = models.PositiveSmallIntegerField(default=1, verbose_name=_("Copies"))
+    description = models.CharField(max_length=500, verbose_name=_("Description"))
+    price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        blank=True,
+        null=True,
+        help_text=_("Price per copy"),
+        verbose_name=_("Price per copy"),
+    )
+    discount = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True, verbose_name=_("Discount"))
+    notes = models.TextField(blank=True, null=True, verbose_name=_("Notes"))
+    service_from = models.DateField(null=True, blank=True, verbose_name=_("Service from"))
+    service_to = models.DateField(null=True, blank=True, verbose_name=_("Service to"))
 
     # Fields for CFE
-    type = models.CharField(max_length=1, default="I", choices=INVOICEITEM_TYPE_CHOICES)
-    type_dr = models.CharField(max_length=1, blank=True, null=True, choices=INVOICEITEM_DR_TYPE_CHOICES, default="1")
+    type = models.CharField(max_length=1, default="I", choices=INVOICEITEM_TYPE_CHOICES, verbose_name=_("Type"))
+    type_dr = models.CharField(
+        max_length=1,
+        blank=True,
+        null=True,
+        choices=INVOICEITEM_DR_TYPE_CHOICES,
+        default="1",
+        verbose_name=_("Type Discount/Surcharge"),
+    )
 
     def __str__(self):
         return str(self.description)
 
     class Meta:
-        verbose_name = "invoice item"
-        verbose_name_plural = "invoice items"
+        verbose_name = _("Invoice item")
+        verbose_name_plural = _("Invoice items")
         ordering = ["invoice"]
 
 
@@ -373,16 +393,17 @@ class CreditNote(models.Model):
     Esto modela las notas de crédito necesarias para la factura electrónica.
     """
 
-    invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE)
+    invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, verbose_name=_("Invoice"))
     uuid = models.CharField(max_length=36, blank=True, null=True)
-    serie = models.CharField(max_length=1, editable=False, blank=True, null=True)
-    numero = models.PositiveIntegerField(editable=False, blank=True, null=True)
-    amount = models.PositiveIntegerField(blank=True, null=True)
+    serie = models.CharField(max_length=1, editable=False, blank=True, null=True, verbose_name=_("Serie"))
+    numero = models.PositiveIntegerField(editable=False, blank=True, null=True, verbose_name=_("Number"))
+    amount = models.PositiveIntegerField(blank=True, null=True, verbose_name=_("Amount"))
     old_pk = models.PositiveIntegerField(blank=True, null=True)
     history = HistoricalRecords()
 
     class Meta:
-        verbose_name_plural = "credit notes"
+        verbose_name_plural = _("credit notes")
+        verbose_name = _("credit note")
 
     def get_contact_id(self):
         return self.invoice.contact_id
@@ -415,14 +436,14 @@ class MercadoPagoData(models.Model):
         return f"Mercado Pago Data for {self.contact}"
 
     class Meta:
-        verbose_name = "Mercado Pago Data"
-        verbose_name_plural = "Mercado Pago Data"
+        verbose_name = _("Mercado Pago Data")
+        verbose_name_plural = _("Mercado Pago Data")
 
 
 class TransactionType(models.Model):
-    name = models.CharField(max_length=255, unique=True)
-    code = models.CharField(max_length=255, unique=True, null=True, blank=True)
-    description = models.TextField(blank=True)
+    name = models.CharField(max_length=255, unique=True, verbose_name=_("Name"))
+    code = models.CharField(max_length=255, unique=True, null=True, blank=True, verbose_name=_("Code"))
+    description = models.TextField(blank=True, verbose_name=_("Description"))
 
     def __str__(self):
         return self.name
