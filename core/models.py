@@ -212,23 +212,36 @@ class Product(models.Model):
     active = models.BooleanField(
         default=getattr(settings, "CORE_PRODUCT_ACTIVE_DEFAULT", False), verbose_name=_("Active")
     )
-    price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    type = models.CharField(max_length=1, default="O", choices=ProductTypeChoices.choices, db_index=True)
-    weekday = models.IntegerField(default=None, choices=PRODUCT_WEEKDAYS, null=True, blank=True)
+    price = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name=_("Price"))
+    type = models.CharField(
+        max_length=1, default="O", choices=ProductTypeChoices.choices, db_index=True, verbose_name=_("Type")
+    )
+    weekday = models.IntegerField(
+        default=None, choices=PRODUCT_WEEKDAYS, null=True, blank=True, verbose_name=_("Weekday")
+    )
     offerable = models.BooleanField(
         default=False,
         verbose_name=_("Allow offer"),
         help_text=_("Allow product to be shown in the new subscription forms"),
     )
     has_implicit_discount = models.BooleanField(default=False, verbose_name=_("Has implicit discount"))
-    billing_priority = models.PositiveSmallIntegerField(null=True, blank=True)
+    billing_priority = models.PositiveSmallIntegerField(null=True, blank=True, verbose_name=_("Billing priority"))
     digital = models.BooleanField(
         default=getattr(settings, "CORE_PRODUCT_DIGITAL_DEFAULT", False), verbose_name=_("Digital")
     )
-    edition_frequency = models.IntegerField(default=None, choices=PRODUCT_EDITION_FREQUENCY, null=True, blank=True)
-    temporary_discount_months = models.PositiveSmallIntegerField(null=True, blank=True)
+    edition_frequency = models.IntegerField(
+        default=None, choices=PRODUCT_EDITION_FREQUENCY, null=True, blank=True, verbose_name=_("Edition frequency")
+    )
+    temporary_discount_months = models.PositiveSmallIntegerField(
+        null=True, blank=True, verbose_name=_("Temporary discount months")
+    )
     target_product = models.ForeignKey(
-        "self", blank=True, null=True, on_delete=models.SET_NULL, limit_choices_to={"offerable": True, "type": "S"}
+        "self",
+        blank=True,
+        null=True,
+        on_delete=models.SET_NULL,
+        limit_choices_to={"offerable": True, "type": "S"},
+        verbose_name=_("Target product"),
     )
     cms_subscription_type = models.SlugField(
         max_length=64, unique=True, blank=True, null=True, verbose_name=_("CMS subscription type")
@@ -349,14 +362,20 @@ class EmailBounceActionLog(models.Model):
     class Meta:
         unique_together = ("created", "contact", "email", "action")
         ordering = ("-created", "email")
+        verbose_name = _("Email Bounce Action Log")
+        verbose_name_plural = _("Email Bounce Action Logs")
 
 
 class IdDocumentType(models.Model):
     id = models.PositiveIntegerField(primary_key=True)
-    name = models.CharField(max_length=50)
+    name = models.CharField(max_length=50, verbose_name=_("Name"))
 
     def __str__(self):
         return self.name
+
+    class Meta:
+        verbose_name = _("ID Document Type")
+        verbose_name_plural = _("ID Document Types")
 
 
 class Contact(models.Model):
@@ -2936,6 +2955,10 @@ class AdvancedDiscount(models.Model):
             value = "${}".format(self.value)
         return "{} ({})".format(self.discount_product.name, value)
 
+    class Meta:
+        verbose_name = _("Advanced Discount")
+        verbose_name_plural = _("Advanced Discounts")
+
 
 class DoNotCallNumber(models.Model):
     number = models.CharField(max_length=20, primary_key=True)
@@ -2977,6 +3000,8 @@ class EmailReplacement(models.Model):
         return f"{self.domain} -> {self.replacement} ({self.get_status_display()})"
 
     class Meta:
+        verbose_name = _("Email Replacement")
+        verbose_name_plural = _("Email Replacements")
         ordering = ("status", "domain")
 
 
@@ -3114,6 +3139,10 @@ class TermsAndConditions(models.Model):
     def __str__(self) -> str:
         return f"T&C {self.code} ({self.date})"
 
+    class Meta:
+        verbose_name = _("Terms and Conditions")
+        verbose_name_plural = _("Terms and Conditions")
+
 
 class TermsAndConditionsProduct(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, verbose_name=_("Product"))
@@ -3125,6 +3154,10 @@ class TermsAndConditionsProduct(models.Model):
     def __str__(self) -> str:
         return f"T&C {self.terms_and_conditions.code} ({self.date}) for {self.product.name}"
 
+    class Meta:
+        verbose_name = _("Terms and Conditions Product")
+        verbose_name_plural = _("Terms and Conditions Products")
+
 
 class BusinessEntityType(models.Model):
     name = models.CharField(max_length=255, verbose_name=_("Name"))
@@ -3133,6 +3166,10 @@ class BusinessEntityType(models.Model):
     def __str__(self) -> str:
         return self.name
 
+    class Meta:
+        verbose_name = _("Business Entity Type")
+        verbose_name_plural = _("Business Entity Types")
+
 
 class PersonType(models.Model):
     name = models.CharField(max_length=255, verbose_name=_("Name"))
@@ -3140,6 +3177,10 @@ class PersonType(models.Model):
 
     def __str__(self) -> str:
         return self.name
+
+    class Meta:
+        verbose_name = _("Person Type")
+        verbose_name_plural = _("Person Types")
 
 
 class PaymentMethod(models.Model):
