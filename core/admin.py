@@ -705,9 +705,8 @@ class StateAdmin(admin.ModelAdmin):
 
 @admin.register(TermsAndConditions)
 class TermsAndConditionsAdmin(admin.ModelAdmin):
-    list_display = ("code", "active")
-    list_filter = ("active",)
-    search_fields = ("code")
+    list_display = ("code", "date")
+    search_fields = ("code", )
     fields = ("date", "code", "text", "pdf_file")
     date_hierarchy = "date"
 
