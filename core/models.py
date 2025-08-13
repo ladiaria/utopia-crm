@@ -33,7 +33,6 @@ from .managers import ProductManager
 from .choices import (
     ACTIVITY_DIRECTION_CHOICES,
     ACTIVITY_STATUS,
-    ACTIVITY_TYPES,
     ADDRESS_TYPE_CHOICES,
     CAMPAIGN_RESOLUTION_CHOICES,
     CAMPAIGN_RESOLUTION_REASONS_CHOICES,
@@ -63,6 +62,7 @@ from .choices import (
     EMAIL_BOUNCE_ACTIONLOG_CHOICES,
     EMAIL_BOUNCE_ACTION_MAXREACH,
     FreeSubscriptionRequestedBy,
+    get_activity_types,
 )
 from .utils import (
     delete_email_from_mailtrain_list,
@@ -2485,6 +2485,7 @@ class ActivityResponse(models.Model):
 
     name = models.CharField(max_length=255, unique=True, verbose_name=_("Name"))
     description = models.TextField(blank=True, verbose_name=_("Description"))
+    topic = models.ForeignKey(ActivityTopic, on_delete=models.CASCADE, verbose_name=_("Topic"), null=True, blank=True)
 
     def __str__(self):
         return self.name
@@ -2516,7 +2517,7 @@ class Activity(models.Model):
 
     priority = models.SmallIntegerField(choices=PRIORITY_CHOICES, default=3, verbose_name=_("Priority"))
     activity_type = models.CharField(
-        choices=ACTIVITY_TYPES, max_length=1, null=True, blank=True, verbose_name=_("Type")
+        choices=get_activity_types(), max_length=1, null=True, blank=True, verbose_name=_("Type")
     )
     status = models.CharField(
         choices=ACTIVITY_STATUS.choices, default=ACTIVITY_STATUS.PENDING, max_length=1, verbose_name=_("Status")
