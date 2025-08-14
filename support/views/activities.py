@@ -162,6 +162,25 @@ class ActivityCreateView(UserPassesTestMixin, BreadcrumbsMixin, CreateView):
         form.fields["status"].initial = "C"  # Completed
         return form
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Create a mapping of topic_id -> list of response options
+        from core.models import ActivityTopic, ActivityResponse
+        import json
+        
+        topic_responses = {}
+        for topic in ActivityTopic.objects.all():
+            responses = ActivityResponse.objects.filter(topic=topic).values('id', 'name')
+            topic_responses[topic.id] = list(responses)
+        
+        # Also include responses without a topic
+        responses_without_topic = ActivityResponse.objects.filter(topic__isnull=True).values('id', 'name')
+        topic_responses['null'] = list(responses_without_topic)
+        
+        context['topic_responses_json'] = json.dumps(topic_responses)
+        return context
+
     def get_success_url(self):
         return reverse_lazy("contact_detail", kwargs={"pk": self.object.contact.id})
 
