@@ -273,6 +273,12 @@ class Product(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
+        verbose_name=_("Subscription Period"),
+        help_text=_(
+            "Enter the product name."
+            " Unsupported spaces or other characters will be replaced with hyphens when saving."
+            " Used for the URL slug of the product form in the web subscription and for traffic tracking tools."
+        ),
     )
     terms_and_conditions = models.ManyToManyField(
         "core.TermsAndConditions",

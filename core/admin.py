@@ -526,7 +526,7 @@ class ProductAdmin(admin.ModelAdmin):
         ),
         (_("Scheduling & Frequency"), {"fields": ("weekday", "subscription_period", "duration_months")}),
         (_("Billing & Priority"), {"fields": ("billing_priority", "active", "edition_frequency")}),
-        (_("MercadoPago and others"), {"fields": ("mercadopago_id", "internal_code", "cms_subscription_type")}),
+        (_("MercadoPago and others"), {"fields": ("mercadopago_id", "cms_subscription_type")}),
     )
     inlines = (TermsAndConditionsProductInline,)
     search_fields = ("name", "slug", "internal_code")
