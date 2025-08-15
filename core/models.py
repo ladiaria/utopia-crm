@@ -227,7 +227,8 @@ class Product(models.Model):
         "self", blank=True, null=True, on_delete=models.SET_NULL, limit_choices_to={"offerable": True, "type": "S"}
     )
     cms_subscription_type = models.SlugField(
-        max_length=64, unique=True, blank=True, null=True, verbose_name=_("CMS subscription type")
+        max_length=64, unique=True, blank=True, null=True, verbose_name=_("CMS subscription type"),
+        help_text=_("Insert the product name. Spaces or special characters will be replaced by hyphens when saved.")
     )
     internal_code = models.CharField(max_length=50, blank=True, null=True, verbose_name=_("Internal code"))
     billing_days = models.PositiveSmallIntegerField(
@@ -256,10 +257,12 @@ class Product(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
+        verbose_name=_("Subscription period"),
     )
     terms_and_conditions = models.ManyToManyField(
         "core.TermsAndConditions",
         through="core.TermsAndConditionsProduct",
+        verbose_name=_("Terms and conditions"),
     )
     mercadopago_id = models.CharField(max_length=255, blank=True, null=True, verbose_name=_("MercadoPago ID"))
     billing_mode = models.CharField(
