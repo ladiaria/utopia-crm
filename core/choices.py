@@ -137,7 +137,7 @@ CAMPAIGN_RESOLUTION_CHOICES = (
 
 CAMPAIGN_RESOLUTION_REASONS_CHOICES = getattr(settings, "CAMPAIGN_RESOLUTION_REASONS_CHOICES", ())
 
-ACTIVITY_TYPES = (
+DEFAULT_ACTIVITY_TYPES = (
     ("S", _("Campaign start")),
     ("C", _("Call")),
     ("M", _("E-mail")),
@@ -147,6 +147,11 @@ ACTIVITY_TYPES = (
     ("I", _("In-place visit")),
     ("N", _("Internal")),
 )
+
+
+def get_activity_types():
+    return getattr(settings, "CUSTOM_ACTIVITY_TYPES", DEFAULT_ACTIVITY_TYPES)
+
 
 PRODUCT_WEEKDAYS = (
     (1, _("Monday")),

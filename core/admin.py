@@ -526,7 +526,7 @@ class ProductAdmin(admin.ModelAdmin):
         ),
         (_("Scheduling & Frequency"), {"fields": ("weekday", "subscription_period", "duration_months")}),
         (_("Billing & Priority"), {"fields": ("billing_priority", "active", "edition_frequency")}),
-        (_("MercadoPago and others"), {"fields": ("mercadopago_id", "internal_code", "cms_subscription_type")}),
+        (_("MercadoPago and others"), {"fields": ("mercadopago_id", "cms_subscription_type")}),
     )
     inlines = (TermsAndConditionsProductInline,)
     search_fields = ("name", "slug", "internal_code")
@@ -711,6 +711,14 @@ class TermsAndConditionsAdmin(admin.ModelAdmin):
     date_hierarchy = "date"
 
 
+@admin.register(ActivityResponse)
+class ActivityResponseAdmin(admin.ModelAdmin):
+    list_display = ("name", "topic")
+    list_filter = ("topic",)
+    list_editable = ("topic",)
+    search_fields = ("name", "topic__name")
+
+
 admin.site.register(DynamicContactFilter)
 admin.site.register(ProductBundle)
 admin.site.register(AdvancedDiscount)
@@ -718,7 +726,6 @@ admin.site.register(DoNotCallNumber)
 admin.site.register(MailtrainList)
 admin.site.register(IdDocumentType)
 admin.site.register(ActivityTopic)
-admin.site.register(ActivityResponse)
 admin.site.register(ProductSubscriptionPeriod)
 admin.site.register(PersonType)
 admin.site.register(BusinessEntityType)
