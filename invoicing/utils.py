@@ -16,11 +16,18 @@ from core.models import Address, Subscription, Product, SubscriptionProduct  # U
 from core.utils import calc_price_from_products, create_invoiceitem_for_corporate_subscription
 
 
+def mercadopago_access_token():
+    """
+    Returns the MercadoPago access token from settings if defined, otherwise returns an empty string.
+    """
+    return getattr(settings, "MERCADOPAGO_ACCESS_TOKEN", "") or ""
+
+
 def mercadopago_debit(invoice, debug=False):
     """
     Calls the MercadoPago API to send the payment. Generates the card token and register the payment.
     """
-    if getattr(settings, "DISABLE_MERCADOPAGO", False):
+    if not getattr(settings, "MERCADOPAGO_INVOICE_DEBIT_ENABLED", True):
         if settings.DEBUG:
             print("DEBUG: mercadopago_debit: Mercadopago debit skipped by settings.")
         return
@@ -38,7 +45,7 @@ def mercadopago_debit(invoice, debug=False):
         return
 
     # Get MercadoPago access token from settings with a fallback
-    mp_access_token = getattr(settings, "MERCADOPAGO_ACCESS_TOKEN", "")
+    mp_access_token = mercadopago_access_token()
     if not mp_access_token:
         error_status = "MercadoPago access token not found in settings"
         _update_invoice_notes(invoice, error_status, debug)
@@ -324,13 +331,20 @@ def contact_update_mp_wrapper(
     return result
 
 
-def bill_subscription(subscription, billing_date=None, dpp=10, force_by_date=False, billing_date_override=None):
+def bill_subscription(
+    subscription,
+    billing_date=None,
+    dpp=10,
+    force_by_date=False,
+    billing_date_override=None,
+    payment_reference=None,
+):
     """
     Bills a single subscription into an only invoice. Returns the created invoice.
+    # TODO: Products have a field "active" which may not be used here. check and make fixes if any.
     """
     # Safely get settings with default values
     billing_extra_days = getattr(settings, 'BILLING_EXTRA_DAYS', 0)
-    force_dummy_missing_billing_data = getattr(settings, 'FORCE_DUMMY_MISSING_BILLING_DATA', False)
     require_route_for_billing = getattr(settings, 'REQUIRE_ROUTE_FOR_BILLING', False)
     exclude_routes_from_billing_list = getattr(settings, 'EXCLUDE_ROUTES_FROM_BILLING_LIST', [])
     envelope_price = getattr(settings, 'ENVELOPE_PRICE', 0)
@@ -364,12 +378,7 @@ def bill_subscription(subscription, billing_date=None, dpp=10, force_by_date=Fal
     # We need to get all the subscription data
     billing_data = subscription.get_billing_data_by_priority()
 
-    if not billing_data and not force_dummy_missing_billing_data:
-        raise Exception(
-            f"Subscription {subscription.id} for contact {subscription.contact.id} contains no billing data."
-        )
-
-    if billing_data and billing_data["address"] is None:
+    if not billing_data or not billing_data.get("address"):
         raise Exception(
             f"Subscription {subscription.id} for contact {subscription.contact.id} requires an address to be billed."
         )
@@ -446,6 +455,7 @@ def bill_subscription(subscription, billing_date=None, dpp=10, force_by_date=Fal
                 amount=amount,
                 payment_type_fk=subscription.payment_type_fk,
                 payment_method_fk=subscription.payment_method_fk,
+                payment_reference=payment_reference,
             )
 
             # Add all invoice items to the invoice

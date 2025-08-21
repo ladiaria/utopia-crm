@@ -6,7 +6,9 @@ from django.db.models.signals import pre_save, post_save, post_delete
 from django.dispatch import receiver
 from django.forms import ValidationError
 
-from core.models import Contact, Subscription, regex_alphanumeric, regex_alphanumeric_msg, update_web_user
+from core.models import (
+    Contact, Subscription, regex_alphanumeric, regex_alphanumeric_msg, update_web_user, update_web_user_newsletters
+)
 from core.forms import no_email_validation_msg
 from core.utils import cms_rest_api_request, mail_managers_on_errors
 
@@ -25,20 +27,20 @@ def contact_pre_save_signal(sender, instance, **kwargs):
         raise ValidationError(regex_alphanumeric_msg)
     try:
         saved_email = Contact.objects.values_list("email", flat=True).get(pk=instance.id)
-        instance.old_email = saved_email
+        instance.old_email = saved_email  # NOTE: may be deprecated with the work i'll do for the next TODO
     except Contact.DoesNotExist:
         # do nothing on the new ones
         pass
-    instance.old_contact = instance
 
 
 @receiver(post_save, sender=Contact)
 def contact_post_save_signal(sender, instance, created, **kwargs):
     if created:
-        update_web_user(instance.old_contact, method="POST" if settings.WEB_CREATE_USER_ENABLED else "PUT")
+        update_web_user(instance, method="POST" if settings.WEB_CREATE_USER_ENABLED else "PUT")
     else:
         target_email = instance.old_email if hasattr(instance, 'old_email') else None
-        update_web_user(instance.old_contact, target_email)
+        update_web_user(instance, target_email)
+    update_web_user_newsletters(instance)
 
 
 @receiver(post_save, sender=Subscription)

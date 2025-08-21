@@ -273,7 +273,7 @@ class ContactDetailView(BreadcrumbsMixin, DetailView):
 class ContactAdminFormWithNewsletters(ContactAdminForm):
     newsletters = ModelMultipleChoiceField(
         queryset=Product.objects.filter(type="N", active=True),
-        widget=CheckboxSelectMultiple,
+        widget=CheckboxSelectMultiple(attrs={'class': 'form-check', 'style': 'float:left;margin-right:7px'}),
         required=False,
     )
 

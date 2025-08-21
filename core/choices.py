@@ -1,5 +1,5 @@
 # coding=utf-8
-from django.db.models import TextChoices
+from django.db.models import TextChoices, IntegerChoices
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 
@@ -86,10 +86,20 @@ PRODUCTHISTORY_CHOICES = (
     ("R", _("Resumed")),
 )
 
+
+class ACTIVITY_STATUS(TextChoices):
+    PENDING = "P", _("Pending")
+    COMPLETED = "C", _("Completed")
+    DELAYED = "D", _("Delayed")
+    EXPIRED = "E", _("Expired")
+
+
+# Legacy tuple for backward compatibility - will be removed eventually
 ACTIVITY_STATUS_CHOICES = (
     ("P", _("Pending")),
     ("C", _("Completed")),
     ("D", _("Delayed")),
+    ("E", _("Expired")),
 )
 
 ACTIVITY_DIRECTION_CHOICES = (
@@ -99,15 +109,16 @@ ACTIVITY_DIRECTION_CHOICES = (
     ("R", _("Renewal")),
 )
 
-CAMPAIGN_STATUS_CHOICES = (
-    (1, _("Not yet contacted")),
-    (2, _("Contacted")),
-    (3, _("Called, could not contact")),
-    (4, _("Ended with contact")),
-    (5, _("Ended without contact")),
-    (6, _("Switch to morning")),
-    (7, _("Switch to afternoon/evening")),
-)
+
+class CAMPAIGN_STATUS(IntegerChoices):
+    NOT_YET_CONTACTED = 1, _("Not yet contacted")
+    CONTACTED = 2, _("Contacted")
+    CALLED_COULD_NOT_CONTACT = 3, _("Called, could not contact")
+    ENDED_WITH_CONTACT = 4, _("Ended with contact")
+    ENDED_WITHOUT_CONTACT = 5, _("Ended without contact")
+    SWITCH_TO_MORNING = 6, _("Switch to morning")
+    SWITCH_TO_AFTERNOON = 7, _("Switch to afternoon/evening")
+
 
 CAMPAIGN_RESOLUTION_CHOICES = (
     ("SP", _("Started promotion")),
@@ -126,7 +137,7 @@ CAMPAIGN_RESOLUTION_CHOICES = (
 
 CAMPAIGN_RESOLUTION_REASONS_CHOICES = getattr(settings, "CAMPAIGN_RESOLUTION_REASONS_CHOICES", ())
 
-ACTIVITY_TYPES = (
+DEFAULT_ACTIVITY_TYPES = (
     ("S", _("Campaign start")),
     ("C", _("Call")),
     ("M", _("E-mail")),
@@ -136,6 +147,11 @@ ACTIVITY_TYPES = (
     ("I", _("In-place visit")),
     ("N", _("Internal")),
 )
+
+
+def get_activity_types():
+    return getattr(settings, "CUSTOM_ACTIVITY_TYPES", DEFAULT_ACTIVITY_TYPES)
+
 
 PRODUCT_WEEKDAYS = (
     (1, _("Monday")),

@@ -553,21 +553,45 @@ def edit_products(request, subscription_id):
     )
 
 
-@login_required
-def list_issues(request):
+@method_decorator(login_required, name='dispatch')
+class IssueListView(BreadcrumbsMixin, LoginRequiredMixin, FilterView):
     """
-    Shows a very basic list of issues.
+    Shows a list of issues with filtering and export capabilities.
     """
-    if logistics_is_installed():
-        issues_queryset = Issue.objects.all().order_by(
-            "-date", "subscription_product__product", "-subscription_product__route__number", "-id"
-        )
-    else:
-        issues_queryset = Issue.objects.all().order_by("-date", "subscription_product__product", "-id")
-    issues_filter = IssueFilter(request.GET, queryset=issues_queryset)
-    page_number = request.GET.get("p")
-    paginator = Paginator(issues_filter.qs, 100)
-    if request.GET.get("export"):
+    model = Issue
+    template_name = "list_issues.html"
+    filterset_class = IssueFilter
+    paginate_by = 50
+    context_object_name = 'issues'
+    page_kwarg = "p"
+
+    def breadcrumbs(self):
+        return [
+            {"url": reverse("home"), "label": _("Home")},
+            {"label": _("Issues")},
+        ]
+
+    def get_queryset(self):
+        if logistics_is_installed():
+            return Issue.objects.all().order_by(
+                "-date", "subscription_product__product", "-subscription_product__route__number", "-id"
+            )
+        else:
+            return Issue.objects.all().order_by("-date", "subscription_product__product", "-id")
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['count'] = self.filterset.qs.count()
+        return context
+
+    def get(self, request, *args, **kwargs):
+        # Handle CSV export
+        if request.GET.get("export"):
+            return self._export_to_csv()
+        return super().get(request, *args, **kwargs)
+
+    def _export_to_csv(self):
+        """Export filtered issues to CSV"""
         response = HttpResponse(content_type="text/csv")
         response["Content-Disposition"] = 'attachment; filename="issues_export.csv"'
         writer = csv.writer(response)
@@ -582,7 +606,10 @@ def list_issues(request):
             _("Assigned to"),
         ]
         writer.writerow(header)
-        for issue in issues_filter.qs.all():
+
+        # Get filtered queryset
+        filterset = self.get_filterset(self.get_filterset_class())
+        for issue in filterset.qs.all():
             writer.writerow(
                 [
                     issue.date,
@@ -596,154 +623,197 @@ def list_issues(request):
                 ]
             )
         return response
-    try:
-        page = paginator.page(page_number)
-    except PageNotAnInteger:
-        # If page is not an integer, deliver first page.
-        page = paginator.page(1)
-    except EmptyPage:
-        # If page is out of range (e.g. 9999), deliver last page of results.
-        page = paginator.page(paginator.num_pages)
-    return render(
-        request,
-        "list_issues.html",
-        {"page": page, "paginator": paginator, "issues_filter": issues_filter, "count": issues_filter.qs.count()},
-    )
 
 
-@login_required
-def new_issue(request, contact_id, category="L"):
+# Keep the function for backward compatibility
+list_issues = IssueListView.as_view()
+
+
+@method_decorator(login_required, name='dispatch')
+class NewIssueView(BreadcrumbsMixin, CreateView):
     """
-    Creates an issue of a selected category and subcategory.
+    Creates an issue of a selected category and subcategory with related activity.
     """
-    contact = get_object_or_404(Contact, pk=contact_id)
-    if request.POST:
-        form = IssueStartForm(request.POST)
-        if form.is_valid():
-            if form.cleaned_data.get("new_address"):
-                address = Address.objects.create(
-                    contact=contact,
-                    address_1=form.cleaned_data.get("new_address_1"),
-                    address_2=form.cleaned_data.get("new_address_2"),
-                    city=form.cleaned_data.get("new_address_city"),
-                    state=form.cleaned_data.get("new_address_state"),
-                    notes=form.cleaned_data.get("new_address_notes"),
-                )
-            else:
-                address = form.cleaned_data.get("contact_address")
-            if form.cleaned_data["status"]:
-                status = form.cleaned_data["status"]
-            elif form.cleaned_data["assigned_to"]:
-                status = IssueStatus.objects.get(slug=settings.ISSUE_STATUS_ASSIGNED)
-            else:
-                status = IssueStatus.objects.get(slug=settings.ISSUE_STATUS_UNASSIGNED)
-            new_issue = Issue.objects.create(
-                contact=form.cleaned_data["contact"],
-                category=form.cleaned_data["category"],
-                sub_category=form.cleaned_data["sub_category"],
-                notes=form.cleaned_data["notes"],
-                copies=form.cleaned_data["copies"],
-                subscription=form.cleaned_data["subscription"],
-                subscription_product=form.cleaned_data["subscription_product"],
-                product=form.cleaned_data["product"],
-                inside=False,
-                manager=request.user,
-                assigned_to=form.cleaned_data["assigned_to"],
-                envelope=form.cleaned_data["envelope"],
-                address=address,
-                status=status,
+    template_name = "new_issue.html"
+    model = Issue
+    form_class = IssueStartForm
+
+    def breadcrumbs(self):
+        return [
+            {"url": reverse("home"), "label": _("Home")},
+            {"url": reverse("contact_list"), "label": _("Contacts")},
+            {"url": reverse("contact_detail", args=[self.contact.id]), "label": self.contact.get_full_name()},
+            {"label": _("New issue")},
+        ]
+
+    def get_contact(self, contact_id):
+        self.contact = get_object_or_404(Contact, pk=contact_id)
+        return self.contact
+
+    def dispatch(self, request, *args, **kwargs):
+        self.contact = self.get_contact(kwargs['contact_id'])
+        self.category = kwargs.get('category', 'L')
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_initial(self):
+        initial = super().get_initial()
+        initial.update({
+            'copies': 1,
+            'contact': self.contact,
+            'category': self.category,
+            'activity_type': 'C',
+        })
+        return initial
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+
+        # Filter querysets based on contact
+        form.fields["subscription_product"].queryset = self.contact.get_active_subscriptionproducts()
+        form.fields["subscription"].queryset = self.contact.get_active_subscriptions()
+        form.fields["contact_address"].queryset = self.contact.addresses.all()
+
+        # Filter subcategories based on category (with special case for M/I)
+        if self.category == "M":
+            form.fields["sub_category"].queryset = IssueSubcategory.objects.filter(
+                category="I"
+            )  # Invoicing and collections share subcategories
+        else:
+            form.fields["sub_category"].queryset = IssueSubcategory.objects.filter(category=self.category)
+
+        return form
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['contact'] = self.contact
+
+        # Add category name to context
+        dict_categories = dict(get_issue_categories())
+        context['category_name'] = dict_categories[self.category]
+
+        return context
+
+    def form_valid(self, form):
+        # Handle address creation/selection
+        if form.cleaned_data.get("new_address"):
+            address = Address.objects.create(
+                contact=self.contact,
+                address_1=form.cleaned_data.get("new_address_1"),
+                address_2=form.cleaned_data.get("new_address_2"),
+                city=form.cleaned_data.get("new_address_city"),
+                state=form.cleaned_data.get("new_address_state"),
+                notes=form.cleaned_data.get("new_address_notes"),
             )
-            Activity.objects.create(
-                datetime=datetime.now(),
-                contact=contact,
-                issue=new_issue,
-                notes=_("See related issue"),
-                activity_type=form.cleaned_data["activity_type"],
-                status="C",  # completed
-                direction="I",
-            )
-            return HttpResponseRedirect(reverse("contact_detail", args=[contact.id]))
-    else:
-        form = IssueStartForm(
+        else:
+            address = form.cleaned_data.get("contact_address")
+
+        # Determine status based on form data
+        if form.cleaned_data["status"]:
+            status = form.cleaned_data["status"]
+        elif form.cleaned_data["assigned_to"]:
+            status = IssueStatus.objects.get(slug=settings.ISSUE_STATUS_ASSIGNED)
+        else:
+            status = IssueStatus.objects.get(slug=settings.ISSUE_STATUS_UNASSIGNED)
+
+        # Save the issue with all required fields
+        issue = form.save(commit=False)
+        issue.contact = self.contact
+        issue.inside = False
+        issue.manager = self.request.user
+        issue.address = address
+        issue.status = status
+        issue.save()
+
+        # Create related activity
+        Activity.objects.create(
+            datetime=datetime.now(),
+            contact=self.contact,
+            issue=issue,
+            notes=_("See related issue"),
+            activity_type=form.cleaned_data["activity_type"],
+            status="C",  # completed
+            direction="I",
+        )
+
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse('contact_detail', args=[self.contact.id])
+
+
+@method_decorator(login_required, name='dispatch')
+class IssueDetailView(BreadcrumbsMixin, UpdateView):
+    """
+    Shows a detailed view of an issue with editing capabilities.
+    """
+    model = Issue
+    template_name = "view_issue.html"
+    context_object_name = 'issue'
+    pk_url_kwarg = 'issue_id'
+
+    def breadcrumbs(self):
+        issue = self.get_object()
+        return [
+            {"url": reverse("home"), "label": _("Home")},
+            {"url": reverse("contact_list"), "label": _("Contacts")},
+            {"url": reverse("contact_detail", args=[issue.contact.id]), "label": issue.contact.get_full_name()},
+            {"label": _("Issue #{}").format(issue.id)},
+        ]
+
+    def get_form_class(self):
+        """Return the appropriate form class based on issue category"""
+        issue = self.get_object()
+        if issue.category in ("I", "M"):
+            return InvoicingIssueChangeForm
+        else:
+            return IssueChangeForm
+
+    def get_form(self, form_class=None):
+        """Customize the form with filtered subcategories"""
+        form = super().get_form(form_class)
+        issue = self.get_object()
+
+        # Filter subcategories based on issue category
+        if issue.category in ("I", "M"):
+            subcategories = IssueSubcategory.objects.filter(category="I")
+        else:
+            subcategories = IssueSubcategory.objects.filter(category=issue.category)
+
+        form.fields["sub_category"].queryset = subcategories
+        return form
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        issue = self.get_object()
+
+        # Set up activity form
+        activity_form = NewActivityForm(
             initial={
-                "copies": 1,
-                "contact": contact,
-                "category": category,
+                "contact": issue.contact,
+                "direction": "O",
                 "activity_type": "C",
             }
         )
-    form.fields["subscription_product"].queryset = contact.get_active_subscriptionproducts()
-    form.fields["subscription"].queryset = contact.get_active_subscriptions()
-    form.fields["contact_address"].queryset = contact.addresses.all()
-    if category == "M":
-        form.fields["sub_category"].queryset = IssueSubcategory.objects.filter(
-            category="I"
-        )  # Invoicing and collections share subcategories
-    else:
-        form.fields["sub_category"].queryset = IssueSubcategory.objects.filter(category=category)
-    dict_categories = dict(get_issue_categories())
-    category_name = dict_categories[category]
-    breadcrumbs = [
-        {"url": reverse("contact_list"), "label": _("Contacts")},
-        {"url": reverse("contact_detail", args=[contact.id]), "label": contact.get_full_name()},
-        {"label": _("New issue")},
-    ]
-    return render(
-        request,
-        "new_issue.html",
-        {"contact": contact, "form": form, "category_name": category_name, "breadcrumbs": breadcrumbs},
-    )
+        activity_form.fields["contact"].label = False
 
-
-@login_required
-def view_issue(request, issue_id):
-    """
-    Shows a logistics type issue.
-    """
-    issue = get_object_or_404(Issue, pk=issue_id)
-    invoicing = False
-    has_active_subscription = issue.contact.has_active_subscription()
-    if request.POST:
-        if issue.category in ("I", "M"):
-            form = InvoicingIssueChangeForm(request.POST, instance=issue)
-            invoicing = True
-        else:
-            form = IssueChangeForm(request.POST, instance=issue)
-        if form.is_valid():
-            form.save()
-            return HttpResponseRedirect(reverse("view_issue", args=(issue_id,)))
-    else:
-        if issue.category in ("I", "M"):
-            subcategories = IssueSubcategory.objects.filter(category="I")
-            form = InvoicingIssueChangeForm(instance=issue)
-            invoicing = True
-        else:
-            subcategories = IssueSubcategory.objects.filter(category=issue.category)
-            form = IssueChangeForm(instance=issue)
-        form.fields["sub_category"].queryset = subcategories
-
-    activities = issue.activity_set.all().order_by("-datetime", "id")
-    activity_form = NewActivityForm(
-        initial={
-            "contact": issue.contact,
-            "direction": "O",
-            "activity_type": "C",
-        }
-    )
-    activity_form.fields["contact"].label = False
-    return render(
-        request,
-        "view_issue.html",
-        {
-            "has_active_subscription": has_active_subscription,
-            "invoicing": invoicing,
-            "form": form,
-            "issue": issue,
-            "activities": activities,
+        # Add additional context data
+        context.update({
+            "has_active_subscription": issue.contact.has_active_subscription(),
+            "invoicing": issue.category in ("I", "M"),
+            "activities": issue.activity_set.all().order_by("-datetime", "id"),
             "activity_form": activity_form,
             "invoice_list": issue.contact.invoice_set.all().order_by("-creation_date", "id"),
-        },
-    )
+        })
+
+        return context
+
+    def get_success_url(self):
+        """Redirect back to the same issue after successful update"""
+        return reverse("view_issue", args=(self.object.id,))
+
+
+# Keep the function for backward compatibility
+view_issue = IssueDetailView.as_view()
 
 
 def api_new_address(request, contact_id):

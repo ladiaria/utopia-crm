@@ -10,11 +10,7 @@
 {% endblock %}
 
 {% block no_heading %}
-  <h1>
-    <a href="{% url "contact_list" %}">{% trans "Contacts" %}</a> >
-    <a href="{% url "contact_detail" issue.contact.id %}">{{ issue.contact.id }} - {{ issue.contact.get_full_name }}</a> >
-    {% trans "Issue" %} #{{ issue.id }}
-  </h1>
+  <h1>{% trans "Issue" %} #{{ issue.id }}</h1>
 {% endblock %}
 
 {% block extra_js %}
