@@ -341,7 +341,7 @@ def bill_subscription(
 ):
     """
     Bills a single subscription into an only invoice. Returns the created invoice.
-    # TODO: Products have a field "allow billing" which may not be used here. check and make fixes if any.
+    # TODO: Products have a field "active" which may not be used here. check and make fixes if any.
     """
     # Safely get settings with default values
     billing_extra_days = getattr(settings, 'BILLING_EXTRA_DAYS', 0)
