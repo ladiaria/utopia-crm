@@ -99,9 +99,14 @@ def seller_console_list_campaigns(request, seller_id=None):
     if getattr(settings, "ISSUE_SUBCATEGORY_NEVER_PAID", None) and getattr(
         settings, "ISSUE_STATUS_FINISHED_LIST", None
     ):
+        # issue t935: Only show issues with subscriptions that are less than one month old
+        # Consider creating a setting for this if other apps need to use a different time frame
         issues_never_paid = Issue.objects.filter(
             sub_category__slug=getattr(settings, "ISSUE_SUBCATEGORY_NEVER_PAID", ""),
             assigned_to=user,
+            # Only include subscriptions started in the last 30 days (today included).
+            # i.e. start_date must be >= (today - 30 days), so anything older is excluded.
+            subscription__start_date__gte=timezone.localdate() - timedelta(days=30),
         ).exclude(status__slug__in=getattr(settings, "ISSUE_STATUS_FINISHED_LIST", []))
     else:
         issues_never_paid = []
