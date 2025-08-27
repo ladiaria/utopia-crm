@@ -244,7 +244,12 @@ class Product(models.Model):
         verbose_name=_("Target product"),
     )
     cms_subscription_type = models.SlugField(
-        max_length=64, unique=True, blank=True, null=True, verbose_name=_("CMS subscription type")
+        max_length=64, unique=True, blank=True, null=True, verbose_name=_("CMS subscription type"),
+        help_text=_(
+            "Enter the product name."
+            " Unsupported spaces or other characters will be replaced with hyphens when saving."
+            " Used for the URL slug of the product form in the web subscription and for traffic tracking tools."
+        ),
     )
     internal_code = models.CharField(max_length=50, blank=True, null=True, verbose_name=_("Internal code"))
     billing_days = models.PositiveSmallIntegerField(
@@ -274,11 +279,6 @@ class Product(models.Model):
         null=True,
         blank=True,
         verbose_name=_("Subscription Period"),
-        help_text=_(
-            "Enter the product name."
-            " Unsupported spaces or other characters will be replaced with hyphens when saving."
-            " Used for the URL slug of the product form in the web subscription and for traffic tracking tools."
-        ),
     )
     terms_and_conditions = models.ManyToManyField(
         "core.TermsAndConditions",
