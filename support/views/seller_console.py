@@ -12,7 +12,7 @@ from django.utils.translation import gettext_lazy as _
 from datetime import date, timedelta, datetime
 
 from support.models import Seller, Issue, SellerConsoleAction
-from core.models import Address, SubscriptionProduct, Activity, ContactCampaignStatus, Campaign, Subscription
+from core.models import Address, SubscriptionProduct, Activity, ContactCampaignStatus, Campaign, Subscription, Contact
 from core.utils import logistics_is_installed
 from core.choices import CAMPAIGN_RESOLUTION_REASONS_CHOICES
 
@@ -429,6 +429,9 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
 
         contact = console_instance.contact
 
+        # Get phone duplicate information
+        phone_duplicates_info = self.get_phone_duplicates_info(contact)
+
         context.update(
             {
                 'campaign': campaign,
@@ -452,9 +455,50 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
                 'upcoming_activity': seller.upcoming_activity(),
                 'resolution_reasons': CAMPAIGN_RESOLUTION_REASONS_CHOICES,
                 'other_campaigns': ContactCampaignStatus.objects.filter(contact=contact).exclude(campaign=campaign),
+                'phone_duplicates_count': phone_duplicates_info['count'],
+                'phone_duplicates': phone_duplicates_info['contacts'],
             }
         )
         return context
+
+    def get_phone_duplicates_info(self, contact):
+        """
+        Get information about other contacts with the same phone number.
+        
+        Args:
+            contact (Contact): The current contact to check for duplicates
+            
+        Returns:
+            dict: Dictionary with 'count' (int) and 'contacts' (QuerySet) keys
+        """
+        from django.db.models import Q
+        
+        # Build query to find contacts with matching phone or mobile numbers
+        phone_query = Q()
+        
+        # Check if contact has a phone number and add to query
+        if contact.phone and str(contact.phone).strip():
+            phone_query |= Q(phone=contact.phone) | Q(mobile=contact.phone)
+            
+        # Check if contact has a mobile number and add to query
+        if contact.mobile and str(contact.mobile).strip():
+            phone_query |= Q(phone=contact.mobile) | Q(mobile=contact.mobile)
+        
+        # If no phone numbers to check, return empty result
+        if not phone_query:
+            return {'count': 0, 'contacts': Contact.objects.none()}
+        
+        # Find other contacts with matching phone numbers (exclude current contact)
+        duplicate_contacts = Contact.objects.filter(phone_query).exclude(id=contact.id).select_related(
+            'subtype', 'institution'
+        ).order_by('name', 'last_name')
+        
+        count = duplicate_contacts.count()
+        
+        return {
+            'count': count,
+            'contacts': duplicate_contacts
+        }
 
     def get_activities(self, contact, console_instance, category):
         activities = Activity.objects.filter(contact=contact).order_by("-datetime", "id")
