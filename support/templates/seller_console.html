@@ -172,6 +172,31 @@
                   </td>
                 </tr>
               {% endif %}
+              {% if phone_duplicates_count > 0 %}
+                <tr class="table-warning">
+                  <td>
+                    <i class="fas fa-exclamation-triangle"></i> {% trans "Phone duplicates" %}:
+                  </td>
+                  <td>
+                    <strong>{{ phone_duplicates_count }} {% trans "other contact(s) with same phone number" %}</strong>
+                    <div class="mt-2">
+                      {% for duplicate in phone_duplicates %}
+                        <div class="small">
+                          <a href="{% url 'contact_detail' duplicate.id %}" target="_blank" class="text-primary">
+                            <i class="fas fa-user"></i> {{ duplicate.id }} - {{ duplicate.get_full_name }}
+                          </a>
+                          {% if duplicate.phone %}
+                            <span class="text-muted">({% trans "Phone" %}: {{ duplicate.phone }})</span>
+                          {% endif %}
+                          {% if duplicate.mobile %}
+                            <span class="text-muted">({% trans "Mobile" %}: {{ duplicate.mobile }})</span>
+                          {% endif %}
+                        </div>
+                      {% endfor %}
+                    </div>
+                  </td>
+                </tr>
+              {% endif %}
               {% if contact.email %}
                 <tr>
                   <td>
