@@ -95,7 +95,7 @@ def subscription_post_save_signal(sender, instance, **kwargs):
 @receiver(pre_save, sender=Address)
 def address_pre_save_signal(sender, instance, **kwargs):
     if settings.WEB_UPDATE_USER_ENABLED:
-        if instance.pk:
+        if instance.pk and not hasattr(instance, "cms_updated"):
             old_instance = Address.objects.get(id=instance.id)
             old_contact, instance.default_changed = old_instance.contact, old_instance.default != instance.default
             if old_contact:
@@ -115,11 +115,11 @@ def address_pre_save_signal(sender, instance, **kwargs):
 def cms_address_values(address):
     return json.dumps(
         {
-            "address": address.address_1,
-            "city": address.city_fk.name if address.city_fk else None,
+            "address_1": address.address_1,
+            "city_fk": address.city_fk.name if address.city_fk else None,
             "country": address.country_name,
-            "province": address.state_name,
-        } if address else {"address": None, "city": None, "country": None, "province": None}
+            "state": address.state_name,
+        } if address else {"address_1": None, "city_fk": None, "country": None, "state": None}
     )
 
 
@@ -133,52 +133,58 @@ def address_post_save(sender, instance, created, **kwargs):
     if settings.DEBUG:
         print("DEBUG: address_post_save, instance: %s, created: %s" % (instance, created))
     if settings.WEB_UPDATE_USER_ENABLED:
-        contact = instance.contact
-        if created:
-            if contact and instance.default:
-                cms_address_api_call(contact, instance)
+        cms_updated = hasattr(instance, "cms_updated")
+        if cms_updated:
+            del instance.cms_updated
         else:
-            default_changed = getattr(instance, "default_changed", False)
-            if hasattr(instance, "old_contact"):
-                old_contact = instance.old_contact
-                if old_contact:
-                    # contact field changed: value -> value
-                    if instance.default:
-                        if default_changed:
-                            # default changed: False -> True (this was not the default for the old contact), then
-                            # only sync this default address for the new contact value
-                            cms_address_api_call(contact, instance)
-                        else:
-                            # old contact has lost its default address and new contact has a default address
-                            cms_address_api_call(old_contact)
-                            cms_address_api_call(contact, instance)
-                    elif default_changed:
-                        # old contact has lost its default address (default True -> False)
-                        cms_address_api_call(old_contact)
-                else:
-                    # contact changed: None -> value, only if default is True needs to be synced
-                    if instance.default:
-                        cms_address_api_call(contact, instance)
+            contact = instance.contact
+            if created:
+                if contact and instance.default:
+                    cms_address_api_call(contact, instance)
             else:
-                # contact field was unchanged
-                if settings.DEBUG:
-                    debug_data = {
-                        "contact": contact, "default_changed": default_changed, "default": instance.default
-                    }
-                    print("DEBUG: address_post_save - %s" % debug_data)
-                if contact:
-                    if instance.default:
-                        # default is True, no matter if it changed or not, sync it
-                        cms_address_api_call(contact, instance)
-                    elif default_changed:
-                        # default changed: True -> False (address lost its default, sync it)
-                        # or also if inconsistent state of more than 1 default address, find it and sync it
-                        args = (contact,)
-                        try:
-                            args += (contact.address_set.get(default=True),)
-                        except (Address.DoesNotExist, Address.MultipleObjectsReturned):
-                            pass
-                        cms_address_api_call(*args)
+                default_changed = getattr(instance, "default_changed", False)
+                if hasattr(instance, "old_contact"):
+                    old_contact = instance.old_contact
+                    if old_contact:
+                        # contact field changed: value -> value
+                        if instance.default:
+                            if default_changed:
+                                # default changed: False -> True (this was not the default for the old contact), then
+                                # only sync this default address for the new contact value
+                                cms_address_api_call(contact, instance)
+                            else:
+                                # old contact has lost its default address and new contact has a default address
+                                cms_address_api_call(old_contact)
+                                cms_address_api_call(contact, instance)
+                        elif default_changed:
+                            # old contact has lost its default address (default True -> False)
+                            cms_address_api_call(old_contact)
+                    else:
+                        # contact changed: None -> value, only if default is True needs to be synced
+                        if instance.default:
+                            cms_address_api_call(contact, instance)
+                else:
+                    # contact field was unchanged
+                    if settings.DEBUG:
+                        debug_data = {
+                            "contact": contact, "default_changed": default_changed, "default": instance.default
+                        }
+                        print("DEBUG: address_post_save - %s" % debug_data)
+                    if contact:
+                        if instance.default:
+                            # default is True, no matter if it changed or not, sync it
+                            cms_address_api_call(contact, instance)
+                        elif default_changed:
+                            # default changed: True -> False (address lost its default, sync it)
+                            # or also if inconsistent state of more than 1 default address, find it and sync it
+                            args = (contact,)
+                            try:
+                                args += (contact.addresses.get(default=True),)
+                            except (Address.DoesNotExist, Address.MultipleObjectsReturned):
+                                pass
+                            if settings.DEBUG:
+                                print(f"DEBUG: address_post_save - args: {args}")
+                            cms_address_api_call(*args)
 
 
 @receiver(post_delete, sender=Address)
