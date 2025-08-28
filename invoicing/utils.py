@@ -6,26 +6,18 @@ from django.conf import settings
 from django.db import transaction
 from django.utils.translation import gettext_lazy as _
 
-import mercadopago
-
 from invoicing.models import MercadoPagoData
 from invoicing.models import InvoiceItem, Invoice
 
 # TODO: explain or remove the "Updated import" comment in next line
 from core.models import Address, Subscription, Product, SubscriptionProduct  # Updated import
-from core.utils import calc_price_from_products, create_invoiceitem_for_corporate_subscription
-
-
-def mercadopago_access_token():
-    """
-    Returns the MercadoPago access token from settings if defined, otherwise returns an empty string.
-    """
-    return getattr(settings, "MERCADOPAGO_ACCESS_TOKEN", "") or ""
+from core.utils import calc_price_from_products, create_invoiceitem_for_corporate_subscription, mercadopago_sdk
 
 
 def mercadopago_debit(invoice, debug=False):
     """
     Calls the MercadoPago API to send the payment. Generates the card token and register the payment.
+    Not suitable for subscriptions integration.
     """
     if not getattr(settings, "MERCADOPAGO_INVOICE_DEBIT_ENABLED", True):
         if settings.DEBUG:
@@ -44,15 +36,12 @@ def mercadopago_debit(invoice, debug=False):
         _update_invoice_notes(invoice, error_status, debug)
         return
 
-    # Get MercadoPago access token from settings with a fallback
-    mp_access_token = mercadopago_access_token()
-    if not mp_access_token:
-        error_status = "MercadoPago access token not found in settings"
+    # Create a MercadoPago API instance
+    sdk, mp_access_token = mercadopago_sdk(False)
+    if not sdk:
+        error_status = "MercadoPago API could not be initialized"
         _update_invoice_notes(invoice, error_status, debug)
         return
-
-    # Create a MercadoPago API instance
-    sdk = mercadopago.SDK(mp_access_token)
 
     if mp_access_token.startswith("TEST") and mp_data.card_id == "1111111111111":
         # MP test api: Simulate a not approved payment (if forced to fail by settings).

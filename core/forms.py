@@ -218,8 +218,9 @@ class SubscriptionAdminForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super(SubscriptionAdminForm, self).__init__(*args, **kwargs)
-        if 'instance' in kwargs:
-            self.fields['billing_address'].queryset = Address.objects.filter(contact=kwargs['instance'].contact)
+        instance = kwargs.get("instance")
+        if instance:
+            self.fields['billing_address'].queryset = Address.objects.filter(contact=instance.contact)
 
 
 class AddressForm(forms.ModelForm):

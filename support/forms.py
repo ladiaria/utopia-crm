@@ -697,6 +697,7 @@ class SugerenciaGeorefForm(forms.ModelForm):
     class Meta:
         model = Address
         fields = [
+            "default",
             "contact",
             "address_1",
             "address_2",
