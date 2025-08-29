@@ -411,7 +411,7 @@ class ContactAdmin(SimpleHistoryAdmin):
         try:
             return super().delete_model(request, obj)
         except Exception as e:
-            self.message_user(request, str(e), level=messages.WARNING)
+            self.message_user(request, "CMS sync: " + str(e), level=messages.WARNING)
 
 
 class TermsAndConditionsProductInline(admin.TabularInline):

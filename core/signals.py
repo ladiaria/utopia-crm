@@ -210,6 +210,7 @@ def contact_post_delete(sender, instance, **kwargs):
         data = {'contact_id': instance.id, 'email': instance.email}
         try:
             res = cms_rest_api_request("contact_post_delete", uri, data, "DELETE")
+            # TODO: maybe errors 404 can be silently ignored, evaluate and do it
             if settings.DEBUG:
                 print(f"DEBUG: (contact_post_delete) cms_rest_api_request returned: {res}")
             if isinstance(res, str) and res in ("TIMEOUT", "ERROR"):

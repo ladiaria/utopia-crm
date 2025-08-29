@@ -629,7 +629,7 @@ def cms_rest_api_request(api_name, api_uri, post_data, method="POST"):
                 # TODO: can be improved splitting and stripping more unuseful info
                 print("DEBUG: CMS api response content: " + html2text_content.split("## Traceback")[0].strip())
             r.raise_for_status()
-            result = r.json()
+            result = r.json() if r.text else r.text
             if settings.DEBUG:
                 print(f"DEBUG: {api_name} {method} result: {result}")
             return result

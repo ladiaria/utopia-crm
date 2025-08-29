@@ -1580,14 +1580,14 @@ class Subscription(models.Model):
             parts.extend([gettext("for the contact"), self.contact.get_full_name()])
         except Contact.DoesNotExist:
             pass
-        parts.extend([gettext("with"), str(self.get_product_count()), Product._meta.verbose_name_plural.lower()])
+        parts.extend([gettext("with"), str(self.get_product_count()), gettext("products")])
         return " ".join(parts)
 
     def get_product_count(self):
         """
         Returns the amount of products in this subscription
         """
-        return self.products.count()
+        return self.products.count() if self.pk else 0
 
     def get_used_affiliate_slots(self):
         """
