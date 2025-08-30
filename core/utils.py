@@ -9,6 +9,7 @@ from requests.exceptions import ReadTimeout, RequestException
 from typing import Literal
 from html2text import html2text
 import logging
+import mercadopago
 
 from django.conf import settings
 from django.core.validators import validate_email
@@ -628,7 +629,7 @@ def cms_rest_api_request(api_name, api_uri, post_data, method="POST"):
                 # TODO: can be improved splitting and stripping more unuseful info
                 print("DEBUG: CMS api response content: " + html2text_content.split("## Traceback")[0].strip())
             r.raise_for_status()
-            result = r.json()
+            result = r.json() if r.text else r.text
             if settings.DEBUG:
                 print(f"DEBUG: {api_name} {method} result: {result}")
             return result
@@ -786,3 +787,21 @@ def mail_managers_on_errors(process_name, error_msg, traceback_info=""):
     if traceback_info:
         msg += traceback_info  # Add the stack trace
     mail_managers(subject=subject, message=msg)
+
+
+def mercadopago_access_token():
+    """
+    Returns the MercadoPago access token from settings if defined, otherwise returns an empty string.
+    """
+    return getattr(settings, "MERCADOPAGO_ACCESS_TOKEN", "") or ""
+
+
+def mercadopago_sdk(subscriptions_integration=True):
+    mp_access_token, app_id = mercadopago_access_token(), None
+    if mp_access_token:
+        if subscriptions_integration:
+            if mp_access_token.startswith("APP_USR-"):
+                app_id = mp_access_token.split("-")[1]
+                app_id = app_id if app_id.isdigit() else None
+    sdk = mercadopago.SDK(mp_access_token) if mp_access_token else None
+    return (sdk, app_id) if subscriptions_integration else (sdk, mp_access_token)

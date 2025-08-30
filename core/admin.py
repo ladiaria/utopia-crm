@@ -1,5 +1,4 @@
 # coding=utf-8
-import mercadopago
 from leaflet.admin import LeafletGeoAdmin
 from taggit.models import TaggedItem, Tag
 from taggit.admin import TagAdmin, TaggedItemInline
@@ -17,9 +16,8 @@ from django.forms import ValidationError
 
 from community.models import ProductParticipation, Supporter
 from invoicing.models import Invoice
-from invoicing.utils import mercadopago_access_token
 from support.models import Issue
-from core.utils import logistics_is_installed
+from .utils import logistics_is_installed, mercadopago_sdk
 from .models import (
     Subscription,
     IdDocumentType,
@@ -275,6 +273,12 @@ class SubscriptionAdmin(SimpleHistoryAdmin):
         "validated_by",
     )
 
+    def save_model(self, request, obj, form, change):
+        try:
+            super().save_model(request, obj, form, change)
+        except Exception as e:
+            self.message_user(request, str(e), level=messages.WARNING)
+
     def get_readonly_fields(self, request, obj):
         readonly_fields = super().get_readonly_fields(request, obj)
         if obj:
@@ -403,6 +407,12 @@ class ContactAdmin(SimpleHistoryAdmin):
             if skip_clean_set:
                 del obj._skip_clean
 
+    def delete_model(self, request, obj):
+        try:
+            return super().delete_model(request, obj)
+        except Exception as e:
+            self.message_user(request, "CMS sync: " + str(e), level=messages.WARNING)
+
 
 class TermsAndConditionsProductInline(admin.TabularInline):
     model = TermsAndConditionsProduct
@@ -449,15 +459,7 @@ def mp_product_sync(obj, disable_mp_plan=False):
     if getattr(settings, "MERCADOPAGO_PRODUCT_SYNC_ENABLED", False):
         if getattr(settings, "MERCADOPAGO_PRODUCT_SYNC_CMS_SYNC_REQUIRED", False) and not obj.cms_subscription_type:
             return
-        mp_access_token = mercadopago_access_token()
-        if not mp_access_token:
-            return
-        if not mp_access_token.startswith("APP_USR-"):
-            return
-        app_id = mp_access_token.split("-")[1]
-        if not app_id.isdigit():
-            return
-        sdk = mercadopago.SDK(mp_access_token)
+        sdk, app_id = mercadopago_sdk()
         if disable_mp_plan:
             if not obj.mercadopago_id:
                 # we only can disable plans already linked to a product in CRM

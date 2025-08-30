@@ -15,7 +15,7 @@ from django.db import models
 from django.db.models import Q, Sum, Count, Max, Prefetch
 from django.db.utils import IntegrityError
 from django.forms import ValidationError
-from django.utils.translation import gettext_lazy as _
+from django.utils.translation import gettext_lazy as _, gettext
 from django_extensions.db.fields import AutoSlugField
 from django.utils.html import mark_safe
 from django.utils.functional import cached_property
@@ -1339,13 +1339,14 @@ class SubscriptionProduct(models.Model):
     active = models.BooleanField(default=True)
 
     def __str__(self):
-        # TODO: result translation (i18n)
+        parts = [str(self.product)] if self.product else []
         if self.address:
-            address = self.address.address_1
-        else:
-            address = ""
-
-        return f"{self.product} - {address} - {self.subscription.contact.get_full_name()}"
+            parts.append(str(self.address.address_1))
+        try:
+            parts.append(self.subscription.contact.get_full_name())
+        except Subscription.DoesNotExist:
+            pass
+        return " - ".join(parts)
 
     def get_subscription_active(self):
         return self.subscription.active
@@ -1574,19 +1575,19 @@ class Subscription(models.Model):
     zoho_sync_date = models.DateTimeField(blank=True, null=True, verbose_name="Zoho Sync Date")
 
     def __str__(self):
-        return str(
-            _("{active} subscription for the contact {contact} with {products} products").format(
-                active=_("Active") if self.active else _("Inactive"),
-                contact=self.contact.get_full_name(),
-                products=self.get_product_count(),
-            )
-        )
+        parts = [gettext("Active") if self.active else gettext("Inactive"), gettext("subscription")]
+        try:
+            parts.extend([gettext("for the contact"), self.contact.get_full_name()])
+        except Contact.DoesNotExist:
+            pass
+        parts.extend([gettext("with"), str(self.get_product_count()), gettext("products")])
+        return " ".join(parts)
 
     def get_product_count(self):
         """
         Returns the amount of products in this subscription
         """
-        return self.products.count()
+        return self.products.count() if self.pk else 0
 
     def get_used_affiliate_slots(self):
         """
@@ -1870,7 +1871,7 @@ class Subscription(models.Model):
             # Get the copies for this product, when used on with_copies
             item.copies = product[1]
             # Add the amount of frequency if necessary
-            frequency_extra = _(" {} months".format(self.frequency)) if self.frequency > 1 else ""
+            frequency_extra = _("{} months".format(self.frequency)) if self.frequency > 1 else ""
             item.description = product[0].name + frequency_extra
             item.price = product[0].price * self.frequency
             item.amount = item.price * item.copies
@@ -1883,7 +1884,7 @@ class Subscription(models.Model):
         for discount in self.get_discounts():
             discount_item = InvoiceItem()
             # Add the amount of frequency if necessary
-            frequency_extra = _(" {} months".format(self.frequency)) if self.frequency > 1 else ""
+            frequency_extra = _("{} months".format(self.frequency)) if self.frequency > 1 else ""
             discount_item.description = discount["description"] + frequency_extra
             discount_item.amount = discount["amount"] * self.frequency
             discount_item.type_dr = discount["type_dr"]

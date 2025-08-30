@@ -1,5 +1,6 @@
 *.idea
 *.pyc
+*.mo
 *.swp
 .coverage*
 .env
@@ -9,7 +10,6 @@ htmlcov
 local_*_settings.py
 local_settings.py
 .local_rev*
-locale/
 media
 other
 staticfiles
