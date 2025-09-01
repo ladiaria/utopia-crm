@@ -2214,11 +2214,11 @@ msgstr "países"
 
 #: core/models.py:1141
 msgid "state"
-msgstr "estado"
+msgstr "departamento"
 
 #: core/models.py:1142
 msgid "states"
-msgstr "estados"
+msgstr "departamentos"
 
 #: core/models.py:1157 logistics/models.py:213
 msgid "city"
@@ -2300,7 +2300,7 @@ msgstr "País"
 #: support/templates/contact_detail/tabs/_information.html:117
 #: support/templates/contact_list.html:37 support/views/contacts.py:91
 msgid "State"
-msgstr "Estado"
+msgstr "Departamento"
 
 #: core/models.py:1250
 msgid ""
@@ -4825,7 +4825,7 @@ msgid ""
 "Please complete the new address first line, city and state if new address is "
 "selected"
 msgstr ""
-"Por favor, complete la nueva dirección, la línea 1, la ciudad y el estado si "
+"Por favor, complete la nueva dirección, la línea 1, la ciudad y el departamento si "
 "selecciona una nueva dirección"
 
 #: support/forms.py:251
