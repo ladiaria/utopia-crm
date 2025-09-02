@@ -2,6 +2,7 @@
 from pymailcheck import split_email
 import json
 
+from django.conf import settings
 from django import forms
 from django.core.mail import mail_managers
 from django.utils.translation import gettext as _
@@ -54,13 +55,15 @@ class EmailValidationForm(forms.Form):
             return result
 
     def email_extra_clean(self, cleaned_data):
-        from django.conf import settings
 
-        # Skip validation if disabled in settings
+        email = cleaned_data.get('email')
+
+        # Skip "complex" validations if disabled in settings
+        # TODO: rename this setting to CORE_EMAIL[_(COMPLEX|DOMAIN|TYPOSQUASH)]_VALIDATION_ENABLED
         if not getattr(settings, 'EMAIL_VALIDATION_ENABLED', True):
-            return cleaned_data.get('email')
+            return email
 
-        email, was_valid = cleaned_data.get("email"), cleaned_data.get("email_was_valid")
+        was_valid = cleaned_data.get("email_was_valid")
         replacement, suggestion = cleaned_data.get("email_replacement"), cleaned_data.get("email_suggestion")
         if was_valid:
             if not replacement:
