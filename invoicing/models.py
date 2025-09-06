@@ -34,7 +34,7 @@ class Invoice(models.Model):
     paid = models.BooleanField(default=False, verbose_name=_("Paid"))
     payment_date = models.DateField(blank=True, null=True, verbose_name=_("Payment date"))
     payment_reference = models.CharField(
-        max_length=32, blank=True, null=True, db_index=True, verbose_name=_("Payment reference")
+        max_length=50, blank=True, null=True, db_index=True, verbose_name=_("Payment reference")
     )
     notes = models.TextField(blank=True, null=True, verbose_name=_("Invoice notes"))
     canceled = models.BooleanField(default=False, editable=False, verbose_name=_("Canceled"))
