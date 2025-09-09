@@ -17,7 +17,6 @@ from support.views import (
     edit_products,
     api_new_address,
     api_dynamic_prices,
-    list_issues,
     invoicing_issues,
     debtor_contacts,
     new_issue,
@@ -49,6 +48,7 @@ from support.views import (
     api_get_addresses,
 )
 from . import apis
+from support.views.all_views import IssueListView
 
 from django.urls import path, re_path
 
@@ -102,7 +102,7 @@ urlpatterns = [
     path("api_dynamic_prices/", api_dynamic_prices),
     path("api_get_addresses/<int:contact_id>/", api_get_addresses, name="api_get_addresses"),
     # Issues
-    path("list_issues/", list_issues, name="list_issues"),
+    path("list_issues/", IssueListView.as_view(), name="list_issues"),
     path("invoicing_issues/", invoicing_issues, name="invoicing_issues"),
     path("debtor_contacts/", debtor_contacts, name="debtor_contacts"),
     re_path(r"^new_issue/(\d+)/(\w+)/$", new_issue, name="new_issue"),
