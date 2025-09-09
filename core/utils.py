@@ -7,8 +7,9 @@ from requests.status_codes import codes
 from requests.auth import HTTPBasicAuth
 from requests.exceptions import ReadTimeout, RequestException
 from typing import Literal
-from html2text import html2text
+import csv
 import logging
+from html2text import html2text
 
 from django.conf import settings
 from django.core.validators import validate_email
@@ -773,6 +774,65 @@ def process_invoice_request(product_slugs, email, phone, name, id_document, paym
 
 def logistics_is_installed():
     return "logistics" not in getattr(settings, "DISABLED_APPS", [])
+
+
+def detect_csv_delimiter(file_content):
+    """
+    Detect CSV delimiter by analyzing the first few lines of a file.
+
+    This utility function automatically detects whether a CSV file uses comma (,) or
+    semicolon (;) as its delimiter. This is particularly useful for handling regional
+    differences in CSV formats:
+    - Comma (,): Standard in Uruguay, US, and most English-speaking countries
+    - Semicolon (;): Standard in Colombia and many European countries when using Excel
+
+    Args:
+        file_content (io.StringIO or file-like object): The CSV file content to analyze.
+                                                       Must support seek() and read() operations.
+
+    Returns:
+        str: The detected delimiter character (',' or ';')
+
+    Example:
+        >>> import io
+        >>> csv_content = io.StringIO("email,name\\ntest@example.com,John")
+        >>> delimiter = detect_csv_delimiter(csv_content)
+        >>> print(delimiter)  # Output: ','
+
+        >>> csv_content = io.StringIO("email;name\\ntest@example.com;John")
+        >>> delimiter = detect_csv_delimiter(csv_content)
+        >>> print(delimiter)  # Output: ';'
+
+    Technical Details:
+        1. Uses Python's csv.Sniffer to intelligently detect the delimiter
+        2. Falls back to character counting if Sniffer fails
+        3. Automatically resets file pointer to beginning after analysis
+        4. Analyzes first 1024 characters for performance
+
+    Regional Usage:
+        - Colombia: Excel exports typically use semicolon (;) due to comma being decimal separator
+        - Uruguay/US: Standard comma (,) delimiter
+        - This function handles both automatically without user configuration
+    """
+    # Reset file pointer to beginning
+    file_content.seek(0)
+    sample = file_content.read(1024)
+    file_content.seek(0)
+
+    # Use csv.Sniffer to detect delimiter
+    sniffer = csv.Sniffer()
+    try:
+        dialect = sniffer.sniff(sample, delimiters=',;')
+        return dialect.delimiter
+    except csv.Error:
+        # Fallback: count occurrences of common delimiters
+        comma_count = sample.count(',')
+        semicolon_count = sample.count(';')
+
+        if semicolon_count > comma_count:
+            return ';'
+        else:
+            return ','
 
 
 def mail_managers_on_errors(process_name, error_msg, traceback_info=""):
