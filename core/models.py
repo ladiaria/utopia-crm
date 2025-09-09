@@ -245,6 +245,7 @@ class Product(models.Model):
     )
     cms_subscription_type = models.SlugField(
         max_length=64, unique=True, blank=True, null=True, verbose_name=_("CMS subscription type"),
+        # TODO: next line does not help, its totally false, decide ASAP what to do here, if autoslug field or not
         help_text=_(
             "Enter the product name."
             " Unsupported spaces or other characters will be replaced with hyphens when saving."
