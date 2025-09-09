@@ -1,4 +1,5 @@
 import csv
+import json
 from datetime import date, datetime, timedelta
 
 import pandas as pd
@@ -14,6 +15,7 @@ from django.http import (
     HttpResponseNotFound,
     HttpResponseRedirect,
     JsonResponse,
+    StreamingHttpResponse,
 )
 from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
@@ -553,6 +555,112 @@ def edit_products(request, subscription_id):
     )
 
 
+@method_decorator(login_required, name="dispatch")
+class IssueListView(BreadcrumbsMixin, FilterView):
+    """
+    Shows a list of issues with filtering capabilities and dynamic subcategory filtering.
+    """
+    model = Issue
+    template_name = "list_issues.html"
+    filterset_class = IssueFilter
+    paginate_by = 50
+    page_kwarg = "p"
+    context_object_name = "issues"
+
+    def breadcrumbs(self):
+        return [
+            {"url": reverse("home"), "label": _("Home")},
+            {"label": _("Issues")},
+        ]
+
+    def get_queryset(self):
+        if logistics_is_installed():
+            return Issue.objects.all().order_by(
+                "-date", "subscription_product__product", "-subscription_product__route__number", "-id"
+            )
+        else:
+            return Issue.objects.all().order_by("-date", "subscription_product__product", "-id")
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        # Create mapping of category -> list of subcategory options for JavaScript filtering
+        category_subcategories = {}
+        for subcategory in IssueSubcategory.objects.all().order_by('name'):
+            if subcategory.category not in category_subcategories:
+                category_subcategories[subcategory.category] = []
+            category_subcategories[subcategory.category].append({
+                'id': subcategory.id,
+                'name': subcategory.name
+            })
+
+        # Include subcategories without a category (also sorted alphabetically)
+        subcategories_without_category = IssueSubcategory.objects.filter(category__isnull=True).order_by('name')
+        if subcategories_without_category.exists():
+            category_subcategories['null'] = [
+                {'id': sub.id, 'name': sub.name} for sub in subcategories_without_category
+            ]
+
+        context['category_subcategories_json'] = json.dumps(category_subcategories)
+        context['count'] = self.get_filterset(self.filterset_class).qs.count()
+        return context
+
+    def get(self, request, *args, **kwargs):
+        # Handle CSV export
+        if request.GET.get("export"):
+            return self.export_csv()
+        return super().get(request, *args, **kwargs)
+
+    def export_csv(self):
+        """Export filtered issues to CSV using streaming response for large datasets"""
+        def generate_csv_rows():
+            # Create a buffer for CSV writing
+            import io
+            buffer = io.StringIO()
+            writer = csv.writer(buffer)
+
+            # Write header
+            header = [
+                _("Start date"),
+                _("Contact ID"),
+                _("Contact name"),
+                _("Category"),
+                _("Subcategory"),
+                _("Activities count"),
+                _("Status"),
+                _("Assigned to"),
+            ]
+            writer.writerow(header)
+            yield buffer.getvalue()
+            buffer.seek(0)
+            buffer.truncate(0)
+
+            # Write data rows in chunks
+            filterset = self.get_filterset(self.filterset_class)
+            for issue in filterset.qs.iterator(chunk_size=1000):
+                writer.writerow([
+                    issue.date,
+                    issue.contact.id,
+                    issue.contact.get_full_name(),
+                    issue.get_category(),
+                    issue.get_subcategory(),
+                    issue.activity_count(),
+                    issue.get_status(),
+                    issue.get_assigned_to(),
+                ])
+                yield buffer.getvalue()
+                buffer.seek(0)
+                buffer.truncate(0)
+
+        response = StreamingHttpResponse(
+            generate_csv_rows(),
+            content_type="text/csv"
+        )
+        response["Content-Disposition"] = 'attachment; filename="issues_export.csv"'
+        return response
+
+
+# Maintain backward compatibility
 @login_required
 def list_issues(request):
     """
