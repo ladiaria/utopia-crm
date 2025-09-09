@@ -32,7 +32,7 @@ from core.models import (
 from core.filters import ContactFilter
 from core.forms import ContactAdminForm
 from core.mixins import BreadcrumbsMixin
-from core.utils import get_mailtrain_lists
+from core.utils import get_mailtrain_lists, detect_csv_delimiter
 
 from support.forms import ImportContactsForm, CheckForExistingContactsForm
 
@@ -602,24 +602,17 @@ class CheckForExistingContactsView(BreadcrumbsMixin, FormView):
     def get_success_url(self):
         return reverse("contact_list")
 
-    def check_contact(self, email, phone, mobile):
-        # Checks for a contact. Returns the contact if found, and what made it unique
-        # Returns None if no contact was found
-        contact = Contact.objects.filter(email=email).first()
-        if not contact:
-            return None
-        return contact
-
     def find_matching_contacts_by_email(self, email):
-        # Find matching contacts based on email, phone, and mobile
-        # Returns a list of contacts that match the given criteria
+        """
+        Find matching contacts based on email only.
+        Returns a list of contacts that match the given email.
+        """
         contacts = (
             Contact.objects.filter(email__iexact=email)
             .prefetch_related(
                 Prefetch('subscriptions', queryset=Subscription.objects.filter(active=True, status__in=['OK', 'G']))
             )
             .prefetch_related('contactcampaignstatus_set')
-            # Annotate matches in a single query
             .annotate(
                 is_email_match=Case(
                     When(email__iexact=email, then=Value(True)),
@@ -638,13 +631,21 @@ class CheckForExistingContactsView(BreadcrumbsMixin, FormView):
         return contacts
 
     def process_file(self, file):
+        """
+        Process CSV file with automatic delimiter detection.
+        Only processes email column for contact matching.
+        """
         results = []
         non_matches = []
-        for row_number, row in enumerate(csv.DictReader(file, delimiter=',', quotechar='"', lineterminator='\r\n')):
-            email = row.get('email', None)
+
+        # Detect delimiter automatically
+        delimiter = detect_csv_delimiter(file)
+
+        for row_number, row in enumerate(csv.DictReader(file, delimiter=delimiter, quotechar='"')):
+            email = row.get('email', '').strip()
 
             if not email:
-                non_matches.append(row)
+                non_matches.append({'email': email or 'N/A', 'row_number': row_number + 1})
                 continue
 
             contacts = self.find_matching_contacts_by_email(email)
@@ -663,22 +664,49 @@ class CheckForExistingContactsView(BreadcrumbsMixin, FormView):
                         }
                     )
             else:
-                non_matches.append(row)
+                non_matches.append({'email': email, 'row_number': row_number + 1})
 
             if (row_number + 1) % 100 == 0 and settings.DEBUG:
                 print(f"processed {row_number + 1} rows")
 
-        return results, non_matches
+        return results, non_matches, delimiter
+
+    def get(self, request, *args, **kwargs):
+        """Handle GET requests, including CSV template download."""
+        if 'download_template' in request.GET:
+            return self.download_template()
+        return super().get(request, *args, **kwargs)
+
+    def download_template(self):
+        """
+        Generate and return a CSV template file for users to download.
+        """
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="contact_check_template.csv"'
+
+        writer = csv.writer(response)
+        # Header row
+        writer.writerow(['email'])
+        # Sample data rows with instructions
+        writer.writerow(['example1@company.com'])
+        writer.writerow(['example2@domain.org'])
+        writer.writerow(['user@example.net'])
+
+        return response
 
     def form_valid(self, form):
         csvfile = form.cleaned_data['file']
         decoded_file = io.StringIO(csvfile.read().decode('utf-8'))
-        results, non_matches = self.process_file(decoded_file)
+        results, non_matches, delimiter = self.process_file(decoded_file)
+
         context = self.get_context_data(form=form)
         context['results'] = results
         context['non_matches'] = non_matches
+        context['detected_delimiter'] = 'semicolon (;)' if delimiter == ';' else 'comma (,)'
+
         active_subscriptions = sum(1 for result in results if result['has_active_subscription'])
         context['active_subscriptions'] = active_subscriptions
         active_campaigns = sum(1 for result in results if result['is_in_active_campaign'])
         context['active_campaigns'] = active_campaigns
+
         return self.render_to_response(context)
