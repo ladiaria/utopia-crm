@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-08-28 16:57-0300\n"
+"POT-Creation-Date: 2025-09-09 11:10-0300\n"
 "PO-Revision-Date: 2025-08-15 15:02-0300\n"
 "Last-Translator: TANYA <tanyatree@gmail.com>\n"
 "Language-Team: \n"
@@ -1740,57 +1740,57 @@ msgstr "Sí"
 msgid "No"
 msgstr "No"
 
-#: core/forms.py:15
+#: core/forms.py:16
 msgid "email must be left blank if the contact has no email"
 msgstr ""
 "el correo electrónico debe dejarse en blanco si el contacto no tiene correo "
 "electrónico"
 
-#: core/forms.py:68
+#: core/forms.py:71
 msgid "WARN: wrong email replacement risk"
 msgstr "Advertencia: riesgo de reemplazo de correo electrónico incorrecto"
 
-#: core/forms.py:95
+#: core/forms.py:98
 msgid "Confirmation for email replacement is needed"
 msgstr "Se requiere confirmación para reemplazar el correo electrónico"
 
-#: core/forms.py:112
+#: core/forms.py:115
 #, python-format
 msgid "Invalid email: %(email)s"
 msgstr "Correo electrónico inválido: %(email)s"
 
-#: core/forms.py:135
+#: core/forms.py:138
 msgid "This field must be provided if the contact is protected"
 msgstr "Este campo debe ser proporcionado si el contacto está protegido"
 
-#: core/forms.py:163 core/forms.py:182
+#: core/forms.py:166 core/forms.py:185
 msgid "Open in a new tab"
 msgstr "Abrir en una nueva pestaña"
 
-#: core/forms.py:166
+#: core/forms.py:169
 #, python-format
 msgid "Contact %(contact_id)s already has this document. %(url_str)s"
 msgstr "El contacto %(contact_id)s ya tiene este documento. %(url_str)s"
 
-#: core/forms.py:185
+#: core/forms.py:188
 #, python-format
 msgid "Contact %(contact_id)s already has this email. %(url_str)s"
 msgstr ""
 "El contacto %(contact_id)s ya tiene este correo electrónico. %(url_str)s"
 
-#: core/forms.py:195 core/models.py:1470
+#: core/forms.py:198 core/models.py:1470
 msgid "Frequency of billing in months"
 msgstr "Frecuencia de facturación en meses"
 
-#: core/forms.py:210
+#: core/forms.py:213
 msgid "You don't have permission to set this subscription as free"
 msgstr "No tienes permiso para marcar esta suscripción como gratuita"
 
-#: core/forms.py:213
+#: core/forms.py:216
 msgid "You need to select who requested the subscription if it's free"
 msgstr "Se requiere seleccionar quién solicitó la suscripción si es gratuita"
 
-#: core/forms.py:216
+#: core/forms.py:219
 msgid "Free subscriptions must have an end date"
 msgstr "Las suscripciones gratuitas deben tener una fecha final"
 
@@ -1973,14 +1973,14 @@ msgstr "Identificador"
 
 #: core/models.py:249
 msgid ""
-"Enter the product name. Unsupported spaces or other characters will be "
-"replaced with hyphens when saving. Used for the URL slug of the product form "
-"in the web subscription and for traffic tracking tools."
+"The subscription type of the SubscriptionPrice object in utopia-cms, used "
+"for synchronization with this Product. Also used by the CMS front-end to "
+"build the related subscription form page URL and for traffic tracking tools."
 msgstr ""
-"Ingresar el nombre del producto. Los espacios u otros caracteres no "
-"soportados serán reemplazados por guiones al guardar. Se utiliza para el "
-"slug de url para el formulario del producto en la suscripción web y tracking "
-"de herramientas de tráfico."
+"El tipo de suscripción del objeto SubscriptionPrice en utopia-cms, usado "
+"para la sincronización con este Producto. También usado por el front-end del "
+"CMS para construir la URL de la página de suscripción relacionada y en "
+"herramientas de tracking."
 
 #: core/models.py:254
 msgid "Internal code"
@@ -2032,7 +2032,8 @@ msgstr ""
 msgid "product"
 msgstr "producto"
 
-#: core/models.py:346 logistics/templates/order_route.html:86
+#: core/models.py:346 core/models.py:1583
+#: logistics/templates/order_route.html:86
 msgid "products"
 msgstr "productos"
 
@@ -4825,8 +4826,8 @@ msgid ""
 "Please complete the new address first line, city and state if new address is "
 "selected"
 msgstr ""
-"Por favor, complete la nueva dirección, la línea 1, la ciudad y el departamento si "
-"selecciona una nueva dirección"
+"Por favor, complete la nueva dirección, la línea 1, la ciudad y el "
+"departamento si selecciona una nueva dirección"
 
 #: support/forms.py:251
 msgid "ID Document"

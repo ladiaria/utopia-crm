@@ -245,11 +245,10 @@ class Product(models.Model):
     )
     cms_subscription_type = models.SlugField(
         max_length=64, unique=True, blank=True, null=True, verbose_name=_("CMS subscription type"),
-        # TODO: next line does not help, its totally false, decide ASAP what to do here, if autoslug field or not
         help_text=_(
-            "Enter the product name."
-            " Unsupported spaces or other characters will be replaced with hyphens when saving."
-            " Used for the URL slug of the product form in the web subscription and for traffic tracking tools."
+            "The subscription type of the SubscriptionPrice object in utopia-cms, used for synchronization with this "
+            "Product. Also used by the CMS front-end to build the related subscription form page URL and for traffic "
+            "tracking tools."
         ),
     )
     internal_code = models.CharField(max_length=50, blank=True, null=True, verbose_name=_("Internal code"))

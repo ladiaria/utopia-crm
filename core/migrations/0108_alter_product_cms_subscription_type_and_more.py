@@ -16,7 +16,7 @@ class Migration(migrations.Migration):
             name="cms_subscription_type",
             field=models.SlugField(
                 blank=True,
-                help_text="Enter the product name. Unsupported spaces or other characters will be replaced with hyphens when saving. Used for the URL slug of the product form in the web subscription and for traffic tracking tools.",
+                help_text="The subscription type of the SubscriptionPrice object in utopia-cms, used for synchronization with this Product. Also used by the CMS front-end to build the related subscription form page URL and for traffic tracking tools.",  # noqa
                 max_length=64,
                 null=True,
                 unique=True,
