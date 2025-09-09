@@ -244,7 +244,7 @@ class Product(models.Model):
         verbose_name=_("Target product"),
     )
     cms_subscription_type = models.SlugField(
-        max_length=64, unique=True, blank=True, null=True, verbose_name=_("CMS subscription type"),
+        max_length=100, unique=True, blank=True, null=True, verbose_name=_("CMS subscription type"),
         help_text=_(
             "The subscription type of the SubscriptionPrice object in utopia-cms, used for synchronization with this "
             "Product. Also used by the CMS front-end to build the related subscription form page URL and for traffic "
