@@ -3,11 +3,13 @@ import collections
 from functools import wraps
 import json
 import requests
+from requests.status_codes import codes
 from requests.auth import HTTPBasicAuth
 from requests.exceptions import ReadTimeout, RequestException
 from typing import Literal
-from html2text import html2text
+import csv
 import logging
+from html2text import html2text
 
 from django.conf import settings
 from django.core.validators import validate_email
@@ -573,12 +575,13 @@ def no_op_decorator(func):
 
 # Endpoints must be decorated with no auth classes if the deployment is under http basic auth, when no basic auth is
 # set, the decorator is no_op_decorator, which does nothing and let the endpoint acts as if it was not decorated.
+api_base_uri = getattr(settings, "LDSOCIAL_API_URI", None)
 api_view_auth_decorator = (
     authentication_classes([]) if getattr(settings, "ENV_HTTP_BASIC_AUTH", False) else no_op_decorator
 )
 
 
-def cms_rest_api_kwargs(api_key, data=None):
+def cms_rest_api_kwargs(api_key, data=None, send_as_json=False):
     http_basic_auth = settings.WEB_UPDATE_HTTP_BASIC_AUTH
     result = {
         "headers": {"X-Api-Key": api_key} if http_basic_auth else {'Authorization': 'Api-Key ' + api_key},
@@ -587,7 +590,14 @@ def cms_rest_api_kwargs(api_key, data=None):
     if not getattr(settings, "WEB_UPDATE_USER_VERIFY_SSL", True):
         result["verify"] = False
     if data:
-        result["data"] = data
+        # TODO: Check out if this is needed or a better logic needs to be implemented. This had to be added because
+        # some API endpoints expect the data to be sent as JSON, but others still expect it to be sent as form data.
+        # I'll leave the previous logic commented for further analysis.
+        # result["json" if isinstance(data, dict) else "data"] = data
+        if send_as_json:
+            result["json"] = data
+        else:
+            result["data"] = data
     if http_basic_auth:
         result["auth"] = HTTPBasicAuth(*http_basic_auth)
     return result
@@ -602,7 +612,7 @@ def cms_rest_api_request(api_name, api_uri, post_data, method="POST"):
     @param method: Http method to be used.
     """
     api_key = settings.LDSOCIAL_API_KEY
-    if not (api_uri or api_key) or method not in ("POST", "PUT", "DELETE"):
+    if not (api_uri or api_key) or method not in ("POST", "PUT", "PATCH", "DELETE"):
         return "ERROR"
     try:
         if settings.DEBUG:
@@ -610,7 +620,7 @@ def cms_rest_api_request(api_name, api_uri, post_data, method="POST"):
 
         if (
             settings.WEB_UPDATE_USER_ENABLED
-            if method == "PUT"
+            if method in ("PUT", "PATCH")
             else (settings.WEB_CREATE_USER_ENABLED or api_uri in settings.WEB_CREATE_USER_POST_WHITELIST)
         ):
             r = getattr(requests, method.lower())(api_uri, **cms_rest_api_kwargs(api_key, post_data))
@@ -632,7 +642,7 @@ def cms_rest_api_request(api_name, api_uri, post_data, method="POST"):
     except RequestException as req_ex:
         if settings.DEBUG:
             print(f"DEBUG: {api_name} {method} request error: {str(req_ex)}")
-        return "ERROR"
+        return "NOT FOUND" if method == "PATCH" and r.status_code == codes.NOT_FOUND else "ERROR"
     else:
         return {"msg": "OK"}
 
@@ -764,6 +774,65 @@ def process_invoice_request(product_slugs, email, phone, name, id_document, paym
 
 def logistics_is_installed():
     return "logistics" not in getattr(settings, "DISABLED_APPS", [])
+
+
+def detect_csv_delimiter(file_content):
+    """
+    Detect CSV delimiter by analyzing the first few lines of a file.
+
+    This utility function automatically detects whether a CSV file uses comma (,) or
+    semicolon (;) as its delimiter. This is particularly useful for handling regional
+    differences in CSV formats:
+    - Comma (,): Standard in Uruguay, US, and most English-speaking countries
+    - Semicolon (;): Standard in Colombia and many European countries when using Excel
+
+    Args:
+        file_content (io.StringIO or file-like object): The CSV file content to analyze.
+                                                       Must support seek() and read() operations.
+
+    Returns:
+        str: The detected delimiter character (',' or ';')
+
+    Example:
+        >>> import io
+        >>> csv_content = io.StringIO("email,name\\ntest@example.com,John")
+        >>> delimiter = detect_csv_delimiter(csv_content)
+        >>> print(delimiter)  # Output: ','
+
+        >>> csv_content = io.StringIO("email;name\\ntest@example.com;John")
+        >>> delimiter = detect_csv_delimiter(csv_content)
+        >>> print(delimiter)  # Output: ';'
+
+    Technical Details:
+        1. Uses Python's csv.Sniffer to intelligently detect the delimiter
+        2. Falls back to character counting if Sniffer fails
+        3. Automatically resets file pointer to beginning after analysis
+        4. Analyzes first 1024 characters for performance
+
+    Regional Usage:
+        - Colombia: Excel exports typically use semicolon (;) due to comma being decimal separator
+        - Uruguay/US: Standard comma (,) delimiter
+        - This function handles both automatically without user configuration
+    """
+    # Reset file pointer to beginning
+    file_content.seek(0)
+    sample = file_content.read(1024)
+    file_content.seek(0)
+
+    # Use csv.Sniffer to detect delimiter
+    sniffer = csv.Sniffer()
+    try:
+        dialect = sniffer.sniff(sample, delimiters=',;')
+        return dialect.delimiter
+    except csv.Error:
+        # Fallback: count occurrences of common delimiters
+        comma_count = sample.count(',')
+        semicolon_count = sample.count(';')
+
+        if semicolon_count > comma_count:
+            return ';'
+        else:
+            return ','
 
 
 def mail_managers_on_errors(process_name, error_msg, traceback_info=""):

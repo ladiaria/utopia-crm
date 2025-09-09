@@ -25,7 +25,7 @@ from core.choices import ADDRESS_TYPE_CHOICES, ACTIVITY_TYPES
 from core.signals import alphanumeric
 
 from .models import Seller, Issue, IssueStatus, IssueSubcategory, SalesRecord
-from .choices import ISSUE_CATEGORIES
+from .choices import get_issue_categories
 
 
 class SellerForm(forms.ModelForm):
@@ -416,7 +416,7 @@ class IssueStartForm(forms.ModelForm):
     )
 
     def clean(self):
-        dict_categories = dict(ISSUE_CATEGORIES)
+        dict_categories = dict(get_issue_categories())
         category = self.cleaned_data.get("category")
         sub_category = self.cleaned_data.get("sub_category")
         if sub_category.category == "I" and category == "M":

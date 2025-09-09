@@ -12,7 +12,7 @@ from django.utils.translation import gettext_lazy as _
 from datetime import date, timedelta, datetime
 
 from support.models import Seller, Issue, SellerConsoleAction
-from core.models import Address, SubscriptionProduct, Activity, ContactCampaignStatus, Campaign, Subscription
+from core.models import Address, SubscriptionProduct, Activity, ContactCampaignStatus, Campaign, Subscription, Contact
 from core.utils import logistics_is_installed
 from core.choices import CAMPAIGN_RESOLUTION_REASONS_CHOICES
 
@@ -22,6 +22,7 @@ if logistics_is_installed():
 
 @staff_member_required
 def seller_console_special_routes(request, route_id):
+    # issue t935: Only show subscriptions started in the last 45 days (today included).
     if "logistics" in getattr(settings, "DISABLED_APPS", []):
         messages.error(request, _("This function is not available."))
         return HttpResponseRedirect(reverse("home"))
@@ -43,9 +44,14 @@ def seller_console_special_routes(request, route_id):
         messages.error(request, _("This seller is set in more than one user. Please contact your manager."))
         return HttpResponseRedirect(reverse("home"))
 
-    subprods = SubscriptionProduct.objects.filter(seller=seller, route=route, subscription__active=True).order_by(
-        "subscription__contact__id"
-    )
+    # Only include products of subscriptions started in the last 45 days (today included).
+    # i.e. start_date must be >= (today - 45 days), so anything older is excluded.
+    subprods = SubscriptionProduct.objects.filter(
+            seller=seller,
+            route=route,
+            subscription__active=True,
+            subscription__start_date__lte=datetime.now() - timedelta(45)
+        ).order_by("subscription__contact__id")
     if subprods.count() == 0:
         messages.error(request, _("There are no contacts in that route for this seller."))
         return HttpResponseRedirect(reverse("seller_console_list_campaigns"))
@@ -88,8 +94,11 @@ def seller_console_list_campaigns(request, seller_id=None):
         special_routes = {}
         for route_id in getattr(settings, "SPECIAL_ROUTES_FOR_SELLERS_LIST", []):
             route = Route.objects.get(pk=route_id)
+            # Only include subscriptions started in the last 45 days (today included).
+            # i.e. start_date must be >= (today - 45 days), so anything older is excluded.
             counter = SubscriptionProduct.objects.filter(
-                seller=seller, route_id=route_id, subscription__active=True
+                seller=seller, route_id=route_id, subscription__active=True,
+                subscription__start_date__gte=datetime.now() - timedelta(days=45),
             ).count()
             if counter:
                 special_routes[route_id] = (route.name, counter)
@@ -99,9 +108,14 @@ def seller_console_list_campaigns(request, seller_id=None):
     if getattr(settings, "ISSUE_SUBCATEGORY_NEVER_PAID", None) and getattr(
         settings, "ISSUE_STATUS_FINISHED_LIST", None
     ):
+        # issue t935: Only show issues with subscriptions that are less than one month old
+        # Consider creating a setting for this if other apps need to use a different time frame
         issues_never_paid = Issue.objects.filter(
             sub_category__slug=getattr(settings, "ISSUE_SUBCATEGORY_NEVER_PAID", ""),
             assigned_to=user,
+            # Only include subscriptions started in the last 45 days (today included).
+            # i.e. start_date must be >= (today - 45 days), so anything older is excluded.
+            subscription__start_date__gte=datetime.now() - timedelta(days=45),
         ).exclude(status__slug__in=getattr(settings, "ISSUE_STATUS_FINISHED_LIST", []))
     else:
         issues_never_paid = []
@@ -415,6 +429,9 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
 
         contact = console_instance.contact
 
+        # Get phone duplicate information
+        phone_duplicates_info = self.get_phone_duplicates_info(contact)
+
         context.update(
             {
                 'campaign': campaign,
@@ -438,9 +455,50 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
                 'upcoming_activity': seller.upcoming_activity(),
                 'resolution_reasons': CAMPAIGN_RESOLUTION_REASONS_CHOICES,
                 'other_campaigns': ContactCampaignStatus.objects.filter(contact=contact).exclude(campaign=campaign),
+                'phone_duplicates_count': phone_duplicates_info['count'],
+                'phone_duplicates': phone_duplicates_info['contacts'],
             }
         )
         return context
+
+    def get_phone_duplicates_info(self, contact):
+        """
+        Get information about other contacts with the same phone number.
+        
+        Args:
+            contact (Contact): The current contact to check for duplicates
+            
+        Returns:
+            dict: Dictionary with 'count' (int) and 'contacts' (QuerySet) keys
+        """
+        from django.db.models import Q
+        
+        # Build query to find contacts with matching phone or mobile numbers
+        phone_query = Q()
+        
+        # Check if contact has a phone number and add to query
+        if contact.phone and str(contact.phone).strip():
+            phone_query |= Q(phone=contact.phone) | Q(mobile=contact.phone)
+            
+        # Check if contact has a mobile number and add to query
+        if contact.mobile and str(contact.mobile).strip():
+            phone_query |= Q(phone=contact.mobile) | Q(mobile=contact.mobile)
+        
+        # If no phone numbers to check, return empty result
+        if not phone_query:
+            return {'count': 0, 'contacts': Contact.objects.none()}
+        
+        # Find other contacts with matching phone numbers (exclude current contact)
+        duplicate_contacts = Contact.objects.filter(phone_query).exclude(id=contact.id).select_related(
+            'subtype', 'institution'
+        ).order_by('name', 'last_name')
+        
+        count = duplicate_contacts.count()
+        
+        return {
+            'count': count,
+            'contacts': duplicate_contacts
+        }
 
     def get_activities(self, contact, console_instance, category):
         activities = Activity.objects.filter(contact=contact).order_by("-datetime", "id")

@@ -427,6 +427,7 @@ class ProductAdmin(admin.ModelAdmin):
         "weekday",
         "offerable",
     ]
+    list_filter = ("active", "type", "renewal_type", "offerable", "subscription_period", "duration_months")
     fieldsets = (
         (
             _("Information"),
@@ -462,7 +463,7 @@ class ProductAdmin(admin.ModelAdmin):
         (
             _("MercadoPago and others"),
             {
-                "fields": ("mercadopago_id", "internal_code"),
+                "fields": ("mercadopago_id", "internal_code", "cms_subscription_type"),
             },
         ),
     )

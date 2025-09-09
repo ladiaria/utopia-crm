@@ -13,7 +13,7 @@ class Migration(migrations.Migration):
             model_name="contact",
             name="work_phone",
             field=models.CharField(
-                blank=True, db_index=True, default="", verbose_name="Work phone"
+                blank=True, db_index=True, default="", max_length=50, verbose_name="Work phone"
             ),
         ),
         migrations.AlterField(
@@ -43,7 +43,7 @@ class Migration(migrations.Migration):
             model_name="historicalcontact",
             name="work_phone",
             field=models.CharField(
-                blank=True, db_index=True, default="", verbose_name="Work phone"
+                blank=True, db_index=True, default="", max_length=50, verbose_name="Work phone"
             ),
         ),
     ]

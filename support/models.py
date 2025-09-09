@@ -15,7 +15,7 @@ from core.models import Campaign
 from simple_history.models import HistoricalRecords
 
 from support.choices import (
-    ISSUE_CATEGORIES,
+    get_issue_categories,
     ISSUE_ANSWERS,
     ISSUE_SUBCATEGORIES,
     SCHEDULED_TASK_CATEGORIES,
@@ -117,7 +117,7 @@ class Issue(models.Model):
     date_created = models.DateField(auto_now_add=True)
     contact = models.ForeignKey("core.Contact", on_delete=models.CASCADE, verbose_name=_("Contact"))
     date = models.DateField(default=date.today, verbose_name=_("Date"))
-    category = models.CharField(max_length=1, blank=True, null=True, choices=ISSUE_CATEGORIES)
+    category = models.CharField(max_length=1, blank=True, null=True, choices=get_issue_categories())
     subcategory = models.CharField(max_length=3, blank=True, null=True, choices=ISSUE_SUBCATEGORIES)
     inside = models.BooleanField(default=True)
     notes = models.TextField(blank=True, null=True)
@@ -158,7 +158,7 @@ class Issue(models.Model):
         pass
 
     def get_category(self):
-        categories = dict(ISSUE_CATEGORIES)
+        categories = dict(get_issue_categories())
         return categories.get(self.category, "N/A")
 
     def get_subcategory(self):
@@ -347,7 +347,7 @@ class ScheduledTask(models.Model):
 class IssueStatus(models.Model):
     name = models.CharField(max_length=60)
     slug = AutoSlugField(populate_from="name", always_update=True, null=True, blank=True)
-    category = models.CharField(max_length=2, blank=True, null=True, choices=ISSUE_CATEGORIES)
+    category = models.CharField(max_length=2, blank=True, null=True, choices=get_issue_categories())
 
     def __str__(self):
         return self.name
@@ -362,7 +362,7 @@ class IssueStatus(models.Model):
 class IssueSubcategory(models.Model):
     name = models.CharField(max_length=60)
     slug = AutoSlugField(populate_from="name", always_update=True, null=True, blank=True)
-    category = models.CharField(max_length=2, blank=True, null=True, choices=ISSUE_CATEGORIES)
+    category = models.CharField(max_length=2, blank=True, null=True, choices=get_issue_categories())
 
     def __str__(self):
         return self.name
@@ -460,24 +460,37 @@ class SalesRecord(models.Model):
             return products_count
         return self.subscription.subscriptionproduct_set.filter(product__type="S").count()
 
-    def set_commission_for_products_sold(self, save=False, return_value=False):
+    def calculate_specific_products_commission(self, return_value=False):
+        # For type of products sold. The commissions per product should be saved in the setting
+        # SELLER_COMMISSION_PRODUCTS_SLUGS
+        if hasattr(settings, "SELLER_COMMISSION_PRODUCTS_SLUGS"):
+            # We need to iterate over all the products that have been sold and sum the commissions if they exist
+            commission = 0
+            for product in self.products.all():
+                if product.slug in settings.SELLER_COMMISSION_PRODUCTS_SLUGS:
+                    commission += settings.SELLER_COMMISSION_PRODUCTS_SLUGS[product.slug]
+            if return_value:
+                return commission
+            self.commission_for_products_sold = commission
+        else:
+            if return_value:
+                return 0
+            self.commission_for_products_sold = 0
+
+    def calculate_products_count_commission(self, return_value=False):
         # For amount of products sold. Doesn't save unless specified
         if hasattr(settings, "SELLER_COMMISSION_PRODUCTS_COUNT"):
             products_count = self.max_products_count()
             commission = settings.SELLER_COMMISSION_PRODUCTS_COUNT.get(products_count, 0)
             if return_value:
                 return commission
-            self.commission_for_products_sold = commission
-            if save:
-                self.save()
+            self.commission_for_amount_of_products_sold = commission
         else:
             if return_value:
                 return 0
-            self.commission_for_products_sold = 0
-            if save:
-                self.save()
+            self.commission_for_amount_of_products_sold = 0
 
-    def set_commission_for_payment_type(self, save=False, return_value=False):
+    def calculate_payment_type_commission(self, return_value=False):
         # For payment type
         if hasattr(settings, "SELLER_COMMISSION_PAYMENT_METHODS") and self.sale_type == self.SALE_TYPE.FULL:
             payment_type = self.subscription.payment_type
@@ -485,16 +498,12 @@ class SalesRecord(models.Model):
             if return_value:
                 return commission
             self.commission_for_payment_type = commission
-            if save:
-                self.save()
         else:
             if return_value:
                 return 0
             self.commission_for_payment_type = 0
-            if save:
-                self.save()
 
-    def set_commission_for_subscription_frequency(self, save=False, return_value=False):
+    def calculate_frequency_commission(self, return_value=False):
         # For subscription frequency
         if hasattr(settings, "SELLER_COMMISSION_SUBSCRIPTION_FREQUENCY"):
             frequency = self.subscription.frequency
@@ -502,24 +511,22 @@ class SalesRecord(models.Model):
             if return_value:
                 return commission
             self.commission_for_subscription_frequency = commission
-            if save:
-                self.save()
         else:
             if return_value:
                 return 0
             self.commission_for_subscription_frequency = 0
-            if save:
-                self.save()
 
     def set_commissions(self, force=False) -> None:
         if (force or self.sale_type == self.SALE_TYPE.FULL) and self.can_be_commissioned:
-            self.set_commission_for_products_sold()
-            self.set_commission_for_payment_type()
-            self.set_commission_for_subscription_frequency()
+            self.calculate_products_count_commission()
+            self.calculate_payment_type_commission()
+            self.calculate_frequency_commission()
+            self.calculate_specific_products_commission()
             self.total_commission_value = (
-                self.commission_for_products_sold
+                self.commission_for_amount_of_products_sold
                 + self.commission_for_payment_type
                 + self.commission_for_subscription_frequency
+                + self.commission_for_products_sold
             )
             self.save()
 
@@ -537,22 +544,40 @@ class SalesRecord(models.Model):
             return _("N/A")
 
     def calculate_commission(self):
-        # Show all these in a separate line with a label
-        cpt = f"{self.set_commission_for_payment_type(return_value=True)} ({self.subscription.get_payment_type_display()})"  # noqa
-        cfp = f"{self.set_commission_for_products_sold(return_value=True)} ({self.max_products_count()})"
-        cfs = f"{self.set_commission_for_subscription_frequency(return_value=True)} ({self.subscription.frequency})"  # noqa
+        # Show all commission components in separate lines with labels
+        payment_type_commission = (
+            f"{self.calculate_payment_type_commission(return_value=True)} "
+            f"({self.subscription.get_payment_type_display()})"
+        )
+        products_count_commission = (
+            f"{self.calculate_products_count_commission(return_value=True)} "
+            f"({self.max_products_count()} products)"
+        )
+        frequency_commission = (
+            f"{self.calculate_frequency_commission(return_value=True)} "
+            f"({self.subscription.frequency})"
+        )
+        specific_products_commission = (
+            f"{self.calculate_specific_products_commission(return_value=True)} "
+            f"(specific products)"
+        )
         # Error catching
         try:
-            return f"{cpt} + {cfp} + {cfs} = {self.calculate_total_commission()}"
+            return (
+                f"{payment_type_commission} + {products_count_commission} + "
+                f"{frequency_commission} + {specific_products_commission} = "
+                f"{self.calculate_total_commission()}"
+            )
         except Exception as e:
             return f"Error: {e}"
 
     def calculate_total_commission(self):
         if self.sale_type == self.SALE_TYPE.FULL:
             value = (
-                self.set_commission_for_payment_type(return_value=True)
-                + self.set_commission_for_products_sold(return_value=True)
-                + self.set_commission_for_subscription_frequency(return_value=True)
+                self.calculate_payment_type_commission(return_value=True)
+                + self.calculate_products_count_commission(return_value=True)
+                + self.calculate_frequency_commission(return_value=True)
+                + self.calculate_specific_products_commission(return_value=True)
             )
             return value
         return 0

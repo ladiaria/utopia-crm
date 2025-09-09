@@ -56,7 +56,7 @@ from django.urls import path, re_path
 urlpatterns = [
     path("assign_campaigns/", assign_campaigns, name="assign_campaigns"),
     path("assign_sellers/", list_campaigns_with_no_seller, name="assign_to_seller"),
-    re_path(r"^assign_sellers/(\d+)/$", assign_seller, name="assign_sellers"),
+    path("assign_sellers/<int:campaign_id>/", assign_seller, name="assign_sellers"),
     path(
         "seller_console/",
         seller_console_list_campaigns,

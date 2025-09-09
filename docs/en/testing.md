@@ -7,4 +7,3 @@ When running tests, Django will try to create a new database for testing purpose
 2. Running included tests
 
 With the virtualenv activated, execute the script `runtests.sh`.
-

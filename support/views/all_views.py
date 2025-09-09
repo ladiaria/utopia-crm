@@ -8,7 +8,7 @@ from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
-from django.db.models import Count, Min, Sum
+from django.db.models import Count, Min, Sum, Case, When
 from django.http import (
     HttpResponse,
     HttpResponseNotFound,
@@ -20,8 +20,9 @@ from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
-from django.views.generic import CreateView, RedirectView, UpdateView
+from django.views.generic import CreateView, RedirectView, UpdateView, TemplateView
 from django_filters.views import FilterView
+from django.contrib.auth.mixins import LoginRequiredMixin
 from taggit.models import Tag
 
 from core import choices as core_choices
@@ -46,7 +47,7 @@ from core.utils import (
     logistics_is_installed,
     process_products,
 )
-from support.choices import ISSUE_ANSWERS, ISSUE_CATEGORIES
+from support.choices import ISSUE_ANSWERS, get_issue_categories
 from support.filters import (
     CampaignFilter,
     ContactCampaignStatusFilter,
@@ -136,53 +137,74 @@ def default_newsletters_dialog(request, contact_id):
             )
 
 
-@login_required
-def assign_campaigns(request):
+class AssignCampaignsView(LoginRequiredMixin, BreadcrumbsMixin, TemplateView):
     """
     Allows a manager to add contacts to campaigns, using tags or a csv file.
     """
-    count, errors, in_campaign, debtors = 0, 0, 0, 0
-    campaigns = Campaign.objects.filter(active=True)
-    if request.POST and request.POST.get("tags"):
-        campaign = request.POST.get("campaign")
-        tags = request.POST.get("tags")
-        tag_list = tags.split(",")
-        for tag in tag_list:
-            try:
-                Tag.objects.get(name=tag)
-            except Tag.DoesNotExist:
-                messages.error(request, f"El tag {tag} no existe.")
-                return HttpResponseRedirect(reverse("assign_campaigns"))
-        contacts = Contact.objects.filter(tags__name__in=tag_list)
-        for contact in contacts.iterator():
-            try:
-                if request.POST.get("ignore_in_active_campaign", False):
-                    if contact.contactcampaignstatus_set.filter(campaign__active=True).exists():
-                        in_campaign += 1
-                        continue
-                if request.POST.get("ignore_debtors", False):
-                    if contact.is_debtor():
-                        debtors += 1
-                        continue
-                contact.add_to_campaign(campaign)
-                count += 1
-            except Exception:
-                errors += 1
-        messages.success(request, f"{count} contactos fueron agregados a la campaña con éxito.")
-        if errors:
-            messages.error(request, f"{errors} contactos ya pertenecían a esta campaña.")
-        if in_campaign:
-            messages.error(request, f"{in_campaign} contactos ya están en campañas activas.")
-        if debtors:
-            messages.error(request, f"{debtors} contactos son deudores y no pudieron ser agregados.")
-        return HttpResponseRedirect(reverse("assign_campaigns"))
-    return render(
-        request,
-        "assign_campaigns.html",
-        {
-            "campaigns": campaigns,
-        },
-    )
+
+    template_name = "assign_campaigns.html"
+
+    def breadcrumbs(self):
+        return [
+            {"label": _("Home"), "url": reverse("home")},
+            {"label": _("Assign campaigns"), "url": reverse("assign_campaigns")},
+        ]
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["campaigns"] = self.campaigns
+        return context
+
+    def dispatch(self, *args, **kwargs):
+        self.campaigns = Campaign.objects.filter(active=True)
+        return super().dispatch(*args, **kwargs)
+
+    def post(self, request):
+        count, errors, in_campaign, debtors = 0, 0, 0, 0
+
+        if request.POST.get("tags"):
+            campaign = request.POST.get("campaign")
+            tags = request.POST.get("tags")
+            tag_list = tags.split(",")
+
+            # Validate tags
+            for tag in tag_list:
+                try:
+                    Tag.objects.get(name=tag)
+                except Tag.DoesNotExist:
+                    messages.error(request, f"El tag {tag} no existe.")
+                    return HttpResponseRedirect(reverse("assign_campaigns"))
+
+            # Process contacts
+            contacts = Contact.objects.filter(tags__name__in=tag_list)
+            for contact in contacts.iterator():
+                try:
+                    if request.POST.get("ignore_in_active_campaign", False):
+                        if contact.contactcampaignstatus_set.filter(campaign__active=True).exists():
+                            in_campaign += 1
+                            continue
+                    if request.POST.get("ignore_debtors", False):
+                        if contact.is_debtor():
+                            debtors += 1
+                            continue
+                    contact.add_to_campaign(campaign)
+                    count += 1
+                except Exception:
+                    errors += 1
+
+            # Set messages
+            messages.success(request, f"{count} contactos fueron agregados a la campaña con éxito.")
+            if errors:
+                messages.error(request, f"{errors} contactos ya pertenecían a esta campaña.")
+            if in_campaign:
+                messages.error(request, f"{in_campaign} contactos ya están en campañas activas.")
+            if debtors:
+                messages.error(request, f"{debtors} contactos son deudores y no pudieron ser agregados.")
+
+            return HttpResponseRedirect(reverse("assign_campaigns"))
+
+
+assign_campaigns = AssignCampaignsView.as_view()
 
 
 @login_required
@@ -210,75 +232,255 @@ def list_campaigns_with_no_seller(request):
     )
 
 
-@login_required
-def assign_seller(request, campaign_id):
+class AssignSellerView(LoginRequiredMixin, BreadcrumbsMixin, TemplateView):
     """
-    Shows a list of sellers to assign contacts to.
+    Shows a list of sellers to assign contacts to with round-robin distribution.
+
+    This view handles the assignment of ContactCampaignStatus objects to Seller objects.
+    The key feature is the round-robin distribution algorithm that ensures equal
+    distribution of contacts among sellers, especially important when prioritization
+    is enabled.
+
+    Assignment Behavior:
+    - OLD: Sequential assignment (50 to seller1, then 50 to seller2, then 50 to seller3)
+    - NEW: Round-robin assignment (1 to seller1, 1 to seller2, 1 to seller3, repeat)
+
+    This ensures that when contacts are prioritized (e.g., by subscription end date),
+    the highest priority contacts are distributed equally among all sellers rather
+    than all going to the first seller in the list.
+
+    Features:
+    - Supports different shifts (morning, afternoon, regular)
+    - Optional prioritization by subscription end date
+    - Round-robin distribution for equal contact allocation
+    - Validation to prevent over-assignment
     """
-    campaign = Campaign.objects.get(pk=campaign_id)
-    ccs_qs_regular = ContactCampaignStatus.objects.filter(campaign=campaign, seller=None).exclude(status__in=[6, 7])
-    ccs_qs_morning = ContactCampaignStatus.objects.filter(campaign=campaign, seller=None, status=6)
-    ccs_qs_afternoon = ContactCampaignStatus.objects.filter(campaign=campaign, seller=None, status=7)
-    ccs_qs = ccs_qs_regular
-    shift = request.GET.get("shift", None)
-    if shift == "mo":
-        ccs_qs = ccs_qs_morning
-    elif shift == "af":
-        ccs_qs = ccs_qs_afternoon
 
-    campaign.count = ccs_qs.count()
-    message = ""
+    template_name = "assign_sellers.html"
 
-    if request.POST:
+    def breadcrumbs(self):
+        return [
+            {"label": _("Home"), "url": reverse("home")},
+            {"label": _("Assign sellers"), "url": reverse("assign_sellers", args=[self.kwargs['campaign_id']])},
+        ]
+
+    def dispatch(self, *args, **kwargs):
+        self.campaign_id = self.kwargs.get('campaign_id')
+        self.campaign = Campaign.objects.get(pk=self.campaign_id)
+        self.shift = self.request.GET.get("shift", None)
+        self.prioritize_by_end_date = self.request.GET.get("prioritize_by_end_date") == "on"
+
+        # Set up querysets based on shift
+        self.ccs_qs_regular = ContactCampaignStatus.objects.filter(campaign=self.campaign, seller=None).exclude(
+            status__in=[6, 7]
+        )
+        self.ccs_qs_morning = ContactCampaignStatus.objects.filter(campaign=self.campaign, seller=None, status=6)
+        self.ccs_qs_afternoon = ContactCampaignStatus.objects.filter(campaign=self.campaign, seller=None, status=7)
+
+        # Select the appropriate queryset based on shift
+        self.ccs_qs = self.ccs_qs_regular
+        if self.shift == "mo":
+            self.ccs_qs = self.ccs_qs_morning
+        elif self.shift == "af":
+            self.ccs_qs = self.ccs_qs_afternoon
+
+        # Apply prioritization if requested
+        if self.prioritize_by_end_date:
+            # We need to order the queryset by the contact's last subscription end date
+            # First, get all contact IDs from the queryset
+            contact_ids = self.ccs_qs.values_list('contact_id', flat=True)
+
+            # Create a dictionary mapping contact IDs to their last subscription end dates
+            contact_end_dates = {}
+            for contact_id in contact_ids:
+                try:
+                    contact = Contact.objects.get(id=contact_id)
+                    end_date = contact.get_last_subscription_end_date()
+                    contact_end_dates[contact_id] = end_date or date.max
+                except Contact.DoesNotExist:
+                    continue
+
+            # Sort the queryset based on end dates (oldest first, None/null last)
+            sorted_contact_ids = sorted(contact_end_dates.keys(), key=lambda x: contact_end_dates[x] or date.max)
+
+            # Create a Case/When expression for ordering
+            preserved_order = Case(*[When(contact_id=pk, then=pos) for pos, pk in enumerate(sorted_contact_ids)])
+            self.ccs_qs = self.ccs_qs.filter(contact_id__in=sorted_contact_ids).order_by(preserved_order)
+
+        self.campaign.count = self.ccs_qs.count()
+        return super().dispatch(*args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        # Get sellers and their contact counts
+        sellers = Seller.objects.filter(internal=True)
+        seller_list = []
+        for seller in sellers:
+            seller.contacts = ContactCampaignStatus.objects.filter(seller=seller, campaign=self.campaign).count()
+            seller_list.append(seller)
+
+        # Add data to context
+        context.update(
+            {
+                "seller_list": seller_list,
+                "campaign": self.campaign,
+                "message": "",
+                "shift": self.shift,
+                "prioritize_by_end_date": self.prioritize_by_end_date,
+                "regular_count": self.ccs_qs_regular.count(),
+                "morning_count": self.ccs_qs_morning.count(),
+                "afternoon_count": self.ccs_qs_afternoon.count(),
+            }
+        )
+        return context
+
+    def _create_round_robin_assignment_queue(self, active_sellers):
+        """
+        Creates a round-robin assignment queue for distributing contacts equally among sellers.
+
+        This method implements a round-robin distribution algorithm that ensures contacts
+        are assigned one-by-one to each seller in rotation, rather than assigning all
+        contacts for one seller before moving to the next.
+
+        Args:
+            active_sellers (list): List of tuples containing (seller_id, amount_to_assign)
+                                 Example: [('1', 50), ('2', 50), ('3', 50)]
+
+        Returns:
+            list: A list of seller IDs in round-robin order for assignment
+                 Example: ['1', '2', '3', '1', '2', '3', ...] repeated 50 times
+
+        Example:
+            If we have 3 sellers each getting 50 contacts:
+            - Old behavior: [1,1,1,...(50 times), 2,2,2,...(50 times), 3,3,3,...(50 times)]
+            - New behavior: [1,2,3,1,2,3,1,2,3,...] repeated until all 150 contacts assigned
+
+            This ensures that when prioritization is enabled (contacts ordered by end date),
+            the highest priority contacts are distributed equally among all sellers rather
+            than all going to the first seller.
+        """
+        assignment_queue = []
+
+        # Create a list of seller IDs, each repeated according to their assignment amount
+        seller_assignments = []
+        for seller_id, amount in active_sellers:
+            seller_assignments.extend([seller_id] * amount)
+
+        # Calculate how many complete rounds we need
+        total_assignments = len(seller_assignments)
+        num_sellers = len(active_sellers)
+
+        if num_sellers == 0:
+            return assignment_queue
+
+        # Create round-robin distribution
+        seller_ids = [seller_id for seller_id, _ in active_sellers]
+        seller_counters = {seller_id: amount for seller_id, amount in active_sellers}
+
+        # Distribute assignments in round-robin fashion
+        current_seller_index = 0
+        while sum(seller_counters.values()) > 0:
+            current_seller = seller_ids[current_seller_index]
+
+            # If this seller still has assignments left, assign one
+            if seller_counters[current_seller] > 0:
+                assignment_queue.append(current_seller)
+                seller_counters[current_seller] -= 1
+
+            # Move to next seller (with wraparound)
+            current_seller_index = (current_seller_index + 1) % num_sellers
+
+            # Safety check to prevent infinite loops
+            if len(assignment_queue) >= total_assignments:
+                break
+
+        return assignment_queue
+
+    def post(self, request, *args, **kwargs):
+        # Update prioritize_by_end_date based on POST data
+        self.prioritize_by_end_date = "prioritize_by_end_date" in request.POST
+
+        # If prioritization has changed, we need to update the queryset
+        if self.prioritize_by_end_date != (self.request.GET.get("prioritize_by_end_date") == "on"):
+            # Re-run the prioritization logic from dispatch
+            if self.prioritize_by_end_date:
+                # Get all contact IDs from the queryset
+                contact_ids = self.ccs_qs.values_list('contact_id', flat=True)
+
+                # Create a dictionary mapping contact IDs to their last subscription end dates
+                contact_end_dates = {}
+                for contact_id in contact_ids:
+                    try:
+                        contact = Contact.objects.get(id=contact_id)
+                        end_date = contact.get_last_subscription_end_date()
+                        contact_end_dates[contact_id] = end_date or date.max
+                    except Contact.DoesNotExist:
+                        continue
+
+                # Sort the queryset based on end dates (oldest first, None/null last)
+                sorted_contact_ids = sorted(contact_end_dates.keys(), key=lambda x: contact_end_dates[x] or date.max)
+
+                # Create a Case/When expression for ordering
+                preserved_order = Case(*[When(contact_id=pk, then=pos) for pos, pk in enumerate(sorted_contact_ids)])
+                self.ccs_qs = self.ccs_qs.filter(contact_id__in=sorted_contact_ids).order_by(preserved_order)
+
         seller_list = []
         for name, value in list(request.POST.items()):
             if name.startswith("seller"):
                 seller_list.append([name.replace("seller-", ""), value or 0])
+
+        # Calculate total and validate
         total = 0
         for seller, amount in seller_list:
             total += int(amount)
-        if total > campaign.count:
+
+        if total > self.campaign.count:
             messages.error(request, "Cantidad de clientes superior a la que hay.")
-            return HttpResponseRedirect(reverse("assign_sellers", args=[campaign_id]))
+            return HttpResponseRedirect(reverse("assign_sellers", args=[self.campaign_id]))
+
+        # Assign contacts to sellers using round-robin distribution
         assigned_total = 0
-        for seller, amount in seller_list:
-            if amount:
-                amount = int(amount)
-                assigned_total += amount
-                for status in ccs_qs[:amount]:
-                    status.seller = Seller.objects.get(pk=seller)
-                    status.date_assigned = date.today()
-                    if status.status in (6, 7):
-                        status.status = 1
+
+        # Filter out sellers with zero assignments and prepare seller data
+        active_sellers = [(seller_id, int(amount)) for seller_id, amount in seller_list if amount and int(amount) > 0]
+
+        if active_sellers:
+            # Calculate total assignments for validation
+            assigned_total = sum(amount for _, amount in active_sellers)
+
+            # Create a round-robin assignment list
+            # This ensures equal distribution when prioritization is enabled
+            assignment_queue = self._create_round_robin_assignment_queue(active_sellers)
+
+            # Get the contacts to assign (respecting prioritization order if enabled)
+            contacts_to_assign = list(self.ccs_qs[:assigned_total])
+
+            # Assign contacts using round-robin distribution
+            for i, contact_status in enumerate(contacts_to_assign):
+                if i < len(assignment_queue):
+                    seller_id = assignment_queue[i]
+                    contact_status.seller = Seller.objects.get(pk=seller_id)
+                    contact_status.date_assigned = date.today()
+                    if contact_status.status in (6, 7):
+                        contact_status.status = 1
                     try:
-                        status.save()
+                        contact_status.save()
                     except Exception as e:
                         messages.error(request, e)
                         return HttpResponseRedirect(reverse("assign_sellers"))
-        messages.success(request, f"{assigned_total} contactos fueron repartidos con éxito.")
-        return HttpResponseRedirect(reverse("assign_sellers", args=[campaign_id]))
 
-    sellers = Seller.objects.filter(internal=True)
-    seller_list = []
-    for seller in sellers:
-        seller.contacts = ContactCampaignStatus.objects.filter(seller=seller, campaign=campaign).count()
-        seller_list.append(seller)
-    if message:
-        # Refresh value if some subs were distributed
-        campaign.count = ccs_qs.count()
-    return render(
-        request,
-        "assign_sellers.html",
-        {
-            "seller_list": seller_list,
-            "campaign": campaign,
-            "message": message,
-            "shift": shift,
-            "regular_count": ccs_qs_regular.count(),
-            "morning_count": ccs_qs_morning.count(),
-            "afternoon_count": ccs_qs_afternoon.count(),
-        },
-    )
+        messages.success(request, f"{assigned_total} contactos fueron repartidos con éxito.")
+
+        # Include prioritization in the redirect if it's enabled
+        if self.prioritize_by_end_date:
+            return HttpResponseRedirect(
+                f"{reverse('assign_sellers', args=[self.campaign_id])}?prioritize_by_end_date=on"
+            )
+        return HttpResponseRedirect(reverse("assign_sellers", args=[self.campaign_id]))
+
+
+assign_seller = AssignSellerView.as_view()
 
 
 @login_required
@@ -479,7 +681,7 @@ def new_issue(request, contact_id, category="L"):
         )  # Invoicing and collections share subcategories
     else:
         form.fields["sub_category"].queryset = IssueSubcategory.objects.filter(category=category)
-    dict_categories = dict(ISSUE_CATEGORIES)
+    dict_categories = dict(get_issue_categories())
     category_name = dict_categories[category]
     breadcrumbs = [
         {"url": reverse("contact_list"), "label": _("Contacts")},

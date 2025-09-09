@@ -1,5 +1,6 @@
 # coding=utf-8
 from django.utils.translation import gettext_lazy as _
+from django.conf import settings
 
 SCHEDULED_TASK_CATEGORIES = (
     ('AC', _('Address change')),
@@ -9,8 +10,7 @@ SCHEDULED_TASK_CATEGORIES = (
     ('PE', _('End of partial pause')),
 )
 
-
-ISSUE_CATEGORIES = (
+DEFAULT_ISSUE_CATEGORIES = (
     ('L', _('Logistics')),
     ('I', _('Invoicing')),
     ('M', _('Collections')),
@@ -19,6 +19,11 @@ ISSUE_CATEGORIES = (
     ('S', _('Service')),
     ('O', _('Community')),
 )
+
+
+def get_issue_categories():
+    return getattr(settings, "ISSUE_CATEGORIES", DEFAULT_ISSUE_CATEGORIES)
+
 
 ISSUE_SUBCATEGORIES = (
     # Logistics
