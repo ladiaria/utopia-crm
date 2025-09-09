@@ -14,6 +14,9 @@
     <div class="card-header">
       <h3 class="card-title">{% trans "Upload Form" %}</h3>
       <div class="card-tools">
+        <a href="?download_template=1" class="btn btn-success btn-sm mr-2">
+          <i class="fas fa-download"></i> {% trans "Download CSV Template" %}
+        </a>
         <button type="button" class="btn btn-tool" data-card-widget="collapse">
           <i class="fas fa-minus"></i>
         </button>
@@ -32,10 +35,17 @@
         {% csrf_token %}
         <div class="form-group">
           <label for="file">
-            {% trans "Choose a CSV file to check for existing contacts. The file should have at least the following columns" %}:
+            {% trans "Choose a CSV file to check for existing contacts" %}:
           </label>
-          <pre>email, phone, mobile</pre>
-          <p>{% trans "All columns must be present in the header." %}</p>
+          <div class="alert alert-info mt-2">
+            <h5><i class="icon fas fa-info"></i> {% trans "Instructions" %}:</h5>
+            <ul class="mb-0">
+              <li>{% trans "Your CSV file must contain an 'email' column header" %}</li>
+              <li>{% trans "The system automatically detects comma (,) or semicolon (;) delimiters" %}</li>
+              <li>{% trans "Only email addresses will be used for matching existing contacts" %}</li>
+              <li>{% trans "Download the template above for the correct format" %}</li>
+            </ul>
+          </div>
           {{ form.file }}
         </div>
         <button type="submit" class="btn btn-primary">{% trans "Upload and Check" %}</button>
@@ -47,6 +57,9 @@
     <div class="card mt-4">
       <div class="card-header">
         <h3 class="card-title">{% trans "Matching Contacts Found" %} ({{ results|length }}) ({{ active_subscriptions }} {% trans "Active Subscriptions" %}) ({{ active_campaigns }} {% trans "In Active Campaigns" %})</h3>
+        {% if detected_delimiter %}
+          <p class="mb-0"><small class="text-muted">{% trans "Detected delimiter" %}: {{ detected_delimiter }}</small></p>
+        {% endif %}
         <div class="card-tools">
           <button type="button" class="btn btn-tool" data-card-widget="collapse">
             <i class="fas fa-minus"></i>
@@ -64,7 +77,7 @@
                 <th>{% trans "Contact ID" %}</th>
                 <th>{% trans "CSV Row" %}</th>
                 <th>{% trans "Contact" %}</th>
-                <th>{% trans "Matching Email" %}</th>
+                <th>{% trans "Email" %}</th>
                 <th>{% trans "Has Active Subscription" %}</th>
                 <th>{% trans "In Active Campaign" %}</th>
               </tr>
@@ -77,15 +90,7 @@
                   <td>
                     <a href="{% url 'contact_detail' result.contact.id %}">{{ result.contact }}</a>
                   </td>
-                  <td>
-                    <ul class="list-unstyled mb-0">
-                      {% if result.email_matches %}
-                        <li class="d-inline-block mr-2">
-                          {{ result.csv_email }}
-                        </li>
-                      {% endif %}
-                    </ul>
-                  </td>
+                  <td>{{ result.csv_email }}</td>
                   <td>
                     {% if result.has_active_subscription %}
                       <span class="badge bg-success">{% trans "Yes" %}</span>
@@ -128,17 +133,15 @@
           <table class="table table-bordered" id="non-matches-table">
             <thead>
               <tr>
+                <th>{% trans "CSV Row" %}</th>
                 <th>{% trans "Email" %}</th>
-                <th>{% trans "Phone" %}</th>
-                <th>{% trans "Mobile" %}</th>
               </tr>
             </thead>
             <tbody>
               {% for row in non_matches %}
                 <tr>
+                  <td>{{ row.row_number }}</td>
                   <td>{{ row.email|default:"-" }}</td>
-                  <td>{{ row.phone|default:"-" }}</td>
-                  <td>{{ row.mobile|default:"-" }}</td>
                 </tr>
               {% endfor %}
             </tbody>
