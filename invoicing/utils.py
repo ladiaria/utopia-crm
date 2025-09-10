@@ -366,23 +366,18 @@ def bill_subscription(
 
     # We need to get all the subscription data
     billing_data = subscription.get_billing_data_by_priority()
+    err_msg = f"Subscription {subscription.id} for contact {subscription.contact.id}"
+    err_msg += f" (with {subscription.get_product_count()} products)"
 
     if not billing_data or not billing_data.get("address"):
-        raise Exception(
-            f"Subscription {subscription.id} for contact {subscription.contact.id} requires an address to be billed."
-        )
+        raise Exception(f"{err_msg}, requires an address to be billed.")
 
     if billing_data and require_route_for_billing:
         if billing_data["route"] is None:
-            raise Exception(
-                f"Subscription {subscription.id} for contact {subscription.contact.id} requires a route to be billed."
-            )
+            raise Exception(f"{err_msg}, requires a route to be billed.")
 
         elif billing_data["route"] in exclude_routes_from_billing_list:
-            raise Exception(
-                f"Subscription {subscription.id} for contact {subscription.contact.id} can't be billed since it's on"
-                f"route {billing_data['route']}."
-            )
+            raise Exception(f"{err_msg}, can't be billed since it's on route {billing_data['route']}.")
 
     product_summary = subscription.product_summary(with_pauses=True)
 
