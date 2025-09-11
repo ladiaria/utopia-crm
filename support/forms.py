@@ -334,7 +334,7 @@ class NewSubscriptionForm(EmailValidationForm, forms.ModelForm):
         cleaned_data = super().clean()
         email = self.email_extra_clean(cleaned_data)
         if email:
-            contact_id, id_document = cleaned_data["contact"].id, cleaned_data["id_document"]
+            contact_id, id_document = cleaned_data.get("contact").id, cleaned_data.get("id_document")
 
             if Contact.objects.filter(email=email).exclude(id=contact_id).exists():
                 c = Contact.objects.filter(email=email).exclude(id=contact_id).first()
