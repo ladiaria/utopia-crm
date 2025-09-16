@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-09-09 11:10-0300\n"
-"PO-Revision-Date: 2025-08-15 15:02-0300\n"
+"POT-Creation-Date: 2025-09-16 16:49-0300\n"
+"PO-Revision-Date: 2025-09-16 16:57-0300\n"
 "Last-Translator: TANYA <tanyatree@gmail.com>\n"
 "Language-Team: \n"
 "Language: es_CO\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Poedit 3.6\n"
+"X-Generator: Poedit 3.7\n"
 
 #: advertisement/apps.py:8 core/choices.py:237
 #: templates/components/sidebar_items/_advertisement.html:10
@@ -61,7 +61,7 @@ msgstr "Anunciante"
 #: support/templates/seller_console.html:236
 #: support/templates/validate_subscription_sales_record.html:215
 #: support/templates/validate_subscription_sales_record.html:249
-#: support/views/all_views.py:1883
+#: support/views/all_views.py:1991
 msgid "Seller"
 msgstr "Vendedor"
 
@@ -77,7 +77,7 @@ msgstr "Facturar a"
 #: advertisement/templates/my_advertisers.html:123
 #: advertisement/templates/my_advertisers.html:152 core/models.py:2521
 #: core/models.py:3140 core/models.py:3164
-#: invoicing/templates/invoice_filter.html:124 invoicing/views.py:279
+#: invoicing/templates/invoice_filter.html:124 invoicing/views.py:284
 #: logistics/models.py:241 logistics/models.py:280
 #: logistics/templates/issues_per_route.html:58
 #: logistics/templates/print_labels_for_product_date.html:26
@@ -91,10 +91,10 @@ msgstr "Facturar a"
 #: support/templates/history_extended.html:87
 #: support/templates/history_extended.html:148
 #: support/templates/invoicing_issues.html:57
-#: support/templates/list_issues.html:61
+#: support/templates/list_issues.html:149
 #: support/templates/seller_console.html:353
 #: support/templates/unsubscription_statistics.html:47
-#: support/templates/view_issue.html:217 support/views/all_views.py:1882
+#: support/templates/view_issue.html:217 support/views/all_views.py:1990
 msgid "Date"
 msgstr "Fecha"
 
@@ -140,7 +140,7 @@ msgstr "Bajo"
 #: core/models.py:97 core/models.py:115 core/models.py:210 core/models.py:377
 #: core/models.py:419 core/models.py:1249 core/models.py:2476
 #: core/models.py:2493 core/models.py:3175 core/models.py:3187
-#: core/models.py:3211 core/models.py:3235 invoicing/models.py:444
+#: core/models.py:3211 core/models.py:3235 invoicing/models.py:446
 #: logistics/models.py:23 logistics/models.py:143 logistics/models.py:164
 #: logistics/models.py:204 logistics/templates/assign_routes.html:56
 #: logistics/templates/change_route.html:61
@@ -167,7 +167,7 @@ msgstr "Bajo"
 #: support/templates/seller_console_list_campaigns.html:22
 #: support/templates/seller_console_special_routes.html:22
 #: support/templates/seller_performance_by_time.html:74
-#: support/views/all_views.py:1077
+#: support/views/all_views.py:1185
 msgid "Name"
 msgstr "Nombre"
 
@@ -213,7 +213,8 @@ msgstr "Otros contactos"
 #: advertisement/templates/agency_list.html:81
 #: advertisement/templates/agent_create_update.html:38 core/models.py:449
 #: core/models.py:1185 logistics/models.py:30 support/forms.py:250
-#: support/templates/check_for_existing_contacts.html:131
+#: support/templates/check_for_existing_contacts.html:80
+#: support/templates/check_for_existing_contacts.html:137
 #: support/templates/contact_detail/tabs/_information.html:23
 #: support/templates/contact_detail/tabs/_overview.html:25
 #: support/templates/contact_list.html:82
@@ -221,8 +222,8 @@ msgstr "Otros contactos"
 #: support/templates/seller_console.html:203
 #: support/templates/seller_console_special_routes.html:25
 #: support/templates/subscriptions/subscription_end_date_list.html:88
-#: support/views/all_views.py:1078 support/views/all_views.py:1757
-#: support/views/contacts.py:83
+#: support/views/all_views.py:1186 support/views/all_views.py:1865
+#: support/views/contacts.py:85
 msgid "Email"
 msgstr "Correo electrónico"
 
@@ -237,7 +238,6 @@ msgstr "Correo electrónico"
 #: logistics/templates/route_details.html:43
 #: logistics/templates/route_details.html:133
 #: logistics/templates/route_details.html:170 support/forms.py:247
-#: support/templates/check_for_existing_contacts.html:132
 #: support/templates/contact_detail/tabs/_information.html:29
 #: support/templates/contact_detail/tabs/_overview.html:29
 #: support/templates/contact_list.html:83
@@ -245,8 +245,8 @@ msgstr "Correo electrónico"
 #: support/templates/seller_console.html:145
 #: support/templates/seller_console.html:189
 #: support/templates/subscriptions/subscription_end_date_list.html:89
-#: support/views/all_views.py:1080 support/views/all_views.py:1758
-#: support/views/contacts.py:84
+#: support/views/all_views.py:1188 support/views/all_views.py:1866
+#: support/views/contacts.py:86
 msgid "Phone"
 msgstr "Teléfono"
 
@@ -334,7 +334,7 @@ msgstr "Vendedores de anuncios"
 #: community/models.py:23 core/models.py:132 core/models.py:2354
 #: core/models.py:2477 core/models.py:2494 core/models.py:3176
 #: core/models.py:3188 core/models.py:3212 core/models.py:3236
-#: invoicing/models.py:279 invoicing/models.py:446
+#: invoicing/models.py:279 invoicing/models.py:448
 #: invoicing/templates/invoice/invoice_detail.html:220
 #: invoicing/templates/invoice/invoice_detail.html:247 logistics/models.py:25
 #: logistics/models.py:187 logistics/templates/list_routes_detailed.html:46
@@ -368,7 +368,7 @@ msgstr "Tipo de anuncio"
 #: advertisement/templates/ad_purchase_order_create_update.html:75
 #: advertisement/templates/ad_purchase_order_detail.html:90 core/models.py:215
 #: invoicing/templates/bill_subscriptions_for_one_contact.html:67
-#: invoicing/templates/invoice/invoice_detail.html:222 invoicing/views.py:215
+#: invoicing/templates/invoice/invoice_detail.html:222 invoicing/views.py:220
 #: support/models.py:378
 #: support/templates/contact_detail/tabs/includes/_overview_subscription_list_item.html:37
 #: support/templates/contact_detail/tabs/includes/_subscription_card.html:29
@@ -383,13 +383,13 @@ msgstr "Precio"
 #: support/templates/campaign_statistics_per_seller.html:50
 #: support/templates/contact_detail/tabs/includes/_subscription_card.html:79
 #: support/templates/invoicing_issues.html:103
-#: support/templates/list_issues.html:90
+#: support/templates/list_issues.html:191
 #: support/templates/sales_record_create.html:118
 #: support/templates/sales_record_filter.html:102
 #: support/templates/subscriptions/corporate_subscription.html:45
 #: support/templates/validate_subscription_sales_record.html:117
-#: support/templates/view_issue.html:48 support/views/all_views.py:599
-#: support/views/all_views.py:1233
+#: support/templates/view_issue.html:48 support/views/all_views.py:624
+#: support/views/all_views.py:707 support/views/all_views.py:1341
 msgid "Start date"
 msgstr "Fecha de inicio"
 
@@ -586,7 +586,7 @@ msgstr "Enviar"
 #: support/templates/dynamic_contact_filter_list.html:44
 #: support/templates/sales_record_create.html:245
 #: support/templates/validate_subscription_sales_record.html:262
-#: support/views/contacts.py:319
+#: support/views/contacts.py:321
 msgid "Edit"
 msgstr "Editar"
 
@@ -614,7 +614,7 @@ msgstr "Comisión de vendedor"
 #: advertisement/templates/ad_purchase_order_detail.html:56
 #: advertisement/templates/advertiser_detail.html:61
 #: advertisement/templates/agency_detail.html:62 core/admin.py:238
-#: invoicing/admin.py:53
+#: invoicing/admin.py:54
 msgid "Billing data"
 msgstr "Datos de facturación"
 
@@ -681,7 +681,7 @@ msgstr "Ver todas las órdenes de compra de anuncios."
 #: support/templates/contact_list.html:57
 #: support/templates/debtor_contacts.html:78
 #: support/templates/invoicing_issues.html:92
-#: support/templates/list_issues.html:80
+#: support/templates/list_issues.html:175
 #: support/templates/scheduled_activities.html:78
 #: support/templates/scheduled_task_filter.html:74
 #: support/templates/subscriptions/subscription_end_date_list.html:33
@@ -719,7 +719,6 @@ msgstr "Precio total"
 #: support/templates/contact_detail/tabs/_issues.html:31
 #: support/templates/contact_detail/tabs/_tasks.html:30
 #: support/templates/contact_detail/tabs/_tasks.html:37
-#: support/templates/list_issues.html:114
 #: support/templates/seller_console_list_campaigns.html:36
 #: support/templates/seller_console_list_campaigns.html:64
 #: support/templates/seller_console_list_campaigns.html:99
@@ -758,7 +757,7 @@ msgstr "Dirección"
 #: invoicing/templates/contact_invoices.html:104
 #: invoicing/templates/invoice/invoice_detail.html:105
 #: invoicing/templates/invoice_filter.html:60
-#: invoicing/templates/invoice_filter.html:127 invoicing/views.py:283
+#: invoicing/templates/invoice_filter.html:127 invoicing/views.py:288
 #: logistics/models.py:165
 #: support/templates/contact_detail/htmx/_invoices_htmx.html:13
 #: support/templates/contact_detail/tabs/_activities.html:19
@@ -770,14 +769,16 @@ msgstr "Dirección"
 #: support/templates/contact_detail/tabs/includes/_subscription_card.html:53
 #: support/templates/invoicing_issues.html:45
 #: support/templates/invoicing_issues.html:105
-#: support/templates/list_issues.html:45 support/templates/list_issues.html:94
+#: support/templates/list_issues.html:133
+#: support/templates/list_issues.html:195
 #: support/templates/sales_record_create.html:107
 #: support/templates/scheduled_activities.html:41
 #: support/templates/scheduled_activities.html:98
 #: support/templates/subscriptions/affiliate_subscriptions.html:72
 #: support/templates/validate_subscription_sales_record.html:106
 #: support/templates/view_issue.html:213 support/templates/view_issue.html:282
-#: support/views/all_views.py:605 support/views/all_views.py:1237
+#: support/views/all_views.py:630 support/views/all_views.py:713
+#: support/views/all_views.py:1345
 msgid "Status"
 msgstr "Estado"
 
@@ -1072,7 +1073,7 @@ msgid " {} months"
 msgstr " {} meses"
 
 #: archive/tests/old_bill_subscription.py:238 core/models.py:1337
-#: core/models.py:1425 invoicing/utils.py:408 support/models.py:155
+#: core/models.py:1425 invoicing/utils.py:403 support/models.py:155
 msgid "Envelope"
 msgstr "Sobre"
 
@@ -1082,7 +1083,7 @@ msgid "{} months discount ({} discount)"
 msgstr "{} meses de descuento ({})"
 
 #: archive/tests/old_bill_subscription.py:273 core/models.py:1412
-#: invoicing/models.py:24 invoicing/utils.py:418
+#: invoicing/models.py:24 invoicing/utils.py:413
 #: support/templates/sales_record_create.html:135
 #: support/templates/sales_record_create.html:196
 #: support/templates/validate_subscription_sales_record.html:134
@@ -1094,7 +1095,7 @@ msgstr "Saldo"
 msgid "Balance owed"
 msgstr "Saldo adeudado"
 
-#: archive/tests/old_bill_subscription.py:301 core/utils.py:405
+#: archive/tests/old_bill_subscription.py:301 core/utils.py:406
 #: invoicing/templates/invoice/invoice_detail.html:278
 msgid "Rounding"
 msgstr "Redondeo"
@@ -1335,7 +1336,7 @@ msgstr "Final por deuda"
 
 #: core/choices.py:60
 #: invoicing/templates/bill_subscriptions_for_one_contact.html:53
-#: support/templates/check_for_existing_contacts.html:27
+#: support/templates/check_for_existing_contacts.html:30
 #: support/templates/import_contacts.html:22
 msgid "Error"
 msgstr "Error"
@@ -1636,7 +1637,7 @@ msgstr "Desuscripción completa"
 #: support/templates/book_partial_unsubscription.html:34
 #: support/templates/book_product_change.html:44
 #: support/templates/book_unsubscription.html:19
-#: support/views/subscriptions.py:600
+#: support/views/subscriptions.py:608
 msgid "Partial unsubscription"
 msgstr "Desuscripción parcial"
 
@@ -1711,21 +1712,22 @@ msgstr "Gestión"
 msgid "Journalism direction"
 msgstr "Dirección de periodismo"
 
-#: core/decorators.py:11 core/templates/main_menu.html:5 invoicing/views.py:100
-#: invoicing/views.py:452 support/location.py:190
-#: support/views/activities.py:27 support/views/all_views.py:149
-#: support/views/all_views.py:263 support/views/all_views.py:570
-#: support/views/all_views.py:643 support/views/all_views.py:757
-#: templates/admin/change_form.html:27 templates/admin/change_list.html:38
-#: templates/admin/index.html:68 templates/admin/object_history.html:17
-#: templates/components/_header.html:12 templates/components/_sidebar.html:41
+#: core/decorators.py:11 core/templates/main_menu.html:5 invoicing/views.py:93
+#: invoicing/views.py:457 support/location.py:190
+#: support/views/activities.py:27 support/views/all_views.py:151
+#: support/views/all_views.py:265 support/views/all_views.py:572
+#: support/views/all_views.py:678 support/views/all_views.py:751
+#: support/views/all_views.py:865 templates/admin/change_form.html:27
+#: templates/admin/change_list.html:38 templates/admin/index.html:68
+#: templates/admin/object_history.html:17 templates/components/_header.html:12
+#: templates/components/_sidebar.html:41
 msgid "Home"
 msgstr "Inicio"
 
 #: core/filters.py:10 invoicing/filters.py:11
 #: logistics/templates/route_details.html:69
-#: support/templates/check_for_existing_contacts.html:91
-#: support/templates/check_for_existing_contacts.html:98
+#: support/templates/check_for_existing_contacts.html:96
+#: support/templates/check_for_existing_contacts.html:103
 #: support/templates/contact_detail/tabs/includes/_subscription_card.html:66
 #: support/templates/debtor_contacts.html:105
 msgid "Yes"
@@ -1733,8 +1735,8 @@ msgstr "Sí"
 
 #: core/filters.py:11 invoicing/filters.py:12
 #: logistics/templates/route_details.html:71
-#: support/templates/check_for_existing_contacts.html:93
-#: support/templates/check_for_existing_contacts.html:100
+#: support/templates/check_for_existing_contacts.html:98
+#: support/templates/check_for_existing_contacts.html:105
 #: support/templates/debtor_contacts.html:107
 #: support/templates/sales_record_filter.html:137
 msgid "No"
@@ -1823,7 +1825,7 @@ msgstr "institución"
 msgid "institutions"
 msgstr "instituciones"
 
-#: core/models.py:114 invoicing/models.py:445
+#: core/models.py:114 invoicing/models.py:447
 msgid "Code"
 msgstr "Código"
 
@@ -2096,15 +2098,14 @@ msgstr "Extensión de teléfono"
 
 #: core/models.py:441 logistics/models.py:29
 #: logistics/templates/route_details.html:44 support/forms.py:248
-#: support/templates/check_for_existing_contacts.html:133
 #: support/templates/contact_detail/tabs/_information.html:34
 #: support/templates/contact_detail/tabs/_overview.html:34
 #: support/templates/create_contact/tabs/_data.html:36
 #: support/templates/seller_console.html:167
 #: support/templates/seller_console.html:192
 #: support/templates/seller_console_special_routes.html:27
-#: support/views/all_views.py:1081 support/views/all_views.py:1759
-#: support/views/contacts.py:85
+#: support/views/all_views.py:1189 support/views/all_views.py:1867
+#: support/views/contacts.py:87
 msgid "Mobile"
 msgstr "Celular"
 
@@ -2187,7 +2188,7 @@ msgid "Invalid product id"
 msgstr "ID de producto inválido"
 
 #: core/models.py:1075 support/templates/contact_list.html:81
-#: support/views/contacts.py:82
+#: support/views/contacts.py:84
 msgid "Full name"
 msgstr "Nombre completo"
 
@@ -2237,9 +2238,9 @@ msgstr "ciudades"
 #: logistics/templates/mass_georef_address_filter.html:70
 #: logistics/templates/route_details.html:132 support/models.py:119
 #: support/models.py:229 support/models.py:418
-#: support/templates/check_for_existing_contacts.html:66
+#: support/templates/check_for_existing_contacts.html:79
 #: support/templates/invoicing_issues.html:104
-#: support/templates/list_issues.html:91
+#: support/templates/list_issues.html:192
 #: support/templates/sales_record_filter.html:97
 #: support/templates/scheduled_activities.html:134
 #: support/templates/scheduled_task_filter.html:37
@@ -2266,7 +2267,7 @@ msgstr "Dirección línea 2"
 #: logistics/templates/route_details.html:46
 #: logistics/templates/route_details.html:171
 #: support/templates/contact_detail/tabs/_information.html:112
-#: support/views/contacts.py:92
+#: support/views/contacts.py:94
 msgid "City"
 msgstr "Ciudad"
 
@@ -2299,7 +2300,7 @@ msgstr "País"
 #: core/models.py:1234 logistics/models.py:24 logistics/models.py:161
 #: logistics/templates/route_details.html:172
 #: support/templates/contact_detail/tabs/_information.html:117
-#: support/templates/contact_list.html:37 support/views/contacts.py:91
+#: support/templates/contact_list.html:37 support/views/contacts.py:93
 msgid "State"
 msgstr "Departamento"
 
@@ -2379,7 +2380,7 @@ msgstr "Copias"
 #: logistics/templates/route_details.html:169 support/models.py:232
 #: support/templates/contact_list.html:51
 #: support/templates/scheduled_task_filter.html:41
-#: support/templates/view_issue.html:95 support/views/contacts.py:90
+#: support/templates/view_issue.html:95 support/views/contacts.py:92
 msgid "Address"
 msgstr "Dirección"
 
@@ -2450,7 +2451,7 @@ msgstr "Suscripción corriente"
 #: support/templates/seller_console.html:233
 #: support/templates/seller_console_list_campaigns.html:158
 #: support/templates/validate_subscription_sales_record.html:90
-#: support/views/all_views.py:1886
+#: support/views/all_views.py:1994
 msgid "Campaign"
 msgstr "Campaña"
 
@@ -2533,7 +2534,7 @@ msgstr "Adenda de baja"
 #: support/templates/sales_record_filter.html:104
 #: support/templates/sales_record_filter.html:163
 #: support/templates/validate_subscription_sales_record.html:28
-#: support/views/all_views.py:1885
+#: support/views/all_views.py:1993
 msgid "Products"
 msgstr "Productos"
 
@@ -2550,7 +2551,7 @@ msgstr "Frecuencia"
 
 #: core/models.py:1478 core/models.py:1564 invoicing/models.py:27
 #: invoicing/models.py:69 invoicing/templates/invoice_filter.html:66
-#: invoicing/templates/invoice_filter.html:123 invoicing/views.py:278
+#: invoicing/templates/invoice_filter.html:123 invoicing/views.py:283
 #: support/forms.py:253
 #: support/templates/contact_detail/tabs/includes/_overview_subscription_list_item.html:71
 #: support/templates/contact_detail/tabs/includes/_subscription_card.html:39
@@ -2574,7 +2575,7 @@ msgid "Free subscription requested by"
 msgstr "Solicitud de suscripción gratuita por"
 
 #: core/models.py:1495 support/templates/sales_record_filter.html:68
-#: support/views/all_views.py:1889
+#: support/views/all_views.py:1997
 msgid "Validated"
 msgstr "Validado"
 
@@ -2610,7 +2611,7 @@ msgstr "Suscripción padre"
 
 #: core/models.py:1553 invoicing/models.py:58
 #: invoicing/templates/contact_invoices.html:62
-#: invoicing/templates/contact_invoices.html:103 invoicing/views.py:235
+#: invoicing/templates/contact_invoices.html:103 invoicing/views.py:240
 #: support/templates/contact_detail/htmx/_invoices_htmx.html:12
 #: support/templates/subscriptions/corporate_subscription.html:55
 #: support/templates/view_issue.html:281
@@ -2949,8 +2950,8 @@ msgstr "Hola %(first_name)s, elija dónde desea ir"
 #: support/templates/seller_console_list_campaigns.html:23
 #: support/templates/subscriptions/subscription_end_date_list.html:10
 #: support/templates/upload_payment_certificate.html:9
-#: support/views/all_views.py:644 support/views/all_views.py:758
-#: support/views/all_views.py:1924 templates/components/_sidebar.html:48
+#: support/views/all_views.py:752 support/views/all_views.py:866
+#: support/views/all_views.py:2032 templates/components/_sidebar.html:48
 msgid "Contacts"
 msgstr "Contactos"
 
@@ -2975,17 +2976,17 @@ msgstr "Pedidos de compra de anuncios sin facturar"
 msgid "{days} days remaining"
 msgstr "{days} días restantes"
 
-#: core/utils.py:177 core/utils.py:227
+#: core/utils.py:178 core/utils.py:228
 #, python-brace-format
 msgid " {frequency} months"
 msgstr " {frequency} meses"
 
-#: core/utils.py:360
+#: core/utils.py:361
 #, python-brace-format
 msgid "{frequency} months discount ({discount_pct}% discount)"
 msgstr "{frequency} meses de descuento ({discount_pct}% de descuento)"
 
-#: core/utils.py:437
+#: core/utils.py:438
 msgid "The subscription needs to be corporate to use this function"
 msgstr "La suscripción debe ser corporativa para utilizar esta función"
 
@@ -2994,7 +2995,7 @@ msgstr "La suscripción debe ser corporativa para utilizar esta función"
 msgid "Invoicing"
 msgstr "Facturación"
 
-#: invoicing/choices.py:6 invoicing/views.py:215
+#: invoicing/choices.py:6 invoicing/views.py:220
 msgid "Item"
 msgstr "Ítem"
 
@@ -3107,17 +3108,17 @@ msgstr "Servicio hasta"
 #: invoicing/templates/invoice/invoice_detail.html:68
 #: invoicing/templates/invoice/invoice_detail.html:221
 #: invoicing/templates/invoice/invoice_detail.html:248
-#: invoicing/templates/invoice_filter.html:122 invoicing/views.py:277
+#: invoicing/templates/invoice_filter.html:122 invoicing/views.py:282
 #: support/templates/contact_detail/htmx/_invoices_htmx.html:11
 #: support/templates/view_issue.html:280
 msgid "Amount"
 msgstr "Monto"
 
-#: invoicing/models.py:35 invoicing/views.py:284
+#: invoicing/models.py:35 invoicing/views.py:289
 msgid "Payment date"
 msgstr "Fecha de pago"
 
-#: invoicing/models.py:37 invoicing/views.py:287
+#: invoicing/models.py:37 invoicing/views.py:292
 msgid "Payment reference"
 msgstr "Referencia de pago"
 
@@ -3133,12 +3134,12 @@ msgstr "Fecha de anulación"
 msgid "Print date"
 msgstr "Fecha de impresión"
 
-#: invoicing/models.py:48 invoicing/models.py:398 invoicing/views.py:285
+#: invoicing/models.py:48 invoicing/models.py:398 invoicing/views.py:290
 msgid "Serie"
 msgstr "Serie"
 
 #: invoicing/models.py:49 invoicing/models.py:399
-#: invoicing/templates/invoice_filter.html:82 invoicing/views.py:286
+#: invoicing/templates/invoice_filter.html:82 invoicing/views.py:291
 #: logistics/models.py:22
 msgid "Number"
 msgstr "Número"
@@ -3197,13 +3198,13 @@ msgid "Price per copy"
 msgstr "Precio por copia"
 
 #: invoicing/models.py:290 invoicing/templates/contact_invoices.html:57
-#: invoicing/templates/invoice_filter.html:125 invoicing/views.py:281
+#: invoicing/templates/invoice_filter.html:125 invoicing/views.py:286
 #: support/templates/contact_detail/htmx/_invoices_htmx.html:7
 msgid "Service from"
 msgstr "Serivio desde"
 
 #: invoicing/models.py:291 invoicing/templates/contact_invoices.html:58
-#: invoicing/templates/invoice_filter.html:126 invoicing/views.py:282
+#: invoicing/templates/invoice_filter.html:126 invoicing/views.py:287
 #: support/templates/contact_detail/htmx/_invoices_htmx.html:8
 msgid "Service to"
 msgstr "Serivio hasta"
@@ -3220,23 +3221,23 @@ msgstr "Item de factura"
 msgid "Invoice items"
 msgstr "Items de factura"
 
-#: invoicing/models.py:405
+#: invoicing/models.py:407
 msgid "credit notes"
 msgstr "notas de crédito"
 
-#: invoicing/models.py:406
+#: invoicing/models.py:408
 msgid "credit note"
 msgstr "nota de crédito"
 
-#: invoicing/models.py:439 invoicing/models.py:440
+#: invoicing/models.py:441 invoicing/models.py:442
 msgid "Mercado Pago Data"
 msgstr "Datos de MercadoPago"
 
-#: invoicing/models.py:452
+#: invoicing/models.py:454
 msgid "Transaction Type"
 msgstr "Tipo de transacción"
 
-#: invoicing/models.py:453
+#: invoicing/models.py:455
 msgid "Transaction Types"
 msgstr "Tipos de transacción"
 
@@ -3262,7 +3263,7 @@ msgstr "Descargar factura"
 #: invoicing/templates/admin/invoicing/invoice/change_form.html:18
 #: support/templates/new_subscription.html:354
 #: support/templates/seller_console_start_promo.html:189
-#: support/views/subscriptions.py:890
+#: support/views/subscriptions.py:898
 msgid "Cancel"
 msgstr "Cancelar"
 
@@ -3286,7 +3287,7 @@ msgstr "Información de facturación"
 
 #: invoicing/templates/bill_subscriptions_for_one_contact.html:25
 msgid "Warning!"
-msgstr "Advertencia"
+msgstr "Advertencia!"
 
 #: invoicing/templates/bill_subscriptions_for_one_contact.html:27
 msgid "PROTECTED CLIENT"
@@ -3351,7 +3352,7 @@ msgid "Created"
 msgstr "Creado"
 
 #: invoicing/templates/contact_invoices.html:60
-#: invoicing/templates/contact_invoices.html:101 invoicing/views.py:280
+#: invoicing/templates/contact_invoices.html:101 invoicing/views.py:285
 #: support/templates/contact_detail/htmx/_invoices_htmx.html:10
 #: support/templates/view_issue.html:279
 msgid "Due"
@@ -3466,8 +3467,8 @@ msgstr "Total de productos"
 msgid "Discounts Total"
 msgstr "Total de descuentos"
 
-#: invoicing/templates/invoice/invoice_detail.html:285 invoicing/views.py:215
-#: invoicing/views.py:229 logistics/models.py:287
+#: invoicing/templates/invoice/invoice_detail.html:285 invoicing/views.py:220
+#: invoicing/views.py:234 logistics/models.py:287
 #: logistics/templates/list_routes.html:37
 #: logistics/templates/list_routes_detailed.html:43
 #: logistics/templates/route_details.html:25
@@ -3484,24 +3485,24 @@ msgstr "Filtro de facturas"
 msgid "Manage invoices."
 msgstr "Gestionar facturas."
 
-#: invoicing/templates/invoice_filter.html:40 invoicing/views.py:272
+#: invoicing/templates/invoice_filter.html:40 invoicing/views.py:277
 #: support/templates/scheduled_activities.html:96
-#: support/views/all_views.py:601 support/views/all_views.py:1235
-#: support/views/all_views.py:1315 support/views/all_views.py:1756
-#: support/views/scheduled_tasks.py:233
+#: support/views/all_views.py:626 support/views/all_views.py:709
+#: support/views/all_views.py:1343 support/views/all_views.py:1423
+#: support/views/all_views.py:1864 support/views/scheduled_tasks.py:233
 msgid "Contact name"
 msgstr "Nombre del contacto"
 
 #: invoicing/templates/invoice_filter.html:50
 #: support/templates/invoicing_issues.html:79
-#: support/templates/list_issues.html:67
+#: support/templates/list_issues.html:155
 #: support/templates/unsubscription_statistics.html:53
 msgid "Creation date (from)"
 msgstr "Fecha de creación (desde)"
 
 #: invoicing/templates/invoice_filter.html:54
 #: support/templates/invoicing_issues.html:83
-#: support/templates/list_issues.html:71
+#: support/templates/list_issues.html:159
 #: support/templates/unsubscription_statistics.html:57
 msgid "Creation date (to)"
 msgstr "Fecha de creación (hasta)"
@@ -3523,12 +3524,12 @@ msgid "No serial"
 msgstr "Sin número de serie"
 
 #: invoicing/templates/invoice_filter.html:94
-#: support/templates/check_for_existing_contacts.html:55
-#: support/templates/check_for_existing_contacts.html:121
+#: support/templates/check_for_existing_contacts.html:68
+#: support/templates/check_for_existing_contacts.html:126
 #: support/templates/contact_list.html:62
 #: support/templates/debtor_contacts.html:74
 #: support/templates/invoicing_issues.html:91
-#: support/templates/list_issues.html:79
+#: support/templates/list_issues.html:178
 #: support/templates/scheduled_task_filter.html:73
 #: support/templates/subscriptions/subscription_end_date_list.html:72
 msgid "Export to CSV"
@@ -3540,12 +3541,13 @@ msgstr "Exportar a CSV"
 msgid "Reset"
 msgstr "Reiniciar"
 
-#: invoicing/templates/invoice_filter.html:119 invoicing/views.py:271
-#: support/templates/invoicing_issues.html:102 support/views/contacts.py:81
+#: invoicing/templates/invoice_filter.html:119 invoicing/views.py:276
+#: support/templates/invoicing_issues.html:102
+#: support/templates/list_issues.html:190 support/views/contacts.py:83
 msgid "Id"
 msgstr "Id"
 
-#: invoicing/templates/invoice_filter.html:121 invoicing/views.py:273
+#: invoicing/templates/invoice_filter.html:121 invoicing/views.py:278
 msgid "Items"
 msgstr "Items"
 
@@ -3620,96 +3622,97 @@ msgstr "El cliente es deudor y no está autorizado para crear una suscripción."
 msgid "This subscription is not normal or corporate and should not be billed."
 msgstr "Esta suscripción no es normal o corporativa y no debe ser facturada."
 
-#: invoicing/utils.py:489
+#: invoicing/utils.py:484
 msgid "This subscription wasn't billed since amount is not greater than 0"
 msgstr "Esta suscripción no fue facturada ya que el monto no es mayor que 0"
 
-#: invoicing/views.py:97
+#: invoicing/views.py:90
 #, python-brace-format
 msgid "Invoice {} has been created successfully"
 msgstr "Factura {} ha sido creada exitosamente"
 
-#: invoicing/views.py:101 invoicing/views.py:453 support/location.py:93
+#: invoicing/views.py:94 invoicing/views.py:458 support/location.py:93
 #: support/location.py:191 support/location.py:239
 #: support/views/activities.py:149 support/views/activities.py:200
-#: support/views/all_views.py:1679 support/views/contacts.py:132
-#: support/views/contacts.py:317 support/views/contacts.py:384
-#: support/views/scheduled_tasks.py:66 support/views/scheduled_tasks.py:137
-#: support/views/scheduled_tasks.py:199 support/views/subscriptions.py:63
-#: support/views/subscriptions.py:506 support/views/subscriptions.py:595
-#: support/views/subscriptions.py:699 support/views/subscriptions.py:823
+#: support/views/all_views.py:1787 support/views/contacts.py:134
+#: support/views/contacts.py:319 support/views/contacts.py:386
+#: support/views/contacts.py:734 support/views/scheduled_tasks.py:66
+#: support/views/scheduled_tasks.py:137 support/views/scheduled_tasks.py:199
+#: support/views/subscriptions.py:63 support/views/subscriptions.py:514
+#: support/views/subscriptions.py:603 support/views/subscriptions.py:707
+#: support/views/subscriptions.py:831
 msgid "Contact list"
 msgstr "Lista de contactos"
 
-#: invoicing/views.py:106 invoicing/views.py:458
+#: invoicing/views.py:99 invoicing/views.py:463
 msgid "Invoice detail"
 msgstr "Detalle de la factura"
 
-#: invoicing/views.py:163
+#: invoicing/views.py:156
 msgid "The invoice is already canceled"
 msgstr "La factura ya ha sido cancelada"
 
-#: invoicing/views.py:169
+#: invoicing/views.py:162
 msgid "This invoice already has credit notes."
 msgstr "Esta factura ya tiene notas de crédito."
 
-#: invoicing/views.py:174
+#: invoicing/views.py:167
 msgid "This invoice was successfully canceled"
 msgstr "Esta factura ha sido cancelada exitosamente"
 
-#: invoicing/views.py:176
+#: invoicing/views.py:169
 #, python-brace-format
 msgid "This invoice could not be canceled: {}"
 msgstr "Esta factura no pudo ser cancelada: {}"
 
-#: invoicing/views.py:207
+#: invoicing/views.py:212
 #, python-brace-format
 msgid "Issue date: {date}"
 msgstr "Fecha de emisión: {date}"
 
-#: invoicing/views.py:210
+#: invoicing/views.py:215
 #, python-brace-format
 msgid "Due date: {date}"
 msgstr "Fecha de vencimiento: {date}"
 
-#: invoicing/views.py:215
+#: invoicing/views.py:220
 msgid "Un."
 msgstr "Un."
 
-#: invoicing/views.py:217
+#: invoicing/views.py:222
 #, python-brace-format
 msgid "Subscription {id}"
 msgstr "Suscripción {id}"
 
-#: invoicing/views.py:239
+#: invoicing/views.py:244
 msgid "Original invoice"
 msgstr "Factura original"
 
-#: invoicing/views.py:243
+#: invoicing/views.py:248
 msgid "Customer invoice"
 msgstr "Factura al cliente"
 
-#: invoicing/views.py:274
+#: invoicing/views.py:279
 msgid "Contact id"
 msgstr "ID de contacto"
 
-#: invoicing/views.py:275
+#: invoicing/views.py:280
 msgid "Subscription id"
 msgstr "ID de suscripción"
 
-#: invoicing/views.py:276
+#: invoicing/views.py:281
 msgid "Subscription Payment Type"
 msgstr "Tipo de pago de la suscripción"
 
-#: invoicing/views.py:369
+#: invoicing/views.py:374
 msgid "Invoice is already canceled"
 msgstr "La factura ya ha sido cancelada"
 
-#: invoicing/views.py:374
+#: invoicing/views.py:379
 msgid "Invoice was canceled successfully"
 msgstr "La factura ha sido cancelada exitosamente"
 
-#: invoicing/views.py:376
+#: invoicing/views.py:381
 msgid "Invoice can't be canceled"
 msgstr "La factura no puede ser cancelada"
 
@@ -3806,7 +3809,7 @@ msgstr "Ruta %d"
 #: logistics/models.py:58
 #: templates/components/sidebar_items/_logistics.html:112
 #: templates/components/sidebar_items/_logistics.html:119
-#: templates/components/sidebar_items/_support.html:43
+#: templates/components/sidebar_items/_support.html:44
 msgid "Routes"
 msgstr "Rutas"
 
@@ -4004,6 +4007,7 @@ msgstr "Mensaje"
 #: logistics/templates/order_route_print.html:24
 #: logistics/templates/print_routes_simple.html:72
 #: logistics/templates/print_unordered_subscriptions_list.html:26
+#: support/templates/check_for_existing_contacts.html:41
 msgid "Instructions"
 msgstr "Instrucciones"
 
@@ -4022,7 +4026,7 @@ msgstr "Instrucciones"
 #: support/templates/new_subscription.html:185
 #: support/templates/new_subscription.html:349
 #: support/templates/seller_console_start_promo.html:187
-#: support/templates/view_issue.html:252 support/views/subscriptions.py:895
+#: support/templates/view_issue.html:252 support/views/subscriptions.py:903
 msgid "Send"
 msgstr "Enviar"
 
@@ -4101,7 +4105,7 @@ msgstr "Número de ruta"
 
 #: logistics/templates/issues_route_list.html:37
 #: support/templates/contact_list.html:41
-#: support/templates/debtor_contacts.html:47 support/views/contacts.py:223
+#: support/templates/debtor_contacts.html:47 support/views/contacts.py:225
 msgid "Active subscriptions"
 msgstr "Suscripciones activas"
 
@@ -4111,9 +4115,9 @@ msgstr "Suscripciones activas"
 #: logistics/templates/issues_statistics.html:91
 #: logistics/templates/route_details.html:128 support/models.py:160
 #: support/templates/contact_detail/detail.html:113
-#: support/templates/history_extended.html:129
-#: support/templates/list_issues.html:34 support/views/all_views.py:571
-#: templates/components/sidebar_items/_support.html:22
+#: support/templates/history_extended.html:129 support/views/all_views.py:573
+#: support/views/all_views.py:679
+#: templates/components/sidebar_items/_support.html:23
 msgid "Issues"
 msgstr "Incidencias"
 
@@ -4146,8 +4150,8 @@ msgstr "Mañana"
 #: logistics/templates/list_routes.html:40
 #: logistics/templates/list_routes_detailed.html:44
 #: logistics/templates/order_routes_list.html:39
-#: support/templates/list_issues.html:98
 #: support/templates/subscriptions/subscription_end_date_list.html:92
+#: support/templates/tag_analysis.html:97
 msgid "Actions"
 msgstr "Acciones"
 
@@ -4185,6 +4189,7 @@ msgstr "Actividades programadas"
 #: support/templates/contact_list.html:33
 #: support/templates/sales_record_filter.html:84
 #: support/templates/scheduled_activities.html:29
+#: support/templates/tag_analysis.html:35
 #: support/templates/unsubscription_statistics.html:41
 #: support/templates/unsubscription_statistics.html:65
 #: templates/admin/change_list.html:86 templates/admin/change_list.html:114
@@ -4197,7 +4202,7 @@ msgstr "Necesita georeferenciación"
 
 #: logistics/templates/mass_georef_address_filter.html:50
 msgid "Active sub."
-msgstr "Suscripción activa"
+msgstr "Suscripción act."
 
 #: logistics/templates/order_route.html:17
 msgid "Accept"
@@ -4499,7 +4504,7 @@ msgstr "ESPAÑOL"
 #: support/templates/tag_contacts.html:19
 #: support/templates/tag_contacts.html:24
 #: support/templates/upload_do_not_call_numbers.html:7
-#: templates/components/sidebar_items/_support.html:13
+#: templates/components/sidebar_items/_support.html:14
 msgid "Support"
 msgstr "Soporte"
 
@@ -4996,7 +5001,7 @@ msgstr ""
 msgid "Scheduled task"
 msgstr "Tarea programada"
 
-#: support/models.py:322 templates/components/sidebar_items/_support.html:49
+#: support/models.py:322 templates/components/sidebar_items/_support.html:50
 msgid "Scheduled tasks"
 msgstr "Tareas programadas"
 
@@ -5082,7 +5087,7 @@ msgid "Register Activity"
 msgstr "Registrar actividad"
 
 #: support/templates/assign_campaigns.html:5
-#: support/templates/assign_campaigns.html:9 support/views/all_views.py:150
+#: support/templates/assign_campaigns.html:9 support/views/all_views.py:152
 msgid "Assign campaigns"
 msgstr "Asignar campañas"
 
@@ -5128,7 +5133,7 @@ msgstr "Asignar"
 #: support/templates/book_partial_unsubscription.html:4
 #: support/templates/book_unsubscription.html:4
 #: support/templates/book_unsubscription.html:8
-#: support/views/subscriptions.py:511
+#: support/views/subscriptions.py:519
 msgid "Book unsubscription"
 msgstr "Registrar baja"
 
@@ -5178,7 +5183,7 @@ msgid "Book unsubscription of some products"
 msgstr "Registrar baja de algunos productos"
 
 #: support/templates/book_product_change.html:4
-#: support/views/subscriptions.py:704
+#: support/views/subscriptions.py:712
 msgid "Book product change"
 msgstr "Registrar cambio de producto"
 
@@ -5304,68 +5309,85 @@ msgstr "Verificar contactos existentes"
 msgid "Upload Form"
 msgstr "Formulario de subida"
 
-#: support/templates/check_for_existing_contacts.html:24
+#: support/templates/check_for_existing_contacts.html:18
+msgid "Download CSV Template"
+msgstr "Descargar plantilla CSV"
+
+#: support/templates/check_for_existing_contacts.html:27
 msgid "Form has encountered some errors"
 msgstr "El formulario ha encontrado algunos errores"
 
-#: support/templates/check_for_existing_contacts.html:35
-msgid ""
-"Choose a CSV file to check for existing contacts. The file should have at "
-"least the following columns"
-msgstr ""
-"Elija un archivo CSV para verificar contactos existentes. El archivo debe "
-"tener al menos las siguientes columnas"
-
 #: support/templates/check_for_existing_contacts.html:38
-#: support/templates/import_contacts.html:33
-msgid "All columns must be present in the header."
-msgstr "Todos los campos deben estar presentes en el encabezado."
+msgid "Choose a CSV file to check for existing contacts"
+msgstr "Elija un archivo CSV para chequear contactos existentes"
 
-#: support/templates/check_for_existing_contacts.html:41
+#: support/templates/check_for_existing_contacts.html:43
+msgid "Your CSV file must contain an 'email' column header"
+msgstr "Su archivo CSV debe contener un cabezal de ‘email’"
+
+#: support/templates/check_for_existing_contacts.html:44
+msgid "The system automatically detects comma (,) or semicolon (;) delimiters"
+msgstr ""
+"El sistema detecta automáticamente comas (,) o puntos y comas (;) como "
+"delimitadores"
+
+#: support/templates/check_for_existing_contacts.html:45
+msgid "Only email addresses will be used for matching existing contacts"
+msgstr ""
+"Solo se utilizarán las direcciones de correo electrónico para buscar "
+"contactos existentes"
+
+#: support/templates/check_for_existing_contacts.html:46
+msgid "Download the template above for the correct format"
+msgstr "Descargar la plantilla más arriba para utilizar el formato correcto"
+
+#: support/templates/check_for_existing_contacts.html:51
 msgid "Upload and Check"
 msgstr "Subir y verificar"
 
-#: support/templates/check_for_existing_contacts.html:49
+#: support/templates/check_for_existing_contacts.html:59
 msgid "Matching Contacts Found"
 msgstr "Coincidencias encontradas"
 
-#: support/templates/check_for_existing_contacts.html:49
+#: support/templates/check_for_existing_contacts.html:59
 msgid "Active Subscriptions"
 msgstr "Suscripciones activas"
 
-#: support/templates/check_for_existing_contacts.html:49
+#: support/templates/check_for_existing_contacts.html:59
+#: support/templates/tag_analysis.html:96
 msgid "In Active Campaigns"
 msgstr "En campañas activas"
 
-#: support/templates/check_for_existing_contacts.html:64
-#: support/views/all_views.py:600 support/views/all_views.py:1076
-#: support/views/all_views.py:1234 support/views/all_views.py:1314
-#: support/views/all_views.py:1755 support/views/all_views.py:1881
-#: support/views/scheduled_tasks.py:232
+#: support/templates/check_for_existing_contacts.html:61
+msgid "Detected delimiter"
+msgstr "Delimitador detectado"
+
+#: support/templates/check_for_existing_contacts.html:77
+#: support/views/all_views.py:625 support/views/all_views.py:708
+#: support/views/all_views.py:1184 support/views/all_views.py:1342
+#: support/views/all_views.py:1422 support/views/all_views.py:1863
+#: support/views/all_views.py:1989 support/views/scheduled_tasks.py:232
 msgid "Contact ID"
 msgstr "ID de contacto"
 
-#: support/templates/check_for_existing_contacts.html:65
+#: support/templates/check_for_existing_contacts.html:78
+#: support/templates/check_for_existing_contacts.html:136
 msgid "CSV Row"
 msgstr "Fila CSV"
 
-#: support/templates/check_for_existing_contacts.html:67
-msgid "Matching Email"
-msgstr "Coincidencias de correo electrónico"
-
-#: support/templates/check_for_existing_contacts.html:68
+#: support/templates/check_for_existing_contacts.html:81
 msgid "Has Active Subscription"
 msgstr "Tiene suscripción activa"
 
-#: support/templates/check_for_existing_contacts.html:69
+#: support/templates/check_for_existing_contacts.html:82
 msgid "In Active Campaign"
 msgstr "En campaña activa"
 
-#: support/templates/check_for_existing_contacts.html:115
+#: support/templates/check_for_existing_contacts.html:120
 msgid "No Matches Found"
 msgstr "No se encontraron coincidencias"
 
-#: support/templates/check_for_existing_contacts.html:126
+#: support/templates/check_for_existing_contacts.html:131
 msgid "The following entries had no matching contacts:"
 msgstr "Las siguientes entradas no coincidieron con contactos:"
 
@@ -5412,7 +5434,7 @@ msgstr "Tareas"
 
 #: support/templates/contact_detail/detail.html:126
 #: support/templates/invoicing_issues.html:107
-#: support/templates/list_issues.html:95
+#: support/templates/list_issues.html:196
 #: support/templates/scheduled_activities.html:20
 #: support/templates/seller_console.html:225
 #: support/templates/view_issue.html:195 support/views/activities.py:29
@@ -5502,7 +5524,7 @@ msgstr "Identificador"
 #: support/templates/contact_detail/tabs/_information.html:40
 #: support/templates/contact_detail/tabs/_overview.html:40
 #: support/templates/create_contact/tabs/_data.html:43
-#: support/templates/seller_console.html:156 support/views/all_views.py:1082
+#: support/templates/seller_console.html:156 support/views/all_views.py:1190
 msgid "Institutional phone"
 msgstr "Teléfono institucional"
 
@@ -5583,28 +5605,31 @@ msgstr "ID"
 
 #: support/templates/contact_detail/tabs/_issues.html:14
 #: support/templates/contact_detail/tabs/_tasks.html:12
-#: support/templates/list_issues.html:49 support/templates/list_issues.html:92
+#: support/templates/list_issues.html:137
+#: support/templates/list_issues.html:193
 #: support/templates/scheduled_task_filter.html:45
 #: support/templates/scheduled_task_filter.html:86
-#: support/templates/view_issue.html:62 support/views/all_views.py:602
-#: support/views/scheduled_tasks.py:234
+#: support/templates/view_issue.html:62 support/views/all_views.py:627
+#: support/views/all_views.py:710 support/views/scheduled_tasks.py:234
 msgid "Category"
 msgstr "Categoría"
 
 #: support/templates/contact_detail/tabs/_issues.html:15
 #: support/templates/invoicing_issues.html:53
 #: support/templates/invoicing_issues.html:106
-#: support/templates/list_issues.html:53 support/templates/list_issues.html:93
-#: support/views/all_views.py:603
+#: support/templates/list_issues.html:141
+#: support/templates/list_issues.html:194 support/views/all_views.py:628
+#: support/views/all_views.py:711
 msgid "Subcategory"
 msgstr "Subcategoría"
 
 #: support/templates/contact_detail/tabs/_issues.html:17
 #: support/templates/invoicing_issues.html:49
 #: support/templates/invoicing_issues.html:118
-#: support/templates/list_issues.html:57 support/templates/list_issues.html:97
-#: support/templates/new_issue.html:151 support/views/all_views.py:606
-#: support/views/all_views.py:1242
+#: support/templates/list_issues.html:145
+#: support/templates/list_issues.html:198 support/templates/new_issue.html:151
+#: support/views/all_views.py:631 support/views/all_views.py:714
+#: support/views/all_views.py:1350
 msgid "Assigned to"
 msgstr "Asignado a"
 
@@ -5826,7 +5851,7 @@ msgstr "Todos los contactos"
 msgid "Create contact"
 msgstr "Crear contacto"
 
-#: support/templates/contact_list.html:86 support/views/contacts.py:88
+#: support/templates/contact_list.html:86 support/views/contacts.py:90
 msgid "Last activity"
 msgstr "Ultima actividad"
 
@@ -5922,24 +5947,24 @@ msgstr "Ordenar por"
 #: support/templates/debtor_contacts.html:55
 #: support/templates/debtor_contacts.html:91
 #: support/templates/invoicing_issues.html:64
-#: support/templates/invoicing_issues.html:110 support/views/all_views.py:1239
-#: support/views/all_views.py:1317
+#: support/templates/invoicing_issues.html:110 support/views/all_views.py:1347
+#: support/views/all_views.py:1425
 msgid "Owed invoices"
 msgstr "Facturas adeudadas"
 
 #: support/templates/debtor_contacts.html:56
 #: support/templates/debtor_contacts.html:93
 #: support/templates/invoicing_issues.html:65
-#: support/templates/invoicing_issues.html:113 support/views/all_views.py:1240
-#: support/views/all_views.py:1320
+#: support/templates/invoicing_issues.html:113 support/views/all_views.py:1348
+#: support/views/all_views.py:1428
 msgid "Debt amount"
 msgstr "Monto adeudado"
 
 #: support/templates/debtor_contacts.html:58
 #: support/templates/debtor_contacts.html:94
 #: support/templates/invoicing_issues.html:66
-#: support/templates/invoicing_issues.html:116 support/views/all_views.py:1241
-#: support/views/all_views.py:1321
+#: support/templates/invoicing_issues.html:116 support/views/all_views.py:1349
+#: support/views/all_views.py:1429
 msgid "Oldest invoice"
 msgstr "Factura más antigua"
 
@@ -6038,7 +6063,7 @@ msgstr " Exportar correos electrónicos"
 
 #: support/templates/dynamic_contact_filter_details.html:18
 msgid " Export contacts"
-msgstr "Exportar contactos "
+msgstr " Exportar contactos"
 
 #: support/templates/dynamic_contact_filter_details.html:20
 msgid "Back to list"
@@ -6131,7 +6156,7 @@ msgstr "¿Acepta el reemplazo?"
 msgid "Extended history"
 msgstr "Historial extendido"
 
-#: support/templates/history_extended.html:8 support/views/all_views.py:1684
+#: support/templates/history_extended.html:8 support/views/all_views.py:1792
 #: templates/admin/change_form.html:68
 msgid "History"
 msgstr "Historial"
@@ -6204,6 +6229,10 @@ msgstr ""
 "Elija el archivo para enviar. Debe ser un archivo csv con el siguiente "
 "encabezado y columnas"
 
+#: support/templates/import_contacts.html:33
+msgid "All columns must be present in the header."
+msgstr "Todos los campos deben estar presentes en el encabezado."
+
 #: support/templates/import_contacts.html:56
 #: support/templates/tag_contacts.html:45
 msgid "Import"
@@ -6214,31 +6243,46 @@ msgid "Invoicing issues"
 msgstr "Incidentes de facturación"
 
 #: support/templates/invoicing_issues.html:34
-#: templates/components/sidebar_items/_support.html:29
+#: templates/components/sidebar_items/_support.html:30
 msgid "Collection issues"
 msgstr "Incidentes de cobranza"
 
 #: support/templates/invoicing_issues.html:90
-#: support/templates/list_issues.html:78
 #: support/templates/scheduled_task_filter.html:72
 msgid "issues"
 msgstr "incidencias"
 
 #: support/templates/invoicing_issues.html:108
-#: support/templates/list_issues.html:96 support/views/all_views.py:1238
+#: support/templates/list_issues.html:197 support/views/all_views.py:1346
 msgid "Next action date"
 msgstr "Fecha de próxima acción"
 
-#: support/templates/list_issues.html:4
+#: support/templates/list_issues.html:4 support/templates/list_issues.html:15
 msgid "List issues"
 msgstr "Lista de incidencias"
+
+#: support/templates/list_issues.html:16
+msgid "List of issues"
+msgstr "Lista de incidencias"
+
+#: support/templates/list_issues.html:29
+msgid "No results match"
+msgstr "No hay coincidencias"
+
+#: support/templates/list_issues.html:30
+msgid "Select an option"
+msgstr "Seleccionar opciones"
+
+#: support/templates/list_issues.html:169
+msgid "issues found"
+msgstr "incidencias encontradas"
 
 #: support/templates/location/normalizar_direccion.html:46
 msgid "Normalize address"
 msgstr "Normalizar dirección"
 
 #: support/templates/new_issue.html:4 support/templates/new_issue.html:53
-#: support/views/all_views.py:646
+#: support/views/all_views.py:754
 msgid "New issue"
 msgstr "Nuevo incidencia"
 
@@ -6346,7 +6390,7 @@ msgstr "Liberar %(contacts_not_worked)s contactos"
 
 #: support/templates/sales_record_create.html:4
 #: support/templates/validate_subscription_sales_record.html:4
-#: support/views/all_views.py:1929
+#: support/views/all_views.py:2037
 msgid "Validate subscription"
 msgstr "Validar suscripción"
 
@@ -6823,6 +6867,83 @@ msgstr "Fecha de fin de suscripción"
 msgid "No subscriptions found"
 msgstr "No se encontraron suscripciones."
 
+#: support/templates/tag_analysis.html:5 support/views/contacts.py:735
+msgid "Tag Analysis"
+msgstr "Análisis de etiquetas"
+
+#: support/templates/tag_analysis.html:13
+msgid "Filter Tags"
+msgstr "Filtrar etiquetas"
+
+#: support/templates/tag_analysis.html:24
+#: support/templates/tag_analysis.html:93
+msgid "Tag Name"
+msgstr "Nombre de la etiqueta"
+
+#: support/templates/tag_analysis.html:31
+msgid "Search by tag name..."
+msgstr "Buscar por nombre de etiqueta..."
+
+#: support/templates/tag_analysis.html:36
+msgid "Clear"
+msgstr "Limpiar"
+
+#: support/templates/tag_analysis.html:47
+msgid "Tag Analysis Summary"
+msgstr "Resumen del análisis de etiquetas"
+
+#: support/templates/tag_analysis.html:55
+msgid "Total Tags"
+msgstr "Etiquetas totales"
+
+#: support/templates/tag_analysis.html:64
+msgid "Contacts with Tags"
+msgstr "Contactos etiquetados"
+
+#: support/templates/tag_analysis.html:73
+msgid "Filtered Results"
+msgstr "Resultados filtrados"
+
+#: support/templates/tag_analysis.html:86
+msgid "Tag Statistics"
+msgstr "Estadísticas de etiquetas"
+
+#: support/templates/tag_analysis.html:94
+msgid "Total Contacts"
+msgstr "Contactos totales"
+
+#: support/templates/tag_analysis.html:95
+msgid "In Campaigns"
+msgstr "En campañas"
+
+#: support/templates/tag_analysis.html:110
+msgid "View contacts with this tag"
+msgstr "Ver contactos con esta etiqueta"
+
+#: support/templates/tag_analysis.html:134
+msgid "View all contacts with this tag"
+msgstr "Ver todos los contactos con esta etiqueta"
+
+#: support/templates/tag_analysis.html:135
+msgid "View Contacts"
+msgstr "Ver contactos"
+
+#: support/templates/tag_analysis.html:146
+msgid "No tags found matching your search criteria."
+msgstr "No se encontraron etiquetas para sus criterios de búsqueda."
+
+#: support/templates/tag_analysis.html:147
+msgid "Clear filter"
+msgstr "Limpiar filtro"
+
+#: support/templates/tag_analysis.html:147
+msgid "to see all tags."
+msgstr "para ver todas las etiquetas."
+
+#: support/templates/tag_analysis.html:149
+msgid "No tags found in the system."
+msgstr "No se encontraron etiquetas en el sistema."
+
 #: support/templates/tag_contacts.html:20
 #: support/templates/tag_contacts.html:25
 #: support/templates/tag_contacts.html:32
@@ -6924,7 +7045,7 @@ msgid "Added Products"
 msgstr "Productos agregados"
 
 #: support/templates/validate_subscription_sales_record.html:231
-#: support/views/all_views.py:1887
+#: support/views/all_views.py:1995
 msgid "Sale Type"
 msgstr "Tipo de venta"
 
@@ -6980,136 +7101,136 @@ msgstr "Facturas del contacto"
 msgid "Update activity"
 msgstr "Actualizar actividad"
 
-#: support/views/all_views.py:264
+#: support/views/all_views.py:266
 msgid "Assign sellers"
 msgstr "Asignar vendedores"
 
-#: support/views/all_views.py:604 support/views/all_views.py:1236
+#: support/views/all_views.py:629 support/views/all_views.py:712
+#: support/views/all_views.py:1344
 msgid "Activities count"
 msgstr "Cuenta de actividades"
 
-#: support/views/all_views.py:732
+#: support/views/all_views.py:840
 msgid "See related issue"
 msgstr "Ver incidencia relacionado"
 
-#: support/views/all_views.py:760
-#, fuzzy, python-brace-format
-#| msgid "Issue"
+#: support/views/all_views.py:868
+#, python-brace-format
 msgid "Issue #{}"
-msgstr "Incidente"
+msgstr "Incidente #{}"
 
-#: support/views/all_views.py:1079
+#: support/views/all_views.py:1187
 msgid "id document"
 msgstr "documento de identificación"
 
-#: support/views/all_views.py:1106
+#: support/views/all_views.py:1214
 msgid "This filter has no mailtrain id. To use the sync function"
 msgstr ""
 "Este filtro no tiene un ID de Mailtrain. Para usar la función de "
 "sincronización"
 
-#: support/views/all_views.py:1164
+#: support/views/all_views.py:1272
 msgid "Envelope data has been saved."
 msgstr "Datos de la envoltorio han sido guardados."
 
-#: support/views/all_views.py:1184
+#: support/views/all_views.py:1292
 msgid "Payment certificate has been uploaded successfully"
 msgstr "Certificado de pago subido exitosamente"
 
-#: support/views/all_views.py:1316 support/views/contacts.py:86
+#: support/views/all_views.py:1424 support/views/contacts.py:88
 msgid "Has active subscriptions"
 msgstr "Tiene suscripciones activas"
 
-#: support/views/all_views.py:1318
+#: support/views/all_views.py:1426
 msgid "Unfinished invoicing issues"
 msgstr "Incidentes de facturación no finalizados"
 
-#: support/views/all_views.py:1319
+#: support/views/all_views.py:1427
 msgid "Finished invoicing issues"
 msgstr "Incidentes de facturación finalizados"
 
-#: support/views/all_views.py:1610
+#: support/views/all_views.py:1718
 msgid "Address information has been updated successfully"
 msgstr "Información de dirección actualizada exitosamente"
 
-#: support/views/all_views.py:1712
+#: support/views/all_views.py:1820
 msgid "Numbers have been uploaded successfully."
 msgstr "Números subidos exitosamente."
 
-#: support/views/all_views.py:1842
+#: support/views/all_views.py:1950
 msgid "You have no sales records."
 msgstr "No tienes registros de ventas."
 
-#: support/views/all_views.py:1862 support/views/all_views.py:1934
+#: support/views/all_views.py:1970 support/views/all_views.py:2042
 #: support/views/seller_console.py:78
 msgid "You are not authorized to see this page"
 msgstr "No tienes autorización para ver esta página"
 
-#: support/views/all_views.py:1865
+#: support/views/all_views.py:1973
 msgid "There are no sales records."
 msgstr "No hay registros de ventas."
 
-#: support/views/all_views.py:1884
+#: support/views/all_views.py:1992
 msgid "Subscription start date"
 msgstr "Fecha de inicio de la suscripción"
 
-#: support/views/all_views.py:1888
+#: support/views/all_views.py:1996
 msgid "Total Commission"
 msgstr "Comisión total"
 
-#: support/views/all_views.py:1955
+#: support/views/all_views.py:2063
 msgid "The sale and subscription have been validated."
 msgstr "La venta y la suscripción han sido validadas."
 
-#: support/views/all_views.py:1971
+#: support/views/all_views.py:2079
 msgid "There was an error validating the sale and subscription."
 msgstr "Hubo un error al validar la venta y la suscripción."
 
-#: support/views/all_views.py:1985
+#: support/views/all_views.py:2093
 msgid "This subscription has no sales record."
 msgstr "Esta suscripción no tiene un registro de venta."
 
-#: support/views/all_views.py:1988
+#: support/views/all_views.py:2096
 msgid "This subscription has already been validated."
 msgstr "Esta suscripción ya ha sido validada."
 
-#: support/views/all_views.py:2012
+#: support/views/all_views.py:2120
 msgid "This subscription already has a sales record."
 msgstr "Esta suscripción ya tiene un registro de venta."
 
-#: support/views/contacts.py:87
+#: support/views/contacts.py:89
 msgid "Active products"
 msgstr "Productos activos"
 
-#: support/views/contacts.py:89
+#: support/views/contacts.py:91
 msgid "Overdue invoices"
 msgstr "Facturas vencidas"
 
-#: support/views/contacts.py:228
+#: support/views/contacts.py:230
 msgid "Future Subscriptions"
 msgstr "Suscripciones futuras"
 
-#: support/views/contacts.py:235
+#: support/views/contacts.py:237
 msgid "Subscriptions awaiting payment"
 msgstr "Suscripciones pendientes de pago"
 
-#: support/views/contacts.py:240
+#: support/views/contacts.py:242
 msgid "Subscriptions with errors"
 msgstr "Suscripciones con errores"
 
-#: support/views/contacts.py:245
+#: support/views/contacts.py:247
 msgid "Paused Subscriptions"
 msgstr "Suscripciones pausadas"
 
-#: support/views/contacts.py:250
+#: support/views/contacts.py:252
 msgid "Inactive subscriptions"
 msgstr "Suscripciones inactivas"
 
-#: support/views/contacts.py:345
+#: support/views/contacts.py:347
 msgid "Contact saved successfully"
 msgstr "Contacto guardado exitosamente"
 
-#: support/views/contacts.py:385
+#: support/views/contacts.py:387
 msgid "Create"
 msgstr "Crear"
 
@@ -7179,10 +7300,9 @@ msgid "Invalid action: {action}"
 msgstr "Acción inválida: {action}"
 
 #: support/views/seller_console.py:222
-#, fuzzy, python-brace-format
-#| msgid "Invalid action: {action}"
+#, python-brace-format
 msgid "Invalid action slug: {action}"
-msgstr "Acción inválida: {action}"
+msgstr "Slug de acción inválido: {action}"
 
 #: support/views/seller_console.py:230
 msgid "Contact is no longer in this campaign"
@@ -7235,27 +7355,34 @@ msgstr "La actividad fue eliminada porque el contacto ya no está en la campaña
 msgid "An error has occurred with activity number {}"
 msgstr "Ocurrió un error con la actividad número {}"
 
-#: support/views/subscriptions.py:213 support/views/subscriptions.py:333
+#: support/views/subscriptions.py:200
+msgid ""
+"The subscription may not have been completely saved or synchronized with the "
+"CMS"
+msgstr ""
+"Esta suscripción puede no haber sido completamente sincronizada con el CMS"
+
+#: support/views/subscriptions.py:221 support/views/subscriptions.py:341
 msgid "Wrong data"
 msgstr "Datos incorrectos"
 
-#: support/views/subscriptions.py:225
+#: support/views/subscriptions.py:233
 #, python-brace-format
 msgid "Activity {} is not in campaign {}. Please report this error!"
 msgstr ""
 "La actividad {} no está en la campaña {}. Por favor, reporte este error!"
 
-#: support/views/subscriptions.py:480 support/views/subscriptions.py:528
-#: support/views/subscriptions.py:617
+#: support/views/subscriptions.py:488 support/views/subscriptions.py:536
+#: support/views/subscriptions.py:625
 msgid "WARNING: This subscription has already been closed"
 msgstr "ADVERTENCIA: Esta suscripción ya ha sido cerrada"
 
-#: support/views/subscriptions.py:500 support/views/subscriptions.py:589
-#: support/views/subscriptions.py:693 support/views/subscriptions.py:817
+#: support/views/subscriptions.py:508 support/views/subscriptions.py:597
+#: support/views/subscriptions.py:701 support/views/subscriptions.py:825
 msgid "WARNING: This subscription already has an end date"
 msgstr "ADVERTENCIA: Esta suscripción ya tiene una fecha final"
 
-#: support/views/subscriptions.py:828
+#: support/views/subscriptions.py:836
 msgid "Book additional product"
 msgstr "Reservar producto adicional"
 
@@ -7546,13 +7673,17 @@ msgstr "Simple"
 msgid "Detailed"
 msgstr "Detallado"
 
-#: templates/components/sidebar_items/_support.html:36
+#: templates/components/sidebar_items/_support.html:37
 msgid "Contact filters"
 msgstr "Filtros de contacto"
 
-#: templates/components/sidebar_items/_support.html:56
+#: templates/components/sidebar_items/_support.html:57
 msgid "Subscription end dates"
 msgstr "Fechas de finalización de suscripción"
+
+#: templates/components/sidebar_items/_support.html:64
+msgid "Tag analysis"
+msgstr "Análisis de etiquetas"
 
 #: tests/test_contact.py:109
 #, python-brace-format
@@ -7854,3 +7985,13 @@ msgstr "La contraseña debe contener al menos 1 letra minúscula, a-z."
 #: validators.py:45
 msgid "Your password must contain at least 1 lowercase letter, a-z."
 msgstr "Tu contraseña debe contener al menos 1 letra minúscula, a-z."
+
+#~ msgid ""
+#~ "Choose a CSV file to check for existing contacts. The file should have at "
+#~ "least the following columns"
+#~ msgstr ""
+#~ "Elija un archivo CSV para verificar contactos existentes. El archivo debe "
+#~ "tener al menos las siguientes columnas"
+
+#~ msgid "Matching Email"
+#~ msgstr "Coincidencias de correo electrónico"
