@@ -8,6 +8,7 @@ from .contacts import (  # noqa
     ImportContactsView,
     contact_invoices_htmx,
     CheckForExistingContactsView,
+    TagAnalysisView,
 )
 from .scheduled_tasks import (  # noqa
     new_scheduled_task_address_change,
