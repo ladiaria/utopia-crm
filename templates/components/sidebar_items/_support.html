@@ -6,6 +6,7 @@
 {% url "list_routes_detailed" as list_routes_detailed %}
 {% url "scheduled_task_filter" as scheduled_task_filter %}
 {% url "subscription_end_date_list" as subscription_end_date_list %}
+{% url "tag_analysis" as tag_analysis %}
 <li class="nav-item has-treeview">
   <a href="#" class="nav-link">
     <i class="nav-icon fas fa-headset"></i>
@@ -54,6 +55,13 @@
          class="nav-link {% if request.path == subscription_end_date_list %}active{% endif %}">
         <i class="nav-icon fas fa-calendar"></i>
         <p>{% trans "Subscription end dates" %}</p>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a href="{{ tag_analysis }}"
+         class="nav-link {% if request.path == tag_analysis %}active{% endif %}">
+        <i class="nav-icon fas fa-calendar"></i>
+        <p>{% trans "Tag analysis" %}</p>
       </a>
     </li>
     {% include_if_exists "support_sidebar_extra.html" %}

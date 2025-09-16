@@ -5,7 +5,7 @@ from datetime import date
 
 from django.conf import settings
 from django.db import transaction
-from django.db.models import Q, Prefetch, Case, When, Value, BooleanField, Count
+from django.db.models import Q, Prefetch, Case, When, Value, BooleanField, Count, Exists, OuterRef
 from django.views.generic import UpdateView, CreateView, DetailView, ListView, FormView
 from django.forms import ModelMultipleChoiceField, CheckboxSelectMultiple
 from django.utils.decorators import method_decorator
@@ -28,6 +28,7 @@ from core.models import (
     Country,
     Address,
     Subscription,
+    ContactCampaignStatus,
 )
 from core.filters import ContactFilter
 from core.forms import ContactAdminForm
@@ -37,6 +38,7 @@ from core.utils import get_mailtrain_lists, detect_csv_delimiter
 from support.forms import ImportContactsForm, CheckForExistingContactsForm
 
 from invoicing.models import Invoice, CreditNote
+from taggit.models import Tag
 
 
 @method_decorator(staff_member_required, name="dispatch")
@@ -710,3 +712,94 @@ class CheckForExistingContactsView(BreadcrumbsMixin, FormView):
         context['active_campaigns'] = active_campaigns
 
         return self.render_to_response(context)
+
+
+@method_decorator(staff_member_required, name="dispatch")
+class TagAnalysisView(BreadcrumbsMixin, ListView):
+    """
+    View to analyze taggit tags used by contacts.
+    Shows statistics for each tag including:
+    - Total contacts with this tag
+    - Contacts in campaigns (any campaign)
+    - Contacts in active campaigns
+    """
+    model = Tag
+    template_name = "tag_analysis.html"
+    context_object_name = "tags"
+    paginate_by = 50
+    page_kwarg = "p"
+
+    def breadcrumbs(self):
+        return [
+            {"label": _("Contact list"), "url": reverse("contact_list")},
+            {"label": _("Tag Analysis"), "url": ""},
+        ]
+
+    def get_queryset(self):
+        """
+        Get all tags used by contacts with statistics annotations.
+        """
+        # Get tags that are used by contacts with statistics
+        queryset = Tag.objects.filter(
+            taggit_taggeditem_items__content_type__model='contact'
+        ).annotate(
+            # Total contacts with this tag
+            total_contacts=Count(
+                'taggit_taggeditem_items__object_id',
+                filter=Q(taggit_taggeditem_items__content_type__model='contact'),
+                distinct=True
+            ),
+            # Contacts in any campaign - using EXISTS subquery
+            contacts_in_campaigns=Count(
+                'taggit_taggeditem_items__object_id',
+                filter=Q(
+                    taggit_taggeditem_items__content_type__model='contact'
+                ) & Q(
+                    Exists(
+                        ContactCampaignStatus.objects.filter(
+                            contact_id=OuterRef('taggit_taggeditem_items__object_id')
+                        )
+                    )
+                ),
+                distinct=True
+            ),
+            # Contacts in active campaigns - using EXISTS subquery
+            contacts_in_active_campaigns=Count(
+                'taggit_taggeditem_items__object_id',
+                filter=Q(
+                    taggit_taggeditem_items__content_type__model='contact'
+                ) & Q(
+                    Exists(
+                        ContactCampaignStatus.objects.filter(
+                            contact_id=OuterRef('taggit_taggeditem_items__object_id'),
+                            campaign__active=True
+                        )
+                    )
+                ),
+                distinct=True
+            )
+        ).filter(
+            total_contacts__gt=0  # Only show tags that have contacts
+        ).order_by('-total_contacts', 'name')
+
+        # Apply name filter if provided
+        name_filter = self.request.GET.get('name')
+        if name_filter:
+            queryset = queryset.filter(name__icontains=name_filter)
+
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['name_filter'] = self.request.GET.get('name', '')
+
+        # Add summary statistics
+        total_tags = self.get_queryset().count()
+        total_contacts_with_tags = Contact.objects.filter(tags__isnull=False).distinct().count()
+
+        context.update({
+            'total_tags': total_tags,
+            'total_contacts_with_tags': total_contacts_with_tags,
+        })
+
+        return context
