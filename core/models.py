@@ -1102,9 +1102,30 @@ class Contact(models.Model):
             return last_subscription.get_renewal_type_display()
         return None
 
-    def get_last_subscription_end_date(self):
-        last_subscription = self.get_last_subscription()
-        if last_subscription:
+    def get_last_subscription_end_date(self, include_cancelled=False, include_unsubscribed=False):
+        """
+        Get the end date of the last subscription.
+        
+        Args:
+            include_cancelled: Whether to include cancelled subscriptions
+            include_unsubscribed: Whether to include unsubscribed subscriptions
+            
+        Returns:
+            Date object or None
+        """
+        queryset = self.subscriptions.all()
+        
+        if not include_cancelled:
+            # Filter out cancelled subscriptions by checking if their invoices are cancelled
+            queryset = queryset.filter(invoice__canceled=False)
+        
+        if not include_unsubscribed:
+            # Filter out unsubscribed subscriptions
+            queryset = queryset.filter(unsubscription_date__isnull=True)
+        
+        last_subscription = queryset.order_by("-start_date").first()
+        
+        if last_subscription and last_subscription.end_date:
             return last_subscription.end_date
         return None
 
