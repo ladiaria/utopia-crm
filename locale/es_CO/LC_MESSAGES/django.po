@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-09-16 16:49-0300\n"
-"PO-Revision-Date: 2025-09-16 16:57-0300\n"
+"POT-Creation-Date: 2025-09-20 18:31-0300\n"
+"PO-Revision-Date: 2025-09-20 18:33-0300\n"
 "Last-Translator: TANYA <tanyatree@gmail.com>\n"
 "Language-Team: \n"
 "Language: es_CO\n"
@@ -140,7 +140,7 @@ msgstr "Bajo"
 #: core/models.py:97 core/models.py:115 core/models.py:210 core/models.py:377
 #: core/models.py:419 core/models.py:1249 core/models.py:2476
 #: core/models.py:2493 core/models.py:3175 core/models.py:3187
-#: core/models.py:3211 core/models.py:3235 invoicing/models.py:446
+#: core/models.py:3211 core/models.py:3235 invoicing/models.py:448
 #: logistics/models.py:23 logistics/models.py:143 logistics/models.py:164
 #: logistics/models.py:204 logistics/templates/assign_routes.html:56
 #: logistics/templates/change_route.html:61
@@ -186,7 +186,7 @@ msgstr "Contacto principal"
 #: advertisement/templates/agency_detail.html:102
 #: advertisement/templates/my_advertisers.html:122
 #: advertisement/templates/my_advertisers.html:151 core/models.py:217
-#: core/models.py:1392 core/models.py:2527 invoicing/models.py:294
+#: core/models.py:1392 core/models.py:2527 invoicing/models.py:296
 #: invoicing/templates/print.html:48 support/models.py:230
 #: support/templates/contact_detail/tabs/_information.html:17
 #: support/templates/contact_detail/tabs/_overview.html:18
@@ -334,7 +334,7 @@ msgstr "Vendedores de anuncios"
 #: community/models.py:23 core/models.py:132 core/models.py:2354
 #: core/models.py:2477 core/models.py:2494 core/models.py:3176
 #: core/models.py:3188 core/models.py:3212 core/models.py:3236
-#: invoicing/models.py:279 invoicing/models.py:448
+#: invoicing/models.py:281 invoicing/models.py:450
 #: invoicing/templates/invoice/invoice_detail.html:220
 #: invoicing/templates/invoice/invoice_detail.html:247 logistics/models.py:25
 #: logistics/models.py:187 logistics/templates/list_routes_detailed.html:46
@@ -439,7 +439,7 @@ msgstr "Precio total"
 #: advertisement/templates/advertisement_activity_create_update.html:60
 #: advertisement/templates/agency_detail.html:140
 #: advertisement/templates/agent_create_update.html:60 core/models.py:466
-#: core/models.py:1187 core/models.py:2523 invoicing/models.py:289
+#: core/models.py:1187 core/models.py:2523 invoicing/models.py:291
 #: logistics/models.py:36 logistics/models.py:167
 #: logistics/templates/issues_per_route.html:63
 #: logistics/templates/route_details.html:137 support/forms.py:249
@@ -491,7 +491,7 @@ msgid "Instant messaging"
 msgstr "Mensajería instantánea"
 
 #: advertisement/models.py:247 core/choices.py:91 core/choices.py:99
-#: invoicing/choices.py:17 invoicing/filters.py:30 invoicing/models.py:161
+#: invoicing/choices.py:17 invoicing/filters.py:30 invoicing/models.py:163
 #: invoicing/templates/invoice/invoice_detail.html:120
 #: invoicing/templates/invoice/invoice_detail.html:152
 #: invoicing/templates/invoice_filter.html:108 support/models.py:577
@@ -1825,7 +1825,7 @@ msgstr "institución"
 msgid "institutions"
 msgstr "instituciones"
 
-#: core/models.py:114 invoicing/models.py:447
+#: core/models.py:114 invoicing/models.py:449
 msgid "Code"
 msgstr "Código"
 
@@ -1891,7 +1891,7 @@ msgid "Both"
 msgstr "Ambos"
 
 #: core/models.py:198 core/models.py:1315 invoicing/models.py:44
-#: invoicing/models.py:276
+#: invoicing/models.py:278
 #: invoicing/templates/bill_subscriptions_for_one_contact.html:65
 #: invoicing/templates/contact_invoices.html:56
 #: invoicing/templates/invoice/invoice_detail.html:52 support/models.py:374
@@ -1909,7 +1909,7 @@ msgstr "Suscripción"
 msgid "Newsletter"
 msgstr "Boletín informativo"
 
-#: core/models.py:200 invoicing/choices.py:7 invoicing/models.py:288
+#: core/models.py:200 invoicing/choices.py:7 invoicing/models.py:290
 #: invoicing/templates/invoice/invoice_detail.html:246
 #: support/templates/sales_record_create.html:40
 #: support/templates/validate_subscription_sales_record.html:39
@@ -2321,7 +2321,7 @@ msgid "addresses"
 msgstr "direcciones"
 
 #: core/models.py:1314 core/models.py:2514 core/models.py:3160
-#: invoicing/models.py:273 invoicing/templates/invoice/invoice_detail.html:219
+#: invoicing/models.py:275 invoicing/templates/invoice/invoice_detail.html:219
 #: invoicing/templates/invoice_non_subscription_form.html:36
 #: logistics/models.py:258 logistics/models.py:276 logistics/models.py:323
 #: logistics/templates/assign_routes.html:27
@@ -2356,7 +2356,7 @@ msgstr "direcciones"
 msgid "Product"
 msgstr "Producto"
 
-#: core/models.py:1316 invoicing/models.py:278
+#: core/models.py:1316 invoicing/models.py:280
 #: invoicing/templates/invoice/invoice_detail.html:223 logistics/models.py:243
 #: logistics/templates/route_details.html:27
 #: support/templates/new_subscription.html:301
@@ -2384,9 +2384,9 @@ msgstr "Copias"
 msgid "Address"
 msgstr "Dirección"
 
-#: core/models.py:1324 logistics/models.py:57 logistics/models.py:169
-#: logistics/models.py:242 logistics/models.py:314 logistics/models.py:324
-#: logistics/templates/assign_routes.html:64
+#: core/models.py:1324 invoicing/models.py:93 logistics/models.py:57
+#: logistics/models.py:169 logistics/models.py:242 logistics/models.py:314
+#: logistics/models.py:324 logistics/templates/assign_routes.html:64
 #: logistics/templates/change_route.html:69
 #: logistics/templates/issues_per_route.html:56
 #: logistics/templates/issues_per_route.html:110
@@ -2398,7 +2398,7 @@ msgstr "Dirección"
 msgid "Route"
 msgstr "Ruta"
 
-#: core/models.py:1327 logistics/models.py:170
+#: core/models.py:1327 invoicing/models.py:94 logistics/models.py:170
 #: logistics/templates/list_routes.html:56
 #: logistics/templates/list_routes_detailed.html:60
 #: logistics/templates/order_route.html:107
@@ -3048,7 +3048,7 @@ msgstr "Este mes"
 msgid "Last month"
 msgstr "Mes anterior"
 
-#: invoicing/filters.py:27 invoicing/models.py:34 invoicing/models.py:157
+#: invoicing/filters.py:27 invoicing/models.py:34 invoicing/models.py:159
 #: invoicing/templates/invoice/invoice_detail.html:116
 #: invoicing/templates/invoice/invoice_detail.html:154
 #: invoicing/templates/invoice_filter.html:108
@@ -3064,19 +3064,19 @@ msgstr "Debitado"
 msgid "Paid or debited"
 msgstr "Pagado o debitado"
 
-#: invoicing/filters.py:31 invoicing/models.py:40 invoicing/models.py:150
+#: invoicing/filters.py:31 invoicing/models.py:40 invoicing/models.py:152
 #: invoicing/templates/invoice/invoice_detail.html:146
 #: invoicing/templates/invoice_filter.html:108
 msgid "Canceled"
 msgstr "Anulado"
 
-#: invoicing/filters.py:32 invoicing/models.py:42 invoicing/models.py:152
+#: invoicing/filters.py:32 invoicing/models.py:42 invoicing/models.py:154
 #: invoicing/templates/invoice/invoice_detail.html:148
 #: invoicing/templates/invoice_filter.html:108
 msgid "Uncollectible"
 msgstr "Incobrable"
 
-#: invoicing/filters.py:33 invoicing/models.py:159
+#: invoicing/filters.py:33 invoicing/models.py:161
 #: invoicing/templates/invoice/invoice_detail.html:150
 #: invoicing/templates/invoice_filter.html:108
 msgid "Overdue"
@@ -3102,7 +3102,7 @@ msgstr "Servicio desde"
 msgid "Service To"
 msgstr "Servicio hasta"
 
-#: invoicing/models.py:25 invoicing/models.py:400
+#: invoicing/models.py:25 invoicing/models.py:402
 #: invoicing/templates/contact_invoices.html:61
 #: invoicing/templates/contact_invoices.html:102
 #: invoicing/templates/invoice/invoice_detail.html:68
@@ -3134,11 +3134,11 @@ msgstr "Fecha de anulación"
 msgid "Print date"
 msgstr "Fecha de impresión"
 
-#: invoicing/models.py:48 invoicing/models.py:398 invoicing/views.py:290
+#: invoicing/models.py:48 invoicing/models.py:400 invoicing/views.py:290
 msgid "Serie"
 msgstr "Serie"
 
-#: invoicing/models.py:49 invoicing/models.py:399
+#: invoicing/models.py:49 invoicing/models.py:401
 #: invoicing/templates/invoice_filter.html:82 invoicing/views.py:291
 #: logistics/models.py:22
 msgid "Number"
@@ -3164,7 +3164,27 @@ msgstr "Ciudad de facturación"
 msgid "Billing Identifcation Document"
 msgstr "Documento de identificación de facturación"
 
-#: invoicing/models.py:122 invoicing/models.py:268 invoicing/models.py:396
+#: invoicing/models.py:95
+msgid "Fiscal Invoice Code"
+msgstr "Número de factura (Siigo)"
+
+#: invoicing/models.py:96
+msgid "Internal Provider Text"
+msgstr "Texto de uso interno"
+
+#: invoicing/models.py:103 invoicing/models.py:456
+msgid "Transaction Type"
+msgstr "Tipo de transacción"
+
+#: invoicing/models.py:105
+msgid "Transaction Number"
+msgstr "Número de transacción"
+
+#: invoicing/models.py:107
+msgid "Consecutive Payment"
+msgstr "Consecutivo"
+
+#: invoicing/models.py:124 invoicing/models.py:270 invoicing/models.py:398
 #: invoicing/templates/contact_invoices.html:55
 #: invoicing/templates/contact_invoices.html:97
 #: support/templates/contact_detail/htmx/_invoices_htmx.html:5
@@ -3172,72 +3192,68 @@ msgstr "Documento de identificación de facturación"
 msgid "Invoice"
 msgstr "Factura"
 
-#: invoicing/models.py:155
+#: invoicing/models.py:157
 #, python-brace-format
 msgid "Paid on {}"
 msgstr "Pagado el {}"
 
-#: invoicing/models.py:165
+#: invoicing/models.py:167
 msgid "Unspecified payment method"
 msgstr "Método de pago no especificado"
 
-#: invoicing/models.py:244
+#: invoicing/models.py:246
 msgid "invoice"
 msgstr "factura"
 
-#: invoicing/models.py:245 invoicing/templates/invoice_filter.html:91
+#: invoicing/models.py:247 invoicing/templates/invoice_filter.html:91
 msgid "invoices"
 msgstr "facturas"
 
-#: invoicing/models.py:270
+#: invoicing/models.py:272
 msgid "Total amount"
 msgstr "Monto total"
 
-#: invoicing/models.py:285 invoicing/models.py:286 logistics/models.py:41
+#: invoicing/models.py:287 invoicing/models.py:288 logistics/models.py:41
 msgid "Price per copy"
 msgstr "Precio por copia"
 
-#: invoicing/models.py:290 invoicing/templates/contact_invoices.html:57
+#: invoicing/models.py:292 invoicing/templates/contact_invoices.html:57
 #: invoicing/templates/invoice_filter.html:125 invoicing/views.py:286
 #: support/templates/contact_detail/htmx/_invoices_htmx.html:7
 msgid "Service from"
 msgstr "Serivio desde"
 
-#: invoicing/models.py:291 invoicing/templates/contact_invoices.html:58
+#: invoicing/models.py:293 invoicing/templates/contact_invoices.html:58
 #: invoicing/templates/invoice_filter.html:126 invoicing/views.py:287
 #: support/templates/contact_detail/htmx/_invoices_htmx.html:8
 msgid "Service to"
 msgstr "Serivio hasta"
 
-#: invoicing/models.py:301
+#: invoicing/models.py:303
 msgid "Type Discount/Surcharge"
 msgstr "Tipo descuento/recarga"
 
-#: invoicing/models.py:308
+#: invoicing/models.py:310
 msgid "Invoice item"
 msgstr "Item de factura"
 
-#: invoicing/models.py:309
+#: invoicing/models.py:311
 msgid "Invoice items"
 msgstr "Items de factura"
 
-#: invoicing/models.py:407
+#: invoicing/models.py:409
 msgid "credit notes"
 msgstr "notas de crédito"
 
-#: invoicing/models.py:408
+#: invoicing/models.py:410
 msgid "credit note"
 msgstr "nota de crédito"
 
-#: invoicing/models.py:441 invoicing/models.py:442
+#: invoicing/models.py:443 invoicing/models.py:444
 msgid "Mercado Pago Data"
 msgstr "Datos de MercadoPago"
 
-#: invoicing/models.py:454
-msgid "Transaction Type"
-msgstr "Tipo de transacción"
-
-#: invoicing/models.py:455
+#: invoicing/models.py:457
 msgid "Transaction Types"
 msgstr "Tipos de transacción"
 
