@@ -90,19 +90,21 @@ class Invoice(models.Model):
     billing_name = models.CharField(max_length=255, verbose_name=_("Billing Name"), null=True, blank=True)
 
     # Fields for logistics
-    route = models.PositiveIntegerField(blank=True, null=True)
-    order = models.PositiveIntegerField(blank=True, null=True)
-    fiscal_invoice_code = models.CharField(max_length=50, blank=True, null=True)
-    internal_provider_text = models.TextField(blank=True, null=True)
+    route = models.PositiveIntegerField(blank=True, null=True, verbose_name=_("Route"))
+    order = models.PositiveIntegerField(blank=True, null=True, verbose_name=_("Order"))
+    fiscal_invoice_code = models.CharField(max_length=50, blank=True, null=True, verbose_name=_("Fiscal Invoice Code"))
+    internal_provider_text = models.TextField(blank=True, null=True, verbose_name=_("Internal Provider Text"))
 
     transaction_type = models.ForeignKey(
         "invoicing.TransactionType",
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
+        verbose_name=_("Transaction Type"),
     )
+    transaction_number = models.CharField(verbose_name=_("Transaction Number"), max_length=50, blank=True, null=True)
 
-    consecutive_payment = models.PositiveIntegerField(blank=True, null=True)
+    consecutive_payment = models.PositiveIntegerField(verbose_name=_("Consecutive Payment"), blank=True, null=True)
 
     billing = models.ForeignKey("invoicing.Billing", blank=True, null=True, on_delete=models.SET_NULL)
     history = HistoricalRecords()
