@@ -5886,11 +5886,11 @@ msgstr "Newsletters y comunicaciones"
 
 #: support/templates/create_contact/tabs/_data.html:32
 msgid "Enter a valid local or international phone number"
-msgstr "Ingrese un número de teléfono local o internacional válido"
+msgstr "Ingrese un número válido. Para Colombia no es necesario el código +57, pero para números de otros países sí debe incluirse (ej: +1 212 5551234)."
 
 #: support/templates/create_contact/tabs/_data.html:39
 msgid "Enter a valid local or international mobile number"
-msgstr "Ingrese un celular local o internacional válido"
+msgstr "Ingrese un número válido. Para Colombia no es necesario el código +57, pero para números de otros países sí debe incluirse (ej: +1 212 5551234)."
 
 #: support/templates/create_contact/tabs/_data.html:46
 msgid ""
