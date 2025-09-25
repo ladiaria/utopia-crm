@@ -1,4 +1,5 @@
 from datetime import date, timedelta
+import urllib3
 import collections
 from functools import wraps
 import json
@@ -590,6 +591,7 @@ def cms_rest_api_kwargs(api_key, data=None, send_as_json=False):
     }
     if not getattr(settings, "WEB_UPDATE_USER_VERIFY_SSL", True):
         result["verify"] = False
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
     if data:
         # TODO: Check out if this is needed or a better logic needs to be implemented. This had to be added because
         # some API endpoints expect the data to be sent as JSON, but others still expect it to be sent as form data.
