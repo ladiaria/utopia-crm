@@ -35,6 +35,7 @@ from core.models import (
     SubscriptionProduct,
 )
 from core.utils import logistics_is_installed
+from core.choices import ACTIVITY_STATUS
 from support.filters import (
     SubscriptionEndDateFilter,
     UnsubscribedSubscriptionsByEndDateFilter,
@@ -938,7 +939,7 @@ def send_promo(request, contact_id):
 
                 if request.GET.get("act", None):
                     # the instance is somehow an activity and we needed to send a promo again, or has been scheduled
-                    activity.status = "C"  # completed activity
+                    activity.status = ACTIVITY_STATUS.COMPLETED  # completed activity
                     activity.save()
                     ccs.campaign_resolution = "SP"
                     ccs.status = 2  # Contacted this person
