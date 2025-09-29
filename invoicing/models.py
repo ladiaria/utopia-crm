@@ -109,6 +109,9 @@ class Invoice(models.Model):
     billing = models.ForeignKey("invoicing.Billing", blank=True, null=True, on_delete=models.SET_NULL)
     history = HistoricalRecords()
 
+    created_at = models.DateTimeField(verbose_name=_("Created at"), auto_now_add=True, null=True, blank=True)
+    updated_at = models.DateTimeField(verbose_name=_("Updated at"), auto_now=True, null=True, blank=True)
+
     old_pk = models.PositiveIntegerField(blank=True, null=True)
 
     def save(self, *args, **kwargs):
@@ -401,8 +404,8 @@ class CreditNote(models.Model):
     numero = models.PositiveIntegerField(editable=False, blank=True, null=True, verbose_name=_("Number"))
     amount = models.PositiveIntegerField(blank=True, null=True, verbose_name=_("Amount"))
     old_pk = models.PositiveIntegerField(blank=True, null=True)
-    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
-    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
+    created_at = models.DateTimeField(verbose_name=_("Created at"), auto_now_add=True, null=True, blank=True)
+    updated_at = models.DateTimeField(verbose_name=_("Updated at"), auto_now=True, null=True, blank=True)
     history = HistoricalRecords()
 
     class Meta:
