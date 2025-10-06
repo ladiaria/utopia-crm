@@ -17,7 +17,7 @@ from django.forms import ValidationError
 from community.models import ProductParticipation, Supporter
 from invoicing.models import Invoice
 from support.models import Issue
-from .utils import logistics_is_installed, mercadopago_sdk
+from .utils import logistics_is_installed, mercadopago_sdk, api_log_entry
 from .models import (
     Subscription,
     IdDocumentType,
@@ -464,11 +464,22 @@ def mp_product_sync(obj, disable_mp_plan=False):
             if not obj.mercadopago_id:
                 # we only can disable plans already linked to a product in CRM
                 return
+            update_data = {"status": "inactive"}
             try:
-                sdk.plan().update(obj.mercadopago_id, {"status": "inactive"})
+                mp_response = sdk.plan().update(obj.mercadopago_id, update_data)
             except Exception as e:
                 # TODO: spanish translation = "No se pudo deshabilitar el producto en MercadoPago"
                 raise Exception(_("Failed to disable product in MercadoPago") + f": {e}")
+            else:
+                api_log_entry(
+                    "mercadopago",
+                    "plan",
+                    "update",
+                    [obj.mercadopago_id, update_data],
+                    mp_response,
+                    "utopia-crm.core.admin.mp_product_sync",
+                    "disable plan",
+                )
         else:
             try:
                 mp_data, mp_response = build_mp_plan_data(obj, app_id), ""
@@ -478,8 +489,26 @@ def mp_product_sync(obj, disable_mp_plan=False):
                     mp_response = sdk.plan().create(mp_data)
                     obj.mercadopago_id = mp_response["response"]["id"]
                     obj.save()
+                    api_log_entry(
+                        "mercadopago",
+                        "plan",
+                        "create",
+                        mp_data,
+                        mp_response,
+                        "utopia-crm.core.admin.mp_product_sync",
+                        "create plan",
+                    )
                 else:
                     mp_response = sdk.plan().update(obj.mercadopago_id, mp_data)
+                    api_log_entry(
+                        "mercadopago",
+                        "plan",
+                        "update",
+                        [obj.mercadopago_id, mp_data],
+                        mp_response,
+                        "utopia-crm.core.admin.mp_product_sync",
+                        "update plan",
+                    )
             except Exception as e:
                 if settings.DEBUG:
                     print(f"mp_product_sync error: {e}")
