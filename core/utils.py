@@ -867,3 +867,24 @@ def mercadopago_sdk(subscriptions_integration=True):
                 app_id = app_id if app_id.isdigit() else None
     sdk = mercadopago.SDK(mp_access_token) if mp_access_token else None
     return (sdk, app_id) if subscriptions_integration else (sdk, mp_access_token)
+
+
+def api_log_entry(api_id, service_id, operation_id, request_data, response_data):
+    """
+    Generic logger to register API transactions.
+    We'll use a logger where each line will be a json object with the given information plus the timestamp.
+    """
+    # Get the logger for API transactions
+    logger = logging.getLogger('utopia_crm.api_log')
+
+    # Create the log entry as a JSON object
+    log_entry = {
+        'api_id': api_id,
+        'service_id': service_id,
+        'operation_id': operation_id,
+        'request_data': request_data,
+        'response_data': response_data,
+    }
+
+    # Log the JSON object as a single line
+    logger.info(json.dumps(log_entry, ensure_ascii=False))
