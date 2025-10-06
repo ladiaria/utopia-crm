@@ -1,3 +1,4 @@
+import json
 from rest_framework import serializers, viewsets, routers, response, status
 
 from django.conf import settings
@@ -65,8 +66,8 @@ class ApiLogEntryViewSet(viewsets.ViewSet):
                 api_id=data['api_id'],
                 service_id=data['service_id'],
                 operation_id=data['operation_id'],
-                request_data=data['request_data'],
-                response_data=data['response_data'],
+                request_data=json.loads(data['request_data']),
+                response_data=json.loads(data['response_data']),
                 caller_id=data.get('caller_id'),
                 caller_detail=data.get('caller_detail'),
             )
