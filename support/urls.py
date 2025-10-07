@@ -239,6 +239,7 @@ urlpatterns = [
         views.CheckForExistingContactsView.as_view(),
         name="check_for_existing_contacts",
     ),
+    path("tag_analysis/", views.TagAnalysisView.as_view(), name="tag_analysis"),
     path(
         "last_read_articles/<int:contact_id>/",
         views.last_read_articles,
