@@ -535,7 +535,7 @@ class ProductAdmin(admin.ModelAdmin):
     # TODO: spanish translation = "No se pudo actualizar el producto en MercadoPago"
     no_mp_sync_msg_prefix = _("The product could not be updated in MercadoPago") + ": "
     actions = None
-    list_display_links = ("name",)
+    list_display_links = ("id",)
 
     def delete_model(self, request, obj):
         print("delete_model", obj)
