@@ -443,7 +443,7 @@ class ImportContactsView(FormView):
 
         return results
 
-    def parse_row(self, row, use_headers=False):
+    def parse_row(self, row, use_headers=True):
         # TODO: Allow this to be configured through the settings or the UI
         if use_headers:
             return {
@@ -482,7 +482,19 @@ class ImportContactsView(FormView):
 
     @transaction.atomic
     def process_contact(self, contact_data, tags, results):
-        matches = self.find_matching_contacts_by_email(contact_data['email'])
+        email = contact_data.get('email')
+        phone = contact_data.get('phone')
+        
+        # Try to match by email first
+        matches = self.find_matching_contacts_by_email(email) if email else Contact.objects.none()
+        
+        # If no email match, try to match by phone
+        if not matches.exists() and phone:
+            matches = self.find_matching_contacts_by_phone(phone)
+            if matches.exists():
+                # Matched by phone - update email if contact doesn't have one
+                self.update_existing_contacts(matches, contact_data, tags, results, matched_by_phone=True)
+                return
 
         if matches.exists():
             self.update_existing_contacts(matches, contact_data, tags, results)
@@ -491,12 +503,23 @@ class ImportContactsView(FormView):
 
     def find_matching_contacts_by_email(self, email):
         return Contact.objects.filter(email=email)
+    
+    def find_matching_contacts_by_phone(self, phone):
+        return Contact.objects.filter(phone=phone) | Contact.objects.filter(mobile=phone)
 
-    def update_existing_contacts(self, matches, contact_data, tags, results):
+    def update_existing_contacts(self, matches, contact_data, tags, results, matched_by_phone=False):
         for contact in matches:
             self.categorize_contact(contact, tags, results)
             if matches.count() == 1:
-                self.update_contact_phone(contact, contact_data, results)
+                # Update email if matched by phone and contact doesn't have an email
+                if matched_by_phone and not contact.email:
+                    email_from_csv = contact_data.get('email')
+                    if email_from_csv:
+                        contact.email = email_from_csv
+                        contact.save()
+                        results['added_emails'] += 1
+                else:
+                    self.update_contact_phone(contact, contact_data, results)
 
     def categorize_contact(self, contact, tags, results):
         if contact.contactcampaignstatus_set.filter(campaign__active=True).exists():
@@ -510,17 +533,21 @@ class ImportContactsView(FormView):
             self.add_tags(contact, tags['tags_existing'])
 
     def update_contact_phone(self, contact, contact_data, results):
+        phone_from_csv = contact_data.get('phone', '')
+        if not phone_from_csv:
+            return  # No phone to update
+        
         try:
-            # If phone already exists, update the mobile field, else update the phone field
-            if contact.phone is not None:
-                setattr(contact, 'mobile', contact_data['phone'])
+            # If phone already exists and is not empty, update the mobile field, else update the phone field
+            if contact.phone:
+                setattr(contact, 'mobile', phone_from_csv)
             else:
-                setattr(contact, 'phone', contact_data['phone'])
+                setattr(contact, 'phone', phone_from_csv)
             contact.save()
             results['added_phones'] += 1
         except Exception as e:
             results['errors'].append(
-                f"Could not add phone {contact_data['phone']} to contact {contact.id}: {e}"
+                f"Could not add phone {phone_from_csv} to contact {contact.id}: {e}"
             )
 
     def create_new_contact(self, contact_data, tags, results):
@@ -550,9 +577,9 @@ class ImportContactsView(FormView):
 
     def add_tags(self, contact, tag_list):
         tag_list = [tag for tag in tag_list if isinstance(tag, str) and tag.strip()]
-        if not tag_list and not contact.tags.exists():
+        if not tag_list:
             return
-        contact.tags.set(tag_list)
+        contact.tags.add(*tag_list)
 
     def display_messages(self, results):
         messages.success(self.request, f"{len(results['new_contacts'])} contacts imported successfully")

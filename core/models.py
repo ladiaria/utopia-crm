@@ -3094,7 +3094,14 @@ def update_web_user(contact, target_email=None, newsletter_data=None, area_newsl
                 field = ("area_" if area_newsletters else "") + "newsletters"
                 fields_to_update.update({field: newsletter_data})
 
-            contact_prev = contact.history.latest().get_previous_by_history_date() if method == "PUT" else None
+            # Get previous contact history if available (may not exist for newly created contacts)
+            contact_prev = None
+            if method == "PUT":
+                try:
+                    contact_prev = contact.history.latest().get_previous_by_history_date()
+                except (contact.history.model.DoesNotExist, AttributeError):
+                    # No history exists yet (new contact) or no previous history
+                    contact_prev = None
             # TODO: change this 1-field-per-request approach to a new 1-request-only approach with all chanmges
             # NOTE: name and last_name are considered to allways be in the setting, even if not.
             for f in getattr(settings, "WEB_UPDATE_USER_CHECKED_FIELDS", []):
