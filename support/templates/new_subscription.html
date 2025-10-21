@@ -72,7 +72,8 @@
       const resultInput = document.getElementById('resultValue');
 
       if (submitButton && form && resultInput) {
-        submitButton.addEventListener('click', function(e) {
+        // Listen to form submit event instead of button click to allow HTML5 validation
+        form.addEventListener('submit', function(e) {
           if (submitted) {
             e.preventDefault();
             return;
@@ -83,7 +84,7 @@
           resultInput.value = submitButton.dataset.result || 'send';
 
           submitButton.disabled = true;
-          form.submit();
+          // Don't call form.submit() - let the natural submit happen
         });
       }
 

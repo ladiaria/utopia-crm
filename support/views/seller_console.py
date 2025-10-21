@@ -50,7 +50,7 @@ def seller_console_special_routes(request, route_id):
             seller=seller,
             route=route,
             subscription__active=True,
-            subscription__start_date__lte=datetime.now() - timedelta(45)
+            subscription__start_date__gte=datetime.now() - timedelta(days=45)
         ).order_by("subscription__contact__id")
     if subprods.count() == 0:
         messages.error(request, _("There are no contacts in that route for this seller."))
@@ -108,14 +108,9 @@ def seller_console_list_campaigns(request, seller_id=None):
     if getattr(settings, "ISSUE_SUBCATEGORY_NEVER_PAID", None) and getattr(
         settings, "ISSUE_STATUS_FINISHED_LIST", None
     ):
-        # issue t935: Only show issues with subscriptions that are less than one month old
-        # Consider creating a setting for this if other apps need to use a different time frame
         issues_never_paid = Issue.objects.filter(
             sub_category__slug=getattr(settings, "ISSUE_SUBCATEGORY_NEVER_PAID", ""),
             assigned_to=user,
-            # Only include subscriptions started in the last 45 days (today included).
-            # i.e. start_date must be >= (today - 45 days), so anything older is excluded.
-            subscription__start_date__gte=datetime.now() - timedelta(days=45),
         ).exclude(status__slug__in=getattr(settings, "ISSUE_STATUS_FINISHED_LIST", []))
     else:
         issues_never_paid = []
@@ -468,37 +463,37 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
     def get_phone_duplicates_info(self, contact):
         """
         Get information about other contacts with the same phone number.
-        
+
         Args:
             contact (Contact): The current contact to check for duplicates
-            
+
         Returns:
             dict: Dictionary with 'count' (int) and 'contacts' (QuerySet) keys
         """
         from django.db.models import Q
-        
+
         # Build query to find contacts with matching phone or mobile numbers
         phone_query = Q()
-        
+
         # Check if contact has a phone number and add to query
         if contact.phone and str(contact.phone).strip():
             phone_query |= Q(phone=contact.phone) | Q(mobile=contact.phone)
-            
+
         # Check if contact has a mobile number and add to query
         if contact.mobile and str(contact.mobile).strip():
             phone_query |= Q(phone=contact.mobile) | Q(mobile=contact.mobile)
-        
+
         # If no phone numbers to check, return empty result
         if not phone_query:
             return {'count': 0, 'contacts': Contact.objects.none()}
-        
+
         # Find other contacts with matching phone numbers (exclude current contact)
         duplicate_contacts = Contact.objects.filter(phone_query).exclude(id=contact.id).select_related(
             'subtype', 'institution'
         ).order_by('name', 'last_name')
-        
+
         count = duplicate_contacts.count()
-        
+
         return {
             'count': count,
             'contacts': duplicate_contacts
