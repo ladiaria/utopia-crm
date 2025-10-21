@@ -1,78 +1,141 @@
 {% load i18n %}
 <div class="row">
   <div class="card col-sm-12">
-    <div class="card-header">
-      <h3 class="card-title">{% trans "Campaigns" %}</h3>
+    <div class="card-header bg-primary text-white">
+      <h3 class="card-title mb-0">
+        <i class="fas fa-bullhorn mr-2"></i>{% trans "Campaigns" %}
+      </h3>
     </div>
     <div class="card-body">
       {% if all_campaigns %}
         {% for c in all_campaigns %}
-          <div class="card">
-            <div class="card-header">
-              <h3 class="card-title">
-                {{ c.campaign.name }}
+          <div class="card mb-3 shadow-sm">
+            <div class="card-header bg-light">
+              <div class="d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">
+                  <i class="fas fa-campaign mr-2 text-primary"></i>
+                  <strong>{{ c.campaign.name }}</strong>
+                </h4>
                 {% if c.campaign.start_date %}
-                  ({{ c.campaign.start_date }} -
-                  {{ c.campaign.end_date|default_if_none:"-" }})
+                  <span class="text-muted">
+                    <i class="far fa-calendar-alt mr-1"></i>
+                    {{ c.campaign.start_date }} - {{ c.campaign.end_date|default_if_none:"-" }}
+                  </span>
                 {% endif %}
-              </h3>
+              </div>
             </div>
             <div class="card-body">
-              <div class="row">
-                <div class="col-4">
-                  <dt>{% trans "Seller" %}:</dt>
-                  <dd>
-                    {{ c.seller }}
-                  </dd>
+              <!-- Primary Information Row -->
+              <div class="row mb-3">
+                <div class="col-md-4">
+                  <div class="info-box bg-light p-3 h-100">
+                    <p class="mb-1">
+                      <strong><i class="fas fa-user-tie mr-1 text-primary"></i> {% trans "Seller" %}:</strong>
+                    </p>
+                    <p class="mb-0 ml-4">
+                      {% if c.seller %}
+                        <span class="badge badge-info">{{ c.seller }}</span>
+                      {% else %}
+                        <span class="text-muted">{% trans "Not assigned" %}</span>
+                      {% endif %}
+                    </p>
+                  </div>
                 </div>
-                <div class="col-4">
-                  <dt>{% trans "Date of last action" %}:</dt>
-                  <dd>
-                    {{ c.last_action_date }}
-                  </dd>
+                <div class="col-md-4">
+                  <div class="info-box bg-light p-3 h-100">
+                    <p class="mb-1">
+                      <strong><i class="fas fa-clock mr-1 text-primary"></i> {% trans "Date of last action" %}:</strong>
+                    </p>
+                    <p class="mb-0 ml-4">
+                      {% if c.last_action_date %}
+                        {{ c.last_action_date }}
+                      {% else %}
+                        <span class="text-muted">-</span>
+                      {% endif %}
+                    </p>
+                  </div>
                 </div>
-                <div class="col-4">
-                  <dt>{% trans "Status" %}:</dt>
-                  <dd>
-                    {{ c.get_status_display }}
-                  </dd>
+                <div class="col-md-4">
+                  <div class="info-box bg-light p-3 h-100">
+                    <p class="mb-1">
+                      <strong><i class="fas fa-flag mr-1 text-primary"></i> {% trans "Status" %}:</strong>
+                    </p>
+                    <p class="mb-0 ml-4">
+                      {% if c.status == 1 %}
+                        <span class="badge badge-warning">{{ c.get_status_display }}</span>
+                      {% elif c.status == 2 %}
+                        <span class="badge badge-info">{{ c.get_status_display }}</span>
+                      {% elif c.status == 3 %}
+                        <span class="badge badge-secondary">{{ c.get_status_display }}</span>
+                      {% elif c.status == 4 %}
+                        <span class="badge badge-success">{{ c.get_status_display }}</span>
+                      {% elif c.status == 5 %}
+                        <span class="badge badge-danger">{{ c.get_status_display }}</span>
+                      {% else %}
+                        <span class="badge badge-light">{{ c.get_status_display }}</span>
+                      {% endif %}
+                    </p>
+                  </div>
                 </div>
               </div>
+
+              <!-- Secondary Information Row -->
               <div class="row">
-                <div class="col-3">
-                  <dt>{% trans "Assigned to Campaign" %}:</dt>
-                  <dd>
-                    {{ c.date_created }}
-                  </dd>
+                <div class="col-md-6">
+                  <p class="mb-2">
+                    <i class="fas fa-plus-circle mr-1 text-success"></i>
+                    <strong>{% trans "Assigned to Campaign" %}:</strong>
+                    <span class="ml-2">{{ c.date_created|default_if_none:"-" }}</span>
+                  </p>
                 </div>
-                <div class="col-3">
-                  <dt>{% trans "Assigned to Seller" %}:</dt>
-                  <dd>
-                    {{ c.date_assigned }}
-                  </dd>
+                <div class="col-md-6">
+                  <p class="mb-2">
+                    <i class="fas fa-user-check mr-1 text-info"></i>
+                    <strong>{% trans "Assigned to Seller" %}:</strong>
+                    <span class="ml-2">{{ c.date_assigned|default_if_none:"-" }}</span>
+                  </p>
                 </div>
                 {% if c.campaign_resolution %}
-                  <div class="col-3">
-                    <dt>{% trans "Resolution" %}:</dt>
-                    <dd>
-                      {{ c.get_campaign_resolution_display }}
-                    </dd>
+                  <div class="col-md-6">
+                    <p class="mb-2">
+                      <i class="fas fa-check-circle mr-1 text-success"></i>
+                      <strong>{% trans "Resolution" %}:</strong>
+                      <span class="ml-2">
+                        <span class="badge badge-success">{{ c.get_campaign_resolution_display }}</span>
+                      </span>
+                    </p>
                   </div>
                   {% if c.resolution_reason %}
-                    <div class="col-3">
-                      <dt>{% trans "Reason" %}:</dt>
-                      <dd>
-                        {{ c.get_resolution_reason_display }}
-                      </dd>
+                    <div class="col-md-6">
+                      <p class="mb-2">
+                        <i class="fas fa-comment-dots mr-1 text-primary"></i>
+                        <strong>{% trans "Reason" %}:</strong>
+                        <span class="ml-2">{{ c.get_resolution_reason_display }}</span>
+                      </p>
                     </div>
                   {% endif %}
                 {% endif %}
               </div>
+
+              {% if c.last_console_action %}
+                <div class="row mt-3">
+                  <div class="col-12">
+                    <div class="alert alert-info mb-0">
+                      <i class="fas fa-mouse-pointer mr-2"></i>
+                      <strong>{% trans "Last Console Action" %}:</strong>
+                      <span class="badge badge-primary ml-2">{{ c.last_console_action.name }}</span>
+                    </div>
+                  </div>
+                </div>
+              {% endif %}
             </div>
           </div>
         {% endfor %}
       {% else %}
-        {% trans "This contact is not present in any campaign" %}
+        <div class="alert alert-info text-center">
+          <i class="fas fa-info-circle mr-2"></i>
+          {% trans "This contact is not present in any campaign" %}
+        </div>
       {% endif %}
     </div>
   </div>
