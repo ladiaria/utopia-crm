@@ -17,9 +17,6 @@ from django.views.generic import CreateView, DetailView
 from django.utils.decorators import method_decorator
 from django.contrib.auth.mixins import LoginRequiredMixin
 
-import reportlab
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.lib.units import mm
 from reportlab.pdfgen.canvas import Canvas
 from reportlab.platypus import Table, TableStyle
@@ -29,10 +26,6 @@ from .forms import InvoiceForm, InvoiceItemFormSet
 from invoicing.models import Invoice, InvoiceItem, Billing, CreditNote
 from core.models import Contact, Product
 from core.mixins import BreadcrumbsMixin
-
-
-reportlab.rl_config.TTFSearchPath.append(str(settings.STATIC_ROOT) + '/fonts')
-pdfmetrics.registerFont(TTFont('3of9', 'static/fonts/FREE3OF9.TTF'))
 
 
 @staff_member_required
@@ -175,6 +168,18 @@ def cancel_invoice(request, invoice_id):
     else:
         messages.error(request, _("This invoice could not be canceled: {}".format(error)))
     return HttpResponseRedirect(reverse("admin:invoicing_invoice_change", args=[invoice_id]))
+
+
+def check_fonts():
+    # to test:
+    # >>> from invoicing.views import check_fonts
+    # >>> open("/tmp/check_fonts.pdf", "w+b").write(check_fonts().content)
+    response = HttpResponse(content_type='application/pdf')
+    c = Canvas(response, pagesize=(80 * mm, 110 * mm))
+    c.setFont("Roboto", 12)
+    c.drawString(10 * mm, 10 * mm, "Hello, world!")
+    c.save()
+    return response
 
 
 @staff_member_required

@@ -10,7 +10,7 @@
       </div>
       <div class="card-body contact-edit-newsletters">
         {% if all_newsletters %}
-          {% render_field form.newsletters class="form-check" %}{# TODO: input: float:left;margin-right:7px #}
+          {% render_field form.newsletters class="form-check" %}
         {% else %}
           <p>{% trans "No active newsletters available yet" %}</p>
         {% endif %}

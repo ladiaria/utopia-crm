@@ -55,7 +55,7 @@
         </div>
         <div class="col-4">
           {% comment %}
-            TODO: ADD OTHER STUFF HERE
+            TODO: ADD OTHER STUFF HERE (specify which other stuff is needed)
           {% endcomment %}
         </div>
       </div>
@@ -76,6 +76,7 @@
           <div class="card">
             <div class="card-header">
               <h4 class="card-title">
+                {% if address.default %}<i class="fas fa-star" title="{% trans 'Default' %}"></i>{% endif %}
                 {{ address }}
                 {% if address.verified %}
                   <i class="fas fa-check-circle text-success"> {% trans "Verified" %}</i>

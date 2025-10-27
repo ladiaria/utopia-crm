@@ -21,7 +21,7 @@ from core.models import (
     regex_alphanumeric_msg,
 )
 from core.forms import EmailValidationForm
-from core.choices import ADDRESS_TYPE_CHOICES, ACTIVITY_TYPES
+from core.choices import ADDRESS_TYPE_CHOICES, get_activity_types
 from core.signals import alphanumeric
 
 from .models import Seller, Issue, IssueStatus, IssueSubcategory, SalesRecord
@@ -58,7 +58,7 @@ class NewPauseScheduledTaskForm(forms.Form):
     )
     activity_type = forms.ChoiceField(
         widget=forms.Select(attrs={"class": "form-control"}),
-        choices=ACTIVITY_TYPES,
+        choices=get_activity_types(),
     )
 
     def clean(self):
@@ -82,7 +82,7 @@ class PartialPauseTaskForm(forms.Form):
     )
     activity_type = forms.ChoiceField(
         widget=forms.Select(attrs={"class": "form-control"}),
-        choices=ACTIVITY_TYPES,
+        choices=get_activity_types(),
     )
 
     def clean(self):
@@ -121,7 +121,7 @@ class NewAddressChangeScheduledTaskForm(forms.Form):
     )
     activity_type = forms.ChoiceField(
         widget=forms.Select(attrs={"class": "form-control"}),
-        choices=ACTIVITY_TYPES,
+        choices=get_activity_types(),
     )
     new_label_message = forms.CharField(
         max_length=40, required=False, widget=forms.TextInput(attrs={"class": "form-control"})
@@ -334,7 +334,7 @@ class NewSubscriptionForm(EmailValidationForm, forms.ModelForm):
         cleaned_data = super().clean()
         email = self.email_extra_clean(cleaned_data)
         if email:
-            contact_id, id_document = cleaned_data["contact"].id, cleaned_data["id_document"]
+            contact_id, id_document = cleaned_data.get("contact").id, cleaned_data.get("id_document")
 
             if Contact.objects.filter(email=email).exclude(id=contact_id).exists():
                 c = Contact.objects.filter(email=email).exclude(id=contact_id).first()
@@ -384,7 +384,7 @@ class IssueStartForm(forms.ModelForm):
     )
     activity_type = forms.ChoiceField(
         widget=forms.Select(attrs={"class": "form-control"}),
-        choices=ACTIVITY_TYPES,
+        choices=get_activity_types(),
     )
     status = forms.ModelChoiceField(
         required=False, queryset=IssueStatus.objects.all(), widget=forms.Select(attrs={"class": "form-control"})
@@ -597,7 +597,9 @@ class NewActivityForm(forms.ModelForm):
 
 class CreateActivityForm(forms.ModelForm):
     datetime = forms.DateTimeField(
-        widget=forms.DateTimeInput(attrs={'type': 'datetime-local'}), input_formats=['%Y-%m-%dT%H:%M'], label=_("Date")
+        widget=forms.DateTimeInput(attrs={'type': 'datetime-local'}),
+        input_formats=['%Y-%m-%dT%H:%M'],
+        label=_("Date and time"),
     )
 
     def __init__(self, *args, **kwargs):
@@ -695,6 +697,7 @@ class SugerenciaGeorefForm(forms.ModelForm):
     class Meta:
         model = Address
         fields = [
+            "default",
             "contact",
             "address_1",
             "address_2",

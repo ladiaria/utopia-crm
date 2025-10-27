@@ -35,6 +35,7 @@ from core.models import (
     SubscriptionProduct,
 )
 from core.utils import logistics_is_installed
+from core.choices import ACTIVITY_STATUS
 from support.filters import (
     SubscriptionEndDateFilter,
     UnsubscribedSubscriptionsByEndDateFilter,
@@ -189,13 +190,21 @@ class SubscriptionMixin(BreadcrumbsMixin):
     def save_subscription(self, form, subscription, contact):
         self.save_contact_changes(form, contact)
         if not form.errors:
-            subscription = form.save()
-            new_products_list = self.process_subscription_products(self.request, subscription)
-            self.handle_subscription_type(subscription)
-            self.handle_subscription_status(subscription)
-            self.remove_unselected_products(subscription, new_products_list)
-            return subscription
-        return None
+            try:
+                subscription = form.save()
+            except Exception as exc:
+                if settings.DEBUG:
+                    print(exc)
+                messages.error(
+                    self.request,
+                    _("The subscription may not have been completely saved or synchronized with the CMS"),
+                )
+            else:
+                new_products_list = self.process_subscription_products(self.request, subscription)
+                self.handle_subscription_type(subscription)
+                self.handle_subscription_status(subscription)
+                self.remove_unselected_products(subscription, new_products_list)
+                return subscription
 
     def capture_variables(self):
         self.url = self.request.GET.get("url", None)
@@ -938,7 +947,7 @@ def send_promo(request, contact_id):
 
                 if request.GET.get("act", None):
                     # the instance is somehow an activity and we needed to send a promo again, or has been scheduled
-                    activity.status = "C"  # completed activity
+                    activity.status = ACTIVITY_STATUS.COMPLETED  # completed activity
                     activity.save()
                     ccs.campaign_resolution = "SP"
                     ccs.status = 2  # Contacted this person

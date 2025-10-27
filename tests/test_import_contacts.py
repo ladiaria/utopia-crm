@@ -15,7 +15,7 @@ class ImportContactsViewTest(TestCase):
     def setUp(self):
         self.url = reverse('import_contacts')
         self.client = self.client_class()
-        self.user = User.objects.create_user(username='testuser', password='testpassword')
+        self.user = User.objects.create_user(username='testuser', password='testpassword', is_staff=True)
         self.client.login(username='testuser', password='testpassword')
 
     def create_csv_file(self, data):

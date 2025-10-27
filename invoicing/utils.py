@@ -6,21 +6,20 @@ from django.conf import settings
 from django.db import transaction
 from django.utils.translation import gettext_lazy as _
 
-import mercadopago
-
 from invoicing.models import MercadoPagoData
 from invoicing.models import InvoiceItem, Invoice
 
 # TODO: explain or remove the "Updated import" comment in next line
 from core.models import Address, Subscription, Product, SubscriptionProduct  # Updated import
-from core.utils import calc_price_from_products, create_invoiceitem_for_corporate_subscription
+from core.utils import calc_price_from_products, create_invoiceitem_for_corporate_subscription, mercadopago_sdk
 
 
 def mercadopago_debit(invoice, debug=False):
     """
     Calls the MercadoPago API to send the payment. Generates the card token and register the payment.
+    Not suitable for subscriptions integration.
     """
-    if getattr(settings, "DISABLE_MERCADOPAGO", False):
+    if not getattr(settings, "MERCADOPAGO_INVOICE_DEBIT_ENABLED", True):
         if settings.DEBUG:
             print("DEBUG: mercadopago_debit: Mercadopago debit skipped by settings.")
         return
@@ -37,15 +36,12 @@ def mercadopago_debit(invoice, debug=False):
         _update_invoice_notes(invoice, error_status, debug)
         return
 
-    # Get MercadoPago access token from settings with a fallback
-    mp_access_token = getattr(settings, "MERCADOPAGO_ACCESS_TOKEN", "")
-    if not mp_access_token:
-        error_status = "MercadoPago access token not found in settings"
+    # Create a MercadoPago API instance
+    sdk, mp_access_token = mercadopago_sdk(False)
+    if not sdk:
+        error_status = "MercadoPago API could not be initialized"
         _update_invoice_notes(invoice, error_status, debug)
         return
-
-    # Create a MercadoPago API instance
-    sdk = mercadopago.SDK(mp_access_token)
 
     if mp_access_token.startswith("TEST") and mp_data.card_id == "1111111111111":
         # MP test api: Simulate a not approved payment (if forced to fail by settings).
@@ -324,13 +320,20 @@ def contact_update_mp_wrapper(
     return result
 
 
-def bill_subscription(subscription, billing_date=None, dpp=10, force_by_date=False, billing_date_override=None):
+def bill_subscription(
+    subscription,
+    billing_date=None,
+    dpp=10,
+    force_by_date=False,
+    billing_date_override=None,
+    payment_reference=None,
+):
     """
     Bills a single subscription into an only invoice. Returns the created invoice.
+    # TODO: Products have a field "active" which may not be used here. check and make fixes if any.
     """
     # Safely get settings with default values
     billing_extra_days = getattr(settings, 'BILLING_EXTRA_DAYS', 0)
-    force_dummy_missing_billing_data = getattr(settings, 'FORCE_DUMMY_MISSING_BILLING_DATA', False)
     require_route_for_billing = getattr(settings, 'REQUIRE_ROUTE_FOR_BILLING', False)
     exclude_routes_from_billing_list = getattr(settings, 'EXCLUDE_ROUTES_FROM_BILLING_LIST', [])
     envelope_price = getattr(settings, 'ENVELOPE_PRICE', 0)
@@ -363,28 +366,18 @@ def bill_subscription(subscription, billing_date=None, dpp=10, force_by_date=Fal
 
     # We need to get all the subscription data
     billing_data = subscription.get_billing_data_by_priority()
+    err_msg = f"Subscription {subscription.id} for contact {subscription.contact.id}"
+    err_msg += f" (with {subscription.get_product_count()} products)"
 
-    if not billing_data and not force_dummy_missing_billing_data:
-        raise Exception(
-            f"Subscription {subscription.id} for contact {subscription.contact.id} contains no billing data."
-        )
-
-    if billing_data and billing_data["address"] is None:
-        raise Exception(
-            f"Subscription {subscription.id} for contact {subscription.contact.id} requires an address to be billed."
-        )
+    if not billing_data or not billing_data.get("address"):
+        raise Exception(f"{err_msg}, requires an address to be billed.")
 
     if billing_data and require_route_for_billing:
         if billing_data["route"] is None:
-            raise Exception(
-                f"Subscription {subscription.id} for contact {subscription.contact.id} requires a route to be billed."
-            )
+            raise Exception(f"{err_msg}, requires a route to be billed.")
 
         elif billing_data["route"] in exclude_routes_from_billing_list:
-            raise Exception(
-                f"Subscription {subscription.id} for contact {subscription.contact.id} can't be billed since it's on"
-                f"route {billing_data['route']}."
-            )
+            raise Exception(f"{err_msg}, can't be billed since it's on route {billing_data['route']}.")
 
     product_summary = subscription.product_summary(with_pauses=True)
 
@@ -446,6 +439,7 @@ def bill_subscription(subscription, billing_date=None, dpp=10, force_by_date=Fal
                 amount=amount,
                 payment_type_fk=subscription.payment_type_fk,
                 payment_method_fk=subscription.payment_method_fk,
+                payment_reference=payment_reference,
             )
 
             # Add all invoice items to the invoice

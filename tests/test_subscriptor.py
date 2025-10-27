@@ -1,10 +1,7 @@
 # coding=utf-8
 
 from django.conf import settings
-from django.test import TestCase, tag
-
-from django.forms import ValidationError
-
+from django.test import TestCase
 from tests.factory import create_contact, create_subscription, create_product, create_address
 
 
@@ -16,13 +13,26 @@ class TestContact(TestCase):
         self.assertTrue(subscription.active)
         self.assertFalse(contact.is_debtor())
 
-    @tag('broken')  # TODO: remove this tag when fixed
-    def test2_cliente_que_no_tiene_email_debe_tener_email_en_blanco(self):
+    def test2_no_email_is_automatically_managed(self):
+        """
+        Test that no_email field is automatically set based on email value.
+        As of the current implementation (see models.py line 554), no_email is
+        automatically set to True when email is None, and False otherwise.
+        This replaces the old manual validation that raised ValidationError.
+        """
         contact = create_contact('cliente1', "21312")
-        contact.no_email, contact.email = True, 'cliente1@ladiaria.com.uy'
-        self.assertRaises(ValidationError, contact.save)
+
+        # Set email to a value - no_email should automatically become False
+        contact.email = 'cliente1@ladiaria.com.uy'
+        contact.save()
+        contact.refresh_from_db()
+        self.assertFalse(contact.no_email, "no_email should be False when email is set")
+
+        # Set email to None - no_email should automatically become True
         contact.email = None
         contact.save()
+        contact.refresh_from_db()
+        self.assertTrue(contact.no_email, "no_email should be True when email is None")
 
     def test3_cliente_activo_debe_tener_ejemplares(self):
         # TODO: write this test

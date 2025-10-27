@@ -1,16 +1,18 @@
 #!/bin/env python
 # coding=utf-8
-
 from reportlab.pdfgen.canvas import Canvas
 from reportlab.lib.units import mm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 
+from django.conf import settings
 
-pdfmetrics.registerFont(TTFont('Ldcode', 'static/fonts/ldcode.ttf'))
-pdfmetrics.registerFont(TTFont('Roboto', 'static/fonts/Roboto-Regular.ttf'))
-pdfmetrics.registerFont(TTFont('Roboto-Bold', 'static/fonts/Roboto-Bold.ttf'))
-pdfmetrics.registerFont(TTFont('3of9', 'static/fonts/FREE3OF9.TTF'))
+
+fonts_dir = settings.STATIC_ROOT + '/fonts/'
+pdfmetrics.registerFont(TTFont('Ldcode', fonts_dir + 'ldcode.ttf'))
+pdfmetrics.registerFont(TTFont('Roboto', fonts_dir + 'Roboto-Regular.ttf'))
+pdfmetrics.registerFont(TTFont('Roboto-Bold', fonts_dir + 'Roboto-Bold.ttf'))
+pdfmetrics.registerFont(TTFont('3of9', fonts_dir + 'FREE3OF9.TTF'))
 
 
 class PrintableArea(object):

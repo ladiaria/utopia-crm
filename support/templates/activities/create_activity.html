@@ -63,3 +63,58 @@
     </div>
   </section>
 {% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const topicSelect = document.getElementById('id_topic');
+    const responseSelect = document.getElementById('id_response');
+    const topicResponses = {{ topic_responses_json|safe }};
+    
+    // Store all original response options
+    const allResponses = Array.from(responseSelect.options).slice(1); // Skip the empty option
+    
+    function filterResponses() {
+        const selectedTopicId = topicSelect.value;
+        
+        // Clear current options (keep the empty option)
+        responseSelect.innerHTML = '<option value="">---------</option>';
+        
+        if (selectedTopicId === '') {
+            // If no topic selected, show all responses
+            allResponses.forEach(option => {
+                responseSelect.appendChild(option.cloneNode(true));
+            });
+        } else {
+            // Show only responses for the selected topic
+            const topicKey = selectedTopicId === '' ? 'null' : selectedTopicId;
+            const availableResponses = topicResponses[topicKey] || [];
+            
+            availableResponses.forEach(response => {
+                const option = document.createElement('option');
+                option.value = response.id;
+                option.textContent = response.name;
+                responseSelect.appendChild(option);
+            });
+            
+            // Also include responses without a topic if a topic is selected
+            if (selectedTopicId !== '' && topicResponses['null']) {
+                topicResponses['null'].forEach(response => {
+                    const option = document.createElement('option');
+                    option.value = response.id;
+                    option.textContent = response.name + ' (General)';
+                    option.style.fontStyle = 'italic';
+                    responseSelect.appendChild(option);
+                });
+            }
+        }
+    }
+    
+    // Add event listener to topic select
+    topicSelect.addEventListener('change', filterResponses);
+    
+    // Initialize on page load
+    filterResponses();
+});
+</script>
+{% endblock %}
