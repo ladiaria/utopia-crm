@@ -19,7 +19,7 @@ from support.views import (
     api_dynamic_prices,
     invoicing_issues,
     debtor_contacts,
-    new_issue,
+    NewIssueView,
     new_scheduled_task_total_pause,
     new_scheduled_task_address_change,
     new_scheduled_task_partial_pause,
@@ -104,7 +104,7 @@ urlpatterns = [
     path("list_issues/", IssueListView.as_view(), name="list_issues"),
     path("invoicing_issues/", invoicing_issues, name="invoicing_issues"),
     path("debtor_contacts/", debtor_contacts, name="debtor_contacts"),
-    re_path(r"^new_issue/(\d+)/(\w+)/$", new_issue, name="new_issue"),
+    path("new_issue/<int:contact_id>/<str:category>/", NewIssueView.as_view(), name="new_issue"),
     re_path(
         r"^new_scheduled_task/total_pause/(\d+)/$",
         new_scheduled_task_total_pause,
@@ -120,7 +120,7 @@ urlpatterns = [
         new_scheduled_task_partial_pause,
         name="new_scheduled_task_partial_pause",
     ),
-    re_path(r"^view_issue/(\d+)/$", view_issue, name="view_issue"),
+    path("view_issue/<int:issue_id>/", view_issue, name="view_issue"),
     path(
         "add_dynamic_contact_filter/",
         dynamic_contact_filter_new,
