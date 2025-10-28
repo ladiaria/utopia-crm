@@ -360,8 +360,6 @@ class IssueStartForm(forms.ModelForm):
     )
 
     widget = forms.Select(attrs={"class": "form-control"})
-    # TODO: explain or remove the following commented line
-    # contact.disabled = True
     product = forms.ModelChoiceField(
         queryset=Product.objects.filter(type="S"),
         widget=forms.Select(attrs={"class": "form-control"}),
@@ -440,7 +438,7 @@ class IssueStartForm(forms.ModelForm):
         fields = (
             "contact",
             "category",
-            "subcategory",
+            "sub_category",
             "notes",
             "copies",
             "subscription_product",
