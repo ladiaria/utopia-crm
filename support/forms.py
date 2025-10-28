@@ -769,22 +769,33 @@ class AffiliateSubscriptionForm(forms.Form):
 
 class ImportContactsForm(forms.Form):
     file = forms.FileField(
-        label='CSV File', help_text='Please upload a CSV file', widget=forms.FileInput(attrs={'accept': '.csv'})
+        label=_('CSV File'), help_text=_('Please upload a CSV file'), widget=forms.FileInput(attrs={'accept': '.csv'})
+    )
+    use_headers = forms.BooleanField(
+        label=_('CSV file has headers'),
+        initial=True,
+        required=False,
+        help_text=_('Check this if your CSV file has column headers in the first row'),
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
     )
     tags = forms.CharField(
-        widget=forms.TextInput(attrs={'placeholder': 'Comma-separated tags', 'class': 'form-control'})
+        label=_('Tags for new contacts'),
+        widget=forms.TextInput(attrs={'placeholder': _('Comma-separated tags'), 'class': 'form-control'})
     )
     tags_existing = forms.CharField(
+        label=_('Tags for existing inactive contacts'),
         required=False,
-        widget=forms.TextInput(attrs={'placeholder': 'Tags for existing contacts', 'class': 'form-control'}),
+        widget=forms.TextInput(attrs={'placeholder': _('Tags for existing contacts'), 'class': 'form-control'}),
     )
     tags_active = forms.CharField(
+        label=_('Tags for existing active contacts'),
         required=False,
-        widget=forms.TextInput(attrs={'placeholder': 'Tags for active contacts', 'class': 'form-control'}),
+        widget=forms.TextInput(attrs={'placeholder': _('Tags for active contacts'), 'class': 'form-control'}),
     )
     tags_in_campaign = forms.CharField(
+        label=_('Tags for contacts in campaigns'),
         required=False,
-        widget=forms.TextInput(attrs={'placeholder': 'Tags for contacts in campaign', 'class': 'form-control'}),
+        widget=forms.TextInput(attrs={'placeholder': _('Tags for contacts in campaign'), 'class': 'form-control'}),
     )
 
 

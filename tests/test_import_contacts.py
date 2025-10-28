@@ -7,7 +7,7 @@ from django.test import TestCase
 from django.urls import reverse
 from faker import Faker
 
-from core.models import Address, Contact
+from core.models import Address, Contact, IdDocumentType
 from tests.factories import ContactFactory, SubscriptionFactory, CampaignFactory
 
 
@@ -17,6 +17,14 @@ class ImportContactsViewTest(TestCase):
         self.client = self.client_class()
         self.user = User.objects.create_user(username='testuser', password='testpassword', is_staff=True)
         self.client.login(username='testuser', password='testpassword')
+        
+        # Create common ID document types for tests (must provide explicit IDs)
+        self.doc_type_ci, _ = IdDocumentType.objects.get_or_create(
+            id=1, defaults={'name': 'CI'}
+        )
+        self.doc_type_cc, _ = IdDocumentType.objects.get_or_create(
+            id=2, defaults={'name': 'CC'}
+        )
 
     def create_csv_file(self, data):
         csv_data = pd.DataFrame(data)
@@ -49,6 +57,7 @@ class ImportContactsViewTest(TestCase):
 
         form_data = {
             'file': csv_file,
+            'use_headers': True,
             'tags': 'new,test',
             'tags_existing': 'existing',
             'tags_active': 'active_subscription',
@@ -105,6 +114,7 @@ class ImportContactsViewTest(TestCase):
 
         form_data = {
             'file': csv_file,
+            'use_headers': True,
             'tags': 'added_new_phone',  # Tags are always required
             'tags_existing': 'existing,updated',
         }
@@ -168,6 +178,7 @@ class ImportContactsViewTest(TestCase):
 
         form_data = {
             'file': csv_file,
+            'use_headers': True,
             'tags': 'updated_email',  # Tags are always required
         }
 
@@ -209,6 +220,7 @@ class ImportContactsViewTest(TestCase):
 
         form_data = {
             'file': csv_file,
+            'use_headers': True,
             'tags': 'new_subscription',
             'tags_active': 'active_subscription',
         }
@@ -250,6 +262,7 @@ class ImportContactsViewTest(TestCase):
 
         form_data = {
             'file': csv_file,
+            'use_headers': True,
             'tags': 'new, other',
             'tags_existing': 'existing',
             'tags_in_campaign': 'in_campaign',
@@ -265,3 +278,123 @@ class ImportContactsViewTest(TestCase):
 
         # Check if tags were added
         self.assertIn('in_campaign', contact.tags.names())
+
+    def test_import_without_headers(self):
+        """Test importing CSV file without headers using use_headers=False"""
+        # Create CSV data without headers (raw data only)
+        # Expected columns (13 total):
+        # name, last_name, email, phone, mobile, notes,
+        # address_1, address_2, city, state, country,
+        # id_document_type, id_document
+        csv_content = (
+            "Juan,Perez,juan@example.com,24000000,092123456,Test notes,Calle 123,Apt 1,"
+            "Montevideo,Montevideo,Uruguay,,12345678\n"
+        )
+
+        csv_file = SimpleUploadedFile(
+            "test_no_headers.csv",
+            csv_content.encode('utf-8'),
+            content_type="text/csv"
+        )
+
+        form_data = {
+            'file': csv_file,
+            'use_headers': False,  # No headers in CSV
+            'tags': 'no_headers_test',
+        }
+
+        response = self.client.post(self.url, form_data)
+        self.assertEqual(response.status_code, 302)  # Redirect on success
+        # Check if contact was created
+        self.assertTrue(Contact.objects.filter(email='juan@example.com').exists())
+        contact = Contact.objects.get(email='juan@example.com')
+
+        # Verify contact data
+        self.assertEqual(contact.name, 'Juan')
+        self.assertEqual(contact.last_name, 'Perez')
+        self.assertEqual(contact.phone, '24000000')
+        self.assertEqual(contact.mobile, '092123456')
+
+        # Check if tags were added
+        self.assertIn('no_headers_test', contact.tags.names())
+
+    def test_download_template(self):
+        """Test downloading the CSV template"""
+        response = self.client.get(self.url, {'download_template': '1'})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'text/csv')
+        self.assertEqual(
+            response['Content-Disposition'],
+            'attachment; filename="import_contacts_template.csv"'
+        )
+
+        # Check that the response contains the expected headers
+        content = response.content.decode('utf-8')
+        self.assertIn('name,last_name,email,phone,mobile,notes', content)
+        self.assertIn('address_1,address_2,city,state,country', content)
+        self.assertIn('id_document_type,id_document', content)
+
+        # Check that example data is present
+        self.assertIn('Juan', content)
+        self.assertIn('Perez', content)
+        self.assertIn('juan.perez@example.com', content)
+
+    def test_form_displays_use_headers_field(self):
+        """Test that the form displays the use_headers checkbox"""
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'use_headers')
+        self.assertContains(response, 'id_use_headers')
+        # Check for download template link (not checking exact text due to i18n)
+        self.assertContains(response, '?download_template=1')
+
+    def test_import_with_invalid_document_type(self):
+        """Test that invalid document types generate warnings but don't break import"""
+        csv_file = self.create_csv_file(
+            [
+                {
+                    'name': 'Maria',
+                    'last_name': 'Garcia',
+                    'email': 'maria@example.com',
+                    'phone': '24111111',
+                    'mobile': '092111111',
+                    'notes': 'Test with invalid doc type',
+                    'address_1': '',
+                    'address_2': '',
+                    'city': '',
+                    'state': '',
+                    'country': '',
+                    'id_document_type': 'INVALID_TYPE',  # Invalid type
+                    'id_document': '99999999',
+                }
+            ]
+        )
+
+        form_data = {
+            'file': csv_file,
+            'use_headers': True,
+            'tags': 'test_invalid_doc',
+        }
+
+        response = self.client.post(self.url, form_data, follow=True)
+        self.assertEqual(response.status_code, 200)
+
+        # Contact should be created despite invalid document type
+        self.assertTrue(Contact.objects.filter(email='maria@example.com').exists())
+        contact = Contact.objects.get(email='maria@example.com')
+
+        # Document type should be None
+        self.assertIsNone(contact.id_document_type)
+        
+        # Document number should still be saved
+        self.assertEqual(contact.id_document, '99999999')
+
+        # Check that a warning message was generated
+        messages_list = list(response.context['messages'])
+        warning_found = any(
+            'Invalid ID document type' in str(msg) and 'INVALID_TYPE' in str(msg)
+            for msg in messages_list
+        )
+        self.assertTrue(warning_found, "Expected warning message about invalid document type")
