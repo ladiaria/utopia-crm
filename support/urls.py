@@ -76,7 +76,7 @@ urlpatterns = [
     re_path(r"^edit_address/(\d+)/$", edit_address),
     re_path(r"^edit_address/(\d+)/(\d+)/$", edit_address),
     path("import/", views.ImportContactsView.as_view(), name="import_contacts"),
-    re_path(r"^send_promo/(\d+)/$", send_promo, name="send_promo"),
+    path("send_promo/<int:contact_id>/", send_promo, name="send_promo"),
     path(
         "contacts/<int:contact_id>/new_subscription/", views.SubscriptionCreateView.as_view(), name="new_subscription"
     ),
