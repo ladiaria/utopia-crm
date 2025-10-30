@@ -501,6 +501,7 @@ class ProductAdmin(admin.ModelAdmin):
         "weekday",
         "slug",
         "offerable",
+        "target_product",
     )
     list_editable = [
         "name",
@@ -508,6 +509,7 @@ class ProductAdmin(admin.ModelAdmin):
         "price",
         "weekday",
         "offerable",
+        "target_product",
     ]
     list_filter = ("active", "type", "renewal_type", "offerable", "subscription_period", "duration_months")
     readonly_fields = ("mercadopago_id",)
