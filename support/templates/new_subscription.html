@@ -343,7 +343,7 @@
                              name="message-{{ product.id }}"
                              value="{% if subscription %}{% call_method subscription 'get_message_for_product' product.id %}{% else %}{{ bound_product_values.message }}{% endif %}"
                              class="form-control form-control-sm"
-                             placeholder="{% trans 'Optional' %}">
+                             placeholder="{% trans "Optional" %}">
                     </div>
                     <div class="col-md-2">
                       <label for="instructions-{{ product.id }}" class="small text-muted mb-1">{% trans "Instructions" %}</label>
@@ -352,7 +352,7 @@
                              name="instructions-{{ product.id }}"
                              value="{% if subscription %}{% call_method subscription 'get_instructions_for_product' product.id %}{% else %}{{ bound_product_values.instructions }}{% endif %}"
                              class="form-control form-control-sm"
-                             placeholder="{% trans 'Optional' %}">
+                             placeholder="{% trans "Optional" %}">
                     </div>
                   </div>
                 </div>
