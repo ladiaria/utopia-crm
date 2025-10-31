@@ -3,125 +3,132 @@
   <div class="col-md-4">
     <div class="card">
       <div class="card-header">
-        <h3 class="card-title">{% trans "Contact information" %}</h3>
+        <h3 class="card-title"><i class="fas fa-user"></i> {% trans "Contact information" %}</h3>
       </div>
       <div class="card-body">
-        <dl>
-          <dt>{% trans "Name" %}</dt>
-          <dd>
-            {{ contact.get_full_name }}
-          </dd>
-          {% if contact.id_document %}
-            <dt>{% trans "ID document" %}</dt>
-            <dd>
-              <div class="mb-0">
-                <span class="font-weight-bold">{% trans "Type" %}:</span> {{ contact.id_document_type|default_if_none:"-" }}
-              </div>
-              <div>
-                <span class="font-weight-bold">{% trans "Indentifier" %}:</span> {{ contact.id_document|default_if_none:"-" }}
-              </div>
-            </dd>
+        <div class="mb-2">
+          <i class="fas fa-user text-primary"></i> <strong>{% trans "Name" %}:</strong> {{ contact.get_full_name }}
+        </div>
+        {% if contact.id_document %}
+          <div class="mb-2">
+            <i class="fas fa-id-card text-secondary"></i> <strong>{% trans "ID" %}:</strong>
+            {{ contact.id_document_type|default_if_none:"-" }} {{ contact.id_document }}
+          </div>
+        {% endif %}
+        <div class="mb-2">
+          <i class="fas fa-envelope text-info"></i> <strong>{% trans "Email" %}:</strong>
+          {% if contact.email %}
+            <a href="mailto:{{ contact.email }}">{{ contact.email }}</a>
+          {% else %}
+            -
           {% endif %}
-          <dt>{% trans "Email" %}</dt>
-          <dd>
-            {{ contact.email|default_if_none:"-" }}
-          </dd>
-          <dt>{% trans "Phone" %}</dt>
-          <dd>
-            {{ contact.phone.as_national|default_if_none:"-" }}
-          </dd>
-          {% if contact.mobile %}
-            <dt>{% trans "Mobile" %}</dt>
-            <dd>
-              {{ contact.mobile.as_national|default_if_none:"-" }}
-            </dd>
+        </div>
+        <div class="mb-2">
+          <i class="fas fa-phone text-success"></i> <strong>{% trans "Phone" %}:</strong>
+          {% if contact.phone %}
+            <a href="tel:{{ contact.phone }}">{{ contact.phone.as_national }}</a>
+          {% else %}
+            -
           {% endif %}
-          {% if contact.work_phone %}
-            <dt>{% trans "Institutional phone" %}</dt>
-            <dd>
-              {{ contact.work_phone|default_if_none:"-" }}
-            </dd>
-          {% endif %}
-          {% if addresses %}
-            <dt>{% trans "Addresses" %}</dt>
+        </div>
+        {% if contact.mobile %}
+          <div class="mb-2">
+            <i class="fas fa-mobile-alt text-success"></i> <strong>{% trans "Mobile" %}:</strong>
+            <a href="tel:{{ contact.mobile }}">{{ contact.mobile.as_national }}</a>
+          </div>
+        {% endif %}
+        {% if contact.work_phone %}
+          <div class="mb-2">
+            <i class="fas fa-building text-secondary"></i> <strong>{% trans "Work" %}:</strong> {{ contact.work_phone }}
+          </div>
+        {% endif %}
+        {% if addresses %}
+          <div class="mt-3">
+            <h6 class="text-muted mb-2"><i class="fas fa-map-marker-alt"></i> {% trans "Addresses" %}</h6>
             {% for address in addresses %}
-              {% if address.address_1 == None %}
-              {% else %}
-                <dd>
-                  - {{ address }}
-                  {% if georef_activated %}
-                    {% if address.needs_georef %}<i class="fas fa-times-circle text-danger"></i>{% endif %}
-                    {% if not address.verified %}
-                      <a href="{% url "normalizar_direccion" contact.id address.id %}"
-                         class="btn-sm btn-info m-2">{% trans "Normalize" %}</a>
-                    {% else %}
-                      <i class="fas fa-check-circle text-success"></i>
+              {% if address.address_1 %}
+                <div class="mb-1 pl-3">
+                  <small>
+                    {{ address.address_1|default:"-" }}
+                    {% if georef_activated %}
+                      {% if address.needs_georef %}
+                        <i class="fas fa-times-circle text-danger" title="{% trans "Needs georeferencing" %}"></i>
+                      {% elif not address.verified %}
+                        <a href="{% url "normalizar_direccion" contact.id address.id %}" class="btn btn-xs btn-info ml-1">
+                          <i class="fas fa-map-marked-alt"></i> {% trans "Normalize" %}
+                        </a>
+                      {% else %}
+                        <i class="fas fa-check-circle text-success" title="{% trans "Verified" %}"></i>
+                      {% endif %}
                     {% endif %}
-                  {% endif %}
-                </dd>
+                  </small>
+                </div>
+              {% else %}
+                <div class="mb-1 pl-3">
+                  <small>{% trans "No address specified" %}</small>
+                </div>
               {% endif %}
             {% endfor %}
-          {% endif %}
-          {% if contact.tags.all %}
-            <dt>{% trans "Tags" %}</dt>
-            <dd>
+          </div>
+        {% endif %}
+        {% if contact.tags.all %}
+          <div class="mt-3">
+            <h6 class="text-muted mb-2"><i class="fas fa-tags"></i> {% trans "Tags" %}</h6>
+            <div class="d-flex flex-wrap">
               {% for tag in contact.tags.all %}
-                <a href="{% url "contact_list" %}?tags={{ tag.name }}">
-                  <span class="btn btn-default btn-sm">{{ tag }}</span>
-                </a>
+                <a href="{% url "contact_list" %}?tags={{ tag.name }}" class="badge badge-secondary mr-1 mb-1">{{ tag }}</a>
               {% endfor %}
-            </dd>
-          {% endif %}
-        </dl>
+            </div>
+          </div>
+        {% endif %}
       </div>
-      <div class="card-footer text-right">
-        <a href="{% url "agregar_direccion" contact.id %}"
-           class="btn btn-success mb-1">{% trans "Add address" %}</a>
-        <a href="{% url "edit_contact" contact.id %}"
-           class="btn btn-success mb-1">{% trans "Edit info and newsletters" %}</a>
+      <div class="card-footer bg-light">
+        <div class="d-flex flex-wrap justify-content-end">
+          <a href="{% url "agregar_direccion" contact.id %}" class="btn btn-sm btn-success mr-1 mb-1">
+            <i class="fas fa-plus"></i> {% trans "Add address" %}
+          </a>
+          <a href="{% url "edit_contact" contact.id %}" class="btn btn-sm btn-primary mb-1">
+            <i class="fas fa-edit"></i> {% trans "Edit info" %}
+          </a>
+        </div>
       </div>
     </div>
     <div class="card">
       <div class="card-header">
-        <h3 class="card-title">{% trans "Payments" %}</h3>
+        <h3 class="card-title"><i class="fas fa-dollar-sign"></i> {% trans "Payments" %}</h3>
       </div>
       <div class="card-body">
-        <dl>
-          {% block payment_requests %}
-          {% endblock payment_requests %}
+        {% block payment_requests %}
+        {% endblock payment_requests %}
 
-          {% if last_paid_invoice or debt %}
-            <dt>{% trans "Latest payment" %}</dt>
-            {% if last_paid_invoice %}
-              <dd>
-                {{ last_paid_invoice.payment_date }} (${{ last_paid_invoice.amount }})
-              </dd>
-              <dt>{% trans "Total invoices paid" %}</dt>
-              <dd>
-                {{ contact.get_paid_invoices_count }}
-              </dd>
-            {% else %}
-              <dd>
-                N/A
-              </dd>
-            {% endif %}
-            <dt>{% trans "Payment type of last invoice" %}</dt>
-            <dd>
-              {{ latest_invoice.payment_type }}
-            </dd>
-            {% if debt %}
-              <dt>{% trans "Debt" %}</dt>
-              <dd>
-                ${{ debt }} ({{ expired_invoices_count }}
-                {% trans "overdue invoices" %})<i class="fas fa-exclamation-triangle text-danger"></i>
-              </dd>
-            {% endif %}
-          {% else %}
-            <dd>
-              {% trans "This contact has no payment data" %}
-            </dd>
+        {% if last_paid_invoice or debt %}
+          {% if debt %}
+            <div class="alert alert-danger py-2 px-3 mb-3">
+              <i class="fas fa-exclamation-triangle"></i> <strong>{% trans "Debt" %}:</strong> ${{ debt }}
+              <small class="d-block mt-1">{{ expired_invoices_count }} {% trans "overdue invoices" %}</small>
+            </div>
           {% endif %}
-        </dl>
+
+          {% if last_paid_invoice %}
+            <div class="mb-2">
+              <i class="fas fa-calendar-check text-success"></i> <strong>{% trans "Latest payment" %}:</strong>
+              {{ last_paid_invoice.payment_date|date:"d/m/Y" }} <span class="text-success">${{ last_paid_invoice.amount }}</span>
+            </div>
+            <div class="mb-2">
+              <i class="fas fa-file-invoice-dollar text-info"></i> <strong>{% trans "Total paid" %}:</strong> {{ contact.get_paid_invoices_count }} {% trans "invoices" %}
+            </div>
+          {% endif %}
+
+          {% if latest_invoice %}
+            <div class="mb-2">
+              <i class="fas fa-credit-card text-secondary"></i> <strong>{% trans "Payment method" %}:</strong> {{ latest_invoice.get_payment_type_display|default:"-" }}
+            </div>
+          {% endif %}
+        {% else %}
+          <p class="text-muted mb-0">
+            <i class="fas fa-info-circle"></i> {% trans "This contact has no payment data" %}
+          </p>
+        {% endif %}
       </div>
     </div>
     {% if contact.notes %}

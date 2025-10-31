@@ -145,32 +145,46 @@ class NewAddressChangeScheduledTaskForm(forms.Form):
 
 
 class NewPromoForm(EmailValidationForm):
-    name = forms.CharField(widget=forms.TextInput(attrs={"class": "form-control"}))
-    last_name = forms.CharField(widget=forms.TextInput(attrs={"class": "form-control"}), required=False)
+    name = forms.CharField(label=_("Name"), widget=forms.TextInput(attrs={"class": "form-control"}))
+    last_name = forms.CharField(
+        label=_("Last name"), widget=forms.TextInput(attrs={"class": "form-control"}), required=False
+    )
     phone = PhoneNumberField(
+        label=_("Phone"),
         empty_value="",
         required=False,
         widget=RegionalPhoneNumberWidget(attrs={"class": "form-control"}),
     )
     mobile = PhoneNumberField(
+        label=_("Mobile"),
         empty_value="",
         required=False,
         widget=RegionalPhoneNumberWidget(attrs={"class": "form-control"}),
     )
     notes = forms.CharField(
-        empty_value=None, required=False, widget=forms.Textarea(attrs={"class": "form-control", "rows": "4"})
+        label=_("Notes"),
+        empty_value=None,
+        required=False,
+        widget=forms.Textarea(attrs={"class": "form-control", "rows": "4"})
     )
     email = forms.EmailField(
-        empty_value=None, required=False, widget=forms.EmailInput(attrs={"class": "form-control"})
+        label=_("Email"),
+        empty_value=None,
+        required=False,
+        widget=forms.EmailInput(attrs={"class": "form-control"})
     )
     start_date = forms.DateField(
+        label=_("Start date"),
         widget=forms.DateInput(format="%Y-%m-%d", attrs={"class": "datepicker form-control", "autocomplete": "off"})
     )
     end_date = forms.DateField(
-        widget=forms.DateInput(format="%Y-%m-%d", attrs={"class": "datepicker form-control", "autocomplete": "off"})
+        label=_("End date"),
+        required=True,
+        widget=forms.DateInput(format="%Y-%m-%d", attrs={"class": "datepicker form-control", "autocomplete": "off"}),
     )
     default_address = forms.ModelChoiceField(
-        Address.objects.all(),
+        label=_("Default address"),
+        queryset=Address.objects.all(),
         required=False,
         widget=forms.Select(attrs={"class": "form-control"}),
     )
@@ -776,11 +790,11 @@ class ImportContactsForm(forms.Form):
         initial=True,
         required=False,
         help_text=_('Check this if your CSV file has column headers in the first row'),
-        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}),
     )
     tags = forms.CharField(
         label=_('Tags for new contacts'),
-        widget=forms.TextInput(attrs={'placeholder': _('Comma-separated tags'), 'class': 'form-control'})
+        widget=forms.TextInput(attrs={'placeholder': _('Comma-separated tags'), 'class': 'form-control'}),
     )
     tags_existing = forms.CharField(
         label=_('Tags for existing inactive contacts'),

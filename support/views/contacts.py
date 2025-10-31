@@ -439,20 +439,20 @@ class ImportContactsView(FormView):
         """
         Resolve ID document type string to IdDocumentType object.
         Returns None if not found and logs a warning.
-        
+
         Args:
             id_doc_type_str: String identifier for document type (e.g., 'CI', 'CC', 'RUT')
             row_number: Optional row number for warning messages
-            
+
         Returns:
             IdDocumentType object or None
         """
         if not id_doc_type_str:
             return None
-            
+
         # Try to find by name (case-insensitive)
         doc_type = IdDocumentType.objects.filter(name__iexact=id_doc_type_str).first()
-        
+
         if not doc_type:
             # Log warning for invalid document type
             row_info = f" (Row {row_number})" if row_number else ""
@@ -461,7 +461,7 @@ class ImportContactsView(FormView):
                 _(f"Invalid ID document type '{id_doc_type_str}'{row_info}. Contact created without document type.")
             )
             return None
-            
+
         return doc_type
 
     def form_valid(self, form):
@@ -524,7 +524,7 @@ class ImportContactsView(FormView):
         """
         Parse a row from the CSV file into contact data dictionary.
         Since we read CSV with dtype=str, all values are strings and empty strings are preserved.
-        
+
         Args:
             row: DataFrame row to parse
             use_headers: Whether the CSV had headers (kept for compatibility)
@@ -532,7 +532,7 @@ class ImportContactsView(FormView):
         """
         # Resolve ID document type, returns None if invalid
         id_doc_type_obj = self.resolve_id_document_type(row['id_document_type'], row_number)
-        
+
         return {
             'name': row['name'] if row['name'] else None,
             'last_name': row['last_name'] if row['last_name'] else "",
@@ -581,6 +581,7 @@ class ImportContactsView(FormView):
             self.categorize_contact(contact, tags, results)
             if matches.count() == 1:
                 # Update email if matched by phone and contact doesn't have an email
+                # IMPORTANT: Never overwrite existing emails to prevent data loss
                 if matched_by_phone and not contact.email:
                     email_from_csv = contact_data.get('email')
                     if email_from_csv:

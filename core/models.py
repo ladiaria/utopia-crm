@@ -240,8 +240,9 @@ class Product(models.Model):
         blank=True,
         null=True,
         on_delete=models.SET_NULL,
-        limit_choices_to={"offerable": True, "type": "S"},
+        limit_choices_to={"active": True, "type": "S"},
         verbose_name=_("Target product"),
+        help_text=_("The subscription product this discount applies to. Only active subscription products are shown."),
     )
     cms_subscription_type = models.SlugField(
         max_length=100, unique=True, blank=True, null=True, verbose_name=_("CMS subscription type"),

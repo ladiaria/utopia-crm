@@ -848,140 +848,360 @@ def book_additional_product(request, subscription_id):
     )
 
 
-@staff_member_required
-def send_promo(request, contact_id):
+class SendPromoView(UserPassesTestMixin, FormView):
     """
     Shows a form that the sellers can use to send promotions to the contact.
     """
-    url, act, new = request.GET.get("url"), request.GET.get("act"), request.GET.get("new")
-    if not (act or new):
-        raise HttpResponseNotFound()
+    template_name = "seller_console_start_promo.html"
+    form_class = NewPromoForm
 
-    offset = request.GET.get("offset", 0)
-    contact = Contact.objects.get(pk=contact_id)
-    result = request.POST.get("result")
-    contact_addresses = Address.objects.filter(contact=contact)
-    offerable_products = Product.objects.filter(offerable=True)
-    start_date = date.today()
+    def test_func(self):
+        return self.request.user.is_staff
 
-    if act:
-        activity = Activity.objects.get(pk=act)
-        campaign = activity.campaign
-        ccs = ContactCampaignStatus.objects.get(contact=contact, campaign=campaign)
-    elif new:
-        ccs = ContactCampaignStatus.objects.get(pk=new)
-        campaign = ccs.campaign
+    def dispatch(self, request, *args, **kwargs):
+        """Initialize view-level variables from URL parameters."""
+        self.url = request.GET.get("url")
+        self.act = request.GET.get("act")
+        self.new = request.GET.get("new")
+        self.offset = request.GET.get("offset", 0)
 
-    seller = ccs.seller
+        if not (self.act or self.new):
+            return HttpResponseNotFound()
 
-    if campaign:
-        end_date = add_business_days(date.today(), campaign.days)
-    else:
-        end_date = add_business_days(date.today(), 5)
+        self.contact = get_object_or_404(Contact, pk=kwargs['contact_id'])
+        self.contact_addresses = Address.objects.filter(contact=self.contact)
+        self.offerable_products = Product.objects.filter(offerable=True, type="S")
 
-    form = NewPromoForm(
-        initial={
-            "name": contact.name,
-            "last_name": contact.last_name,
-            "phone": contact.phone,
-            "mobile": contact.mobile,
-            "email": contact.email,
-            "default_address": contact_addresses,
+        # Get campaign and seller info
+        if self.act:
+            self.activity = get_object_or_404(Activity, pk=self.act)
+            self.campaign = self.activity.campaign
+            self.ccs = get_object_or_404(
+                ContactCampaignStatus, contact=self.contact, campaign=self.campaign
+            )
+        elif self.new:
+            self.ccs = get_object_or_404(ContactCampaignStatus, pk=self.new)
+            self.campaign = self.ccs.campaign
+            self.activity = None
+
+        self.seller = self.ccs.seller
+
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_initial(self):
+        """Set initial form data."""
+        start_date = date.today()
+
+        if self.campaign:
+            end_date = add_business_days(date.today(), self.campaign.days)
+        else:
+            end_date = add_business_days(date.today(), 5)
+
+        return {
+            "name": self.contact.name,
+            "last_name": self.contact.last_name,
+            "phone": self.contact.phone,
+            "mobile": self.contact.mobile,
+            "email": self.contact.email,
+            "default_address": self.contact_addresses,
             "start_date": start_date,
             "end_date": end_date,
             "copies": 1,
         }
-    )
-    form.fields["default_address"].queryset = contact_addresses
-    address_form = NewAddressForm(initial={"address_type": "physical"})
 
-    if result == _("Cancel"):
-        if offset:
-            return HttpResponseRedirect("{}?offset={}".format(url, offset))
+    def get_form(self, form_class=None):
+        """Customize form to set address queryset."""
+        form = super().get_form(form_class)
+        form.fields["default_address"].queryset = self.contact_addresses
+        return form
+
+    def post(self, request, *args, **kwargs):
+        """Handle Cancel button separately from form submission."""
+        result = request.POST.get("result")
+
+        if result == _("Cancel"):
+            if self.offset:
+                return HttpResponseRedirect("{}?offset={}".format(self.url, self.offset))
+            else:
+                return HttpResponseRedirect(self.url)
+
+        return super().post(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        """Process the form and create subscription."""
+        # First we need to save all the new contact data if necessary
+        changed = False
+        for attr in ("name", "phone", "mobile", "email", "notes"):
+            val = form.cleaned_data.get(attr)
+            if getattr(self.contact, attr) != val:
+                changed = True
+                setattr(self.contact, attr, val)
+
+        if changed:
+            try:
+                self.contact.save()
+            except forms.ValidationError as ve:
+                form.add_error(None, ve)
+                return self.form_invalid(form)
+
+        # Create the subscription
+        start_date = form.cleaned_data["start_date"]
+        end_date = form.cleaned_data["end_date"]
+        subscription = Subscription.objects.create(
+            contact=self.contact,
+            type="P",
+            start_date=start_date,
+            end_date=end_date,
+            campaign=self.campaign,
+        )
+
+        # Add products to subscription
+        for key, value in list(self.request.POST.items()):
+            if key.startswith("check"):
+                product_id = key.split("-")[1]
+                product = Product.objects.get(pk=product_id)
+                address_id = self.request.POST.get("address-{}".format(product_id))
+                address = Address.objects.get(pk=address_id)
+                copies = self.request.POST.get("copies-{}".format(product_id))
+                label_message = self.request.POST.get("message-{}".format(product_id))
+                special_instructions = self.request.POST.get("instruction-{}".format(product_id))
+                subscription.add_product(
+                    product=product,
+                    address=address,
+                    copies=copies,
+                    message=label_message,
+                    instructions=special_instructions,
+                    seller_id=self.seller.id,
+                )
+
+        # Update activity and campaign status
+        if self.request.GET.get("act", None):
+            # the instance is somehow an activity and we needed to send a promo again, or has been scheduled
+            self.activity.status = ACTIVITY_STATUS.COMPLETED  # completed activity
+            self.activity.save()
+            self.ccs.campaign_resolution = "SP"
+            self.ccs.status = 2  # Contacted this person
+            self.ccs.save()
+        elif self.request.GET.get("new", None):
+            self.ccs.status = 2  # contacted this person
+            self.ccs.campaign_resolution = "SP"  # Sent promo to this customer
+            self.ccs.save()
+
+        # Create follow-up activity
+        Activity.objects.create(
+            contact=self.contact,
+            campaign=self.campaign,
+            direction="O",
+            datetime=end_date + timedelta(1),
+            activity_type="C",
+            status="P",
+            seller=self.seller,
+        )
+
+        return HttpResponseRedirect("{}?offset={}".format(self.url, self.offset))
+
+    def get_context_data(self, **kwargs):
+        """Add additional context for the template."""
+        context = super().get_context_data(**kwargs)
+        context.update({
+            "contact": self.contact,
+            "address_form": NewAddressForm(initial={"address_type": "physical"}),
+            "offerable_products": self.offerable_products,
+            "contact_addresses": self.contact_addresses,
+        })
+        return context
+
+
+# Backward compatibility
+send_promo = SendPromoView.as_view()
+
+
+class UpdatePromoView(UserPassesTestMixin, FormView):
+    """
+    Shows a form that allows updating an existing promotional subscription.
+    Similar to SendPromoView but updates instead of creates.
+    """
+    template_name = "seller_console_start_promo.html"
+    form_class = NewPromoForm
+
+    def test_func(self):
+        return self.request.user.is_staff
+
+    def dispatch(self, request, *args, **kwargs):
+        """Initialize view-level variables from URL parameters."""
+        self.url = request.GET.get("url")
+        self.offset = request.GET.get("offset", 0)
+
+        # Get the subscription to update
+        self.subscription = get_object_or_404(Subscription, pk=kwargs['subscription_id'])
+        self.contact = self.subscription.contact
+        self.contact_addresses = Address.objects.filter(contact=self.contact)
+        self.offerable_products = Product.objects.filter(offerable=True, type="S")
+        
+        # Get existing subscription products
+        self.subscription_products = SubscriptionProduct.objects.filter(
+            subscription=self.subscription
+        ).select_related('product', 'address')
+
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_initial(self):
+        """Set initial form data from existing subscription."""
+        return {
+            "name": self.contact.name,
+            "last_name": self.contact.last_name,
+            "phone": self.contact.phone,
+            "mobile": self.contact.mobile,
+            "email": self.contact.email,
+            "default_address": self.contact_addresses.first(),
+            "start_date": self.subscription.start_date,
+            "end_date": self.subscription.end_date,
+            "copies": 1,
+        }
+
+    def get_form(self, form_class=None):
+        """Customize form to set address queryset and mark checked products."""
+        form = super().get_form(form_class)
+        form.fields["default_address"].queryset = self.contact_addresses
+        
+        # Mark products that are already in the subscription as checked
+        form.checked_products = list(
+            self.subscription_products.values_list('product_id', flat=True)
+        )
+        
+        # Create a method to get bound values for each product
+        def bound_product_values(product_id):
+            try:
+                sp = self.subscription_products.get(product_id=product_id)
+                return {
+                    'address': sp.address_id,
+                    'copies': sp.copies,
+                    'message': sp.label_message or '',
+                    'instructions': sp.special_instructions or '',
+                }
+            except SubscriptionProduct.DoesNotExist:
+                return {
+                    'address': None,
+                    'copies': 1,
+                    'message': '',
+                    'instructions': '',
+                }
+        
+        form.bound_product_values = bound_product_values
+        
+        return form
+
+    def post(self, request, *args, **kwargs):
+        """Handle Cancel button separately from form submission."""
+        result = request.POST.get("result")
+
+        if result == _("Cancel"):
+            if self.offset:
+                return HttpResponseRedirect("{}?offset={}".format(self.url, self.offset))
+            else:
+                return HttpResponseRedirect(self.url)
+
+        return super().post(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        """Process the form and update subscription."""
+        # Update contact data if necessary
+        changed = False
+        for attr in ("name", "phone", "mobile", "email", "notes"):
+            val = form.cleaned_data.get(attr)
+            if getattr(self.contact, attr) != val:
+                changed = True
+                setattr(self.contact, attr, val)
+
+        if changed:
+            try:
+                self.contact.save()
+            except forms.ValidationError as ve:
+                form.add_error(None, ve)
+                return self.form_invalid(form)
+
+        # Update subscription dates
+        self.subscription.start_date = form.cleaned_data["start_date"]
+        self.subscription.end_date = form.cleaned_data["end_date"]
+        self.subscription.save()
+
+        # Get currently selected products from POST
+        selected_product_ids = set()
+        for key in self.request.POST.keys():
+            if key.startswith("check-"):
+                product_id = int(key.split("-")[1])
+                selected_product_ids.add(product_id)
+
+        # Get existing subscription products
+        existing_product_ids = set(
+            self.subscription_products.values_list('product_id', flat=True)
+        )
+
+        # Remove products that are no longer selected
+        products_to_remove = existing_product_ids - selected_product_ids
+        if products_to_remove:
+            SubscriptionProduct.objects.filter(
+                subscription=self.subscription,
+                product_id__in=products_to_remove
+            ).delete()
+
+        # Add or update products
+        for product_id in selected_product_ids:
+            product = Product.objects.get(pk=product_id)
+            address_id = self.request.POST.get("address-{}".format(product_id))
+            address = Address.objects.get(pk=address_id)
+            copies = self.request.POST.get("copies-{}".format(product_id))
+            label_message = self.request.POST.get("message-{}".format(product_id))
+            special_instructions = self.request.POST.get("instruction-{}".format(product_id))
+
+            # Update existing or create new
+            if product_id in existing_product_ids:
+                sp = SubscriptionProduct.objects.get(
+                    subscription=self.subscription,
+                    product_id=product_id
+                )
+                sp.address = address
+                sp.copies = copies
+                sp.label_message = label_message
+                sp.special_instructions = special_instructions
+                sp.save()
+            else:
+                # Add new product to subscription
+                self.subscription.add_product(
+                    product=product,
+                    address=address,
+                    copies=copies,
+                    message=label_message,
+                    instructions=special_instructions,
+                    seller_id=self.subscription.seller_id if hasattr(self.subscription, 'seller_id') else None,
+                )
+
+        messages.success(self.request, _("Promotional subscription updated successfully"))
+        
+        if self.url:
+            if self.offset:
+                return HttpResponseRedirect("{}?offset={}".format(self.url, self.offset))
+            else:
+                return HttpResponseRedirect(self.url)
         else:
-            return HttpResponseRedirect(url)
-    elif result == _("Send"):
-        form = NewPromoForm(request.POST)
-        if form.is_valid():
-            # First we need to save all the new contact data if necessary
-            changed = False
-            for attr in ("name", "phone", "mobile", "email", "notes"):
-                val = form.cleaned_data.get(attr)
-                if getattr(contact, attr) != val:
-                    changed = True
-                    setattr(contact, attr, val)
-            if changed:
-                try:
-                    contact.save()
-                except forms.ValidationError as ve:
-                    form.add_error(None, ve)
+            return HttpResponseRedirect(reverse('contact_detail', args=[self.contact.id]))
 
-            if not form.errors:
-                # After this we will create the subscription
-                start_date = form.cleaned_data["start_date"]
-                end_date = form.cleaned_data["end_date"]
-                subscription = Subscription.objects.create(
-                    contact=contact,
-                    type="P",
-                    start_date=start_date,
-                    end_date=end_date,
-                    campaign=campaign,
-                )
-                for key, value in list(request.POST.items()):
-                    if key.startswith("check"):
-                        product_id = key.split("-")[1]
-                        product = Product.objects.get(pk=product_id)
-                        address_id = request.POST.get("address-{}".format(product_id))
-                        address = Address.objects.get(pk=address_id)
-                        copies = request.POST.get("copies-{}".format(product_id))
-                        label_message = request.POST.get("message-{}".format(product_id))
-                        special_instructions = request.POST.get("instruction-{}".format(product_id))
-                        subscription.add_product(
-                            product=product,
-                            address=address,
-                            copies=copies,
-                            message=label_message,
-                            instructions=special_instructions,
-                            seller_id=seller.id,
-                        )
+    def get_context_data(self, **kwargs):
+        """Add additional context for the template."""
+        context = super().get_context_data(**kwargs)
+        context.update({
+            "contact": self.contact,
+            "address_form": NewAddressForm(initial={"address_type": "physical"}),
+            "offerable_products": self.offerable_products,
+            "contact_addresses": self.contact_addresses,
+            "subscription": self.subscription,
+            "is_update": True,  # Flag to indicate this is an update operation
+        })
+        return context
 
-                if request.GET.get("act", None):
-                    # the instance is somehow an activity and we needed to send a promo again, or has been scheduled
-                    activity.status = ACTIVITY_STATUS.COMPLETED  # completed activity
-                    activity.save()
-                    ccs.campaign_resolution = "SP"
-                    ccs.status = 2  # Contacted this person
-                    ccs.save()
-                elif request.GET.get("new", None):
-                    ccs.status = 2  # contacted this person
-                    ccs.campaign_resolution = "SP"  # Sent promo to this c c ustomer
-                    ccs.save()
 
-                # Afterwards we need to make an activity to ask the customer how it went.
-                # The activity will show up in the menu after the datetime has passed.
-                Activity.objects.create(
-                    contact=contact,
-                    campaign=campaign,
-                    direction="O",
-                    datetime=end_date + timedelta(1),
-                    activity_type="C",
-                    status="P",
-                    seller=seller,
-                )
-
-                return HttpResponseRedirect("{}?offset={}".format(url, offset))
-
-    return render(
-        request,
-        "seller_console_start_promo.html",
-        {
-            "contact": contact,
-            "form": form,
-            "address_form": address_form,
-            "offerable_products": offerable_products,
-            "contact_addresses": contact_addresses,
-        },
-    )
+# Backward compatibility
+update_promo = UpdatePromoView.as_view()
 
 
 class SubscriptionEndDateListView(UserPassesTestMixin, FilterView, ListView):
