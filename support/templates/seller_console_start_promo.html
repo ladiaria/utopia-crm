@@ -1,7 +1,7 @@
 {% extends "adminlte/base.html" %}
 {% load i18n static core_tags %}
 
-{% block title %}{% trans "Start promotion" %}{% endblock %}
+{% block title %}{% if is_update %}{% trans "Update promotion" %}{% else %}{% trans "Start promotion" %}{% endif %}{% endblock %}
 
 {% block extra_head %}
 <link rel="stylesheet" type="text/css" href="{% static 'css/email_suggestion_dialog.css' %}">
@@ -98,13 +98,13 @@
 
 {% block no_heading %}
 <h1>{% trans "Support" %}</h1>
-<p>{% trans "Send promo" %}</p>
+<p>{% if is_update %}{% trans "Update promo" %}{% else %}{% trans "Send promo" %}{% endif %}</p>
 {% endblock %}
 
 {% block content %}
 <div class="card">
   <div class="card-header">
-    <h2 class="card-title">{% trans "Send promo" %}</h2>
+    <h2 class="card-title">{% if is_update %}{% trans "Update promo" %}{% else %}{% trans "Send promo" %}{% endif %}</h2>
   </div>
   <div class="card-body">
     <form method="post" id="subscription_form">
@@ -203,19 +203,19 @@
               <label for="copies-{{ product.id }}" class="small text-muted mb-1">{% trans "Copies" %}</label>
               <input type="number" min="1" id="copies-{{ product.id }}" name="copies-{{ product.id }}"
                 value="{{ bound_product_values.copies|default:1 }}" class="form-control form-control-sm"
-                title="{% trans 'Copies' %}">
+                title="{% trans "Copies" %}">
             </div>
             <div class="col-md-2">
               <label for="message-{{ product.id }}" class="small text-muted mb-1">{% trans "Message" %}</label>
               <input maxlength="40" type="text" id="message-{{ product.id }}" name="message-{{ product.id }}"
                 class="form-control form-control-sm" value="{{ bound_product_values.message }}"
-                placeholder="{% trans 'Optional' %}">
+                placeholder="{% trans "Optional" %}">
             </div>
             <div class="col-md-2">
               <label for="instructions-{{ product.id }}" class="small text-muted mb-1">{% trans "Instructions" %}</label>
               <input type="text" id="instructions-{{ product.id }}" name="instructions-{{ product.id }}"
                 class="form-control form-control-sm" value="{{ bound_product_values.instructions }}"
-                placeholder="{% trans 'Optional' %}">
+                placeholder="{% trans "Optional" %}">
             </div>
           </div>
         </div>
@@ -225,41 +225,9 @@
 
       <div class="form-group d-flex justify-content-end">
         <input type="submit" name="result" value="{% trans "Cancel" %}" class="btn btn-secondary mr-2">
-        <input type="submit" name="result" id="send_form" value="{% trans "Send" %}" class="btn btn-primary">
+        <input type="submit" name="result" id="send_form" value="{% if is_update %}{% trans "Update" %}{% else %}{% trans "Send" %}{% endif %}" class="btn btn-primary">
       </div>
     </form>
-  </div>
-</div>
-
-<div id="address_modal" class="modal" tabindex="-1" role="dialog">
-  <div class="modal-dialog" role="document">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="exampleModalLabel">{% trans "Add new address" %}</h5>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-          <span aria-hidden="true">&times;</span>
-        </button>
-      </div>
-      <div class="modal-body">
-        <form method="post" id="address_form">
-          {% if form.errors %}
-          {% for field in form %}
-          {% for error in field.errors %}
-          <div class="alert alert-danger"><strong>{{ error|escape }}</strong></div>
-          {% endfor %}
-          {% endfor %}
-          {% for error in form.non_field_errors %}
-          <div class="alert alert-danger"><strong>{{ error|escape }}</strong></div>
-          {% endfor %}
-          {% endif %}
-          {% csrf_token %}
-          {{ address_form.as_p }}
-          <div class="form-group text-right">
-            <input id="submit_address" type="submit" value="{% trans "Save address" %}" class="btn bg-gradient-primary">
-          </div>
-        </form>
-      </div>
-    </div>
   </div>
 </div>
 {% endblock content %}
