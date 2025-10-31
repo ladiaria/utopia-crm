@@ -581,6 +581,7 @@ class ImportContactsView(FormView):
             self.categorize_contact(contact, tags, results)
             if matches.count() == 1:
                 # Update email if matched by phone and contact doesn't have an email
+                # IMPORTANT: Never overwrite existing emails to prevent data loss
                 if matched_by_phone and not contact.email:
                     email_from_csv = contact_data.get('email')
                     if email_from_csv:
