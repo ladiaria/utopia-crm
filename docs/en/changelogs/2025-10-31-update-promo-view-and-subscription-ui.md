@@ -611,7 +611,7 @@ All changes are view and template-level only. No database schema changes.
 
 ---
 
-**Author:** Cascade AI Assistant
+**Author:** Tanya Tree
 **Date:** 2025-10-31
 **Severity:** Medium (new feature + UI improvement)
 **Breaking Changes:** None (backward compatible)

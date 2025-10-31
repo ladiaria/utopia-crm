@@ -2,166 +2,171 @@
 <div class="row">
   <div class="card col-sm-9">
     <div class="card-header">
-      <h3 class="card-title">{% trans "General information" %}</h3>
+      <h3 class="card-title"><i class="fas fa-user"></i> {% trans "General information" %}</h3>
     </div>
     <div class="card-body">
       <div class="row">
-        <div class="col-4">
-          <dt>{% trans "Name" %}</dt>
-          <dd>
-            {{ contact.get_full_name|default_if_none:"-" }}
-          </dd>
-          <dt>{% trans "ID document" %}</dt>
-          <dd>
-            <div class="mb-0">
-              <span class="font-weight-bold">{% trans "Type" %}:</span> {{ contact.id_document_type|default_if_none:"-" }}
+        <div class="col-md-6">
+          <div class="mb-2">
+            <i class="fas fa-user text-primary"></i> <strong>{% trans "Name" %}:</strong> {{ contact.get_full_name|default_if_none:"-" }}
+          </div>
+          {% if contact.id_document %}
+            <div class="mb-2">
+              <i class="fas fa-id-card text-secondary"></i> <strong>{% trans "ID" %}:</strong>
+              {{ contact.id_document_type|default_if_none:"-" }} {{ contact.id_document }}
             </div>
-            <div>
-              <span class="font-weight-bold">{% trans "Indentifier" %}:</span> {{ contact.id_document|default_if_none:"-" }}
-            </div>
-          </dd>
-          <dt>{% trans "Email" %}</dt>
-          <dd>
-            {{ contact.email|default:"-" }}
-          </dd>
+          {% endif %}
+          <div class="mb-2">
+            <i class="fas fa-envelope text-info"></i> <strong>{% trans "Email" %}:</strong>
+            {% if contact.email %}
+              <a href="mailto:{{ contact.email }}">{{ contact.email }}</a>
+            {% else %}
+              -
+            {% endif %}
+          </div>
         </div>
-        <div class="col-4">
-          <dt>{% trans "Phone" %}</dt>
-          <dd>
-            {{ contact.phone.as_national|default:"-" }}
-          </dd>
+        <div class="col-md-6">
+          <div class="mb-2">
+            <i class="fas fa-phone text-success"></i> <strong>{% trans "Phone" %}:</strong>
+            {% if contact.phone %}
+              <a href="tel:{{ contact.phone }}">{{ contact.phone.as_national }}</a>
+            {% else %}
+              -
+            {% endif %}
+          </div>
           {% if contact.mobile %}
-            <dt>{% trans "Mobile" %}</dt>
-            <dd>
-              {{ contact.mobile.as_national|default:"-" }}
-            </dd>
+            <div class="mb-2">
+              <i class="fas fa-mobile-alt text-success"></i> <strong>{% trans "Mobile" %}:</strong>
+              <a href="tel:{{ contact.mobile }}">{{ contact.mobile.as_national }}</a>
+            </div>
           {% endif %}
           {% if contact.work_phone %}
-            <dt>{% trans "Institutional phone" %}</dt>
-            <dd>
-              {{ contact.work_phone|default:"-" }}
-            </dd>
+            <div class="mb-2">
+              <i class="fas fa-building text-secondary"></i> <strong>{% trans "Work" %}:</strong> {{ contact.work_phone }}
+            </div>
           {% endif %}
-          {% if contact.tags.all %}
-            <dt>{% trans "Tags" %}</dt>
-            <dd>
-              {% for tag in contact.tags.all %}
-                <a href="{% url "contact_list" %}?tags={{ tag.name }}">
-                  <span class="btn btn-default btn-sm">{{ tag }}</span>
-                </a>
-              {% endfor %}
-            </dd>
-          {% endif %}
-        </div>
-        <div class="col-4">
-          {% comment %}
-            TODO: ADD OTHER STUFF HERE (specify which other stuff is needed)
-          {% endcomment %}
         </div>
       </div>
+      {% if contact.tags.all %}
+        <div class="mt-3">
+          <h6 class="text-muted mb-2"><i class="fas fa-tags"></i> {% trans "Tags" %}</h6>
+          <div class="d-flex flex-wrap">
+            {% for tag in contact.tags.all %}
+              <a href="{% url "contact_list" %}?tags={{ tag.name }}" class="badge badge-secondary mr-1 mb-1">{{ tag }}</a>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
     </div>
-    <div class="card-footer text-right">
-      <a href="{% url "edit_contact" contact.id %}" class="btn btn-success">{% trans "Edit info and newsletters" %}</a>
+    <div class="card-footer bg-light">
+      <div class="text-right">
+        <a href="{% url "edit_contact" contact.id %}" class="btn btn-sm btn-primary">
+          <i class="fas fa-edit"></i> {% trans "Edit info and newsletters" %}
+        </a>
+      </div>
     </div>
   </div>
 </div>
 <div class="row">
   <div class="card col-sm-9">
     <div class="card-header">
-      <h3 class="card-title">{% trans "Addresses" %}</h3>
+      <h3 class="card-title"><i class="fas fa-map-marker-alt"></i> {% trans "Addresses" %}</h3>
     </div>
     <div class="card-body">
       {% if addresses %}
         {% for address in addresses %}
-          <div class="card">
-            <div class="card-header">
-              <h4 class="card-title">
-                {% if address.default %}<i class="fas fa-star" title="{% trans 'Default' %}"></i>{% endif %}
-                {{ address }}
-                {% if address.verified %}
-                  <i class="fas fa-check-circle text-success"> {% trans "Verified" %}</i>
+          <div class="card mb-3 {% if not address.address_1 %}border-warning{% elif address.needs_georef %}border-danger{% elif address.verified %}border-success{% endif %}">
+            <div class="card-header {% if not address.address_1 %}bg-warning text-dark{% elif address.needs_georef %}bg-danger text-white{% elif address.verified %}bg-success text-white{% endif %}">
+              <h5 class="card-title mb-0">
+                {% if address.default %}<i class="fas fa-star mr-2" title="{% trans "Default" %}"></i>{% endif %}
+                <i class="fas fa-map-marker-alt"></i> {{ address }}
+                {% if not address.address_1 %}
+                  <span class="badge badge-danger ml-2"><i class="fas fa-exclamation-triangle"></i> {% trans "Missing Address" %}</span>
+                {% elif address.verified %}
+                  <span class="badge badge-light ml-2"><i class="fas fa-check-circle"></i> {% trans "Verified" %}</span>
                 {% elif address.needs_georef %}
-                  <i class="fas fa-times-circle text-danger"> {% trans "Saved without Georef" %}</i>
+                  <span class="badge badge-light ml-2"><i class="fas fa-times-circle"></i> {% trans "Needs Georef" %}</span>
                 {% endif %}
-              </h4>
+              </h5>
             </div>
             <div class="card-body">
               <div class="row">
-                <div class="col">
-                  <dl>
-                    <dt>{% trans "Address 1" %}</dt>
-                    <dd>
-                      {{ address.address_1|default_if_none:"-" }}
-                    </dd>
-                  </dl>
+                <div class="col-md-6">
+                  <div class="mb-2">
+                    <i class="fas fa-home text-primary"></i> <strong>{% trans "Address 1" %}:</strong> {{ address.address_1|default_if_none:"-" }}
+                  </div>
                   {% if address.address_2 %}
-                    <dt>{% trans "Address 2" %}</dt>
-                    <dd>
-                      {{ address.address_2|default_if_none:"-" }}
-                    </dd>
+                    <div class="mb-2">
+                      <i class="fas fa-building text-primary"></i> <strong>{% trans "Address 2" %}:</strong> {{ address.address_2 }}
+                    </div>
                   {% endif %}
                   {% if address.name %}
-                    <dt>{% trans "Name" %}</dt>
-                    <dd>
-                      {{ address.name|default_if_none:"-" }}
-                    </dd>
+                    <div class="mb-2">
+                      <i class="fas fa-tag text-secondary"></i> <strong>{% trans "Name" %}:</strong> {{ address.name }}
+                    </div>
                   {% endif %}
                 </div>
-                <div class="col">
-                  <dt>{% trans "City" %}</dt>
-                  <dd>
+                <div class="col-md-6">
+                  <div class="mb-2">
+                    <i class="fas fa-city text-info"></i> <strong>{% trans "City" %}:</strong>
                     {% if not address.get_city %}<i class="fas fa-exclamation-triangle text-danger"></i>{% endif %}
                     {{ address.get_city|default_if_none:"-" }}
-                  </dd>
-                  <dt>{% trans "State" %}</dt>
-                  <dd>
+                  </div>
+                  <div class="mb-2">
+                    <i class="fas fa-map text-info"></i> <strong>{% trans "State" %}:</strong>
                     {% if not address.state %}<i class="fas fa-exclamation-triangle text-danger"></i>{% endif %}
                     {{ address.state_name|default_if_none:"-" }}
-                  </dd>
-                  <dt>{% trans "Country" %}</dt>
-                  <dd>
+                  </div>
+                  <div class="mb-2">
+                    <i class="fas fa-globe text-info"></i> <strong>{% trans "Country" %}:</strong>
                     {% if not address.state %}<i class="fas fa-exclamation-triangle text-danger"></i>{% endif %}
                     {{ address.state.country.name|default_if_none:"-" }}
-                  </dd>
+                  </div>
                 </div>
               </div>
-              <div class="row">
-                <div class="col">
-                  {% if address.notes %}
-                    <dt>{% trans "Address notes" %}</dt>
-                    <dd>
-                      {{ address.notes|default_if_none:"-" }}
-                    </dd>
-                  {% endif %}
+              {% if address.notes %}
+                <div class="mt-2">
+                  <i class="fas fa-sticky-note text-warning"></i> <strong>{% trans "Notes" %}:</strong>
+                  <div class="pl-3 mt-1"><small>{{ address.notes }}</small></div>
                 </div>
-              </div>
+              {% endif %}
             </div>
-            <div class="card-footer text-right">
-              {% if georef_activated %}
-                {% if not address.verified %}
-                  <a href="{% url "normalizar_direccion" contact.id address.id %}"
-                     class="btn btn-gradient btn-primary">{% trans "Normalize" %}</a>
+            <div class="card-footer bg-light">
+              <div class="d-flex flex-wrap justify-content-end">
+                {% if georef_activated and not address.verified %}
+                  <a href="{% url "normalizar_direccion" contact.id address.id %}" class="btn btn-sm btn-warning mr-1 mb-1">
+                    <i class="fas fa-map-marked-alt"></i> {% trans "Normalize" %}
+                  </a>
                 {% endif %}
-              {% endif %}
-              <a href="{% url "editar_direccion" contact.id address.id %}"
-                 class="btn btn-gradient btn-primary">{% trans "Edit address" %}</a>
-              <a href="{% url "edit_address_complementary_information" address.id %}"
-                 class="btn btn-gradient btn-primary">{% trans "Complementary information" %}</a>
-              {% if request.user|in_group:"Managers" %}
-                <a href="{% url "admin:core_address_change" address.id %}"
-                   class="btn btn-gradient btn-danger">{% trans "Admin" %}</a>
-                <a href="{% url "admin:core_address_delete" address.id %}"
-                   class="btn btn-gradient btn-danger">{% trans "Delete address" %}</a>
-              {% endif %}
+                <a href="{% url "editar_direccion" contact.id address.id %}" class="btn btn-sm btn-primary mr-1 mb-1">
+                  <i class="fas fa-edit"></i> {% trans "Edit" %}
+                </a>
+                <a href="{% url "edit_address_complementary_information" address.id %}" class="btn btn-sm btn-info mr-1 mb-1">
+                  <i class="fas fa-info-circle"></i> {% trans "Details" %}
+                </a>
+                {% if request.user|in_group:"Managers" %}
+                  <a href="{% url "admin:core_address_change" address.id %}" class="btn btn-sm btn-secondary mr-1 mb-1" target="_blank">
+                    <i class="fas fa-cog"></i> {% trans "Admin" %}
+                  </a>
+                  <a href="{% url "admin:core_address_delete" address.id %}" class="btn btn-sm btn-danger mb-1" target="_blank">
+                    <i class="fas fa-trash"></i> {% trans "Delete" %}
+                  </a>
+                {% endif %}
+              </div>
             </div>
           </div>
         {% endfor %}
       {% else %}
-        {% trans "This contact has no addresses" %}
+        <p class="text-muted mb-0">
+          <i class="fas fa-info-circle"></i> {% trans "This contact has no addresses" %}
+        </p>
       {% endif %}
+    </div>
+    <div class="card-footer bg-light">
       <div class="text-right">
-        <a href="{% url "agregar_direccion" contact.id %}"
-           class="btn btn-gradient btn-primary">{% trans "Add Address" %}</a>
+        <a href="{% url "agregar_direccion" contact.id %}" class="btn btn-sm btn-success">
+          <i class="fas fa-plus"></i> {% trans "Add Address" %}
+        </a>
       </div>
     </div>
   </div>
@@ -169,8 +174,16 @@
 <div class="row">
   <div class="card col-sm-9">
     <div class="card-header">
-      <h3 class="card-title">{% trans "Notes" %}</h3>
+      <h3 class="card-title"><i class="fas fa-sticky-note"></i> {% trans "Notes" %}</h3>
     </div>
-    <div class="card-body">{{ contact.notes|default_if_none:"-"|linebreaksbr }}</div>
+    <div class="card-body">
+      {% if contact.notes %}
+        {{ contact.notes|linebreaksbr }}
+      {% else %}
+        <p class="text-muted mb-0">
+          <i class="fas fa-info-circle"></i> {% trans "This contact has no notes" %}
+        </p>
+      {% endif %}
+    </div>
   </div>
 </div>

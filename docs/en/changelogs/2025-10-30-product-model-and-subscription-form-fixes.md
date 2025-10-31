@@ -412,7 +412,7 @@ This fix resolves the following issues:
 
 ---
 
-**Author:** Cascade AI Assistant
+**Author:** Tanya Tree
 **Date:** 2025-10-30
 **Severity:** High (affects price calculations and data integrity)
 **Breaking Changes:** None (backward compatible)
