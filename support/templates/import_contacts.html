@@ -38,6 +38,88 @@
           </ol>
         </div>
 
+        <!-- Contact Matching Logic -->
+        <div class="card card-outline card-warning">
+          <div class="card-header">
+            <h3 class="card-title"><i class="fas fa-search"></i> {% trans "How Contact Matching Works" %}</h3>
+          </div>
+          <div class="card-body">
+            <p><strong>{% trans "The system uses a two-step matching process to find existing contacts:" %}</strong></p>
+            
+            <div class="row">
+              <div class="col-md-6">
+                <div class="callout callout-info">
+                  <h5><i class="fas fa-envelope"></i> {% trans "Step 1: Email Match" %}</h5>
+                  <p>{% trans "The system first tries to find contacts by email address (exact match, case-insensitive)." %}</p>
+                  <p class="mb-0"><strong>{% trans "If found:" %}</strong> {% trans "The contact is considered a match and will be categorized accordingly." %}</p>
+                </div>
+              </div>
+              
+              <div class="col-md-6">
+                <div class="callout callout-info">
+                  <h5><i class="fas fa-phone"></i> {% trans "Step 2: Phone Match" %}</h5>
+                  <p>{% trans "If no email match is found, the system tries to match by phone number (checks both phone and mobile fields)." %}</p>
+                  <p class="mb-0"><strong>{% trans "If found:" %}</strong> {% trans "The contact is matched and the email from CSV will be added if the contact doesn't have one." %}</p>
+                </div>
+              </div>
+            </div>
+
+            <hr>
+
+            <h5><i class="fas fa-tags"></i> {% trans "What Happens When Contacts Are Found (Coincidences)" %}</h5>
+            <p>{% trans "When a contact is found in the database, it will be categorized into one of these groups and tagged accordingly:" %}</p>
+            
+            <div class="table-responsive">
+              <table class="table table-sm table-bordered">
+                <thead class="thead-light">
+                  <tr>
+                    <th>{% trans "Contact Status" %}</th>
+                    <th>{% trans "What Happens" %}</th>
+                    <th>{% trans "Tags Applied" %}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr class="table-danger">
+                    <td><strong>{% trans "In Active Campaign" %}</strong></td>
+                    <td>{% trans "Contact is already in an active campaign. No new data is added to avoid conflicts." %}</td>
+                    <td><span class="badge badge-danger">{% trans "Tags for contacts in campaigns" %}</span></td>
+                  </tr>
+                  <tr class="table-warning">
+                    <td><strong>{% trans "Has Active Subscription" %}</strong></td>
+                    <td>{% trans "Contact has an active subscription. Phone numbers may be added if missing." %}</td>
+                    <td><span class="badge badge-warning">{% trans "Tags for active contacts" %}</span></td>
+                  </tr>
+                  <tr class="table-info">
+                    <td><strong>{% trans "Existing Inactive Contact" %}</strong></td>
+                    <td>{% trans "Contact exists but has no active subscription or campaign. Phone numbers may be added if missing." %}</td>
+                    <td><span class="badge badge-info">{% trans "Tags for existing contacts" %}</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="alert alert-warning mt-3">
+              <i class="icon fas fa-info-circle"></i>
+              <strong>{% trans "Phone Number Updates:" %}</strong> {% trans "If only one matching contact is found, the system will add phone numbers from the CSV if the contact is missing them. If the contact already has a phone number, the CSV phone will be added to the mobile field." %}
+            </div>
+
+            <hr>
+
+            <h5><i class="fas fa-user-plus"></i> {% trans "What Happens When No Coincidences Are Found" %}</h5>
+            <p>{% trans "When no matching contact is found (neither by email nor phone), a completely new contact will be created with:" %}</p>
+            <ul>
+              <li>{% trans "All data from the CSV file (name, email, phone, address, etc.)" %}</li>
+              <li>{% trans "A physical address if address_1 is provided" %}</li>
+              <li>{% trans "The tags configured for new contacts" %}</li>
+            </ul>
+            
+            <div class="alert alert-success">
+              <i class="icon fas fa-check-circle"></i>
+              <strong>{% trans "Result:" %}</strong> {% trans "You will see a success message showing how many new contacts were created." %}
+            </div>
+          </div>
+        </div>
+
         <!-- CSV Format Information -->
         <div class="card card-outline card-primary">
           <div class="card-header">
@@ -126,6 +208,41 @@
             <div class="alert alert-warning mt-3">
               <i class="icon fas fa-exclamation-triangle"></i>
               <strong>{% trans "Important:" %}</strong> {% trans "All columns must be present in the CSV file, even if they are empty. Use the template to ensure correct formatting." %}
+            </div>
+          </div>
+        </div>
+
+        <!-- Expected Results Summary -->
+        <div class="card card-outline card-success">
+          <div class="card-header">
+            <h3 class="card-title"><i class="fas fa-clipboard-check"></i> {% trans "What to Expect After Import" %}</h3>
+          </div>
+          <div class="card-body">
+            <p>{% trans "After processing your CSV file, you will receive detailed feedback messages showing:" %}</p>
+            
+            <div class="row">
+              <div class="col-md-6">
+                <h6 class="text-success"><i class="fas fa-check-circle"></i> {% trans "Success Messages" %}</h6>
+                <ul class="list-unstyled">
+                  <li><i class="fas fa-user-plus text-success"></i> {% trans "Number of new contacts created" %}</li>
+                  <li><i class="fas fa-envelope text-success"></i> {% trans "Number of emails added to existing contacts" %}</li>
+                  <li><i class="fas fa-phone text-success"></i> {% trans "Number of phone numbers added" %}</li>
+                </ul>
+              </div>
+              
+              <div class="col-md-6">
+                <h6 class="text-warning"><i class="fas fa-exclamation-triangle"></i> {% trans "Warning Messages" %}</h6>
+                <ul class="list-unstyled">
+                  <li><i class="fas fa-bullhorn text-danger"></i> {% trans "Contacts found in active campaigns" %}</li>
+                  <li><i class="fas fa-star text-warning"></i> {% trans "Contacts with active subscriptions" %}</li>
+                  <li><i class="fas fa-user text-info"></i> {% trans "Existing inactive contacts" %}</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="alert alert-info mt-3">
+              <i class="icon fas fa-lightbulb"></i>
+              <strong>{% trans "Pro Tip:" %}</strong> {% trans "Use different tags for each contact type to easily filter and manage them after import. This helps you track which contacts were new vs. existing, and their current status." %}
             </div>
           </div>
         </div>
