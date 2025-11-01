@@ -285,12 +285,20 @@ class Product(models.Model):
         "core.TermsAndConditions",
         through="core.TermsAndConditionsProduct",
     )
+    mercadopago_skip_sync = models.BooleanField(
+        default=False,
+        verbose_name=_("Do not sync this product with a MercadoPago plan"),
+        help_text=_(
+            "If checked, this product will not be synchronized with a MercadoPago plan until this field is unchecked "
+            "and the object is saved. This means that the field is disabled if the product has a MercadoPago ID set."
+        ),
+    )
     mercadopago_id = models.CharField(
         max_length=255,
         blank=True,
         null=True,
         verbose_name=_("MercadoPago ID"),
-        help_text=_("If MercadoPago product sync is enabled, this field is auto-filled when this product is created."),
+        help_text=_("If MercadoPago product sync is enabled, this field is auto-filled when this product is saved."),
     )
     billing_mode = models.CharField(
         max_length=1,

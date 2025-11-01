@@ -452,17 +452,19 @@ def mp_product_sync(obj, disable_mp_plan=False):
     Syncs the product with a MercadoPago Plan object for "app integration" mercadopago mode.
     The sync is performed only if:
     - MERCADOPAGO_PRODUCT_SYNC_ENABLED is True (default: False)
+    - obj.mercadopago_skip_sync is False
     - mercadopago_access_token() is not empty
     - The "app integration" mode in MercadoPago is used, the app id will be obtained from the access token
     - if MERCADOPAGO_PRODUCT_SYNC_CMS_SYNC_REQUIRED is True (default: False), obj.cms_subscription_type must be set
     """
-    if getattr(settings, "MERCADOPAGO_PRODUCT_SYNC_ENABLED", False):
+    if getattr(settings, "MERCADOPAGO_PRODUCT_SYNC_ENABLED", False) and not obj.mercadopago_skip_sync:
         if getattr(settings, "MERCADOPAGO_PRODUCT_SYNC_CMS_SYNC_REQUIRED", False) and not obj.cms_subscription_type:
             return
         sdk, app_id = mercadopago_sdk()
         if disable_mp_plan:
             if not obj.mercadopago_id:
                 # we only can disable plans already linked to a product in CRM
+                # NOTE: MP has 2 status values for a plan: "active" and "inactive"
                 return
             update_data = {"status": "inactive"}
             try:
@@ -557,7 +559,10 @@ class ProductAdmin(admin.ModelAdmin):
         ),
         (_("Scheduling & Frequency"), {"fields": ("weekday", "subscription_period", "duration_months")}),
         (_("Billing & Priority"), {"fields": ("billing_priority", "active", "edition_frequency")}),
-        (_("MercadoPago and others"), {"fields": ("mercadopago_id", "cms_subscription_type")}),
+        (
+            _("MercadoPago and others"),
+            {"fields": ("mercadopago_skip_sync", "mercadopago_id", "cms_subscription_type")}
+        ),
     )
     inlines = (TermsAndConditionsProductInline,)
     search_fields = ("name", "slug", "internal_code")
@@ -565,6 +570,12 @@ class ProductAdmin(admin.ModelAdmin):
     no_mp_sync_msg_prefix = _("The product could not be updated in MercadoPago") + ": "
     actions = None
     list_display_links = ("name",)
+
+    def get_form(self, request, obj=None, **kwargs):
+        form = super().get_form(request, obj, **kwargs)
+        if getattr(obj, "mercadopago_id", None):
+            form.base_fields["mercadopago_skip_sync"].disabled = True
+        return form
 
     def delete_model(self, request, obj):
         print("delete_model", obj)
