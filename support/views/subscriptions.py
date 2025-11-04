@@ -811,8 +811,8 @@ def book_additional_product(request, subscription_id):
             # After that, we'll set the unsubscription date to this new subscription
             success_text = format_lazy("New product(s) booked for {end_date}", end_date=old_subscription.end_date)
             messages.success(request, success_text)
-            old_subscription.inactivity_reason = 3  # Upgrade
-            old_subscription.unsubscription_type = 4  # Upgrade
+            old_subscription.inactivity_reason = Subscription.InactivityReasonChoices.ADDED_PRODUCTS
+            old_subscription.unsubscription_type = Subscription.UnsubscriptionTypeChoices.ADDED_PRODUCTS
             old_subscription.unsubscription_date = date.today()
             old_subscription.unsubscription_manager = request.user
             old_subscription.save()
@@ -1037,7 +1037,7 @@ class UpdatePromoView(UserPassesTestMixin, FormView):
         self.contact = self.subscription.contact
         self.contact_addresses = Address.objects.filter(contact=self.contact)
         self.offerable_products = Product.objects.filter(offerable=True, type="S")
-        
+
         # Get existing subscription products
         self.subscription_products = SubscriptionProduct.objects.filter(
             subscription=self.subscription
@@ -1063,12 +1063,12 @@ class UpdatePromoView(UserPassesTestMixin, FormView):
         """Customize form to set address queryset and mark checked products."""
         form = super().get_form(form_class)
         form.fields["default_address"].queryset = self.contact_addresses
-        
+
         # Mark products that are already in the subscription as checked
         form.checked_products = list(
             self.subscription_products.values_list('product_id', flat=True)
         )
-        
+
         # Create a method to get bound values for each product
         def bound_product_values(product_id):
             try:
@@ -1086,9 +1086,9 @@ class UpdatePromoView(UserPassesTestMixin, FormView):
                     'message': '',
                     'instructions': '',
                 }
-        
+
         form.bound_product_values = bound_product_values
-        
+
         return form
 
     def post(self, request, *args, **kwargs):
@@ -1177,7 +1177,7 @@ class UpdatePromoView(UserPassesTestMixin, FormView):
                 )
 
         messages.success(self.request, _("Promotional subscription updated successfully"))
-        
+
         if self.url:
             if self.offset:
                 return HttpResponseRedirect("{}?offset={}".format(self.url, self.offset))
