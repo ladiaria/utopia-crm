@@ -1360,6 +1360,16 @@ class SubscriptionProduct(models.Model):
     has_envelope = models.PositiveSmallIntegerField(
         blank=True, null=True, verbose_name=_("Envelope"), choices=ENVELOPE_CHOICES
     )
+    original_datetime = models.DateTimeField(
+        blank=True,
+        null=True,
+        default=timezone.now,
+        verbose_name=_("Original date and time"),
+        help_text=_(
+            "Date and time when the subscription product was originally created, regardless of the subscription."
+            " This product might have been inherited from another subscription."
+        ),
+    )
     active = models.BooleanField(default=True)
 
     def __str__(self):
