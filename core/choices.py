@@ -16,15 +16,6 @@ EDUCATION_CHOICES = (
     (100, _("Doesn't want to inform")),
 )
 
-INACTIVITY_REASONS = (
-    (1, _("Normal end")),
-    (2, _("Paused")),
-    (3, _("Upgraded")),
-    (13, _("Debtor")),
-    (16, _("Debtor, automatic unsubscription")),
-    (99, _("N/A")),
-)
-
 FREQUENCY_CHOICES = ((1, _("Monthly")), (3, _("Quarterly")), (6, _("Biannual")), (12, _("Annual")))
 
 PRODUCT_BILLING_FREQUENCY_CHOICES = (
@@ -193,13 +184,6 @@ DYNAMIC_CONTACT_FILTER_MODES = [
 ENVELOPE_CHOICES = (
     (1, _("Paid envelope")),
     (2, _("Free envelope")),
-)
-
-UNSUBSCRIPTION_TYPE_CHOICES = (
-    (1, _("Complete unsubscription")),
-    (2, _("Partial unsubscription")),
-    (3, _("Product change")),
-    (4, _("Upgrade")),
 )
 
 DEBTOR_CONCACTS_CHOICES = (
