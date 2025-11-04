@@ -13,12 +13,14 @@ Modernized legacy tuple-based choices to Django's `IntegerChoices` for better ty
 **Solution:** Converted to `IntegerChoices` class with meaningful constant names and updated all usages.
 
 **Files Modified:**
+
 - `core/choices.py`
 - `core/models.py`
 
 #### Changes in `core/choices.py`
 
 **Before:**
+
 ```python
 INACTIVITY_REASONS = (
     (1, _("Normal end")),
@@ -32,6 +34,7 @@ INACTIVITY_REASONS = (
 ```
 
 **After:**
+
 ```python
 class INACTIVITY_REASONS(IntegerChoices):
     NORMAL_END = 1, _("Normal end")
@@ -46,6 +49,7 @@ class INACTIVITY_REASONS(IntegerChoices):
 #### Changes in `core/models.py`
 
 **Field Definition:**
+
 ```python
 # Before
 inactivity_reason = models.IntegerField(
@@ -59,6 +63,7 @@ inactivity_reason = models.IntegerField(
 ```
 
 **Getter Method:**
+
 ```python
 # Before
 def get_inactivity_reason(self):
@@ -74,6 +79,7 @@ def get_inactivity_reason(self):
 ```
 
 **Benefits:**
+
 - ✅ **Type Safety**: Better IDE support and validation
 - ✅ **Maintainability**: Single source of truth with meaningful constant names
 - ✅ **Modern Django**: Uses current best practices for choices
@@ -88,12 +94,14 @@ def get_inactivity_reason(self):
 **Solution:** Converted to `IntegerChoices` class and renamed to `UNSUBSCRIPTION_TYPE` for consistency.
 
 **Files Modified:**
+
 - `core/choices.py`
 - `core/models.py`
 
-#### Changes in `core/choices.py`
+#### Changes in `core/choices.py` part 2
 
 **Before:**
+
 ```python
 UNSUBSCRIPTION_TYPE_CHOICES = (
     (1, _("Complete unsubscription")),
@@ -104,6 +112,7 @@ UNSUBSCRIPTION_TYPE_CHOICES = (
 ```
 
 **After:**
+
 ```python
 class UNSUBSCRIPTION_TYPE(IntegerChoices):
     COMPLETE = 1, _("Complete unsubscription")
@@ -112,9 +121,10 @@ class UNSUBSCRIPTION_TYPE(IntegerChoices):
     ADDED_PRODUCTS = 4, _("Added products")
 ```
 
-#### Changes in `core/models.py`
+#### Changes in `core/models.py` part 3
 
 **Import:**
+
 ```python
 # Before
 from .choices import UNSUBSCRIPTION_TYPE_CHOICES
@@ -124,6 +134,7 @@ from .choices import UNSUBSCRIPTION_TYPE
 ```
 
 **Field Definition:**
+
 ```python
 # Before
 unsubscription_type = models.PositiveSmallIntegerField(
@@ -143,6 +154,7 @@ unsubscription_type = models.PositiveSmallIntegerField(
 ```
 
 **Getter Method:**
+
 ```python
 # Before
 def get_unsubscription_type(self):
@@ -158,6 +170,7 @@ def get_unsubscription_type(self):
 ```
 
 **Benefits:**
+
 - ✅ **Consistency**: Follows same pattern as other IntegerChoices in codebase
 - ✅ **Cleaner Code**: Eliminates dict() conversions
 - ✅ **Better Error Handling**: Explicit ValueError catching
@@ -176,6 +189,7 @@ def get_unsubscription_type(self):
 #### Changes
 
 **Before:**
+
 ```html
 <div class="mb-2 pb-2">
   <div class="d-flex justify-content-between">
@@ -196,6 +210,7 @@ def get_unsubscription_type(self):
 ```
 
 **After:**
+
 ```html
 <div class="mb-2 pb-2 {% if not forloop.last %}border-bottom{% endif %}">
   <div class="d-flex align-items-baseline">
@@ -217,6 +232,7 @@ def get_unsubscription_type(self):
 ```
 
 **Improvements:**
+
 - ✅ **Space Efficient**: Product and address on same line
 - ✅ **Vertical Alignment**: All addresses start at same horizontal position
 - ✅ **Better Readability**: Removed muted text from addresses, removed small badges
@@ -233,9 +249,10 @@ def get_unsubscription_type(self):
 
 **File Modified:** `support/templates/contact_detail/tabs/_overview.html`
 
-#### Changes
+#### More Changes
 
 **Before:**
+
 ```html
 {% if address.address_1 %}
   <div class="mb-1 pl-3">
@@ -254,6 +271,7 @@ def get_unsubscription_type(self):
 ```
 
 **After:**
+
 ```html
 {% if address.address_1 %}
   <div class="mb-2 pl-3">
@@ -278,6 +296,7 @@ def get_unsubscription_type(self):
 ```
 
 **Improvements:**
+
 - ✅ **Full-Size Text**: Removed `<small>` tags for better readability
 - ✅ **Better Spacing**: Changed from `mb-1` to `mb-2` for more breathing room
 - ✅ **Consistent Icons**: Added `ml-1` margin to georef icons for better spacing
@@ -295,9 +314,10 @@ def get_unsubscription_type(self):
 
 **File Modified:** `core/models.py`
 
-#### Changes
+#### Even More Changes
 
 **Before:**
+
 ```python
 def get_subscriptionproducts(self, without_discounts=False):
     qs = SubscriptionProduct.objects.filter(subscription=self).select_related("product")
@@ -307,6 +327,7 @@ def get_subscriptionproducts(self, without_discounts=False):
 ```
 
 **After:**
+
 ```python
 def get_subscriptionproducts(self, without_discounts=False):
     qs = (
@@ -320,6 +341,7 @@ def get_subscriptionproducts(self, without_discounts=False):
 ```
 
 **Benefits:**
+
 - ✅ **Consistent Ordering**: Products always appear in the same order
 - ✅ **Logical Grouping**: Ordered by billing priority first, then by product ID
 - ✅ **Better UX**: Users see products in predictable, meaningful order
@@ -329,15 +351,19 @@ def get_subscriptionproducts(self, without_discounts=False):
 ## Technical Impact
 
 ### Database Changes
+
 - **None**: All changes are backward compatible with existing data
 
 ### API Changes
+
 - **None**: All changes are internal implementation improvements
 
 ### Breaking Changes
+
 - **None**: All changes maintain backward compatibility
 
 ### Performance Impact
+
 - **Neutral to Positive**: IntegerChoices provide slightly better performance than dict() conversions
 - **Positive**: Product ordering is done at database level, which is efficient
 
