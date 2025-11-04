@@ -2241,7 +2241,11 @@ class Subscription(models.Model):
         return months
 
     def get_subscriptionproducts(self, without_discounts=False):
-        qs = SubscriptionProduct.objects.filter(subscription=self).select_related("product")
+        qs = (
+            SubscriptionProduct.objects.filter(subscription=self)
+            .select_related("product")
+            .order_by("product__billing_priority", "product_id")
+        )
         if without_discounts:
             qs = qs.exclude(product__type="D")
         return qs
