@@ -47,25 +47,23 @@
             <h6 class="text-muted mb-2"><i class="fas fa-map-marker-alt"></i> {% trans "Addresses" %}</h6>
             {% for address in addresses %}
               {% if address.address_1 %}
-                <div class="mb-1 pl-3">
-                  <small>
-                    {{ address.address_1|default:"-" }}
-                    {% if georef_activated %}
-                      {% if address.needs_georef %}
-                        <i class="fas fa-times-circle text-danger" title="{% trans "Needs georeferencing" %}"></i>
-                      {% elif not address.verified %}
-                        <a href="{% url "normalizar_direccion" contact.id address.id %}" class="btn btn-xs btn-info ml-1">
-                          <i class="fas fa-map-marked-alt"></i> {% trans "Normalize" %}
-                        </a>
-                      {% else %}
-                        <i class="fas fa-check-circle text-success" title="{% trans "Verified" %}"></i>
-                      {% endif %}
+                <div class="mb-2 pl-3">
+                  {{ address.address_1|default:"-" }}
+                  {% if georef_activated %}
+                    {% if address.needs_georef %}
+                      <i class="fas fa-times-circle text-danger ml-1" title="{% trans "Needs georeferencing" %}"></i>
+                    {% elif not address.verified %}
+                      <a href="{% url "normalizar_direccion" contact.id address.id %}" class="btn btn-xs btn-info ml-1">
+                        <i class="fas fa-map-marked-alt"></i> {% trans "Normalize" %}
+                      </a>
+                    {% else %}
+                      <i class="fas fa-check-circle text-success ml-1" title="{% trans "Verified" %}"></i>
                     {% endif %}
-                  </small>
+                  {% endif %}
                 </div>
               {% else %}
-                <div class="mb-1 pl-3">
-                  <small>{% trans "No address specified" %}</small>
+                <div class="mb-2 pl-3">
+                  {% trans "No address specified" %}
                 </div>
               {% endif %}
             {% endfor %}
