@@ -669,6 +669,7 @@ def product_change(request, subscription_id):
                         instructions=sp.special_instructions,
                         seller_id=sp.seller_id,
                     )
+                    new_sp.original_datetime = sp.original_datetime
                     if logistics_is_installed():
                         if sp.route:
                             new_sp.route = sp.route
@@ -775,6 +776,7 @@ def book_additional_product(request, subscription_id):
                         instructions=sp.special_instructions,
                         seller_id=sp.seller_id,
                     )
+                    new_sp.original_datetime = sp.original_datetime
                     if logistics_is_installed():
                         if sp.route:
                             new_sp.route = sp.route
