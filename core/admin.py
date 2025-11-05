@@ -114,6 +114,7 @@ class SubscriptionProductInline(admin.TabularInline):
         ("product", "copies", "address"),
         ("order", "label_contact", "seller"),
         ("has_envelope", "active"),
+        ("original_datetime")
     )
     raw_id_fields = ["label_contact", "seller"]
 

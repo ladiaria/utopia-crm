@@ -28,7 +28,7 @@
     {% endif %}
     {% if subscription.is_obsolete %}
       <div class="alert alert-warning py-1 px-2 mb-2">
-        <small><i class="fas fa-exchange-alt"></i> {% trans "Replaced by subscription" %} #{{ subscription.get_updated_subscription.number }}</small>
+        <small><i class="fas fa-exchange-alt"></i> {% trans "Replaced by subscription" %} #{{ subscription.get_updated_subscription.id }}</small>
       </div>
     {% endif %}
     <div class="row">
