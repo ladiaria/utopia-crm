@@ -1,134 +1,200 @@
 {% load i18n core_tags %}
-<div class="card {% if subscription.status == "PA" %}bg-secondary{% endif %}">
+<div class="card mb-3 {% if subscription.has_subscriptionproduct_in_special_route %}border-danger{% elif subscription.status == "PA" %}border-secondary{% endif %}">
+  <div class="card-header {% if subscription.has_subscriptionproduct_in_special_route %}bg-danger text-white{% elif subscription.status == "PA" %}bg-secondary text-white{% endif %}">
+    <div class="d-flex justify-content-between align-items-start">
+      <h5 class="card-title mb-0">
+        {% for sp in subscription.get_subscriptionproducts %}
+          {% include "contact_detail/tabs/includes/_subscription_icons.html" with sp=sp %}
+          <strong>{{ sp.product.name }}</strong>
+          {% if sp.label_contact %}
+            <small class="text-{% if subscription.has_subscriptionproduct_in_special_route or subscription.status == "PA" %}white{% else %}muted{% endif %}">({{ sp.label_contact.get_full_name }})</small>
+          {% endif %}
+          {% if not forloop.last %}<br>{% endif %}
+        {% endfor %}
+      </h5>
+    </div>
+  </div>
   <div class="card-body">
+    {# Status alerts #}
+    {% if subscription.status == "PA" %}
+      <div class="alert alert-secondary py-1 px-2 mb-2">
+        <small><i class="fas fa-pause-circle"></i> {% trans "Paused until" %} <strong>{{ subscription.paused_until|date:"d/m/Y" }}</strong></small>
+      </div>
+    {% endif %}
+    {% if subscription.has_subscriptionproduct_in_special_route %}
+      <div class="alert alert-danger py-1 px-2 mb-2">
+        <small><i class="fas fa-exclamation-triangle"></i> {% trans "Special route - may not be billed" %}</small>
+      </div>
+    {% endif %}
+    {% if subscription.is_obsolete %}
+      <div class="alert alert-warning py-1 px-2 mb-2">
+        <small><i class="fas fa-exchange-alt"></i> {% trans "Replaced by subscription" %} #{{ subscription.get_updated_subscription.number }}</small>
+      </div>
+    {% endif %}
     <div class="row">
-      <div class="col-6">
-        <dt>{% trans "Products" %}:</dt>
-        <dd class="border-bottom pb-3">
-          {% for sp in subscription.get_subscriptionproducts %}
-            <div class="row">
-              <div class="col-5">
+      <div class="col-md-6">
+        <h6 class="text-muted mb-2">
+          <i class="fas fa-box-open"></i> {% trans "Products & Addresses" %}
+        </h6>
+        {% for sp in subscription.get_subscriptionproducts %}
+          <div class="mb-2 pb-2 {% if not forloop.last %}border-bottom{% endif %}">
+            <div class="d-flex align-items-baseline">
+              <div style="min-width: 200px; flex-shrink: 0;">
                 {% include "contact_detail/tabs/includes/_subscription_icons.html" with sp=sp %}
-                &nbsp;{{ sp.product.name }}
-                {% if sp.label_contact %}({{ sp.label_contact.get_full_name }}){% endif %}
-              </div>
-              <div class="col-6">{{ sp.address.address_1 }}</div>
-              <div class="col-1">
-                {% if sp.route %}R{{ sp.route.number }}{% endif %}
-              </div>
-            </div>
-          {% endfor %}
-        </dd>
-        {% if subscription.type == "N" %}
-          <div class="row">
-            <div class="col-6">
-              <dt>{% trans "Frequency" %}:</dt>
-              <dd>
-                {{ subscription.get_frequency }}
-              </dd>
-              <dt>{% trans "Price" %}:</dt>
-              <dd>
-                {{ subscription.get_price_for_full_period }}
-                {% if subscription.has_paused_products %}
-                  (${{ subscription.get_price_for_full_period_with_pauses }} {% trans "because of Pause" %})
+                <strong>{{ sp.product.name }}</strong>
+                {% if sp.label_contact %}
+                  <small class="text-muted">({{ sp.label_contact.get_full_name }})</small>
                 {% endif %}
-              </dd>
-            </div>
-            <div class="col-6">
-              {% block payment_type %}
-                <dt>{% trans "Payment type" %}:</dt>
-                <dd>
-                  {{ subscription.get_payment_type_display|default_if_none:"-" }}
-                  {% block extrapayment %}
-                  {% endblock extrapayment %}
-
-                </dd>
-              {% endblock payment_type %}
-
+              </div>
+              <div style="flex: 1;">
+                <i class="fas fa-map-marker-alt"></i> {{ sp.address.address_1|default:"N/A" }}
+                {% if sp.route %}
+                  ({% trans "Route" %}: {{ sp.route.number }})
+                {% endif %}
+              </div>
             </div>
           </div>
+        {% endfor %}
+        {% if subscription.type == "N" %}
+          <h6 class="text-muted mb-2 mt-3">
+            <i class="fas fa-dollar-sign"></i> {% trans "Pricing & Payment" %}
+          </h6>
+          <div class="mb-1">
+            <i class="fas fa-sync-alt text-info"></i> <strong>{% trans "Frequency" %}:</strong> {{ subscription.get_frequency }}
+          </div>
+          <div class="mb-1">
+            <i class="fas fa-dollar-sign text-success"></i> <strong>{% trans "Price" %}:</strong> {{ subscription.get_price_for_full_period }}
+            {% if subscription.has_paused_products %}
+              <span class="text-muted">(${{ subscription.get_price_for_full_period_with_pauses }})</span>
+            {% endif %}
+          </div>
+          {% block payment_type %}
+            <div class="mb-1">
+              <i class="fas fa-credit-card text-secondary"></i> <strong>{% trans "Payment" %}:</strong> {{ subscription.get_payment_type_display|default_if_none:"-" }}
+              {% block extrapayment %}
+              {% endblock extrapayment %}
+
+            </div>
+          {% endblock payment_type %}
+
         {% endif %}
       </div>
-      <div class="col-3">
-        <dt>{% trans "Status" %}:</dt>
-        <dd>
-          {{ subscription.get_status_display }}
-        </dd>
-        {% if subscription.status == "PA" %}
-          <dt>{% trans "Paused until" %}:</dt>
-          <dd>
-            {{ subscription.paused_until|date:"d/m/Y" }}
-          </dd>
-        {% endif %}
-        {% if subscription.has_subscriptionproduct_in_special_route %}
-          <dt>{% trans "Special route" %}:</dt>
-          <dd>
-            {% trans "Yes" %}
-          </dd>
-        {% endif %}
-        {% if subscription.last_paid_invoice %}
-          <dt>{% trans "Last paid invoice" %}:</dt>
-          <dd>
-            {{ subscription.last_paid_invoice.number }}
-          </dd>
-        {% endif %}
-        <dt>{% trans "Next invoice" %}:</dt>
-        <dd>
-          {{ subscription.next_billing|date:"d/m/Y" }}
-        </dd>
-        <dt>{% trans "Start date" %}:</dt>
-        <dd>
-          {{ subscription.start_date|date:"d/m/Y" }}
-        </dd>
-        <dt>{% trans "End date" %}:</dt>
-        <dd>
-          {{ subscription.end_date|date:"d/m/Y"|default:"-" }}
-          {% if subscription.end_date %}
-            ({% days_until subscription.end_date %})
+      <div class="col-md-6">
+        <div class="row">
+          <div class="col-md-6">
+            <h6 class="text-muted mb-2">
+              <i class="fas fa-calendar-alt"></i> {% trans "Dates & Status" %}
+            </h6>
+            <div class="mb-1">
+              <i class="fas fa-tag text-primary"></i> <strong>{% trans "Type" %}:</strong>
+              <span class="badge badge-{% if subscription.type == "P" %}info{% elif subscription.type == "N" %}primary{% elif subscription.type == "C" %}success{% else %}secondary{% endif %}">{{ subscription.get_type_display }}</span>
+            </div>
+            <div class="mb-1">
+              <i class="fas fa-info-circle text-primary"></i> <strong>{% trans "Status" %}:</strong> {{ subscription.get_status_display }}
+            </div>
+            <div class="mb-1">
+              <i class="fas fa-calendar-alt text-primary"></i> <strong>{% trans "Start" %}:</strong> {{ subscription.start_date|date:"d/m/Y" }}
+            </div>
+            <div class="mb-1">
+              <i class="fas fa-calendar-times text-danger"></i> <strong>{% trans "End" %}:</strong>
+              {{ subscription.end_date|date:"d/m/Y"|default:"-" }}
+              {% if subscription.end_date %}
+                <span class="badge badge-warning badge-sm">{% days_until subscription.end_date %}</span>
+              {% endif %}
+            </div>
+            {% if subscription.type == "N" %}
+              <div class="mb-1">
+                <i class="fas fa-calendar-check text-success"></i> <strong>{% trans "Next invoice" %}:</strong> {{ subscription.next_billing|date:"d/m/Y" }}
+              </div>
+            {% endif %}
+            {% if subscription.last_paid_invoice %}
+              <div class="mb-1">
+                <i class="fas fa-file-invoice-dollar text-success"></i> <strong>{% trans "Last paid" %}:</strong> #{{ subscription.last_paid_invoice.number }}
+              </div>
+            {% endif %}
+            {% block extra_information %}
+            {% endblock extra_information %}
+
+          </div>
+          {% if subscription.unsubscription_date %}
+            <div class="col-md-6">
+              <h6 class="text-muted mb-2">
+                <i class="fas fa-times-circle"></i> {% trans "Unsubscription Info" %}
+              </h6>
+              <div class="mb-1">
+                <i class="fas fa-calendar-times text-danger"></i> <strong>{% trans "Date" %}:</strong> {{ subscription.unsubscription_date|date:"d/m/Y" }}
+              </div>
+              <div class="mb-1">
+                <i class="fas fa-tag text-secondary"></i> <strong>{% trans "Type" %}:</strong> {{ subscription.get_unsubscription_type_display }}
+              </div>
+              <div class="mb-1">
+                <i class="fas fa-comment text-secondary"></i> <strong>{% trans "Reason" %}:</strong> {{ subscription.get_unsubscription_reason_display }}
+              </div>
+              <div class="mb-1">
+                <i class="fas fa-phone text-secondary"></i> <strong>{% trans "Channel" %}:</strong> {{ subscription.get_unsubscription_channel_display }}
+              </div>
+              <div class="mb-1">
+                <i class="fas fa-user text-secondary"></i> <strong>{% trans "Manager" %}:</strong> {{ subscription.unsubscription_manager_name }}
+              </div>
+            </div>
           {% endif %}
-        </dd>
-        {% block extra_information %}
-        {% endblock extra_information %}
-      </div>
-      <div class="col-3">
-        {% if subscription.is_obsolete %}
-          <dt>{% trans "Replaced by" %}:</dt>
-          <dd>
-            {{ subscription.get_updated_subscription.number }}
-          </dd>
-        {% endif %}
-        {% if subscription.unsubscription_date %}
-          <dt>{% trans "Unsubscription date" %}:</dt>
-          <dd>
-            {{ subscription.unsubscription_date|date:"d/m/Y" }}
-          </dd>
-          <dt>{% trans "Unsubscription type" %}:</dt>
-          <dd>
-            {{ subscription.get_unsubscription_type_display }}
-          </dd>
-          <dt>{% trans "Unsubscription reason" %}:</dt>
-          <dd>
-            {{ subscription.get_unsubscription_reason_display }}
-          </dd>
-          <dt>{% trans "Unsubscription channel" %}:</dt>
-          <dd>
-            {{ subscription.get_unsubscription_channel_display }}
-          </dd>
-          <dt>{% trans "Unsubscription manager" %}:</dt>
-          <dd>
-            {{ subscription.unsubscription_manager_name }}
-          </dd>
-        {% endif %}
+        </div>
       </div>
     </div>
   </div>
-  <div class="card-footer text-right">
-    {% if request.user|in_group:"Support" or request.user|in_group:"Managers" %}
-      {% include "contact_detail/tabs/includes/_subscription_actions.html" with subscription=subscription %}
-    {% endif %}
-    <a href="{% url "edit_envelopes" subscription.id %}"
-       class="btn btn-info"><i class="fas fa-envelope"></i></a>
-    <a href="{% url "upload_payment_certificate" subscription.id %}"
-       class="btn btn-info"><i class="fas fa-file-invoice-dollar"></i></a>
+  <div class="card-footer bg-light">
+    <div class="d-flex flex-wrap justify-content-end">
+      {% if request.user|in_group:"Support" or request.user|in_group:"Managers" %}
+        {% if subscription.type == "P" %}
+          {% if request.user|in_group:"Managers" %}
+            <a href="{% url "update_promo" subscription.id %}"
+               class="btn btn-sm btn-primary mr-1 mb-1">
+              <i class="fas fa-edit"></i> {% trans "Update Promo" %}
+            </a>
+            <a href="{% url "admin:core_subscription_change" subscription.id %}"
+               class="btn btn-sm btn-secondary mr-1 mb-1"
+               target="_blank">
+              <i class="fas fa-cog"></i> {% trans "Advanced" %}
+            </a>
+          {% endif %}
+        {% else %}
+          {% if not subscription.is_obsolete %}
+            <a href="{% url "additional_product" subscription.id %}"
+               class="btn btn-sm btn-success mr-1 mb-1">
+              <i class="fas fa-plus"></i> {% trans "Add" %}
+            </a>
+          {% endif %}
+          <a href="{% url "edit_subscription" contact.id subscription.id %}"
+             class="btn btn-sm btn-primary mr-1 mb-1">
+            <i class="fas fa-edit"></i> {% trans "Edit" %}
+          </a>
+          <a href="{% url "admin:core_subscription_change" subscription.id %}"
+             class="btn btn-sm btn-secondary mr-1 mb-1"
+             target="_blank">
+            <i class="fas fa-cog"></i> {% trans "Advanced" %}
+          </a>
+          {% if subscription.is_obsolete %}
+            <a href="{% url "admin:core_subscription_change" subscription.get_updated_subscription.id %}"
+               class="btn btn-sm btn-info mr-1 mb-1"
+               target="_blank">
+              <i class="fas fa-exchange-alt"></i> {% trans "Replaced" %}
+            </a>
+          {% else %}
+            <a href="{% url "book_unsubscription" subscription.id %}"
+               class="btn btn-sm btn-danger mr-1 mb-1">
+              <i class="fas fa-times-circle"></i> {% trans "Unsubscribe" %}
+            </a>
+          {% endif %}
+        {% endif %}
+      {% endif %}
+      <a href="{% url "edit_envelopes" subscription.id %}"
+         class="btn btn-sm btn-outline-secondary mr-1 mb-1">
+        <i class="fas fa-envelope"></i> {% trans "Envelopes" %}
+      </a>
+      <a href="{% url "upload_payment_certificate" subscription.id %}"
+         class="btn btn-sm btn-outline-secondary mb-1">
+        <i class="fas fa-file-invoice-dollar"></i> {% trans "Payment Certificate" %}
+      </a>
+    </div>
   </div>
 </div>
