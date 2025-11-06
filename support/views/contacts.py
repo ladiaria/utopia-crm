@@ -29,6 +29,7 @@ from core.models import (
     Address,
     Subscription,
     ContactCampaignStatus,
+    IdDocumentType,
 )
 from core.filters import ContactFilter
 from core.forms import ContactAdminForm
@@ -397,14 +398,78 @@ class ImportContactsView(FormView):
     form_class = ImportContactsForm
     success_url = reverse_lazy('import_contacts')
 
+    def get(self, request, *args, **kwargs):
+        # Handle template download
+        if 'download_template' in request.GET:
+            return self.download_template()
+        return super().get(request, *args, **kwargs)
+
+    def download_template(self):
+        """
+        Generate and return a CSV template file for contact imports.
+
+        Returns:
+            HttpResponse: CSV file with proper headers and example data
+        """
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="import_contacts_template.csv"'
+
+        writer = csv.writer(response)
+
+        # Write header row with exact column names expected by the view
+        writer.writerow([
+            'name', 'last_name', 'email', 'phone', 'mobile', 'notes',
+            'address_1', 'address_2', 'city', 'state', 'country',
+            'id_document_type', 'id_document'
+        ])
+
+        # Write example rows
+        writer.writerow([
+            'Juan', 'Perez', 'juan.perez@example.com', '24000000', '092123456', 'Example contact',
+            '18 de Julio 1234', 'Apt 8', 'Montevideo', 'Montevideo', 'Uruguay',
+            'CI', '12345678'
+        ])
+
+        return response
+
     def get_address_column_names(self):
         return ['address_1', 'address_2', 'city', 'state', 'country']
 
+    def resolve_id_document_type(self, id_doc_type_str, row_number=None):
+        """
+        Resolve ID document type string to IdDocumentType object.
+        Returns None if not found and logs a warning.
+
+        Args:
+            id_doc_type_str: String identifier for document type (e.g., 'CI', 'CC', 'RUT')
+            row_number: Optional row number for warning messages
+
+        Returns:
+            IdDocumentType object or None
+        """
+        if not id_doc_type_str:
+            return None
+
+        # Try to find by name (case-insensitive)
+        doc_type = IdDocumentType.objects.filter(name__iexact=id_doc_type_str).first()
+
+        if not doc_type:
+            # Log warning for invalid document type
+            row_info = f" (Row {row_number})" if row_number else ""
+            messages.warning(
+                self.request,
+                _(f"Invalid ID document type '{id_doc_type_str}'{row_info}. Contact created without document type.")
+            )
+            return None
+
+        return doc_type
+
     def form_valid(self, form):
         csvfile = form.cleaned_data['file']
+        use_headers = form.cleaned_data.get('use_headers', True)
         tags = self.parse_tags(form.cleaned_data)
 
-        results = self.process_csv(csvfile, tags)
+        results = self.process_csv(csvfile, tags, use_headers)
 
         self.display_messages(results)
 
@@ -414,7 +479,7 @@ class ImportContactsView(FormView):
         tag_types = ['tags', 'tags_existing', 'tags_active', 'tags_in_campaign']
         return {tag_type: [tag.strip() for tag in cleaned_data.get(tag_type, '').split(',')] for tag_type in tag_types}
 
-    def process_csv(self, csv_file, tags):
+    def process_csv(self, csv_file, tags, use_headers=True):
         results = {
             'new_contacts': [],
             'in_active_campaign': [],
@@ -427,62 +492,78 @@ class ImportContactsView(FormView):
         }
 
         try:
-            df = pd.read_csv(csv_file)
+            if use_headers:
+                df = pd.read_csv(csv_file, dtype=str, keep_default_na=False)
+            else:
+                # Read without headers and assign column names manually
+                df = pd.read_csv(csv_file, header=None, dtype=str, keep_default_na=False)
+                df.columns = [
+                    'name', 'last_name', 'email', 'phone', 'mobile', 'notes',
+                    'address_1', 'address_2', 'city', 'state', 'country',
+                    'id_document_type', 'id_document'
+                ]
         except Exception as e:
             results['errors'].append(str(e))
             return results
 
         for index, row in df.iterrows():
             try:
-                contact_data = self.parse_row(row)
+                # Calculate row number for error messages
+                row_number = index + 2 if use_headers else index + 1
+                # Always use use_headers=True for parse_row since we assign column names
+                contact_data = self.parse_row(row, use_headers=True, row_number=row_number)
                 self.process_contact(contact_data, tags, results)
             except Exception as e:
                 results['errors'].append(
-                    f"CSV Row {index + 2}: {e}"
-                )  # +2 because pandas index starts at 0 and we want to account for header
+                    f"CSV Row {index + 2 if use_headers else index + 1}: {e}"
+                )  # +2 for headers (pandas index + header row), +1 for no headers
 
         return results
 
-    def parse_row(self, row, use_headers=False):
-        # TODO: Allow this to be configured through the settings or the UI
-        if use_headers:
-            return {
-                'name': row['name'],
-                'last_name': row['last_name'] if pd.notna(row['last_name']) else "",
-                'email': row['email'].lower() if pd.notna(row['email']) else None,
-                'phone': str(row['phone']) if pd.notna(row['phone']) else "",
-                'mobile': str(row['mobile']) if pd.notna(row['mobile']) else "",
-                'notes': row['notes'].strip() if pd.notna(row['notes']) else None,
-                'address_1': row['address_1'] if pd.notna(row['address_1']) else None,
-                'address_2': row['address_2'] if pd.notna(row['address_2']) else None,
-                'city': row['city'] if pd.notna(row['city']) else None,
-                'state': row['state'].strip() if pd.notna(row['state']) else None,
-                'country': row['country'] if pd.notna(row['country']) else None,
-                'id_document_type': row['id_document_type'] if pd.notna(row['id_document_type']) else None,
-                'id_document': row['id_document'] if pd.notna(row['id_document']) else None,
-                'ranking': row['ranking'] if pd.notna(row['ranking']) else None,
-            }
-        else:
-            return {
-                'name': row.iloc[0],
-                'last_name': row.iloc[1] if pd.notna(row.iloc[1]) else "",
-                'email': row.iloc[2].lower() if pd.notna(row.iloc[2]) else None,
-                'phone': str(row.iloc[3]) if pd.notna(row.iloc[3]) else "",
-                'mobile': str(row.iloc[4]) if pd.notna(row.iloc[4]) else "",
-                'notes': row.iloc[5].strip() if pd.notna(row.iloc[5]) else None,
-                'address_1': row.iloc[6] if pd.notna(row.iloc[6]) else None,
-                'address_2': row.iloc[7] if pd.notna(row.iloc[7]) else None,
-                'city': row.iloc[8] if pd.notna(row.iloc[8]) else None,
-                'state': row.iloc[9].strip() if pd.notna(row.iloc[9]) else None,
-                'country': row.iloc[10] if pd.notna(row.iloc[10]) else None,
-                'id_document_type': row.iloc[11] if pd.notna(row.iloc[11]) else None,
-                'id_document': row.iloc[12] if pd.notna(row.iloc[12]) else None,
-                'ranking': row.iloc[13] if pd.notna(row.iloc[13]) else None,
-            }
+    def parse_row(self, row, use_headers=True, row_number=None):
+        """
+        Parse a row from the CSV file into contact data dictionary.
+        Since we read CSV with dtype=str, all values are strings and empty strings are preserved.
+
+        Args:
+            row: DataFrame row to parse
+            use_headers: Whether the CSV had headers (kept for compatibility)
+            row_number: Row number for warning messages
+        """
+        # Resolve ID document type, returns None if invalid
+        id_doc_type_obj = self.resolve_id_document_type(row['id_document_type'], row_number)
+
+        return {
+            'name': row['name'] if row['name'] else None,
+            'last_name': row['last_name'] if row['last_name'] else "",
+            'email': row['email'].lower() if row['email'] else None,
+            'phone': row['phone'] if row['phone'] else "",
+            'mobile': row['mobile'] if row['mobile'] else "",
+            'notes': row['notes'].strip() if row['notes'] else None,
+            'address_1': row['address_1'] if row['address_1'] else None,
+            'address_2': row['address_2'] if row['address_2'] else None,
+            'city': row['city'] if row['city'] else None,
+            'state': row['state'].strip() if row['state'] else None,
+            'country': row['country'] if row['country'] else None,
+            'id_document_type': id_doc_type_obj,
+            'id_document': row['id_document'] if row['id_document'] else None,
+        }
 
     @transaction.atomic
     def process_contact(self, contact_data, tags, results):
-        matches = self.find_matching_contacts_by_email(contact_data['email'])
+        email = contact_data.get('email')
+        phone = contact_data.get('phone')
+
+        # Try to match by email first
+        matches = self.find_matching_contacts_by_email(email) if email else Contact.objects.none()
+
+        # If no email match, try to match by phone
+        if not matches.exists() and phone:
+            matches = self.find_matching_contacts_by_phone(phone)
+            if matches.exists():
+                # Matched by phone - update email if contact doesn't have one
+                self.update_existing_contacts(matches, contact_data, tags, results, matched_by_phone=True)
+                return
 
         if matches.exists():
             self.update_existing_contacts(matches, contact_data, tags, results)
@@ -492,11 +573,23 @@ class ImportContactsView(FormView):
     def find_matching_contacts_by_email(self, email):
         return Contact.objects.filter(email=email)
 
-    def update_existing_contacts(self, matches, contact_data, tags, results):
+    def find_matching_contacts_by_phone(self, phone):
+        return Contact.objects.filter(phone=phone) | Contact.objects.filter(mobile=phone)
+
+    def update_existing_contacts(self, matches, contact_data, tags, results, matched_by_phone=False):
         for contact in matches:
             self.categorize_contact(contact, tags, results)
             if matches.count() == 1:
-                self.update_contact_phone(contact, contact_data, results)
+                # Update email if matched by phone and contact doesn't have an email
+                # IMPORTANT: Never overwrite existing emails to prevent data loss
+                if matched_by_phone and not contact.email:
+                    email_from_csv = contact_data.get('email')
+                    if email_from_csv:
+                        contact.email = email_from_csv
+                        contact.save()
+                        results['added_emails'] += 1
+                else:
+                    self.update_contact_phone(contact, contact_data, results)
 
     def categorize_contact(self, contact, tags, results):
         if contact.contactcampaignstatus_set.filter(campaign__active=True).exists():
@@ -510,17 +603,21 @@ class ImportContactsView(FormView):
             self.add_tags(contact, tags['tags_existing'])
 
     def update_contact_phone(self, contact, contact_data, results):
+        phone_from_csv = contact_data.get('phone', '')
+        if not phone_from_csv:
+            return  # No phone to update
+
         try:
-            # If phone already exists, update the mobile field, else update the phone field
-            if contact.phone is not None:
-                setattr(contact, 'mobile', contact_data['phone'])
+            # If phone already exists and is not empty, update the mobile field, else update the phone field
+            if contact.phone:
+                setattr(contact, 'mobile', phone_from_csv)
             else:
-                setattr(contact, 'phone', contact_data['phone'])
+                setattr(contact, 'phone', phone_from_csv)
             contact.save()
             results['added_phones'] += 1
         except Exception as e:
             results['errors'].append(
-                f"Could not add phone {contact_data['phone']} to contact {contact.id}: {e}"
+                f"Could not add phone {phone_from_csv} to contact {contact.id}: {e}"
             )
 
     def create_new_contact(self, contact_data, tags, results):
@@ -550,9 +647,9 @@ class ImportContactsView(FormView):
 
     def add_tags(self, contact, tag_list):
         tag_list = [tag for tag in tag_list if isinstance(tag, str) and tag.strip()]
-        if not tag_list and not contact.tags.exists():
+        if not tag_list:
             return
-        contact.tags.set(tag_list)
+        contact.tags.add(*tag_list)
 
     def display_messages(self, results):
         messages.success(self.request, f"{len(results['new_contacts'])} contacts imported successfully")

@@ -217,6 +217,11 @@ class SubscriptionAdminForm(forms.ModelForm):
             )
         if subscription_type in ("F", "S") and not end_date:
             self.add_error("end_date", _("Free subscriptions must have an end date"))
+        # t949 - If subscription is promotion it must not have a payment type and must have an end date
+        if subscription_type == "P" and cleaned_data.get('payment_type'):
+            self.add_error("payment_type", _("Promotion subscriptions must not have a payment type"))
+        if subscription_type == "P" and not end_date:
+            self.add_error("end_date", _("Promotion subscriptions must have an end date"))
         return cleaned_data
 
     def __init__(self, *args, **kwargs):

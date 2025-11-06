@@ -3,6 +3,7 @@
 *.mo
 *.swp
 *.log
+*pyrightconfig.json
 .coverage*
 .env
 .flake8

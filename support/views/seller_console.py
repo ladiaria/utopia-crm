@@ -9,6 +9,7 @@ from django.urls import reverse
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.models import User
 from django.utils.translation import gettext_lazy as _
+from django.utils.html import format_html
 from datetime import date, timedelta, datetime
 
 from support.models import Seller, Issue, SellerConsoleAction
@@ -47,11 +48,11 @@ def seller_console_special_routes(request, route_id):
     # Only include products of subscriptions started in the last 45 days (today included).
     # i.e. start_date must be >= (today - 45 days), so anything older is excluded.
     subprods = SubscriptionProduct.objects.filter(
-            seller=seller,
-            route=route,
-            subscription__active=True,
-            subscription__start_date__gte=datetime.now() - timedelta(days=45)
-        ).order_by("subscription__contact__id")
+        seller=seller,
+        route=route,
+        subscription__active=True,
+        subscription__start_date__gte=datetime.now() - timedelta(days=45),
+    ).order_by("subscription__contact__id")
     if subprods.count() == 0:
         messages.error(request, _("There are no contacts in that route for this seller."))
         return HttpResponseRedirect(reverse("seller_console_list_campaigns"))
@@ -97,7 +98,9 @@ def seller_console_list_campaigns(request, seller_id=None):
             # Only include subscriptions started in the last 45 days (today included).
             # i.e. start_date must be >= (today - 45 days), so anything older is excluded.
             counter = SubscriptionProduct.objects.filter(
-                seller=seller, route_id=route_id, subscription__active=True,
+                seller=seller,
+                route_id=route_id,
+                subscription__active=True,
                 subscription__start_date__gte=datetime.now() - timedelta(days=45),
             ).count()
             if counter:
@@ -371,8 +374,29 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
             ccs.resolution_reason = reason
         ccs.save()
 
-        # Show success message
-        messages.success(self.request, _("Contact {id} has been updated".format(id=contact.id)))
+        # Build success message with contact ID, name, and action
+        contact_name = contact.get_full_name() or _("No name")
+        contact_url = reverse("contact_detail", args=[contact.id])
+
+        # Build the base message
+        success_msg = _("Contact {id} - {name} - Action: {action}").format(
+            id=contact.id, name=contact_name, action=seller_console_action.name
+        )
+
+        # Add scheduled date if this is a scheduled action
+        if seller_console_action.action_type == SellerConsoleAction.ACTION_TYPES.SCHEDULED:
+            call_datetime = self.get_call_datetime(data)
+            success_msg += _(" - Scheduled for: {date}").format(date=call_datetime.strftime("%Y-%m-%d %H:%M"))
+
+        # Add link to view contact in new tab
+        success_msg_html = format_html(
+            '{} <a href="{}" target="_blank" style="margin-left: 10px;">({} <i class="fas fa-external-link-alt"></i>)</a>',  # noqa: E501
+            success_msg,
+            contact_url,
+            _("view contact"),
+        )
+
+        messages.success(self.request, success_msg_html, extra_tags='safe')
 
         # Convert offset to int and increment it only for "Call later" result
         try:
@@ -488,16 +512,16 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
             return {'count': 0, 'contacts': Contact.objects.none()}
 
         # Find other contacts with matching phone numbers (exclude current contact)
-        duplicate_contacts = Contact.objects.filter(phone_query).exclude(id=contact.id).select_related(
-            'subtype', 'institution'
-        ).order_by('name', 'last_name')
+        duplicate_contacts = (
+            Contact.objects.filter(phone_query)
+            .exclude(id=contact.id)
+            .select_related('subtype', 'institution')
+            .order_by('name', 'last_name')
+        )
 
         count = duplicate_contacts.count()
 
-        return {
-            'count': count,
-            'contacts': duplicate_contacts
-        }
+        return {'count': count, 'contacts': duplicate_contacts}
 
     def get_activities(self, contact, console_instance, category):
         activities = Activity.objects.filter(contact=contact).order_by("-datetime", "id")

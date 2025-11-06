@@ -43,7 +43,6 @@ from .choices import (
     ENVELOPE_CHOICES,
     FREQUENCY_CHOICES,
     GENDERS,
-    INACTIVITY_REASONS,
     PRICERULE_MODE_CHOICES,
     PRICERULE_WILDCARD_MODE_CHOICES,
     PRICERULE_AMOUNT_TO_PICK_CONDITION_CHOICES,
@@ -54,7 +53,6 @@ from .choices import (
     PRODUCTHISTORY_CHOICES,
     SUBSCRIPTION_STATUS_CHOICES,
     SUBSCRIPTION_TYPE_CHOICES,
-    UNSUBSCRIPTION_TYPE_CHOICES,
     VARIABLE_TYPES,
     DISCOUNT_PRODUCT_MODE_CHOICES,
     DISCOUNT_VALUE_MODE_CHOICES,
@@ -241,11 +239,16 @@ class Product(models.Model):
         blank=True,
         null=True,
         on_delete=models.SET_NULL,
-        limit_choices_to={"offerable": True, "type": "S"},
+        limit_choices_to={"active": True, "type": "S"},
         verbose_name=_("Target product"),
+        help_text=_("The subscription product this discount applies to. Only active subscription products are shown."),
     )
     cms_subscription_type = models.SlugField(
-        max_length=100, unique=True, blank=True, null=True, verbose_name=_("CMS subscription type"),
+        max_length=100,
+        unique=True,
+        blank=True,
+        null=True,
+        verbose_name=_("CMS subscription type"),
         help_text=_(
             "The subscription type of the SubscriptionPrice object in utopia-cms, used for synchronization with this "
             "Product. Also used by the CMS front-end to build the related subscription form page URL and for traffic "
@@ -1412,6 +1415,23 @@ class Subscription(models.Model):
         AUTOMATIC = "A", _("Auto-renewal subscription")
         MANUAL = "M", _("One-time subscription")
 
+    class InactivityReasonChoices(models.IntegerChoices):
+        # Formerly INACTIVITY_REASONS
+        NORMAL_END = 1, _("Normal end")
+        PAUSED = 2, _("Paused")
+        ADDED_PRODUCTS = 3, _("Added products")
+        CHANGED_PRODUCTS = 4, _("Changed products")
+        DEBTOR = 13, _("Debtor")
+        DEBTOR_AUTOMATIC = 16, _("Debtor, automatic unsubscription")
+        NOT_APPLICABLE = 99, _("N/A")
+
+    class UnsubscriptionTypeChoices(models.IntegerChoices):
+        # Formerly UNSUBSCRIPTION_TYPE
+        COMPLETE = 1, _("Complete unsubscription")
+        PARTIAL = 2, _("Partial unsubscription")
+        CHANGED_PRODUCTS = 3, _("Changed products")
+        ADDED_PRODUCTS = 4, _("Added products")
+
     campaign = models.ForeignKey(
         "core.Campaign", blank=True, null=True, verbose_name=_("Campaign"), on_delete=models.SET_NULL
     )
@@ -1462,7 +1482,11 @@ class Subscription(models.Model):
     highlight_in_listing = models.BooleanField(default=False, verbose_name=_("Highlight in listing"))
     send_pdf = models.BooleanField(default=False, verbose_name=_("Send pdf"))
     inactivity_reason = models.IntegerField(
-        choices=INACTIVITY_REASONS, blank=True, null=True, verbose_name=_("Inactivity reason")
+        choices=InactivityReasonChoices.choices,
+        blank=True,
+        null=True,
+        verbose_name=_("Inactivity reason"),
+        help_text=_("Reason for the inactivity of the subscription"),
     )
     pickup_point = models.ForeignKey(
         "logistics.PickupPoint", on_delete=models.CASCADE, blank=True, null=True, verbose_name=_("Pickup point")
@@ -1474,7 +1498,11 @@ class Subscription(models.Model):
         User, verbose_name=_("Unsubscription manager"), null=True, blank=True, on_delete=models.SET_NULL
     )
     unsubscription_reason = models.PositiveSmallIntegerField(
-        choices=settings.UNSUBSCRIPTION_REASON_CHOICES, blank=True, null=True, verbose_name=_("Unsubscription reason")
+        choices=settings.UNSUBSCRIPTION_REASON_CHOICES,
+        blank=True,
+        null=True,
+        verbose_name=_("Unsubscription reason"),
+        help_text=_("Reason why the user finished definitively the subscription"),
     )
     unsubscription_channel = models.PositiveSmallIntegerField(
         choices=settings.UNSUBSCRIPTION_CHANNEL_CHOICES,
@@ -1483,7 +1511,7 @@ class Subscription(models.Model):
         verbose_name=_("Unsubscription channel"),
     )
     unsubscription_type = models.PositiveSmallIntegerField(
-        choices=UNSUBSCRIPTION_TYPE_CHOICES,
+        choices=UnsubscriptionTypeChoices.choices,
         blank=True,
         null=True,
         verbose_name=_("Unsubscription type"),
@@ -2151,13 +2179,6 @@ class Subscription(models.Model):
             output += "</ul>"
         return output
 
-    def get_inactivity_reason(self):
-        """
-        Returns the unsubscription reason.
-        """
-        inactivity_reasons = dict(INACTIVITY_REASONS)
-        return inactivity_reasons.get(self.inactivity_reason, "N/A")
-
     def get_unsubscription_reason(self):
         """
         Returns the unsubscription reason.
@@ -2171,13 +2192,6 @@ class Subscription(models.Model):
         """
         unsubscription_channels = dict(settings.UNSUBSCRIPTION_CHANNEL_CHOICES)
         return unsubscription_channels.get(self.unsubscription_channel, "N/A")
-
-    def get_unsubscription_type(self):
-        """
-        Returns the unsubscription reason.
-        """
-        unsubscription_types = dict(UNSUBSCRIPTION_TYPE_CHOICES)
-        return unsubscription_types.get(self.unsubscription_type, "N/A")
 
     def get_payment_type(self):
         """
@@ -2236,7 +2250,11 @@ class Subscription(models.Model):
         return months
 
     def get_subscriptionproducts(self, without_discounts=False):
-        qs = SubscriptionProduct.objects.filter(subscription=self).select_related("product")
+        qs = (
+            SubscriptionProduct.objects.filter(subscription=self)
+            .select_related("product")
+            .order_by("product__billing_priority", "product_id")
+        )
         if without_discounts:
             qs = qs.exclude(product__type="D")
         return qs
@@ -3103,7 +3121,14 @@ def update_web_user(contact, target_email=None, newsletter_data=None, area_newsl
                 field = ("area_" if area_newsletters else "") + "newsletters"
                 fields_to_update.update({field: newsletter_data})
 
-            contact_prev = contact.history.latest().get_previous_by_history_date() if method == "PUT" else None
+            # Get previous contact history if available (may not exist for newly created contacts)
+            contact_prev = None
+            if method == "PUT":
+                try:
+                    contact_prev = contact.history.latest().get_previous_by_history_date()
+                except (contact.history.model.DoesNotExist, AttributeError):
+                    # No history exists yet (new contact) or no previous history
+                    contact_prev = None
             # TODO: change this 1-field-per-request approach to a new 1-request-only approach with all chanmges
             # NOTE: name and last_name are considered to allways be in the setting, even if not.
             for f in getattr(settings, "WEB_UPDATE_USER_CHECKED_FIELDS", []):

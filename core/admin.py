@@ -522,7 +522,8 @@ def mp_product_sync(obj, disable_mp_plan=False):
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    # TODO: validations, for example target_product only makes sense on discount products
+    # Note: target_product is limited to active subscription products (type='S')
+    # and is primarily used for discount products to specify which product they discount
     list_display = (
         "id",
         "name",
@@ -532,6 +533,7 @@ class ProductAdmin(admin.ModelAdmin):
         "weekday",
         "slug",
         "offerable",
+        "target_product",
     )
     list_editable = [
         "name",
@@ -539,9 +541,11 @@ class ProductAdmin(admin.ModelAdmin):
         "price",
         "weekday",
         "offerable",
+        "target_product",
     ]
     list_filter = ("active", "type", "renewal_type", "offerable", "subscription_period", "duration_months")
     readonly_fields = ("mercadopago_id",)
+    raw_id_fields = ("target_product",)  # Makes it easier to see and set the value
     fieldsets = (
         (_("Information"), {"fields": ("name", "slug", "type")}),
         (
@@ -569,7 +573,7 @@ class ProductAdmin(admin.ModelAdmin):
     # TODO: spanish translation = "No se pudo actualizar el producto en MercadoPago"
     no_mp_sync_msg_prefix = _("The product could not be updated in MercadoPago") + ": "
     actions = None
-    list_display_links = ("name",)
+    list_display_links = ("id",)
 
     def get_form(self, request, obj=None, **kwargs):
         form = super().get_form(request, obj, **kwargs)

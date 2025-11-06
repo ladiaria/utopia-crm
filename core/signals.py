@@ -124,6 +124,8 @@ def cms_address_values(address):
 
 
 def cms_address_api_call(contact, address=None):
+    if not getattr(settings, "WEB_ADDRESS_SYNC_ENABLED", True):
+        return
     data = {"contact_id": contact.id, "fields": cms_address_values(address)}
     cms_rest_api_request("address_post_save", settings.WEB_UPDATE_USER_URI, data, "PATCH")
 

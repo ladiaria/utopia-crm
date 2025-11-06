@@ -9,6 +9,7 @@ from support.views import (
     scheduled_activities,
     edit_address,
     send_promo,
+    update_promo,
     default_newsletters_dialog,
     product_change,
     book_additional_product,
@@ -76,7 +77,8 @@ urlpatterns = [
     re_path(r"^edit_address/(\d+)/$", edit_address),
     re_path(r"^edit_address/(\d+)/(\d+)/$", edit_address),
     path("import/", views.ImportContactsView.as_view(), name="import_contacts"),
-    re_path(r"^send_promo/(\d+)/$", send_promo, name="send_promo"),
+    path("send_promo/<int:contact_id>/", send_promo, name="send_promo"),
+    path("update_promo/<int:subscription_id>/", update_promo, name="update_promo"),
     path(
         "contacts/<int:contact_id>/new_subscription/", views.SubscriptionCreateView.as_view(), name="new_subscription"
     ),
