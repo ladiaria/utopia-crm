@@ -736,15 +736,49 @@ class Contact(models.Model):
         """
         return get_latest_from_prefetch(self, "activity_set")
 
-    def get_last_activity_formatted(self):
-        last_activity = self.last_activity()
-        if last_activity:
-            msg = ' '.join(
-                [last_activity.datetime.date().strftime("%d/%m/%Y"), last_activity.get_activity_type_display() or '']
-            )
-            return msg
-        else:
+    def last_incoming_activity(self):
+        """
+        Returns the latest incoming activity (direction='I') of this contact.
+        """
+        try:
+            return self.activity_set.filter(direction='I').latest('datetime')
+        except Activity.DoesNotExist:
             return None
+
+    def last_outgoing_activity(self):
+        """
+        Returns the latest outgoing activity (direction='O') of this contact.
+        """
+        try:
+            return self.activity_set.filter(direction='O').latest('datetime')
+        except Activity.DoesNotExist:
+            return None
+
+    def get_last_activity_formatted(self):
+        """
+        Returns formatted string with both last incoming and outgoing activities.
+        Format: "<b>In:</b> DD/MM/YYYY Type | <b>Out:</b> DD/MM/YYYY Type"
+        Returns HTML-safe string with bold labels.
+        """
+        parts = []
+
+        last_in = self.last_incoming_activity()
+        if last_in:
+            in_msg = '<b>In:</b> {} {}'.format(
+                last_in.datetime.date().strftime("%d/%m/%Y"),
+                last_in.get_activity_type_display() or ''
+            )
+            parts.append(in_msg)
+
+        last_out = self.last_outgoing_activity()
+        if last_out:
+            out_msg = '<b>Out:</b> {} {}'.format(
+                last_out.datetime.date().strftime("%d/%m/%Y"),
+                last_out.get_activity_type_display() or ''
+            )
+            parts.append(out_msg)
+
+        return mark_safe(' | '.join(parts)) if parts else None
 
     def get_gender(self):
         """
