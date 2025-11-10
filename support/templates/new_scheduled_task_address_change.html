@@ -46,45 +46,76 @@
   </script>
 {% endblock %}
 
-{% block extra_head %}
-<style>
-  input[type="date"] {
-    position: relative;
-  }
-
-  input[type="date"]::-webkit-calendar-picker-indicator {
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: 100%;
-    height: 100%;
-    padding: 0;
-    color: transparent;
-    background: transparent;
-  }
-</style>
+{% block stylesheets %}
+  {{ block.super }}
+  <style>
+    /* Enhanced styling for scheduled task form */
+    .category-tabs .nav-link {
+      border-radius: 0.25rem;
+      margin: 0 0.25rem;
+      transition: all 0.2s ease;
+    }
+    .category-tabs .nav-link:hover {
+      background-color: #f8f9fa;
+      transform: translateY(-1px);
+    }
+    .category-tabs .nav-link.active {
+      background-color: #007bff;
+      color: white;
+      font-weight: 500;
+    }
+    input[type="date"] {
+      position: relative;
+    }
+    input[type="date"]::-webkit-calendar-picker-indicator {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 100%;
+      height: 100%;
+      padding: 0;
+      color: transparent;
+      background: transparent;
+    }
+  </style>
 {% endblock %}
 
 {% block content %}
   <div class="row">
-    <div class="col-md-9">
-      <div class="card">
-        <div class="card-header p-2">
-          <ul class="nav nav-pills">
-            <li class="new-item">
-              <a class="nav-link" href="{% url "new_issue" contact.id "L" %}">{% trans "Regular issues" %}</a>
+    <div class="col-md-12 col-lg-10 col-xl-9">
+      <div class="card shadow-sm">
+        <div class="card-header bg-white p-3">
+          <h5 class="mb-3">
+            <i class="fas fa-tasks mr-2 text-primary"></i>
+            {% trans "Issue Type" %}
+          </h5>
+          <ul class="nav nav-pills category-tabs mb-2">
+            <li class="nav-item">
+              <a class="nav-link" href="{% url "new_issue" contact.id "L" %}">
+                <i class="fas fa-clipboard-list mr-1"></i>
+                {% trans "Regular issues" %}
+              </a>
             </li>
-            <li class="new-item">
+            <li class="nav-item">
               <a class="nav-link active"
-                 href="{% url "new_scheduled_task_address_change" contact.id %}">{% trans "Change address" %}</a>
+                 href="{% url "new_scheduled_task_address_change" contact.id %}">
+                <i class="fas fa-map-marker-alt mr-1"></i>
+                {% trans "Change address" %}
+              </a>
             </li>
-            <li class="new-item">
+            <li class="nav-item">
               <a class="nav-link"
-                 href="{% url "new_scheduled_task_total_pause" contact.id %}">{% trans "Pause subscription" %}</a>
+                 href="{% url "new_scheduled_task_total_pause" contact.id %}">
+                <i class="fas fa-pause-circle mr-1"></i>
+                {% trans "Pause subscription" %}
+              </a>
             </li>
-            <li class="new-item">
+            <li class="nav-item">
               <a class="nav-link"
-                 href="{% url "new_scheduled_task_partial_pause" contact.id %}">{% trans "Partial pause" %}</a>
+                 href="{% url "new_scheduled_task_partial_pause" contact.id %}">
+                <i class="fas fa-pause mr-1"></i>
+                {% trans "Partial pause" %}
+              </a>
             </li>
           </ul>
         </div>
