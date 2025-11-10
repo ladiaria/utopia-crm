@@ -43,13 +43,19 @@ from taggit.models import Tag
 
 
 @method_decorator(staff_member_required, name="dispatch")
-class ContactListView(ListView):
+class ContactListView(BreadcrumbsMixin, ListView):
     # Implementation of ListView to work without the need of a FilterView. It still uses django-filter for the filter.
     model = Contact
     template_name = "contact_list.html"
     filterset_class = ContactFilter
     paginate_by = 50
     page_kwarg = "p"
+
+    def breadcrumbs(self):
+        return [
+            {"url": reverse("home"), "label": _("Home")},
+            {"label": _("Contact list"), "url": reverse("contact_list")},
+        ]
 
     def get(self, request, *args, **kwargs):
         if request.GET.get("export"):
@@ -88,7 +94,9 @@ class ContactListView(ListView):
             _("Mobile"),
             _("Has active subscriptions"),
             _("Active products"),
-            _("Last activity"),
+            _("Tags"),
+            _("Last incoming activity"),
+            _("Last outgoing activity"),
             _("Overdue invoices"),
             _("Address"),
             _("State"),
@@ -106,6 +114,17 @@ class ContactListView(ListView):
                 address = first_subscription.get_full_address_by_priority()
                 if address:
                     address_1, state, city = address.address_1, address.state_name, address.city
+
+            # Get tags
+            tags = ", ".join([tag.name for tag in contact.tags.all()])
+
+            # Get last incoming and outgoing activities
+            last_in = contact.last_incoming_activity()
+            last_in_datetime = last_in.datetime if last_in else None
+
+            last_out = contact.last_outgoing_activity()
+            last_out_datetime = last_out.datetime if last_out else None
+
             writer.writerow(
                 [
                     contact.id,
@@ -115,7 +134,9 @@ class ContactListView(ListView):
                     contact.mobile,
                     contact.has_active_subscription(),
                     active_products,
-                    contact.last_activity().datetime if contact.last_activity() else None,
+                    tags,
+                    last_in_datetime,
+                    last_out_datetime,
                     contact.expired_invoices_count(),
                     address_1,
                     state,
@@ -132,6 +153,7 @@ class ContactDetailView(BreadcrumbsMixin, DetailView):
 
     def breadcrumbs(self):
         return [
+            {"url": reverse("home"), "label": _("Home")},
             {"label": _("Contact list"), "url": reverse("contact_list")},
             {"label": self.object.get_full_name(), "url": reverse("contact_detail", args=[self.object.id])},
         ]
@@ -317,6 +339,7 @@ class ContactUpdateView(BreadcrumbsMixin, UpdateView):
 
     def breadcrumbs(self):
         return [
+            {"url": reverse("home"), "label": _("Home")},
             {"label": _("Contact list"), "url": reverse("contact_list")},
             {"label": self.object.get_full_name(), "url": reverse("contact_detail", args=[self.object.id])},
             {"label": _("Edit"), "url": ""},
@@ -384,6 +407,7 @@ class ContactCreateView(BreadcrumbsMixin, CreateView):
 
     def breadcrumbs(self):
         return [
+            {"url": reverse("home"), "label": _("Home")},
             {"label": _("Contact list"), "url": reverse("contact_list")},
             {"label": _("Create"), "url": ""},
         ]
@@ -693,9 +717,9 @@ class CheckForExistingContactsView(BreadcrumbsMixin, FormView):
 
     def breadcrumbs(self):
         return [
-            {"url": reverse("home"), "label": "Home"},
-            {"url": reverse("contact_list"), "label": "Contacts"},
-            {"label": "Check for existing contacts"},
+            {"url": reverse("home"), "label": _("Home")},
+            {"url": reverse("contact_list"), "label": _("Contacts")},
+            {"label": _("Check for existing contacts")},
         ]
 
     def get_success_url(self):
@@ -954,6 +978,7 @@ class TagAnalysisView(BreadcrumbsMixin, ListView):
 
     def breadcrumbs(self):
         return [
+            {"url": reverse("home"), "label": _("Home")},
             {"label": _("Contact list"), "url": reverse("contact_list")},
             {"label": _("Tag Analysis"), "url": ""},
         ]
