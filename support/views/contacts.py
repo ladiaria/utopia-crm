@@ -12,7 +12,7 @@ from django.utils.decorators import method_decorator
 from django.utils.translation import gettext_lazy as _
 from django.contrib.admin.views.decorators import staff_member_required
 from django.shortcuts import get_object_or_404
-from django.http import HttpResponse, HttpResponseNotFound
+from django.http import HttpResponse, HttpResponseNotFound, StreamingHttpResponse
 from django.urls import reverse, reverse_lazy
 from django.contrib import messages
 from django.shortcuts import render
@@ -82,67 +82,155 @@ class ContactListView(BreadcrumbsMixin, ListView):
         context["filter"] = self.filterset
         return context
 
+    def get_optimized_queryset_for_csv(self):
+        """
+        Optimized queryset for CSV export with all necessary prefetches.
+        Eliminates N+1 queries by prefetching tags, subscriptions, addresses, and activities.
+        """
+        from django.db.models import Prefetch, Exists, OuterRef
+        from core.models import Activity, SubscriptionProduct
+
+        # Prefetch active subscriptions with their products
+        active_subscriptions_prefetch = Prefetch(
+            'subscriptions',
+            queryset=Subscription.objects.filter(active=True).prefetch_related(
+                Prefetch(
+                    'subscriptionproduct_set',
+                    queryset=SubscriptionProduct.objects.select_related('product', 'address', 'address__state')
+                ),
+            ),
+            to_attr='active_subscriptions',
+        )
+
+        # Prefetch recent activities for last_incoming/outgoing_activity
+        recent_activities_prefetch = Prefetch(
+            'activity_set', queryset=Activity.objects.order_by('-datetime')[:10], to_attr='recent_activities'
+        )
+
+        # Get the base queryset and apply filters
+        base_queryset = Contact.objects.all()
+
+        # Apply the filterset to get filtered contacts
+        self.filterset = self.filterset_class(self.request.GET, queryset=base_queryset)
+        queryset = self.filterset.qs
+
+        # Add optimized prefetches for CSV export
+        return queryset.prefetch_related(
+            'tags',  # Prefetch tags to avoid N+1 queries
+            active_subscriptions_prefetch,
+            recent_activities_prefetch,
+            'addresses__state',
+        ).annotate(
+            # Annotate has_active_subs to avoid method calls
+            has_active_subs=Exists(Subscription.objects.filter(contact=OuterRef('pk'), active=True)),
+        )
+
     def export_csv(self):
-        response = HttpResponse(content_type="text/csv")
-        response["Content-Disposition"] = 'attachment; filename="contacts_export.csv"'
-        writer = csv.writer(response)
-        header = [
-            _("Id"),
-            _("Full name"),
-            _("Email"),
-            _("Phone"),
-            _("Mobile"),
-            _("Has active subscriptions"),
-            _("Active products"),
-            _("Tags"),
-            _("Last incoming activity"),
-            _("Last outgoing activity"),
-            _("Overdue invoices"),
-            _("Address"),
-            _("State"),
-            _("City"),
-        ]
-        writer.writerow(header)
-        for contact in self.get_queryset().all():
-            active_products, address_1, state, city = "", "", "", ""
-            for index, sp in enumerate(contact.get_active_subscriptionproducts()):
-                if index > 0:
-                    active_products += ", "
-                active_products += sp.product.name
-            first_subscription = contact.get_first_active_subscription()
-            if first_subscription:
-                address = first_subscription.get_full_address_by_priority()
-                if address:
-                    address_1, state, city = address.address_1, address.state_name, address.city
+        """
+        Streaming CSV export with optimized queryset.
+        Uses StreamingHttpResponse to handle large datasets efficiently.
+        Prefetches tags and related data to eliminate N+1 queries.
+        """
 
-            # Get tags
-            tags = ", ".join([tag.name for tag in contact.tags.all()])
+        # Pseudo buffer for streaming
+        class Echo:
+            """An object that implements just the write method of the file-like interface."""
 
-            # Get last incoming and outgoing activities
-            last_in = contact.last_incoming_activity()
-            last_in_datetime = last_in.datetime if last_in else None
+            def write(self, value):
+                return value
 
-            last_out = contact.last_outgoing_activity()
-            last_out_datetime = last_out.datetime if last_out else None
+        def generate_rows():
+            """Generator function that yields CSV rows."""
+            import csv
 
-            writer.writerow(
-                [
-                    contact.id,
-                    contact.get_full_name(),
-                    contact.email,
-                    contact.phone,
-                    contact.mobile,
-                    contact.has_active_subscription(),
-                    active_products,
-                    tags,
-                    last_in_datetime,
-                    last_out_datetime,
-                    contact.expired_invoices_count(),
-                    address_1,
-                    state,
-                    city,
-                ]
-            )
+            writer = csv.writer(Echo())
+
+            # Yield header
+            header = [
+                _("Id"),
+                _("Full name"),
+                _("Email"),
+                _("Phone"),
+                _("Mobile"),
+                _("Has active subscriptions"),
+                _("Active products"),
+                _("Tags"),
+                _("Last incoming activity"),
+                _("Last outgoing activity"),
+                _("Overdue invoices"),
+                _("Address"),
+                _("State"),
+                _("City"),
+            ]
+            yield writer.writerow(header)
+
+            # Get optimized queryset with prefetched tags and related data
+            contacts = self.get_optimized_queryset_for_csv()
+
+            # Process contacts in chunks to avoid loading all into memory
+            for contact in contacts.iterator(chunk_size=1000):
+                active_products, address_1, state, city = "", "", "", ""
+
+                # Use prefetched active_subscriptions
+                if hasattr(contact, 'active_subscriptions'):
+                    products_list = []
+                    for subscription in contact.active_subscriptions:
+                        for sp in subscription.subscriptionproduct_set.all():
+                            products_list.append(sp.product.name)
+                    active_products = ", ".join(products_list)
+
+                    # Get address from first active subscription
+                    if contact.active_subscriptions:
+                        first_subscription = contact.active_subscriptions[0]
+                        address = first_subscription.get_full_address_by_priority()
+                        if address:
+                            address_1, state, city = address.address_1, address.state_name, address.city
+
+                # Get tags using prefetched data (no additional query)
+                tags = ", ".join([tag.name for tag in contact.tags.all()])
+
+                # Get last incoming and outgoing activities from prefetched data
+                last_in_datetime = None
+                last_out_datetime = None
+                if hasattr(contact, 'recent_activities'):
+                    for activity in contact.recent_activities:
+                        if activity.direction == 'I' and not last_in_datetime:
+                            last_in_datetime = activity.datetime
+                        if activity.direction == 'O' and not last_out_datetime:
+                            last_out_datetime = activity.datetime
+                        if last_in_datetime and last_out_datetime:
+                            break
+
+                yield writer.writerow(
+                    [
+                        contact.id,
+                        contact.get_full_name(),
+                        contact.email,
+                        contact.phone,
+                        contact.mobile,
+                        (
+                            contact.has_active_subs
+                            if hasattr(contact, 'has_active_subs')
+                            else contact.has_active_subscription()
+                        ),
+                        active_products,
+                        tags,
+                        last_in_datetime,
+                        last_out_datetime,
+                        contact.expired_invoices_count(),
+                        address_1,
+                        state,
+                        city,
+                    ]
+                )
+
+        # Create streaming response with timestamp in filename
+        from datetime import datetime
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        filename = f'contacts_export_{timestamp}.csv'
+
+        response = StreamingHttpResponse(generate_rows(), content_type="text/csv")
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
         return response
 
 
@@ -441,18 +529,42 @@ class ImportContactsView(FormView):
         writer = csv.writer(response)
 
         # Write header row with exact column names expected by the view
-        writer.writerow([
-            'name', 'last_name', 'email', 'phone', 'mobile', 'notes',
-            'address_1', 'address_2', 'city', 'state', 'country',
-            'id_document_type', 'id_document'
-        ])
+        writer.writerow(
+            [
+                'name',
+                'last_name',
+                'email',
+                'phone',
+                'mobile',
+                'notes',
+                'address_1',
+                'address_2',
+                'city',
+                'state',
+                'country',
+                'id_document_type',
+                'id_document',
+            ]
+        )
 
         # Write example rows
-        writer.writerow([
-            'Juan', 'Perez', 'juan.perez@example.com', '24000000', '092123456', 'Example contact',
-            '18 de Julio 1234', 'Apt 8', 'Montevideo', 'Montevideo', 'Uruguay',
-            'CI', '12345678'
-        ])
+        writer.writerow(
+            [
+                'Juan',
+                'Perez',
+                'juan.perez@example.com',
+                '24000000',
+                '092123456',
+                'Example contact',
+                '18 de Julio 1234',
+                'Apt 8',
+                'Montevideo',
+                'Montevideo',
+                'Uruguay',
+                'CI',
+                '12345678',
+            ]
+        )
 
         return response
 
@@ -482,7 +594,7 @@ class ImportContactsView(FormView):
             row_info = f" (Row {row_number})" if row_number else ""
             messages.warning(
                 self.request,
-                _(f"Invalid ID document type '{id_doc_type_str}'{row_info}. Contact created without document type.")
+                _(f"Invalid ID document type '{id_doc_type_str}'{row_info}. Contact created without document type."),
             )
             return None
 
@@ -522,9 +634,19 @@ class ImportContactsView(FormView):
                 # Read without headers and assign column names manually
                 df = pd.read_csv(csv_file, header=None, dtype=str, keep_default_na=False)
                 df.columns = [
-                    'name', 'last_name', 'email', 'phone', 'mobile', 'notes',
-                    'address_1', 'address_2', 'city', 'state', 'country',
-                    'id_document_type', 'id_document'
+                    'name',
+                    'last_name',
+                    'email',
+                    'phone',
+                    'mobile',
+                    'notes',
+                    'address_1',
+                    'address_2',
+                    'city',
+                    'state',
+                    'country',
+                    'id_document_type',
+                    'id_document',
                 ]
         except Exception as e:
             results['errors'].append(str(e))
@@ -640,9 +762,7 @@ class ImportContactsView(FormView):
             contact.save()
             results['added_phones'] += 1
         except Exception as e:
-            results['errors'].append(
-                f"Could not add phone {phone_from_csv} to contact {contact.id}: {e}"
-            )
+            results['errors'].append(f"Could not add phone {phone_from_csv} to contact {contact.id}: {e}")
 
     def create_new_contact(self, contact_data, tags, results):
         new_contact = Contact.objects.create(
@@ -743,10 +863,8 @@ class CheckForExistingContactsView(BreadcrumbsMixin, FormView):
                     output_field=BooleanField(),
                 ),
                 active_campaign_count=Count(
-                    'contactcampaignstatus',
-                    filter=Q(contactcampaignstatus__campaign__active=True),
-                    distinct=True
-                )
+                    'contactcampaignstatus', filter=Q(contactcampaignstatus__campaign__active=True), distinct=True
+                ),
             )
             .distinct()
         )
@@ -767,11 +885,11 @@ class CheckForExistingContactsView(BreadcrumbsMixin, FormView):
         except Exception:
             # If parsing fails, try direct string matching
             contacts = (
-                Contact.objects.filter(
-                    Q(phone__icontains=phone_number) | Q(mobile__icontains=phone_number)
-                )
+                Contact.objects.filter(Q(phone__icontains=phone_number) | Q(mobile__icontains=phone_number))
                 .prefetch_related(
-                    Prefetch('subscriptions', queryset=Subscription.objects.filter(active=True, status__in=['OK', 'G']))
+                    Prefetch(
+                        'subscriptions', queryset=Subscription.objects.filter(active=True, status__in=['OK', 'G'])
+                    )
                 )
                 .prefetch_related('contactcampaignstatus_set')
                 .annotate(
@@ -786,10 +904,8 @@ class CheckForExistingContactsView(BreadcrumbsMixin, FormView):
                         output_field=BooleanField(),
                     ),
                     active_campaign_count=Count(
-                        'contactcampaignstatus',
-                        filter=Q(contactcampaignstatus__campaign__active=True),
-                        distinct=True
-                    )
+                        'contactcampaignstatus', filter=Q(contactcampaignstatus__campaign__active=True), distinct=True
+                    ),
                 )
                 .distinct()
             )
@@ -797,9 +913,7 @@ class CheckForExistingContactsView(BreadcrumbsMixin, FormView):
 
         # Use parsed phone number for matching
         contacts = (
-            Contact.objects.filter(
-                Q(phone=parsed_phone) | Q(mobile=parsed_phone)
-            )
+            Contact.objects.filter(Q(phone=parsed_phone) | Q(mobile=parsed_phone))
             .prefetch_related(
                 Prefetch('subscriptions', queryset=Subscription.objects.filter(active=True, status__in=['OK', 'G']))
             )
@@ -816,10 +930,8 @@ class CheckForExistingContactsView(BreadcrumbsMixin, FormView):
                     output_field=BooleanField(),
                 ),
                 active_campaign_count=Count(
-                    'contactcampaignstatus',
-                    filter=Q(contactcampaignstatus__campaign__active=True),
-                    distinct=True
-                )
+                    'contactcampaignstatus', filter=Q(contactcampaignstatus__campaign__active=True), distinct=True
+                ),
             )
             .distinct()
         )
@@ -970,6 +1082,7 @@ class TagAnalysisView(BreadcrumbsMixin, ListView):
     - Contacts in campaigns (any campaign)
     - Contacts in active campaigns
     """
+
     model = Tag
     template_name = "tag_analysis.html"
     context_object_name = "tags"
@@ -988,47 +1101,45 @@ class TagAnalysisView(BreadcrumbsMixin, ListView):
         Get all tags used by contacts with statistics annotations.
         """
         # Get tags that are used by contacts with statistics
-        queryset = Tag.objects.filter(
-            taggit_taggeditem_items__content_type__model='contact'
-        ).annotate(
-            # Total contacts with this tag
-            total_contacts=Count(
-                'taggit_taggeditem_items__object_id',
-                filter=Q(taggit_taggeditem_items__content_type__model='contact'),
-                distinct=True
-            ),
-            # Contacts in any campaign - using EXISTS subquery
-            contacts_in_campaigns=Count(
-                'taggit_taggeditem_items__object_id',
-                filter=Q(
-                    taggit_taggeditem_items__content_type__model='contact'
-                ) & Q(
-                    Exists(
-                        ContactCampaignStatus.objects.filter(
-                            contact_id=OuterRef('taggit_taggeditem_items__object_id')
-                        )
-                    )
+        queryset = (
+            Tag.objects.filter(taggit_taggeditem_items__content_type__model='contact')
+            .annotate(
+                # Total contacts with this tag
+                total_contacts=Count(
+                    'taggit_taggeditem_items__object_id',
+                    filter=Q(taggit_taggeditem_items__content_type__model='contact'),
+                    distinct=True,
                 ),
-                distinct=True
-            ),
-            # Contacts in active campaigns - using EXISTS subquery
-            contacts_in_active_campaigns=Count(
-                'taggit_taggeditem_items__object_id',
-                filter=Q(
-                    taggit_taggeditem_items__content_type__model='contact'
-                ) & Q(
-                    Exists(
-                        ContactCampaignStatus.objects.filter(
-                            contact_id=OuterRef('taggit_taggeditem_items__object_id'),
-                            campaign__active=True
+                # Contacts in any campaign - using EXISTS subquery
+                contacts_in_campaigns=Count(
+                    'taggit_taggeditem_items__object_id',
+                    filter=Q(taggit_taggeditem_items__content_type__model='contact')
+                    & Q(
+                        Exists(
+                            ContactCampaignStatus.objects.filter(
+                                contact_id=OuterRef('taggit_taggeditem_items__object_id')
+                            )
                         )
-                    )
+                    ),
+                    distinct=True,
                 ),
-                distinct=True
+                # Contacts in active campaigns - using EXISTS subquery
+                contacts_in_active_campaigns=Count(
+                    'taggit_taggeditem_items__object_id',
+                    filter=Q(taggit_taggeditem_items__content_type__model='contact')
+                    & Q(
+                        Exists(
+                            ContactCampaignStatus.objects.filter(
+                                contact_id=OuterRef('taggit_taggeditem_items__object_id'), campaign__active=True
+                            )
+                        )
+                    ),
+                    distinct=True,
+                ),
             )
-        ).filter(
-            total_contacts__gt=0  # Only show tags that have contacts
-        ).order_by('-total_contacts', 'name')
+            .filter(total_contacts__gt=0)  # Only show tags that have contacts
+            .order_by('-total_contacts', 'name')
+        )
 
         # Apply name filter if provided
         name_filter = self.request.GET.get('name')
@@ -1045,9 +1156,11 @@ class TagAnalysisView(BreadcrumbsMixin, ListView):
         total_tags = self.get_queryset().count()
         total_contacts_with_tags = Contact.objects.filter(tags__isnull=False).distinct().count()
 
-        context.update({
-            'total_tags': total_tags,
-            'total_contacts_with_tags': total_contacts_with_tags,
-        })
+        context.update(
+            {
+                'total_tags': total_tags,
+                'total_contacts_with_tags': total_contacts_with_tags,
+            }
+        )
 
         return context

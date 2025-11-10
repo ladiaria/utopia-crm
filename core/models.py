@@ -764,19 +764,15 @@ class Contact(models.Model):
 
         last_in = self.last_incoming_activity()
         if last_in:
-            in_msg = '<b>In:</b> {} {}'.format(
-                last_in.datetime.date().strftime("%d/%m/%Y"),
-                last_in.get_activity_type_display() or ''
-            )
-            parts.append(in_msg)
+            in_date = last_in.datetime.date().strftime("%d/%m/%Y")
+            in_type = last_in.get_activity_type_display() or ''
+            parts.append(f'<b>{_("In")}:</b> {in_date} {in_type}')
 
         last_out = self.last_outgoing_activity()
         if last_out:
-            out_msg = '<b>Out:</b> {} {}'.format(
-                last_out.datetime.date().strftime("%d/%m/%Y"),
-                last_out.get_activity_type_display() or ''
-            )
-            parts.append(out_msg)
+            out_date = last_out.datetime.date().strftime("%d/%m/%Y")
+            out_type = last_out.get_activity_type_display() or ''
+            parts.append(f'<b>{_("Out")}:</b> {out_date} {out_type}')
 
         return mark_safe(' | '.join(parts)) if parts else None
 
