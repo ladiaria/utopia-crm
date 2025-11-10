@@ -189,6 +189,27 @@ class NewPromoForm(EmailValidationForm):
         widget=forms.Select(attrs={"class": "form-control"}),
     )
 
+    def __init__(self, *args, **kwargs):
+        self.contact = kwargs.pop("contact", None)
+        super().__init__(*args, **kwargs)
+
+    def clean_email(self):
+        """Validate that email is unique, excluding the current contact."""
+        email = self.cleaned_data.get("email")
+        
+        if email:
+            from core.models import Contact
+            # Check if another contact already has this email
+            existing_contact = Contact.objects.filter(email=email).exclude(pk=self.contact.pk if self.contact else None).first()
+            if existing_contact:
+                raise forms.ValidationError(
+                    _("This email is already registered to another contact (ID: %(contact_id)s)."),
+                    params={"contact_id": existing_contact.id},
+                    code="duplicate_email"
+                )
+        
+        return email
+
     def clean(self):
         self.email_extra_clean(super().clean())
 

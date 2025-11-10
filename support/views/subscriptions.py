@@ -912,10 +912,16 @@ class SendPromoView(UserPassesTestMixin, FormView):
         }
 
     def get_form(self, form_class=None):
-        """Customize form to set address queryset."""
+        """Customize form to set address queryset and pass contact."""
         form = super().get_form(form_class)
         form.fields["default_address"].queryset = self.contact_addresses
         return form
+
+    def get_form_kwargs(self):
+        """Pass the contact to the form."""
+        kwargs = super().get_form_kwargs()
+        kwargs['contact'] = self.contact
+        return kwargs
 
     def post(self, request, *args, **kwargs):
         """Handle Cancel button separately from form submission."""
@@ -1092,6 +1098,12 @@ class UpdatePromoView(UserPassesTestMixin, FormView):
         form.bound_product_values = bound_product_values
 
         return form
+
+    def get_form_kwargs(self):
+        """Pass the contact to the form."""
+        kwargs = super().get_form_kwargs()
+        kwargs['contact'] = self.contact
+        return kwargs
 
     def post(self, request, *args, **kwargs):
         """Handle Cancel button separately from form submission."""
