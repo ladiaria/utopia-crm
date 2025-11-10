@@ -1,3 +1,5 @@
+from datetime import date
+
 from django.utils.translation import gettext_lazy as _
 from django import forms
 from django.forms import ValidationError
@@ -165,17 +167,14 @@ class NewPromoForm(EmailValidationForm):
         label=_("Notes"),
         empty_value=None,
         required=False,
-        widget=forms.Textarea(attrs={"class": "form-control", "rows": "4"})
+        widget=forms.Textarea(attrs={"class": "form-control", "rows": "4"}),
     )
     email = forms.EmailField(
-        label=_("Email"),
-        empty_value=None,
-        required=False,
-        widget=forms.EmailInput(attrs={"class": "form-control"})
+        label=_("Email"), empty_value=None, required=False, widget=forms.EmailInput(attrs={"class": "form-control"})
     )
     start_date = forms.DateField(
         label=_("Start date"),
-        widget=forms.DateInput(format="%Y-%m-%d", attrs={"class": "datepicker form-control", "autocomplete": "off"})
+        widget=forms.DateInput(format="%Y-%m-%d", attrs={"class": "datepicker form-control", "autocomplete": "off"}),
     )
     end_date = forms.DateField(
         label=_("End date"),
@@ -196,18 +195,21 @@ class NewPromoForm(EmailValidationForm):
     def clean_email(self):
         """Validate that email is unique, excluding the current contact."""
         email = self.cleaned_data.get("email")
-        
+
         if email:
             from core.models import Contact
+
             # Check if another contact already has this email
-            existing_contact = Contact.objects.filter(email=email).exclude(pk=self.contact.pk if self.contact else None).first()
+            existing_contact = (
+                Contact.objects.filter(email=email).exclude(pk=self.contact.pk if self.contact else None).first()
+            )
             if existing_contact:
                 raise forms.ValidationError(
                     _("This email is already registered to another contact (ID: %(contact_id)s)."),
                     params={"contact_id": existing_contact.id},
-                    code="duplicate_email"
+                    code="duplicate_email",
                 )
-        
+
         return email
 
     def clean(self):
@@ -393,6 +395,11 @@ class IssueStartForm(forms.ModelForm):
         queryset=Contact.objects,
         widget=forms.TextInput(attrs={"class": "form-control"}),
     )
+    date = forms.DateField(
+        label=_("Date"),
+        initial=date.today,
+        widget=forms.DateInput(format="%Y-%m-%d", attrs={"class": "datepicker form-control", "autocomplete": "off"}),
+    )
 
     widget = forms.Select(attrs={"class": "form-control"})
     product = forms.ModelChoiceField(
@@ -473,6 +480,7 @@ class IssueStartForm(forms.ModelForm):
         fields = (
             "contact",
             "category",
+            "date",
             "sub_category",
             "notes",
             "copies",
