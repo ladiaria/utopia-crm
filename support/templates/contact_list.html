@@ -60,7 +60,22 @@
     document.addEventListener("DOMContentLoaded", function () {
       const tag_input = document.querySelector('input[name="tags"]');
       if (tag_input) {
-        new Tagify(tag_input);
+        const tagify = new Tagify(tag_input);
+        
+        // Convert Tagify JSON to comma-separated values before form submission
+        const form = document.getElementById('form');
+        form.addEventListener('submit', function(e) {
+          // Get the tags from Tagify
+          const tags = tagify.value;
+          
+          // Convert JSON array to comma-separated string
+          if (tags && tags.length > 0) {
+            const tagNames = tags.map(tag => tag.value).join(',');
+            tag_input.value = tagNames;
+          } else {
+            tag_input.value = '';
+          }
+        });
       }
     });
   </script>
