@@ -307,7 +307,7 @@ $( function() {
                   </div>
                 </div>
               </div>
-              <div class="form-group">
+              <div class="form-group required-field">
                 <label for="id_activity_type">{{ form.activity_type.label }}</label>
                 {{ form.activity_type }}
                 <span class="error invalid-feedback">{{ form.activity_type.errors }}</span>
@@ -319,6 +319,10 @@ $( function() {
                 <i class="fas fa-link mr-1"></i>
                 {% trans "Related Items" %}
               </div>
+              <small class="form-help-text d-block mb-3">
+                <i class="fas fa-info-circle mr-1"></i>
+                {% trans "Please select at least one related item to provide information about what the contact had issues with." %}
+              </small>
               <div class="form-group id_subscription_product">
                 <label for="id_subscription_product">{{ form.subscription_product.label }}</label>
                 {{ form.subscription_product }}

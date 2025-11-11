@@ -392,6 +392,7 @@ class IssueStartForm(forms.ModelForm):
     """
 
     contact = forms.ModelChoiceField(
+        label=_("Contact"),
         queryset=Contact.objects,
         widget=forms.TextInput(attrs={"class": "form-control"}),
     )
@@ -403,16 +404,19 @@ class IssueStartForm(forms.ModelForm):
 
     widget = forms.Select(attrs={"class": "form-control"})
     product = forms.ModelChoiceField(
+        label=_("Product"),
         queryset=Product.objects.filter(type="S"),
         widget=forms.Select(attrs={"class": "form-control"}),
         required=False,
     )
     subscription_product = forms.ModelChoiceField(
+        label=_("Subscription Product"),
         queryset=SubscriptionProduct.objects.all(),
         widget=forms.Select(attrs={"class": "form-control"}),
         required=False,
     )
     subscription = forms.ModelChoiceField(
+        label=_("Subscription"),
         queryset=Subscription.objects.all(),
         widget=forms.Select(attrs={"class": "form-control"}),
         required=False,
@@ -423,33 +427,52 @@ class IssueStartForm(forms.ModelForm):
         widget=forms.Select(attrs={"class": "form-control", "autocomplete": "off"}),
     )
     activity_type = forms.ChoiceField(
+        label=_("Activity Type (Required)"),
         widget=forms.Select(attrs={"class": "form-control"}),
-        choices=get_activity_types(),
+        choices=[('', _('Select an activity type'))] + list(get_activity_types()),
+        required=True,
     )
     status = forms.ModelChoiceField(
-        required=False, queryset=IssueStatus.objects.all(), widget=forms.Select(attrs={"class": "form-control"})
+        label=_("Status"),
+        required=False,
+        queryset=IssueStatus.objects.all(),
+        widget=forms.Select(attrs={"class": "form-control"}),
     )
     assigned_to = forms.ModelChoiceField(
+        label=_("Assigned to"),
         required=False,
         queryset=User.objects.filter(is_staff=True).order_by('username'),
         widget=forms.Select(attrs={"class": "form-control", "autocomplete": "off"}),
     )
     contact_address = forms.ModelChoiceField(
-        Address.objects.all(),
+        label=_("Address"),
+        queryset=Address.objects.all(),
         required=False,
         widget=forms.Select(attrs={"class": "form-control"}),
     )
     new_address = forms.BooleanField(
         label=_("New address"), required=False, widget=forms.CheckboxInput(attrs={"class": "form-check-input"})
     )
-    new_address_1 = forms.CharField(required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
-    new_address_2 = forms.CharField(required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
-    new_address_city = forms.CharField(required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
-    new_address_state = forms.ModelChoiceField(
-        queryset=State.objects.all(), required=False, widget=forms.Select(attrs={"class": "form-control"})
+    new_address_1 = forms.CharField(
+        label=_("Address"), required=False, widget=forms.TextInput(attrs={"class": "form-control"})
     )
-    new_address_notes = forms.CharField(required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
+    new_address_2 = forms.CharField(
+        label=_("Address 2"), required=False, widget=forms.TextInput(attrs={"class": "form-control"})
+    )
+    new_address_city = forms.CharField(
+        label=_("City"), required=False, widget=forms.TextInput(attrs={"class": "form-control"})
+    )
+    new_address_state = forms.ModelChoiceField(
+        label=_("State"),
+        queryset=State.objects.all(),
+        required=False,
+        widget=forms.Select(attrs={"class": "form-control"}),
+    )
+    new_address_notes = forms.CharField(
+        label=_("Notes"), required=False, widget=forms.TextInput(attrs={"class": "form-control"})
+    )
     new_address_type = forms.ChoiceField(
+        label=_("Address Type"),
         required=False,
         choices=ADDRESS_TYPE_CHOICES,
         widget=forms.Select(attrs={"class": "form-control"}),

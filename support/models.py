@@ -118,12 +118,17 @@ class Issue(models.Model):
     date_created = models.DateField(auto_now_add=True)
     contact = models.ForeignKey("core.Contact", on_delete=models.CASCADE, verbose_name=_("Contact"))
     date = models.DateField(default=date.today, verbose_name=_("Date"))
-    category = models.CharField(max_length=1, blank=True, null=True, choices=get_issue_categories())
-    subcategory = models.CharField(max_length=3, blank=True, null=True, choices=ISSUE_SUBCATEGORIES)
-    inside = models.BooleanField(default=True)
-    notes = models.TextField(blank=True, null=True)
+    category = models.CharField(
+        verbose_name=_("Category"), max_length=1, blank=True, null=True, choices=get_issue_categories()
+    )
+    subcategory = models.CharField(
+        verbose_name=_("Subcategory"), max_length=3, blank=True, null=True, choices=ISSUE_SUBCATEGORIES
+    )
+    inside = models.BooleanField(verbose_name=_("Inside"), default=True)
+    notes = models.TextField(verbose_name=_("Notes"), blank=True, null=True)
     manager = models.ForeignKey(
         "auth.User",
+        verbose_name=_("Manager"),
         blank=True,
         null=True,
         related_name="issue_manager",
@@ -131,27 +136,42 @@ class Issue(models.Model):
     )  # User who created the issue. Non-editable
     assigned_to = models.ForeignKey(
         "auth.User",
+        verbose_name=_("Assigned to"),
         blank=True,
         null=True,
         related_name="issue_assigned",
         on_delete=models.SET_NULL,
     )  # Editable, assigned to which user
-    progress = models.TextField(blank=True, null=True)
-    answer_1 = models.CharField(max_length=2, blank=True, null=True, choices=ISSUE_ANSWERS)
-    answer_2 = models.TextField(blank=True, null=True)
-    status = models.ForeignKey("support.IssueStatus", blank=True, null=True, on_delete=models.SET_NULL)
-    sub_category = models.ForeignKey("support.IssueSubcategory", blank=True, null=True, on_delete=models.SET_NULL)
-    end_date = models.DateField(blank=True, null=True)
-    next_action_date = models.DateField(blank=True, null=True)
-    closing_date = models.DateField(blank=True, null=True)
-    copies = models.PositiveSmallIntegerField(default=0)
+    progress = models.TextField(verbose_name=_("Progress"), blank=True, null=True)
+    answer_1 = models.CharField(verbose_name=_("Answer 1"), max_length=2, blank=True, null=True, choices=ISSUE_ANSWERS)
+    answer_2 = models.TextField(verbose_name=_("Answer 2"), blank=True, null=True)
+    status = models.ForeignKey(
+        "support.IssueStatus", verbose_name=_("Status"), blank=True, null=True, on_delete=models.SET_NULL
+    )
+    sub_category = models.ForeignKey(
+        "support.IssueSubcategory", verbose_name=_("Subcategory"), blank=True, null=True, on_delete=models.SET_NULL
+    )
+    end_date = models.DateField(verbose_name=_("End date"), blank=True, null=True)
+    next_action_date = models.DateField(verbose_name=_("Next action date"), blank=True, null=True)
+    closing_date = models.DateField(verbose_name=_("Closing date"), blank=True, null=True)
+    copies = models.PositiveSmallIntegerField(verbose_name=_("Copies"), default=0)
     # Optional attributes
     subscription_product = models.ForeignKey(
-        "core.SubscriptionProduct", null=True, blank=True, on_delete=models.SET_NULL
+        "core.SubscriptionProduct",
+        verbose_name=_("Subscription product"),
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
     )
-    subscription = models.ForeignKey("core.Subscription", on_delete=models.CASCADE, null=True, blank=True)
-    product = models.ForeignKey("core.Product", on_delete=models.CASCADE, null=True, blank=True)
-    address = models.ForeignKey("core.Address", on_delete=models.CASCADE, null=True, blank=True)
+    subscription = models.ForeignKey(
+        "core.Subscription", verbose_name=_("Subscription"), on_delete=models.CASCADE, null=True, blank=True
+    )
+    product = models.ForeignKey(
+        "core.Product", verbose_name=_("Product"), on_delete=models.CASCADE, null=True, blank=True
+    )
+    address = models.ForeignKey(
+        "core.Address", verbose_name=_("Address"), on_delete=models.CASCADE, null=True, blank=True
+    )
     envelope = models.BooleanField(default=False, verbose_name=_("Envelope"), null=True)
     history = HistoricalRecords()
 
@@ -558,16 +578,13 @@ class SalesRecord(models.Model):
             f"({self.subscription.get_payment_type_display()})"
         )
         products_count_commission = (
-            f"{self.calculate_products_count_commission(return_value=True)} "
-            f"({self.max_products_count()} products)"
+            f"{self.calculate_products_count_commission(return_value=True)} " f"({self.max_products_count()} products)"
         )
         frequency_commission = (
-            f"{self.calculate_frequency_commission(return_value=True)} "
-            f"({self.subscription.frequency})"
+            f"{self.calculate_frequency_commission(return_value=True)} " f"({self.subscription.frequency})"
         )
         specific_products_commission = (
-            f"{self.calculate_specific_products_commission(return_value=True)} "
-            f"(specific products)"
+            f"{self.calculate_specific_products_commission(return_value=True)} " f"(specific products)"
         )
         # Error catching
         try:

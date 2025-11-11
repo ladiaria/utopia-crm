@@ -696,7 +696,6 @@ class NewIssueView(BreadcrumbsMixin, CreateView):
             'copies': 1,
             'contact': self.contact,
             'category': self.category,
-            'activity_type': 'C',
         })
         return initial
 
@@ -759,16 +758,17 @@ class NewIssueView(BreadcrumbsMixin, CreateView):
         issue.status = status
         issue.save()
 
-        # Create related activity
-        Activity.objects.create(
-            datetime=datetime.now(),
-            contact=self.contact,
-            issue=issue,
-            notes=_("See related issue"),
-            activity_type=form.cleaned_data["activity_type"],
-            status="C",  # completed
-            direction="I",
-        )
+        # Create related activity only if activity_type is provided
+        if form.cleaned_data.get("activity_type"):
+            Activity.objects.create(
+                datetime=datetime.now(),
+                contact=self.contact,
+                issue=issue,
+                notes=_("See related issue"),
+                activity_type=form.cleaned_data["activity_type"],
+                status="C",  # completed
+                direction="I",
+            )
 
         return super().form_valid(form)
 
