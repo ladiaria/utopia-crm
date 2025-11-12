@@ -882,3 +882,83 @@ class CheckForExistingContactsForm(forms.Form):
         if not file.name.endswith('.csv'):
             raise forms.ValidationError(_('File must be a CSV file'))
         return file
+
+
+class FreeSubscriptionForm(EmailValidationForm):
+    """Form for creating and updating free subscriptions."""
+    name = forms.CharField(label=_("Name"), widget=forms.TextInput(attrs={"class": "form-control"}))
+    last_name = forms.CharField(
+        label=_("Last name"), widget=forms.TextInput(attrs={"class": "form-control"}), required=False
+    )
+    phone = PhoneNumberField(
+        label=_("Phone"),
+        empty_value="",
+        required=False,
+        widget=RegionalPhoneNumberWidget(attrs={"class": "form-control"}),
+    )
+    mobile = PhoneNumberField(
+        label=_("Mobile"),
+        empty_value="",
+        required=False,
+        widget=RegionalPhoneNumberWidget(attrs={"class": "form-control"}),
+    )
+    notes = forms.CharField(
+        label=_("Notes"),
+        empty_value=None,
+        required=False,
+        widget=forms.Textarea(attrs={"class": "form-control", "rows": "4"}),
+    )
+    email = forms.EmailField(
+        label=_("Email"), empty_value=None, required=False, widget=forms.EmailInput(attrs={"class": "form-control"})
+    )
+    start_date = forms.DateField(
+        label=_("Start date"),
+        widget=forms.DateInput(format="%Y-%m-%d", attrs={"class": "datepicker form-control", "autocomplete": "off"}),
+    )
+    end_date = forms.DateField(
+        label=_("End date"),
+        required=True,
+        widget=forms.DateInput(format="%Y-%m-%d", attrs={"class": "datepicker form-control", "autocomplete": "off"}),
+    )
+    default_address = forms.ModelChoiceField(
+        label=_("Default address"),
+        queryset=Address.objects.all(),
+        required=False,
+        widget=forms.Select(attrs={"class": "form-control"}),
+    )
+    free_subscription_requested_by = forms.ChoiceField(
+        label=_("Free subscription requested by"),
+        required=True,
+        widget=forms.Select(attrs={"class": "form-control"}),
+    )
+
+    def __init__(self, *args, **kwargs):
+        self.contact = kwargs.pop("contact", None)
+        super().__init__(*args, **kwargs)
+
+        # Import here to avoid circular imports
+        from core.choices import FreeSubscriptionRequestedBy
+        self.fields["free_subscription_requested_by"].choices = [
+            ("", "---------")
+        ] + list(FreeSubscriptionRequestedBy.choices)
+
+    def clean_email(self):
+        """Validate that email is unique, excluding the current contact."""
+        email = self.cleaned_data.get("email")
+
+        if email:
+            # Check if another contact already has this email
+            existing_contact = (
+                Contact.objects.filter(email=email).exclude(pk=self.contact.pk if self.contact else None).first()
+            )
+            if existing_contact:
+                raise forms.ValidationError(
+                    _("This email is already registered to another contact (ID: %(contact_id)s)."),
+                    params={"contact_id": existing_contact.id},
+                    code="duplicate_email",
+                )
+
+        return email
+
+    def clean(self):
+        self.email_extra_clean(super().clean())

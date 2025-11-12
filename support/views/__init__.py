@@ -35,4 +35,6 @@ from .subscriptions import (  # noqa
     SubscriptionEndDateListView,
     CorporateSubscriptionCreateView,
     AffiliateSubscriptionView,
+    create_free_subscription,
+    update_free_subscription,
 )

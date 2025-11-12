@@ -247,6 +247,16 @@ urlpatterns = [
         views.last_read_articles,
         name="last_read_articles",
     ),
+    path(
+        'contact/<int:contact_id>/create-free-subscription/',
+        views.create_free_subscription,
+        name='create_free_subscription',
+    ),
+    path(
+        'subscription/<int:subscription_id>/update-free-subscription/',
+        views.update_free_subscription,
+        name='update_free_subscription',
+    ),
 ]
 
 # Api views
