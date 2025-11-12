@@ -48,6 +48,7 @@ from support.forms import (
     UnsubscriptionForm,
     CorporateSubscriptionForm,
     AffiliateSubscriptionForm,
+    FreeSubscriptionForm,
 )
 from support.location import SugerenciaGeorefForm
 from support.models import SalesRecord
@@ -83,7 +84,6 @@ class SubscriptionMixin(BreadcrumbsMixin):
 
     def get_initial_data(self):
         contact = self.contact
-        contact_addresses = Address.objects.filter(contact=contact)
         return {
             "contact": contact,
             "name": contact.name,
@@ -93,7 +93,6 @@ class SubscriptionMixin(BreadcrumbsMixin):
             "email": contact.email,
             "id_document": contact.id_document,
             "id_document_type": contact.id_document_type,
-            "default_address": contact_addresses,
             "copies": 1,
         }
 
@@ -850,15 +849,28 @@ def book_additional_product(request, subscription_id):
     )
 
 
-class SendPromoView(UserPassesTestMixin, FormView):
+class SendPromoView(BreadcrumbsMixin, UserPassesTestMixin, FormView):
     """
     Shows a form that the sellers can use to send promotions to the contact.
     """
+
     template_name = "seller_console_start_promo.html"
     form_class = NewPromoForm
 
     def test_func(self):
         return self.request.user.is_staff
+
+    def breadcrumbs(self):
+        """Return breadcrumbs for navigation."""
+        return [
+            {"label": _("Home"), "url": reverse("home")},
+            {"label": _("Contact list"), "url": reverse("contact_list")},
+            {
+                "label": self.contact.get_full_name(),
+                "url": reverse("contact_detail", args=[self.contact.id]),
+            },
+            {"label": _("Send promotion"), "url": ""},
+        ]
 
     def dispatch(self, request, *args, **kwargs):
         """Initialize view-level variables from URL parameters."""
@@ -878,9 +890,7 @@ class SendPromoView(UserPassesTestMixin, FormView):
         if self.act:
             self.activity = get_object_or_404(Activity, pk=self.act)
             self.campaign = self.activity.campaign
-            self.ccs = get_object_or_404(
-                ContactCampaignStatus, contact=self.contact, campaign=self.campaign
-            )
+            self.ccs = get_object_or_404(ContactCampaignStatus, contact=self.contact, campaign=self.campaign)
         elif self.new:
             self.ccs = get_object_or_404(ContactCampaignStatus, pk=self.new)
             self.campaign = self.ccs.campaign
@@ -905,7 +915,7 @@ class SendPromoView(UserPassesTestMixin, FormView):
             "phone": self.contact.phone,
             "mobile": self.contact.mobile,
             "email": self.contact.email,
-            "default_address": self.contact_addresses,
+            "notes": self.contact.notes,
             "start_date": start_date,
             "end_date": end_date,
             "copies": 1,
@@ -914,7 +924,6 @@ class SendPromoView(UserPassesTestMixin, FormView):
     def get_form(self, form_class=None):
         """Customize form to set address queryset and pass contact."""
         form = super().get_form(form_class)
-        form.fields["default_address"].queryset = self.contact_addresses
         return form
 
     def get_form_kwargs(self):
@@ -1011,12 +1020,14 @@ class SendPromoView(UserPassesTestMixin, FormView):
     def get_context_data(self, **kwargs):
         """Add additional context for the template."""
         context = super().get_context_data(**kwargs)
-        context.update({
-            "contact": self.contact,
-            "address_form": NewAddressForm(initial={"address_type": "physical"}),
-            "offerable_products": self.offerable_products,
-            "contact_addresses": self.contact_addresses,
-        })
+        context.update(
+            {
+                "contact": self.contact,
+                "address_form": NewAddressForm(initial={"address_type": "physical"}),
+                "offerable_products": self.offerable_products,
+                "contact_addresses": self.contact_addresses,
+            }
+        )
         return context
 
 
@@ -1024,16 +1035,29 @@ class SendPromoView(UserPassesTestMixin, FormView):
 send_promo = SendPromoView.as_view()
 
 
-class UpdatePromoView(UserPassesTestMixin, FormView):
+class UpdatePromoView(BreadcrumbsMixin, UserPassesTestMixin, FormView):
     """
     Shows a form that allows updating an existing promotional subscription.
     Similar to SendPromoView but updates instead of creates.
     """
+
     template_name = "seller_console_start_promo.html"
     form_class = NewPromoForm
 
     def test_func(self):
         return self.request.user.is_staff
+
+    def breadcrumbs(self):
+        """Return breadcrumbs for navigation."""
+        return [
+            {"label": _("Home"), "url": reverse("home")},
+            {"label": _("Contact list"), "url": reverse("contact_list")},
+            {
+                "label": self.contact.get_full_name(),
+                "url": reverse("contact_detail", args=[self.contact.id]),
+            },
+            {"label": _("Update promotion"), "url": ""},
+        ]
 
     def dispatch(self, request, *args, **kwargs):
         """Initialize view-level variables from URL parameters."""
@@ -1047,9 +1071,9 @@ class UpdatePromoView(UserPassesTestMixin, FormView):
         self.offerable_products = Product.objects.filter(offerable=True, type="S")
 
         # Get existing subscription products
-        self.subscription_products = SubscriptionProduct.objects.filter(
-            subscription=self.subscription
-        ).select_related('product', 'address')
+        self.subscription_products = SubscriptionProduct.objects.filter(subscription=self.subscription).select_related(
+            'product', 'address'
+        )
 
         return super().dispatch(request, *args, **kwargs)
 
@@ -1061,7 +1085,7 @@ class UpdatePromoView(UserPassesTestMixin, FormView):
             "phone": self.contact.phone,
             "mobile": self.contact.mobile,
             "email": self.contact.email,
-            "default_address": self.contact_addresses.first(),
+            "notes": self.contact.notes,
             "start_date": self.subscription.start_date,
             "end_date": self.subscription.end_date,
             "copies": 1,
@@ -1070,12 +1094,9 @@ class UpdatePromoView(UserPassesTestMixin, FormView):
     def get_form(self, form_class=None):
         """Customize form to set address queryset and mark checked products."""
         form = super().get_form(form_class)
-        form.fields["default_address"].queryset = self.contact_addresses
 
         # Mark products that are already in the subscription as checked
-        form.checked_products = list(
-            self.subscription_products.values_list('product_id', flat=True)
-        )
+        form.checked_products = list(self.subscription_products.values_list('product_id', flat=True))
 
         # Create a method to get bound values for each product
         def bound_product_values(product_id):
@@ -1147,16 +1168,13 @@ class UpdatePromoView(UserPassesTestMixin, FormView):
                 selected_product_ids.add(product_id)
 
         # Get existing subscription products
-        existing_product_ids = set(
-            self.subscription_products.values_list('product_id', flat=True)
-        )
+        existing_product_ids = set(self.subscription_products.values_list('product_id', flat=True))
 
         # Remove products that are no longer selected
         products_to_remove = existing_product_ids - selected_product_ids
         if products_to_remove:
             SubscriptionProduct.objects.filter(
-                subscription=self.subscription,
-                product_id__in=products_to_remove
+                subscription=self.subscription, product_id__in=products_to_remove
             ).delete()
 
         # Add or update products
@@ -1170,10 +1188,7 @@ class UpdatePromoView(UserPassesTestMixin, FormView):
 
             # Update existing or create new
             if product_id in existing_product_ids:
-                sp = SubscriptionProduct.objects.get(
-                    subscription=self.subscription,
-                    product_id=product_id
-                )
+                sp = SubscriptionProduct.objects.get(subscription=self.subscription, product_id=product_id)
                 sp.address = address
                 sp.copies = copies
                 sp.label_message = label_message
@@ -1203,14 +1218,16 @@ class UpdatePromoView(UserPassesTestMixin, FormView):
     def get_context_data(self, **kwargs):
         """Add additional context for the template."""
         context = super().get_context_data(**kwargs)
-        context.update({
-            "contact": self.contact,
-            "address_form": NewAddressForm(initial={"address_type": "physical"}),
-            "offerable_products": self.offerable_products,
-            "contact_addresses": self.contact_addresses,
-            "subscription": self.subscription,
-            "is_update": True,  # Flag to indicate this is an update operation
-        })
+        context.update(
+            {
+                "contact": self.contact,
+                "address_form": NewAddressForm(initial={"address_type": "physical"}),
+                "offerable_products": self.offerable_products,
+                "contact_addresses": self.contact_addresses,
+                "subscription": self.subscription,
+                "is_update": True,  # Flag to indicate this is an update operation
+            }
+        )
         return context
 
 
@@ -1327,3 +1344,233 @@ class AffiliateSubscriptionView(FormView):
             .order_by('start_date')
         )
         return context
+
+
+class FreeSubscriptionMixin:
+    """
+    Mixin for shared functionality between CreateFreeSubscriptionView and UpdateFreeSubscriptionView.
+    Handles common logic for free subscription management.
+    """
+
+    def test_func(self):
+        """Check if user has permission to add free subscriptions."""
+        return self.request.user.has_perm('core.can_add_free_subscription')
+
+    def get_form_kwargs(self):
+        """Pass the contact to the form."""
+        kwargs = super().get_form_kwargs()
+        kwargs['contact'] = self.contact
+        return kwargs
+
+    def update_contact_data(self, form):
+        """Update contact information if changed."""
+        changed = False
+        for attr in ("name", "last_name", "phone", "mobile", "email", "notes"):
+            val = form.cleaned_data.get(attr)
+            if getattr(self.contact, attr) != val:
+                changed = True
+                setattr(self.contact, attr, val)
+
+        if changed:
+            try:
+                self.contact.save()
+            except forms.ValidationError as ve:
+                form.add_error(None, ve)
+                return False
+        return True
+
+    def add_products_to_subscription(self, subscription):
+        """Add products to the subscription based on POST data."""
+        for key, value in list(self.request.POST.items()):
+            if key.startswith("check"):
+                product_id = key.split("-")[1]
+                product = Product.objects.get(pk=product_id)
+                address_id = self.request.POST.get("address-{}".format(product_id))
+                address = Address.objects.get(pk=address_id)
+                copies = self.request.POST.get("copies-{}".format(product_id))
+                label_message = self.request.POST.get("message-{}".format(product_id))
+                special_instructions = self.request.POST.get("instruction-{}".format(product_id))
+                subscription.add_product(
+                    product=product,
+                    address=address,
+                    copies=copies,
+                    message=label_message,
+                    instructions=special_instructions,
+                )
+
+
+class CreateFreeSubscriptionView(FreeSubscriptionMixin, BreadcrumbsMixin, FormView):
+    """
+    View for managers to create free subscriptions for contacts.
+    Requires can_add_free_subscription permission.
+    """
+
+    template_name = "free_subscription_form.html"
+    form_class = FreeSubscriptionForm
+
+    def dispatch(self, request, *args, **kwargs):
+        """Initialize view-level variables from URL parameters."""
+        self.contact = get_object_or_404(Contact, pk=kwargs['contact_id'])
+        self.contact_addresses = Address.objects.filter(contact=self.contact)
+        self.offerable_products = Product.objects.filter(offerable=True, type="S")
+        return super().dispatch(request, *args, **kwargs)
+
+    def breadcrumbs(self):
+        """Return breadcrumbs for navigation."""
+        return [
+            {"label": _("Home"), "url": reverse("home")},
+            {"label": _("Contact list"), "url": reverse("contact_list")},
+            {
+                "label": self.contact.get_full_name(),
+                "url": reverse("contact_detail", args=[self.contact.id]),
+            },
+            {"label": _("Create free subscription"), "url": ""},
+        ]
+
+    def get_initial(self):
+        """Set initial form data."""
+        start_date = date.today()
+        end_date = add_business_days(date.today(), 5)
+
+        return {
+            "name": self.contact.name,
+            "last_name": self.contact.last_name,
+            "phone": self.contact.phone,
+            "mobile": self.contact.mobile,
+            "email": self.contact.email,
+            "notes": self.contact.notes,
+            "start_date": start_date,
+            "end_date": end_date,
+        }
+
+    def form_valid(self, form):
+        """Process the form and create free subscription."""
+        # Update contact data if necessary
+        if not self.update_contact_data(form):
+            return self.form_invalid(form)
+
+        # Create the free subscription
+        start_date = form.cleaned_data["start_date"]
+        end_date = form.cleaned_data["end_date"]
+        free_subscription_requested_by = form.cleaned_data["free_subscription_requested_by"]
+
+        subscription = Subscription.objects.create(
+            contact=self.contact,
+            type="F",  # Free subscription
+            start_date=start_date,
+            end_date=end_date,
+            free_subscription_requested_by=free_subscription_requested_by,
+        )
+
+        # Add products to subscription
+        self.add_products_to_subscription(subscription)
+
+        messages.success(
+            self.request,
+            _("Free subscription created successfully for {contact}").format(contact=self.contact.get_full_name()),
+        )
+
+        return HttpResponseRedirect(reverse("contact_detail", args=[self.contact.id]))
+
+    def get_context_data(self, **kwargs):
+        """Add additional context for the template."""
+        context = super().get_context_data(**kwargs)
+        context.update(
+            {
+                "contact": self.contact,
+                "address_form": NewAddressForm(initial={"address_type": "physical"}),
+                "offerable_products": self.offerable_products,
+                "contact_addresses": self.contact_addresses,
+                "is_update": False,
+            }
+        )
+        return context
+
+
+class UpdateFreeSubscriptionView(FreeSubscriptionMixin, BreadcrumbsMixin, FormView):
+    """
+    View for managers to update existing free subscriptions.
+    Requires can_add_free_subscription permission.
+    Uses FormView instead of UpdateView since FreeSubscriptionForm is not a ModelForm.
+    """
+
+    template_name = "free_subscription_form.html"
+    form_class = FreeSubscriptionForm
+
+    def dispatch(self, request, *args, **kwargs):
+        """Initialize view-level variables."""
+        self.subscription = get_object_or_404(Subscription, pk=kwargs['subscription_id'])
+        self.contact = self.subscription.contact
+        self.contact_addresses = Address.objects.filter(contact=self.contact)
+        self.offerable_products = Product.objects.filter(offerable=True, type="S")
+        return super().dispatch(request, *args, **kwargs)
+
+    def breadcrumbs(self):
+        """Return breadcrumbs for navigation."""
+        return [
+            {"label": _("Home"), "url": reverse("home")},
+            {"label": _("Contact list"), "url": reverse("contact_list")},
+            {
+                "label": self.contact.get_full_name(),
+                "url": reverse("contact_detail", args=[self.contact.id]),
+            },
+            {"label": _("Update free subscription"), "url": ""},
+        ]
+
+    def get_initial(self):
+        """Set initial form data from subscription."""
+        return {
+            "name": self.contact.name,
+            "last_name": self.contact.last_name,
+            "phone": self.contact.phone,
+            "mobile": self.contact.mobile,
+            "email": self.contact.email,
+            "notes": self.contact.notes,
+            "start_date": self.subscription.start_date,
+            "end_date": self.subscription.end_date,
+            "free_subscription_requested_by": self.subscription.free_subscription_requested_by,
+        }
+
+    def form_valid(self, form):
+        """Process the form and update subscription."""
+        # Update contact data if necessary
+        if not self.update_contact_data(form):
+            return self.form_invalid(form)
+
+        # Update subscription fields
+        self.subscription.start_date = form.cleaned_data["start_date"]
+        self.subscription.end_date = form.cleaned_data["end_date"]
+        self.subscription.free_subscription_requested_by = form.cleaned_data["free_subscription_requested_by"]
+        self.subscription.save()
+
+        messages.success(
+            self.request,
+            _("Free subscription updated successfully for {contact}").format(contact=self.contact.get_full_name()),
+        )
+
+        return HttpResponseRedirect(reverse("contact_detail", args=[self.contact.id]))
+
+    def get_context_data(self, **kwargs):
+        """Add additional context for the template."""
+        context = super().get_context_data(**kwargs)
+
+        # Get existing subscription products
+        existing_products = SubscriptionProduct.objects.filter(subscription=self.subscription)
+
+        context.update(
+            {
+                "contact": self.contact,
+                "address_form": NewAddressForm(initial={"address_type": "physical"}),
+                "offerable_products": self.offerable_products,
+                "contact_addresses": self.contact_addresses,
+                "subscription": self.subscription,
+                "existing_products": existing_products,
+                "is_update": True,
+            }
+        )
+        return context
+
+
+# Backward compatibility
+create_free_subscription = CreateFreeSubscriptionView.as_view()
+update_free_subscription = UpdateFreeSubscriptionView.as_view()
