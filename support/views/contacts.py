@@ -875,57 +875,49 @@ class CheckForExistingContactsView(BreadcrumbsMixin, FormView):
         """
         Find matching contacts based on phone or mobile number.
         Returns a list of contacts that match the given phone number.
-        Uses phonenumberfield for matching.
+        Normalizes phone numbers to work with or without the '+' symbol.
         """
+        import re
         from phonenumber_field.phonenumber import PhoneNumber
 
-        # Try to parse the phone number
-        try:
-            parsed_phone = PhoneNumber.from_string(phone_number)
-        except Exception:
-            # If parsing fails, try direct string matching
-            contacts = (
-                Contact.objects.filter(Q(phone__icontains=phone_number) | Q(mobile__icontains=phone_number))
-                .prefetch_related(
-                    Prefetch(
-                        'subscriptions', queryset=Subscription.objects.filter(active=True, status__in=['OK', 'G'])
-                    )
-                )
-                .prefetch_related('contactcampaignstatus_set')
-                .annotate(
-                    is_phone_match=Case(
-                        When(phone__icontains=phone_number, then=Value(True)),
-                        default=Value(False),
-                        output_field=BooleanField(),
-                    ),
-                    is_mobile_match=Case(
-                        When(mobile__icontains=phone_number, then=Value(True)),
-                        default=Value(False),
-                        output_field=BooleanField(),
-                    ),
-                    active_campaign_count=Count(
-                        'contactcampaignstatus', filter=Q(contactcampaignstatus__campaign__active=True), distinct=True
-                    ),
-                )
-                .distinct()
-            )
-            return contacts
+        # Normalize the input phone number by removing non-digit characters except +
+        # This helps match numbers with or without the + symbol
+        normalized_input = re.sub(r'[^\d+]', '', phone_number)
 
-        # Use parsed phone number for matching
+        # Create two versions: with and without the + symbol
+        phone_with_plus = normalized_input if normalized_input.startswith('+') else f'+{normalized_input}'
+        phone_without_plus = normalized_input.lstrip('+')
+
+        # Try to parse the phone number with + symbol for proper matching
+        try:
+            parsed_phone = PhoneNumber.from_string(phone_with_plus)
+        except Exception:
+            parsed_phone = None
+
+        # Build query to match phone numbers with or without + symbol
+        # Use icontains to match the digits regardless of formatting
+        query = Q(phone__icontains=phone_without_plus) | Q(mobile__icontains=phone_without_plus)
+
+        # If we successfully parsed the phone, also try exact matching
+        if parsed_phone:
+            query |= Q(phone=parsed_phone) | Q(mobile=parsed_phone)
+
         contacts = (
-            Contact.objects.filter(Q(phone=parsed_phone) | Q(mobile=parsed_phone))
+            Contact.objects.filter(query)
             .prefetch_related(
-                Prefetch('subscriptions', queryset=Subscription.objects.filter(active=True, status__in=['OK', 'G']))
+                Prefetch(
+                    'subscriptions', queryset=Subscription.objects.filter(active=True, status__in=['OK', 'G'])
+                )
             )
             .prefetch_related('contactcampaignstatus_set')
             .annotate(
                 is_phone_match=Case(
-                    When(phone=parsed_phone, then=Value(True)),
+                    When(phone__icontains=phone_without_plus, then=Value(True)),
                     default=Value(False),
                     output_field=BooleanField(),
                 ),
                 is_mobile_match=Case(
-                    When(mobile=parsed_phone, then=Value(True)),
+                    When(mobile__icontains=phone_without_plus, then=Value(True)),
                     default=Value(False),
                     output_field=BooleanField(),
                 ),
