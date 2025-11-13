@@ -629,6 +629,7 @@ def cms_rest_api_request(api_name, api_uri, post_data, method="POST"):
             else (settings.WEB_CREATE_USER_ENABLED or api_uri in settings.WEB_CREATE_USER_POST_WHITELIST)
         ):
             r = getattr(requests, method.lower())(api_uri, **cms_rest_api_kwargs(api_key, post_data))
+            r.raise_for_status()
             if settings.DEBUG:
                 html2text_content = html2text(r.content.decode()).strip()
                 # TODO: can be improved splitting and stripping more unuseful info

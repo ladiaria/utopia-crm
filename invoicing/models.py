@@ -432,8 +432,6 @@ class MercadoPagoData(models.Model):
     customer_id = models.CharField(max_length=255, blank=True, null=True)
     payment_method_id = models.CharField(max_length=255, blank=True, null=True)
     identification_type = models.CharField(max_length=50, blank=True, null=True)
-
-    # Consider adding these fields:
     identification_number = models.CharField(max_length=50, blank=True, null=True)
     last_four_digits = models.CharField(max_length=4, blank=True, null=True)
     payment_method_type = models.CharField(max_length=50, blank=True, null=True)
