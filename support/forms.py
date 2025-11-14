@@ -15,6 +15,7 @@ from core.models import (
     Product,
     Subscription,
     Address,
+    Campaign,
     DynamicContactFilter,
     SubscriptionProduct,
     Activity,
@@ -962,3 +963,28 @@ class FreeSubscriptionForm(EmailValidationForm):
 
     def clean(self):
         self.email_extra_clean(super().clean())
+
+
+class BulkDeleteCampaignStatusForm(forms.Form):
+    """
+    Form for bulk deleting ContactCampaignStatus records.
+    Allows uploading a CSV file with contact IDs and selecting a campaign.
+    """
+    csv_file = forms.FileField(
+        label=_('CSV File'),
+        help_text=_('Upload a CSV file with contact IDs. Expected column: contact_id, id, or similar.'),
+        widget=forms.FileInput(attrs={'accept': '.csv', 'class': 'form-control'})
+    )
+    campaign = forms.ModelChoiceField(
+        label=_('Campaign'),
+        queryset=Campaign.objects.filter(active=True).order_by('-id'),
+        widget=forms.Select(attrs={'class': 'form-control select2', 'style': 'width: 100%;'}),
+        help_text=_('Select the campaign to delete status records from')
+    )
+
+    def clean_csv_file(self):
+        """Validate that the uploaded file is a CSV."""
+        file = self.cleaned_data['csv_file']
+        if not file.name.endswith('.csv'):
+            raise forms.ValidationError(_('File must be a CSV file'))
+        return file
