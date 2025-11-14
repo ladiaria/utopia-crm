@@ -10,6 +10,7 @@
 {% url 'upload_do_not_call_numbers' as upload_do_not_call_numbers %}
 {% url 'sales_record_filter' as sales_record_filter %}
 {% url "check_for_existing_contacts" as check_for_existing_contacts %}
+{% url 'bulk_delete_campaign_status' as bulk_delete_campaign_status %}
 
 <li class="nav-item has-treeview">
   <a href="#" class="nav-link">
@@ -84,6 +85,13 @@
       <a href="{{ sales_record_filter }}" class="nav-link">
         <i class="nav-icon fas fa-file-invoice-dollar"></i>
         <p>{% trans "Sales Records" %}</p></a>
+    </li>
+    <li class="nav-item">
+      <a href="{{ bulk_delete_campaign_status }}"
+         class="nav-link {% if request.path == bulk_delete_campaign_status %}active{% endif %}">
+        <i class="nav-icon fas fa-trash-alt"></i>
+        <p>{% trans "Bulk Delete Campaign Status" %}</p>
+      </a>
     </li>
     {% include_if_exists "campaign_management_sidebar_extra.html" %}
   </ul>
