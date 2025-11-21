@@ -619,6 +619,7 @@ def cms_rest_api_request(api_name, api_uri, post_data, method="POST"):
     api_key = settings.LDSOCIAL_API_KEY
     if not (api_uri or api_key) or method not in ("POST", "PUT", "PATCH", "DELETE"):
         return "ERROR"
+    r = None
     try:
         if settings.DEBUG:
             print("DEBUG: %s to %s with method='%s', data='%s'" % (api_name, api_uri, method, post_data))
@@ -648,7 +649,7 @@ def cms_rest_api_request(api_name, api_uri, post_data, method="POST"):
     except RequestException as req_ex:
         if settings.DEBUG:
             print(f"DEBUG: {api_name} {method} request error: {str(req_ex)}")
-        return "NOT FOUND" if method == "PATCH" and r.status_code == codes.NOT_FOUND else "ERROR"
+        return "NOT FOUND" if method == "PATCH" and r and r.status_code == codes.NOT_FOUND else "ERROR"
     else:
         return {"msg": "OK"}
 

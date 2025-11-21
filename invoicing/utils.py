@@ -362,7 +362,7 @@ def bill_subscription(
     # Check that the subscription's next billing is smaller than end date if it has it
     if subscription.end_date:
         error_msg = _("This subscription has an end date greater than its next billing")
-        assert subscription.next_billing < subscription.end_date, error_msg
+        assert subscription.next_billing <= subscription.end_date, error_msg
 
     # We need to get all the subscription data
     billing_data = subscription.get_billing_data_by_priority()
