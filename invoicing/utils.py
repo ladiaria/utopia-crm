@@ -1,9 +1,9 @@
-from datetime import date, timedelta
 from dateutil.relativedelta import relativedelta
 from decimal import Decimal
 
 from django.conf import settings
 from django.db import transaction
+from django.utils.timezone import now, timedelta
 from django.utils.translation import gettext_lazy as _
 
 from invoicing.models import MercadoPagoData
@@ -92,10 +92,11 @@ def mercadopago_debit(invoice, debug=False):
                 mp_attempts += 1
 
             if payment_response_status == "approved":
-                invoice.debited, invoice.payment_date = True, date.today()
+                today = now().date()
+                invoice.debited, invoice.payment_date = True, today
                 invoice.payment_reference = f"MP-{payment_response['id']}"
                 if invoice.notes and "MercadoPago - Pago no aprobado" in invoice.notes:
-                    invoice.notes = invoice.notes + f"\n{date.today()} MercadoPago - Pago procesado correctamente"
+                    invoice.notes = invoice.notes + f"\n{today} MercadoPago - Pago procesado correctamente"
                 invoice.save()
             else:
                 if debug:
@@ -117,7 +118,7 @@ def _update_invoice_notes(invoice, error_status, debug):
         invoice.notes += "\n"
     else:
         invoice.notes = ""
-    invoice.notes += f"{date.today()} {error_status}"
+    invoice.notes += f"{now().date()} {error_status}"
     invoice.save()
 
 
@@ -175,14 +176,15 @@ def create_mp_subscription_for_contact(
         },
     )
 
+    today = now().date()
     subscription = Subscription.objects.create(
         contact=contact,
         type="N",  # The subscription will be Normal
         status="OK",  # Can be switched to awaiting payment later
         payment_type="M",  # Mercadopago
         send_bill_copy_by_email=True,
-        start_date=start_date or date.today(),
-        next_billing=start_date or date.today(),
+        start_date=start_date or today,
+        next_billing=start_date or today,
         end_date=None,
     )
 
@@ -224,7 +226,7 @@ def contact_update_mp(
         else:
             return (_("Customer already has an active subscription."),)
     else:
-        start_date = date.today()
+        start_date = now().date()
 
     # Let's also update the contact with the things that are worth it
     contact.subtype_id = getattr(settings, "WEB_UPDATE_MP_SUBTIPO_ID", None)
@@ -288,7 +290,7 @@ def contact_update_mp_wrapper(
     identification_number=None,
 ):
     expired = contact.get_expired_invoices()
-    two_years_ago = date.today() + relativedelta(years=-2)
+    two_years_ago = now().date() + relativedelta(years=-2)
     # TODO: See if we need this filter to be removed, change the logic or change the settings
     if expired.filter(creation_date__gte=two_years_ago).exists():
         if getattr(settings, "MERCADOPAGO_DEBTOR_EMAIL_ALERT", False):
@@ -338,7 +340,7 @@ def bill_subscription(
     exclude_routes_from_billing_list = getattr(settings, 'EXCLUDE_ROUTES_FROM_BILLING_LIST', [])
     envelope_price = getattr(settings, 'ENVELOPE_PRICE', 0)
 
-    billing_date = billing_date or date.today()
+    billing_date = billing_date or now().date()
     invoice = None
 
     # Check that the subscription is normal
@@ -359,7 +361,7 @@ def bill_subscription(
         "The subscription has no payment type, it can't be billed"
     )
 
-    # Check that the subscription's next billing is smaller than end date if it has it
+    # Check that the subscription's next billing is smaller than or equal to end date if it has it
     if subscription.end_date:
         error_msg = _("This subscription has an end date greater than its next billing")
         assert subscription.next_billing <= subscription.end_date, error_msg
