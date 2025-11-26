@@ -1801,7 +1801,7 @@ def not_contacted_campaign(request, campaign_id):
 
 
 @method_decorator(staff_member_required, name="dispatch")
-class SalesRecordFilterSellersView(FilterView):
+class SalesRecordFilterSellersView(BreadcrumbsMixin, FilterView):
     # This view is similar to the previous one but for the seller to see what sales they have made.
     filterset_class = SalesRecordFilterForSeller
     template_name = "sales_record_filter.html"
@@ -1814,6 +1814,14 @@ class SalesRecordFilterSellersView(FilterView):
     )
     seller = None
     page_kwarg = 'p'
+
+    @property
+    def breadcrumbs(self):
+        return [
+            {"url": reverse("home"), "label": _("Home")},
+            {"url": reverse("seller_console_list_campaigns"), "label": _("Seller console")},
+            {"label": _("My Sales")},
+        ]
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -1891,6 +1899,14 @@ class SalesRecordFilterManagersView(SalesRecordFilterSellersView):
     # This view is only for managers to see the sales records of all sellers.
     filterset_class = SalesRecordFilter
     is_manager = False
+
+    @property
+    def breadcrumbs(self):
+        return [
+            {"url": reverse("home"), "label": _("Home")},
+            {"label": _("Campaign Management")},
+            {"label": _("Sales Record")},
+        ]
 
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_staff and not request.user.groups.filter(name="Managers").exists():

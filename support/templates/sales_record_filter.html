@@ -22,16 +22,11 @@
 {% endblock extra_js %}
 
 {% block no_heading %}
-  {% if seller %}
-    <h1>
-      <a href="{% url "seller_console_list_campaigns" %}">{% trans "Seller console" %} {{ seller.name }}</a> » {% trans "My Sales" %}
-    </h1>
-  {% else %}
-    <h1>{% trans "Campaign Management" %} » {% trans "Sales Record" %}</h1>
-  {% endif %}
+<h1>{% trans "Sales Records" %}</h1>
 {% endblock no_heading %}
 
 {% block content %}
+  {% block sales_information %}{% endblock sales_information %}
   <div class="row">
     <div class="col-md-12">
       <div class="card">
