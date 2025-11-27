@@ -19,20 +19,32 @@ class Command(BaseCommand):
             dest='export_replacements',
             help='Additionaly exports the approved replacements entries to this CSV file path',
         )
+        parser.add_argument(
+            '--print-sql',
+            action='store_true',
+            default=False,
+            dest='print_sql',
+            help='Print the SQL statements that will be executed',
+        )
 
     def handle(self, *args, **options):
         replacements, export_replacements = EmailReplacement.approved().items(), options.get("export_replacements")
+        print_sql = options.get("print_sql")
         with connection.cursor() as cursor:
             for domain, replacement in replacements:
                 domain_dot_escaped = domain.replace('.', '\.')
                 try:
-                    cursor.execute(
+                    update_query = (
                         """
                         UPDATE core_contact SET email=REGEXP_REPLACE(email,'@%s','@%s','i')
                         WHERE email ~* '@%s$'
                         """ % (domain_dot_escaped, replacement, domain_dot_escaped)
                     )
+                    if print_sql:
+                        print(update_query)
+                    cursor.execute(update_query)
                 except IntegrityError as ieexc:
+                    print(f"\nReplacement failed: {domain} -> {replacement}")
                     print(ieexc)
         if export_replacements:
             try:

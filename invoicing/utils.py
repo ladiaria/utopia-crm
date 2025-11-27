@@ -28,11 +28,16 @@ def mercadopago_debit(invoice, debug=False):
     if invoice.paid or invoice.debited:
         return
 
-    # Get MercadoPago data for the contact
+    # Get MercadoPago data for the subscription
+    if not invoice.subscription:
+        error_status = "Invoice has no subscription associated"
+        _update_invoice_notes(invoice, error_status, debug)
+        return
+
     try:
-        mp_data = MercadoPagoData.objects.get(contact=invoice.contact)
+        mp_data = MercadoPagoData.objects.get(subscription=invoice.subscription)
     except MercadoPagoData.DoesNotExist:
-        error_status = "MercadoPago data not found for this contact"
+        error_status = "MercadoPago data not found for this subscription"
         _update_invoice_notes(invoice, error_status, debug)
         return
 
@@ -162,20 +167,6 @@ def create_mp_subscription_for_contact(
             address_type="physical",
         )
 
-    # Create or update MercadoPagoData
-    mp_data, created = MercadoPagoData.objects.update_or_create(
-        contact=contact,
-        defaults={
-            'customer_id': mp_customer_id,
-            'card_id': mp_card_id,
-            'card_issuer': card_issuer,
-            'expiration_month': expiration_month,
-            'expiration_year': expiration_year,
-            'payment_method_id': mp_payment_method_id,
-            'identification_type': mp_identification_type,
-        },
-    )
-
     today = now().date()
     subscription = Subscription.objects.create(
         contact=contact,
@@ -191,6 +182,20 @@ def create_mp_subscription_for_contact(
     # We should add the products to the subscription
     product = Product.objects.get(slug=product_slug)
     subscription.add_product(product, new_address)
+
+    # Create or update MercadoPagoData for this subscription
+    mp_data, created = MercadoPagoData.objects.update_or_create(
+        subscription=subscription,
+        defaults={
+            'customer_id': mp_customer_id,
+            'card_id': mp_card_id,
+            'card_issuer': card_issuer,
+            'expiration_month': expiration_month,
+            'expiration_year': expiration_year,
+            'payment_method_id': mp_payment_method_id,
+            'identification_type': mp_identification_type,
+        },
+    )
 
     return subscription, mp_data
 

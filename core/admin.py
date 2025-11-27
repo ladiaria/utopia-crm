@@ -1,4 +1,5 @@
 # coding=utf-8
+from pydoc import locate
 from leaflet.admin import LeafletGeoAdmin
 from taggit.models import TaggedItem, Tag
 from taggit.admin import TagAdmin, TaggedItemInline
@@ -194,6 +195,17 @@ def contact_is_safe_to_delete(contact, ignore_movable=False, print_unsafe=False)
                 if print_unsafe:
                     print(f"contact_is_safe_to_delete, collector data item: {key} {key_count}")
                 break
+    if safety:
+        extension_module = getattr(settings, "CORE_CONTACT_SAFE_TO_DELETE_EXTENSION_MODULE", None)
+        if extension_module:
+            extension_func = locate(f"{extension_module}.contact_is_safe_to_delete")
+            if extension_func:
+                try:
+                    safety = extension_func(contact)
+                except Exception as e:
+                    if settings.DEBUG:
+                        print(f"contact_is_safe_to_delete, extension function error: {e}")
+                    safety = False  # for security
     return safety
 
 
