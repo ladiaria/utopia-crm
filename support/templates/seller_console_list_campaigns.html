@@ -45,7 +45,7 @@
       </div>
     </div>
   {% endif %}
-  {% if issues_never_paid %}
+  {% if issues_never_paid_count %}
     <div class="card">
       <div class="card-header">
         <h3 class="card-title">{% trans "Contacts that never paid their first invoice" %}</h3>
@@ -54,19 +54,21 @@
         <table class="table table-borderd">
           <thead>
             <tr>
-              <th>{% trans "Contact" %}</th>
+              <th>{% trans "Description" %}</th>
+              <th>{% trans "Count" %}</th>
               <th>{% trans "Go" %}</th>
             </tr>
           </thead>
           <tbody>
-            {% for issue in issues_never_paid %}
-              <tr>
-                <td>{{ issue.contact.get_full_name }}</td>
-                <td>
-                  <a class="btn btn-primary btn-sm" href="{% url "view_issue" issue.id %}"><i class="fas fa-eye"></i> {% trans "View" %}</a>
-                </td>
-              </tr>
-            {% endfor %}
+            <tr>
+              <td>{% trans "Never paid issues" %}</td>
+              <td>{{ issues_never_paid_count }}</td>
+              <td>
+                <a class="btn btn-primary btn-sm" href="{% url "seller_console_never_paid_issues" %}">
+                  <i class="fas fa-eye"></i> {% trans "View" %}
+                </a>
+              </td>
+            </tr>
           </tbody>
         </table>
       </div>
