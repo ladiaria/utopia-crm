@@ -20,6 +20,7 @@ from .seller_console import (  # noqa
     SellerConsoleView,
     seller_console_list_campaigns,
     seller_console_special_routes,
+    seller_console_never_paid_issues,
 )
 from .subscriptions import (  # noqa
     SubscriptionCreateView,

@@ -56,13 +56,91 @@ def seller_console_special_routes(request, route_id):
     if subprods.count() == 0:
         messages.error(request, _("There are no contacts in that route for this seller."))
         return HttpResponseRedirect(reverse("seller_console_list_campaigns"))
+    breadcrumbs = [
+        {"label": _("Home"), "url": reverse("home")},
+        {"label": _("Seller Console"), "url": reverse("seller_console_list_campaigns")},
+        {"label": _("Special Routes"), "url": ""},
+    ]
     return render(
         request,
         "seller_console_special_routes.html",
         {
+            "breadcrumbs": breadcrumbs,
             "seller": seller,
             "subprods": subprods,
             "route": route,
+        },
+    )
+
+
+@staff_member_required
+def seller_console_never_paid_issues(request):
+    """
+    Display a dedicated page for issues with the "never paid" subcategory.
+    Similar to special routes, this provides a focused view for sellers to manage
+    contacts who never paid their first invoice.
+    """
+    user = User.objects.get(username=request.user.username)
+    try:
+        seller = Seller.objects.get(user=user)
+    except Seller.DoesNotExist:
+        messages.error(request, _("User has no seller selected. Please contact your manager."))
+        return HttpResponseRedirect(reverse("home"))
+    except Seller.MultipleObjectsReturned:
+        messages.error(request, _("This seller is set in more than one user. Please contact your manager."))
+        return HttpResponseRedirect(reverse("home"))
+
+    # Check if the feature is configured
+    if not getattr(settings, "ISSUE_SUBCATEGORY_NEVER_PAID", None) or not getattr(
+        settings, "ISSUE_STATUS_FINISHED_LIST", None
+    ):
+        messages.error(request, _("This function is not available."))
+        return HttpResponseRedirect(reverse("seller_console_list_campaigns"))
+
+    # Get the never paid issues for this seller with additional data
+    from django.db.models import Count, Q
+
+    issues_never_paid = Issue.objects.filter(
+        sub_category__slug=getattr(settings, "ISSUE_SUBCATEGORY_NEVER_PAID", ""),
+        assigned_to=user,
+    ).exclude(
+        status__slug__in=getattr(settings, "ISSUE_STATUS_FINISHED_LIST", [])
+    ).select_related(
+        'contact', 'subscription', 'status'
+    ).annotate(
+        overdue_invoices_count=Count(
+            'contact__invoice',
+            filter=Q(
+                contact__invoice__expiration_date__lt=date.today(),
+                contact__invoice__paid=False,
+                contact__invoice__debited=False,
+                contact__invoice__canceled=False,
+                contact__invoice__uncollectible=False,
+            )
+        )
+    ).order_by(
+        '-overdue_invoices_count',  # Most overdue invoices first (most urgent)
+        'subscription__start_date',  # Oldest subscriptions first (never paid for longer)
+        'id'  # Consistent ordering
+    )
+
+    if issues_never_paid.count() == 0:
+        messages.error(request, _("There are no never paid issues for this seller."))
+        return HttpResponseRedirect(reverse("seller_console_list_campaigns"))
+
+    breadcrumbs = [
+        {"label": _("Home"), "url": reverse("home")},
+        {"label": _("Seller Console"), "url": reverse("seller_console_list_campaigns")},
+        {"label": _("Never Paid Issues"), "url": ""},
+    ]
+
+    return render(
+        request,
+        "seller_console_never_paid_issues.html",
+        {
+            "breadcrumbs": breadcrumbs,
+            "seller": seller,
+            "issues_never_paid": issues_never_paid,
         },
     )
 
@@ -108,15 +186,16 @@ def seller_console_list_campaigns(request, seller_id=None):
 
     # We'll make these lists so we can append the sub count to each campaign
     campaigns_with_not_contacted_list, campaigns_with_activities_list = [], []
+
+    # Get count of never paid issues for this seller
+    issues_never_paid_count = 0
     if getattr(settings, "ISSUE_SUBCATEGORY_NEVER_PAID", None) and getattr(
         settings, "ISSUE_STATUS_FINISHED_LIST", None
     ):
-        issues_never_paid = Issue.objects.filter(
+        issues_never_paid_count = Issue.objects.filter(
             sub_category__slug=getattr(settings, "ISSUE_SUBCATEGORY_NEVER_PAID", ""),
             assigned_to=user,
-        ).exclude(status__slug__in=getattr(settings, "ISSUE_STATUS_FINISHED_LIST", []))
-    else:
-        issues_never_paid = []
+        ).exclude(status__slug__in=getattr(settings, "ISSUE_STATUS_FINISHED_LIST", [])).count()
 
     not_contacted_campaigns = seller.get_campaigns_by_status([1, 3])
     campaigns_with_activities = seller.get_campaigns_with_activities()
@@ -143,7 +222,7 @@ def seller_console_list_campaigns(request, seller_id=None):
         "seller": seller,
         "total_pending_activities": total_pending_activities,
         "upcoming_activity": upcoming_activity,
-        "issues_never_paid": issues_never_paid,
+        "issues_never_paid_count": issues_never_paid_count,
     }
     if logistics_is_installed():
         context["special_routes"] = special_routes
