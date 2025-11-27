@@ -56,10 +56,16 @@ def seller_console_special_routes(request, route_id):
     if subprods.count() == 0:
         messages.error(request, _("There are no contacts in that route for this seller."))
         return HttpResponseRedirect(reverse("seller_console_list_campaigns"))
+    breadcrumbs = [
+        {"label": _("Home"), "url": reverse("home")},
+        {"label": _("Seller Console"), "url": reverse("seller_console_list_campaigns")},
+        {"label": _("Special Routes"), "url": ""},
+    ]
     return render(
         request,
         "seller_console_special_routes.html",
         {
+            "breadcrumbs": breadcrumbs,
             "seller": seller,
             "subprods": subprods,
             "route": route,
@@ -122,10 +128,17 @@ def seller_console_never_paid_issues(request):
         messages.error(request, _("There are no never paid issues for this seller."))
         return HttpResponseRedirect(reverse("seller_console_list_campaigns"))
 
+    breadcrumbs = [
+        {"label": _("Home"), "url": reverse("home")},
+        {"label": _("Seller Console"), "url": reverse("seller_console_list_campaigns")},
+        {"label": _("Never Paid Issues"), "url": ""},
+    ]
+
     return render(
         request,
         "seller_console_never_paid_issues.html",
         {
+            "breadcrumbs": breadcrumbs,
             "seller": seller,
             "issues_never_paid": issues_never_paid,
         },
