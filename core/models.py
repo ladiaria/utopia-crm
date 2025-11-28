@@ -583,7 +583,7 @@ class Contact(models.Model):
         Returns a queryset with the expired invoices for the contact.
         """
         return self.invoice_set.filter(
-            expiration_date__lte=date.today(),
+            expiration_date__lt=date.today(),
             paid=False,
             debited=False,
             canceled=False,
@@ -658,7 +658,7 @@ class Contact(models.Model):
         Returns how much money the contact owes.
         """
         sum_import = self.invoice_set.filter(
-            expiration_date__lte=date.today(),
+            expiration_date__lt=date.today(),
             paid=False,
             debited=False,
             canceled=False,
@@ -2360,7 +2360,7 @@ class Subscription(models.Model):
         # Check if all invoices are overdue
         return (
             invoices.filter(
-                expiration_date__lte=date.today(), paid=False, debited=False, canceled=False, uncollectible=False
+                expiration_date__lt=date.today(), paid=False, debited=False, canceled=False, uncollectible=False
             ).count()
             == invoices.count()
         )
@@ -2935,7 +2935,7 @@ class DynamicContactFilter(models.Model):
             subscriptions = subscriptions.filter(contact__allow_polls=True)
         if self.debtor_contacts:
             only_debtors = subscriptions.filter(
-                contact__invoice__expiration_date__lte=date.today(),
+                contact__invoice__expiration_date__lt=date.today(),
                 contact__invoice__paid=False,
                 contact__invoice__debited=False,
                 contact__invoice__canceled=False,

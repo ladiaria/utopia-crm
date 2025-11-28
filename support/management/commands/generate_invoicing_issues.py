@@ -30,7 +30,7 @@ class Command(BaseCommand):
                 invoice__debited=False,
                 invoice__canceled=False,
                 invoice__uncollectible=False,
-                invoice__expiration_date__lte=today(),
+                invoice__expiration_date__lt=today(),
             )
             .prefetch_related('invoice_set')
             .distinct()
