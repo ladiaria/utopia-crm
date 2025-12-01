@@ -528,6 +528,7 @@ class ProductAdmin(admin.ModelAdmin):
                     "renewal_type",
                     "has_implicit_discount",
                     "target_product",
+                    "discount_category",
                 ),
             },
         ),

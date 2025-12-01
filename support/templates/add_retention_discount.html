@@ -1,0 +1,133 @@
+{% extends "adminlte/base.html" %}
+{% load static i18n widget_tweaks %}
+{% block title %}
+  {% trans "Add retention discount" %}
+{% endblock title %}
+
+{% block extra_js %}
+  <script type="text/javascript">
+$( function() {
+  function activateSend() {
+      var disable = false;
+
+      if ($(".enable-product:checked").length == 0) {
+        disable = true;  // Can't submit without a product
+        $("#custom_error_message").text("{% trans 'Select at least one retention discount to continue' %}");
+      } else {
+        disable = false;
+      }
+
+      if (disable == false) {
+        $("#send_form").removeAttr("disabled");  // Enable the send button
+        $("#custom_error_message").text("");
+      } else {
+        $("#send_form").attr("disabled", "disabled");  // Disable the send button
+      }
+
+    };
+
+  $("input:checkbox").change(function(){
+      activateSend();
+    });
+
+});
+
+
+  </script>
+{% endblock %}
+
+{% block no_heading %}
+  <h1>
+    {% trans "Add retention discount" %}
+  </h1>
+  <p>{% trans "Select retention discount products to add to the subscription" %}</p>
+{% endblock %}
+
+{% block content %}
+  <div class="row">
+    <div class="col-9">
+      <div class="card">
+        <div class="card-header p-2">
+          <h3>{% trans "Retention discounts" %}</h3>
+        </div>
+        <div class="card-body">
+          <form method="post" id="form">
+            {% csrf_token %}
+            {% if form.errors %}
+              {% for field in form %}
+                {% for error in field.errors %}
+                  <div class="alert alert-danger">
+                    <strong>{{ error|escape }}</strong>
+                  </div>
+                {% endfor %}
+              {% endfor %}
+              {% for error in form.non_field_errors %}
+                <div class="alert alert-danger">
+                  <strong>{{ error|escape }}</strong>
+                </div>
+              {% endfor %}
+            {% endif %}
+            <div class="row">
+              <div class="col-6">
+                <div class="form-group">
+                  <label>{% trans "Current products" %}</label>
+                  <ul>
+                    {% for subscriptionproduct in subscription.get_subscriptionproducts %}
+                      <li>{{ subscriptionproduct.product.name }}</li>
+                    {% endfor %}
+                  </ul>
+                </div>
+                <div class="form-group">
+                  <label>{% trans "Add these retention discounts" %}</label>
+                  {% if retention_products %}
+                    {% for product in retention_products %}
+                      <div class="form-check">
+                        <input id="retentionproduct-{{ product.id }}"
+                               class="enable-product form-check-input"
+                               type="checkbox"
+                               name="retentionproduct-{{ product.id }}">
+                        <label class="form-check-label" for="retentionproduct-{{ product.id }}">
+                          {{ product.name }}
+                          {% if product.price %}
+                            ({{ product.price }})
+                          {% endif %}
+                        </label>
+                      </div>
+                    {% endfor %}
+                  {% else %}
+                    <div class="alert alert-warning">
+                      {% trans "No retention discount products available. Please create retention discount products first." %}
+                    </div>
+                  {% endif %}
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="form-group">
+                  <label for="id_start_date">{{ form.start_date.label }}</label>
+                  {% render_field form.start_date class="form-control" type="date" %}
+                  <span class="error invalid-feedback">{{ form.start_date.errors }}</span>
+                </div>
+                <div class="form-group">
+                  <label for="id_unsubscription_addendum">
+                    {{ form.unsubscription_addendum.label }} ({% trans "For old subscription" %})
+                  </label>
+                  {{ form.unsubscription_addendum }}
+                  <span class="error invalid-feedback">{{ form.unsubscription_addendum.errors }}</span>
+                </div>
+              </div>
+              <div class="form-group text-right">
+                <span id="custom_error_message" class="text-danger"><small>{% trans "Select a retention discount to continue" %}</small></span>
+                <input disabled="disabled"
+                       type="submit"
+                       id="send_form"
+                       name="submit"
+                       value='{% trans "Send" %}'
+                       class="btn bg-gradient-primary">
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

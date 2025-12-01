@@ -205,6 +205,14 @@ class Product(models.Model):
         FIXED = "X", _("Fixed Price")
         CUSTOM = "C", _("Custom")
 
+    class DiscountCategoryChoices(models.TextChoices):
+        """Choices for the discount category field"""
+
+        RETENTION = "R", _("Retention")
+        PROMOTION = "P", _("Promotion")
+        STAFF = "S", _("Staff")
+        OTHER = "O", _("Other")
+
     name = models.CharField(max_length=100, verbose_name=_("Name"), unique=True, db_index=True)
     slug = AutoSlugField(populate_from="name", max_length=100, unique=True, editable=True)
     active = models.BooleanField(
@@ -303,6 +311,14 @@ class Product(models.Model):
             "How the product is billed. Fixed uses the price set in the product, per frequency uses the "
             "price calculated from the products in the subscription with the frequency set in the product."
         ),
+    )
+    discount_category = models.CharField(
+        max_length=1,
+        choices=DiscountCategoryChoices.choices,
+        verbose_name=_("Discount category"),
+        null=True,
+        blank=True,
+        help_text=_("Category of the discount. Mandatory if the product type is discount.")
     )
     objects = ProductManager()
 
@@ -1454,6 +1470,7 @@ class Subscription(models.Model):
         CHANGED_PRODUCTS = 4, _("Changed products")
         DEBTOR = 13, _("Debtor")
         DEBTOR_AUTOMATIC = 16, _("Debtor, automatic unsubscription")
+        RETENTION = 17, _("Retention")
         NOT_APPLICABLE = 99, _("N/A")
 
     class UnsubscriptionTypeChoices(models.IntegerChoices):
@@ -1462,6 +1479,7 @@ class Subscription(models.Model):
         PARTIAL = 2, _("Partial unsubscription")
         CHANGED_PRODUCTS = 3, _("Changed products")
         ADDED_PRODUCTS = 4, _("Added products")
+        RETENTION = 5, _("Retention")
 
     campaign = models.ForeignKey(
         "core.Campaign", blank=True, null=True, verbose_name=_("Campaign"), on_delete=models.SET_NULL
@@ -2413,6 +2431,7 @@ class Subscription(models.Model):
         permissions = [
             ("can_add_free_subscription", _("Can add free subscription")),
             ("can_add_corporate_subscription", _("Can add corporate subscription")),
+            ("can_offer_retention", _("Can offer retention")),
         ]
 
 

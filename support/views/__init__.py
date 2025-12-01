@@ -38,4 +38,5 @@ from .subscriptions import (  # noqa
     AffiliateSubscriptionView,
     create_free_subscription,
     update_free_subscription,
+    add_retention_discount,
 )
