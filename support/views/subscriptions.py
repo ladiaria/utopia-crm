@@ -48,6 +48,7 @@ from support.forms import (
     UnsubscriptionForm,
     CorporateSubscriptionForm,
     AffiliateSubscriptionForm,
+    RetentionDiscountForm,
     FreeSubscriptionForm,
 )
 from support.location import SugerenciaGeorefForm
@@ -842,6 +843,140 @@ def book_additional_product(request, subscription_id):
         {
             "from_seller_console": from_seller_console,
             "offerable_products": offerable_products,
+            "subscription": old_subscription,
+            "form": form,
+            "breadcrumbs": breadcrumbs,
+        },
+    )
+
+
+@staff_member_required
+def add_retention_discount(request, subscription_id):
+    """
+    View for adding retention discounts to a subscription.
+    Creates a new subscription with retention discount products starting on a specified date.
+    Sets the old subscription's unsubscription type and reason to RETENTION.
+    """
+    old_subscription = get_object_or_404(Subscription, pk=subscription_id)
+
+    # Get all retention discount products
+    retention_products = Product.objects.filter(
+        type__in=["D", "P", "A"],  # Discount, Percentage discount, Advanced discount
+        discount_category="R",  # RETENTION
+        active=True
+    )
+
+    breadcrumbs = [
+        {"label": _("Contact list"), "url": reverse("contact_list")},
+        {
+            "label": old_subscription.contact.get_full_name(),
+            "url": reverse("contact_detail", args=[old_subscription.contact.id]),
+        },
+        {"label": _("Add retention discount"), "url": ""},
+    ]
+
+    if request.POST:
+        form = RetentionDiscountForm(request.POST, instance=old_subscription)
+        if form.is_valid():
+            # Get selected products
+            selected_product_ids = []
+            for key in request.POST.keys():
+                if key.startswith("retentionproduct-"):
+                    product_id = key.split("-")[1]
+                    selected_product_ids.append(product_id)
+
+            if not selected_product_ids:
+                messages.error(request, _("Please select at least one retention discount product"))
+                return render(
+                    request,
+                    "add_retention_discount.html",
+                    {
+                        "retention_products": retention_products,
+                        "subscription": old_subscription,
+                        "form": form,
+                        "breadcrumbs": breadcrumbs,
+                    },
+                )
+
+            # Set end date on old subscription
+            old_subscription.end_date = form.cleaned_data["start_date"]
+            old_subscription.save()
+
+            # Create new subscription with retention discounts
+            new_subscription = Subscription.objects.create(
+                active=False,
+                contact=old_subscription.contact,
+                start_date=form.cleaned_data["start_date"],
+                payment_type=old_subscription.payment_type,
+                type=old_subscription.type,
+                status="OK",
+                billing_name=old_subscription.billing_name,
+                billing_id_doc=old_subscription.billing_id_doc,
+                rut=old_subscription.rut,
+                billing_phone=old_subscription.billing_phone,
+                send_bill_copy_by_email=old_subscription.send_bill_copy_by_email,
+                billing_address=old_subscription.billing_address,
+                billing_email=old_subscription.billing_email,
+                next_billing=old_subscription.next_billing,
+                frequency=old_subscription.frequency,
+                updated_from=old_subscription,
+            )
+
+            # Copy all products from old subscription
+            for sp in old_subscription.subscriptionproduct_set.all():
+                new_sp = new_subscription.add_product(
+                    product=sp.product,
+                    address=sp.address,
+                    copies=sp.copies,
+                    message=sp.label_message,
+                    instructions=sp.special_instructions,
+                    seller_id=sp.seller_id,
+                )
+                new_sp.original_datetime = sp.original_datetime
+                if logistics_is_installed():
+                    if sp.route:
+                        new_sp.route = sp.route
+                    if sp.order:
+                        new_sp.order = sp.order
+                new_sp.save()
+
+            # Add retention discount products
+            for product_id in selected_product_ids:
+                product = Product.objects.get(pk=product_id)
+                if product not in new_subscription.products.all():
+                    new_subscription.add_product(
+                        product=product,
+                        address=None,  # Discounts don't need addresses
+                    )
+
+            # Set old subscription's unsubscription type and reason to RETENTION
+            old_subscription.inactivity_reason = Subscription.InactivityReasonChoices.RETENTION
+            old_subscription.unsubscription_type = Subscription.UnsubscriptionTypeChoices.RETENTION
+            old_subscription.unsubscription_date = date.today()
+            old_subscription.unsubscription_manager = request.user
+            old_subscription.save()
+
+            success_text = format_lazy(
+                "Retention discount(s) added for {name}, starting {start_date}",
+                name=old_subscription.contact.get_full_name(),
+                start_date=form.cleaned_data["start_date"],
+            )
+            messages.success(request, success_text)
+
+            # Redirect to contact detail instead of edit subscription
+            return HttpResponseRedirect(
+                reverse("contact_detail", args=[old_subscription.contact.id])
+            )
+    else:
+        form = RetentionDiscountForm(instance=old_subscription)
+        # Set default start date to today
+        form.initial["start_date"] = date.today()
+
+    return render(
+        request,
+        "add_retention_discount.html",
+        {
+            "retention_products": retention_products,
             "subscription": old_subscription,
             "form": form,
             "breadcrumbs": breadcrumbs,

@@ -90,7 +90,7 @@ class InvoiceFilter(django_filters.FilterSet):
             return queryset.filter(uncollectible=True)
         elif value == 'overdue':
             return queryset.filter(
-                paid=False, debited=False, canceled=False, uncollectible=False, expiration_date__lte=date.today())
+                paid=False, debited=False, canceled=False, uncollectible=False, expiration_date__lt=date.today())
         elif value == 'not_paid':
             return queryset.filter(
                 paid=False, debited=False, canceled=False, uncollectible=False,
@@ -98,7 +98,7 @@ class InvoiceFilter(django_filters.FilterSet):
         else:
             return queryset.filter(
                 paid=False, debited=False, uncollectible=False, canceled=False, expiration_date__gt=date.today())
-    
+
     def filter_by_no_serial(self, queryset, name, value):
         if value == 'yes':
             return queryset.filter(

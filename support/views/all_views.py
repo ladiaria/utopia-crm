@@ -960,7 +960,7 @@ def dynamic_contact_filter_new(request):
                     subscriptions = subscriptions.filter(contact__allow_polls=True)
                 if debtor_contacts:
                     only_debtors = subscriptions.filter(
-                        contact__invoice__expiration_date__lte=date.today(),
+                        contact__invoice__expiration_date__lt=date.today(),
                         contact__invoice__paid=False,
                         contact__invoice__debited=False,
                         contact__invoice__canceled=False,
@@ -1057,7 +1057,7 @@ def dynamic_contact_filter_edit(request, dcf_id):
                     subscriptions = subscriptions.filter(contact__allow_polls=True)
                 if debtor_contacts:
                     only_debtors = subscriptions.filter(
-                        contact__invoice__expiration_date__lte=date.today(),
+                        contact__invoice__expiration_date__lt=date.today(),
                         contact__invoice__paid=False,
                         contact__invoice__debited=False,
                         contact__invoice__canceled=False,
@@ -1243,7 +1243,7 @@ def invoicing_issues(request):
             contact__invoice__debited=False,
             contact__invoice__canceled=False,
             contact__invoice__uncollectible=False,
-            contact__invoice__expiration_date__lte=date.today(),
+            contact__invoice__expiration_date__lt=date.today(),
         )
         .exclude(status__slug__in=settings.ISSUE_STATUS_FINISHED_LIST)
         .annotate(owed_invoices=Count("contact__invoice"))
@@ -1325,7 +1325,7 @@ def debtor_contacts(request):
             invoice__debited=False,
             invoice__canceled=False,
             invoice__uncollectible=False,
-            invoice__expiration_date__lte=date.today(),
+            invoice__expiration_date__lt=date.today(),
         )
         .annotate(owed_invoices=Count("invoice", distinct=True))
         .annotate(debt=Sum("invoice__amount"))

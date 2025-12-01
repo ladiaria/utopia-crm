@@ -735,6 +735,25 @@ class AdditionalProductForm(forms.ModelForm):
         }
 
 
+class RetentionDiscountForm(forms.ModelForm):
+    """Form for adding retention discounts to a subscription"""
+    start_date = forms.DateField(
+        required=True,
+        label=_("Start date for new subscription"),
+        widget=forms.DateInput(format="%Y-%m-%d", attrs={"class": "datepicker form-control", "autocomplete": "off"}),
+    )
+
+    class Meta:
+        model = Subscription
+        fields = (
+            "start_date",
+            "unsubscription_addendum",
+        )
+        widgets = {
+            "unsubscription_addendum": forms.Textarea(attrs={"class": "form-control"}),
+        }
+
+
 class ContactCampaignStatusByDateForm(forms.Form):
     date_gte = forms.DateField(
         required=False,
