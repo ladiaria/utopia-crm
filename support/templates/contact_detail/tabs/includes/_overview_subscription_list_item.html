@@ -106,6 +106,10 @@
   {# Action buttons - compact #}
   <div class="mt-2 pt-2 border-top d-flex flex-wrap justify-content-end">
     {% block subscription_actions %}
+      {% if perms.core.can_offer_retention and not subscription.is_obsolete %}
+        <a href="{% url "add_retention_discount" subscription.id %}"
+           class="btn btn-sm btn-primary mr-1 mb-1"><i class="fas fa-plus-circle"></i> {% trans "Offer retention" %}</a>
+      {% endif %}
       {% if subscription.type == "P" %}
         {% if request.user|in_group:"Managers" %}
           {% if not subscription.is_obsolete %}
@@ -120,10 +124,6 @@
              target="_blank">
             <i class="fas fa-cog"></i> {% trans "Advanced" %}
           </a>
-        {% endif %}
-        {% if perms.core.can_offer_retention and not subscription.is_obsolete %}
-          <a href="{% url "add_retention_discount" subscription.id %}"
-             class="btn btn-sm btn-primary mr-1 mb-1"><i class="fas fa-plus-circle"></i> {% trans "Offer retention" %}</a>
         {% endif %}
       {% elif subscription.type == "F" %}
         {% if request.user|in_group:"Managers" %}
