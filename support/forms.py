@@ -747,9 +747,14 @@ class RetentionDiscountForm(forms.ModelForm):
         model = Subscription
         fields = (
             "start_date",
+            "unsubscription_channel",
             "unsubscription_addendum",
         )
+        labels = {
+            "unsubscription_channel": _("Petition channel"),
+        }
         widgets = {
+            "unsubscription_channel": forms.Select(attrs={"class": "form-control"}),
             "unsubscription_addendum": forms.Textarea(attrs={"class": "form-control"}),
         }
 

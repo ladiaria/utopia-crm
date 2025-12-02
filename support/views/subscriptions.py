@@ -8,7 +8,7 @@ from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.mixins import UserPassesTestMixin
 from django.core.exceptions import ValidationError
-from django.db.models import Count
+from django.db.models import Count, Q
 from django.http import (
     HttpResponse,
     HttpResponseNotFound,
@@ -859,11 +859,22 @@ def add_retention_discount(request, subscription_id):
     """
     old_subscription = get_object_or_404(Subscription, pk=subscription_id)
 
-    # Get all retention discount products
+    # Get the processed product summary to handle bundled products (e.g., 2_dias, 3_dias, 5_dias)
+    product_summary = old_subscription.product_summary()
+    processed_product_ids = list(product_summary.keys())
+
+    # Get all retention discount products that:
+    # 1. Are not already in the subscription
+    # 2. Have a target_product that matches one of the processed products in the subscription
+    #    (or have no target_product, meaning they apply to any subscription)
     retention_products = Product.objects.filter(
         type__in=["D", "P", "A"],  # Discount, Percentage discount, Advanced discount
         discount_category="R",  # RETENTION
         active=True
+    ).exclude(
+        id__in=old_subscription.products.values_list("id", flat=True)
+    ).filter(
+        Q(target_product_id__in=processed_product_ids) | Q(target_product__isnull=True)
     )
 
     breadcrumbs = [

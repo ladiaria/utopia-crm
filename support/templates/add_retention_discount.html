@@ -108,6 +108,11 @@ $( function() {
                   <span class="error invalid-feedback">{{ form.start_date.errors }}</span>
                 </div>
                 <div class="form-group">
+                  <label for="id_unsubscription_channel">{{ form.unsubscription_channel.label }}</label>
+                  {{ form.unsubscription_channel }}
+                  <span class="error invalid-feedback">{{ form.unsubscription_channel.errors }}</span>
+                </div>
+                <div class="form-group">
                   <label for="id_unsubscription_addendum">
                     {{ form.unsubscription_addendum.label }} ({% trans "For old subscription" %})
                   </label>
