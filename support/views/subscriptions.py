@@ -859,22 +859,36 @@ def add_retention_discount(request, subscription_id):
     """
     old_subscription = get_object_or_404(Subscription, pk=subscription_id)
 
-    # Get the processed product summary to handle bundled products (e.g., 2_dias, 3_dias, 5_dias)
+    # Get both the original products and the processed product summary
+    # Original products: the actual subscription products in the subscription
+    original_product_ids = list(old_subscription.products.filter(type="S").values_list("id", flat=True))
+
+    # Processed products: handles bundled products (e.g., weekday products -> 2_dias, 3_dias, 5_dias)
+    # Note: product_summary() returns dict with string keys, so we need to convert to int
     product_summary = old_subscription.product_summary()
-    processed_product_ids = list(product_summary.keys())
+    processed_product_ids = [int(pid) for pid in product_summary.keys()]
+
+    # Combine both lists to check against all possible target products (as integers)
+    all_target_product_ids = set(original_product_ids) | set(processed_product_ids)
+
+    # Get IDs of retention discounts already in the subscription (to exclude them)
+    existing_discount_ids = old_subscription.products.filter(
+        type__in=["D", "P", "A"],
+        discount_category="R"
+    ).values_list("id", flat=True)
 
     # Get all retention discount products that:
     # 1. Are not already in the subscription
-    # 2. Have a target_product that matches one of the processed products in the subscription
+    # 2. Have a target_product that matches one of the original OR processed products
     #    (or have no target_product, meaning they apply to any subscription)
     retention_products = Product.objects.filter(
         type__in=["D", "P", "A"],  # Discount, Percentage discount, Advanced discount
         discount_category="R",  # RETENTION
         active=True
     ).exclude(
-        id__in=old_subscription.products.values_list("id", flat=True)
+        id__in=existing_discount_ids
     ).filter(
-        Q(target_product_id__in=processed_product_ids) | Q(target_product__isnull=True)
+        Q(target_product_id__in=all_target_product_ids) | Q(target_product__isnull=True)
     )
 
     breadcrumbs = [
@@ -889,15 +903,69 @@ def add_retention_discount(request, subscription_id):
     if request.POST:
         form = RetentionDiscountForm(request.POST, instance=old_subscription)
         if form.is_valid():
-            # Get selected products
+            # Validate start date is at least tomorrow
+            start_date = form.cleaned_data["start_date"]
+            from datetime import timedelta
+            tomorrow = date.today() + timedelta(days=1)
+            if start_date < tomorrow:
+                messages.error(
+                    request,
+                    _("Start date must be at least tomorrow (%s)") % tomorrow.strftime('%d/%m/%Y'),
+                )
+                return render(
+                    request,
+                    "add_retention_discount.html",
+                    {
+                        "retention_products": retention_products,
+                        "subscription": old_subscription,
+                        "form": form,
+                        "breadcrumbs": breadcrumbs,
+                    },
+                )
+
+            # Get products to remove (marked for unsubscription)
+            products_to_remove = []
+            for key in request.POST.keys():
+                if key.startswith("sp-"):
+                    subscription_product_id = key.split("-")[1]
+                    subscription_product = SubscriptionProduct.objects.get(pk=subscription_product_id)
+                    products_to_remove.append(subscription_product.product)
+
+            # Get selected retention discount products
             selected_product_ids = []
             for key in request.POST.keys():
                 if key.startswith("retentionproduct-"):
                     product_id = key.split("-")[1]
                     selected_product_ids.append(product_id)
 
-            if not selected_product_ids:
-                messages.error(request, _("Please select at least one retention discount product"))
+            # Validate that at least one action is being taken (adding discount or removing products)
+            if not selected_product_ids and not products_to_remove:
+                messages.error(request, _("Please select at least one retention discount or mark products to remove"))
+                return render(
+                    request,
+                    "add_retention_discount.html",
+                    {
+                        "retention_products": retention_products,
+                        "subscription": old_subscription,
+                        "form": form,
+                        "breadcrumbs": breadcrumbs,
+                    },
+                )
+
+            # Validate that at least one subscription product remains
+            # Count only subscription products (type "S"), not discounts
+            subscription_products = [
+                sp.product for sp in old_subscription.subscriptionproduct_set.all()
+                if sp.product.type == "S"
+            ]
+            subscription_products_to_remove = [p for p in products_to_remove if p.type == "S"]
+
+            if len(subscription_products_to_remove) >= len(subscription_products):
+                messages.error(
+                    request,
+                    _("You cannot remove all subscription products. "
+                      "At least one subscription product must remain (discounts alone are not enough)."),
+                )
                 return render(
                     request,
                     "add_retention_discount.html",
@@ -933,23 +1001,29 @@ def add_retention_discount(request, subscription_id):
                 updated_from=old_subscription,
             )
 
-            # Copy all products from old subscription
+            # Copy products from old subscription to new subscription, excluding removed ones
+            # Also add removed products to unsubscription_products
             for sp in old_subscription.subscriptionproduct_set.all():
-                new_sp = new_subscription.add_product(
-                    product=sp.product,
-                    address=sp.address,
-                    copies=sp.copies,
-                    message=sp.label_message,
-                    instructions=sp.special_instructions,
-                    seller_id=sp.seller_id,
-                )
-                new_sp.original_datetime = sp.original_datetime
-                if logistics_is_installed():
-                    if sp.route:
-                        new_sp.route = sp.route
-                    if sp.order:
-                        new_sp.order = sp.order
-                new_sp.save()
+                if sp.product in products_to_remove:
+                    # Add to unsubscription_products for tracking
+                    old_subscription.unsubscription_products.add(sp.product)
+                else:
+                    # Copy to new subscription
+                    new_sp = new_subscription.add_product(
+                        product=sp.product,
+                        address=sp.address,
+                        copies=sp.copies,
+                        message=sp.label_message,
+                        instructions=sp.special_instructions,
+                        seller_id=sp.seller_id,
+                    )
+                    new_sp.original_datetime = sp.original_datetime
+                    if logistics_is_installed():
+                        if sp.route:
+                            new_sp.route = sp.route
+                        if sp.order:
+                            new_sp.order = sp.order
+                    new_sp.save()
 
             # Add retention discount products
             for product_id in selected_product_ids:
@@ -980,8 +1054,13 @@ def add_retention_discount(request, subscription_id):
             )
     else:
         form = RetentionDiscountForm(instance=old_subscription)
-        # Set default start date to today
-        form.initial["start_date"] = date.today()
+        # Set default start date based on old subscription's start date
+        # If in the past: use today
+        # If in the future: use one day after it
+        if old_subscription.start_date < date.today():
+            form.initial["start_date"] = date.today() + timedelta(days=1)
+        else:
+            form.initial["start_date"] = old_subscription.start_date + timedelta(days=1)
 
     return render(
         request,
