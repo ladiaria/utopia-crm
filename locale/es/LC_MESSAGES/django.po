@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: django\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-12-01 16:36-0300\n"
-"PO-Revision-Date: 2025-12-01 16:39-0300\n"
+"POT-Creation-Date: 2025-12-03 15:02-0300\n"
+"PO-Revision-Date: 2025-12-03 15:07-0300\n"
 "Last-Translator: tanyatree\n"
 "Language-Team: \n"
 "Language: es\n"
@@ -156,7 +156,7 @@ msgstr "Bajo"
 #: logistics/templates/print_unordered_subscriptions_list.html:19
 #: logistics/templates/route_details.html:42
 #: logistics/templates/route_details.html:168 support/forms.py:151
-#: support/forms.py:283 support/forms.py:909 support/models.py:32
+#: support/forms.py:283 support/forms.py:914 support/models.py:32
 #: support/templates/campaign_statistics_detail.html:30
 #: support/templates/campaign_statistics_list.html:43
 #: support/templates/campaign_statistics_list.html:59
@@ -215,7 +215,7 @@ msgstr "Otros contactos"
 #: advertisement/templates/agency_list.html:81
 #: advertisement/templates/agent_create_update.html:38 core/models.py:468
 #: core/models.py:1255 logistics/models.py:30 support/forms.py:174
-#: support/forms.py:288 support/forms.py:932
+#: support/forms.py:288 support/forms.py:937
 #: support/templates/check_for_existing_contacts.html:181
 #: support/templates/check_for_existing_contacts.html:262
 #: support/templates/contact_detail/tabs/_information.html:20
@@ -242,7 +242,7 @@ msgstr "Email"
 #: logistics/templates/route_details.html:43
 #: logistics/templates/route_details.html:133
 #: logistics/templates/route_details.html:170 support/forms.py:156
-#: support/forms.py:285 support/forms.py:914
+#: support/forms.py:285 support/forms.py:919
 #: support/templates/check_for_existing_contacts.html:204
 #: support/templates/contact_detail/tabs/_information.html:30
 #: support/templates/contact_detail/tabs/_overview.html:27
@@ -388,7 +388,7 @@ msgid "Price"
 msgstr "Precio"
 
 #: advertisement/models.py:168 core/models.py:1526 support/forms.py:177
-#: support/forms.py:292 support/forms.py:935
+#: support/forms.py:292 support/forms.py:940
 #: support/templates/campaign_statistics_detail.html:39
 #: support/templates/campaign_statistics_per_seller.html:50
 #: support/templates/invoicing_issues.html:103
@@ -404,7 +404,7 @@ msgstr "Fecha de comienzo"
 
 #: advertisement/models.py:169 core/models.py:1527
 #: logistics/templates/route_details.html:173 support/forms.py:181
-#: support/forms.py:293 support/forms.py:939 support/models.py:154
+#: support/forms.py:293 support/forms.py:944 support/models.py:154
 #: support/templates/campaign_statistics_detail.html:41
 #: support/templates/campaign_statistics_list.html:60
 #: support/templates/campaign_statistics_per_seller.html:51
@@ -452,7 +452,7 @@ msgstr "Precio total"
 #: logistics/models.py:36 logistics/models.py:167
 #: logistics/templates/issues_per_route.html:63
 #: logistics/templates/route_details.html:137 support/forms.py:168
-#: support/forms.py:287 support/forms.py:473 support/forms.py:926
+#: support/forms.py:287 support/forms.py:473 support/forms.py:931
 #: support/models.py:128
 #: support/templates/contact_detail/tabs/_information.html:129
 #: support/templates/contact_detail/tabs/_information.html:177
@@ -1702,9 +1702,9 @@ msgstr "Dirección de publicidad"
 #: support/views/contacts.py:244 support/views/contacts.py:430
 #: support/views/contacts.py:498 support/views/contacts.py:840
 #: support/views/contacts.py:1086 support/views/seller_console.py:60
-#: support/views/seller_console.py:132 support/views/subscriptions.py:1001
-#: support/views/subscriptions.py:1188 support/views/subscriptions.py:1556
-#: support/views/subscriptions.py:1646 templates/admin/change_form.html:27
+#: support/views/seller_console.py:132 support/views/subscriptions.py:1091
+#: support/views/subscriptions.py:1278 support/views/subscriptions.py:1646
+#: support/views/subscriptions.py:1736 templates/admin/change_form.html:27
 #: templates/admin/change_list.html:38 templates/admin/index.html:68
 #: templates/admin/object_history.html:17 templates/components/_header.html:12
 #: templates/components/_sidebar.html:41
@@ -2103,7 +2103,7 @@ msgid "Institution"
 msgstr "Institución"
 
 #: core/models.py:440 support/forms.py:153 support/forms.py:284
-#: support/forms.py:911 support/templates/create_contact/tabs/_data.html:19
+#: support/forms.py:916 support/templates/create_contact/tabs/_data.html:19
 #: support/templates/import_contacts.html:147
 msgid "Last name"
 msgstr "Apellido"
@@ -2126,7 +2126,7 @@ msgstr "Teléfono extensión"
 
 #: core/models.py:460 logistics/models.py:29
 #: logistics/templates/route_details.html:44 support/forms.py:162
-#: support/forms.py:286 support/forms.py:920
+#: support/forms.py:286 support/forms.py:925
 #: support/templates/check_for_existing_contacts.html:207
 #: support/templates/contact_detail/tabs/_information.html:39
 #: support/templates/contact_detail/tabs/_overview.html:36
@@ -2535,7 +2535,7 @@ msgstr "Baja total"
 msgid "Partial unsubscription"
 msgstr "Baja parcial"
 
-#: core/models.py:1485 core/models.py:2611 support/forms.py:998
+#: core/models.py:1485 core/models.py:2611 support/forms.py:1003
 #: support/models.py:400
 #: support/templates/contact_detail/tabs/_activities.html:16
 #: support/templates/contact_detail/tabs/includes/_activity_modal.html:101
@@ -2666,7 +2666,7 @@ msgstr "Actualizado desde"
 msgid "Payment certificate"
 msgstr "Certificado de pago"
 
-#: core/models.py:1600 support/forms.py:950
+#: core/models.py:1600 support/forms.py:955
 msgid "Free subscription requested by"
 msgstr "Suscripción gratuita a pedido de"
 
@@ -3395,7 +3395,7 @@ msgstr "Descargar factura"
 #: support/templates/new_issue.html:416
 #: support/templates/new_subscription.html:381
 #: support/templates/seller_console_start_promo.html:227
-#: support/views/subscriptions.py:1074 support/views/subscriptions.py:1268
+#: support/views/subscriptions.py:1164 support/views/subscriptions.py:1358
 msgid "Cancel"
 msgstr "Cancelar"
 
@@ -3775,9 +3775,9 @@ msgstr "La factura {} fue creada con éxito"
 #: support/views/scheduled_tasks.py:199 support/views/subscriptions.py:65
 #: support/views/subscriptions.py:514 support/views/subscriptions.py:603
 #: support/views/subscriptions.py:708 support/views/subscriptions.py:833
-#: support/views/subscriptions.py:870 support/views/subscriptions.py:1002
-#: support/views/subscriptions.py:1189 support/views/subscriptions.py:1557
-#: support/views/subscriptions.py:1647
+#: support/views/subscriptions.py:895 support/views/subscriptions.py:1092
+#: support/views/subscriptions.py:1279 support/views/subscriptions.py:1647
+#: support/views/subscriptions.py:1737
 msgid "Contact list"
 msgstr "Lista de contactos"
 
@@ -4149,6 +4149,7 @@ msgstr "Mensaje"
 #: logistics/templates/order_route_print.html:24
 #: logistics/templates/print_routes_simple.html:72
 #: logistics/templates/print_unordered_subscriptions_list.html:26
+#: support/templates/add_retention_discount.html:70
 #: support/templates/campaign_management/bulk_delete_campaign_status.html:37
 #: support/templates/free_subscription_form.html:222
 #: support/templates/free_subscription_form.html:269
@@ -4163,7 +4164,7 @@ msgstr "Instrucciones"
 #: logistics/templates/change_route.html:108
 #: logistics/templates/edition_time.html:25
 #: logistics/templates/order_route.html:151
-#: support/templates/add_retention_discount.html:124
+#: support/templates/add_retention_discount.html:198
 #: support/templates/book_additional_product.html:140
 #: support/templates/book_partial_unsubscription.html:98
 #: support/templates/book_product_change.html:123
@@ -4995,11 +4996,11 @@ msgstr ""
 "Por favor complete la primera línea de nueva dirección, ciudad y "
 "departamento si nueva dirección está seleccionado"
 
-#: support/forms.py:186 support/forms.py:300 support/forms.py:944
+#: support/forms.py:186 support/forms.py:300 support/forms.py:949
 msgid "Default address"
 msgstr "Eliminar dirección"
 
-#: support/forms.py:209 support/forms.py:976
+#: support/forms.py:209 support/forms.py:981
 #, python-format
 msgid ""
 "This email is already registered to another contact (ID: %(contact_id)s)."
@@ -5066,68 +5067,72 @@ msgstr "Fecha/hora"
 msgid "Start date for new subscription"
 msgstr "Fecha de inicio para la nueva suscripción"
 
-#: support/forms.py:802 support/forms.py:820
+#: support/forms.py:754
+msgid "Petition channel"
+msgstr "Canal de pedido"
+
+#: support/forms.py:807 support/forms.py:825
 msgid "Override amount"
 msgstr "Sobreescribir cantidad"
 
-#: support/forms.py:858 support/forms.py:890 support/forms.py:993
+#: support/forms.py:863 support/forms.py:895 support/forms.py:998
 msgid "CSV File"
 msgstr "Archivo CSV"
 
-#: support/forms.py:858 support/forms.py:890
+#: support/forms.py:863 support/forms.py:895
 msgid "Please upload a CSV file"
 msgstr "Por favor suba un archivo CSV"
 
-#: support/forms.py:861
+#: support/forms.py:866
 msgid "CSV file has headers"
 msgstr "El archivo CSV tiene cabezales"
 
-#: support/forms.py:864
+#: support/forms.py:869
 msgid "Check this if your CSV file has column headers in the first row"
 msgstr ""
 "Activa este casillero si tu archivo CSV tiene cabezales en la primera fila"
 
-#: support/forms.py:868
+#: support/forms.py:873
 msgid "Tags for new contacts"
 msgstr "Etiquetas para contactos nuevos"
 
-#: support/forms.py:869
+#: support/forms.py:874
 msgid "Comma-separated tags"
 msgstr "Etiquetas separadas por coma"
 
-#: support/forms.py:872
+#: support/forms.py:877
 msgid "Tags for existing inactive contacts"
 msgstr "Etiquetas para contactos existentes e inactivos"
 
-#: support/forms.py:874 support/templates/import_contacts.html:95
+#: support/forms.py:879 support/templates/import_contacts.html:95
 msgid "Tags for existing contacts"
 msgstr "Etiquetas para contactos existentes"
 
-#: support/forms.py:877
+#: support/forms.py:882
 msgid "Tags for existing active contacts"
 msgstr "Etiquetas para contactos existentes y activos"
 
-#: support/forms.py:879 support/templates/import_contacts.html:90
+#: support/forms.py:884 support/templates/import_contacts.html:90
 msgid "Tags for active contacts"
 msgstr "Etiquetas para contactos activos"
 
-#: support/forms.py:882 support/templates/import_contacts.html:85
+#: support/forms.py:887 support/templates/import_contacts.html:85
 msgid "Tags for contacts in campaigns"
 msgstr "Etiquetas para contactos en campañas"
 
-#: support/forms.py:884
+#: support/forms.py:889
 msgid "Tags for contacts in campaign"
 msgstr "Etiquetas para contactos en la campaña"
 
-#: support/forms.py:897
+#: support/forms.py:902
 msgid "Upload CSV file"
 msgstr "Subir archivo CSV"
 
-#: support/forms.py:903 support/forms.py:1008
+#: support/forms.py:908 support/forms.py:1013
 msgid "File must be a CSV file"
 msgstr "El archivo debe ser de tipo CSV"
 
-#: support/forms.py:994
+#: support/forms.py:999
 msgid ""
 "Upload a CSV file with contact IDs. Expected column: contact_id, id, or "
 "similar."
@@ -5135,7 +5140,7 @@ msgstr ""
 "Sube un archivo CSV con IDs de contactos. Columnas esperadas: contact_id, id "
 "o similar."
 
-#: support/forms.py:1001
+#: support/forms.py:1006
 msgid "Select the campaign to delete status records from"
 msgstr "Selecciona la campaña de la que se borrarán los registros"
 
@@ -5382,32 +5387,106 @@ msgid "Register Activity"
 msgstr "Registrar actividad"
 
 #: support/templates/add_retention_discount.html:4
-#: support/templates/add_retention_discount.html:41
-#: support/views/subscriptions.py:875
+#: support/templates/add_retention_discount.html:59
+#: support/views/subscriptions.py:900
 msgid "Add retention discount"
 msgstr "Agregar descuento de retención"
 
-#: support/templates/add_retention_discount.html:15
-msgid "Select at least one retention discount to continue"
-msgstr "Selecciona al menos un descuento de retención para continuar"
+#: support/templates/add_retention_discount.html:28
+msgid "Cannot remove all subscription products - at least one must remain"
+msgstr ""
+"No se pueden remover todos los productos de suscripción - Debes dejar al "
+"menos uno"
 
-#: support/templates/add_retention_discount.html:43
+#: support/templates/add_retention_discount.html:33
+msgid "Select at least one retention discount or mark products to remove"
+msgstr ""
+"Selecciona al menos un descuento de retención o marca productos para remover"
+
+#: support/templates/add_retention_discount.html:61
 msgid "Select retention discount products to add to the subscription"
 msgstr "Selecciona descuentos de retención para agregar a la suscripción"
 
-#: support/templates/add_retention_discount.html:51
+#: support/templates/add_retention_discount.html:79
+msgid "How to use this form:"
+msgstr "Cómo usar este formulario:"
+
+#: support/templates/add_retention_discount.html:81
+msgid "Select retention discounts"
+msgstr "Selecciona descuentos de retención"
+
+#: support/templates/add_retention_discount.html:81
+msgid "Choose one or more retention discount products to offer to the customer"
+msgstr "Elige uno o más descuentos de retención para ofrecer al cliente"
+
+#: support/templates/add_retention_discount.html:82
+msgid "Remove products (optional)"
+msgstr "Remover productos (opcional)"
+
+#: support/templates/add_retention_discount.html:82
+msgid ""
+"If the customer wants to remove any products, check the boxes in the 'Remove "
+"these products' section"
+msgstr ""
+"Si el cliente quiere remover algún producto, selecciona los casilleros en la "
+"sección “Remover estos productos”"
+
+#: support/templates/add_retention_discount.html:83
+msgid "Set start date"
+msgstr "Selecciona la fecha de inicio"
+
+#: support/templates/add_retention_discount.html:83
+msgid ""
+"Choose when the new subscription should start (must be at least tomorrow)"
+msgstr ""
+"Elige cuándo debe comenzar la nueva suscripción (debe ser al menos mañana)"
+
+#: support/templates/add_retention_discount.html:84
+msgid "Add petition channel and notes"
+msgstr "Agrega canal de pedido y notas"
+
+#: support/templates/add_retention_discount.html:84
+msgid "Select how the customer contacted you and add any relevant notes"
+msgstr ""
+"Selecciona cómo te contactó el cliente y agrega cualquier nota relevante"
+
+#: support/templates/add_retention_discount.html:88
+#: support/templates/import_contacts.html:210
+msgid "Important:"
+msgstr "Importante:"
+
+#: support/templates/add_retention_discount.html:90
+msgid ""
+"You must select at least one retention discount OR mark products to remove"
+msgstr ""
+"Debes seleccionar al menos un descuento de retención o marcar productos para "
+"remover"
+
+#: support/templates/add_retention_discount.html:91
+msgid ""
+"You cannot remove all products - at least one subscription product must "
+"remain"
+msgstr ""
+"No puedes remover todos los productos - al menos un producto de retención se "
+"debe quedar"
+
+#: support/templates/add_retention_discount.html:92
+msgid "The start date must be at least tomorrow"
+msgstr "La fecha de inicio debe ser al menos mañana"
+
+#: support/templates/add_retention_discount.html:104
 msgid "Retention discounts"
 msgstr "Descuentos de retención"
 
-#: support/templates/add_retention_discount.html:73
+#: support/templates/add_retention_discount.html:126
 msgid "Current products"
 msgstr "Productos actuales"
 
-#: support/templates/add_retention_discount.html:81
+#: support/templates/add_retention_discount.html:134
 msgid "Add these retention discounts"
 msgstr "Agrega estos productos de retención"
 
-#: support/templates/add_retention_discount.html:99
+#: support/templates/add_retention_discount.html:152
 msgid ""
 "No retention discount products available. Please create retention discount "
 "products first."
@@ -5415,12 +5494,24 @@ msgstr ""
 "No hay descuentos de retención disponibles. Por favor crea descuentos de "
 "retención primero."
 
-#: support/templates/add_retention_discount.html:112
+#: support/templates/add_retention_discount.html:162
+msgid "Must be at least tomorrow"
+msgstr "La fecha debe ser como mínimo mañana"
+
+#: support/templates/add_retention_discount.html:171
 #: support/templates/book_additional_product.html:128
 msgid "For old subscription"
 msgstr "Para la suscripción vieja"
 
-#: support/templates/add_retention_discount.html:119
+#: support/templates/add_retention_discount.html:177
+msgid "Remove these products"
+msgstr "Remover estos productos"
+
+#: support/templates/add_retention_discount.html:177
+msgid "optional"
+msgstr "opcional"
+
+#: support/templates/add_retention_discount.html:193
 msgid "Select a retention discount to continue"
 msgstr "Selecciona un descuento de retención para continuar"
 
@@ -6286,7 +6377,7 @@ msgstr "Crear suscripción corporativa"
 #: support/templates/free_subscription_form.html:4
 #: support/templates/free_subscription_form.html:11
 #: support/templates/free_subscription_form.html:106
-#: support/views/subscriptions.py:1562
+#: support/views/subscriptions.py:1652
 msgid "Create free subscription"
 msgstr "Crear suscripción gratuita"
 
@@ -6405,7 +6496,7 @@ msgid "Update Promo"
 msgstr "Editar promoción"
 
 #: support/templates/contact_detail/tabs/includes/_overview_subscription_list_item.html:121
-#: support/templates/contact_detail/tabs/includes/_overview_subscription_list_item.html:140
+#: support/templates/contact_detail/tabs/includes/_overview_subscription_list_item.html:136
 #: support/templates/contact_detail/tabs/includes/_overview_subscription_list_item.html:179
 #: support/templates/contact_detail/tabs/includes/_subscription_actions.html:12
 #: support/templates/contact_detail/tabs/includes/_subscription_card.html:157
@@ -6414,14 +6505,14 @@ msgstr "Editar promoción"
 msgid "Advanced"
 msgstr "Avanzado"
 
-#: support/templates/contact_detail/tabs/includes/_overview_subscription_list_item.html:126
-msgid "Offer retention"
-msgstr "Ofrecer retención"
-
-#: support/templates/contact_detail/tabs/includes/_overview_subscription_list_item.html:134
+#: support/templates/contact_detail/tabs/includes/_overview_subscription_list_item.html:130
 #: support/templates/contact_detail/tabs/includes/_subscription_card.html:164
 msgid "Update Free Subscription"
 msgstr "Editar suscripción gratuita"
+
+#: support/templates/contact_detail/tabs/includes/_overview_subscription_list_item.html:143
+msgid "Offer retention"
+msgstr "Ofrecer retención"
 
 #: support/templates/contact_detail/tabs/includes/_overview_subscription_list_item.html:149
 #: support/templates/contact_detail/tabs/includes/_subscription_actions.html:6
@@ -6857,7 +6948,7 @@ msgstr "¿Aceptas el reemplazo?"
 #: support/templates/free_subscription_form.html:4
 #: support/templates/free_subscription_form.html:11
 #: support/templates/free_subscription_form.html:106
-#: support/views/subscriptions.py:1652
+#: support/views/subscriptions.py:1742
 msgid "Update free subscription"
 msgstr "Editar suscripción gratuita"
 
@@ -7188,10 +7279,6 @@ msgstr "Tipo de documento"
 #: support/templates/import_contacts.html:202
 msgid "ID document number"
 msgstr "Documento de identidad"
-
-#: support/templates/import_contacts.html:210
-msgid "Important:"
-msgstr "Importante:"
 
 #: support/templates/import_contacts.html:210
 msgid ""
@@ -7917,7 +8004,7 @@ msgid "Subscription ID"
 msgstr "ID de suscripción"
 
 #: support/templates/seller_console_start_promo.html:4
-#: support/views/subscriptions.py:1194
+#: support/views/subscriptions.py:1284
 msgid "Update promotion"
 msgstr "Editar promoción"
 
@@ -8590,24 +8677,41 @@ msgstr "ATENCIÓN: Esta suscripción ya tiene una fecha de fin"
 msgid "Book additional product"
 msgstr "Agendar producto adicional"
 
-#: support/views/subscriptions.py:889
-msgid "Please select at least one retention discount product"
-msgstr "Por favor selecciona al menos un descuento de retención"
+#: support/views/subscriptions.py:913
+#, python-format
+msgid "Start date must be at least tomorrow (%s)"
+msgstr "La fecha de inicio debe ser al menos mañana (%s)"
 
-#: support/views/subscriptions.py:1007
+#: support/views/subscriptions.py:943
+msgid ""
+"Please select at least one retention discount or mark products to remove"
+msgstr ""
+"Por favor selecciona al menos un descuento de retención o marca productos "
+"para remover"
+
+#: support/views/subscriptions.py:966
+msgid ""
+"You cannot remove all subscription products. At least one subscription "
+"product must remain (discounts alone are not enough)."
+msgstr ""
+"No puedes remover todos los productos de suscripción. Al menos un producto "
+"de suscripción debe quedar vigente (los descuentos no cuentan como productos "
+"de suscripción)"
+
+#: support/views/subscriptions.py:1097
 msgid "Send promotion"
 msgstr "Enviar promoción"
 
-#: support/views/subscriptions.py:1343
+#: support/views/subscriptions.py:1433
 msgid "Promotional subscription updated successfully"
 msgstr "Suscripción de tipo promoción actualizada con éxito"
 
-#: support/views/subscriptions.py:1605
+#: support/views/subscriptions.py:1695
 #, python-brace-format
 msgid "Free subscription created successfully for {contact}"
 msgstr "Suscripción gratuita creada con éxito para {contact}"
 
-#: support/views/subscriptions.py:1683
+#: support/views/subscriptions.py:1773
 #, python-brace-format
 msgid "Free subscription updated successfully for {contact}"
 msgstr "Suscripción gratuita editada con éxito para {contact}"
