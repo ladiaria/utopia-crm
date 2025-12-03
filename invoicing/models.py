@@ -436,6 +436,19 @@ class MercadoPagoData(models.Model):
     last_four_digits = models.CharField(max_length=4, blank=True, null=True)
     payment_method_type = models.CharField(max_length=50, blank=True, null=True)
     token = models.CharField(max_length=255, blank=True, null=True)
+    preapproval_id = models.CharField(
+        "MercadoPago preapproval (aka subscription) id",
+        max_length=32,
+        blank=True,
+        null=True,
+        unique=True,
+        help_text=(
+            "This field is intended to be populated automatically when the subscription is created in MercadoPago and "
+            "will never change. In order to keep data consistency, when the field is set, critical operations over "
+            "this CRM related Subscription will be restricted, otherwise, recurring payments coming from MercadoPago "
+            "can fail to be processed."
+        ),
+    )
 
     def __str__(self):
         return f"Mercado Pago Data for {self.subscription}"

@@ -6,6 +6,13 @@ from django.db.utils import IntegrityError
 from django.core.management import BaseCommand, CommandError
 
 from core.models import EmailReplacement
+from util.email_typosquash import clean_email
+
+
+def fix_email(email):
+    result = clean_email(email)
+    email_fixed = result.get("replacement", email)
+    return result.get("valid") or email != email_fixed, email_fixed
 
 
 class Command(BaseCommand):
