@@ -15,22 +15,24 @@ $( function() {
 
   function activateSend() {
       var disable = false;
-      var hasRetentionDiscount = $(".enable-product:checked").length > 0;
+      var hasRetentionDiscount = $(".enable-discount:checked").length > 0;
+      var hasNewProducts = $(".enable-product:checked").length > 0;
       var hasProductRemoval = $(".remove-product:checked").length > 0;
 
       // Count subscription products (type "S") only, not discounts
       var totalSubscriptionProducts = $(".remove-product[data-product-type='S']").length;
       var removedSubscriptionProducts = $(".remove-product[data-product-type='S']:checked").length;
+      var addedSubscriptionProducts = $(".enable-product:checked").length;
 
-      // Check if all subscription products are being removed
-      if (removedSubscriptionProducts >= totalSubscriptionProducts && totalSubscriptionProducts > 0) {
+      // Check if all subscription products are being removed without adding new ones
+      if (removedSubscriptionProducts >= totalSubscriptionProducts && totalSubscriptionProducts > 0 && addedSubscriptionProducts === 0) {
         disable = true;
-        $("#custom_error_message").text("{% trans 'Cannot remove all subscription products - at least one must remain' %}");
+        $("#custom_error_message").text("{% trans 'Cannot remove all subscription products without adding new ones - at least one must remain' %}");
       }
-      // Allow submission if either retention discount is selected OR products are being removed
-      else if (!hasRetentionDiscount && !hasProductRemoval) {
+      // Allow submission if retention discount, new products, OR products are being removed
+      else if (!hasRetentionDiscount && !hasProductRemoval && !hasNewProducts) {
         disable = true;
-        $("#custom_error_message").text("{% trans 'Select at least one retention discount or mark products to remove' %}");
+        $("#custom_error_message").text("{% trans 'Select at least one retention discount, add new products, or mark products to remove' %}");
       } else {
         disable = false;
       }
@@ -79,6 +81,7 @@ $( function() {
           <h5>{% trans "How to use this form:" %}</h5>
           <ol>
             <li><strong>{% trans "Select retention discounts" %}:</strong> {% trans "Choose one or more retention discount products to offer to the customer" %}</li>
+            <li><strong>{% trans "Add new products (optional)" %}:</strong> {% trans "If the customer wants to add new subscription products, check them in the 'Add these products' section" %}</li>
             <li><strong>{% trans "Remove products (optional)" %}:</strong> {% trans "If the customer wants to remove any products, check the boxes in the 'Remove these products' section" %}</li>
             <li><strong>{% trans "Set start date" %}:</strong> {% trans "Choose when the new subscription should start (must be at least tomorrow)" %}</li>
             <li><strong>{% trans "Add petition channel and notes" %}:</strong> {% trans "Select how the customer contacted you and add any relevant notes" %}</li>
@@ -87,9 +90,10 @@ $( function() {
             <i class="fas fa-exclamation-triangle"></i>
             <strong>{% trans "Important:" %}</strong>
             <ul class="mb-0">
-              <li>{% trans "You must select at least one retention discount OR mark products to remove" %}</li>
-              <li>{% trans "You cannot remove all products - at least one subscription product must remain" %}</li>
+              <li>{% trans "You must select at least one retention discount, add new products, OR mark products to remove" %}</li>
+              <li>{% trans "You cannot remove all subscription products - at least one must remain (discounts alone are not sufficient)" %}</li>
               <li>{% trans "The start date must be at least tomorrow" %}</li>
+              <li>{% trans "Adding new products is optional and useful when the customer wants to change their subscription during retention" %}</li>
             </ul>
           </div>
         </div>
@@ -136,7 +140,7 @@ $( function() {
                     {% for product in retention_products %}
                       <div class="form-check">
                         <input id="retentionproduct-{{ product.id }}"
-                               class="enable-product form-check-input"
+                               class="enable-discount form-check-input"
                                type="checkbox"
                                name="retentionproduct-{{ product.id }}">
                         <label class="form-check-label" for="retentionproduct-{{ product.id }}">
@@ -151,6 +155,27 @@ $( function() {
                     <div class="alert alert-warning">
                       {% trans "No retention discount products available. Please create retention discount products first." %}
                     </div>
+                  {% endif %}
+                </div>
+                <div class="form-group">
+                  <label>{% trans "Add these products" %} ({% trans "optional" %})</label>
+                  {% if offerable_products %}
+                    {% for product in offerable_products %}
+                      <div class="form-check">
+                        <input id="activateproduct-{{ product.id }}"
+                               class="enable-product form-check-input"
+                               type="checkbox"
+                               name="activateproduct-{{ product.id }}">
+                        <label class="form-check-label" for="activateproduct-{{ product.id }}">
+                          {{ product.name }}
+                          {% if product.price %}
+                            ({{ product.price }})
+                          {% endif %}
+                        </label>
+                      </div>
+                    {% endfor %}
+                  {% else %}
+                    <p class="text-muted"><small>{% trans "No additional products available (customer already has all offerable products)" %}</small></p>
                   {% endif %}
                 </div>
               </div>
@@ -190,7 +215,7 @@ $( function() {
                 </div>
               </div>
               <div class="form-group text-right">
-                <span id="custom_error_message" class="text-danger"><small>{% trans "Select a retention discount to continue" %}</small></span>
+                <span id="custom_error_message" class="text-danger"><small>{% trans "Select at least one retention discount, add new products, or mark products to remove" %}</small></span>
                 <input disabled="disabled"
                        type="submit"
                        id="send_form"
