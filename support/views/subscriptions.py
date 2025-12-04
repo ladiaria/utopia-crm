@@ -288,6 +288,7 @@ class SubscriptionMixin(BreadcrumbsMixin):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["contact"] = self.contact
+        context["mercadopago_data"] = self.subscription.mercadopago_data if self.subscription else None
         return context
 
 

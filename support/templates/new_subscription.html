@@ -1,13 +1,12 @@
 {% extends "adminlte/base.html" %}
 {% load i18n static core_tags %}
+
 {% block title %}
   {% trans "New subscription" %}
 {% endblock %}
 
 {% block extra_head %}
-  <link rel="stylesheet"
-        type="text/css"
-        href="{% static 'css/email_suggestion_dialog.css' %}">
+  <link rel="stylesheet" type="text/css" href="{% static 'css/email_suggestion_dialog.css' %}">
 {% endblock %}
 
 {% block no_heading %}
@@ -25,8 +24,7 @@
 
 {% block extra_js %}
   <script type="text/javascript" src="{% static 'js/datepicker-es.js' %}"></script>
-  <script type="text/javascript"
-          src="{% static 'js/product_dynamic_prices.js' %}"></script>
+  <script type="text/javascript" src="{% static 'js/product_dynamic_prices.js' %}"></script>
   <script type="text/javascript">
     $(function () {
       $('[data-toggle="tooltip"]').tooltip();
@@ -129,6 +127,7 @@
         {% endif %}
       </h2>
     </div>
+    {% block subheader %}{% endblock subheader %}
     <div class="card-body">
       {% block subscription_form %}
         <form method="post" id="subscription_form">

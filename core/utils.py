@@ -462,7 +462,6 @@ def process_products(input_product_dict: dict) -> dict:
     Each of the products must be a tuple with product and copies.
     """
     from core.models import Product, PriceRule
-    print("🤌input product dict:", input_product_dict)
     input_product_ids = list(input_product_dict.keys())
     input_products_list = list(Product.objects.filter(id__in=input_product_ids))
     input_products_count, output_dict, non_discount_added = len(input_products_list), {}, 0
@@ -565,7 +564,6 @@ def process_products(input_product_dict: dict) -> dict:
     # and as expected, the rules ones will not be applied.
     for product in input_products_list:
         output_dict[product.id] = input_product_dict[str(product.id)]
-    print("🤷‍♀️output dict", output_dict)
     return output_dict
 
 

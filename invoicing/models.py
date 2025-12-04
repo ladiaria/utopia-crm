@@ -453,6 +453,14 @@ class MercadoPagoData(models.Model):
     def __str__(self):
         return f"Mercado Pago Data for {self.subscription}"
 
+    @staticmethod
+    def warning_message():
+        return (
+            "Esta suscripción está asociada a una suscripción recurrente autorrenovable de Mercado Pago. "
+            "La edición incorrecta de campos importantes como el tipo de renovación, el producto o las fechas, podría "
+            "afectar la sincronización y posterior recepción de los pagos automáticos realizados por Mercadopago."
+        )
+
     class Meta:
         verbose_name = _("Mercado Pago Data")
         verbose_name_plural = _("Mercado Pago Data")
