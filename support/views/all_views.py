@@ -1552,11 +1552,22 @@ class CampaignStatisticsDetailView(BreadcrumbsMixin, UserPassesTestMixin, Filter
             context['seller'] = None
             context['seller_assigned_count'] = None
 
-        # Per product section
+        # Per product section - filtered by the contacts in the filtered queryset
         subs_dict = {}
-        subscription_products = SubscriptionProduct.objects.filter(subscription__campaign=self.campaign)
+        # Get contact IDs from the filtered ContactCampaignStatus queryset
+        filtered_contact_ids = filtered_qs.values_list('contact_id', flat=True)
+
+        # Filter subscription products by:
+        # 1. Campaign matches
+        # 2. Contact is in the filtered list
+        # 3. Optionally filter by seller if selected
+        subscription_products = SubscriptionProduct.objects.filter(
+            subscription__campaign=self.campaign,
+            subscription__contact_id__in=filtered_contact_ids
+        )
         if context['seller']:
             subscription_products = subscription_products.filter(seller=context['seller'])
+
         for product in Product.objects.filter(offerable=True, type="S"):
             subs_dict[product.name] = subscription_products.filter(product=product).count()
 
