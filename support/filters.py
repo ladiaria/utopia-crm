@@ -96,6 +96,26 @@ class ScheduledActivityFilter(django_filters.FilterSet):
 
 class ContactCampaignStatusFilter(django_filters.FilterSet):
     seller = django_filters.ModelChoiceFilter(queryset=Seller.objects.filter(internal=True))
+    date_assigned_min = django_filters.DateFilter(
+        field_name='date_assigned',
+        lookup_expr='gte',
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'})
+    )
+    date_assigned_max = django_filters.DateFilter(
+        field_name='date_assigned',
+        lookup_expr='lte',
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'})
+    )
+    last_action_date_min = django_filters.DateFilter(
+        field_name='last_action_date',
+        lookup_expr='gte',
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'})
+    )
+    last_action_date_max = django_filters.DateFilter(
+        field_name='last_action_date',
+        lookup_expr='lte',
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'})
+    )
 
     class Meta:
         model = ContactCampaignStatus

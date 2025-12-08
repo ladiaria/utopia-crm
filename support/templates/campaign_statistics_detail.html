@@ -1,256 +1,305 @@
-{% extends 'adminlte/base.html' %}
+{% extends "adminlte/base.html" %}
 {% load i18n static widget_tweaks %}
-
 {% block extra_js %}
-<script type="text/javascript">
+  <script type="text/javascript">
 $( function() {
   $('[data-toggle="tooltip"]').tooltip();
 });
-</script>
+  </script>
 {% endblock %}
 
 {% block no_heading %}
-<h1>{% trans "Campaign statistics" %}</h1>
-<p>{% trans "Statistics for" %} {{campaign.name}}</p>
+  <h1>{% trans "Campaign statistics" %}: <small>{{ campaign.name }}</small></h1>
 {% endblock %}
 
 {% block title %}
-{% trans "Campaign statistics" %}: {{campaign.name}}
+  {% trans "Campaign statistics" %}: {{ campaign.name }}
 {% endblock title %}
 
 {% block content %}
-<div class="row">
-  <div class="col-8">
-    <div class="card">
-      <div class="card-header">
-        <h3 class="card-title">{% trans "Campaign summary" %} - {% if seller %}{% trans "Filtered" %} ({{seller.name}}){% endif %}</h3>
-      </div>
-      <div class="card-body">
-        <dl>
-          <dd><b>{% trans "Name" %}:</b> {{campaign.name}}</dd>
-          <dd><b>{% trans "Amount of contacts" %}:</b> {{total_count}}</dd>
-          <dd><b>{% trans "Assigned" %} (total):</b> {{assigned_count}}</dd>
-          {% if seller_assigned_count %}<dd><b>{% trans "Assigned" %} ({% trans "this seller only" %}):</b> {{seller_assigned_count}}</dd>{% endif %}
-          <dd><b>{% trans "Not assigned" %}:</b> {{not_assigned_count}}</dd>
-          {% if campaign.description %}
-          <dt>{% trans "Description" %}:</dt>
-          <dd>{{campaign.description}}</dd>
-          {% endif %}
-          <dd><b>{% trans "Start date" %}:</b> {{campaign.start_date|default_if_none:""}}</dd>
-          {% if campaign.end_date %}
-          <dd><b>{% trans "End date" %}:</b> {{campaign.end_date}}</dd>
-          {% endif %}
-        </dl>
-
-        <form method="GET" id="form">
-          <div class="row">
-            <div class="form-group col">
-              <label for="status">{% trans "Filter by seller" %}</label>
-              {% render_field filter.form.seller class="form-control" %}
-            </div>
-          </div>
-          <div class="row">
-            <div class="text-right">
-              {{filtered_count}} {% trans "contacts" %}
-              <input type="submit" class="btn bg-gradient-primary ml-3" value="Filtrar" />
-            </div>
-          </div>
-        </form>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-header">
-        <h3 class="card-title">{% trans "Overview" %}</h3>
-      </div>
-      <div class="card-body">
-        <table class="table table-striped">
-          <thead>
-            <tr>
-              <th></th>
-              <th>{% trans "Contacts" %}</th>
-              <th>%</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>{% trans "Not contacted yet" %}</td>
-              <td>{{not_contacted_yet_count}}</td>
-              <td>{{not_contacted_yet_pct|floatformat:2}}%</td>
-            </tr>
-            <tr>
-              <td>{% trans "Tried to contact and could not" %}</td>
-              <td>{{tried_to_contact_count}}</td>
-              <td>{{tried_to_contact_pct|floatformat:2}}%</td>
-            </tr>
-            <tr>
-              <td>{% trans "Contacted" %}</td>
-              <td>{{contacted_count}}</td>
-              <td>{{contacted_pct|floatformat:2}}%</td>
-            </tr>
-            <tr>
-              <td>{% trans "Ended without contact" %}</td>
-              <td>{{could_not_contact_count}}</td>
-              <td>{{could_not_contact_pct|floatformat:2}}%</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-header">
-        <h3 class="card-title">Contactados</h3>
-      </div>
-      <div class="card-body">
-        <table class="table table-striped">
-          <thead>
-            <tr>
-              <th></th>
-              <th>Contactos</th>
-              <th>%</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>Éxito con venta directa</td>
-              <td>{{success_with_direct_sale_count}}</td>
-              <td>{{success_with_direct_sale_pct|floatformat:2}}%</td>
-            </tr>
-            <tr>
-              <td>Éxito con promoción</td>
-              <td>{{success_with_promotion_count}}</td>
-              <td>{{success_with_promotion_pct|floatformat:2}}%</td>
-            </tr>
-            <tr>
-              <td>Rechazo</td>
-              <td>{{total_rejects_count}}</td>
-              <td>{{total_rejects_pct|floatformat:2}}%</td>
-            </tr>
-            <tr>
-              <td>Agendado</td>
-              <td>{{scheduled_count}}</td>
-              <td>{{scheduled_pct|floatformat:2}}%</td>
-            </tr>
-            <tr>
-              <td>Promoción en curso</td>
-              <td>{{started_promotion_count}}</td>
-              <td>{{started_promotion_pct|floatformat:2}}%</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-header">
-        <h3 class="card-title">Inubicables</h3>
-      </div>
-      <div class="card-body">
-        <table class="table table-striped">
-          <thead>
-            <tr>
-              <th></th>
-              <th>Contactos</th>
-              <th>%</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>No se encuentra contacto, llamar después</td>
-              <td>{{call_later_count}}</td>
-              <td>{{call_later_pct|floatformat:2}}%</td>
-            </tr>
-            <tr>
-              <td>Inubicable</td>
-              <td>{{unreachable_count}}</td>
-              <td>{{unreachable_pct|floatformat:2}}%</td>
-            </tr>
-            <tr>
-              <td>Error en datos</td>
-              <td>{{error_in_promotion_count}}</td>
-              <td>{{error_in_promotion_pct|floatformat:2}}%</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    {% if rejects_by_reason or rejects_without_reason_count %}
-    <div class="card">
-      <div class="card-header">
-        <h3 class="card-title">Razones de rechazo</h3>
-      </div>
-      <div class="card-body">
-        <table class="table table-striped">
-          <thead>
-            <tr>
-              <th></th>
-              <th>Cantidad</th>
-              <th>%</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for index, reject in rejects_by_reason.items %}
-            <tr>
-              <td>{{index}}</td>
-              <td>{{reject.0}}</td>
-              <td>{{reject.1|floatformat:2}}%</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-        <br>
-        * Rechazos sin razón registrada: {{rejects_without_reason_count}}
-      </div>
-    </div>
-    {% endif %}
-
-    <div class="card">
-      <div class="card-header">
-        <h3 class="card-title">Productos vendidos en esta campaña</h3>
-      </div>
-      <div class="card-body">
-        <table class="table table-striped">
-          <thead>
-            <tr>
-              <th>Producto</th>
-              <th>Cantidad</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for product, amount in subs_dict.items %}
-            <tr>
-              <td>{{product}}</td>
-              <td>{{amount}}</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-
-  <div class="col-4">
-    <div class="card">
+  <div class="row">
+    <div class="col-8">
+      <div class="card">
         <div class="card-header">
-            <h4 class="card-title">Conversión de la base</h4>
+          <h3 class="card-title">
+            {% trans "Campaign summary" %} -
+            {% if seller %}
+              {% trans "Filtered" %} ({{ seller.name }})
+            {% endif %}
+          </h3>
         </div>
         <div class="card-body">
-            <p class="h2">{{success_rate_count}} suscriptores ({{success_rate_pct|floatformat:2}}% del total)</p>
+          <dl>
+            <dd>
+              <b>{% trans "Name" %}:</b> {{ campaign.name }}
+            </dd>
+            <dd>
+              <b>{% trans "Amount of contacts" %}:</b> {{ total_count }}
+            </dd>
+            <dd>
+              <b>{% trans "Assigned" %} (total):</b> {{ assigned_count }}
+            </dd>
+            {% if seller_assigned_count %}
+              <dd>
+                <b>{% trans "Assigned" %} ({% trans "this seller only" %}):</b> {{ seller_assigned_count }}
+              </dd>
+            {% endif %}
+            <dd>
+              <b>{% trans "Not assigned" %}:</b> {{ not_assigned_count }}
+            </dd>
+            {% if campaign.description %}
+              <dt>{% trans "Description" %}:</dt>
+              <dd>
+                {{ campaign.description }}
+              </dd>
+            {% endif %}
+            <dd>
+              <b>{% trans "Start date" %}:</b> {{ campaign.start_date|default_if_none:"" }}
+            </dd>
+            {% if campaign.end_date %}
+              <dd>
+                <b>{% trans "End date" %}:</b> {{ campaign.end_date }}
+              </dd>
+            {% endif %}
+          </dl>
+          <form method="get" id="form">
+            <div class="row">
+              <div class="form-group col-md-6">
+                <label for="seller">{% trans "Filter by seller" %}</label>
+                {% render_field filter.form.seller class="form-control" %}
+              </div>
+              <div class="form-group col-md-6">
+                <label for="status">{% trans "Filter by status" %}</label>
+                {% render_field filter.form.status class="form-control" %}
+              </div>
+            </div>
+            <div class="row">
+              <div class="form-group col-md-6">
+                <label>{% trans "Date assigned (from)" %}</label>
+                {% render_field filter.form.date_assigned_min class="form-control" placeholder="YYYY-MM-DD" %}
+                <small class="form-text text-muted">{% trans "Filter contacts assigned from this date onwards" %}</small>
+              </div>
+              <div class="form-group col-md-6">
+                <label>{% trans "Date assigned (to)" %}</label>
+                {% render_field filter.form.date_assigned_max class="form-control" placeholder="YYYY-MM-DD" %}
+                <small class="form-text text-muted">{% trans "Filter contacts assigned up to this date" %}</small>
+              </div>
+            </div>
+            <div class="row">
+              <div class="form-group col-md-6">
+                <label>{% trans "Last action date (from)" %}</label>
+                {% render_field filter.form.last_action_date_min class="form-control" placeholder="YYYY-MM-DD" %}
+                <small class="form-text text-muted">{% trans "Filter contacts with last action from this date onwards" %}</small>
+              </div>
+              <div class="form-group col-md-6">
+                <label>{% trans "Last action date (to)" %}</label>
+                {% render_field filter.form.last_action_date_max class="form-control" placeholder="YYYY-MM-DD" %}
+                <small class="form-text text-muted">{% trans "Filter contacts with last action up to this date" %}</small>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-12 text-right">
+                <span class="mr-3"><strong>{{ filtered_count }}</strong> {% trans "contacts" %}</span>
+                <button type="submit" class="btn bg-gradient-primary">
+                  <i class="fas fa-filter"></i> {% trans "Apply filters" %}
+                </button>
+                {% if request.GET %}
+                  <a href="{% url 'campaign_statistics_detail' campaign.id %}"
+                     class="btn btn-secondary">
+                    <i class="fas fa-times"></i> {% trans "Clear filters" %}
+                  </a>
+                {% endif %}
+              </div>
+            </div>
+          </form>
         </div>
-    </div>
-
-    {% if most_sold_count %}
-    <div class="card">
-      <div class="card-header">
-          <h4 class="card-title">Producto más vendido</h4>
       </div>
-      <div class="card-body">
-          <p class="h2">{{most_sold}} ({{most_sold_count}})</p>
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">{% trans "Overview" %}</h3>
+        </div>
+        <div class="card-body">
+          <table class="table table-striped">
+            <thead>
+              <tr>
+                <th></th>
+                <th>{% trans "Contacts" %}</th>
+                <th>%</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>{% trans "Not contacted yet" %}</td>
+                <td>{{ not_contacted_yet_count }}</td>
+                <td>{{ not_contacted_yet_pct|floatformat:2 }}%</td>
+              </tr>
+              <tr>
+                <td>{% trans "Tried to contact and could not" %}</td>
+                <td>{{ tried_to_contact_count }}</td>
+                <td>{{ tried_to_contact_pct|floatformat:2 }}%</td>
+              </tr>
+              <tr>
+                <td>{% trans "Contacted" %}</td>
+                <td>{{ contacted_count }}</td>
+                <td>{{ contacted_pct|floatformat:2 }}%</td>
+              </tr>
+              <tr>
+                <td>{% trans "Ended without contact" %}</td>
+                <td>{{ could_not_contact_count }}</td>
+                <td>{{ could_not_contact_pct|floatformat:2 }}%</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">Contactados</h3>
+        </div>
+        <div class="card-body">
+          <table class="table table-striped">
+            <thead>
+              <tr>
+                <th></th>
+                <th>Contactos</th>
+                <th>%</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Éxito con venta directa</td>
+                <td>{{ success_with_direct_sale_count }}</td>
+                <td>{{ success_with_direct_sale_pct|floatformat:2 }}%</td>
+              </tr>
+              <tr>
+                <td>Éxito con promoción</td>
+                <td>{{ success_with_promotion_count }}</td>
+                <td>{{ success_with_promotion_pct|floatformat:2 }}%</td>
+              </tr>
+              <tr>
+                <td>Rechazo</td>
+                <td>{{ total_rejects_count }}</td>
+                <td>{{ total_rejects_pct|floatformat:2 }}%</td>
+              </tr>
+              <tr>
+                <td>Agendado</td>
+                <td>{{ scheduled_count }}</td>
+                <td>{{ scheduled_pct|floatformat:2 }}%</td>
+              </tr>
+              <tr>
+                <td>Promoción en curso</td>
+                <td>{{ started_promotion_count }}</td>
+                <td>{{ started_promotion_pct|floatformat:2 }}%</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">Inubicables</h3>
+        </div>
+        <div class="card-body">
+          <table class="table table-striped">
+            <thead>
+              <tr>
+                <th></th>
+                <th>Contactos</th>
+                <th>%</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>No se encuentra contacto, llamar después</td>
+                <td>{{ call_later_count }}</td>
+                <td>{{ call_later_pct|floatformat:2 }}%</td>
+              </tr>
+              <tr>
+                <td>Inubicable</td>
+                <td>{{ unreachable_count }}</td>
+                <td>{{ unreachable_pct|floatformat:2 }}%</td>
+              </tr>
+              <tr>
+                <td>Error en datos</td>
+                <td>{{ error_in_promotion_count }}</td>
+                <td>{{ error_in_promotion_pct|floatformat:2 }}%</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {% if rejects_by_reason or rejects_without_reason_count %}
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">Razones de rechazo</h3>
+          </div>
+          <div class="card-body">
+            <table class="table table-striped">
+              <thead>
+                <tr>
+                  <th></th>
+                  <th>Cantidad</th>
+                  <th>%</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for index, reject in rejects_by_reason.items %}
+                  <tr>
+                    <td>{{ index }}</td>
+                    <td>{{ reject.0 }}</td>
+                    <td>{{ reject.1|floatformat:2 }}%</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+            <br>
+            * Rechazos sin razón registrada: {{ rejects_without_reason_count }}
+          </div>
+        </div>
+      {% endif %}
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">Productos vendidos en esta campaña</h3>
+        </div>
+        <div class="card-body">
+          <table class="table table-striped">
+            <thead>
+              <tr>
+                <th>Producto</th>
+                <th>Cantidad</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for product, amount in subs_dict.items %}
+                <tr>
+                  <td>{{ product }}</td>
+                  <td>{{ amount }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
-    {% endif %}
+    <div class="col-4">
+      <div class="card">
+        <div class="card-header">
+          <h4 class="card-title">Conversión de la base</h4>
+        </div>
+        <div class="card-body">
+          <p class="h2">{{ success_rate_count }} suscriptores ({{ success_rate_pct|floatformat:2 }}% del total)</p>
+        </div>
+      </div>
+      {% if most_sold_count %}
+        <div class="card">
+          <div class="card-header">
+            <h4 class="card-title">Producto más vendido</h4>
+          </div>
+          <div class="card-body">
+            <p class="h2">{{ most_sold }} ({{ most_sold_count }})</p>
+          </div>
+        </div>
+      {% endif %}
+    </div>
   </div>
-</div>
 {% endblock %}

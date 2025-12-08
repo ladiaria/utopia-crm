@@ -37,7 +37,7 @@ from support.views import (
     edit_envelopes,
     upload_payment_certificate,
     campaign_statistics_list,
-    campaign_statistics_detail,
+    CampaignStatisticsDetailView,
     campaign_statistics_per_seller,
     seller_performance_by_time,
     unsubscription_statistics,
@@ -158,7 +158,11 @@ urlpatterns = [
         name="edit_address_complementary_information",
     ),
     path("campaign_statistics/", campaign_statistics_list, name="campaign_statistics_list"),
-    re_path(r"^campaign_statistics/(\d+)/$", campaign_statistics_detail, name="campaign_statistics_detail"),
+    re_path(
+        r"^campaign_statistics/(?P<campaign_id>\d+)/$",
+        CampaignStatisticsDetailView.as_view(),
+        name="campaign_statistics_detail"
+    ),
     re_path(
         r"^campaign_statistics/by_seller/(\d+)/$",
         campaign_statistics_per_seller,
