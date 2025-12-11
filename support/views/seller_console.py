@@ -321,6 +321,10 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
                 ):
                     ccs.seller = None
 
+            # Use the campaign_resolution from the action if it's set
+            if seller_console_action.campaign_resolution:
+                ccs.campaign_resolution = seller_console_action.campaign_resolution
+
             return ccs
         except Exception as e:
             messages.error(self.request, str(e))
