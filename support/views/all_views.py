@@ -1485,7 +1485,6 @@ class CampaignStatisticsDetailView(BreadcrumbsMixin, UserPassesTestMixin, Filter
         ccs_with_resolution_not_contacted_count = ccs_with_resolution.filter(status__in=[3, 5]).count()
 
         context['success_with_direct_sale_count'] = ccs_with_resolution.filter(campaign_resolution="S2").count()
-        context['success_with_promotion_count'] = ccs_with_resolution.filter(campaign_resolution="S1").count()
         context['scheduled_count'] = ccs_with_resolution.filter(campaign_resolution="SC").count()
         context['call_later_count'] = ccs_with_resolution.filter(campaign_resolution="CL").count()
         context['unreachable_count'] = ccs_with_resolution.filter(campaign_resolution="UN").count()
@@ -1493,9 +1492,6 @@ class CampaignStatisticsDetailView(BreadcrumbsMixin, UserPassesTestMixin, Filter
         context['started_promotion_count'] = ccs_with_resolution.filter(campaign_resolution="SP").count()
 
         # Resolution percentages
-        context['success_with_promotion_pct'] = (
-            (context['success_with_promotion_count'] * 100) / (ccs_with_resolution_contacted_count or 1)
-        )
         context['success_with_direct_sale_pct'] = (
             (context['success_with_direct_sale_count'] * 100)
             / (ccs_with_resolution_contacted_count or 1)
@@ -1539,7 +1535,7 @@ class CampaignStatisticsDetailView(BreadcrumbsMixin, UserPassesTestMixin, Filter
         context['rejects_by_reason'] = rejects_by_reason
 
         # Success rate
-        success_rate_count = context['success_with_promotion_count'] + context['success_with_direct_sale_count']
+        success_rate_count = context['success_with_direct_sale_count']
         context['success_rate_count'] = success_rate_count
         context['success_rate_pct'] = (success_rate_count * 100) / (filtered_count or 1)
 
