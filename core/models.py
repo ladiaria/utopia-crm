@@ -1471,6 +1471,7 @@ class Subscription(models.Model):
         DEBTOR = 13, _("Debtor")
         DEBTOR_AUTOMATIC = 16, _("Debtor, automatic unsubscription")
         RETENTION = 17, _("Retention")
+        ALL_PRODUCTS_REMOVED = 18, _("All products removed")
         NOT_APPLICABLE = 99, _("N/A")
 
     class UnsubscriptionTypeChoices(models.IntegerChoices):
@@ -1480,6 +1481,7 @@ class Subscription(models.Model):
         CHANGED_PRODUCTS = 3, _("Changed products")
         ADDED_PRODUCTS = 4, _("Added products")
         RETENTION = 5, _("Retention")
+        ALL_PRODUCTS_REMOVED = 6, _("All products removed")
 
     campaign = models.ForeignKey(
         "core.Campaign", blank=True, null=True, verbose_name=_("Campaign"), on_delete=models.SET_NULL
@@ -1776,7 +1778,9 @@ class Subscription(models.Model):
         """
         Used to remove products from the current subscription. It is encouraged to always use this method when you want
         to remove a product from a subscription, so you always have control of what happens here. This also creates a
-        product history with the current subscription, product, and date, with the type 'D' (De-activation)
+        product history with the current subscription, product, and date, with the type 'D' (De-activation).
+
+        If that was the last product, mark the subscription as inactive, and mark the reason as ALL_PRODUCTS_REMOVED.
         """
         try:
             sp = SubscriptionProduct.objects.get(subscription=self, product=product)
@@ -1785,6 +1789,15 @@ class Subscription(models.Model):
             pass
         else:
             self.contact.add_product_history(self, product, "D")
+
+        if not self.subscriptionproduct_set.exists():
+            self.active = False
+            self.status = "OK"
+            self.inactivity_reason = self.InactivityReasonChoices.ALL_PRODUCTS_REMOVED
+            self.unsubscription_addendum = _("All products were removed.")
+            self.unsubscription_type = self.UnsubscriptionTypeChoices.ALL_PRODUCTS_REMOVED
+            self.end_date = date.today()
+            self.save()
 
     def get_billing_contact(self):
         """
