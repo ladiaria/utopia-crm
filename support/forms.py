@@ -406,7 +406,7 @@ class IssueStartForm(forms.ModelForm):
     widget = forms.Select(attrs={"class": "form-control"})
     product = forms.ModelChoiceField(
         label=_("Product"),
-        queryset=Product.objects.filter(type="S"),
+        queryset=Product.objects.filter(type__in=["S", "O"]),
         widget=forms.Select(attrs={"class": "form-control"}),
         required=False,
     )
