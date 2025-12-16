@@ -848,16 +848,6 @@ class CorporateSubscriptionForm(NewSubscriptionForm):
         fields = NewSubscriptionForm.Meta.fields + ('number_of_subscriptions', 'override_price')
 
 
-class AffiliateSubscriptionForm(forms.Form):
-    contact = forms.ModelChoiceField(queryset=Contact.objects.all())
-    start_date = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}))
-    end_date = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}))
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields['contact'].queryset = self.fields['contact'].queryset.order_by('name')
-
-
 class ImportContactsForm(forms.Form):
     file = forms.FileField(
         label=_('CSV File'), help_text=_('Please upload a CSV file'), widget=forms.FileInput(attrs={'accept': '.csv'})
@@ -1012,3 +1002,36 @@ class BulkDeleteCampaignStatusForm(forms.Form):
         if not file.name.endswith('.csv'):
             raise forms.ValidationError(_('File must be a CSV file'))
         return file
+
+
+class AffiliateSubscriptionForm(forms.ModelForm):
+    contact = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control'}))
+    start_date = forms.DateField(
+        widget=forms.DateInput(
+            format="%Y-%m-%d", attrs={'class': 'form-control', 'type': 'date', 'autocomplete': 'off'}
+        ),
+    )
+    end_date = forms.DateField(
+        widget=forms.DateInput(
+            format="%Y-%m-%d", attrs={'class': 'form-control', 'type': 'date', 'autocomplete': 'off'}
+        ),
+    )
+
+    class Meta:
+        model = Subscription
+        fields = ['contact', 'start_date', 'end_date']
+
+    def clean_contact(self):
+        contact_id = self.cleaned_data['contact']
+        try:
+            return Contact.objects.get(id=contact_id)
+        except Contact.DoesNotExist:
+            raise forms.ValidationError("Invalid contact ID")
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        instance.type = "A"  # Affiliate
+        instance.renewal_type = "M"  # Manual
+        if commit:
+            instance.save()
+        return instance

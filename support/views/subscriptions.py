@@ -2,11 +2,12 @@ import collections
 from datetime import date, datetime, timedelta
 
 import pandas as pd
+from dateutil.relativedelta import relativedelta
 from django import forms
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
-from django.contrib.auth.mixins import UserPassesTestMixin
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.exceptions import ValidationError
 from django.db.models import Count
 from django.http import (
@@ -16,10 +17,11 @@ from django.http import (
     HttpResponseServerError,
 )
 from django.shortcuts import get_object_or_404, render
-from django.urls import reverse, reverse_lazy
+from django.urls import reverse
 from django.utils.text import format_lazy
+from django.utils.timezone import now
 from django.utils.translation import gettext as _
-from django.views.generic import FormView, ListView
+from django.views.generic import CreateView, FormView, ListView
 from django_filters.views import FilterView
 from requests.exceptions import RequestException
 
@@ -1554,52 +1556,84 @@ class CorporateSubscriptionCreateView(SubscriptionMixin, FormView):
         return super().dispatch(request, *args, **kwargs)
 
 
-class AffiliateSubscriptionView(FormView):
-    template_name = 'subscriptions/affiliate_subscription.html'
+class AffiliateSubscriptionCreateView(LoginRequiredMixin, BreadcrumbsMixin, CreateView):
+    template_name = "subscriptions/affiliate_subscriptions.html"
     form_class = AffiliateSubscriptionForm
 
-    def get_success_url(self):
-        return reverse_lazy(
-            'affiliate_subscription', kwargs={'corporate_subscription_id': self.kwargs['corporate_subscription_id']}
-        )
+    def breadcrumbs(self):
+        return [
+            {"label": "Inicio", "url": reverse("home")},
+            {"label": "Lista de contactos", "url": reverse("contact_list")},
+            {
+                "label": self.corporate_subscription.contact.get_full_name(),
+                "url": reverse("contact_detail", args=[self.corporate_subscription.contact.id]),
+            },
+            {"label": "Crear suscripción afiliada", "url": ""},
+        ]
 
-    def get_form_kwargs(self):
-        kwargs = super().get_form_kwargs()
-        kwargs['main_subscription_id'] = self.kwargs['main_subscription_id']
-        return kwargs
+    def dispatch(self, request, *args, **kwargs):
+        self.corporate_subscription = get_object_or_404(Subscription, id=kwargs['subscription_id'])
+        self.product = self.corporate_subscription.products.first()
+
+        # Ensure the subscription is corporate
+        if self.corporate_subscription.type != "C":
+            messages.error(request, "Esta suscripción no es corporativa")
+            return HttpResponseRedirect(reverse("contact_detail", args=[self.corporate_subscription.contact.id]))
+
+        # Check the affiliate limit
+        current_affiliates = (
+            Subscription.objects.filter(parent_subscription=self.corporate_subscription).count() + 1
+        )  # Include the parent subscription
+        if current_affiliates >= self.corporate_subscription.number_of_subscriptions:
+            messages.error(request, "Ya se ha alcanzado el límite de suscripciones afiliadas")
+            return HttpResponseRedirect(reverse("contact_detail", args=[self.corporate_subscription.contact.id]))
+
+        return super().dispatch(request, *args, **kwargs)
 
     def form_valid(self, form):
-        main_subscription = get_object_or_404(Subscription, id=self.kwargs['main_subscription_id'])
-        contact = form.cleaned_data['contact']
-        start_date = form.cleaned_data['start_date']
-        end_date = form.cleaned_data['end_date']
-
-        bulk_subscription = Subscription.objects.create(
-            contact=contact,
-            start_date=start_date,
-            end_date=end_date,
-            payment_type=main_subscription.payment_type,
-            type='C',  # Complementary
-            status=main_subscription.status,
-        )
-
-        main_sp = SubscriptionProduct.objects.get(subscription=main_subscription)
-        SubscriptionProduct.objects.create(subscription=bulk_subscription, product=main_sp.product, copies=1)
-
-        return super().form_valid(form)
+        """Set parent subscription and corporate flag before saving."""
+        if form.instance.contact == self.corporate_subscription.contact:
+            messages.error(self.request, "El contacto seleccionado no puede ser el mismo que el contacto principal")
+            return self.form_invalid(form)
+        if form.instance.contact.subscriptions.filter(type="A", active=True).exists():
+            messages.error(self.request, "El contacto seleccionado ya tiene una suscripción afiliada activa")
+            return self.form_invalid(form)
+        form.instance.parent_subscription = self.corporate_subscription
+        form.instance.type = "A"  # Affiliate
+        response = super().form_valid(form)
+        form.instance.add_product(product=self.product, address=None, copies=1, message=None, instructions=None)
+        messages.success(self.request, "Suscripción afiliada creada exitosamente")
+        return response
 
     def get_context_data(self, **kwargs):
+        """Add subscription details to the template context."""
         context = super().get_context_data(**kwargs)
-        corporate_subscription = get_object_or_404(Subscription, id=self.kwargs['corporate_subscription_id'])
-        context['corporate_subscription'] = corporate_subscription
-        context['affiliate_subscriptions'] = (
-            Subscription.objects.filter(
-                type='C', payment_type=corporate_subscription.payment_type, status=corporate_subscription.status
-            )
-            .select_related('contact')
-            .order_by('start_date')
+        current_affiliates = Subscription.objects.filter(parent_subscription=self.corporate_subscription).count() + 1
+        affiliate_subscriptions = Subscription.objects.filter(
+            parent_subscription=self.corporate_subscription,
+            type="A",
+            active=True,
+        )
+        context.update(
+            {
+                'corporate_subscription': self.corporate_subscription,
+                'current_affiliates': current_affiliates,
+                'available_slots': self.corporate_subscription.number_of_subscriptions - current_affiliates,
+                'affiliate_subscriptions': affiliate_subscriptions,
+            }
         )
         return context
+
+    def get_initial(self):
+        initial = super().get_initial()
+        start_date = now().date()
+        end_date = start_date + relativedelta(months=self.product.duration_months)
+        initial['start_date'] = start_date.strftime("%Y-%m-%d")
+        initial['end_date'] = end_date.strftime("%Y-%m-%d")
+        return initial
+
+    def get_success_url(self):
+        return reverse("add_affiliate_subscription", args=[self.corporate_subscription.id])
 
 
 class FreeSubscriptionMixin:

@@ -35,7 +35,7 @@ from .subscriptions import (  # noqa
     update_promo,
     SubscriptionEndDateListView,
     CorporateSubscriptionCreateView,
-    AffiliateSubscriptionView,
+    AffiliateSubscriptionCreateView,
     create_free_subscription,
     update_free_subscription,
     add_retention_discount,
