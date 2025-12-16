@@ -380,19 +380,20 @@ def calc_price_from_products(products_with_copies, frequency, debug_id="", creat
     # Finally we add the price of the one-shot products. O stands for "Other". They can be affected by copies but
     # they are not billed per frequency.
     for product in other_product_list:
-        product_price = float(product.price)
+        copies = int(products_with_copies[product.id])
+        product_price = float(product.price) * copies
         total_price += product_price
 
         if create_items:
             item = InvoiceItem(
                 subscription=subscription,
                 invoice=None,
-                copies=product.copies,
-                price=product_price,
+                copies=copies,
+                price=product.price,
                 product=product,
                 description=product.name,
                 type='I',
-                amount=product_price * product.copies,
+                amount=product_price,
             )
             invoice_items.append(item)
 
