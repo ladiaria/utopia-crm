@@ -129,7 +129,9 @@ def calc_price_from_products(products_with_copies, frequency, debug_id="", creat
         - Affectable: products that are affected by discounts
         - Non-affectable: products that are not affected by discounts
         - Frequency discount: discount applied to the total price based on the frequency
-        - One-shot products: products that are not affected by discounts and are not part of a subscription
+        - One-shot products: products that are not affected by discounts and are not part of a subscription. They're
+        usually represented by products of the type "Other" and have an edition frequency of 4 (one-shot products).
+        They're affected by copies but not by frequency.
     """
     from core.models import Product
     from invoicing.models import InvoiceItem
@@ -375,7 +377,8 @@ def calc_price_from_products(products_with_copies, frequency, debug_id="", creat
                 + f"After frequency discount total_price={total_price} (Discount: {discount_pct}% - {discount_amount})"
             )
 
-    # Finally we add the price of the one-shot products
+    # Finally we add the price of the one-shot products. O stands for "Other". They can be affected by copies but
+    # they are not billed per frequency.
     for product in other_product_list:
         product_price = float(product.price)
         total_price += product_price
@@ -384,12 +387,12 @@ def calc_price_from_products(products_with_copies, frequency, debug_id="", creat
             item = InvoiceItem(
                 subscription=subscription,
                 invoice=None,
-                copies=1,
+                copies=product.copies,
                 price=product_price,
                 product=product,
                 description=product.name,
                 type='I',
-                amount=product_price,
+                amount=product_price * product.copies,
             )
             invoice_items.append(item)
 
