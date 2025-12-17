@@ -340,7 +340,7 @@ class ContactAdmin(SimpleHistoryAdmin):
                     ("id_document_type", "id_document"),
                     ("phone", "mobile"),
                     "work_phone",
-                    ("gender", "education", "ranking"),
+                    ("gender", "education", "cms_date_joined"),
                     # TODO: include "occupation" right here after its name got fixed from single "c" to "cc"
                     ("birthdate", "private_birthdate"),
                     "notes",

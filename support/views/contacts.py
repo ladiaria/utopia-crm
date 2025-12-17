@@ -32,7 +32,7 @@ from core.models import (
     IdDocumentType,
 )
 from core.filters import ContactFilter
-from core.forms import ContactAdminForm
+from core.forms import ContactAdminForm, ContactUpdateForm
 from core.mixins import BreadcrumbsMixin
 from core.utils import get_mailtrain_lists, detect_csv_delimiter
 
@@ -383,7 +383,7 @@ class ContactDetailView(BreadcrumbsMixin, DetailView):
         }
 
 
-class ContactAdminFormWithNewsletters(ContactAdminForm):
+class ContactAdminFormWithNewsletters(ContactUpdateForm):
     newsletters = ModelMultipleChoiceField(
         queryset=Product.objects.filter(type="N", active=True),
         widget=CheckboxSelectMultiple(attrs={'class': 'form-check', 'style': 'float:left;margin-right:7px'}),
