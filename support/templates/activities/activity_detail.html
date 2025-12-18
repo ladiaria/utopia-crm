@@ -1,0 +1,224 @@
+{% extends "adminlte/base.html" %}
+{% load static i18n %}
+
+{% block title %}{% trans "Activity" %} #{{ activity.id }}{% endblock title %}
+
+{% block no_heading %}
+<h1>
+  {% trans "Activity" %} #{{ activity.id }}
+</h1>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col-md-8">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">{% trans "Activity Details" %}</h3>
+      </div>
+      <div class="card-body">
+        <table class="table table-bordered">
+          <tr>
+            <th style="width: 30%">{% trans "ID" %}</th>
+            <td>{{ activity.id }}</td>
+          </tr>
+          {% if activity.contact %}
+          <tr>
+            <th>{% trans "Contact" %}</th>
+            <td>
+              <a href="{% url 'contact_detail' activity.contact.id %}">
+                {{ activity.contact.get_full_name }}
+              </a>
+            </td>
+          </tr>
+          {% endif %}
+          <tr>
+            <th>{% trans "Date/Time" %}</th>
+            <td>{{ activity.datetime|date:"Y-m-d H:i" }}</td>
+          </tr>
+          <tr>
+            <th>{% trans "Type" %}</th>
+            <td>{{ activity.get_activity_type_display }}</td>
+          </tr>
+          <tr>
+            <th>{% trans "Status" %}</th>
+            <td>{{ activity.get_status }}</td>
+          </tr>
+          <tr>
+            <th>{% trans "Direction" %}</th>
+            <td>{{ activity.get_direction }}</td>
+          </tr>
+          {% if activity.created_by %}
+          <tr>
+            <th>{% trans "Created by" %}</th>
+            <td>{{ activity.created_by_name }}</td>
+          </tr>
+          {% endif %}
+          {% if activity.seller %}
+          <tr>
+            <th>{% trans "Seller" %}</th>
+            <td>{{ activity.seller }}</td>
+          </tr>
+          {% endif %}
+          {% if activity.campaign %}
+          <tr>
+            <th>{% trans "Campaign" %}</th>
+            <td>{{ activity.campaign }}</td>
+          </tr>
+          {% endif %}
+          {% if activity.topic %}
+          <tr>
+            <th>{% trans "Topic" %}</th>
+            <td>{{ activity.topic }}</td>
+          </tr>
+          {% endif %}
+          {% if activity.response %}
+          <tr>
+            <th>{% trans "Response" %}</th>
+            <td>{{ activity.response }}</td>
+          </tr>
+          {% endif %}
+        </table>
+
+        <div class="mt-3">
+          <h5>{% trans "Notes" %}</h5>
+          <div class="border p-3" style="white-space: pre-wrap; background-color: #f8f9fa;">{{ activity.notes|default:"-" }}</div>
+        </div>
+
+        {% if metadata %}
+        <div class="mt-4">
+          <h5>{% trans "Metadata" %}</h5>
+          {% if metadata_type == 'unsubscription' %}
+            <div class="alert alert-info">
+              <i class="fas fa-info-circle"></i> {% trans "This activity contains unsubscription data" %}
+            </div>
+            <table class="table table-sm table-bordered">
+              <tr>
+                <th style="width: 30%">{% trans "Subscription ID" %}</th>
+                <td>{{ metadata.subscription_id }}</td>
+              </tr>
+              <tr>
+                <th>{% trans "End date" %}</th>
+                <td>{{ metadata.end_date }}</td>
+              </tr>
+              <tr>
+                <th>{% trans "Unsubscription date" %}</th>
+                <td>{{ metadata.unsubscription_date }}</td>
+              </tr>
+              <tr>
+                <th>{% trans "Manager" %}</th>
+                <td>{{ metadata.unsubscription_manager_name }}</td>
+              </tr>
+              <tr>
+                <th>{% trans "Reason" %}</th>
+                <td>{{ metadata.unsubscription_reason|default:"-" }}</td>
+              </tr>
+              <tr>
+                <th>{% trans "Channel" %}</th>
+                <td>{{ metadata.unsubscription_channel|default:"-" }}</td>
+              </tr>
+              {% if metadata.unsubscription_addendum %}
+              <tr>
+                <th>{% trans "Addendum" %}</th>
+                <td>{{ metadata.unsubscription_addendum }}</td>
+              </tr>
+              {% endif %}
+              {% if metadata.created_at_reactivation %}
+              <tr>
+                <th>{% trans "Note" %}</th>
+                <td class="text-warning">
+                  <i class="fas fa-exclamation-triangle"></i>
+                  {% trans "This data was created during reactivation (original activity was not found)" %}
+                </td>
+              </tr>
+              {% endif %}
+            </table>
+          {% elif metadata_type == 'reactivation' %}
+            <div class="alert alert-success">
+              <i class="fas fa-check-circle"></i> {% trans "This activity contains reactivation data" %}
+            </div>
+            <table class="table table-sm table-bordered">
+              <tr>
+                <th style="width: 30%">{% trans "Subscription ID" %}</th>
+                <td>{{ metadata.subscription_id }}</td>
+              </tr>
+              <tr>
+                <th>{% trans "Reactivation date" %}</th>
+                <td>{{ metadata.reactivation_date }}</td>
+              </tr>
+              <tr>
+                <th>{% trans "Reactivated by" %}</th>
+                <td>{{ metadata.reactivated_by_name }}</td>
+              </tr>
+              {% if metadata.unsubscription_activity_id %}
+              <tr>
+                <th>{% trans "Original unsubscription activity" %}</th>
+                <td>
+                  <a href="{% url 'activity_detail' metadata.unsubscription_activity_id %}">
+                    {% trans "Activity" %} #{{ metadata.unsubscription_activity_id }}
+                  </a>
+                </td>
+              </tr>
+              {% endif %}
+            </table>
+          {% else %}
+            <div class="alert alert-secondary">
+              <i class="fas fa-database"></i> {% trans "This activity contains structured metadata" %}
+            </div>
+            <pre class="border p-3" style="background-color: #f8f9fa; max-height: 400px; overflow-y: auto;">{{ metadata|pprint }}</pre>
+          {% endif %}
+        </div>
+        {% endif %}
+      </div>
+      <div class="card-footer">
+        {% if activity.contact %}
+          <a href="{% url 'contact_detail' activity.contact.id %}" class="btn btn-default">
+            <i class="fas fa-arrow-left"></i> {% trans "Back to Contact" %}
+          </a>
+        {% else %}
+          <a href="{% url 'contact_list' %}" class="btn btn-default">
+            <i class="fas fa-arrow-left"></i> {% trans "Back to Contacts" %}
+          </a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="card card-secondary">
+      <div class="card-header">
+        <h3 class="card-title">{% trans "Quick Info" %}</h3>
+      </div>
+      <div class="card-body">
+        <dl>
+          <dt>{% trans "Priority" %}</dt>
+          <dd>{{ activity.get_priority }}</dd>
+
+          <dt>{% trans "ASAP" %}</dt>
+          <dd>
+            {% if activity.asap %}
+              <span class="badge badge-danger">{% trans "Yes" %}</span>
+            {% else %}
+              <span class="badge badge-secondary">{% trans "No" %}</span>
+            {% endif %}
+          </dd>
+
+          {% if activity.issue %}
+          <dt>{% trans "Related Issue" %}</dt>
+          <dd>
+            <a href="{% url 'view_issue' activity.issue.id %}">
+              {% trans "Issue" %} #{{ activity.issue.id }}
+            </a>
+          </dd>
+          {% endif %}
+
+          {% if activity.product %}
+          <dt>{% trans "Product" %}</dt>
+          <dd>{{ activity.product }}</dd>
+          {% endif %}
+        </dl>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

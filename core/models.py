@@ -2658,6 +2658,12 @@ class Activity(models.Model):
         blank=True,
         verbose_name=_("Seller console action"),
     )
+    metadata = models.JSONField(
+        blank=True,
+        null=True,
+        verbose_name=_("Metadata"),
+        help_text=_("Structured data for storing additional activity information (e.g., unsubscription data)")
+    )
 
     def __str__(self):
         return str(_("Activity {} for contact {}".format(self.id, self.contact.id)))
@@ -2690,6 +2696,15 @@ class Activity(models.Model):
         """
         directions = dict(ACTIVITY_DIRECTION_CHOICES)
         return directions.get(self.direction, "N/A")
+
+    def get_activity_type_display(self):
+        """
+        Returns the display name for the activity type.
+        This method is needed because activity_type uses a dynamic function get_activity_types()
+        instead of static choices, so Django's automatic get_FOO_display doesn't work.
+        """
+        activity_types = dict(get_activity_types())
+        return activity_types.get(self.activity_type, "N/A")
 
     def mark_as_sale(self, register_activity, campaign, subscription=None):
         # Update the activity

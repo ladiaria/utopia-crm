@@ -1,4 +1,5 @@
 import collections
+import json
 from datetime import date, datetime, timedelta
 
 import pandas as pd
@@ -504,6 +505,47 @@ def book_unsubscription(request, subscription_id):
             subscription.unsubscription_manager = request.user
             subscription.unsubscription_products.add(*subscription.products.all())
             subscription.save()
+
+            # Create an Activity to store unsubscription information for potential reactivation
+            unsubscription_data = {
+                "type": "unsubscription",
+                "subscription_id": subscription.id,
+                "end_date": subscription.end_date.isoformat(),
+                "unsubscription_reason": subscription.unsubscription_reason,
+                "unsubscription_channel": subscription.unsubscription_channel,
+                "unsubscription_addendum": subscription.unsubscription_addendum,
+                "unsubscription_type": subscription.unsubscription_type,
+                "unsubscription_date": subscription.unsubscription_date.isoformat(),
+                "unsubscription_manager_id": request.user.id,
+                "unsubscription_manager_name": request.user.get_full_name() or request.user.username,
+                "unsubscription_products": [p.id for p in subscription.unsubscription_products.all()],
+            }
+
+            # Create human-readable notes
+            products_list = ", ".join([p.name for p in subscription.unsubscription_products.all()])
+            readable_notes = _(
+                "Complete unsubscription booked for {end_date}.\n"
+                "Reason: {reason}\n"
+                "Products: {products}\n"
+                "Manager: {manager}"
+            ).format(
+                end_date=subscription.end_date.isoformat(),
+                reason=subscription.get_unsubscription_reason_display() or "-",
+                products=products_list,
+                manager=request.user.get_full_name() or request.user.username
+            )
+
+            Activity.objects.create(
+                contact=subscription.contact,
+                activity_type="N",  # Internal - system-generated activity
+                datetime=datetime.now(),
+                status="C",
+                direction="O",
+                created_by=request.user,
+                notes=readable_notes,
+                metadata=unsubscription_data,
+            )
+
             return HttpResponseRedirect(reverse("contact_detail", args=[subscription.contact.id]))
     else:
         if subscription.is_obsolete():
@@ -526,6 +568,187 @@ def book_unsubscription(request, subscription_id):
         {
             "subscription": subscription,
             "form": form,
+            "breadcrumbs": breadcrumbs,
+        },
+    )
+
+
+@staff_member_required
+def reactivate_subscription(request, subscription_id):
+    """
+    Reactivate a subscription that was disabled using book_unsubscription.
+    This only works for complete unsubscriptions (unsubscription_type=1).
+    Partial unsubscriptions and product changes create new subscriptions, so they cannot be reactivated.
+    """
+    subscription = get_object_or_404(Subscription, pk=subscription_id)
+
+    # Validate that this subscription can be reactivated
+    if not subscription.end_date:
+        messages.error(request, _("This subscription is not unsubscribed and cannot be reactivated"))
+        return HttpResponseRedirect(reverse("contact_detail", args=[subscription.contact.id]))
+
+    if subscription.unsubscription_type != 1:
+        messages.error(
+            request,
+            _(
+                "Only complete unsubscriptions can be reactivated. "
+                "Partial unsubscriptions and product changes create new subscriptions."
+            )
+        )
+        return HttpResponseRedirect(reverse("contact_detail", args=[subscription.contact.id]))
+
+    # Find the unsubscription activity to retrieve stored data
+    # First try to find activity with metadata field (new approach)
+    unsubscription_activity = None
+    stored_data = None
+
+    activities_with_metadata = Activity.objects.filter(
+        contact=subscription.contact,
+        metadata__type="unsubscription",
+        metadata__subscription_id=subscription.id
+    ).order_by("-datetime")
+
+    if activities_with_metadata.exists():
+        unsubscription_activity = activities_with_metadata.first()
+        stored_data = unsubscription_activity.metadata
+    else:
+        # Fallback: try old format with notes (for backward compatibility)
+        for activity in Activity.objects.filter(
+            contact=subscription.contact,
+            notes__startswith="UNSUBSCRIPTION_DATA:"
+        ).order_by("-datetime"):
+            try:
+                notes_data = activity.notes.replace("UNSUBSCRIPTION_DATA:", "", 1)
+                data = json.loads(notes_data)
+                if (
+                    data.get("end_date") == subscription.end_date.isoformat()
+                    and data.get("unsubscription_type") == subscription.unsubscription_type
+                ):
+                    unsubscription_activity = activity
+                    stored_data = data
+                    break
+            except (json.JSONDecodeError, AttributeError):
+                continue
+
+    if request.POST:
+        # If no activity was found, create one now for registry purposes (failproof)
+        if not unsubscription_activity:
+            # Create fallback unsubscription data from current subscription state
+            fallback_data = {
+                "type": "unsubscription",
+                "subscription_id": subscription.id,
+                "end_date": subscription.end_date.isoformat() if subscription.end_date else None,
+                "unsubscription_reason": subscription.unsubscription_reason,
+                "unsubscription_channel": subscription.unsubscription_channel,
+                "unsubscription_addendum": subscription.unsubscription_addendum,
+                "unsubscription_type": subscription.unsubscription_type,
+                "unsubscription_date": (
+                    subscription.unsubscription_date.isoformat() if subscription.unsubscription_date else None
+                ),
+                "unsubscription_manager_id": (
+                    subscription.unsubscription_manager.id if subscription.unsubscription_manager else None
+                ),
+                "unsubscription_manager_name": (
+                    subscription.unsubscription_manager.get_full_name()
+                    or subscription.unsubscription_manager.username
+                ) if subscription.unsubscription_manager else "Unknown",
+                "unsubscription_products": [p.id for p in subscription.unsubscription_products.all()],
+                "created_at_reactivation": True,  # Flag to indicate this was created during reactivation
+            }
+
+            products_list = ", ".join([p.name for p in subscription.unsubscription_products.all()])
+            fallback_notes = _(
+                "Unsubscription data (created during reactivation for registry):\n"
+                "End date: {end_date}\n"
+                "Reason: {reason}\n"
+                "Products: {products}\n"
+                "Manager: {manager}"
+            ).format(
+                end_date=subscription.end_date.isoformat() if subscription.end_date else "-",
+                reason=subscription.get_unsubscription_reason_display() or "-",
+                products=products_list or "-",
+                manager=fallback_data["unsubscription_manager_name"]
+            )
+
+            unsubscription_activity = Activity.objects.create(
+                contact=subscription.contact,
+                activity_type="N",  # Internal - system-generated activity
+                datetime=datetime.now(),
+                status="C",
+                direction="O",
+                created_by=request.user,
+                notes=fallback_notes,
+                metadata=fallback_data,
+            )
+            stored_data = fallback_data
+
+        # Perform the reactivation
+        subscription.end_date = None
+        subscription.unsubscription_reason = None
+        subscription.unsubscription_channel = None
+        subscription.unsubscription_addendum = None
+        subscription.unsubscription_type = None
+        subscription.unsubscription_date = None
+        subscription.unsubscription_manager = None
+        subscription.unsubscription_products.clear()
+        subscription.save()
+
+        # Create an Activity to log the reactivation
+        reactivation_notes = _("Subscription reactivated by {user} on {date}").format(
+            user=request.user.get_full_name() or request.user.username,
+            date=date.today().isoformat()
+        )
+        if unsubscription_activity:
+            reactivation_notes += (
+                f"\n{_('Original unsubscription data stored in Activity')} "
+                f"#{unsubscription_activity.id}"
+            )
+
+        reactivation_metadata = {
+            "type": "reactivation",
+            "subscription_id": subscription.id,
+            "reactivation_date": date.today().isoformat(),
+            "reactivated_by_id": request.user.id,
+            "reactivated_by_name": request.user.get_full_name() or request.user.username,
+            "unsubscription_activity_id": unsubscription_activity.id if unsubscription_activity else None,
+        }
+
+        Activity.objects.create(
+            contact=subscription.contact,
+            activity_type="N",  # Internal - system-generated activity
+            datetime=datetime.now(),
+            status="C",
+            direction="O",
+            created_by=request.user,
+            notes=reactivation_notes,
+            metadata=reactivation_metadata,
+        )
+
+        success_text = format_lazy(
+            "Subscription for {name} has been reactivated",
+            name=subscription.contact.get_full_name(),
+        )
+        messages.success(request, success_text)
+        return HttpResponseRedirect(reverse("contact_detail", args=[subscription.contact.id]))
+
+    # GET request - show confirmation page
+    breadcrumbs = [
+        {"label": _("Contact list"), "url": reverse("contact_list")},
+        {
+            "label": subscription.contact.get_full_name(),
+            "url": reverse("contact_detail", args=[subscription.contact.id]),
+        },
+        {"label": _("Reactivate subscription"), "url": ""},
+    ]
+
+    # stored_data is already set from the activity lookup above
+    return render(
+        request,
+        "reactivate_subscription.html",
+        {
+            "subscription": subscription,
+            "stored_data": stored_data,
+            "unsubscription_activity": unsubscription_activity,
             "breadcrumbs": breadcrumbs,
         },
     )

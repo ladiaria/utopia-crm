@@ -17,6 +17,7 @@ from support.views import (
     add_retention_discount,
     partial_unsubscription,
     book_unsubscription,
+    reactivate_subscription,
     edit_products,
     api_new_address,
     api_dynamic_prices,
@@ -101,6 +102,7 @@ urlpatterns = [
     path("add_retention_discount/<int:subscription_id>/", add_retention_discount, name="add_retention_discount"),
     path("partial_unsubscription/<int:subscription_id>/", partial_unsubscription, name="partial_unsubscription"),
     path("book_unsubscription/<int:subscription_id>/", book_unsubscription, name="book_unsubscription"),
+    path("reactivate_subscription/<int:subscription_id>/", reactivate_subscription, name="reactivate_subscription"),
     path("edit_products/<int:subscription_id>/", edit_products, name="edit_products"),
     path("contacts/", views.ContactListView.as_view(), name="contact_list"),
     path("contacts/<int:contact_id>/history", views.history_extended, name="history_extended"),
@@ -244,6 +246,7 @@ urlpatterns = [
         name="add_affiliate_subscription",
     ),
     path("contacts/<int:contact_id>/create_activity/", views.ActivityCreateView.as_view(), name="create_activity"),
+    path("activity/<int:pk>/", views.ActivityDetailView.as_view(), name="activity_detail"),
     path("contact_invoices_htmx/<int:contact_id>/", views.contact_invoices_htmx, name="contact_invoices_htmx"),
     path(
         "check_for_existing_contacts/",

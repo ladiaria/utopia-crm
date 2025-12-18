@@ -164,7 +164,12 @@
                class="btn btn-sm btn-primary mr-1 mb-1">
               <i class="fas fa-edit"></i> {% trans "Edit" %}
             </a>
-            {% if not subscription.end_date %}
+            {% if subscription.end_date and subscription.unsubscription_type == 1 %}
+              <a href="{% url "reactivate_subscription" subscription.id %}"
+                 class="btn btn-sm btn-success mr-1 mb-1">
+                <i class="fas fa-redo"></i> {% trans "Reactivate" %}
+              </a>
+            {% elif not subscription.end_date %}
               <a href="{% url "book_unsubscription" subscription.id %}"
                  class="btn btn-sm btn-danger mr-1 mb-1">
                 <i class="fas fa-times-circle"></i> {% trans "Unsubscription" %}
