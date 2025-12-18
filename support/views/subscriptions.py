@@ -579,6 +579,10 @@ def reactivate_subscription(request, subscription_id):
     Reactivate a subscription that was disabled using book_unsubscription.
     This only works for complete unsubscriptions (unsubscription_type=1).
     Partial unsubscriptions and product changes create new subscriptions, so they cannot be reactivated.
+
+    Business Rules:
+    - Can only reactivate within 30 days of unsubscription_date
+    - If next_billing is in the past, it will be adjusted to today + 1 day
     """
     subscription = get_object_or_404(Subscription, pk=subscription_id)
 
@@ -596,6 +600,20 @@ def reactivate_subscription(request, subscription_id):
             )
         )
         return HttpResponseRedirect(reverse("contact_detail", args=[subscription.contact.id]))
+
+    # Validate 30-day limit from unsubscription_date
+    if subscription.unsubscription_date:
+        days_since_unsubscription = (date.today() - subscription.unsubscription_date).days
+        if days_since_unsubscription > 30:
+            messages.error(
+                request,
+                _(
+                    "This subscription cannot be reactivated because more than 30 days have passed "
+                    "since the unsubscription date ({unsubscription_date}). "
+                    "Reactivation is only allowed within 30 days of unsubscription."
+                ).format(unsubscription_date=subscription.unsubscription_date.strftime("%Y-%m-%d"))
+            )
+            return HttpResponseRedirect(reverse("contact_detail", args=[subscription.contact.id]))
 
     # Find the unsubscription activity to retrieve stored data
     # First try to find activity with metadata field (new approach)
@@ -691,6 +709,11 @@ def reactivate_subscription(request, subscription_id):
         subscription.unsubscription_date = None
         subscription.unsubscription_manager = None
         subscription.unsubscription_products.clear()
+
+        # Adjust next_billing if it's in the past to prevent unwanted invoices
+        if subscription.next_billing and subscription.next_billing < date.today():
+            subscription.next_billing = date.today() + timedelta(days=1)
+
         subscription.save()
 
         # Create an Activity to log the reactivation
@@ -741,6 +764,11 @@ def reactivate_subscription(request, subscription_id):
         {"label": _("Reactivate subscription"), "url": ""},
     ]
 
+    # Get display values for reason and channel from subscription object
+    # These are needed because stored_data contains integer values, not display labels
+    reason_display = subscription.get_unsubscription_reason_display() if subscription.unsubscription_reason else None
+    channel_display = subscription.get_unsubscription_channel_display() if subscription.unsubscription_channel else None
+
     # stored_data is already set from the activity lookup above
     return render(
         request,
@@ -750,6 +778,8 @@ def reactivate_subscription(request, subscription_id):
             "stored_data": stored_data,
             "unsubscription_activity": unsubscription_activity,
             "breadcrumbs": breadcrumbs,
+            "reason_display": reason_display,
+            "channel_display": channel_display,
         },
     )
 

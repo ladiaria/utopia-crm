@@ -111,11 +111,11 @@
               </tr>
               <tr>
                 <th>{% trans "Reason" %}</th>
-                <td>{{ metadata.unsubscription_reason|default:"-" }}</td>
+                <td>{{ reason_display|default:"-" }}</td>
               </tr>
               <tr>
                 <th>{% trans "Channel" %}</th>
-                <td>{{ metadata.unsubscription_channel|default:"-" }}</td>
+                <td>{{ channel_display|default:"-" }}</td>
               </tr>
               {% if metadata.unsubscription_addendum %}
               <tr>

@@ -244,4 +244,21 @@ class ActivityDetailView(UserPassesTestMixin, BreadcrumbsMixin, DetailView):
             context['metadata'] = activity.metadata
             context['metadata_type'] = activity.metadata.get('type')
 
+            # For unsubscription metadata, get display values for reason and channel
+            if activity.metadata.get('type') == 'unsubscription':
+                subscription_id = activity.metadata.get('subscription_id')
+                if subscription_id:
+                    try:
+                        from core.models import Subscription
+                        subscription = Subscription.objects.get(id=subscription_id)
+                        # Get display values from the subscription's current state
+                        # (these match what was stored in metadata as integers)
+                        if subscription.unsubscription_reason:
+                            context['reason_display'] = subscription.get_unsubscription_reason_display()
+                        if subscription.unsubscription_channel:
+                            context['channel_display'] = subscription.get_unsubscription_channel_display()
+                    except Subscription.DoesNotExist:
+                        # Subscription was deleted, we'll show the raw values
+                        pass
+
         return context

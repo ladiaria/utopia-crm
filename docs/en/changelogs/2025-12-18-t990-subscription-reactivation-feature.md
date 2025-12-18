@@ -19,6 +19,7 @@ Implemented a comprehensive subscription reactivation feature that allows staff 
 Created `reactivate_subscription` view with the following capabilities:
 
 - **Validation**: Only allows reactivation of complete unsubscriptions (`unsubscription_type=1`)
+- **30-Day Time Limit**: Reactivation only allowed within 30 days of `unsubscription_date` to prevent reactivating very old subscriptions
 - **Prevents Invalid Reactivations**: Blocks reactivation of partial unsubscriptions and product changes (which create new subscriptions)
 - **Smart Data Lookup**: Searches for unsubscription data in Activity metadata first, then falls back to legacy notes format for backward compatibility
 - **Failproof Data Recovery**: If no unsubscription activity exists, automatically creates one from the current subscription state before reactivation
@@ -31,6 +32,7 @@ Created `reactivate_subscription` view with the following capabilities:
   - `unsubscription_date`
   - `unsubscription_manager`
   - `unsubscription_products` (ManyToMany relationship)
+- **Billing Date Adjustment**: If `next_billing` is in the past, automatically adjusts it to tomorrow to prevent unwanted retroactive invoices
 - **Activity Logging**: Creates reactivation Activity with metadata linking back to original unsubscription
 
 ### 2. Reactivation Confirmation Template
@@ -168,7 +170,31 @@ def get_activity_type_display(self):
 - `support/templates/contact_detail/tabs/_activities.html`
 - `support/templates/contact_detail/tabs/includes/_activity_modal.html`
 
-### 8. UI Integration
+### 8. Subscription Model Enhancement
+
+**File:** `core/models.py`
+
+Added `can_be_reactivated()` method to Subscription model:
+
+```python
+def can_be_reactivated(self):
+    """
+    Check if this subscription can be reactivated.
+
+    Requirements:
+    - Must have an end_date (be unsubscribed)
+    - Must be a complete unsubscription (unsubscription_type == 1)
+    - Must be within 30 days of unsubscription_date
+    """
+```
+
+This method encapsulates all reactivation business rules in one place, making it easy to:
+
+- Use in templates to control button visibility
+- Maintain consistent validation logic across the application
+- Update business rules in a single location
+
+### 9. UI Integration
 
 **Files:**
 
@@ -177,10 +203,11 @@ def get_activity_type_display(self):
 
 Added "Reactivate" buttons that:
 
-- Only appear for complete unsubscriptions (`end_date` exists and `unsubscription_type == 1`)
+- Only appear when `subscription.can_be_reactivated()` returns True (includes 30-day check)
 - Replace the "Unsubscribe" button when applicable
 - Use green color scheme with redo icon
 - Link to the reactivation confirmation screen
+- Automatically hide after 30 days from unsubscription date
 
 ### 9. URL Routing
 

@@ -2330,6 +2330,36 @@ class Subscription(models.Model):
         else:
             return None
 
+    def can_be_reactivated(self):
+        """
+        Check if this subscription can be reactivated.
+
+        Requirements:
+        - Must have an end_date (be unsubscribed)
+        - Must be a complete unsubscription (unsubscription_type == 1)
+        - Must be within 30 days of unsubscription_date
+
+        Returns:
+            bool: True if subscription can be reactivated, False otherwise
+        """
+        from datetime import date
+
+        # Must be unsubscribed
+        if not self.end_date:
+            return False
+
+        # Must be a complete unsubscription
+        if self.unsubscription_type != 1:
+            return False
+
+        # Must be within 30 days of unsubscription_date
+        if self.unsubscription_date:
+            days_since_unsubscription = (date.today() - self.unsubscription_date).days
+            if days_since_unsubscription > 30:
+                return False
+
+        return True
+
     def balance_abs(self):
         return abs(self.balance)
 

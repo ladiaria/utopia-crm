@@ -164,7 +164,7 @@
                class="btn btn-sm btn-primary mr-1 mb-1">
               <i class="fas fa-edit"></i> {% trans "Edit" %}
             </a>
-            {% if subscription.end_date and subscription.unsubscription_type == 1 %}
+            {% if subscription.can_be_reactivated %}
               <a href="{% url "reactivate_subscription" subscription.id %}"
                  class="btn btn-sm btn-success mr-1 mb-1">
                 <i class="fas fa-redo"></i> {% trans "Reactivate" %}

@@ -191,7 +191,7 @@
                target="_blank">
               <i class="fas fa-exchange-alt"></i> {% trans "Replaced" %}
             </a>
-          {% elif subscription.end_date and subscription.unsubscription_type == 1 %}
+          {% elif subscription.can_be_reactivated %}
             <a href="{% url "reactivate_subscription" subscription.id %}"
                class="btn btn-sm btn-success mr-1 mb-1">
               <i class="fas fa-redo"></i> {% trans "Reactivate" %}

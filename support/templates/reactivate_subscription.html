@@ -70,11 +70,11 @@
             </tr>
             <tr>
               <th>{% trans "Reason" %}</th>
-              <td>{{ stored_data.unsubscription_reason|default:"-" }}</td>
+              <td>{{ reason_display|default:"-" }}</td>
             </tr>
             <tr>
               <th>{% trans "Channel" %}</th>
-              <td>{{ stored_data.unsubscription_channel|default:"-" }}</td>
+              <td>{{ channel_display|default:"-" }}</td>
             </tr>
             {% if stored_data.unsubscription_addendum %}
             <tr>

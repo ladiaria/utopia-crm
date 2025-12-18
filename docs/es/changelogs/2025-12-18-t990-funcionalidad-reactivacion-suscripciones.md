@@ -19,6 +19,7 @@ Se implementó una funcionalidad completa de reactivación de suscripciones que 
 Se creó la vista `reactivate_subscription` con las siguientes capacidades:
 
 - **Validación**: Solo permite reactivación de desuscripciones completas (`unsubscription_type=1`)
+- **Límite de Tiempo de 30 Días**: Reactivación solo permitida dentro de 30 días de `unsubscription_date` para prevenir reactivar suscripciones muy antiguas
 - **Previene Reactivaciones Inválidas**: Bloquea reactivación de desuscripciones parciales y cambios de productos (que crean nuevas suscripciones)
 - **Búsqueda Inteligente de Datos**: Busca datos de desuscripción en metadata de Activity primero, luego recurre al formato legacy en notes para compatibilidad hacia atrás
 - **Recuperación de Datos a Prueba de Fallos**: Si no existe Activity de desuscripción, crea automáticamente una desde el estado actual de la suscripción antes de reactivar
@@ -31,6 +32,7 @@ Se creó la vista `reactivate_subscription` con las siguientes capacidades:
   - `unsubscription_date`
   - `unsubscription_manager`
   - `unsubscription_products` (relación ManyToMany)
+- **Ajuste de Fecha de Facturación**: Si `next_billing` está en el pasado, se ajusta automáticamente a mañana para prevenir facturas retroactivas no deseadas
 - **Registro de Actividad**: Crea Activity de reactivación con metadata vinculando a la desuscripción original
 
 ### 2. Plantilla de Confirmación de Reactivación
@@ -168,7 +170,31 @@ def get_activity_type_display(self):
 - `support/templates/contact_detail/tabs/_activities.html`
 - `support/templates/contact_detail/tabs/includes/_activity_modal.html`
 
-### 8. Integración de UI
+### 8. Mejora del Modelo Subscription
+
+**Archivo:** `core/models.py`
+
+Se agregó método `can_be_reactivated()` al modelo Subscription:
+
+```python
+def can_be_reactivated(self):
+    """
+    Verifica si esta suscripción puede ser reactivada.
+
+    Requisitos:
+    - Debe tener un end_date (estar desuscrita)
+    - Debe ser una desuscripción completa (unsubscription_type == 1)
+    - Debe estar dentro de 30 días de unsubscription_date
+    """
+```
+
+Este método encapsula todas las reglas de negocio de reactivación en un solo lugar, facilitando:
+
+- Uso en plantillas para controlar visibilidad de botones
+- Mantener lógica de validación consistente en toda la aplicación
+- Actualizar reglas de negocio en una sola ubicación
+
+### 9. Integración de UI
 
 **Archivos:**
 
@@ -177,10 +203,11 @@ def get_activity_type_display(self):
 
 Se agregaron botones "Reactivar" que:
 
-- Solo aparecen para desuscripciones completas (`end_date` existe y `unsubscription_type == 1`)
+- Solo aparecen cuando `subscription.can_be_reactivated()` retorna True (incluye verificación de 30 días)
 - Reemplazan el botón "Desuscribir" cuando aplica
 - Usan esquema de color verde con ícono de rehacer
 - Enlazan a la pantalla de confirmación de reactivación
+- Se ocultan automáticamente después de 30 días desde la fecha de desuscripción
 
 ### 9. Enrutamiento de URLs
 
