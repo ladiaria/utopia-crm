@@ -154,8 +154,8 @@ urlpatterns = [
     path("contacts/<int:pk>/", views.ContactDetailView.as_view(), name="contact_detail"),
     re_path(r"^edit_envelopes/(\d+)/$", edit_envelopes, name="edit_envelopes"),
     re_path(r"^upload_payment_certificate/(\d+)/$", upload_payment_certificate, name="upload_payment_certificate"),
-    re_path(
-        r"^address_complementary_information/(\d+)/$",
+    path(
+        "address_complementary_information/<int:address_id>/",
         edit_address_complementary_information,
         name="edit_address_complementary_information",
     ),
@@ -163,7 +163,7 @@ urlpatterns = [
     re_path(
         r"^campaign_statistics/(?P<campaign_id>\d+)/$",
         CampaignStatisticsDetailView.as_view(),
-        name="campaign_statistics_detail"
+        name="campaign_statistics_detail",
     ),
     re_path(
         r"^campaign_statistics/by_seller/(\d+)/$",
