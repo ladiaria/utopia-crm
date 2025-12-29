@@ -810,10 +810,15 @@ class ValidateSubscriptionForm(forms.ModelForm):
         queryset=Seller.objects.filter(internal=True),
         widget=forms.Select(attrs={"class": "form-control"}),
     )
+    campaign = forms.ModelChoiceField(
+        queryset=Campaign.objects.filter(active=True),
+        required=False,
+        widget=forms.Select(attrs={"class": "form-control"}),
+    )
 
     class Meta:
         model = SalesRecord
-        fields = ("can_be_commissioned", "override_commission_value", "seller")
+        fields = ("can_be_commissioned", "override_commission_value", "seller", "campaign")
         widgets = {
             "can_be_commissioned": forms.CheckboxInput(attrs={"class": "form-check-input"}),
         }
