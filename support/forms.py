@@ -807,7 +807,7 @@ class ValidateSubscriptionForm(forms.ModelForm):
         widget=forms.NumberInput(attrs={"class": "form-control", "placeholder": _("Override amount"), "min": 0}),
     )
     seller = forms.ModelChoiceField(
-        queryset=Seller.objects.filter(internal=True),
+        queryset=Seller.objects.filter(internal=True).order_by('name'),
         widget=forms.Select(attrs={"class": "form-control"}),
     )
     campaign = forms.ModelChoiceField(

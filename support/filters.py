@@ -95,26 +95,26 @@ class ScheduledActivityFilter(django_filters.FilterSet):
 
 
 class ContactCampaignStatusFilter(django_filters.FilterSet):
-    seller = django_filters.ModelChoiceFilter(queryset=Seller.objects.filter(internal=True))
+    seller = django_filters.ModelChoiceFilter(queryset=Seller.objects.filter(internal=True).order_by('name'))
     date_assigned_min = django_filters.DateFilter(
         field_name='date_assigned',
         lookup_expr='gte',
-        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'})
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
     )
     date_assigned_max = django_filters.DateFilter(
         field_name='date_assigned',
         lookup_expr='lte',
-        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'})
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
     )
     last_action_date_min = django_filters.DateFilter(
         field_name='last_action_date',
         lookup_expr='gte',
-        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'})
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
     )
     last_action_date_max = django_filters.DateFilter(
         field_name='last_action_date',
         lookup_expr='lte',
-        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'})
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
     )
 
     class Meta:
@@ -206,25 +206,28 @@ class SalesRecordFilter(django_filters.FilterSet):
         field_name='date_time__date', lookup_expr='lte', widget=forms.TextInput(attrs={'autocomplete': 'off'})
     )
     start_date__gte = django_filters.DateFilter(
-        field_name='subscription__start_date', lookup_expr='gte', widget=forms.TextInput(attrs={'autocomplete': 'off'}),
-        label=_('Subscription start date (min)')
+        field_name='subscription__start_date',
+        lookup_expr='gte',
+        widget=forms.TextInput(attrs={'autocomplete': 'off'}),
+        label=_('Subscription start date (min)'),
     )
     start_date__lte = django_filters.DateFilter(
-        field_name='subscription__start_date', lookup_expr='lte', widget=forms.TextInput(attrs={'autocomplete': 'off'}),
-        label=_('Subscription start date (max)')
+        field_name='subscription__start_date',
+        lookup_expr='lte',
+        widget=forms.TextInput(attrs={'autocomplete': 'off'}),
+        label=_('Subscription start date (max)'),
     )
     seller = django_filters.ModelMultipleChoiceFilter(
-        queryset=Seller.objects.filter(salesrecord__isnull=False).distinct(), field_name='seller'
+        queryset=Seller.objects.filter(salesrecord__isnull=False, internal=True).order_by('name').distinct(),
+        field_name='seller',
     )
     payment_method = django_filters.MultipleChoiceFilter(
         choices=payment_method_choices, field_name="subscription__payment_type"
     )
     products = django_filters.ModelMultipleChoiceFilter(
-        queryset=Product.objects.filter(
-            type__in=['S', 'O'], active=True
-        ).order_by('name'),
+        queryset=Product.objects.filter(type__in=['S', 'O'], active=True).order_by('name'),
         field_name='products',
-        label=_('Products')
+        label=_('Products'),
     )
 
     class Meta:
@@ -241,22 +244,24 @@ class SalesRecordFilterForSeller(django_filters.FilterSet):
         field_name='date_time__date', lookup_expr='lte', widget=forms.TextInput(attrs={'autocomplete': 'off'})
     )
     start_date__gte = django_filters.DateFilter(
-        field_name='subscription__start_date', lookup_expr='gte', widget=forms.TextInput(attrs={'autocomplete': 'off'}),
-        label=_('Subscription start date (min)')
+        field_name='subscription__start_date',
+        lookup_expr='gte',
+        widget=forms.TextInput(attrs={'autocomplete': 'off'}),
+        label=_('Subscription start date (min)'),
     )
     start_date__lte = django_filters.DateFilter(
-        field_name='subscription__start_date', lookup_expr='lte', widget=forms.TextInput(attrs={'autocomplete': 'off'}),
-        label=_('Subscription start date (max)')
+        field_name='subscription__start_date',
+        lookup_expr='lte',
+        widget=forms.TextInput(attrs={'autocomplete': 'off'}),
+        label=_('Subscription start date (max)'),
     )
     payment_method = django_filters.MultipleChoiceFilter(
         choices=payment_method_choices, field_name="subscription__payment_type"
     )
     products = django_filters.ModelMultipleChoiceFilter(
-        queryset=Product.objects.filter(
-            type__in=['S', 'O'], active=True
-        ).order_by('name'),
+        queryset=Product.objects.filter(type__in=['S', 'O'], active=True).order_by('name'),
         field_name='products',
-        label=_('Products')
+        label=_('Products'),
     )
 
     class Meta:
