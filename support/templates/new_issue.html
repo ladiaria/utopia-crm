@@ -1,5 +1,5 @@
 {% extends "adminlte/base.html" %}
-{% load static i18n %}
+{% load static i18n widget_tweaks %}
 {% block title %}
   {% trans "New issue" %}
 {% endblock title %}
@@ -7,6 +7,59 @@
 {% block stylesheets %}
   {{ block.super }}
   <link rel="stylesheet" href="{% static "css/choices.min.css" %}" />
+  <style>
+    /* Enhanced styling for new issue form */
+    .category-tabs .nav-link {
+      border-radius: 0.25rem;
+      margin: 0 0.25rem;
+      transition: all 0.2s ease;
+    }
+    .category-tabs .nav-link:hover {
+      background-color: #f8f9fa;
+      transform: translateY(-1px);
+    }
+    .category-tabs .nav-link.active {
+      background-color: #007bff;
+      color: white;
+      font-weight: 500;
+    }
+    .form-section {
+      background-color: #f8f9fa;
+      padding: 1rem;
+      border-radius: 0.25rem;
+      margin-bottom: 1rem;
+    }
+    .form-section-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #495057;
+      margin-bottom: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .required-field label::after {
+      content: " *";
+      color: #dc3545;
+    }
+    .form-help-text {
+      font-size: 0.875rem;
+      color: #6c757d;
+      margin-top: 0.25rem;
+    }
+    input[type="date"] {
+      position: relative;
+    }
+    input[type="date"]::-webkit-calendar-picker-indicator {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 100%;
+      height: 100%;
+      padding: 0;
+      color: transparent;
+      background: transparent;
+    }
+  </style>
 {% endblock %}
 
 {% block extra_js %}
@@ -49,70 +102,127 @@ $( function() {
 {% endblock %}
 
 {% block no_heading %}
-  <h1>
-    {% trans "New issue" %}
-  </h1>
+  <h1>{% trans "New issue" %}</h1>
 {% endblock %}
 
 {% block content %}
   <div class="row">
-    <div class="col-md-9">
-      <div class="card">
-        <div class="card-header p-2">
-          <ul class="nav nav-pills">
-            <li class="new-item">
-              <a class="nav-link active" href="{% url "new_issue" contact.id "L" %}">{% trans "Regular issues" %}</a>
+    <div class="col-md-12 col-lg-10 col-xl-9">
+      <div class="card shadow-sm">
+        <div class="card-header bg-white p-3">
+          <h5 class="mb-3">
+            <i class="fas fa-tasks mr-2 text-primary"></i>
+            {% trans "Issue Type" %}
+          </h5>
+          <ul class="nav nav-pills category-tabs mb-2">
+            <li class="nav-item">
+              <a class="nav-link active" href="{% url "new_issue" contact.id "L" %}">
+                <i class="fas fa-clipboard-list mr-1"></i>
+                {% trans "Regular issues" %}
+              </a>
             </li>
-            <li class="new-item">
-              <a class="nav-link" href="{% url "new_scheduled_task_address_change" contact.id %}">{% trans "Change address" %}</a>
+            <li class="nav-item">
+              <a class="nav-link"
+                 href="{% url "new_scheduled_task_address_change" contact.id %}">
+                <i class="fas fa-map-marker-alt mr-1"></i>
+                {% trans "Change address" %}
+              </a>
             </li>
-            <li class="new-item">
-              <a class="nav-link" href="{% url "new_scheduled_task_total_pause" contact.id %}">{% trans "Pause subscription" %}</a>
+            <li class="nav-item">
+              <a class="nav-link"
+                 href="{% url "new_scheduled_task_total_pause" contact.id %}">
+                <i class="fas fa-pause-circle mr-1"></i>
+                {% trans "Pause subscription" %}
+              </a>
             </li>
-            <li class="new-item">
-              <a class="nav-link" href="{% url "new_scheduled_task_partial_pause" contact.id %}">{% trans "Partial pause" %}</a>
-            </li>
-          </ul>
-          <ul class="nav nav-pills mt-2">
-            <li class="new-item">
-              <a class="nav-link {% if form.category.value == 'L' %}active{% endif %}" href="{% url "new_issue" contact.id "L" %}">{% trans "Logistics" %}</a>
-            </li>
-            <li class="new-item">
-              <a class="nav-link {% if form.category.value == 'I' %}active{% endif %}" href="{% url "new_issue" contact.id "I" %}">{% trans "Invoicing" %}</a>
-            </li>
-            <li class="new-item">
-              <a class="nav-link {% if form.category.value == 'M' %}active{% endif %}" href="{% url "new_issue" contact.id "M" %}">{% trans "Collections" %}</a>
-            </li>
-            <li class="new-item">
-              <a class="nav-link {% if form.category.value == 'C' %}active{% endif %}" href="{% url "new_issue" contact.id "C" %}">{% trans "Contents" %}</a>
-            </li>
-            <li class="new-item">
-              <a class="nav-link {% if form.category.value == 'W' %}active{% endif %}" href="{% url "new_issue" contact.id "W" %}">{% trans "Web" %}</a>
-            </li>
-            <li class="new-item">
-              <a class="nav-link {% if form.category.value == 'S' %}active{% endif %}" href="{% url "new_issue" contact.id "S" %}">{% trans "Service" %}</a>
-            </li>
-            <li class="new-item">
-              <a class="nav-link {% if form.category.value == 'O' %}active{% endif %}" href="{% url "new_issue" contact.id "O" %}">{% trans "Community" %}</a>
+            <li class="nav-item">
+              <a class="nav-link"
+                 href="{% url "new_scheduled_task_partial_pause" contact.id %}">
+                <i class="fas fa-pause mr-1"></i>
+                {% trans "Partial pause" %}
+              </a>
             </li>
           </ul>
+          <div class="border-top pt-3 mt-2">
+            <h6 class="text-muted mb-2">
+              <i class="fas fa-tag mr-1"></i>
+              {% trans "Category" %}
+            </h6>
+            <ul class="nav nav-pills category-tabs flex-wrap">
+              <li class="nav-item">
+                <a class="nav-link {% if form.category.value == 'L' %}active{% endif %}"
+                   href="{% url "new_issue" contact.id "L" %}">
+                  <i class="fas fa-truck mr-1"></i>
+                  {% trans "Logistics" %}
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link {% if form.category.value == 'I' %}active{% endif %}"
+                   href="{% url "new_issue" contact.id "I" %}">
+                  <i class="fas fa-file-invoice-dollar mr-1"></i>
+                  {% trans "Invoicing" %}
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link {% if form.category.value == 'M' %}active{% endif %}"
+                   href="{% url "new_issue" contact.id "M" %}">
+                  <i class="fas fa-money-bill-wave mr-1"></i>
+                  {% trans "Collections" %}
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link {% if form.category.value == 'C' %}active{% endif %}"
+                   href="{% url "new_issue" contact.id "C" %}">
+                  <i class="fas fa-newspaper mr-1"></i>
+                  {% trans "Contents" %}
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link {% if form.category.value == 'W' %}active{% endif %}"
+                   href="{% url "new_issue" contact.id "W" %}">
+                  <i class="fas fa-globe mr-1"></i>
+                  {% trans "Web" %}
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link {% if form.category.value == 'S' %}active{% endif %}"
+                   href="{% url "new_issue" contact.id "S" %}">
+                  <i class="fas fa-concierge-bell mr-1"></i>
+                  {% trans "Service" %}
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link {% if form.category.value == 'O' %}active{% endif %}"
+                   href="{% url "new_issue" contact.id "O" %}">
+                  <i class="fas fa-users mr-1"></i>
+                  {% trans "Community" %}
+                </a>
+              </li>
+            </ul>
+          </div>
         </div>
-        <div class="card-body">
+        <div class="card-body p-4">
           <form method="post">
             {{ form.category }}
             {% if form.errors %}
-              {% for field in form %}
-                {% for error in field.errors %}
-                  <div class="alert alert-danger">
-                    <strong>{{ error|escape }}</strong>
-                  </div>
+              <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <h5 class="alert-heading">
+                  <i class="fas fa-exclamation-triangle mr-2"></i>
+                  {% trans "Please correct the following errors:" %}
+                </h5>
+                <hr>
+                {% for field in form %}
+                  {% for error in field.errors %}
+                    <p class="mb-1">
+                      <strong>{{ field.label }}:</strong> {{ error|escape }}
+                    </p>
+                  {% endfor %}
                 {% endfor %}
-              {% endfor %}
-              {% for error in form.non_field_errors %}
-                <div class="alert alert-danger">
-                  <strong>{{ error|escape }}</strong>
-                </div>
-              {% endfor %}
+                {% for error in form.non_field_errors %}<p class="mb-1">{{ error|escape }}</p>{% endfor %}
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                  <span aria-hidden="true">×</span>
+                </button>
+              </div>
             {% endif %}
             {% csrf_token %}
             <div class="form-group d-none">
@@ -120,116 +230,196 @@ $( function() {
               {{ form.contact }}
               <span class="error invalid-feedback">{{ form.contact.errors }}</span>
             </div>
-            <div class="row">
-              <div class="col-12">
-                <div class="form-group">
-                  <label for="id_sub_category">{{ form.sub_category.label }}</label>
-                  {{ form.sub_category }}
-                  <span class="error invalid-feedback">{{ form.subcategory.errors }}</span>
-                </div>
-              </div>
-            </div>
-            <div class="row{% if form.category.value == 'I' or form.category.value == "M" %} d-none{% endif %}">
-              <div class="col-6">
-                <div class="form-group">
-                  <label for="id_copies">{{ form.copies.label }}</label>
-                  {{ form.copies }}
-                  <span class="error invalid-feedback">{{ form.copies.errors }}</span>
-                </div>
-              </div>
-              <div class="col-6">
-                <div class="form-group">
-                  <label for="id_envelope">{{ form.envelope.label }}</label>
-                  <div class="form-check">
-                    {{ form.envelope }}
-                    <label class="form-check-label">{% trans "Add" %}</label>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div class="form-group">
-              <label>{% trans "Assigned to" %}</label>
-              {{ form.assigned_to }}
-            </div>
-            <div class="form-group id_subscription_product">
-              <label for="id_subscription_product">{{ form.subscription_product.label }}</label>
-              {{ form.subscription_product }}
-              <span class="error invalid-feedback">{{ form.subscription_product.errors }}</span>
-            </div>
-            <div class="form-group id_subscription">
-              <label for="id_subscription">{{ form.subscription.label }}</label>
-              {{ form.subscription }}
-              <span class="error invalid-feedback">{{ form.subscription_product.errors }}</span>
-            </div>
-            <div class="form-group id_product">
-              <label for="id_product">{{ form.product.label }}</label>
-              {{ form.product }}
-              <span class="error invalid-feedback">{{ form.product.errors }}</span>
-            </div>
-            <div class="form-group">
-              <label for="id_activity_type">{{ form.activity_type.label }}</label>
-              {{ form.activity_type }}
-              <span class="error invalid-feedback">{{ form.activity_type.errors }}</span>
-            </div>
-            <div class="form-group">
-              <label for="id_status">{{ form.status.label }}</label>
-              {{ form.status }}
-              <span class="error invalid-feedback">{{ form.status.errors }}</span>
-            </div>
-            <div class="form-group">
-              <label for="id_notes">{{ form.notes.label }}</label>
-              {{ form.notes }}
-              <span class="error invalid-feedback">{{ form.notes.errors }}</span>
-            </div>
-            <div class="form-group {% if form.category.value == 'I' or form.category.value == "M" %}d-none{% endif %}">
-              <label for="id_contact_address">{{ form.contact_address.label }}</label>
-              {{ form.contact_address }}
-              <span class="error invalid-feedback">{{ form.contact_address.errors }}</span>
-            </div>
-            <div class="form-group {% if form.category.value == 'I' or form.category.value == "M" %}d-none{% endif %}">
-              <div class="form-check">
-                {{ form.new_address }}
-                <label for="id_new_address" class="form-check-label">{{ form.new_address.label }}</label>
-              </div>
-            </div>
-            <div class="newaddress-group d-none">
-              <div class="row">
-                <div class="col-md-6 col-s-12">
-                  <div class="form-group">
-                    <label for="id_new_address_1">{{ form.new_address_1.label }}</label>
-                    {{ form.new_address_1 }}
-                    <span class="error invalid-feedback">{{ form.new_address_1.errors }}</span>
-                  </div>
-                </div>
-                <div class="col-md-6 col-s-12">
-                  <div class="form-group">
-                    <label for="id_new_address_2">{{ form.new_address_2.label }}</label>
-                    {{ form.new_address_2 }}
-                    <span class="error invalid-feedback">{{ form.new_address_2.errors }}</span>
-                  </div>
-                </div>
+            <!-- Issue Details Section -->
+            <div class="form-section">
+              <div class="form-section-title">
+                <i class="fas fa-info-circle mr-1"></i>
+                {% trans "Issue Details" %}
               </div>
               <div class="row">
-                <div class="col-md-6 col-s-12">
-                  <div class="form-group">
-                    <label for="id_new_address_city">{{ form.new_address_city.label }}</label>
-                    {{ form.new_address_city }}
-                    <span class="error invalid-feedback">{{ form.new_address_city.errors }}</span>
+                <div class="col-md-6">
+                  <div class="form-group required-field">
+                    <label for="id_date">{{ form.date.label }}</label>
+                    <div class="input-group">
+                      <div class="input-group-prepend">
+                        <span class="input-group-text">
+                          <i class="far fa-calendar-alt"></i>
+                        </span>
+                      </div>
+                      {% render_field form.date class="form-control" type="date" %}
+                      <span class="error invalid-feedback">{{ form.date.errors }}</span>
+                    </div>
+                    <small class="form-help-text">{% trans "Date when the issue occurred" %}</small>
                   </div>
                 </div>
-                <div class="col-md-6 col-s-12">
-                  <div class="form-group">
-                    <label for="id_new_address_state">{{ form.new_address_state.label }}</label>
-                    {{ form.new_address_state }}
+                <div class="col-md-6">
+                  <div class="form-group required-field">
+                    <label for="id_sub_category">{{ form.sub_category.label }}</label>
+                    {{ form.sub_category }}
+                    <span class="error invalid-feedback">{{ form.subcategory.errors }}</span>
                   </div>
                 </div>
               </div>
             </div>
-            <div class="form-group text-right">
-              <input type="submit"
-                     name="submit"
-                     value='{% trans "Send" %}'
-                     class="btn bg-gradient-primary">
+            <!-- Product Details Section -->
+            <div class="form-section{% if form.category.value == 'I' or form.category.value == "M" %} d-none{% endif %}">
+              <div class="form-section-title">
+                <i class="fas fa-box mr-1"></i>
+                {% trans "Product Details" %}
+              </div>
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="form-group">
+                    <label for="id_copies">{{ form.copies.label }}</label>
+                    {{ form.copies }}
+                    <span class="error invalid-feedback">{{ form.copies.errors }}</span>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="form-group">
+                    <label for="id_envelope">{{ form.envelope.label }}</label>
+                    <div class="form-check mt-2">
+                      {{ form.envelope }}
+                      <label class="form-check-label ml-2">{% trans "Add" %}</label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <!-- Assignment & Tracking Section -->
+            <div class="form-section">
+              <div class="form-section-title">
+                <i class="fas fa-user-check mr-1"></i>
+                {% trans "Assignment & Tracking" %}
+              </div>
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="form-group">
+                    <label for="id_assigned_to">{% trans "Assigned to" %}</label>
+                    {{ form.assigned_to }}
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="form-group">
+                    <label for="id_status">{{ form.status.label }}</label>
+                    {{ form.status }}
+                    <span class="error invalid-feedback">{{ form.status.errors }}</span>
+                  </div>
+                </div>
+              </div>
+              <div class="form-group required-field">
+                <label for="id_activity_type">{{ form.activity_type.label }}</label>
+                {{ form.activity_type }}
+                <span class="error invalid-feedback">{{ form.activity_type.errors }}</span>
+              </div>
+            </div>
+            <!-- Related Items Section -->
+            <div class="form-section">
+              <div class="form-section-title">
+                <i class="fas fa-link mr-1"></i>
+                {% trans "Related Items" %}
+              </div>
+              <small class="form-help-text d-block mb-3">
+                <i class="fas fa-info-circle mr-1"></i>
+                {% trans "Please select at least one related item to provide information about what the contact had issues with." %}
+              </small>
+              <div class="form-group id_subscription_product">
+                <label for="id_subscription_product">{{ form.subscription_product.label }}</label>
+                {{ form.subscription_product }}
+                <span class="error invalid-feedback">{{ form.subscription_product.errors }}</span>
+              </div>
+              <div class="form-group id_subscription">
+                <label for="id_subscription">{{ form.subscription.label }}</label>
+                {{ form.subscription }}
+                <span class="error invalid-feedback">{{ form.subscription_product.errors }}</span>
+              </div>
+              <div class="form-group id_product">
+                <label for="id_product">{{ form.product.label }}</label>
+                {{ form.product }}
+                <span class="error invalid-feedback">{{ form.product.errors }}</span>
+              </div>
+            </div>
+            <!-- Notes Section -->
+            <div class="form-section">
+              <div class="form-section-title">
+                <i class="fas fa-sticky-note mr-1"></i>
+                {% trans "Notes" %}
+              </div>
+              <div class="form-group">
+                <label for="id_notes">{{ form.notes.label }}</label>
+                {{ form.notes }}
+                <span class="error invalid-feedback">{{ form.notes.errors }}</span>
+                <small class="form-help-text">{% trans "Add any additional details about this issue" %}</small>
+              </div>
+            </div>
+            <!-- Address Section -->
+            <div class="form-section {% if form.category.value == 'I' or form.category.value == "M" %}d-none{% endif %}">
+              <div class="form-section-title">
+                <i class="fas fa-map-marker-alt mr-1"></i>
+                {% trans "Address Information" %}
+              </div>
+              <div class="form-group">
+                <label for="id_contact_address">{{ form.contact_address.label }}</label>
+                {{ form.contact_address }}
+                <span class="error invalid-feedback">{{ form.contact_address.errors }}</span>
+              </div>
+              <div class="form-group">
+                <div class="form-check">
+                  {{ form.new_address }}
+                  <label for="id_new_address" class="form-check-label ml-2">{{ form.new_address.label }}</label>
+                </div>
+              </div>
+              <div class="newaddress-group d-none mt-3 p-3 border rounded bg-white">
+                <h6 class="text-muted mb-3">
+                  <i class="fas fa-plus-circle mr-1"></i>
+                  {% trans "New Address Details" %}
+                </h6>
+                <div class="row">
+                  <div class="col-md-6">
+                    <div class="form-group">
+                      <label for="id_new_address_1">{{ form.new_address_1.label }}</label>
+                      {{ form.new_address_1 }}
+                      <span class="error invalid-feedback">{{ form.new_address_1.errors }}</span>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="form-group">
+                      <label for="id_new_address_2">{{ form.new_address_2.label }}</label>
+                      {{ form.new_address_2 }}
+                      <span class="error invalid-feedback">{{ form.new_address_2.errors }}</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="col-md-6">
+                    <div class="form-group">
+                      <label for="id_new_address_city">{{ form.new_address_city.label }}</label>
+                      {{ form.new_address_city }}
+                      <span class="error invalid-feedback">{{ form.new_address_city.errors }}</span>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="form-group">
+                      <label for="id_new_address_state">{{ form.new_address_state.label }}</label>
+                      {{ form.new_address_state }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <!-- Submit Button -->
+            <div class="border-top pt-4 mt-4">
+              <div class="d-flex justify-content-between align-items-center">
+                <a href="{% url 'contact_detail' contact.id %}"
+                   class="btn btn-outline-secondary">
+                  <i class="fas fa-arrow-left mr-1"></i>
+                  {% trans "Cancel" %}
+                </a>
+                <button type="submit" name="submit" class="btn btn-primary btn-lg px-5">
+                  <i class="fas fa-paper-plane mr-2"></i>
+                  {% trans "Create Issue" %}
+                </button>
+              </div>
             </div>
           </form>
         </div>

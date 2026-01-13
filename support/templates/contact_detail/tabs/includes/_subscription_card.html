@@ -28,7 +28,7 @@
     {% endif %}
     {% if subscription.is_obsolete %}
       <div class="alert alert-warning py-1 px-2 mb-2">
-        <small><i class="fas fa-exchange-alt"></i> {% trans "Replaced by subscription" %} #{{ subscription.get_updated_subscription.number }}</small>
+        <small><i class="fas fa-exchange-alt"></i> {% trans "Replaced by subscription" %} #{{ subscription.get_updated_subscription.id }}</small>
       </div>
     {% endif %}
     <div class="row">
@@ -157,6 +157,18 @@
               <i class="fas fa-cog"></i> {% trans "Advanced" %}
             </a>
           {% endif %}
+        {% elif subscription.type == "F" %}
+          {% if request.user|in_group:"Managers" %}
+            <a href="{% url "update_free_subscription" subscription.id %}"
+               class="btn btn-sm btn-primary mr-1 mb-1">
+              <i class="fas fa-edit"></i> {% trans "Update Free Subscription" %}
+            </a>
+            <a href="{% url "admin:core_subscription_change" subscription.id %}"
+               class="btn btn-sm btn-secondary mr-1 mb-1"
+               target="_blank">
+              <i class="fas fa-cog"></i> {% trans "Advanced" %}
+            </a>
+          {% endif %}
         {% else %}
           {% if not subscription.is_obsolete %}
             <a href="{% url "additional_product" subscription.id %}"
@@ -178,6 +190,11 @@
                class="btn btn-sm btn-info mr-1 mb-1"
                target="_blank">
               <i class="fas fa-exchange-alt"></i> {% trans "Replaced" %}
+            </a>
+          {% elif subscription.can_be_reactivated %}
+            <a href="{% url "reactivate_subscription" subscription.id %}"
+               class="btn btn-sm btn-success mr-1 mb-1">
+              <i class="fas fa-redo"></i> {% trans "Reactivate" %}
             </a>
           {% else %}
             <a href="{% url "book_unsubscription" subscription.id %}"

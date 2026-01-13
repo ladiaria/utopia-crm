@@ -114,6 +114,7 @@ class SubscriptionProductInline(admin.TabularInline):
         ("product", "copies", "address"),
         ("order", "label_contact", "seller"),
         ("has_envelope", "active"),
+        ("original_datetime")
     )
     raw_id_fields = ["label_contact", "seller"]
 
@@ -339,7 +340,7 @@ class ContactAdmin(SimpleHistoryAdmin):
                     ("id_document_type", "id_document"),
                     ("phone", "mobile"),
                     "work_phone",
-                    ("gender", "education", "ranking"),
+                    ("gender", "education", "cms_date_joined"),
                     # TODO: include "occupation" right here after its name got fixed from single "c" to "cc"
                     ("birthdate", "private_birthdate"),
                     "notes",
@@ -558,6 +559,7 @@ class ProductAdmin(admin.ModelAdmin):
                     "renewal_type",
                     "has_implicit_discount",
                     "target_product",
+                    "discount_category",
                 ),
             },
         ),

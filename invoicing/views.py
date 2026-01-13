@@ -326,7 +326,7 @@ def invoice_filter(request):
     pending_count = pending.count()
 
     overdue = invoice_filter.qs.filter(
-        canceled=False, uncollectible=False, paid=False, debited=False, expiration_date__lte=date.today()
+        canceled=False, uncollectible=False, paid=False, debited=False, expiration_date__lt=date.today()
     )
     overdue_sum = overdue.aggregate(Sum('amount'))['amount__sum']
     overdue_count = overdue.count()

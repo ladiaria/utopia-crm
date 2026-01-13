@@ -1,12 +1,14 @@
 import collections
+import json
 from datetime import date, datetime, timedelta
 
 import pandas as pd
+from dateutil.relativedelta import relativedelta
 from django import forms
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
-from django.contrib.auth.mixins import UserPassesTestMixin
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.exceptions import ValidationError
 from django.db.models import Count
 from django.http import (
@@ -16,10 +18,11 @@ from django.http import (
     HttpResponseServerError,
 )
 from django.shortcuts import get_object_or_404, render
-from django.urls import reverse, reverse_lazy
+from django.urls import reverse
 from django.utils.text import format_lazy
+from django.utils.timezone import now
 from django.utils.translation import gettext as _
-from django.views.generic import FormView, ListView
+from django.views.generic import CreateView, FormView, ListView
 from django_filters.views import FilterView
 from requests.exceptions import RequestException
 
@@ -48,6 +51,8 @@ from support.forms import (
     UnsubscriptionForm,
     CorporateSubscriptionForm,
     AffiliateSubscriptionForm,
+    RetentionDiscountForm,
+    FreeSubscriptionForm,
 )
 from support.location import SugerenciaGeorefForm
 from support.models import SalesRecord
@@ -83,7 +88,6 @@ class SubscriptionMixin(BreadcrumbsMixin):
 
     def get_initial_data(self):
         contact = self.contact
-        contact_addresses = Address.objects.filter(contact=contact)
         return {
             "contact": contact,
             "name": contact.name,
@@ -93,7 +97,6 @@ class SubscriptionMixin(BreadcrumbsMixin):
             "email": contact.email,
             "id_document": contact.id_document,
             "id_document_type": contact.id_document_type,
-            "default_address": contact_addresses,
             "copies": 1,
         }
 
@@ -502,6 +505,47 @@ def book_unsubscription(request, subscription_id):
             subscription.unsubscription_manager = request.user
             subscription.unsubscription_products.add(*subscription.products.all())
             subscription.save()
+
+            # Create an Activity to store unsubscription information for potential reactivation
+            unsubscription_data = {
+                "type": "unsubscription",
+                "subscription_id": subscription.id,
+                "end_date": subscription.end_date.isoformat(),
+                "unsubscription_reason": subscription.unsubscription_reason,
+                "unsubscription_channel": subscription.unsubscription_channel,
+                "unsubscription_addendum": subscription.unsubscription_addendum,
+                "unsubscription_type": subscription.unsubscription_type,
+                "unsubscription_date": subscription.unsubscription_date.isoformat(),
+                "unsubscription_manager_id": request.user.id,
+                "unsubscription_manager_name": request.user.get_full_name() or request.user.username,
+                "unsubscription_products": [p.id for p in subscription.unsubscription_products.all()],
+            }
+
+            # Create human-readable notes
+            products_list = ", ".join([p.name for p in subscription.unsubscription_products.all()])
+            readable_notes = _(
+                "Complete unsubscription booked for {end_date}.\n"
+                "Reason: {reason}\n"
+                "Products: {products}\n"
+                "Manager: {manager}"
+            ).format(
+                end_date=subscription.end_date.isoformat(),
+                reason=subscription.get_unsubscription_reason_display() or "-",
+                products=products_list,
+                manager=request.user.get_full_name() or request.user.username
+            )
+
+            Activity.objects.create(
+                contact=subscription.contact,
+                activity_type="N",  # Internal - system-generated activity
+                datetime=datetime.now(),
+                status="C",
+                direction="O",
+                created_by=request.user,
+                notes=readable_notes,
+                metadata=unsubscription_data,
+            )
+
             return HttpResponseRedirect(reverse("contact_detail", args=[subscription.contact.id]))
     else:
         if subscription.is_obsolete():
@@ -525,6 +569,217 @@ def book_unsubscription(request, subscription_id):
             "subscription": subscription,
             "form": form,
             "breadcrumbs": breadcrumbs,
+        },
+    )
+
+
+@staff_member_required
+def reactivate_subscription(request, subscription_id):
+    """
+    Reactivate a subscription that was disabled using book_unsubscription.
+    This only works for complete unsubscriptions (unsubscription_type=1).
+    Partial unsubscriptions and product changes create new subscriptions, so they cannot be reactivated.
+
+    Business Rules:
+    - Can only reactivate within 30 days of unsubscription_date
+    - If next_billing is in the past, it will be adjusted to today + 1 day
+    """
+    subscription = get_object_or_404(Subscription, pk=subscription_id)
+
+    # Validate that this subscription can be reactivated
+    if not subscription.end_date:
+        messages.error(request, _("This subscription is not unsubscribed and cannot be reactivated"))
+        return HttpResponseRedirect(reverse("contact_detail", args=[subscription.contact.id]))
+
+    if subscription.unsubscription_type != 1:
+        messages.error(
+            request,
+            _(
+                "Only complete unsubscriptions can be reactivated. "
+                "Partial unsubscriptions and product changes create new subscriptions."
+            )
+        )
+        return HttpResponseRedirect(reverse("contact_detail", args=[subscription.contact.id]))
+
+    # Validate 30-day limit from unsubscription_date
+    if subscription.unsubscription_date:
+        days_since_unsubscription = (date.today() - subscription.unsubscription_date).days
+        if days_since_unsubscription > 30:
+            messages.error(
+                request,
+                _(
+                    "This subscription cannot be reactivated because more than 30 days have passed "
+                    "since the unsubscription date ({unsubscription_date}). "
+                    "Reactivation is only allowed within 30 days of unsubscription."
+                ).format(unsubscription_date=subscription.unsubscription_date.strftime("%Y-%m-%d"))
+            )
+            return HttpResponseRedirect(reverse("contact_detail", args=[subscription.contact.id]))
+
+    # Find the unsubscription activity to retrieve stored data
+    # First try to find activity with metadata field (new approach)
+    unsubscription_activity = None
+    stored_data = None
+
+    activities_with_metadata = Activity.objects.filter(
+        contact=subscription.contact,
+        metadata__type="unsubscription",
+        metadata__subscription_id=subscription.id
+    ).order_by("-datetime")
+
+    if activities_with_metadata.exists():
+        unsubscription_activity = activities_with_metadata.first()
+        stored_data = unsubscription_activity.metadata
+    else:
+        # Fallback: try old format with notes (for backward compatibility)
+        for activity in Activity.objects.filter(
+            contact=subscription.contact,
+            notes__startswith="UNSUBSCRIPTION_DATA:"
+        ).order_by("-datetime"):
+            try:
+                notes_data = activity.notes.replace("UNSUBSCRIPTION_DATA:", "", 1)
+                data = json.loads(notes_data)
+                if (
+                    data.get("end_date") == subscription.end_date.isoformat()
+                    and data.get("unsubscription_type") == subscription.unsubscription_type
+                ):
+                    unsubscription_activity = activity
+                    stored_data = data
+                    break
+            except (json.JSONDecodeError, AttributeError):
+                continue
+
+    if request.POST:
+        # If no activity was found, create one now for registry purposes (failproof)
+        if not unsubscription_activity:
+            # Create fallback unsubscription data from current subscription state
+            fallback_data = {
+                "type": "unsubscription",
+                "subscription_id": subscription.id,
+                "end_date": subscription.end_date.isoformat() if subscription.end_date else None,
+                "unsubscription_reason": subscription.unsubscription_reason,
+                "unsubscription_channel": subscription.unsubscription_channel,
+                "unsubscription_addendum": subscription.unsubscription_addendum,
+                "unsubscription_type": subscription.unsubscription_type,
+                "unsubscription_date": (
+                    subscription.unsubscription_date.isoformat() if subscription.unsubscription_date else None
+                ),
+                "unsubscription_manager_id": (
+                    subscription.unsubscription_manager.id if subscription.unsubscription_manager else None
+                ),
+                "unsubscription_manager_name": (
+                    subscription.unsubscription_manager.get_full_name()
+                    or subscription.unsubscription_manager.username
+                ) if subscription.unsubscription_manager else "Unknown",
+                "unsubscription_products": [p.id for p in subscription.unsubscription_products.all()],
+                "created_at_reactivation": True,  # Flag to indicate this was created during reactivation
+            }
+
+            products_list = ", ".join([p.name for p in subscription.unsubscription_products.all()])
+            fallback_notes = _(
+                "Unsubscription data (created during reactivation for registry):\n"
+                "End date: {end_date}\n"
+                "Reason: {reason}\n"
+                "Products: {products}\n"
+                "Manager: {manager}"
+            ).format(
+                end_date=subscription.end_date.isoformat() if subscription.end_date else "-",
+                reason=subscription.get_unsubscription_reason_display() or "-",
+                products=products_list or "-",
+                manager=fallback_data["unsubscription_manager_name"]
+            )
+
+            unsubscription_activity = Activity.objects.create(
+                contact=subscription.contact,
+                activity_type="N",  # Internal - system-generated activity
+                datetime=datetime.now(),
+                status="C",
+                direction="O",
+                created_by=request.user,
+                notes=fallback_notes,
+                metadata=fallback_data,
+            )
+            stored_data = fallback_data
+
+        # Perform the reactivation
+        subscription.end_date = None
+        subscription.unsubscription_reason = None
+        subscription.unsubscription_channel = None
+        subscription.unsubscription_addendum = None
+        subscription.unsubscription_type = None
+        subscription.unsubscription_date = None
+        subscription.unsubscription_manager = None
+        subscription.unsubscription_products.clear()
+
+        # Adjust next_billing if it's in the past to prevent unwanted invoices
+        if subscription.next_billing and subscription.next_billing < date.today():
+            subscription.next_billing = date.today() + timedelta(days=1)
+
+        subscription.save()
+
+        # Create an Activity to log the reactivation
+        reactivation_notes = _("Subscription reactivated by {user} on {date}").format(
+            user=request.user.get_full_name() or request.user.username,
+            date=date.today().isoformat()
+        )
+        if unsubscription_activity:
+            reactivation_notes += (
+                f"\n{_('Original unsubscription data stored in Activity')} "
+                f"#{unsubscription_activity.id}"
+            )
+
+        reactivation_metadata = {
+            "type": "reactivation",
+            "subscription_id": subscription.id,
+            "reactivation_date": date.today().isoformat(),
+            "reactivated_by_id": request.user.id,
+            "reactivated_by_name": request.user.get_full_name() or request.user.username,
+            "unsubscription_activity_id": unsubscription_activity.id if unsubscription_activity else None,
+        }
+
+        Activity.objects.create(
+            contact=subscription.contact,
+            activity_type="N",  # Internal - system-generated activity
+            datetime=datetime.now(),
+            status="C",
+            direction="O",
+            created_by=request.user,
+            notes=reactivation_notes,
+            metadata=reactivation_metadata,
+        )
+
+        success_text = format_lazy(
+            "Subscription for {name} has been reactivated",
+            name=subscription.contact.get_full_name(),
+        )
+        messages.success(request, success_text)
+        return HttpResponseRedirect(reverse("contact_detail", args=[subscription.contact.id]))
+
+    # GET request - show confirmation page
+    breadcrumbs = [
+        {"label": _("Contact list"), "url": reverse("contact_list")},
+        {
+            "label": subscription.contact.get_full_name(),
+            "url": reverse("contact_detail", args=[subscription.contact.id]),
+        },
+        {"label": _("Reactivate subscription"), "url": ""},
+    ]
+
+    # Get display values for reason and channel from subscription object
+    # These are needed because stored_data contains integer values, not display labels
+    reason_display = subscription.get_unsubscription_reason_display() if subscription.unsubscription_reason else None
+    channel_display = subscription.get_unsubscription_channel_display() if subscription.unsubscription_channel else None
+
+    # stored_data is already set from the activity lookup above
+    return render(
+        request,
+        "reactivate_subscription.html",
+        {
+            "subscription": subscription,
+            "stored_data": stored_data,
+            "unsubscription_activity": unsubscription_activity,
+            "breadcrumbs": breadcrumbs,
+            "reason_display": reason_display,
+            "channel_display": channel_display,
         },
     )
 
@@ -669,6 +924,7 @@ def product_change(request, subscription_id):
                         instructions=sp.special_instructions,
                         seller_id=sp.seller_id,
                     )
+                    new_sp.original_datetime = sp.original_datetime
                     if logistics_is_installed():
                         if sp.route:
                             new_sp.route = sp.route
@@ -775,6 +1031,7 @@ def book_additional_product(request, subscription_id):
                         instructions=sp.special_instructions,
                         seller_id=sp.seller_id,
                     )
+                    new_sp.original_datetime = sp.original_datetime
                     if logistics_is_installed():
                         if sp.route:
                             new_sp.route = sp.route
@@ -848,15 +1105,283 @@ def book_additional_product(request, subscription_id):
     )
 
 
-class SendPromoView(UserPassesTestMixin, FormView):
+@staff_member_required
+def add_retention_discount(request, subscription_id):
+    """
+    View for adding retention discounts to a subscription.
+    Creates a new subscription with retention discount products starting on a specified date.
+    Sets the old subscription's unsubscription type and reason to RETENTION.
+
+    This view allows:
+    - Adding retention discounts (shows all available except those already applied)
+    - Adding new subscription products (optional)
+    - Removing existing products (optional)
+
+    Similar to product_change but focused on retention scenarios.
+    """
+    old_subscription = get_object_or_404(Subscription, pk=subscription_id)
+
+    # Get existing retention discounts to exclude (only show discounts not already applied)
+    existing_discount_ids = old_subscription.products.filter(
+        type__in=["D", "P", "A"], discount_category="R"
+    ).values_list("id", flat=True)
+
+    # Get all available retention products (no target_product filtering)
+    retention_products = (
+        Product.objects.filter(type__in=["D", "P", "A"], discount_category="R", active=True)
+        .exclude(id__in=existing_discount_ids)
+    )
+
+    # Get offerable subscription products that the customer doesn't have yet
+    offerable_products = Product.objects.filter(offerable=True, type="S").exclude(
+        id__in=old_subscription.products.values_list("id")
+    )
+
+    breadcrumbs = [
+        {"label": _("Contact list"), "url": reverse("contact_list")},
+        {
+            "label": old_subscription.contact.get_full_name(),
+            "url": reverse("contact_detail", args=[old_subscription.contact.id]),
+        },
+        {"label": _("Add retention discount"), "url": ""},
+    ]
+
+    if request.POST:
+        form = RetentionDiscountForm(request.POST, instance=old_subscription)
+        if form.is_valid():
+            # Validate start date is at least tomorrow
+            start_date = form.cleaned_data["start_date"]
+            from datetime import timedelta
+            tomorrow = date.today() + timedelta(days=1)
+            if start_date < tomorrow:
+                messages.error(
+                    request,
+                    _("Start date must be at least tomorrow (%s)") % tomorrow.strftime('%d/%m/%Y'),
+                )
+                return render(
+                    request,
+                    "add_retention_discount.html",
+                    {
+                        "retention_products": retention_products,
+                        "subscription": old_subscription,
+                        "form": form,
+                        "breadcrumbs": breadcrumbs,
+                    },
+                )
+
+            # Get products to remove (marked for unsubscription)
+            products_to_remove = []
+            for key in request.POST.keys():
+                if key.startswith("sp-"):
+                    subscription_product_id = key.split("-")[1]
+                    subscription_product = SubscriptionProduct.objects.get(pk=subscription_product_id)
+                    products_to_remove.append(subscription_product.product)
+
+            # Get selected retention discount products
+            selected_discount_ids = []
+            for key in request.POST.keys():
+                if key.startswith("retentionproduct-"):
+                    product_id = key.split("-")[1]
+                    selected_discount_ids.append(product_id)
+
+            # Get new products to add
+            new_products_ids_list = []
+            for key in request.POST.keys():
+                if key.startswith("activateproduct-"):
+                    product_id = key.split("-")[1]
+                    new_products_ids_list.append(product_id)
+
+            # Validate that at least one action is being taken
+            if not selected_discount_ids and not products_to_remove and not new_products_ids_list:
+                messages.error(
+                    request,
+                    _("Please select at least one retention discount, add new products, "
+                      "or mark products to remove")
+                )
+                return render(
+                    request,
+                    "add_retention_discount.html",
+                    {
+                        "retention_products": retention_products,
+                        "offerable_products": offerable_products,
+                        "subscription": old_subscription,
+                        "form": form,
+                        "breadcrumbs": breadcrumbs,
+                    },
+                )
+
+            # Validate that at least one subscription product remains
+            # Count only subscription products (type "S"), not discounts
+            subscription_products = [
+                sp.product for sp in old_subscription.subscriptionproduct_set.all()
+                if sp.product.type == "S"
+            ]
+            subscription_products_to_remove = [p for p in products_to_remove if p.type == "S"]
+
+            # Check if we're removing all subscription products without adding new ones
+            if len(subscription_products_to_remove) >= len(subscription_products) and not new_products_ids_list:
+                messages.error(
+                    request,
+                    _("You cannot remove all subscription products without adding new ones. "
+                      "At least one subscription product must remain (discounts alone are not enough)."),
+                )
+                return render(
+                    request,
+                    "add_retention_discount.html",
+                    {
+                        "retention_products": retention_products,
+                        "offerable_products": offerable_products,
+                        "subscription": old_subscription,
+                        "form": form,
+                        "breadcrumbs": breadcrumbs,
+                    },
+                )
+
+            # Set end date on old subscription
+            old_subscription.end_date = form.cleaned_data["start_date"]
+            old_subscription.save()
+
+            # Create new subscription with retention discounts
+            new_subscription = Subscription.objects.create(
+                active=False,
+                contact=old_subscription.contact,
+                start_date=form.cleaned_data["start_date"],
+                payment_type=old_subscription.payment_type,
+                type=old_subscription.type,
+                status="OK",
+                billing_name=old_subscription.billing_name,
+                billing_id_doc=old_subscription.billing_id_doc,
+                rut=old_subscription.rut,
+                billing_phone=old_subscription.billing_phone,
+                send_bill_copy_by_email=old_subscription.send_bill_copy_by_email,
+                billing_address=old_subscription.billing_address,
+                billing_email=old_subscription.billing_email,
+                next_billing=old_subscription.next_billing,
+                frequency=old_subscription.frequency,
+                updated_from=old_subscription,
+            )
+
+            # Copy products from old subscription to new subscription, excluding removed ones
+            # Also add removed products to unsubscription_products
+            for sp in old_subscription.subscriptionproduct_set.all():
+                if sp.product in products_to_remove:
+                    # Add to unsubscription_products for tracking
+                    old_subscription.unsubscription_products.add(sp.product)
+                else:
+                    # Copy to new subscription
+                    new_sp = new_subscription.add_product(
+                        product=sp.product,
+                        address=sp.address,
+                        copies=sp.copies,
+                        message=sp.label_message,
+                        instructions=sp.special_instructions,
+                        seller_id=sp.seller_id,
+                    )
+                    new_sp.original_datetime = sp.original_datetime
+                    if logistics_is_installed():
+                        if sp.route:
+                            new_sp.route = sp.route
+                        if sp.order:
+                            new_sp.order = sp.order
+                    new_sp.save()
+
+            # Get seller for new products
+            seller_id = request.user.seller_set.first().id if request.user.seller_set.exists() else None
+
+            # Add retention discount products
+            for product_id in selected_discount_ids:
+                product = Product.objects.get(pk=product_id)
+                if product not in new_subscription.products.all():
+                    new_subscription.add_product(
+                        product=product,
+                        address=None,  # Discounts don't need addresses
+                    )
+
+            # Add new subscription products
+            for product_id in new_products_ids_list:
+                product = Product.objects.get(pk=product_id)
+                if product not in new_subscription.products.all():
+                    new_subscription.add_product(
+                        product=product,
+                        seller_id=seller_id,
+                        address=None,
+                    )
+
+            # Set old subscription's unsubscription type and reason to RETENTION
+            old_subscription.inactivity_reason = Subscription.InactivityReasonChoices.RETENTION
+            old_subscription.unsubscription_type = Subscription.UnsubscriptionTypeChoices.RETENTION
+            old_subscription.unsubscription_date = date.today()
+            old_subscription.unsubscription_manager = request.user
+            old_subscription.save()
+
+            success_text = format_lazy(
+                "Retention discount(s) added for {name}, starting {start_date}",
+                name=old_subscription.contact.get_full_name(),
+                start_date=form.cleaned_data["start_date"],
+            )
+            messages.success(request, success_text)
+
+            # Redirect to edit subscription page to allow address changes for new products
+            url = reverse("edit_subscription", args=[new_subscription.contact.id, new_subscription.id])
+            url_params = ""
+            if request.GET.get("url", None):
+                url_params += f"&url={request.GET['url']}"
+            if request.GET.get("offset", None):
+                url_params += f"&offset={request.GET['offset']}"
+            if request.GET.get("new", None):
+                url_params += f"&new={request.GET['new']}"
+            if request.GET.get("act", None):
+                url_params += f"&act={request.GET['act']}"
+            if url_params.startswith("&"):
+                # Switch the first & for ?
+                url_params = "?" + url_params[1:]
+
+            return HttpResponseRedirect(url + url_params)
+    else:
+        form = RetentionDiscountForm(instance=old_subscription)
+        # Set default start date based on old subscription's start date
+        # If in the past: use today
+        # If in the future: use one day after it
+        if old_subscription.start_date < date.today():
+            form.initial["start_date"] = date.today() + timedelta(days=1)
+        else:
+            form.initial["start_date"] = old_subscription.start_date + timedelta(days=1)
+
+    return render(
+        request,
+        "add_retention_discount.html",
+        {
+            "retention_products": retention_products,
+            "offerable_products": offerable_products,
+            "subscription": old_subscription,
+            "form": form,
+            "breadcrumbs": breadcrumbs,
+        },
+    )
+
+
+class SendPromoView(BreadcrumbsMixin, UserPassesTestMixin, FormView):
     """
     Shows a form that the sellers can use to send promotions to the contact.
     """
+
     template_name = "seller_console_start_promo.html"
     form_class = NewPromoForm
 
     def test_func(self):
         return self.request.user.is_staff
+
+    def breadcrumbs(self):
+        """Return breadcrumbs for navigation."""
+        return [
+            {"label": _("Home"), "url": reverse("home")},
+            {"label": _("Contact list"), "url": reverse("contact_list")},
+            {
+                "label": self.contact.get_full_name(),
+                "url": reverse("contact_detail", args=[self.contact.id]),
+            },
+            {"label": _("Send promotion"), "url": ""},
+        ]
 
     def dispatch(self, request, *args, **kwargs):
         """Initialize view-level variables from URL parameters."""
@@ -876,9 +1401,7 @@ class SendPromoView(UserPassesTestMixin, FormView):
         if self.act:
             self.activity = get_object_or_404(Activity, pk=self.act)
             self.campaign = self.activity.campaign
-            self.ccs = get_object_or_404(
-                ContactCampaignStatus, contact=self.contact, campaign=self.campaign
-            )
+            self.ccs = get_object_or_404(ContactCampaignStatus, contact=self.contact, campaign=self.campaign)
         elif self.new:
             self.ccs = get_object_or_404(ContactCampaignStatus, pk=self.new)
             self.campaign = self.ccs.campaign
@@ -903,17 +1426,22 @@ class SendPromoView(UserPassesTestMixin, FormView):
             "phone": self.contact.phone,
             "mobile": self.contact.mobile,
             "email": self.contact.email,
-            "default_address": self.contact_addresses,
+            "notes": self.contact.notes,
             "start_date": start_date,
             "end_date": end_date,
             "copies": 1,
         }
 
     def get_form(self, form_class=None):
-        """Customize form to set address queryset."""
+        """Customize form to set address queryset and pass contact."""
         form = super().get_form(form_class)
-        form.fields["default_address"].queryset = self.contact_addresses
         return form
+
+    def get_form_kwargs(self):
+        """Pass the contact to the form."""
+        kwargs = super().get_form_kwargs()
+        kwargs['contact'] = self.contact
+        return kwargs
 
     def post(self, request, *args, **kwargs):
         """Handle Cancel button separately from form submission."""
@@ -1003,12 +1531,14 @@ class SendPromoView(UserPassesTestMixin, FormView):
     def get_context_data(self, **kwargs):
         """Add additional context for the template."""
         context = super().get_context_data(**kwargs)
-        context.update({
-            "contact": self.contact,
-            "address_form": NewAddressForm(initial={"address_type": "physical"}),
-            "offerable_products": self.offerable_products,
-            "contact_addresses": self.contact_addresses,
-        })
+        context.update(
+            {
+                "contact": self.contact,
+                "address_form": NewAddressForm(initial={"address_type": "physical"}),
+                "offerable_products": self.offerable_products,
+                "contact_addresses": self.contact_addresses,
+            }
+        )
         return context
 
 
@@ -1016,16 +1546,29 @@ class SendPromoView(UserPassesTestMixin, FormView):
 send_promo = SendPromoView.as_view()
 
 
-class UpdatePromoView(UserPassesTestMixin, FormView):
+class UpdatePromoView(BreadcrumbsMixin, UserPassesTestMixin, FormView):
     """
     Shows a form that allows updating an existing promotional subscription.
     Similar to SendPromoView but updates instead of creates.
     """
+
     template_name = "seller_console_start_promo.html"
     form_class = NewPromoForm
 
     def test_func(self):
         return self.request.user.is_staff
+
+    def breadcrumbs(self):
+        """Return breadcrumbs for navigation."""
+        return [
+            {"label": _("Home"), "url": reverse("home")},
+            {"label": _("Contact list"), "url": reverse("contact_list")},
+            {
+                "label": self.contact.get_full_name(),
+                "url": reverse("contact_detail", args=[self.contact.id]),
+            },
+            {"label": _("Update promotion"), "url": ""},
+        ]
 
     def dispatch(self, request, *args, **kwargs):
         """Initialize view-level variables from URL parameters."""
@@ -1039,9 +1582,9 @@ class UpdatePromoView(UserPassesTestMixin, FormView):
         self.offerable_products = Product.objects.filter(offerable=True, type="S")
 
         # Get existing subscription products
-        self.subscription_products = SubscriptionProduct.objects.filter(
-            subscription=self.subscription
-        ).select_related('product', 'address')
+        self.subscription_products = SubscriptionProduct.objects.filter(subscription=self.subscription).select_related(
+            'product', 'address'
+        )
 
         return super().dispatch(request, *args, **kwargs)
 
@@ -1053,7 +1596,7 @@ class UpdatePromoView(UserPassesTestMixin, FormView):
             "phone": self.contact.phone,
             "mobile": self.contact.mobile,
             "email": self.contact.email,
-            "default_address": self.contact_addresses.first(),
+            "notes": self.contact.notes,
             "start_date": self.subscription.start_date,
             "end_date": self.subscription.end_date,
             "copies": 1,
@@ -1062,12 +1605,9 @@ class UpdatePromoView(UserPassesTestMixin, FormView):
     def get_form(self, form_class=None):
         """Customize form to set address queryset and mark checked products."""
         form = super().get_form(form_class)
-        form.fields["default_address"].queryset = self.contact_addresses
 
         # Mark products that are already in the subscription as checked
-        form.checked_products = list(
-            self.subscription_products.values_list('product_id', flat=True)
-        )
+        form.checked_products = list(self.subscription_products.values_list('product_id', flat=True))
 
         # Create a method to get bound values for each product
         def bound_product_values(product_id):
@@ -1090,6 +1630,12 @@ class UpdatePromoView(UserPassesTestMixin, FormView):
         form.bound_product_values = bound_product_values
 
         return form
+
+    def get_form_kwargs(self):
+        """Pass the contact to the form."""
+        kwargs = super().get_form_kwargs()
+        kwargs['contact'] = self.contact
+        return kwargs
 
     def post(self, request, *args, **kwargs):
         """Handle Cancel button separately from form submission."""
@@ -1133,16 +1679,13 @@ class UpdatePromoView(UserPassesTestMixin, FormView):
                 selected_product_ids.add(product_id)
 
         # Get existing subscription products
-        existing_product_ids = set(
-            self.subscription_products.values_list('product_id', flat=True)
-        )
+        existing_product_ids = set(self.subscription_products.values_list('product_id', flat=True))
 
         # Remove products that are no longer selected
         products_to_remove = existing_product_ids - selected_product_ids
         if products_to_remove:
             SubscriptionProduct.objects.filter(
-                subscription=self.subscription,
-                product_id__in=products_to_remove
+                subscription=self.subscription, product_id__in=products_to_remove
             ).delete()
 
         # Add or update products
@@ -1156,10 +1699,7 @@ class UpdatePromoView(UserPassesTestMixin, FormView):
 
             # Update existing or create new
             if product_id in existing_product_ids:
-                sp = SubscriptionProduct.objects.get(
-                    subscription=self.subscription,
-                    product_id=product_id
-                )
+                sp = SubscriptionProduct.objects.get(subscription=self.subscription, product_id=product_id)
                 sp.address = address
                 sp.copies = copies
                 sp.label_message = label_message
@@ -1189,14 +1729,16 @@ class UpdatePromoView(UserPassesTestMixin, FormView):
     def get_context_data(self, **kwargs):
         """Add additional context for the template."""
         context = super().get_context_data(**kwargs)
-        context.update({
-            "contact": self.contact,
-            "address_form": NewAddressForm(initial={"address_type": "physical"}),
-            "offerable_products": self.offerable_products,
-            "contact_addresses": self.contact_addresses,
-            "subscription": self.subscription,
-            "is_update": True,  # Flag to indicate this is an update operation
-        })
+        context.update(
+            {
+                "contact": self.contact,
+                "address_form": NewAddressForm(initial={"address_type": "physical"}),
+                "offerable_products": self.offerable_products,
+                "contact_addresses": self.contact_addresses,
+                "subscription": self.subscription,
+                "is_update": True,  # Flag to indicate this is an update operation
+            }
+        )
         return context
 
 
@@ -1267,49 +1809,311 @@ class CorporateSubscriptionCreateView(SubscriptionMixin, FormView):
         return super().dispatch(request, *args, **kwargs)
 
 
-class AffiliateSubscriptionView(FormView):
-    template_name = 'subscriptions/affiliate_subscription.html'
+class AffiliateSubscriptionCreateView(LoginRequiredMixin, BreadcrumbsMixin, CreateView):
+    template_name = "subscriptions/affiliate_subscriptions.html"
     form_class = AffiliateSubscriptionForm
 
-    def get_success_url(self):
-        return reverse_lazy(
-            'affiliate_subscription', kwargs={'corporate_subscription_id': self.kwargs['corporate_subscription_id']}
-        )
+    def breadcrumbs(self):
+        return [
+            {"label": "Inicio", "url": reverse("home")},
+            {"label": "Lista de contactos", "url": reverse("contact_list")},
+            {
+                "label": self.corporate_subscription.contact.get_full_name(),
+                "url": reverse("contact_detail", args=[self.corporate_subscription.contact.id]),
+            },
+            {"label": "Crear suscripción afiliada", "url": ""},
+        ]
 
-    def get_form_kwargs(self):
-        kwargs = super().get_form_kwargs()
-        kwargs['main_subscription_id'] = self.kwargs['main_subscription_id']
-        return kwargs
+    def dispatch(self, request, *args, **kwargs):
+        self.corporate_subscription = get_object_or_404(Subscription, id=kwargs['subscription_id'])
+        self.product = self.corporate_subscription.products.first()
+
+        # Ensure the subscription is corporate
+        if self.corporate_subscription.type != "C":
+            messages.error(request, "Esta suscripción no es corporativa")
+            return HttpResponseRedirect(reverse("contact_detail", args=[self.corporate_subscription.contact.id]))
+
+        # Check the affiliate limit
+        current_affiliates = (
+            Subscription.objects.filter(parent_subscription=self.corporate_subscription).count() + 1
+        )  # Include the parent subscription
+        if current_affiliates >= self.corporate_subscription.number_of_subscriptions:
+            messages.error(request, "Ya se ha alcanzado el límite de suscripciones afiliadas")
+            return HttpResponseRedirect(reverse("contact_detail", args=[self.corporate_subscription.contact.id]))
+
+        return super().dispatch(request, *args, **kwargs)
 
     def form_valid(self, form):
-        main_subscription = get_object_or_404(Subscription, id=self.kwargs['main_subscription_id'])
-        contact = form.cleaned_data['contact']
-        start_date = form.cleaned_data['start_date']
-        end_date = form.cleaned_data['end_date']
-
-        bulk_subscription = Subscription.objects.create(
-            contact=contact,
-            start_date=start_date,
-            end_date=end_date,
-            payment_type=main_subscription.payment_type,
-            type='C',  # Complementary
-            status=main_subscription.status,
-        )
-
-        main_sp = SubscriptionProduct.objects.get(subscription=main_subscription)
-        SubscriptionProduct.objects.create(subscription=bulk_subscription, product=main_sp.product, copies=1)
-
-        return super().form_valid(form)
+        """Set parent subscription and corporate flag before saving."""
+        if form.instance.contact == self.corporate_subscription.contact:
+            messages.error(self.request, "El contacto seleccionado no puede ser el mismo que el contacto principal")
+            return self.form_invalid(form)
+        if form.instance.contact.subscriptions.filter(type="A", active=True).exists():
+            messages.error(self.request, "El contacto seleccionado ya tiene una suscripción afiliada activa")
+            return self.form_invalid(form)
+        form.instance.parent_subscription = self.corporate_subscription
+        form.instance.type = "A"  # Affiliate
+        response = super().form_valid(form)
+        form.instance.add_product(product=self.product, address=None, copies=1, message=None, instructions=None)
+        messages.success(self.request, "Suscripción afiliada creada exitosamente")
+        return response
 
     def get_context_data(self, **kwargs):
+        """Add subscription details to the template context."""
         context = super().get_context_data(**kwargs)
-        corporate_subscription = get_object_or_404(Subscription, id=self.kwargs['corporate_subscription_id'])
-        context['corporate_subscription'] = corporate_subscription
-        context['affiliate_subscriptions'] = (
-            Subscription.objects.filter(
-                type='C', payment_type=corporate_subscription.payment_type, status=corporate_subscription.status
-            )
-            .select_related('contact')
-            .order_by('start_date')
+        current_affiliates = Subscription.objects.filter(parent_subscription=self.corporate_subscription).count() + 1
+        affiliate_subscriptions = Subscription.objects.filter(
+            parent_subscription=self.corporate_subscription,
+            type="A",
+            active=True,
+        )
+        context.update(
+            {
+                'corporate_subscription': self.corporate_subscription,
+                'current_affiliates': current_affiliates,
+                'available_slots': self.corporate_subscription.number_of_subscriptions - current_affiliates,
+                'affiliate_subscriptions': affiliate_subscriptions,
+            }
         )
         return context
+
+    def get_initial(self):
+        initial = super().get_initial()
+        start_date = now().date()
+        end_date = start_date + relativedelta(months=self.product.duration_months)
+        initial['start_date'] = start_date.strftime("%Y-%m-%d")
+        initial['end_date'] = end_date.strftime("%Y-%m-%d")
+        return initial
+
+    def get_success_url(self):
+        return reverse("add_affiliate_subscription", args=[self.corporate_subscription.id])
+
+
+class FreeSubscriptionMixin:
+    """
+    Mixin for shared functionality between CreateFreeSubscriptionView and UpdateFreeSubscriptionView.
+    Handles common logic for free subscription management.
+    """
+
+    def test_func(self):
+        """Check if user has permission to add free subscriptions."""
+        return self.request.user.has_perm('core.can_add_free_subscription')
+
+    def get_form_kwargs(self):
+        """Pass the contact to the form."""
+        kwargs = super().get_form_kwargs()
+        kwargs['contact'] = self.contact
+        return kwargs
+
+    def update_contact_data(self, form):
+        """Update contact information if changed."""
+        changed = False
+        for attr in ("name", "last_name", "phone", "mobile", "email", "notes"):
+            val = form.cleaned_data.get(attr)
+            if getattr(self.contact, attr) != val:
+                changed = True
+                setattr(self.contact, attr, val)
+
+        if changed:
+            try:
+                self.contact.save()
+            except forms.ValidationError as ve:
+                form.add_error(None, ve)
+                return False
+        return True
+
+    def add_products_to_subscription(self, subscription):
+        """Add products to the subscription based on POST data."""
+        for key, value in list(self.request.POST.items()):
+            if key.startswith("check"):
+                product_id = key.split("-")[1]
+                product = Product.objects.get(pk=product_id)
+                address_id = self.request.POST.get("address-{}".format(product_id))
+                address = Address.objects.get(pk=address_id)
+                copies = self.request.POST.get("copies-{}".format(product_id))
+                label_message = self.request.POST.get("message-{}".format(product_id))
+                special_instructions = self.request.POST.get("instruction-{}".format(product_id))
+                subscription.add_product(
+                    product=product,
+                    address=address,
+                    copies=copies,
+                    message=label_message,
+                    instructions=special_instructions,
+                )
+
+
+class CreateFreeSubscriptionView(FreeSubscriptionMixin, BreadcrumbsMixin, FormView):
+    """
+    View for managers to create free subscriptions for contacts.
+    Requires can_add_free_subscription permission.
+    """
+
+    template_name = "free_subscription_form.html"
+    form_class = FreeSubscriptionForm
+
+    def dispatch(self, request, *args, **kwargs):
+        """Initialize view-level variables from URL parameters."""
+        self.contact = get_object_or_404(Contact, pk=kwargs['contact_id'])
+        self.contact_addresses = Address.objects.filter(contact=self.contact)
+        self.offerable_products = Product.objects.filter(offerable=True, type="S")
+        return super().dispatch(request, *args, **kwargs)
+
+    def breadcrumbs(self):
+        """Return breadcrumbs for navigation."""
+        return [
+            {"label": _("Home"), "url": reverse("home")},
+            {"label": _("Contact list"), "url": reverse("contact_list")},
+            {
+                "label": self.contact.get_full_name(),
+                "url": reverse("contact_detail", args=[self.contact.id]),
+            },
+            {"label": _("Create free subscription"), "url": ""},
+        ]
+
+    def get_initial(self):
+        """Set initial form data."""
+        start_date = date.today()
+        end_date = add_business_days(date.today(), 5)
+
+        return {
+            "name": self.contact.name,
+            "last_name": self.contact.last_name,
+            "phone": self.contact.phone,
+            "mobile": self.contact.mobile,
+            "email": self.contact.email,
+            "notes": self.contact.notes,
+            "start_date": start_date,
+            "end_date": end_date,
+        }
+
+    def form_valid(self, form):
+        """Process the form and create free subscription."""
+        # Update contact data if necessary
+        if not self.update_contact_data(form):
+            return self.form_invalid(form)
+
+        # Create the free subscription
+        start_date = form.cleaned_data["start_date"]
+        end_date = form.cleaned_data["end_date"]
+        free_subscription_requested_by = form.cleaned_data["free_subscription_requested_by"]
+
+        subscription = Subscription.objects.create(
+            contact=self.contact,
+            type="F",  # Free subscription
+            start_date=start_date,
+            end_date=end_date,
+            free_subscription_requested_by=free_subscription_requested_by,
+        )
+
+        # Add products to subscription
+        self.add_products_to_subscription(subscription)
+
+        messages.success(
+            self.request,
+            _("Free subscription created successfully for {contact}").format(contact=self.contact.get_full_name()),
+        )
+
+        return HttpResponseRedirect(reverse("contact_detail", args=[self.contact.id]))
+
+    def get_context_data(self, **kwargs):
+        """Add additional context for the template."""
+        context = super().get_context_data(**kwargs)
+        context.update(
+            {
+                "contact": self.contact,
+                "address_form": NewAddressForm(initial={"address_type": "physical"}),
+                "offerable_products": self.offerable_products,
+                "contact_addresses": self.contact_addresses,
+                "is_update": False,
+            }
+        )
+        return context
+
+
+class UpdateFreeSubscriptionView(FreeSubscriptionMixin, BreadcrumbsMixin, FormView):
+    """
+    View for managers to update existing free subscriptions.
+    Requires can_add_free_subscription permission.
+    Uses FormView instead of UpdateView since FreeSubscriptionForm is not a ModelForm.
+    """
+
+    template_name = "free_subscription_form.html"
+    form_class = FreeSubscriptionForm
+
+    def dispatch(self, request, *args, **kwargs):
+        """Initialize view-level variables."""
+        self.subscription = get_object_or_404(Subscription, pk=kwargs['subscription_id'])
+        self.contact = self.subscription.contact
+        self.contact_addresses = Address.objects.filter(contact=self.contact)
+        self.offerable_products = Product.objects.filter(offerable=True, type="S")
+        return super().dispatch(request, *args, **kwargs)
+
+    def breadcrumbs(self):
+        """Return breadcrumbs for navigation."""
+        return [
+            {"label": _("Home"), "url": reverse("home")},
+            {"label": _("Contact list"), "url": reverse("contact_list")},
+            {
+                "label": self.contact.get_full_name(),
+                "url": reverse("contact_detail", args=[self.contact.id]),
+            },
+            {"label": _("Update free subscription"), "url": ""},
+        ]
+
+    def get_initial(self):
+        """Set initial form data from subscription."""
+        return {
+            "name": self.contact.name,
+            "last_name": self.contact.last_name,
+            "phone": self.contact.phone,
+            "mobile": self.contact.mobile,
+            "email": self.contact.email,
+            "notes": self.contact.notes,
+            "start_date": self.subscription.start_date,
+            "end_date": self.subscription.end_date,
+            "free_subscription_requested_by": self.subscription.free_subscription_requested_by,
+        }
+
+    def form_valid(self, form):
+        """Process the form and update subscription."""
+        # Update contact data if necessary
+        if not self.update_contact_data(form):
+            return self.form_invalid(form)
+
+        # Update subscription fields
+        self.subscription.start_date = form.cleaned_data["start_date"]
+        self.subscription.end_date = form.cleaned_data["end_date"]
+        self.subscription.free_subscription_requested_by = form.cleaned_data["free_subscription_requested_by"]
+        self.subscription.save()
+
+        messages.success(
+            self.request,
+            _("Free subscription updated successfully for {contact}").format(contact=self.contact.get_full_name()),
+        )
+
+        return HttpResponseRedirect(reverse("contact_detail", args=[self.contact.id]))
+
+    def get_context_data(self, **kwargs):
+        """Add additional context for the template."""
+        context = super().get_context_data(**kwargs)
+
+        # Get existing subscription products
+        existing_products = SubscriptionProduct.objects.filter(subscription=self.subscription)
+
+        context.update(
+            {
+                "contact": self.contact,
+                "address_form": NewAddressForm(initial={"address_type": "physical"}),
+                "offerable_products": self.offerable_products,
+                "contact_addresses": self.contact_addresses,
+                "subscription": self.subscription,
+                "existing_products": existing_products,
+                "is_update": True,
+            }
+        )
+        return context
+
+
+# Backward compatibility
+create_free_subscription = CreateFreeSubscriptionView.as_view()
+update_free_subscription = UpdateFreeSubscriptionView.as_view()

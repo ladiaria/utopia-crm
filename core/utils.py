@@ -130,7 +130,9 @@ def calc_price_from_products(products_with_copies, frequency, debug_id="", creat
         - Affectable: products that are affected by discounts
         - Non-affectable: products that are not affected by discounts
         - Frequency discount: discount applied to the total price based on the frequency
-        - One-shot products: products that are not affected by discounts and are not part of a subscription
+        - One-shot products: products that are not affected by discounts and are not part of a subscription. They're
+        usually represented by products of the type "Other" and have an edition frequency of 4 (one-shot products).
+        They're affected by copies but not by frequency.
     """
     from core.models import Product
     from invoicing.models import InvoiceItem
@@ -376,17 +378,19 @@ def calc_price_from_products(products_with_copies, frequency, debug_id="", creat
                 + f"After frequency discount total_price={total_price} (Discount: {discount_pct}% - {discount_amount})"
             )
 
-    # Finally we add the price of the one-shot products
+    # Finally we add the price of the one-shot products. O stands for "Other". They can be affected by copies but
+    # they are not billed per frequency.
     for product in other_product_list:
-        product_price = float(product.price)
+        copies = int(products_with_copies[product.id])
+        product_price = float(product.price) * copies
         total_price += product_price
 
         if create_items:
             item = InvoiceItem(
                 subscription=subscription,
                 invoice=None,
-                copies=1,
-                price=product_price,
+                copies=copies,
+                price=product.price,
                 product=product,
                 description=product.name,
                 type='I',
@@ -462,7 +466,6 @@ def process_products(input_product_dict: dict) -> dict:
     Each of the products must be a tuple with product and copies.
     """
     from core.models import Product, PriceRule
-    print("🤌input product dict:", input_product_dict)
     input_product_ids = list(input_product_dict.keys())
     input_products_list = list(Product.objects.filter(id__in=input_product_ids))
     input_products_count, output_dict, non_discount_added = len(input_products_list), {}, 0
@@ -565,7 +568,6 @@ def process_products(input_product_dict: dict) -> dict:
     # and as expected, the rules ones will not be applied.
     for product in input_products_list:
         output_dict[product.id] = input_product_dict[str(product.id)]
-    print("🤷‍♀️output dict", output_dict)
     return output_dict
 
 

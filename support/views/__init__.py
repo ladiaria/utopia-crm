@@ -1,4 +1,4 @@
-from .activities import ActivityCreateView, scheduled_activities  # noqa
+from .activities import ActivityCreateView, ActivityDetailView, scheduled_activities  # noqa
 from .all_views import *  # noqa
 from .contacts import (  # noqa
     ContactCreateView,
@@ -20,6 +20,7 @@ from .seller_console import (  # noqa
     SellerConsoleView,
     seller_console_list_campaigns,
     seller_console_special_routes,
+    seller_console_never_paid_issues,
 )
 from .subscriptions import (  # noqa
     SubscriptionCreateView,
@@ -34,5 +35,9 @@ from .subscriptions import (  # noqa
     update_promo,
     SubscriptionEndDateListView,
     CorporateSubscriptionCreateView,
-    AffiliateSubscriptionView,
+    AffiliateSubscriptionCreateView,
+    create_free_subscription,
+    update_free_subscription,
+    add_retention_discount,
+    reactivate_subscription,
 )
