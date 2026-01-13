@@ -206,6 +206,14 @@ class Product(models.Model):
         FIXED = "X", _("Fixed Price")
         CUSTOM = "C", _("Custom")
 
+    class DiscountCategoryChoices(models.TextChoices):
+        """Choices for the discount category field"""
+
+        RETENTION = "R", _("Retention")
+        PROMOTION = "P", _("Promotion")
+        STAFF = "S", _("Staff")
+        OTHER = "O", _("Other")
+
     name = models.CharField(max_length=100, verbose_name=_("Name"), unique=True, db_index=True)
     slug = AutoSlugField(populate_from="name", max_length=100, unique=True, editable=True)
     active = models.BooleanField(
@@ -312,6 +320,14 @@ class Product(models.Model):
             "How the product is billed. Fixed uses the price set in the product, per frequency uses the "
             "price calculated from the products in the subscription with the frequency set in the product."
         ),
+    )
+    discount_category = models.CharField(
+        max_length=1,
+        choices=DiscountCategoryChoices.choices,
+        verbose_name=_("Discount category"),
+        null=True,
+        blank=True,
+        help_text=_("Category of the discount. Mandatory if the product type is discount.")
     )
     objects = ProductManager()
 
@@ -592,7 +608,7 @@ class Contact(models.Model):
         Returns a queryset with the expired invoices for the contact.
         """
         return self.invoice_set.filter(
-            expiration_date__lte=date.today(),
+            expiration_date__lt=date.today(),
             paid=False,
             debited=False,
             canceled=False,
@@ -667,7 +683,7 @@ class Contact(models.Model):
         Returns how much money the contact owes.
         """
         sum_import = self.invoice_set.filter(
-            expiration_date__lte=date.today(),
+            expiration_date__lt=date.today(),
             paid=False,
             debited=False,
             canceled=False,
@@ -745,15 +761,45 @@ class Contact(models.Model):
         """
         return get_latest_from_prefetch(self, "activity_set")
 
-    def get_last_activity_formatted(self):
-        last_activity = self.last_activity()
-        if last_activity:
-            msg = ' '.join(
-                [last_activity.datetime.date().strftime("%d/%m/%Y"), last_activity.get_activity_type_display() or '']
-            )
-            return msg
-        else:
+    def last_incoming_activity(self):
+        """
+        Returns the latest incoming activity (direction='I') of this contact.
+        """
+        try:
+            return self.activity_set.filter(direction='I').latest('datetime')
+        except Activity.DoesNotExist:
             return None
+
+    def last_outgoing_activity(self):
+        """
+        Returns the latest outgoing activity (direction='O') of this contact.
+        """
+        try:
+            return self.activity_set.filter(direction='O').latest('datetime')
+        except Activity.DoesNotExist:
+            return None
+
+    def get_last_activity_formatted(self):
+        """
+        Returns formatted string with both last incoming and outgoing activities.
+        Format: "<b>In:</b> DD/MM/YYYY Type | <b>Out:</b> DD/MM/YYYY Type"
+        Returns HTML-safe string with bold labels.
+        """
+        parts = []
+
+        last_in = self.last_incoming_activity()
+        if last_in:
+            in_date = last_in.datetime.date().strftime("%d/%m/%Y")
+            in_type = last_in.get_activity_type_display() or ''
+            parts.append(f'<b>{_("In")}:</b> {in_date} {in_type}')
+
+        last_out = self.last_outgoing_activity()
+        if last_out:
+            out_date = last_out.datetime.date().strftime("%d/%m/%Y")
+            out_type = last_out.get_activity_type_display() or ''
+            parts.append(f'<b>{_("Out")}:</b> {out_date} {out_type}')
+
+        return mark_safe(' | '.join(parts)) if parts else None
 
     def get_gender(self):
         """
@@ -1369,6 +1415,16 @@ class SubscriptionProduct(models.Model):
     has_envelope = models.PositiveSmallIntegerField(
         blank=True, null=True, verbose_name=_("Envelope"), choices=ENVELOPE_CHOICES
     )
+    original_datetime = models.DateTimeField(
+        blank=True,
+        null=True,
+        default=timezone.now,
+        verbose_name=_("Original date and time"),
+        help_text=_(
+            "Date and time when the subscription product was originally created, regardless of the subscription."
+            " This product might have been inherited from another subscription."
+        ),
+    )
     active = models.BooleanField(default=True)
 
     def __str__(self):
@@ -1423,6 +1479,8 @@ class Subscription(models.Model):
         CHANGED_PRODUCTS = 4, _("Changed products")
         DEBTOR = 13, _("Debtor")
         DEBTOR_AUTOMATIC = 16, _("Debtor, automatic unsubscription")
+        RETENTION = 17, _("Retention")
+        ALL_PRODUCTS_REMOVED = 18, _("All products removed")
         NOT_APPLICABLE = 99, _("N/A")
 
     class UnsubscriptionTypeChoices(models.IntegerChoices):
@@ -1431,6 +1489,8 @@ class Subscription(models.Model):
         PARTIAL = 2, _("Partial unsubscription")
         CHANGED_PRODUCTS = 3, _("Changed products")
         ADDED_PRODUCTS = 4, _("Added products")
+        RETENTION = 5, _("Retention")
+        ALL_PRODUCTS_REMOVED = 6, _("All products removed")
 
     campaign = models.ForeignKey(
         "core.Campaign", blank=True, null=True, verbose_name=_("Campaign"), on_delete=models.SET_NULL
@@ -1727,7 +1787,9 @@ class Subscription(models.Model):
         """
         Used to remove products from the current subscription. It is encouraged to always use this method when you want
         to remove a product from a subscription, so you always have control of what happens here. This also creates a
-        product history with the current subscription, product, and date, with the type 'D' (De-activation)
+        product history with the current subscription, product, and date, with the type 'D' (De-activation).
+
+        If that was the last product, mark the subscription as inactive, and mark the reason as ALL_PRODUCTS_REMOVED.
         """
         try:
             sp = SubscriptionProduct.objects.get(subscription=self, product=product)
@@ -1736,6 +1798,15 @@ class Subscription(models.Model):
             pass
         else:
             self.contact.add_product_history(self, product, "D")
+
+        if not self.subscriptionproduct_set.exists():
+            self.active = False
+            self.status = "OK"
+            self.inactivity_reason = self.InactivityReasonChoices.ALL_PRODUCTS_REMOVED
+            self.unsubscription_addendum = _("All products were removed.")
+            self.unsubscription_type = self.UnsubscriptionTypeChoices.ALL_PRODUCTS_REMOVED
+            self.end_date = date.today()
+            self.save()
 
     def get_billing_contact(self):
         """
@@ -2268,6 +2339,36 @@ class Subscription(models.Model):
         else:
             return None
 
+    def can_be_reactivated(self):
+        """
+        Check if this subscription can be reactivated.
+
+        Requirements:
+        - Must have an end_date (be unsubscribed)
+        - Must be a complete unsubscription (unsubscription_type == 1)
+        - Must be within 30 days of unsubscription_date
+
+        Returns:
+            bool: True if subscription can be reactivated, False otherwise
+        """
+        from datetime import date
+
+        # Must be unsubscribed
+        if not self.end_date:
+            return False
+
+        # Must be a complete unsubscription
+        if self.unsubscription_type != 1:
+            return False
+
+        # Must be within 30 days of unsubscription_date
+        if self.unsubscription_date:
+            days_since_unsubscription = (date.today() - self.unsubscription_date).days
+            if days_since_unsubscription > 30:
+                return False
+
+        return True
+
     def balance_abs(self):
         return abs(self.balance)
 
@@ -2329,7 +2430,7 @@ class Subscription(models.Model):
         # Check if all invoices are overdue
         return (
             invoices.filter(
-                expiration_date__lte=date.today(), paid=False, debited=False, canceled=False, uncollectible=False
+                expiration_date__lt=date.today(), paid=False, debited=False, canceled=False, uncollectible=False
             ).count()
             == invoices.count()
         )
@@ -2382,6 +2483,7 @@ class Subscription(models.Model):
         permissions = [
             ("can_add_free_subscription", _("Can add free subscription")),
             ("can_add_corporate_subscription", _("Can add corporate subscription")),
+            ("can_offer_retention", _("Can offer retention")),
         ]
 
 
@@ -2595,6 +2697,12 @@ class Activity(models.Model):
         blank=True,
         verbose_name=_("Seller console action"),
     )
+    metadata = models.JSONField(
+        blank=True,
+        null=True,
+        verbose_name=_("Metadata"),
+        help_text=_("Structured data for storing additional activity information (e.g., unsubscription data)")
+    )
 
     def __str__(self):
         return str(_("Activity {} for contact {}".format(self.id, self.contact.id)))
@@ -2627,6 +2735,15 @@ class Activity(models.Model):
         """
         directions = dict(ACTIVITY_DIRECTION_CHOICES)
         return directions.get(self.direction, "N/A")
+
+    def get_activity_type_display(self):
+        """
+        Returns the display name for the activity type.
+        This method is needed because activity_type uses a dynamic function get_activity_types()
+        instead of static choices, so Django's automatic get_FOO_display doesn't work.
+        """
+        activity_types = dict(get_activity_types())
+        return activity_types.get(self.activity_type, "N/A")
 
     def mark_as_sale(self, register_activity, campaign, subscription=None):
         # Update the activity
@@ -2904,7 +3021,7 @@ class DynamicContactFilter(models.Model):
             subscriptions = subscriptions.filter(contact__allow_polls=True)
         if self.debtor_contacts:
             only_debtors = subscriptions.filter(
-                contact__invoice__expiration_date__lte=date.today(),
+                contact__invoice__expiration_date__lt=date.today(),
                 contact__invoice__paid=False,
                 contact__invoice__debited=False,
                 contact__invoice__canceled=False,

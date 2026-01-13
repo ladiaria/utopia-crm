@@ -136,12 +136,26 @@ DEFAULT_ACTIVITY_TYPES = (
     ("W", _("WhatsApp message or other apps")),
     ("E", _("Event participation")),
     ("I", _("In-place visit")),
-    ("N", _("Internal")),
 )
 
 
 def get_activity_types():
-    return getattr(settings, "CUSTOM_ACTIVITY_TYPES", DEFAULT_ACTIVITY_TYPES)
+    """
+    Returns activity types with 'Internal' (N) always included as a required system type.
+
+    The 'Internal' type is used for system-generated activities (unsubscriptions,
+    reactivations, etc.) and must always be available regardless of custom activity types.
+    """
+    # Internal activity type - required by the system for automated activities
+    internal_type = ("N", _("Internal"))
+
+    # Get custom types or use defaults
+    custom_types = getattr(settings, "CUSTOM_ACTIVITY_TYPES", DEFAULT_ACTIVITY_TYPES)
+
+    # Always ensure Internal type is included
+    if internal_type not in custom_types:
+        return custom_types + (internal_type,)
+    return custom_types
 
 
 PRODUCT_WEEKDAYS = (

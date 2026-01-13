@@ -1,3 +1,5 @@
+from datetime import date
+
 from django.utils.translation import gettext_lazy as _
 from django import forms
 from django.forms import ValidationError
@@ -13,6 +15,7 @@ from core.models import (
     Product,
     Subscription,
     Address,
+    Campaign,
     DynamicContactFilter,
     SubscriptionProduct,
     Activity,
@@ -165,17 +168,14 @@ class NewPromoForm(EmailValidationForm):
         label=_("Notes"),
         empty_value=None,
         required=False,
-        widget=forms.Textarea(attrs={"class": "form-control", "rows": "4"})
+        widget=forms.Textarea(attrs={"class": "form-control", "rows": "4"}),
     )
     email = forms.EmailField(
-        label=_("Email"),
-        empty_value=None,
-        required=False,
-        widget=forms.EmailInput(attrs={"class": "form-control"})
+        label=_("Email"), empty_value=None, required=False, widget=forms.EmailInput(attrs={"class": "form-control"})
     )
     start_date = forms.DateField(
         label=_("Start date"),
-        widget=forms.DateInput(format="%Y-%m-%d", attrs={"class": "datepicker form-control", "autocomplete": "off"})
+        widget=forms.DateInput(format="%Y-%m-%d", attrs={"class": "datepicker form-control", "autocomplete": "off"}),
     )
     end_date = forms.DateField(
         label=_("End date"),
@@ -188,6 +188,30 @@ class NewPromoForm(EmailValidationForm):
         required=False,
         widget=forms.Select(attrs={"class": "form-control"}),
     )
+
+    def __init__(self, *args, **kwargs):
+        self.contact = kwargs.pop("contact", None)
+        super().__init__(*args, **kwargs)
+
+    def clean_email(self):
+        """Validate that email is unique, excluding the current contact."""
+        email = self.cleaned_data.get("email")
+
+        if email:
+            from core.models import Contact
+
+            # Check if another contact already has this email
+            existing_contact = (
+                Contact.objects.filter(email=email).exclude(pk=self.contact.pk if self.contact else None).first()
+            )
+            if existing_contact:
+                raise forms.ValidationError(
+                    _("This email is already registered to another contact (ID: %(contact_id)s)."),
+                    params={"contact_id": existing_contact.id},
+                    code="duplicate_email",
+                )
+
+        return email
 
     def clean(self):
         self.email_extra_clean(super().clean())
@@ -369,22 +393,31 @@ class IssueStartForm(forms.ModelForm):
     """
 
     contact = forms.ModelChoiceField(
+        label=_("Contact"),
         queryset=Contact.objects,
         widget=forms.TextInput(attrs={"class": "form-control"}),
+    )
+    date = forms.DateField(
+        label=_("Date"),
+        initial=date.today,
+        widget=forms.DateInput(format="%Y-%m-%d", attrs={"class": "datepicker form-control", "autocomplete": "off"}),
     )
 
     widget = forms.Select(attrs={"class": "form-control"})
     product = forms.ModelChoiceField(
-        queryset=Product.objects.filter(type="S"),
+        label=_("Product"),
+        queryset=Product.objects.filter(type__in=["S", "O"]),
         widget=forms.Select(attrs={"class": "form-control"}),
         required=False,
     )
     subscription_product = forms.ModelChoiceField(
+        label=_("Subscription Product"),
         queryset=SubscriptionProduct.objects.all(),
         widget=forms.Select(attrs={"class": "form-control"}),
         required=False,
     )
     subscription = forms.ModelChoiceField(
+        label=_("Subscription"),
         queryset=Subscription.objects.all(),
         widget=forms.Select(attrs={"class": "form-control"}),
         required=False,
@@ -395,33 +428,52 @@ class IssueStartForm(forms.ModelForm):
         widget=forms.Select(attrs={"class": "form-control", "autocomplete": "off"}),
     )
     activity_type = forms.ChoiceField(
+        label=_("Activity Type (Required)"),
         widget=forms.Select(attrs={"class": "form-control"}),
-        choices=get_activity_types(),
+        choices=[('', _('Select an activity type'))] + list(get_activity_types()),
+        required=True,
     )
     status = forms.ModelChoiceField(
-        required=False, queryset=IssueStatus.objects.all(), widget=forms.Select(attrs={"class": "form-control"})
+        label=_("Status"),
+        required=False,
+        queryset=IssueStatus.objects.all(),
+        widget=forms.Select(attrs={"class": "form-control"}),
     )
     assigned_to = forms.ModelChoiceField(
+        label=_("Assigned to"),
         required=False,
         queryset=User.objects.filter(is_staff=True).order_by('username'),
         widget=forms.Select(attrs={"class": "form-control", "autocomplete": "off"}),
     )
     contact_address = forms.ModelChoiceField(
-        Address.objects.all(),
+        label=_("Address"),
+        queryset=Address.objects.all(),
         required=False,
         widget=forms.Select(attrs={"class": "form-control"}),
     )
     new_address = forms.BooleanField(
         label=_("New address"), required=False, widget=forms.CheckboxInput(attrs={"class": "form-check-input"})
     )
-    new_address_1 = forms.CharField(required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
-    new_address_2 = forms.CharField(required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
-    new_address_city = forms.CharField(required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
-    new_address_state = forms.ModelChoiceField(
-        queryset=State.objects.all(), required=False, widget=forms.Select(attrs={"class": "form-control"})
+    new_address_1 = forms.CharField(
+        label=_("Address"), required=False, widget=forms.TextInput(attrs={"class": "form-control"})
     )
-    new_address_notes = forms.CharField(required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
+    new_address_2 = forms.CharField(
+        label=_("Address 2"), required=False, widget=forms.TextInput(attrs={"class": "form-control"})
+    )
+    new_address_city = forms.CharField(
+        label=_("City"), required=False, widget=forms.TextInput(attrs={"class": "form-control"})
+    )
+    new_address_state = forms.ModelChoiceField(
+        label=_("State"),
+        queryset=State.objects.all(),
+        required=False,
+        widget=forms.Select(attrs={"class": "form-control"}),
+    )
+    new_address_notes = forms.CharField(
+        label=_("Notes"), required=False, widget=forms.TextInput(attrs={"class": "form-control"})
+    )
     new_address_type = forms.ChoiceField(
+        label=_("Address Type"),
         required=False,
         choices=ADDRESS_TYPE_CHOICES,
         widget=forms.Select(attrs={"class": "form-control"}),
@@ -452,6 +504,7 @@ class IssueStartForm(forms.ModelForm):
         fields = (
             "contact",
             "category",
+            "date",
             "sub_category",
             "notes",
             "copies",
@@ -682,6 +735,30 @@ class AdditionalProductForm(forms.ModelForm):
         }
 
 
+class RetentionDiscountForm(forms.ModelForm):
+    """Form for adding retention discounts to a subscription"""
+    start_date = forms.DateField(
+        required=True,
+        label=_("Start date for new subscription"),
+        widget=forms.DateInput(format="%Y-%m-%d", attrs={"class": "datepicker form-control", "autocomplete": "off"}),
+    )
+
+    class Meta:
+        model = Subscription
+        fields = (
+            "start_date",
+            "unsubscription_channel",
+            "unsubscription_addendum",
+        )
+        labels = {
+            "unsubscription_channel": _("Petition channel"),
+        }
+        widgets = {
+            "unsubscription_channel": forms.Select(attrs={"class": "form-control"}),
+            "unsubscription_addendum": forms.Textarea(attrs={"class": "form-control"}),
+        }
+
+
 class ContactCampaignStatusByDateForm(forms.Form):
     date_gte = forms.DateField(
         required=False,
@@ -730,13 +807,18 @@ class ValidateSubscriptionForm(forms.ModelForm):
         widget=forms.NumberInput(attrs={"class": "form-control", "placeholder": _("Override amount"), "min": 0}),
     )
     seller = forms.ModelChoiceField(
-        queryset=Seller.objects.filter(internal=True),
+        queryset=Seller.objects.filter(internal=True).order_by('name'),
+        widget=forms.Select(attrs={"class": "form-control"}),
+    )
+    campaign = forms.ModelChoiceField(
+        queryset=Campaign.objects.filter(active=True),
+        required=False,
         widget=forms.Select(attrs={"class": "form-control"}),
     )
 
     class Meta:
         model = SalesRecord
-        fields = ("can_be_commissioned", "override_commission_value", "seller")
+        fields = ("can_be_commissioned", "override_commission_value", "seller", "campaign")
         widgets = {
             "can_be_commissioned": forms.CheckboxInput(attrs={"class": "form-check-input"}),
         }
@@ -769,16 +851,6 @@ class SalesRecordCreateForm(forms.ModelForm):
 class CorporateSubscriptionForm(NewSubscriptionForm):
     class Meta(NewSubscriptionForm.Meta):
         fields = NewSubscriptionForm.Meta.fields + ('number_of_subscriptions', 'override_price')
-
-
-class AffiliateSubscriptionForm(forms.Form):
-    contact = forms.ModelChoiceField(queryset=Contact.objects.all())
-    start_date = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}))
-    end_date = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}))
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields['contact'].queryset = self.fields['contact'].queryset.order_by('name')
 
 
 class ImportContactsForm(forms.Form):
@@ -830,3 +902,141 @@ class CheckForExistingContactsForm(forms.Form):
         if not file.name.endswith('.csv'):
             raise forms.ValidationError(_('File must be a CSV file'))
         return file
+
+
+class FreeSubscriptionForm(EmailValidationForm):
+    """Form for creating and updating free subscriptions."""
+    name = forms.CharField(label=_("Name"), widget=forms.TextInput(attrs={"class": "form-control"}))
+    last_name = forms.CharField(
+        label=_("Last name"), widget=forms.TextInput(attrs={"class": "form-control"}), required=False
+    )
+    phone = PhoneNumberField(
+        label=_("Phone"),
+        empty_value="",
+        required=False,
+        widget=RegionalPhoneNumberWidget(attrs={"class": "form-control"}),
+    )
+    mobile = PhoneNumberField(
+        label=_("Mobile"),
+        empty_value="",
+        required=False,
+        widget=RegionalPhoneNumberWidget(attrs={"class": "form-control"}),
+    )
+    notes = forms.CharField(
+        label=_("Notes"),
+        empty_value=None,
+        required=False,
+        widget=forms.Textarea(attrs={"class": "form-control", "rows": "4"}),
+    )
+    email = forms.EmailField(
+        label=_("Email"), empty_value=None, required=False, widget=forms.EmailInput(attrs={"class": "form-control"})
+    )
+    start_date = forms.DateField(
+        label=_("Start date"),
+        widget=forms.DateInput(format="%Y-%m-%d", attrs={"class": "datepicker form-control", "autocomplete": "off"}),
+    )
+    end_date = forms.DateField(
+        label=_("End date"),
+        required=True,
+        widget=forms.DateInput(format="%Y-%m-%d", attrs={"class": "datepicker form-control", "autocomplete": "off"}),
+    )
+    default_address = forms.ModelChoiceField(
+        label=_("Default address"),
+        queryset=Address.objects.all(),
+        required=False,
+        widget=forms.Select(attrs={"class": "form-control"}),
+    )
+    free_subscription_requested_by = forms.ChoiceField(
+        label=_("Free subscription requested by"),
+        required=True,
+        widget=forms.Select(attrs={"class": "form-control"}),
+    )
+
+    def __init__(self, *args, **kwargs):
+        self.contact = kwargs.pop("contact", None)
+        super().__init__(*args, **kwargs)
+
+        # Import here to avoid circular imports
+        from core.choices import FreeSubscriptionRequestedBy
+        self.fields["free_subscription_requested_by"].choices = [
+            ("", "---------")
+        ] + list(FreeSubscriptionRequestedBy.choices)
+
+    def clean_email(self):
+        """Validate that email is unique, excluding the current contact."""
+        email = self.cleaned_data.get("email")
+
+        if email:
+            # Check if another contact already has this email
+            existing_contact = (
+                Contact.objects.filter(email=email).exclude(pk=self.contact.pk if self.contact else None).first()
+            )
+            if existing_contact:
+                raise forms.ValidationError(
+                    _("This email is already registered to another contact (ID: %(contact_id)s)."),
+                    params={"contact_id": existing_contact.id},
+                    code="duplicate_email",
+                )
+
+        return email
+
+    def clean(self):
+        self.email_extra_clean(super().clean())
+
+
+class BulkDeleteCampaignStatusForm(forms.Form):
+    """
+    Form for bulk deleting ContactCampaignStatus records.
+    Allows uploading a CSV file with contact IDs and selecting a campaign.
+    """
+    csv_file = forms.FileField(
+        label=_('CSV File'),
+        help_text=_('Upload a CSV file with contact IDs. Expected column: contact_id, id, or similar.'),
+        widget=forms.FileInput(attrs={'accept': '.csv', 'class': 'form-control'})
+    )
+    campaign = forms.ModelChoiceField(
+        label=_('Campaign'),
+        queryset=Campaign.objects.filter(active=True).order_by('-id'),
+        widget=forms.Select(attrs={'class': 'form-control select2', 'style': 'width: 100%;'}),
+        help_text=_('Select the campaign to delete status records from')
+    )
+
+    def clean_csv_file(self):
+        """Validate that the uploaded file is a CSV."""
+        file = self.cleaned_data['csv_file']
+        if not file.name.endswith('.csv'):
+            raise forms.ValidationError(_('File must be a CSV file'))
+        return file
+
+
+class AffiliateSubscriptionForm(forms.ModelForm):
+    contact = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control'}))
+    start_date = forms.DateField(
+        widget=forms.DateInput(
+            format="%Y-%m-%d", attrs={'class': 'form-control', 'type': 'date', 'autocomplete': 'off'}
+        ),
+    )
+    end_date = forms.DateField(
+        widget=forms.DateInput(
+            format="%Y-%m-%d", attrs={'class': 'form-control', 'type': 'date', 'autocomplete': 'off'}
+        ),
+    )
+
+    class Meta:
+        model = Subscription
+        fields = ['contact', 'start_date', 'end_date']
+
+    def clean_contact(self):
+        contact_id = self.cleaned_data['contact']
+        try:
+            return Contact.objects.get(id=contact_id)
+        except Contact.DoesNotExist:
+            raise forms.ValidationError("Invalid contact ID")
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        instance.type = "A"  # Affiliate
+        instance.renewal_type = "M"  # Manual
+        if commit:
+            instance.save()
+        return instance

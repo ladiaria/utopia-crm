@@ -1,0 +1,137 @@
+{% extends "adminlte/base.html" %}
+{% load static i18n widget_tweaks %}
+
+{% block title %}{% trans "Reactivate subscription" %}{% endblock title %}
+
+{% block no_heading %}
+<h1>
+  {% trans "Reactivate subscription" %}
+</h1>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col-9">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">{% trans "Confirm subscription reactivation" %}</h3>
+      </div>
+      <div class="card-body">
+        <div class="alert alert-info">
+          <h5><i class="icon fas fa-info"></i> {% trans "Information" %}</h5>
+          <p>{% trans "You are about to reactivate this subscription. This will:" %}</p>
+          <ul>
+            <li>{% trans "Remove the end date" %}</li>
+            <li>{% trans "Clear the unsubscription reason" %}</li>
+            <li>{% trans "Clear all unsubscription metadata" %}</li>
+            <li>{% trans "Allow the customer to continue receiving products" %}</li>
+          </ul>
+        </div>
+
+        <h4>{% trans "Subscription details" %}</h4>
+        <table class="table table-bordered">
+          <tr>
+            <th style="width: 30%">{% trans "Contact" %}</th>
+            <td>{{ subscription.contact.get_full_name }}</td>
+          </tr>
+          <tr>
+            <th>{% trans "Subscription ID" %}</th>
+            <td>{{ subscription.id }}</td>
+          </tr>
+          <tr>
+            <th>{% trans "Products" %}</th>
+            <td>
+              {% for product in subscription.products.all %}
+                {{ product.name }}{% if not forloop.last %}, {% endif %}
+              {% endfor %}
+            </td>
+          </tr>
+          <tr>
+            <th>{% trans "Current end date" %}</th>
+            <td>{{ subscription.end_date|date:"Y-m-d" }}</td>
+          </tr>
+          <tr>
+            <th>{% trans "Unsubscription reason" %}</th>
+            <td>{{ subscription.get_unsubscription_reason_display|default:"-" }}</td>
+          </tr>
+        </table>
+
+        {% if stored_data %}
+        <div class="mt-3">
+          <h5>{% trans "Original unsubscription information" %}</h5>
+          <table class="table table-sm table-bordered">
+            <tr>
+              <th style="width: 30%">{% trans "Unsubscription date" %}</th>
+              <td>{{ stored_data.unsubscription_date }}</td>
+            </tr>
+            <tr>
+              <th>{% trans "Manager" %}</th>
+              <td>{{ stored_data.unsubscription_manager_name }}</td>
+            </tr>
+            <tr>
+              <th>{% trans "Reason" %}</th>
+              <td>{{ reason_display|default:"-" }}</td>
+            </tr>
+            <tr>
+              <th>{% trans "Channel" %}</th>
+              <td>{{ channel_display|default:"-" }}</td>
+            </tr>
+            {% if stored_data.unsubscription_addendum %}
+            <tr>
+              <th>{% trans "Addendum" %}</th>
+              <td>{{ stored_data.unsubscription_addendum }}</td>
+            </tr>
+            {% endif %}
+            {% if unsubscription_activity %}
+            <tr>
+              <th>{% trans "Activity reference" %}</th>
+              <td>
+                <a href="{% url 'activity_detail' unsubscription_activity.id %}" target="_blank">
+                  {% trans "Activity" %} #{{ unsubscription_activity.id }}
+                </a>
+              </td>
+            </tr>
+            {% endif %}
+          </table>
+          <p class="text-muted small">
+            <i class="fas fa-info-circle"></i>
+            {% trans "The original unsubscription data has been stored and can be reviewed in the activity history." %}
+          </p>
+        </div>
+        {% endif %}
+
+        <form method="post" class="mt-4">
+          {% csrf_token %}
+          <div class="form-group text-right">
+            <a href="{% url 'contact_detail' subscription.contact.id %}" class="btn btn-default">
+              <i class="fas fa-times"></i> {% trans "Cancel" %}
+            </a>
+            <button type="submit" class="btn btn-success">
+              <i class="fas fa-check"></i> {% trans "Confirm reactivation" %}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-3">
+    <div class="card card-warning">
+      <div class="card-header">
+        <h3 class="card-title">{% trans "Important notes" %}</h3>
+      </div>
+      <div class="card-body">
+        <p><strong>{% trans "This action only works for complete unsubscriptions." %}</strong></p>
+        <p class="text-sm">
+          {% trans "Partial unsubscriptions and product changes create new subscriptions and cannot be reactivated using this method." %}
+        </p>
+        <hr>
+        <p class="text-sm">
+          {% trans "After reactivation, the subscription will continue as if the unsubscription never happened." %}
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

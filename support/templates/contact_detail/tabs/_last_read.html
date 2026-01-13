@@ -1,11 +1,47 @@
 {% load i18n %}
+
 <div class="row">
   <div class="card col-sm-12">
     <div class="card-header">
       <h3 class="card-title">{% trans "Last Read Articles" %}</h3>
     </div>
     <div class="card-body">
-      {% trans "This is not configured" %}
+      {% if last_read %}
+        <h5>{% trans "Last Read" %}</h5>
+        <ul class="list-group mb-3">
+          {% for article in last_read %}
+            <li class="list-group-item">
+              {{ article.viewed_at }}: <a href="{{ article.url }}">{{ article.headline }}</a>
+            </li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+
+      {% if most_read %}
+        <h5>{% trans "Most Read" %}</h5>
+        <ul class="list-group mb-3">
+          {% for article in most_read %}
+            <li class="list-group-item">
+              {{ article.total_views }}: <a href="{{ article.url }}">{{ article.headline }}</a>
+            </li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+
+      {% if read_percentage %}
+        <h5>{% trans "Read Percentage" %}</h5>
+        <ul class="list-group mb-3">
+          {% for category in read_percentage.values %}
+            <li class="list-group-item">
+              {{ category.name }} ({{ category.count }}): {{ category.category_percentage }}%
+            </li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+
+      {% if not last_read and not most_read and not read_percentage %}
+        <p class="text-muted">{% trans "No reading data available for this contact" %}</p>
+      {% endif %}
     </div>
   </div>
 </div>

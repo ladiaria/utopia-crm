@@ -8,52 +8,92 @@
   {{ block.super }}
   <link rel="stylesheet"
         href="{% static '/admin-lte/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css' %}" />
+  <link href="{% static 'admin-lte/plugins/select2/css/select2.min.css' %}" rel="stylesheet" />
+  <link href="{% static 'admin-lte/plugins/select2-bootstrap4-theme/select2-bootstrap4.min.css' %}" rel="stylesheet" />
 {% endblock stylesheets %}
 
 {% block extra_js %}
   <script type="text/javascript"
           src="{% static '/admin-lte/plugins/datatables/jquery.dataTables.min.js' %}"></script>
   <script src="{% static '/admin-lte/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js' %}"></script>
+  <script src="{% static 'admin-lte/plugins/select2/js/select2.full.min.js' %}"></script>
   <script>
   $(function() {
     $('.datepicker').datepicker({ dateFormat: 'yy-mm-dd' });
+
+    // Initialize Select2 for multiple select fields
+    $('#id_seller').select2({
+      theme: 'bootstrap4',
+      width: '100%',
+      placeholder: '{% trans "Select sellers" %}',
+      allowClear: true
+    });
+
+    $('#id_payment_method').select2({
+      theme: 'bootstrap4',
+      width: '100%',
+      placeholder: '{% trans "Select payment methods" %}',
+      allowClear: true
+    });
+
+    $('#id_products').select2({
+      theme: 'bootstrap4',
+      width: '100%',
+      placeholder: '{% trans "Select products" %}',
+      allowClear: true
+    });
   });
   </script>
 {% endblock extra_js %}
 
 {% block no_heading %}
-  {% if seller %}
-    <h1>
-      <a href="{% url "seller_console_list_campaigns" %}">{% trans "Seller console" %} {{ seller.name }}</a> » {% trans "My Sales" %}
-    </h1>
-  {% else %}
-    <h1>{% trans "Campaign Management" %} » {% trans "Sales Record" %}</h1>
-  {% endif %}
+<h1>{% trans "Sales Records" %}</h1>
 {% endblock no_heading %}
 
 {% block content %}
+  {% block sales_information %}{% endblock sales_information %}
   <div class="row">
     <div class="col-md-12">
       <div class="card">
         <div class="card-body">
           <form method="get" id="form">
             <div class="row">
-              <div class="col-md-2">
+              <div class="col-md-3">
                 <div class="form-group">
-                  <label for="date_time__date__gte_id">{% trans "Min. Date" %}</label>
+                  <label for="date_time__date__gte_id">{% trans "Transaction date (min)" %}</label>
                   {% render_field filter.form.date_time__gte class="form-control datepicker" %}
                 </div>
               </div>
-              <div class="col-md-2">
+              <div class="col-md-3">
                 <div class="form-group">
-                  <label for="date_time__date__lte_id">{% trans "Max. Date" %}</label>
+                  <label for="date_time__date__lte_id">{% trans "Transaction date (max)" %}</label>
                   {% render_field filter.form.date_time__lte class="form-control datepicker" %}
                 </div>
               </div>
-              <div class="col-md-2">
+              <div class="col-md-3">
+                <div class="form-group">
+                  <label for="start_date__gte_id">{% trans "Subscription start date (min)" %}</label>
+                  {% render_field filter.form.start_date__gte class="form-control datepicker" %}
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="form-group">
+                  <label for="start_date__lte_id">{% trans "Subscription start date (max)" %}</label>
+                  {% render_field filter.form.start_date__lte class="form-control datepicker" %}
+                </div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-3">
                 <div class="form-group">
                   <label for="payment_method">{% trans "Payment Method" %}</label>
-                  {% render_field filter.form.payment_method class="form-control datepicker" %}
+                  {% render_field filter.form.payment_method class="form-control" %}
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="form-group">
+                  <label for="products_id">{% trans "Products" %}</label>
+                  {% render_field filter.form.products class="form-control" %}
                 </div>
               </div>
               {% if is_manager %}

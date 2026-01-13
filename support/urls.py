@@ -6,6 +6,7 @@ from support.views import (
     assign_seller,
     seller_console_list_campaigns,
     seller_console_special_routes,
+    seller_console_never_paid_issues,
     scheduled_activities,
     edit_address,
     send_promo,
@@ -13,8 +14,10 @@ from support.views import (
     default_newsletters_dialog,
     product_change,
     book_additional_product,
+    add_retention_discount,
     partial_unsubscription,
     book_unsubscription,
+    reactivate_subscription,
     edit_products,
     api_new_address,
     api_dynamic_prices,
@@ -35,7 +38,7 @@ from support.views import (
     edit_envelopes,
     upload_payment_certificate,
     campaign_statistics_list,
-    campaign_statistics_detail,
+    CampaignStatisticsDetailView,
     campaign_statistics_per_seller,
     seller_performance_by_time,
     unsubscription_statistics,
@@ -49,6 +52,7 @@ from support.views import (
     api_get_addresses,
 )
 from support.views.all_views import IssueListView
+from support.views.campaign_management import bulk_delete_campaign_status
 
 from django.urls import path, re_path
 
@@ -73,6 +77,7 @@ urlpatterns = [
         name="seller_console",
     ),
     re_path(r"^special_routes/(\d+)/$", seller_console_special_routes, name="seller_console_special_routes"),
+    path("never_paid_issues/", seller_console_never_paid_issues, name="seller_console_never_paid_issues"),
     path("scheduled_activities/", scheduled_activities, name="scheduled_activities"),
     re_path(r"^edit_address/(\d+)/$", edit_address),
     re_path(r"^edit_address/(\d+)/(\d+)/$", edit_address),
@@ -92,14 +97,16 @@ urlpatterns = [
         default_newsletters_dialog,
         name="default_newsletters_dialog",
     ),
-    re_path(r"^product_change/(\d+)/$", product_change, name="product_change"),
-    re_path(r"^additional_product/(\d+)/$", book_additional_product, name="additional_product"),
-    re_path(r"^partial_unsubscription/(\d+)/$", partial_unsubscription, name="partial_unsubscription"),
-    re_path(r"^book_unsubscription/(\d+)/$", book_unsubscription, name="book_unsubscription"),
-    re_path(r"^edit_products/(\d+)/$", edit_products, name="edit_products"),
+    path("product_change/<int:subscription_id>/", product_change, name="product_change"),
+    path("additional_product/<int:subscription_id>/", book_additional_product, name="additional_product"),
+    path("add_retention_discount/<int:subscription_id>/", add_retention_discount, name="add_retention_discount"),
+    path("partial_unsubscription/<int:subscription_id>/", partial_unsubscription, name="partial_unsubscription"),
+    path("book_unsubscription/<int:subscription_id>/", book_unsubscription, name="book_unsubscription"),
+    path("reactivate_subscription/<int:subscription_id>/", reactivate_subscription, name="reactivate_subscription"),
+    path("edit_products/<int:subscription_id>/", edit_products, name="edit_products"),
     path("contacts/", views.ContactListView.as_view(), name="contact_list"),
-    re_path(r"^contacts/(\d+)/history$", views.history_extended, name="history_extended"),
-    re_path(r"^api_new_address/(\d+)/$", api_new_address),
+    path("contacts/<int:contact_id>/history", views.history_extended, name="history_extended"),
+    path("api_new_address/<int:contact_id>/", api_new_address),
     path("api_dynamic_prices/", api_dynamic_prices),
     path("api_get_addresses/<int:contact_id>/", api_get_addresses, name="api_get_addresses"),
     # Issues
@@ -147,13 +154,17 @@ urlpatterns = [
     path("contacts/<int:pk>/", views.ContactDetailView.as_view(), name="contact_detail"),
     re_path(r"^edit_envelopes/(\d+)/$", edit_envelopes, name="edit_envelopes"),
     re_path(r"^upload_payment_certificate/(\d+)/$", upload_payment_certificate, name="upload_payment_certificate"),
-    re_path(
-        r"^address_complementary_information/(\d+)/$",
+    path(
+        "address_complementary_information/<int:address_id>/",
         edit_address_complementary_information,
         name="edit_address_complementary_information",
     ),
     path("campaign_statistics/", campaign_statistics_list, name="campaign_statistics_list"),
-    re_path(r"^campaign_statistics/(\d+)/$", campaign_statistics_detail, name="campaign_statistics_detail"),
+    re_path(
+        r"^campaign_statistics/(?P<campaign_id>\d+)/$",
+        CampaignStatisticsDetailView.as_view(),
+        name="campaign_statistics_detail",
+    ),
     re_path(
         r"^campaign_statistics/by_seller/(\d+)/$",
         campaign_statistics_per_seller,
@@ -176,6 +187,7 @@ urlpatterns = [
     path("scheduled_task_filter/", scheduled_task_filter, name="scheduled_task_filter"),
     path("upload_do_not_call_numbers/", upload_do_not_call_numbers, name="upload_do_not_call_numbers"),
     path("tag_contacts/", tag_contacts, name="tag_contacts"),
+    path("bulk_delete_campaign_status/", bulk_delete_campaign_status, name="bulk_delete_campaign_status"),
     path("not_contacted_campaign/<int:campaign_id>/", not_contacted_campaign, name="not_contacted_campaign"),
     path("contacts/<int:contact_id>/agregar_direccion/", location.agregar_direccion, name="agregar_direccion"),
     path(
@@ -224,16 +236,17 @@ urlpatterns = [
         name="subscription_end_date_list",
     ),
     path(
-        "contacts/<int:contact_id>/create_corporate_subscription/",
+        "contacts/<int:contact_id>/corporate-subscription/new/",
         views.CorporateSubscriptionCreateView.as_view(),
         name="create_corporate_subscription",
     ),
     path(
-        "subscription/<int:corporate_subscription_id>/affiliate_subscriptions/",
-        views.AffiliateSubscriptionView.as_view(),
-        name="affiliate_subscriptions",
+        "subscription/<int:subscription_id>/affiliate/new/",
+        views.AffiliateSubscriptionCreateView.as_view(),
+        name="add_affiliate_subscription",
     ),
     path("contacts/<int:contact_id>/create_activity/", views.ActivityCreateView.as_view(), name="create_activity"),
+    path("activity/<int:pk>/", views.ActivityDetailView.as_view(), name="activity_detail"),
     path("contact_invoices_htmx/<int:contact_id>/", views.contact_invoices_htmx, name="contact_invoices_htmx"),
     path(
         "check_for_existing_contacts/",
@@ -245,5 +258,15 @@ urlpatterns = [
         "last_read_articles/<int:contact_id>/",
         views.last_read_articles,
         name="last_read_articles",
+    ),
+    path(
+        'contact/<int:contact_id>/create-free-subscription/',
+        views.create_free_subscription,
+        name='create_free_subscription',
+    ),
+    path(
+        'subscription/<int:subscription_id>/update-free-subscription/',
+        views.update_free_subscription,
+        name='update_free_subscription',
     ),
 ]

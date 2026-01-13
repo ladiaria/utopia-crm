@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from django.contrib.auth.models import User
-from django.views.generic import CreateView, UpdateView, ListView
+from django.views.generic import CreateView, UpdateView, ListView, DetailView
 from django.urls import reverse_lazy, reverse
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.mixins import UserPassesTestMixin
@@ -212,3 +212,53 @@ class ActivityUpdateView(UserPassesTestMixin, BreadcrumbsMixin, UpdateView):
         # We need to see if the contact exists first because it's in the url
         get_object_or_404(Contact, pk=kwargs["pk"])
         return super().dispatch(request, *args, **kwargs)
+
+
+class ActivityDetailView(UserPassesTestMixin, BreadcrumbsMixin, DetailView):
+    model = Activity
+    template_name = "activities/activity_detail.html"
+    context_object_name = "activity"
+
+    def breadcrumbs(self):
+        activity = self.get_object()
+        breadcrumbs = [
+            {"label": _("Contact list"), "url": reverse("contact_list")},
+        ]
+        if activity.contact:
+            breadcrumbs.append({
+                "label": activity.contact.get_full_name(),
+                "url": reverse("contact_detail", args=[activity.contact.id])
+            })
+        breadcrumbs.append({"label": _("Activity") + f" #{activity.id}", "url": ""})
+        return breadcrumbs
+
+    def test_func(self):
+        return self.request.user.is_staff
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        activity = self.get_object()
+
+        # Parse metadata if it exists
+        if activity.metadata:
+            context['metadata'] = activity.metadata
+            context['metadata_type'] = activity.metadata.get('type')
+
+            # For unsubscription metadata, get display values for reason and channel
+            if activity.metadata.get('type') == 'unsubscription':
+                subscription_id = activity.metadata.get('subscription_id')
+                if subscription_id:
+                    try:
+                        from core.models import Subscription
+                        subscription = Subscription.objects.get(id=subscription_id)
+                        # Get display values from the subscription's current state
+                        # (these match what was stored in metadata as integers)
+                        if subscription.unsubscription_reason:
+                            context['reason_display'] = subscription.get_unsubscription_reason_display()
+                        if subscription.unsubscription_channel:
+                            context['channel_display'] = subscription.get_unsubscription_channel_display()
+                    except Subscription.DoesNotExist:
+                        # Subscription was deleted, we'll show the raw values
+                        pass
+
+        return context

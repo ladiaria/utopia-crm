@@ -4,6 +4,33 @@
   {% trans "Validate subscription" %}
 {% endblock title %}
 
+{% block stylesheets %}
+  {{ block.super }}
+  <link href="{% static 'admin-lte/plugins/select2/css/select2.min.css' %}" rel="stylesheet" />
+  <link href="{% static 'admin-lte/plugins/select2-bootstrap4-theme/select2-bootstrap4.min.css' %}" rel="stylesheet" />
+{% endblock stylesheets %}
+
+{% block extra_js %}
+  <script src="{% static 'admin-lte/plugins/select2/js/select2.full.min.js' %}"></script>
+  <script>
+  $(function() {
+    $('#id_seller').select2({
+      theme: 'bootstrap4',
+      width: '100%',
+      placeholder: '{% trans "Select seller" %}',
+      allowClear: false
+    });
+
+    $('#id_campaign').select2({
+      theme: 'bootstrap4',
+      width: '100%',
+      placeholder: '{% trans "Select campaign" %}',
+      allowClear: true
+    });
+  });
+  </script>
+{% endblock extra_js %}
+
 {% block no_heading %}
   <h1>
     {% trans "Validate Subscription" %}
@@ -242,32 +269,44 @@
             </div>
           </div>
         </div>
-        <div class="card-footer text-right">
+        <div class="card-footer">
           <form method="post">
             {% csrf_token %}
-            <div class="d-flex flex-row justify-content-start">
-              <label for="seller_id" class="form-label m-2 w-10">{% trans "Seller" %}</label>
-              {% render_field form.seller class="form-control w-25 m-2" %}
-              <label for="override" class="form-label m-2 w-25">{% trans "Add Commission Value Manually" %}</label>
-              {% render_field form.override_commission_value class="form-control w-25 m-2" %}
-              <div class="form-check m-2">
-                <label for="can_be_commissioned_id" class="form-check-label m-2">{% trans "Can be commissioned" %}</label>
-                {% render_field form.can_be_commissioned class="form-check-input m-2" %}
+            <div class="row mb-3">
+              <div class="col-md-3">
+                <label for="seller_id" class="form-label">{% trans "Seller" %}</label>
+                {% render_field form.seller class="form-control" %}
+              </div>
+              <div class="col-md-3">
+                <label for="campaign_id" class="form-label">{% trans "Campaign" %}</label>
+                {% render_field form.campaign class="form-control" %}
+              </div>
+              <div class="col-md-3">
+                <label for="override" class="form-label">{% trans "Add Commission Value Manually" %}</label>
+                {% render_field form.override_commission_value class="form-control" %}
+              </div>
+              <div class="col-md-3">
+                <div class="form-check mt-4 pt-2">
+                  {% render_field form.can_be_commissioned class="form-check-input" %}
+                  <label for="can_be_commissioned_id" class="form-check-label">{% trans "Can be commissioned" %}</label>
+                </div>
               </div>
             </div>
-            <button type="submit" class="btn btn-success">
-              <i class="fas fa-check"></i> {% trans "Validate" %}
-            </button>
-            <a href="{% url 'edit_subscription' subscription.contact.id subscription.id %}"
-               class="btn  btn-success">{% trans "Edit" %}</a>
-            <a href="{% url 'admin:core_subscription_change' subscription.id %}"
-               class="btn btn-info"
-               target="_blank">{% trans "View in admin" %}</a>
-            <a href="{% url 'edit_envelopes' subscription.id %}"
-               class="btn btn-info"><i class="fas fa-envelope"></i></a>
-            <a href="{% url 'upload_payment_certificate' subscription.id %}"
-               class="btn btn-info">
-              <i class="fas fa-file-invoice-dollar"></i></a>
+            <div class="text-right">
+              <button type="submit" class="btn btn-success">
+                <i class="fas fa-check"></i> {% trans "Validate" %}
+              </button>
+              <a href="{% url 'edit_subscription' subscription.contact.id subscription.id %}"
+                 class="btn btn-success">{% trans "Edit" %}</a>
+              <a href="{% url 'admin:core_subscription_change' subscription.id %}"
+                 class="btn btn-info"
+                 target="_blank">{% trans "View in admin" %}</a>
+              <a href="{% url 'edit_envelopes' subscription.id %}"
+                 class="btn btn-info"><i class="fas fa-envelope"></i></a>
+              <a href="{% url 'upload_payment_certificate' subscription.id %}"
+                 class="btn btn-info">
+                <i class="fas fa-file-invoice-dollar"></i></a>
+            </div>
           </form>
         </div>
       </div>

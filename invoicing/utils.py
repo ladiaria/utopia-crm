@@ -476,9 +476,14 @@ def bill_subscription(
         if force_by_date and billing_date_override:
             subscription.next_billing = billing_date_override
         else:
-            subscription.next_billing = (subscription.next_billing or subscription.start_date) + relativedelta(
-                months=subscription.frequency
-            )
+            # For corporate subscriptions with end_date, set next_billing to end_date after first bill
+            # This ensures they are only billed once
+            if subscription.type == "C" and subscription.end_date:
+                subscription.next_billing = subscription.end_date
+            else:
+                subscription.next_billing = (subscription.next_billing or subscription.start_date) + relativedelta(
+                    months=subscription.frequency
+                )
         subscription.save()
 
         assert amount > 0, _("This subscription wasn't billed since amount is not greater than 0")

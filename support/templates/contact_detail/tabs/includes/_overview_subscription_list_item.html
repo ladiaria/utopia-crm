@@ -14,11 +14,15 @@
       {{ subscription.get_type_display }}
     </span>
   </div>
-
   {# Status alerts - compact #}
   {% if future %}
     <div class="alert alert-info py-1 px-2 mb-2">
       <small><i class="fas fa-info-circle"></i> {% trans "Future Subscription (Not yet started)" %}</small>
+    </div>
+  {% endif %}
+  {% if subscription.is_obsolete %}
+    <div class="alert alert-warning py-1 px-2 mb-2">
+      <small><i class="fas fa-exchange-alt"></i> {% trans "Replaced by subscription" %} #{{ subscription.get_updated_subscription.id }}</small>
     </div>
   {% endif %}
   {% if subscription.status == "PA" %}
@@ -36,7 +40,6 @@
       <small><i class="fas fa-clock"></i> {% trans "Awaiting payment" %}</small>
     </div>
   {% endif %}
-
   {# Compact info list #}
   <div>
     <div class="mb-1">
@@ -45,7 +48,6 @@
         <span class="ml-2"><i class="fas fa-calendar-times text-danger"></i> <strong>{% trans "End" %}:</strong> {{ subscription.end_date|date:"d/m/Y" }} <span class="badge badge-warning badge-sm">{% days_until subscription.end_date %}</span></span>
       {% endif %}
     </div>
-
     {% if subscription.type == "N" %}
       <div class="mb-1">
         <i class="fas fa-calendar-check text-success"></i> <strong>{% trans "Next" %}:</strong> {{ subscription.next_billing|date:"d/m/Y" }}
@@ -60,13 +62,15 @@
         {% endif %}
       </div>
       {% block extensions %}
-      <div class="mb-1">
-        <i class="fas fa-credit-card text-secondary"></i> <strong>{% trans "Payment" %}:</strong> {{ subscription.get_payment_type }}
-        {% block extrapayment_1 %}{% endblock extrapayment_1 %}
-      </div>
-      {% endblock extensions %}
-    {% endif %}
+        <div class="mb-1">
+          <i class="fas fa-credit-card text-secondary"></i> <strong>{% trans "Payment" %}:</strong> {{ subscription.get_payment_type }}
+          {% block extrapayment_1 %}
+          {% endblock extrapayment_1 %}
 
+        </div>
+      {% endblock extensions %}
+
+    {% endif %}
     {% if subscription.balance %}
       <div class="mb-1">
         <i class="fas {% if subscription.balance > 0 %}fa-arrow-down text-success{% else %}fa-arrow-up text-danger{% endif %}"></i>
@@ -78,95 +82,136 @@
         {% endif %}
       </div>
     {% endif %}
-
     {% if subscription.campaign %}
       <div class="mb-1">
         <i class="fas fa-bullhorn text-warning"></i> <strong>{% trans "Campaign" %}:</strong> {{ subscription.campaign }}
       </div>
     {% endif %}
-
     {% if subscription.payment_certificate %}
       <div class="mb-1">
-        <a href="{{ subscription.payment_certificate.url }}" class="text-success">
+        <a href="{{ subscription.payment_certificate.url }}"
+           class="text-success">
           <i class="fas fa-file-invoice-dollar"></i> {% trans "View payment certificate" %}
         </a>
       </div>
     {% endif %}
-
     {% if subscription.type == "A" %}
       <div class="alert alert-info py-1 px-2 mt-2 mb-0">
         <small><i class="fas fa-link"></i> <strong>{% trans "Parent" %}:</strong>
-        <a href="{% url "contact_detail" subscription.parent_subscription.contact.id %}" class="alert-link">
-          {{ subscription.parent_subscription.contact.get_full_name }}
-        </a></small>
+          <a href="{% url "contact_detail" subscription.parent_subscription.contact.id %}"
+             class="alert-link">{{ subscription.parent_subscription.contact.get_full_name }}</a></small>
       </div>
     {% endif %}
   </div>
-
   {# Action buttons - compact #}
   <div class="mt-2 pt-2 border-top d-flex flex-wrap justify-content-end">
     {% block subscription_actions %}
-    {% if subscription.type == "P" %}
-      {% if request.user|in_group:"Managers" %}
-        <a href="{% url "update_promo" subscription.id %}" class="btn btn-sm btn-primary mr-1 mb-1" target="_blank">
-          <i class="fas fa-edit"></i> {% trans "Update Promo" %}
-        </a>
-        <a href="{% url "admin:core_subscription_change" subscription.id %}" class="btn btn-sm btn-secondary mr-1 mb-1" target="_blank">
-          <i class="fas fa-cog"></i> {% trans "Advanced" %}
-        </a>
+      {% if subscription.type == "P" %}
+        {% if request.user|in_group:"Managers" %}
+          {% if not subscription.is_obsolete %}
+            <a href="{% url "update_promo" subscription.id %}"
+               class="btn btn-sm btn-primary mr-1 mb-1"
+               target="_blank">
+              <i class="fas fa-edit"></i> {% trans "Update Promo" %}
+            </a>
+          {% endif %}
+          <a href="{% url "admin:core_subscription_change" subscription.id %}"
+             class="btn btn-sm btn-secondary mr-1 mb-1"
+             target="_blank">
+            <i class="fas fa-cog"></i> {% trans "Advanced" %}
+          </a>
+        {% endif %}
+      {% elif subscription.type == "F" %}
+        {% if request.user|in_group:"Managers" %}
+          {% if not subscription.is_obsolete %}
+            <a href="{% url "update_free_subscription" subscription.id %}"
+               class="btn btn-sm btn-primary mr-1 mb-1"
+               target="_blank">
+              <i class="fas fa-edit"></i> {% trans "Update Free Subscription" %}
+            </a>
+          {% endif %}
+          <a href="{% url "admin:core_subscription_change" subscription.id %}"
+             class="btn btn-sm btn-secondary mr-1 mb-1"
+             target="_blank">
+            <i class="fas fa-cog"></i> {% trans "Advanced" %}
+          </a>
+        {% endif %}
+      {% else %}
+        {% if not subscription.is_obsolete %}
+          {% if perms.core.can_offer_retention %}
+            <a href="{% url "add_retention_discount" subscription.id %}"
+               class="btn btn-sm btn-primary mr-1 mb-1"><i class="fas fa-plus-circle"></i> {% trans "Offer retention" %}</a>
+          {% endif %}
+          {% if request.user|in_group:"Support" or request.user|in_group:"Managers" %}
+            {% if not subscription.end_date %}
+              <a href="{% url "additional_product" subscription.id %}"
+                 class="btn btn-sm btn-success mr-1 mb-1">
+                <i class="fas fa-plus"></i> {% trans "Add" %}
+              </a>
+            {% endif %}
+            {% if subscription.type == "C" %}
+              <a href="{% url "add_affiliate_subscription" subscription.id %}"
+                 class="btn btn-sm btn-success mr-1 mb-1">
+                <i class="fas fa-user-plus"></i> {% trans "Add Affiliate" %}
+              </a>
+            {% elif subscription.type == "A" %}
+              <a href="{% url "contact_detail" subscription.parent_subscription.contact.id %}"
+                 class="btn btn-sm btn-info mr-1 mb-1">
+                <i class="fas fa-arrow-up"></i> {% trans "Parent" %}
+              </a>
+            {% endif %}
+            <a href="{% url "edit_subscription" contact.id subscription.id %}"
+               class="btn btn-sm btn-primary mr-1 mb-1">
+              <i class="fas fa-edit"></i> {% trans "Edit" %}
+            </a>
+            {% if subscription.can_be_reactivated %}
+              <a href="{% url "reactivate_subscription" subscription.id %}"
+                 class="btn btn-sm btn-success mr-1 mb-1">
+                <i class="fas fa-redo"></i> {% trans "Reactivate" %}
+              </a>
+            {% elif not subscription.end_date %}
+              <a href="{% url "book_unsubscription" subscription.id %}"
+                 class="btn btn-sm btn-danger mr-1 mb-1">
+                <i class="fas fa-times-circle"></i> {% trans "Unsubscription" %}
+              </a>
+            {% endif %}
+          {% endif %}
+        {% endif %}
+        {% if request.user|in_group:"Managers" %}
+          <a href="{% url "admin:core_subscription_change" subscription.id %}"
+             class="btn btn-sm btn-secondary mr-1 mb-1"
+             target="_blank">
+            <i class="fas fa-cog"></i> {% trans "Advanced" %}
+          </a>
+          {% if not subscription.validated and subscription.has_sales_record %}
+            <a href="{% url "validate_subscription" subscription.id %}"
+               class="btn btn-sm btn-warning mr-1 mb-1">
+              <i class="fas fa-check-circle"></i> {% trans "Validate" %}
+            </a>
+          {% elif not subscription.has_sales_record and request.user|in_group:"Managers" %}
+            <a href="{% url "add_sales_record" subscription.id %}"
+               class="btn btn-sm btn-warning mr-1 mb-1">
+              <i class="fas fa-cash-register"></i> {% trans "Register Sale" %}
+            </a>
+          {% endif %}
+          {% if subscription.is_obsolete %}
+            <a href="{% url "admin:core_subscription_change" subscription.get_updated_subscription.id %}"
+               class="btn btn-sm btn-info mr-1 mb-1"
+               target="_blank">
+              <i class="fas fa-exchange-alt"></i> {% trans "Replaced" %}
+            </a>
+          {% endif %}
+        {% endif %}
       {% endif %}
-    {% else %}
-      {% if request.user|in_group:"Support" or request.user|in_group:"Managers" %}
-        {% if not subscription.end_date %}
-          <a href="{% url "additional_product" subscription.id %}" class="btn btn-sm btn-success mr-1 mb-1">
-            <i class="fas fa-plus"></i> {% trans "Add" %}
-          </a>
-        {% endif %}
-        {% if subscription.type == "C" %}
-          <a href="{% url "add_affiliate_subscription" subscription.id %}" class="btn btn-sm btn-success mr-1 mb-1">
-            <i class="fas fa-user-plus"></i> {% trans "Add Affiliate" %}
-          </a>
-        {% elif subscription.type == "A" %}
-          <a href="{% url "contact_detail" subscription.parent_subscription.contact.id %}" class="btn btn-sm btn-info mr-1 mb-1">
-            <i class="fas fa-arrow-up"></i> {% trans "Parent" %}
-          </a>
-        {% endif %}
-        <a href="{% url "edit_subscription" contact.id subscription.id %}" class="btn btn-sm btn-primary mr-1 mb-1">
-          <i class="fas fa-edit"></i> {% trans "Edit" %}
-        </a>
-        {% if not subscription.end_date %}
-          <a href="{% url "book_unsubscription" subscription.id %}" class="btn btn-sm btn-danger mr-1 mb-1">
-            <i class="fas fa-times-circle"></i> {% trans "Unsubscription" %}
-          </a>
-        {% endif %}
-      {% endif %}
-      {% if request.user|in_group:"Managers" %}
-        <a href="{% url "admin:core_subscription_change" subscription.id %}" class="btn btn-sm btn-secondary mr-1 mb-1" target="_blank">
-          <i class="fas fa-cog"></i> {% trans "Advanced" %}
-        </a>
-        {% if not subscription.validated and subscription.has_sales_record %}
-          <a href="{% url "validate_subscription" subscription.id %}" class="btn btn-sm btn-warning mr-1 mb-1">
-            <i class="fas fa-check-circle"></i> {% trans "Validate" %}
-          </a>
-        {% elif not subscription.has_sales_record and request.user|in_group:"Managers" %}
-          <a href="{% url "add_sales_record" subscription.id %}" class="btn btn-sm btn-warning mr-1 mb-1">
-            <i class="fas fa-cash-register"></i> {% trans "Register Sale" %}
-          </a>
-        {% endif %}
-        {% if subscription.is_obsolete %}
-          <a href="{% url "admin:core_subscription_change" subscription.get_updated_subscription.id %}" class="btn btn-sm btn-info mr-1 mb-1" target="_blank">
-            <i class="fas fa-exchange-alt"></i> {% trans "Replaced" %}
-          </a>
-        {% endif %}
-      {% endif %}
-    {% endif %}
-
-    <a href="{% url "edit_envelopes" subscription.id %}" class="btn btn-sm btn-outline-secondary mr-1 mb-1">
-      <i class="fas fa-envelope"></i> {% trans "Envelopes" %}
-    </a>
-    <a href="{% url "upload_payment_certificate" subscription.id %}" class="btn btn-sm btn-outline-secondary mb-1">
-      <i class="fas fa-file-invoice-dollar"></i> {% trans "Certificados de pago" %}
-    </a>
+      <a href="{% url "edit_envelopes" subscription.id %}"
+         class="btn btn-sm btn-outline-secondary mr-1 mb-1">
+        <i class="fas fa-envelope"></i> {% trans "Envelopes" %}
+      </a>
+      <a href="{% url "upload_payment_certificate" subscription.id %}"
+         class="btn btn-sm btn-outline-secondary mb-1">
+        <i class="fas fa-file-invoice-dollar"></i> {% trans "Certificados de pago" %}
+      </a>
     {% endblock subscription_actions %}
+
   </div>
 </div>

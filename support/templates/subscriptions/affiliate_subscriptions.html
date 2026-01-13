@@ -1,93 +1,64 @@
 {% extends "adminlte/base.html" %}
-{% load static i18n widget_tweaks %}
-
-{% block title %}
-  {% trans "Bulk Subscriptions" %}
-{% endblock title %}
-
+{% load static widget_tweaks %}
 {% block no_heading %}
-  <h1>{% trans "Bulk Subscriptions for Main Subscription" %} #{{ main_subscription.id }}</h1>
-{% endblock %}
+  <h1>Agregar Suscripción Afiliada</h1>
+{% endblock no_heading %}
+
+{% block extra_js %}
+  <script src="{% static 'js/htmx.min.js' %}" defer></script>
+{% endblock extra_js %}
 
 {% block content %}
-<div class="row">
-  <div class="col-md-12">
-    <div class="card">
-      <div class="card-header">
-        <h3 class="card-title">{% trans "Main Subscription Details" %}</h3>
-      </div>
-      <div class="card-body">
-        <p><strong>{% trans "Contact" %}:</strong> {{ main_subscription.contact.name }}</p>
-        <p><strong>{% trans "Start Date" %}:</strong> {{ main_subscription.start_date }}</p>
-        <p><strong>{% trans "End Date" %}:</strong> {{ main_subscription.end_date }}</p>
-        <p><strong>{% trans "Product" %}:</strong> {{ main_subscription.subscriptionproduct_set.first.product.name }}</p>
-        <p><strong>{% trans "Copies" %}:</strong> {{ main_subscription.subscriptionproduct_set.first.copies }}</p>
-      </div>
-    </div>
-  </div>
-
-  <div class="col-md-12">
-    <div class="card">
-      <div class="card-header">
-        <h3 class="card-title">{% trans "Add New Bulk Subscription" %}</h3>
-      </div>
-      <div class="card-body">
-        <form method="post">
-          {% csrf_token %}
-          <div class="row">
-            <div class="col">
-              {{ form.contact.label_tag }}
-              {{ form.contact }}
-            </div>
+  <div class="card">
+    <div class="card-body">
+      <p>Afiliados actuales: {{ current_affiliates }} / {{ corporate_subscription.number_of_subscriptions }}</p>
+      <p>Espacios disponibles: {{ available_slots }}</p>
+      <p>Contacto principal: {{ corporate_subscription.contact.get_full_name }}</p>
+      <p>
+        Producto disponible: {{ corporate_subscription.products.first.name }} - Duración: {{ corporate_subscription.products.first.duration_months }} meses
+      </p>
+      <form method="post">
+        {% csrf_token %}
+        <label for="{{ form.contact.id_for_label }}">Buscar contacto:</label>
+        <input type="text"
+               id="{{ form.contact.id_for_label }}"
+               name="q"
+               class="form-control mb-2"
+               hx-get="{% url 'search_contacts_htmx' %}"
+               hx-target="#contact_htmx_results"
+               hx-trigger="keyup changed delay:500ms">
+        <div id="contact_htmx_results">{% include "partials/search_contacts_results.html" %}</div>
+        <div class="row mt-2">
+          <div class="col-md-6">
+            <label for="{{ form.start_date.id_for_label }}">Fecha de inicio:</label>
+            {% render_field form.start_date class="form-control mb-2" %}
           </div>
-          <div class="row">
-            <div class="col-md-6">
-              {{ form.start_date.label_tag }}
-              {% render_field form.start_date class="form-control" %}
-            </div>
-            <div class="col-md-6">
-              {{ form.end_date.label_tag }}
-              {% render_field form.end_date class="form-control" %}
-            </div>
+          <div class="col-md-6">
+            <label for="{{ form.end_date.id_for_label }}">Fecha de fin:</label>
+            {% render_field form.end_date class="form-control mb-2" %}
           </div>
-          <button type="submit" class="btn btn-primary">{% trans "Add Bulk Subscription" %}</button>
-        </form>
-      </div>
+        </div>
+        <button type="submit" class="btn btn-primary">Guardar</button>
+        <a href="{% url 'contact_detail' corporate_subscription.contact.id %}"
+           class="btn btn-secondary">Cancelar</a>
+      </form>
     </div>
   </div>
-
-  <div class="col-md-12">
-    <div class="card">
-      <div class="card-header">
-        <h3 class="card-title">{% trans "Current Bulk Subscriptions" %}</h3>
-      </div>
-      <div class="card-body">
-        {% if bulk_subscriptions %}
-          <table class="table table-bordered table-striped">
-            <thead>
-              <tr>
-                <th>{% trans "Contact" %}</th>
-                <th>{% trans "Start Date" %}</th>
-                <th>{% trans "End Date" %}</th>
-                <th>{% trans "Status" %}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for subscription in bulk_subscriptions %}
-              <tr>
-                <td>{{ subscription.contact.name }}</td>
-                <td>{{ subscription.start_date }}</td>
-                <td>{{ subscription.end_date }}</td>
-                <td>{{ subscription.get_status_display }}</td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        {% else %}
-          <p>{% trans "No bulk subscriptions found." %}</p>
-        {% endif %}
-      </div>
+  <div class="card">
+    <div class="card-header">
+      <h3>Afiliados actuales</h3>
+    </div>
+    <div class="card-body">
+      <ul>
+        {% for affiliate in affiliate_subscriptions %}
+          <li>
+            <a href="{% url 'contact_detail' affiliate.contact.id %}">
+              {{ affiliate.contact.get_full_name }} - {{ affiliate.contact.id_document_type|default_if_none:"N/A" }} {{ affiliate.contact.id_document|default_if_none:"-" }}
+            </a>
+            - {{ affiliate.start_date }} - {{ affiliate.end_date }}
+          </li>
+        {% endfor %}
+      </ul>
     </div>
   </div>
-</div>
 {% endblock %}
