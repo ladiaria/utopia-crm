@@ -9,7 +9,7 @@ from django.utils.translation import gettext_lazy as _
 from django.utils.safestring import mark_safe
 from autoslug import AutoSlugField
 
-from core.choices import ACTIVITY_STATUS
+from core.choices import ACTIVITY_STATUS, CAMPAIGN_RESOLUTION_CHOICES, CAMPAIGN_STATUS
 from core.models import Campaign
 
 from simple_history.models import HistoricalRecords
@@ -20,7 +20,6 @@ from support.choices import (
     ISSUE_SUBCATEGORIES,
     SCHEDULED_TASK_CATEGORIES,
 )
-from core.choices import CAMPAIGN_STATUS
 
 
 class Seller(models.Model):
@@ -631,6 +630,13 @@ class SellerConsoleAction(models.Model):
         null=True,
         blank=True,
         help_text=_("Campaign status to set when this action is performed"),
+    )
+    campaign_resolution = models.CharField(
+        max_length=2,
+        choices=CAMPAIGN_RESOLUTION_CHOICES,
+        null=True,
+        blank=True,
+        help_text=_("Campaign resolution to set when this action is performed"),
     )
 
     def __str__(self):

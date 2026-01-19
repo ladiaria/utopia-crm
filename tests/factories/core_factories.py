@@ -1,5 +1,5 @@
 from django.conf import settings
-from factory import Faker, SubFactory, LazyAttribute
+from factory import Faker, SubFactory
 from factory.django import DjangoModelFactory
 from core.models import Contact, Address, Product, Subscription, Campaign, State, Country
 from core.choices import SUBSCRIPTION_TYPE_CHOICES, SUBSCRIPTION_STATUS_CHOICES
@@ -9,7 +9,8 @@ class ContactFactory(DjangoModelFactory):
     class Meta:
         model = Contact
 
-    name = Faker("name")
+    name = Faker("first_name")
+    last_name = Faker("last_name")
     phone = Faker("phone_number")
     email = Faker("email")
 
@@ -46,18 +47,20 @@ class SubscriptionFactory(DjangoModelFactory):
 class CountryFactory(DjangoModelFactory):
     class Meta:
         model = Country
+        django_get_or_create = ('code',)
 
     name = Faker("country")
-    code = ""
+    code = Faker("country_code")
     active = True
 
 
 class StateFactory(DjangoModelFactory):
     class Meta:
         model = State
+        django_get_or_create = ('code', 'country')
 
     name = Faker("city")
-    code = ""
+    code = Faker("state_abbr")
     active = True
     country = SubFactory(CountryFactory)
 
@@ -70,16 +73,16 @@ class AddressFactory(DjangoModelFactory):
     address_1 = Faker("street_address")
     address_2 = Faker("secondary_address")
     city = Faker("city")
-    state = SubFactory(StateFactory)
-    country = LazyAttribute(lambda obj: obj.state.country)
+    state = None  # Don't auto-create state to avoid complexity
+    country = None  # Don't auto-create country to avoid complexity
     email = None
     address_type = "physical"
     notes = Faker("text", max_nb_chars=200)
-    default = Faker("boolean")
-    picture = None  # You can add a file generator if needed
-    google_maps_url = Faker("url")
+    default = False
+    picture = None
+    google_maps_url = None
     do_not_show = False
-    georef_point = None  # You may need a custom generator for PointField
+    georef_point = None
     latitude = None
     longitude = None
     verified = False

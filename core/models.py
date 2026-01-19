@@ -1369,9 +1369,120 @@ class Address(models.Model):
     def get_city(self):
         return self.city_fk.name if self.city_fk else self.city
 
+    def merge_other_address_into_this(
+        self,
+        source: "Address",
+        address_1: str = None,
+        address_2: str = None,
+        city: str = None,
+        email: str = None,
+        address_type: str = None,
+        notes: str = None,
+        default: bool = None,
+        name: str = None,
+        state_id: int = None,
+        country_id: int = None,
+        city_fk_id: int = None,
+        latitude: float = None,
+        longitude: float = None,
+        google_maps_url: str = None,
+    ) -> list:
+        """Takes a source address and merges it into this one, allowing manual field overrides.
+
+        Args:
+            source (Address): The address to be merged into this one and then deleted.
+            address_1 (str, optional): Override address line 1.
+            address_2 (str, optional): Override address line 2.
+            city (str, optional): Override city string.
+            email (str, optional): Override email.
+            address_type (str, optional): Override address type.
+            notes (str, optional): Override notes.
+            default (bool, optional): Override default status.
+            name (str, optional): Override address name.
+            state_id (int, optional): Override state FK.
+            country_id (int, optional): Override country FK.
+            city_fk_id (int, optional): Override city FK.
+            latitude (float, optional): Override latitude.
+            longitude (float, optional): Override longitude.
+            google_maps_url (str, optional): Override Google Maps URL.
+
+        Returns:
+            list: List of errors encountered during merge, empty if successful.
+        """
+        errors = []
+        try:
+            # Update fields with provided overrides
+            if address_1 is not None:
+                self.address_1 = address_1.strip() if address_1 else None
+            if address_2 is not None:
+                self.address_2 = address_2.strip() if address_2 else None
+            if city is not None:
+                self.city = city.strip() if city else None
+            if email is not None:
+                self.email = email.strip() if email else None
+            if address_type is not None:
+                self.address_type = address_type
+            if name is not None:
+                self.name = name.strip() if name else None
+            if default is not None:
+                self.default = default
+            if google_maps_url is not None:
+                self.google_maps_url = google_maps_url.strip() if google_maps_url else None
+
+            # Handle FK fields
+            if state_id is not None:
+                self.state_id = state_id if state_id else None
+            if country_id is not None:
+                self.country_id = country_id if country_id else None
+            if city_fk_id is not None:
+                self.city_fk_id = city_fk_id if city_fk_id else None
+
+            # Handle georef data
+            if latitude is not None:
+                self.latitude = latitude
+            if longitude is not None:
+                self.longitude = longitude
+
+            # Merge notes
+            if notes is not None:
+                self.notes = notes
+            else:
+                # Append source notes if not overridden
+                merge_note = f"Merged from address {source.id} on {date.today()}"
+                if self.notes:
+                    self.notes = f"{merge_note}\n{self.notes}"
+                else:
+                    self.notes = merge_note
+
+                if source.notes:
+                    self.notes += f"\n\nNotes from address {source.id}:\n{source.notes}"
+
+            self.save()
+
+            # Transfer all related objects from source to target
+            # SubscriptionProducts
+            source.subscriptionproduct_set.update(address=self)
+
+            # Issues
+            source.issue_set.update(address=self)
+
+            # ScheduledTasks
+            source.scheduledtask_set.update(address=self)
+
+            # Delete the source address
+            source.delete()
+
+        except Exception as e:
+            errors.append(str(e))
+
+        return errors
+
     class Meta:
         verbose_name = _("address")
         verbose_name_plural = _("addresses")
+        permissions = [
+            ("can_merge_addresses", _("Can merge addresses")),
+        ]
 
 
 class SubscriptionProduct(models.Model):
@@ -1471,6 +1582,7 @@ class Subscription(models.Model):
         DEBTOR = 13, _("Debtor")
         DEBTOR_AUTOMATIC = 16, _("Debtor, automatic unsubscription")
         RETENTION = 17, _("Retention")
+        ALL_PRODUCTS_REMOVED = 18, _("All products removed")
         NOT_APPLICABLE = 99, _("N/A")
 
     class UnsubscriptionTypeChoices(models.IntegerChoices):
@@ -1480,6 +1592,7 @@ class Subscription(models.Model):
         CHANGED_PRODUCTS = 3, _("Changed products")
         ADDED_PRODUCTS = 4, _("Added products")
         RETENTION = 5, _("Retention")
+        ALL_PRODUCTS_REMOVED = 6, _("All products removed")
 
     campaign = models.ForeignKey(
         "core.Campaign", blank=True, null=True, verbose_name=_("Campaign"), on_delete=models.SET_NULL
@@ -1776,7 +1889,9 @@ class Subscription(models.Model):
         """
         Used to remove products from the current subscription. It is encouraged to always use this method when you want
         to remove a product from a subscription, so you always have control of what happens here. This also creates a
-        product history with the current subscription, product, and date, with the type 'D' (De-activation)
+        product history with the current subscription, product, and date, with the type 'D' (De-activation).
+
+        If that was the last product, mark the subscription as inactive, and mark the reason as ALL_PRODUCTS_REMOVED.
         """
         try:
             sp = SubscriptionProduct.objects.get(subscription=self, product=product)
@@ -1785,6 +1900,15 @@ class Subscription(models.Model):
             pass
         else:
             self.contact.add_product_history(self, product, "D")
+
+        if not self.subscriptionproduct_set.exists():
+            self.active = False
+            self.status = "OK"
+            self.inactivity_reason = self.InactivityReasonChoices.ALL_PRODUCTS_REMOVED
+            self.unsubscription_addendum = _("All products were removed.")
+            self.unsubscription_type = self.UnsubscriptionTypeChoices.ALL_PRODUCTS_REMOVED
+            self.end_date = date.today()
+            self.save()
 
     def get_billing_contact(self):
         """
@@ -2317,6 +2441,36 @@ class Subscription(models.Model):
         else:
             return None
 
+    def can_be_reactivated(self):
+        """
+        Check if this subscription can be reactivated.
+
+        Requirements:
+        - Must have an end_date (be unsubscribed)
+        - Must be a complete unsubscription (unsubscription_type == 1)
+        - Must be within 30 days of unsubscription_date
+
+        Returns:
+            bool: True if subscription can be reactivated, False otherwise
+        """
+        from datetime import date
+
+        # Must be unsubscribed
+        if not self.end_date:
+            return False
+
+        # Must be a complete unsubscription
+        if self.unsubscription_type != 1:
+            return False
+
+        # Must be within 30 days of unsubscription_date
+        if self.unsubscription_date:
+            days_since_unsubscription = (date.today() - self.unsubscription_date).days
+            if days_since_unsubscription > 30:
+                return False
+
+        return True
+
     def balance_abs(self):
         return abs(self.balance)
 
@@ -2645,6 +2799,12 @@ class Activity(models.Model):
         blank=True,
         verbose_name=_("Seller console action"),
     )
+    metadata = models.JSONField(
+        blank=True,
+        null=True,
+        verbose_name=_("Metadata"),
+        help_text=_("Structured data for storing additional activity information (e.g., unsubscription data)")
+    )
 
     def __str__(self):
         return str(_("Activity {} for contact {}".format(self.id, self.contact.id)))
@@ -2677,6 +2837,15 @@ class Activity(models.Model):
         """
         directions = dict(ACTIVITY_DIRECTION_CHOICES)
         return directions.get(self.direction, "N/A")
+
+    def get_activity_type_display(self):
+        """
+        Returns the display name for the activity type.
+        This method is needed because activity_type uses a dynamic function get_activity_types()
+        instead of static choices, so Django's automatic get_FOO_display doesn't work.
+        """
+        activity_types = dict(get_activity_types())
+        return activity_types.get(self.activity_type, "N/A")
 
     def mark_as_sale(self, register_activity, campaign, subscription=None):
         # Update the activity

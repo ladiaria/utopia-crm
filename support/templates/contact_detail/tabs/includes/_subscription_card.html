@@ -191,6 +191,11 @@
                target="_blank">
               <i class="fas fa-exchange-alt"></i> {% trans "Replaced" %}
             </a>
+          {% elif subscription.can_be_reactivated %}
+            <a href="{% url "reactivate_subscription" subscription.id %}"
+               class="btn btn-sm btn-success mr-1 mb-1">
+              <i class="fas fa-redo"></i> {% trans "Reactivate" %}
+            </a>
           {% else %}
             <a href="{% url "book_unsubscription" subscription.id %}"
                class="btn btn-sm btn-danger mr-1 mb-1">

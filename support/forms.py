@@ -406,7 +406,7 @@ class IssueStartForm(forms.ModelForm):
     widget = forms.Select(attrs={"class": "form-control"})
     product = forms.ModelChoiceField(
         label=_("Product"),
-        queryset=Product.objects.filter(type="S"),
+        queryset=Product.objects.filter(type__in=["S", "O"]),
         widget=forms.Select(attrs={"class": "form-control"}),
         required=False,
     )
@@ -747,9 +747,14 @@ class RetentionDiscountForm(forms.ModelForm):
         model = Subscription
         fields = (
             "start_date",
+            "unsubscription_channel",
             "unsubscription_addendum",
         )
+        labels = {
+            "unsubscription_channel": _("Petition channel"),
+        }
         widgets = {
+            "unsubscription_channel": forms.Select(attrs={"class": "form-control"}),
             "unsubscription_addendum": forms.Textarea(attrs={"class": "form-control"}),
         }
 
@@ -802,13 +807,18 @@ class ValidateSubscriptionForm(forms.ModelForm):
         widget=forms.NumberInput(attrs={"class": "form-control", "placeholder": _("Override amount"), "min": 0}),
     )
     seller = forms.ModelChoiceField(
-        queryset=Seller.objects.filter(internal=True),
+        queryset=Seller.objects.filter(internal=True).order_by('name'),
+        widget=forms.Select(attrs={"class": "form-control"}),
+    )
+    campaign = forms.ModelChoiceField(
+        queryset=Campaign.objects.filter(active=True),
+        required=False,
         widget=forms.Select(attrs={"class": "form-control"}),
     )
 
     class Meta:
         model = SalesRecord
-        fields = ("can_be_commissioned", "override_commission_value", "seller")
+        fields = ("can_be_commissioned", "override_commission_value", "seller", "campaign")
         widgets = {
             "can_be_commissioned": forms.CheckboxInput(attrs={"class": "form-check-input"}),
         }
@@ -841,16 +851,6 @@ class SalesRecordCreateForm(forms.ModelForm):
 class CorporateSubscriptionForm(NewSubscriptionForm):
     class Meta(NewSubscriptionForm.Meta):
         fields = NewSubscriptionForm.Meta.fields + ('number_of_subscriptions', 'override_price')
-
-
-class AffiliateSubscriptionForm(forms.Form):
-    contact = forms.ModelChoiceField(queryset=Contact.objects.all())
-    start_date = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}))
-    end_date = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}))
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields['contact'].queryset = self.fields['contact'].queryset.order_by('name')
 
 
 class ImportContactsForm(forms.Form):
@@ -1007,3 +1007,36 @@ class BulkDeleteCampaignStatusForm(forms.Form):
         if not file.name.endswith('.csv'):
             raise forms.ValidationError(_('File must be a CSV file'))
         return file
+
+
+class AffiliateSubscriptionForm(forms.ModelForm):
+    contact = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control'}))
+    start_date = forms.DateField(
+        widget=forms.DateInput(
+            format="%Y-%m-%d", attrs={'class': 'form-control', 'type': 'date', 'autocomplete': 'off'}
+        ),
+    )
+    end_date = forms.DateField(
+        widget=forms.DateInput(
+            format="%Y-%m-%d", attrs={'class': 'form-control', 'type': 'date', 'autocomplete': 'off'}
+        ),
+    )
+
+    class Meta:
+        model = Subscription
+        fields = ['contact', 'start_date', 'end_date']
+
+    def clean_contact(self):
+        contact_id = self.cleaned_data['contact']
+        try:
+            return Contact.objects.get(id=contact_id)
+        except Contact.DoesNotExist:
+            raise forms.ValidationError("Invalid contact ID")
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        instance.type = "A"  # Affiliate
+        instance.renewal_type = "M"  # Manual
+        if commit:
+            instance.save()
+        return instance

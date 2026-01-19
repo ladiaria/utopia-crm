@@ -171,6 +171,66 @@ class ContactAdminForm(EmailValidationForm, forms.ModelForm):
                 )
                 raise forms.ValidationError(msg)
 
+
+class ContactUpdateForm(EmailValidationForm, forms.ModelForm):
+    class Meta:
+        model = Contact
+        fields = [
+            'name',
+            'last_name',
+            'email',
+            'phone',
+            'mobile',
+            'work_phone',
+            'id_document_type',
+            'id_document',
+            'birthdate',
+            'gender',
+            'education',
+            'tags',
+            'notes',
+            'allow_polls',
+            'allow_promotions',
+        ]
+        widgets = {
+            "birthdate": forms.TextInput(attrs={"class": "form-control datepicker"}),
+        }
+
+    def clean(self):
+        cleaned_data = super().clean()
+        email = cleaned_data.get("email")
+        if email:
+            email = self.email_extra_clean(cleaned_data)
+
+        raw_tags = self.data.get("tags")
+        if raw_tags:
+            try:
+                parsed_tags = json.loads(raw_tags)
+                if isinstance(parsed_tags, list) and all("value" in tag for tag in parsed_tags):
+                    cleaned_data["tags"] = [tag["value"] for tag in parsed_tags]
+            except json.JSONDecodeError:
+                pass
+        else:
+            cleaned_data["tags"] = []
+
+        return cleaned_data
+
+    def clean_id_document(self):
+        id_document = self.cleaned_data.get("id_document")
+
+        if id_document and self.instance:
+            s = Contact.objects.filter(id_document=id_document).exclude(pk=self.instance.pk)
+            if s.exists():
+                contact = s[0]
+                url = contact.get_absolute_url()
+                link_label = _("Open in a new tab")
+                url_str = f'<a href="{url}" target="_blank">{link_label}</a>'
+                msg = mark_safe(
+                    _("Contact %(contact_id)s already has this document. %(url_str)s")
+                    % {"contact_id": contact.id, "url_str": url_str}
+                )
+                raise forms.ValidationError(msg)
+
         return id_document
 
     def clean_email(self):

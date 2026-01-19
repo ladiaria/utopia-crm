@@ -121,10 +121,6 @@
             <i class="fas fa-cog"></i> {% trans "Advanced" %}
           </a>
         {% endif %}
-        {% if perms.core.can_offer_retention and not subscription.is_obsolete %}
-          <a href="{% url "add_retention_discount" subscription.id %}"
-             class="btn btn-sm btn-primary mr-1 mb-1"><i class="fas fa-plus-circle"></i> {% trans "Offer retention" %}</a>
-        {% endif %}
       {% elif subscription.type == "F" %}
         {% if request.user|in_group:"Managers" %}
           {% if not subscription.is_obsolete %}
@@ -142,6 +138,10 @@
         {% endif %}
       {% else %}
         {% if not subscription.is_obsolete %}
+          {% if perms.core.can_offer_retention %}
+            <a href="{% url "add_retention_discount" subscription.id %}"
+               class="btn btn-sm btn-primary mr-1 mb-1"><i class="fas fa-plus-circle"></i> {% trans "Offer retention" %}</a>
+          {% endif %}
           {% if request.user|in_group:"Support" or request.user|in_group:"Managers" %}
             {% if not subscription.end_date %}
               <a href="{% url "additional_product" subscription.id %}"
@@ -164,7 +164,12 @@
                class="btn btn-sm btn-primary mr-1 mb-1">
               <i class="fas fa-edit"></i> {% trans "Edit" %}
             </a>
-            {% if not subscription.end_date %}
+            {% if subscription.can_be_reactivated %}
+              <a href="{% url "reactivate_subscription" subscription.id %}"
+                 class="btn btn-sm btn-success mr-1 mb-1">
+                <i class="fas fa-redo"></i> {% trans "Reactivate" %}
+              </a>
+            {% elif not subscription.end_date %}
               <a href="{% url "book_unsubscription" subscription.id %}"
                  class="btn btn-sm btn-danger mr-1 mb-1">
                 <i class="fas fa-times-circle"></i> {% trans "Unsubscription" %}
