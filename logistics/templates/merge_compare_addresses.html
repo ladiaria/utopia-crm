@@ -1,0 +1,538 @@
+{% extends "adminlte/base.html" %}
+{% load i18n static %}
+
+{% block title %}
+    {% trans "Merge duplicate addresses" %}
+{% endblock %}
+
+{% block content %}
+{% if address1 and address2 %}
+<div class="card">
+  <div class="card-header">
+      <h2 class="card-title">{% trans "Select data and address to keep" %}</h2>
+  </div>
+  <div class="card-body">
+    {% if show_similarity_warning %}
+      <div class="alert alert-warning alert-dismissible fade show" role="alert">
+        <h5><i class="fas fa-exclamation-triangle"></i> {% trans "Warning: Addresses appear to be very different" %}</h5>
+        <p class="mb-0">
+          {% trans "The street addresses you are merging appear to be significantly different" %} ({{ similarity_percentage }}% {% trans "similar" %}).
+          {% trans "Please verify you have selected the correct addresses before proceeding. Merging unrelated addresses cannot be undone." %}
+        </p>
+        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+          <span aria-hidden="true">×</span>
+        </button>
+      </div>
+    {% endif %}
+
+    <form action="{% url 'process_merge_addresses' %}" method="post">
+      {% csrf_token %}
+      <input type="hidden" name="address1_id" value="{{ address1.id }}">
+      <input type="hidden" name="address2_id" value="{{ address2.id }}">
+
+      <div class="table-responsive">
+        <table class="table table-bordered table-striped table-hover">
+          <thead class="thead-dark">
+            <tr>
+              <th style="width: 20%;">{% trans "Attribute" %}</th>
+              <th style="width: 30%;">{% trans "Address" %} 1: {{ address1.id }}</th>
+              <th style="width: 30%;">{% trans "Address" %} 2: {{ address2.id }}</th>
+              <th style="width: 20%;">{% trans "Keep this value" %}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th>{% trans "Contact" %}</th>
+              <td>
+                {% if address1.contact %}
+                  <a href="{% url 'contact_detail' address1.contact.id %}" target="_blank">
+                    {{ address1.contact.id }} - {{ address1.contact.get_full_name }}
+                  </a>
+                {% else %}
+                  <span class="text-muted">-</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if address2.contact %}
+                  <a href="{% url 'contact_detail' address2.contact.id %}" target="_blank">
+                    {{ address2.contact.id }} - {{ address2.contact.get_full_name }}
+                  </a>
+                {% else %}
+                  <span class="text-muted">-</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if address1.contact.id == address2.contact.id %}
+                  <span class="badge badge-success">{% trans "Same contact" %}</span>
+                {% else %}
+                  <span class="badge badge-warning">{% trans "Different contacts" %}</span>
+                {% endif %}
+              </td>
+            </tr>
+
+            <tr class="{% if address1.address_1 == address2.address_1 %}table-success{% else %}table-warning{% endif %}">
+              <th>
+                {% trans "Address 1" %}
+                <br><small class="text-muted font-weight-normal">{% trans "Street address" %}</small>
+              </th>
+              <td>{{ address1.address_1|default:"-" }}</td>
+              <td>{{ address2.address_1|default:"-" }}</td>
+              <td>
+                {% if address1.address_1 or address2.address_1 %}
+                  <select name="new_address_1" class="form-control">
+                    <option value="{{ address1.address_1|default:"" }}">{{ address1.address_1|default:"-" }}</option>
+                    <option value="{{ address2.address_1|default:"" }}">{{ address2.address_1|default:"-" }}</option>
+                  </select>
+                {% else %}
+                  <input type="text" class="form-control" name="new_address_1" value="">
+                {% endif %}
+              </td>
+            </tr>
+
+            <tr class="{% if address1.address_2 == address2.address_2 %}table-success{% else %}table-warning{% endif %}">
+              <th>
+                {% trans "Address 2" %}
+                <br><small class="text-muted font-weight-normal">{% trans "Apartment, suite, etc." %}</small>
+              </th>
+              <td>{{ address1.address_2|default:"-" }}</td>
+              <td>{{ address2.address_2|default:"-" }}</td>
+              <td>
+                {% if address1.address_2 or address2.address_2 %}
+                  <select name="new_address_2" class="form-control">
+                    <option value="{{ address1.address_2|default:"" }}">{{ address1.address_2|default:"-" }}</option>
+                    <option value="{{ address2.address_2|default:"" }}">{{ address2.address_2|default:"-" }}</option>
+                  </select>
+                {% else %}
+                  <input type="text" class="form-control" name="new_address_2" value="">
+                {% endif %}
+              </td>
+            </tr>
+
+            <tr class="{% if address1.name == address2.name %}table-success{% else %}table-warning{% endif %}">
+              <th>
+                {% trans "Name" %}
+                <br><small class="text-muted font-weight-normal">{% trans "Reference name for this address. It can reference the person or the address itself." %}</small>
+              </th>
+              <td>{{ address1.name|default:"-" }}</td>
+              <td>{{ address2.name|default:"-" }}</td>
+              <td>
+                {% if address1.name or address2.name %}
+                  <select name="new_name" class="form-control">
+                    <option value="{{ address1.name|default:"" }}">{{ address1.name|default:"-" }}</option>
+                    <option value="{{ address2.name|default:"" }}">{{ address2.name|default:"-" }}</option>
+                  </select>
+                {% else %}
+                  <input type="text" class="form-control" name="new_name" value="">
+                {% endif %}
+              </td>
+            </tr>
+
+            <tr class="{% if address1.city == address2.city %}table-success{% else %}table-warning{% endif %}">
+              <th>
+                {% trans "City" %} ({% trans "text" %})
+                <br><small class="text-muted font-weight-normal">{% trans "City name as text" %}</small>
+              </th>
+              <td>{{ address1.city|default:"-" }}</td>
+              <td>{{ address2.city|default:"-" }}</td>
+              <td>
+                {% if address1.city or address2.city %}
+                  <select name="new_city" class="form-control">
+                    <option value="{{ address1.city|default:"" }}">{{ address1.city|default:"-" }}</option>
+                    <option value="{{ address2.city|default:"" }}">{{ address2.city|default:"-" }}</option>
+                  </select>
+                {% else %}
+                  <input type="text" class="form-control" name="new_city" value="">
+                {% endif %}
+              </td>
+            </tr>
+
+            <tr class="{% if address1.city_fk == address2.city_fk %}table-success{% else %}table-warning{% endif %}">
+              <th>
+                {% trans "City" %} (FK)
+                <br><small class="text-muted font-weight-normal">{% trans "City from database" %}</small>
+              </th>
+              <td>{{ address1.city_fk|default:"-" }}</td>
+              <td>{{ address2.city_fk|default:"-" }}</td>
+              <td>
+                {% if address1.city_fk or address2.city_fk %}
+                  <select name="new_city_fk_id" class="form-control">
+                    <option value="{{ address1.city_fk.id|default:"" }}">{{ address1.city_fk|default:"-" }}</option>
+                    <option value="{{ address2.city_fk.id|default:"" }}">{{ address2.city_fk|default:"-" }}</option>
+                  </select>
+                {% endif %}
+              </td>
+            </tr>
+
+            <tr class="{% if address1.state == address2.state %}table-success{% else %}table-warning{% endif %}">
+              <th>
+                {% trans "State" %}
+                <br><small class="text-muted font-weight-normal">{% trans "State/Province/Department" %}</small>
+              </th>
+              <td>{{ address1.state|default:"-" }}</td>
+              <td>{{ address2.state|default:"-" }}</td>
+              <td>
+                {% if address1.state or address2.state %}
+                  <select name="new_state_id" class="form-control">
+                    <option value="{{ address1.state.id|default:"" }}">{{ address1.state|default:"-" }}</option>
+                    <option value="{{ address2.state.id|default:"" }}">{{ address2.state|default:"-" }}</option>
+                  </select>
+                {% endif %}
+              </td>
+            </tr>
+
+            <tr class="{% if address1.country == address2.country %}table-success{% else %}table-warning{% endif %}">
+              <th>
+                {% trans "Country" %}
+                <br><small class="text-muted font-weight-normal">{% trans "Country" %}</small>
+              </th>
+              <td>{{ address1.country|default:"-" }}</td>
+              <td>{{ address2.country|default:"-" }}</td>
+              <td>
+                {% if address1.country or address2.country %}
+                  <select name="new_country_id" class="form-control">
+                    <option value="{{ address1.country.id|default:"" }}">{{ address1.country|default:"-" }}</option>
+                    <option value="{{ address2.country.id|default:"" }}">{{ address2.country|default:"-" }}</option>
+                  </select>
+                {% endif %}
+              </td>
+            </tr>
+
+            <tr class="{% if address1.email == address2.email %}table-success{% else %}table-warning{% endif %}">
+              <th>
+                {% trans "Email" %}
+                <br><small class="text-muted font-weight-normal">{% trans "Email for this address" %}</small>
+              </th>
+              <td>{{ address1.email|default:"-" }}</td>
+              <td>{{ address2.email|default:"-" }}</td>
+              <td>
+                {% if address1.email or address2.email %}
+                  <select name="new_email" class="form-control">
+                    <option value="{{ address1.email|default:"" }}">{{ address1.email|default:"-" }}</option>
+                    <option value="{{ address2.email|default:"" }}">{{ address2.email|default:"-" }}</option>
+                  </select>
+                {% else %}
+                  <input type="text" class="form-control" name="new_email" value="">
+                {% endif %}
+              </td>
+            </tr>
+
+            <tr class="{% if address1.address_type == address2.address_type %}table-success{% else %}table-warning{% endif %}">
+              <th>
+                {% trans "Address type" %}
+                <br><small class="text-muted font-weight-normal">{% trans "Physical/Postal/Billing" %}</small>
+              </th>
+              <td>{{ address1.get_address_type_display|default:"-" }}</td>
+              <td>{{ address2.get_address_type_display|default:"-" }}</td>
+              <td>
+                {% if address1.address_type or address2.address_type %}
+                  <select name="new_address_type" class="form-control">
+                    <option value="{{ address1.address_type|default:"" }}">{{ address1.get_address_type_display|default:"-" }}</option>
+                    <option value="{{ address2.address_type|default:"" }}">{{ address2.get_address_type_display|default:"-" }}</option>
+                  </select>
+                {% endif %}
+              </td>
+            </tr>
+
+            <tr class="{% if address1.default == address2.default %}table-success{% else %}table-warning{% endif %}">
+              <th>
+                {% trans "Default" %}
+                <br><small class="text-muted font-weight-normal">{% trans "Primary address for contact" %}</small>
+              </th>
+              <td>{% if address1.default %}<i class="fas fa-check text-success"></i> {% trans "Yes" %}{% else %}<i class="fas fa-times text-danger"></i> {% trans "No" %}{% endif %}</td>
+              <td>{% if address2.default %}<i class="fas fa-check text-success"></i> {% trans "Yes" %}{% else %}<i class="fas fa-times text-danger"></i> {% trans "No" %}{% endif %}</td>
+              <td>
+                <select name="new_default" class="form-control">
+                  <option value="{{ address1.default }}">{% if address1.default %}{% trans "Yes" %}{% else %}{% trans "No" %}{% endif %} ({% trans "Address" %} 1)</option>
+                  <option value="{{ address2.default }}">{% if address2.default %}{% trans "Yes" %}{% else %}{% trans "No" %}{% endif %} ({% trans "Address" %} 2)</option>
+                </select>
+              </td>
+            </tr>
+
+            <tr class="{% if address1.latitude == address2.latitude and address1.longitude == address2.longitude %}table-success{% else %}table-warning{% endif %}">
+              <th>
+                {% trans "Coordinates" %}
+                <br><small class="text-muted font-weight-normal">{% trans "GPS coordinates (lat, long)" %}</small>
+              </th>
+              <td>
+                {% if address1.latitude and address1.longitude %}
+                  {{ address1.latitude }}, {{ address1.longitude }}
+                {% else %}
+                  <span class="text-muted">-</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if address2.latitude and address2.longitude %}
+                  {{ address2.latitude }}, {{ address2.longitude }}
+                {% else %}
+                  <span class="text-muted">-</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if address1.latitude or address2.latitude %}
+                  <div class="form-group mb-2">
+                    <label class="small">{% trans "Latitude" %}</label>
+                    <select name="new_latitude" class="form-control form-control-sm">
+                      <option value="{{ address1.latitude|default:"" }}">{{ address1.latitude|default:"-" }}</option>
+                      <option value="{{ address2.latitude|default:"" }}">{{ address2.latitude|default:"-" }}</option>
+                    </select>
+                  </div>
+                  <div class="form-group mb-0">
+                    <label class="small">{% trans "Longitude" %}</label>
+                    <select name="new_longitude" class="form-control form-control-sm">
+                      <option value="{{ address1.longitude|default:"" }}">{{ address1.longitude|default:"-" }}</option>
+                      <option value="{{ address2.longitude|default:"" }}">{{ address2.longitude|default:"-" }}</option>
+                    </select>
+                  </div>
+                {% endif %}
+              </td>
+            </tr>
+
+            <tr class="{% if address1.google_maps_url == address2.google_maps_url %}table-success{% else %}table-warning{% endif %}">
+              <th>
+                {% trans "Google Maps URL" %}
+                <br><small class="text-muted font-weight-normal">{% trans "Link to location on map" %}</small>
+              </th>
+              <td>
+                {% if address1.google_maps_url %}
+                  <a href="{{ address1.google_maps_url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                    <i class="fas fa-map-marker-alt"></i> {% trans "View map" %}
+                  </a>
+                {% else %}
+                  <span class="text-muted">-</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if address2.google_maps_url %}
+                  <a href="{{ address2.google_maps_url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                    <i class="fas fa-map-marker-alt"></i> {% trans "View map" %}
+                  </a>
+                {% else %}
+                  <span class="text-muted">-</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if address1.google_maps_url or address2.google_maps_url %}
+                  <select name="new_google_maps_url" class="form-control">
+                    <option value="{{ address1.google_maps_url|default:"" }}">{% trans "Address" %} 1</option>
+                    <option value="{{ address2.google_maps_url|default:"" }}">{% trans "Address" %} 2</option>
+                  </select>
+                {% endif %}
+              </td>
+            </tr>
+
+            <tr class="{% if address1.notes == address2.notes %}table-success{% else %}table-warning{% endif %}">
+              <th>
+                {% trans "Notes" %}
+                <br><small class="text-muted font-weight-normal">{% trans "Additional information" %}</small>
+              </th>
+              <td><small>{{ address1.notes|default:"-"|truncatewords:15 }}</small></td>
+              <td><small>{{ address2.notes|default:"-"|truncatewords:15 }}</small></td>
+              <td>
+                <select name="new_notes" class="form-control">
+                  <option value="">{% trans "Merge notes automatically" %}</option>
+                  <option value="{{ address1.notes|default:"" }}">{% trans "Only notes from address 1" %}</option>
+                  <option value="{{ address2.notes|default:"" }}">{% trans "Only notes from address 2" %}</option>
+                </select>
+              </td>
+            </tr>
+
+            <tr class="table-info">
+              <th>{% trans "Subscription products" %}</th>
+              <td class="text-center"><strong>{{ address1_sp_count }}</strong></td>
+              <td class="text-center"><strong>{{ address2_sp_count }}</strong></td>
+              <td class="text-center"><strong>{{ address1_sp_count|add:address2_sp_count }}</strong></td>
+            </tr>
+
+            <tr class="table-info">
+              <th>{% trans "Issues" %}</th>
+              <td class="text-center"><strong>{{ address1_issue_count }}</strong></td>
+              <td class="text-center"><strong>{{ address2_issue_count }}</strong></td>
+              <td class="text-center"><strong>{{ address1_issue_count|add:address2_issue_count }}</strong></td>
+            </tr>
+
+            <tr class="table-info">
+              <th>{% trans "Scheduled tasks" %}</th>
+              <td class="text-center"><strong>{{ address1_task_count }}</strong></td>
+              <td class="text-center"><strong>{{ address2_task_count }}</strong></td>
+              <td class="text-center"><strong>{{ address1_task_count|add:address2_task_count }}</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="row mt-4">
+        <div class="col-md-8">
+          <div class="form-group">
+            <label for="id_selected_address_id">
+              <strong>{% trans "Address to keep" %}</strong>
+              <small class="text-danger">({% trans "the other will be permanently deleted" %})</small>
+            </label>
+            <select class="form-control form-control-lg" name="selected_address_id" id="id_selected_address_id" required>
+              <option value="{{ address1.id }}">{{ address1.id }} - {{ address1.address_1 }}</option>
+              <option value="{{ address2.id }}">{{ address2.id }} - {{ address2.address_1 }}</option>
+            </select>
+          </div>
+        </div>
+        <div class="col-md-4 d-flex align-items-end">
+          <div class="btn-group btn-block" role="group">
+            {% if address1.contact %}
+              <a href="{% url 'contact_detail' address1.contact.id %}" class="btn btn-secondary btn-lg">
+                <i class="fas fa-times"></i> {% trans "Cancel" %}
+              </a>
+            {% else %}
+              <a href="{% url 'merge_compare_addresses' %}" class="btn btn-secondary btn-lg">
+                <i class="fas fa-times"></i> {% trans "Cancel" %}
+              </a>
+            {% endif %}
+            <button type="submit" class="btn btn-danger btn-lg">
+              <i class="fas fa-compress-arrows-alt"></i> {% trans "Execute merge" %}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="alert alert-info mt-4">
+        <h5><i class="fas fa-info-circle"></i> {% trans "Important information" %}</h5>
+        <ul class="mb-0">
+          <li>{% trans "All related objects (subscription products, issues, and scheduled tasks) will be transferred to the selected address." %}</li>
+          <li>{% trans "The address you don't select will be permanently deleted from the database." %}</li>
+          <li>{% trans "Green rows indicate matching values between addresses." %}</li>
+          <li>{% trans "Yellow rows indicate different values - select which one to keep." %}</li>
+          <li>{% trans "For notes, you can choose to merge them automatically or keep only one set." %}</li>
+          <li><strong>{% trans "This action cannot be undone. Please review carefully before proceeding." %}</strong></li>
+        </ul>
+      </div>
+    </form>
+  </div>
+</div>
+{% else %}
+  <div class="card">
+    <div class="card-header bg-primary text-white">
+      <h2 class="card-title mb-0">
+        <i class="fas fa-compress-arrows-alt"></i> {% trans "Merge duplicate addresses" %}
+      </h2>
+    </div>
+    <div class="card-body">
+      {% if available_addresses %}
+        {# Contact-based flow with address dropdowns #}
+        <div class="alert alert-info">
+          <i class="fas fa-user"></i> <strong>{% trans "Contact" %}:</strong> {{ contact.get_full_name }} (ID: {{ contact.id }})
+        </div>
+
+        <form method="get" id="addressSelectionForm">
+          <div class="form-group row">
+            <div class="col-sm-6">
+              <label for="address_1"><strong>{% trans "First address" %}</strong></label>
+              <select class="form-control form-control-lg address-select" name="address_1" id="id_address_1" required>
+                <option value="">{% trans "Select an address..." %}</option>
+                {% for addr in available_addresses %}
+                  <option value="{{ addr.id }}" data-address-id="{{ addr.id }}">
+                    ID {{ addr.id }} - {{ addr.address_1|default:"-" }}{% if addr.city %}, {{ addr.city }}{% endif %}{% if addr.state %}, {{ addr.state }}{% endif %}{% if addr.country %}, {{ addr.country }}{% endif %}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-sm-6">
+              <label for="address_2"><strong>{% trans "Second address" %}</strong></label>
+              <select class="form-control form-control-lg address-select" name="address_2" id="id_address_2" required>
+                <option value="">{% trans "Select an address..." %}</option>
+                {% for addr in available_addresses %}
+                  <option value="{{ addr.id }}" data-address-id="{{ addr.id }}">
+                    ID {{ addr.id }} - {{ addr.address_1|default:"-" }}{% if addr.city %}, {{ addr.city }}{% endif %}{% if addr.state %}, {{ addr.state }}{% endif %}{% if addr.country %}, {{ addr.country }}{% endif %}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+
+          <div class="alert alert-warning" id="sameAddressWarning" style="display: none;">
+            <i class="fas fa-exclamation-triangle"></i> {% trans "You cannot select the same address twice. Please choose two different addresses." %}
+          </div>
+
+          <div class="form-group text-right">
+            <a href="{% url 'contact_detail' contact.id %}" class="btn btn-secondary btn-lg mr-2">
+              <i class="fas fa-times"></i> {% trans "Cancel" %}
+            </a>
+            <button type="submit" class="btn btn-primary btn-lg" id="compareButton">
+              <i class="fas fa-search"></i> {% trans "Compare addresses" %}
+            </button>
+          </div>
+        </form>
+
+        <script>
+          document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('addressSelectionForm');
+            const address1Select = document.getElementById('id_address_1');
+            const address2Select = document.getElementById('id_address_2');
+            const warning = document.getElementById('sameAddressWarning');
+            const compareButton = document.getElementById('compareButton');
+
+            function checkDuplicateSelection() {
+              const addr1 = address1Select.value;
+              const addr2 = address2Select.value;
+
+              if (addr1 && addr2 && addr1 === addr2) {
+                warning.style.display = 'block';
+                compareButton.disabled = true;
+                return false;
+              } else {
+                warning.style.display = 'none';
+                compareButton.disabled = false;
+                return true;
+              }
+            }
+
+            address1Select.addEventListener('change', checkDuplicateSelection);
+            address2Select.addEventListener('change', checkDuplicateSelection);
+
+            form.addEventListener('submit', function(e) {
+              if (!checkDuplicateSelection()) {
+                e.preventDefault();
+                return false;
+              }
+            });
+          });
+        </script>
+
+      {% else %}
+        {# Manual ID input flow #}
+        <form method="get">
+          <div class="form-group row">
+            <div class="col-sm-6">
+              <label for="address_1"><strong>{% trans "Address 1 ID" %}</strong></label>
+              <input type="number" class="form-control form-control-lg" name="address_1" id="id_address_1" placeholder="{% trans "Enter first address ID" %}" required>
+            </div>
+            <div class="col-sm-6">
+              <label for="address_2"><strong>{% trans "Address 2 ID" %}</strong></label>
+              <input type="number" class="form-control form-control-lg" name="address_2" id="id_address_2" placeholder="{% trans "Enter second address ID" %}" required>
+            </div>
+          </div>
+          <div class="form-group text-right">
+            <a href="{% url 'home' %}" class="btn btn-secondary btn-lg mr-2">
+              <i class="fas fa-times"></i> {% trans "Cancel" %}
+            </a>
+            <button type="submit" class="btn btn-primary btn-lg">
+              <i class="fas fa-search"></i> {% trans "Compare addresses" %}
+            </button>
+          </div>
+        </form>
+      {% endif %}
+
+      <div class="alert alert-info mt-4">
+        <h5><i class="fas fa-info-circle"></i> {% trans "How to use this tool" %}</h5>
+        <ol class="mb-0">
+          {% if available_addresses %}
+            <li>{% trans "Select two different addresses from the dropdowns above." %}</li>
+          {% else %}
+            <li>{% trans "Enter the IDs of two addresses you want to merge." %}</li>
+          {% endif %}
+          <li>{% trans "On the next screen, you'll see a side-by-side comparison of all address fields." %}</li>
+          <li>{% trans "For each field, select which value you want to keep in the merged address." %}</li>
+          <li>{% trans "Choose which address to keep (the other will be deleted)." %}</li>
+          <li>{% trans "All related objects will be automatically transferred to the address you keep." %}</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+{% endif %}
+{% endblock %}

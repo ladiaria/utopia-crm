@@ -1369,9 +1369,120 @@ class Address(models.Model):
     def get_city(self):
         return self.city_fk.name if self.city_fk else self.city
 
+    def merge_other_address_into_this(
+        self,
+        source: "Address",
+        address_1: str = None,
+        address_2: str = None,
+        city: str = None,
+        email: str = None,
+        address_type: str = None,
+        notes: str = None,
+        default: bool = None,
+        name: str = None,
+        state_id: int = None,
+        country_id: int = None,
+        city_fk_id: int = None,
+        latitude: float = None,
+        longitude: float = None,
+        google_maps_url: str = None,
+    ) -> list:
+        """Takes a source address and merges it into this one, allowing manual field overrides.
+
+        Args:
+            source (Address): The address to be merged into this one and then deleted.
+            address_1 (str, optional): Override address line 1.
+            address_2 (str, optional): Override address line 2.
+            city (str, optional): Override city string.
+            email (str, optional): Override email.
+            address_type (str, optional): Override address type.
+            notes (str, optional): Override notes.
+            default (bool, optional): Override default status.
+            name (str, optional): Override address name.
+            state_id (int, optional): Override state FK.
+            country_id (int, optional): Override country FK.
+            city_fk_id (int, optional): Override city FK.
+            latitude (float, optional): Override latitude.
+            longitude (float, optional): Override longitude.
+            google_maps_url (str, optional): Override Google Maps URL.
+
+        Returns:
+            list: List of errors encountered during merge, empty if successful.
+        """
+        errors = []
+        try:
+            # Update fields with provided overrides
+            if address_1 is not None:
+                self.address_1 = address_1.strip() if address_1 else None
+            if address_2 is not None:
+                self.address_2 = address_2.strip() if address_2 else None
+            if city is not None:
+                self.city = city.strip() if city else None
+            if email is not None:
+                self.email = email.strip() if email else None
+            if address_type is not None:
+                self.address_type = address_type
+            if name is not None:
+                self.name = name.strip() if name else None
+            if default is not None:
+                self.default = default
+            if google_maps_url is not None:
+                self.google_maps_url = google_maps_url.strip() if google_maps_url else None
+
+            # Handle FK fields
+            if state_id is not None:
+                self.state_id = state_id if state_id else None
+            if country_id is not None:
+                self.country_id = country_id if country_id else None
+            if city_fk_id is not None:
+                self.city_fk_id = city_fk_id if city_fk_id else None
+
+            # Handle georef data
+            if latitude is not None:
+                self.latitude = latitude
+            if longitude is not None:
+                self.longitude = longitude
+
+            # Merge notes
+            if notes is not None:
+                self.notes = notes
+            else:
+                # Append source notes if not overridden
+                merge_note = f"Merged from address {source.id} on {date.today()}"
+                if self.notes:
+                    self.notes = f"{merge_note}\n{self.notes}"
+                else:
+                    self.notes = merge_note
+
+                if source.notes:
+                    self.notes += f"\n\nNotes from address {source.id}:\n{source.notes}"
+
+            self.save()
+
+            # Transfer all related objects from source to target
+            # SubscriptionProducts
+            source.subscriptionproduct_set.update(address=self)
+
+            # Issues
+            source.issue_set.update(address=self)
+
+            # ScheduledTasks
+            source.scheduledtask_set.update(address=self)
+
+            # Delete the source address
+            source.delete()
+
+        except Exception as e:
+            errors.append(str(e))
+
+        return errors
+
     class Meta:
         verbose_name = _("address")
         verbose_name_plural = _("addresses")
+        permissions = [
+            ("can_merge_addresses", _("Can merge addresses")),
+        ]
 
 
 class SubscriptionProduct(models.Model):

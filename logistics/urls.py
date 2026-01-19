@@ -25,6 +25,8 @@ from logistics.views import (
     print_labels_for_product_date,
     addresses_with_complementary_information,
     mass_georef_address,
+    MergeCompareAddressesView,
+    ProcessMergeAddressesView,
 )
 
 
@@ -70,4 +72,6 @@ urlpatterns = [
         name='addresses_with_complementary_information',
     ),
     path("mass_georef_address/", mass_georef_address, name="mass_georef_address"),
+    path("merge_addresses/", MergeCompareAddressesView.as_view(), name="merge_compare_addresses"),
+    path("process_merge_addresses/", ProcessMergeAddressesView.as_view(), name="process_merge_addresses"),
 ]
