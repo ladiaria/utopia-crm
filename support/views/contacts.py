@@ -392,7 +392,7 @@ class ContactAdminFormWithNewsletters(ContactUpdateForm):
 
     def __init__(self, *args, request=None, **kwargs):
         contact = kwargs.get('instance')
-        super().__init__(*args, **kwargs)
+        super().__init__(*args, request=request, **kwargs)
         if contact:
             self.fields['newsletters'].initial = contact.get_newsletter_products()
 
@@ -432,6 +432,11 @@ class ContactUpdateView(BreadcrumbsMixin, UpdateView):
             {"label": self.object.get_full_name(), "url": reverse("contact_detail", args=[self.object.id])},
             {"label": _("Edit"), "url": ""},
         ]
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['request'] = self.request
+        return kwargs
 
     def form_valid(self, form):
         skip_clean_set = False
