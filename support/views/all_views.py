@@ -560,6 +560,7 @@ def edit_products(request, subscription_id):
 class IssueListView(BreadcrumbsMixin, FilterView):
     """
     Shows a list of issues with filtering capabilities and dynamic subcategory filtering.
+    Supports ordering by date and next_action_date fields.
     """
     model = Issue
     template_name = "list_issues.html"
@@ -575,12 +576,33 @@ class IssueListView(BreadcrumbsMixin, FilterView):
         ]
 
     def get_queryset(self):
-        if logistics_is_installed():
-            return Issue.objects.all().order_by(
-                "-date", "subscription_product__product", "-subscription_product__route__number", "-id"
-            )
+        """Get queryset with optional ordering by date or next_action_date"""
+        queryset = Issue.objects.all()
+
+        # Get ordering parameter from request
+        order_by = self.request.GET.get('order_by', '-date')
+
+        # Validate ordering parameter to prevent SQL injection
+        valid_orderings = [
+            'date', '-date',
+            'next_action_date', '-next_action_date',
+            'status', '-status',
+            'category', '-category'
+        ]
+
+        if order_by in valid_orderings:
+            queryset = queryset.order_by(order_by)
         else:
-            return Issue.objects.all().order_by("-date", "subscription_product__product", "-id")
+            # Default ordering
+            if logistics_is_installed():
+                queryset = queryset.order_by(
+                    "-date", "subscription_product__product",
+                    "-subscription_product__route__number", "-id"
+                )
+            else:
+                queryset = queryset.order_by("-date", "subscription_product__product", "-id")
+
+        return queryset
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -842,6 +864,29 @@ class IssueDetailView(BreadcrumbsMixin, UpdateView):
         })
 
         return context
+
+    def form_valid(self, form):
+        """
+        Override form_valid to automatically set next_action_date when status changes.
+        If status has changed and next_action_date is missing or in the past, set it to tomorrow.
+        """
+        issue = self.get_object()
+        old_status = issue.status
+
+        # Let the form save normally first
+        response = super().form_valid(form)
+
+        # Check if status has changed
+        new_status = self.object.status
+        if old_status != new_status:
+            # Check if next_action_date needs to be updated
+            today = date.today()
+            if not self.object.next_action_date or self.object.next_action_date <= today:
+                # Set next_action_date to tomorrow
+                self.object.next_action_date = today + timedelta(days=1)
+                self.object.save(update_fields=['next_action_date'])
+
+        return response
 
     def get_success_url(self):
         """Redirect back to the same issue after successful update"""

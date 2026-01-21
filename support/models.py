@@ -116,7 +116,7 @@ class Issue(models.Model):
 
     date_created = models.DateField(auto_now_add=True)
     contact = models.ForeignKey("core.Contact", on_delete=models.CASCADE, verbose_name=_("Contact"))
-    date = models.DateField(default=date.today, verbose_name=_("Date"))
+    date = models.DateField(default=date.today, verbose_name=_("Date"), help_text=_("Date of the issue"))
     category = models.CharField(
         verbose_name=_("Category"), max_length=1, blank=True, null=True, choices=get_issue_categories()
     )
