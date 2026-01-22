@@ -21,3 +21,4 @@ wsgi.py
 .vscode
 .venv
 .python-version
+.windsurf
