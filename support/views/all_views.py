@@ -869,6 +869,7 @@ class IssueDetailView(BreadcrumbsMixin, UpdateView):
         """
         Override form_valid to automatically set next_action_date when status changes.
         If status has changed and next_action_date is missing or in the past, set it to tomorrow.
+        Does not set next_action_date if the new status is a terminal status.
         """
         issue = self.get_object()
         old_status = issue.status
@@ -879,12 +880,15 @@ class IssueDetailView(BreadcrumbsMixin, UpdateView):
         # Check if status has changed
         new_status = self.object.status
         if old_status != new_status:
-            # Check if next_action_date needs to be updated
-            today = date.today()
-            if not self.object.next_action_date or self.object.next_action_date <= today:
-                # Set next_action_date to tomorrow
-                self.object.next_action_date = today + timedelta(days=1)
-                self.object.save(update_fields=['next_action_date'])
+            # Skip setting next_action_date if the new status is terminal
+            terminal_statuses = getattr(settings, 'ISSUE_STATUS_FINISHED_LIST', [])
+            if new_status.slug not in terminal_statuses:
+                # Check if next_action_date needs to be updated
+                today = date.today()
+                if not self.object.next_action_date or self.object.next_action_date <= today:
+                    # Set next_action_date to tomorrow
+                    self.object.next_action_date = today + timedelta(days=1)
+                    self.object.save(update_fields=['next_action_date'])
 
         return response
 
