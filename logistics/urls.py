@@ -5,6 +5,7 @@ from logistics.views import (
     assign_routes,
     order_route,
     change_route,
+    change_subscription_routes,
     list_routes,
     route_details,
     issues_labels,
@@ -38,6 +39,7 @@ urlpatterns = [
     re_path(r'^order_route/(\d+)/$', order_route, name='order_route'),
     path('print_unordered_subscriptions/', print_unordered_subscriptions, name='print_unordered_subscriptions'),
     re_path(r'^change_route/(\d+)/$', change_route, name='change_route'),
+    re_path(r'^change_subscription_routes/(\d+)/$', change_subscription_routes, name='change_subscription_routes'),
     re_path(r'^convert_orders_to_tens/(\d+)/$', convert_orders_to_tens, name='convert_orders_to_tens'),
     re_path(
         r'^convert_orders_to_tens/(\d+)/(\d+)/$', convert_orders_to_tens, name='convert_orders_to_tens_by_product'

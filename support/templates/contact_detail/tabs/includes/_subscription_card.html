@@ -209,9 +209,15 @@
         <i class="fas fa-envelope"></i> {% trans "Envelopes" %}
       </a>
       <a href="{% url "upload_payment_certificate" subscription.id %}"
-         class="btn btn-sm btn-outline-secondary mb-1">
+         class="btn btn-sm btn-outline-secondary mr-1 mb-1">
         <i class="fas fa-file-invoice-dollar"></i> {% trans "Payment Certificate" %}
       </a>
+      {% if request.user|in_group:"Support" or request.user|in_group:"Managers" or request.user|in_group:"Logistics" %}
+        <a href="{% url "change_subscription_routes" subscription.id %}"
+           class="btn btn-sm btn-outline-primary mb-1">
+          <i class="fas fa-route"></i> {% trans "Change Routes" %}
+        </a>
+      {% endif %}
     </div>
   </div>
 </div>
