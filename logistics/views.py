@@ -360,6 +360,11 @@ def change_route(request, route_id=1):
         exclude = request.GET.get("exclude", None)
         if exclude:
             subscription_products = subscription_products.exclude(product_id=exclude)
+    breadcrumbs = [
+        {"label": _("Home"), "url": reverse("home")},
+        {"label": _("Change routes"), "url": reverse("change_route", args=[route_id])},
+        {"label": str(route_object), "url": ""},
+    ]
     return render(
         request,
         "change_route.html",
@@ -369,6 +374,7 @@ def change_route(request, route_id=1):
             "product_list": product_list,
             "product_id": product_id,
             "product": product,
+            "breadcrumbs": breadcrumbs,
         },
     )
 
