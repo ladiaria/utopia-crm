@@ -13,6 +13,7 @@
               <th>{% trans "Date" %}</th>
               <th>{% trans "Category" %}</th>
               <th>{% trans "Subcategory" %}</th>
+              <th>{% trans "Resolution" %}</th>
               <th>{% trans "Status" %}</th>
               <th>{% trans "Assigned to" %}</th>
               <th></th>
@@ -25,6 +26,7 @@
                 <td>{{ issue.date }}</td>
                 <td>{{ issue.get_category }}</td>
                 <td>{{ issue.get_subcategory }}</td>
+                <td>{{ issue.resolution|default_if_none:"-" }}</td>
                 <td>{{ issue.get_status }}</td>
                 <td>{{ issue.assigned_to }}</td>
                 <td>

@@ -31,6 +31,7 @@ from support.models import Issue
 from util.dates import next_business_day, format_date
 from .labels import LogisticsLabel, LogisticsLabel96x30, Roll, Roll96x30
 from .filters import OrderRouteFilter, AddressGeorefFilter
+from .utils import create_issue_for_special_route
 
 
 @login_required
@@ -294,6 +295,7 @@ def print_unordered_subscriptions(request):
 def change_route(request, route_id=1):
     """
     Changes route to a contact on a particular route.
+    Automatically creates an Issue when a route is changed to a special route (50-55).
 
     TODO: Do something to quickly change route form the template itself.
     """
@@ -301,6 +303,7 @@ def change_route(request, route_id=1):
     product_id, product = "all", None
     route_object = get_object_or_404(Route, pk=route_id)
     if request.POST:
+        issues_created = []
         for name, value in list(request.POST.items()):
             if name.startswith("sp-") and value and int(value) != route_object.number:
                 try:
@@ -315,6 +318,12 @@ def change_route(request, route_id=1):
                     sp.special_instructions = request.POST.get("instructions-{}".format(sp_id), None)
                     sp.label_message = request.POST.get("message-{}".format(sp_id), None)
                     sp.save()
+
+                    # Create issue if it's a special route (50-55)
+                    issue = create_issue_for_special_route(sp.subscription, route.number, request.user)
+                    if issue:
+                        issues_created.append(route.number)
+
                 except Route.DoesNotExist:
                     messages.error(
                         request,
@@ -324,6 +333,15 @@ def change_route(request, route_id=1):
                             )
                         ),
                     )
+
+        # Show success message if issues were created
+        if issues_created:
+            route_list = ", ".join(map(str, set(issues_created)))
+            messages.warning(
+                request,
+                _("Routes updated. Issues created for special routes: {}").format(route_list)
+            )
+
         return HttpResponseRedirect(reverse("change_route", args=[route_id]))
 
     subscription_products = (
@@ -342,6 +360,11 @@ def change_route(request, route_id=1):
         exclude = request.GET.get("exclude", None)
         if exclude:
             subscription_products = subscription_products.exclude(product_id=exclude)
+    breadcrumbs = [
+        {"label": _("Home"), "url": reverse("home")},
+        {"label": _("Change routes"), "url": reverse("change_route", args=[route_id])},
+        {"label": str(route_object), "url": ""},
+    ]
     return render(
         request,
         "change_route.html",
@@ -351,6 +374,7 @@ def change_route(request, route_id=1):
             "product_list": product_list,
             "product_id": product_id,
             "product": product,
+            "breadcrumbs": breadcrumbs,
         },
     )
 
@@ -1714,3 +1738,85 @@ class ProcessMergeAddressesView(View):
             return HttpResponseRedirect(reverse("contact_detail", args=[contact.id]))
         else:
             return HttpResponseRedirect(reverse("merge_compare_addresses"))
+
+
+@login_required
+def change_subscription_routes(request, subscription_id):
+    """
+    Changes routes for all subscription products in a single subscription.
+    Automatically creates an Issue when a route is changed to a special route (50-55).
+    """
+    subscription = get_object_or_404(Subscription, pk=subscription_id)
+    contact = subscription.contact
+
+    if request.POST:
+        issues_created = []
+        for name, value in list(request.POST.items()):
+            if name.startswith("sp-") and value:
+                try:
+                    # Get the subscription product ID
+                    sp_id = name.replace("sp-", "")
+                    sp = SubscriptionProduct.objects.get(pk=sp_id)
+
+                    # Get the new route
+                    new_route = Route.objects.get(number=int(value))
+
+                    # Check if route actually changed
+                    if sp.route != new_route:
+                        # Update the route
+                        sp.route = new_route
+                        sp.order = None
+                        sp.special_instructions = request.POST.get("instructions-{}".format(sp_id), None)
+                        sp.label_message = request.POST.get("message-{}".format(sp_id), None)
+                        sp.save()
+
+                        # Create issue if it's a special route (50-55)
+                        issue = create_issue_for_special_route(subscription, new_route.number, request.user)
+                        if issue:
+                            issues_created.append(new_route.number)
+
+                except Route.DoesNotExist:
+                    messages.error(
+                        request,
+                        _(
+                            "Product {}: Route {} does not exist".format(
+                                sp.product.name, value
+                            )
+                        ),
+                    )
+                except SubscriptionProduct.DoesNotExist:
+                    messages.error(request, _("Subscription product not found"))
+
+        # Show success message
+        if issues_created:
+            route_list = ", ".join(map(str, set(issues_created)))
+            messages.warning(
+                request,
+                _("Routes updated. Issues created for special routes: {}").format(route_list)
+            )
+        else:
+            messages.success(request, _("Routes updated successfully"))
+
+        return HttpResponseRedirect(reverse("contact_detail", args=[contact.id]))
+
+    # Get all subscription products for this subscription
+    subscription_products = (
+        SubscriptionProduct.objects.filter(subscription=subscription)
+        .exclude(product__digital=True)
+        .select_related("product", "address", "route")
+        .order_by("product__name")
+    )
+
+    # Get all available routes
+    routes = Route.objects.filter(active=True).order_by("number")
+
+    return render(
+        request,
+        "change_subscription_routes.html",
+        {
+            "subscription": subscription,
+            "contact": contact,
+            "subscription_products": subscription_products,
+            "routes": routes,
+        },
+    )
