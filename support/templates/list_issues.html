@@ -160,6 +160,10 @@
                 <label for="assigned_to">{% trans "Assigned to" %}</label>
                 {% render_field filter.form.assigned_to class="form-control" %}
               </div>
+              <div class="form-group col">
+                <label for="resolution">{% trans "Resolution" %}</label>
+                {% render_field filter.form.resolution class="form-control" %}
+              </div>
             </div>
             <div class="row">
               <div class="form-group col-md-6">
@@ -238,6 +242,7 @@
                 <th>{% trans "Contact" %}</th>
                 <th>{% trans "Category" %}</th>
                 <th>{% trans "Subcategory" %}</th>
+                <th>{% trans "Resolution" %}</th>
                 <th>{% trans "Status" %}</th>
                 <th>{% trans "Activities" %}</th>
                 <th>
@@ -259,6 +264,7 @@
                   <td>{{ issue.contact }}</td>
                   <td>{{ issue.get_category }}</td>
                   <td>{{ issue.get_subcategory }}</td>
+                  <td>{{ issue.resolution|default_if_none:"-" }}</td>
                   <td>{{ issue.status }}</td>
                   <td>{{ issue.activity_count }}</td>
                   <td>{{ issue.next_action_date|default_if_none:"-" }}</td>

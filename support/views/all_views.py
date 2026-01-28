@@ -649,6 +649,7 @@ class IssueListView(BreadcrumbsMixin, FilterView):
                 _("Contact name"),
                 _("Category"),
                 _("Subcategory"),
+                _("Resolution"),
                 _("Activities count"),
                 _("Status"),
                 _("Assigned to"),
@@ -660,13 +661,14 @@ class IssueListView(BreadcrumbsMixin, FilterView):
 
             # Write data rows in chunks
             filterset = self.get_filterset(self.filterset_class)
-            for issue in filterset.qs.iterator(chunk_size=1000):
+            for issue in filterset.qs.select_related('resolution').iterator(chunk_size=1000):
                 writer.writerow([
                     issue.date,
                     issue.contact.id,
                     issue.contact.get_full_name(),
                     issue.get_category(),
                     issue.get_subcategory(),
+                    issue.resolution.name if issue.resolution else "",
                     issue.activity_count(),
                     issue.get_status(),
                     issue.get_assigned_to(),
@@ -747,6 +749,20 @@ class NewIssueView(BreadcrumbsMixin, CreateView):
         # Add category name to context
         dict_categories = dict(get_issue_categories())
         context['category_name'] = dict_categories[self.category]
+
+        # Create mapping of subcategory_id -> list of resolution options for JavaScript filtering
+        from support.models import IssueResolution
+        subcategory_resolutions = {}
+        for resolution in IssueResolution.objects.all().select_related('subcategory'):
+            subcategory_id = resolution.subcategory_id
+            if subcategory_id not in subcategory_resolutions:
+                subcategory_resolutions[subcategory_id] = []
+            subcategory_resolutions[subcategory_id].append({
+                'id': resolution.id,
+                'name': resolution.name
+            })
+
+        context['subcategory_resolutions_json'] = json.dumps(subcategory_resolutions)
 
         return context
 
@@ -854,6 +870,18 @@ class IssueDetailView(BreadcrumbsMixin, UpdateView):
         )
         activity_form.fields["contact"].label = False
 
+        # Create mapping of subcategory_id -> list of resolution options for JavaScript filtering
+        from support.models import IssueResolution
+        subcategory_resolutions = {}
+        for resolution in IssueResolution.objects.all().select_related('subcategory'):
+            subcategory_id = resolution.subcategory_id
+            if subcategory_id not in subcategory_resolutions:
+                subcategory_resolutions[subcategory_id] = []
+            subcategory_resolutions[subcategory_id].append({
+                'id': resolution.id,
+                'name': resolution.name
+            })
+
         # Add additional context data
         context.update({
             "has_active_subscription": issue.contact.has_active_subscription(),
@@ -861,6 +889,7 @@ class IssueDetailView(BreadcrumbsMixin, UpdateView):
             "activities": issue.activity_set.all().order_by("-datetime", "id"),
             "activity_form": activity_form,
             "invoice_list": issue.contact.invoice_set.all().order_by("-creation_date", "id"),
+            "subcategory_resolutions_json": json.dumps(subcategory_resolutions),
         })
 
         return context

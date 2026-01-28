@@ -8,7 +8,7 @@ from django.contrib.auth.models import User
 from django.db.models import Q
 
 from core.models import Activity, ContactCampaignStatus, Subscription, Campaign, Product
-from .models import Issue, IssueSubcategory, Seller, ScheduledTask, SalesRecord, SellerConsoleAction
+from .models import Issue, IssueSubcategory, IssueResolution, Seller, ScheduledTask, SalesRecord, SellerConsoleAction
 
 
 CREATION_CHOICES = (
@@ -64,10 +64,15 @@ class IssueFilter(django_filters.FilterSet):
         queryset=User.objects.filter(is_staff=True).order_by('username'),
         widget=forms.Select(attrs={"class": "form-control"}),
     )
+    resolution = django_filters.ModelChoiceFilter(
+        queryset=IssueResolution.objects.all(),
+        widget=forms.Select(attrs={"class": "form-control"}),
+        label=_('Resolution')
+    )
 
     class Meta:
         model = Issue
-        fields = ['category', 'sub_category', 'status', 'assigned_to']
+        fields = ['category', 'sub_category', 'status', 'assigned_to', 'resolution']
 
     def filter_by_date(self, queryset, name, value):
         if value == 'today':

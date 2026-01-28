@@ -172,6 +172,9 @@ class Issue(models.Model):
         "core.Address", verbose_name=_("Address"), on_delete=models.CASCADE, null=True, blank=True
     )
     envelope = models.BooleanField(default=False, verbose_name=_("Envelope"), null=True)
+    resolution = models.ForeignKey(
+        "support.IssueResolution", verbose_name=_("Resolution"), blank=True, null=True, on_delete=models.SET_NULL
+    )
     history = HistoricalRecords()
 
     class Meta:
@@ -374,6 +377,24 @@ class IssueSubcategory(models.Model):
         ordering = ["category", "name"]
         verbose_name = _("Issue Subcategory")
         verbose_name_plural = _("Issue Subcategories")
+
+
+class IssueResolution(models.Model):
+    subcategory = models.ForeignKey("support.IssueSubcategory", on_delete=models.CASCADE, verbose_name=_("Subcategory"))
+    name = models.CharField(verbose_name=_("Name"), max_length=100)
+    slug = models.SlugField(verbose_name=_("Slug"), max_length=100)
+    description = models.TextField(verbose_name=_("Description"), blank=True, null=True)
+
+    class Meta:
+        verbose_name = _("Issue Resolution")
+        verbose_name_plural = _("Issue Resolutions")
+        ordering = ["subcategory", "name"]
+
+    def __str__(self):
+        return self.name
+
+    def natural_key(self):
+        return (self.name, self.slug)
 
 
 class SalesRecord(models.Model):

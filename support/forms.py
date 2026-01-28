@@ -478,6 +478,18 @@ class IssueStartForm(forms.ModelForm):
         choices=ADDRESS_TYPE_CHOICES,
         widget=forms.Select(attrs={"class": "form-control"}),
     )
+    resolution = forms.ModelChoiceField(
+        required=False,
+        queryset=None,
+        widget=forms.Select(attrs={"class": "form-control"}),
+        label=_("Resolution")
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Initialize resolution queryset as empty - will be filtered by JavaScript
+        from .models import IssueResolution
+        self.fields['resolution'].queryset = IssueResolution.objects.all()
 
     def clean(self):
         dict_categories = dict(get_issue_categories())
@@ -514,6 +526,7 @@ class IssueStartForm(forms.ModelForm):
             "subscription",
             "status",
             "envelope",
+            "resolution",
         )
 
 
@@ -530,6 +543,18 @@ class IssueChangeForm(forms.ModelForm):
         required=False,
         widget=forms.DateInput(format="%Y-%m-%d", attrs={"class": "datepicker form-control", "autocomplete": "off"}),
     )
+    resolution = forms.ModelChoiceField(
+        required=False,
+        queryset=None,
+        widget=forms.Select(attrs={"class": "form-control"}),
+        label=_("Resolution")
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Initialize resolution queryset as empty - will be filtered by JavaScript
+        from .models import IssueResolution
+        self.fields['resolution'].queryset = IssueResolution.objects.all()
 
     class Meta:
         model = Issue
@@ -542,6 +567,7 @@ class IssueChangeForm(forms.ModelForm):
             "status": forms.Select(attrs={"class": "form-control"}),
             "envelope": forms.CheckboxInput(attrs={"class": "form-check-input"}),
             "copies": forms.TextInput(attrs={"class": "form-control"}),
+            "resolution": forms.Select(attrs={"class": "form-control"}),
         }
         fields = (
             "contact",
@@ -554,6 +580,7 @@ class IssueChangeForm(forms.ModelForm):
             "assigned_to",
             "envelope",
             "copies",
+            "resolution",
         )
 
 
@@ -572,6 +599,18 @@ class InvoicingIssueChangeForm(forms.ModelForm):
         required=False,
         widget=forms.DateInput(format="%Y-%m-%d", attrs={"class": "datepicker form-control", "autocomplete": "off"}),
     )
+    resolution = forms.ModelChoiceField(
+        required=False,
+        queryset=None,
+        widget=forms.Select(attrs={"class": "form-control"}),
+        label=_("Resolution")
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Initialize resolution queryset as empty - will be filtered by JavaScript
+        from .models import IssueResolution
+        self.fields['resolution'].queryset = IssueResolution.objects.all()
 
     class Meta:
         model = Issue
@@ -583,6 +622,7 @@ class InvoicingIssueChangeForm(forms.ModelForm):
             "answer_2": forms.Textarea(attrs={"class": "form-control"}),
             "status": forms.Select(attrs={"class": "form-control"}),
             "envelope": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "resolution": forms.Select(attrs={"class": "form-control"}),
         }
         fields = (
             "contact",
@@ -594,6 +634,7 @@ class InvoicingIssueChangeForm(forms.ModelForm):
             "next_action_date",
             "assigned_to",
             "envelope",
+            "resolution",
         )
 
 
