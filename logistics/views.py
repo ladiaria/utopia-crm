@@ -320,7 +320,8 @@ def change_route(request, route_id=1):
                     sp.save()
 
                     # Create issue if it's a special route (50-55)
-                    issue = create_issue_for_special_route(sp.subscription, route.number, request.user)
+                    custom_notes = request.POST.get("issue-notes-{}".format(sp_id), None)
+                    issue = create_issue_for_special_route(sp.subscription, route.number, request.user, custom_notes)
                     if issue:
                         issues_created.append(route.number)
 
@@ -1771,7 +1772,10 @@ def change_subscription_routes(request, subscription_id):
                         sp.save()
 
                         # Create issue if it's a special route (50-55)
-                        issue = create_issue_for_special_route(subscription, new_route.number, request.user)
+                        custom_notes = request.POST.get("issue-notes-{}".format(sp_id), None)
+                        issue = create_issue_for_special_route(
+                            subscription, new_route.number, request.user, custom_notes
+                        )
                         if issue:
                             issues_created.append(new_route.number)
 

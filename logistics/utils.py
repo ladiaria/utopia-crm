@@ -4,7 +4,7 @@ from django.utils.translation import gettext_lazy as _
 from support.models import Issue, IssueSubcategory, IssueStatus
 
 
-def create_issue_for_special_route(subscription, route_number, user=None):
+def create_issue_for_special_route(subscription, route_number, user=None, custom_notes=None):
     """
     Creates an Issue when a subscription product is changed to a special route (50-55).
 
@@ -12,6 +12,7 @@ def create_issue_for_special_route(subscription, route_number, user=None):
         subscription: The Subscription object
         route_number: The route number that was assigned
         user: The user who made the change (optional, will be set as manager)
+        custom_notes: Custom notes for the issue (optional, uses automatic message if not provided)
 
     Returns:
         Issue object if created, None otherwise
@@ -36,6 +37,12 @@ def create_issue_for_special_route(subscription, route_number, user=None):
         # If status doesn't exist, we can't create the issue
         return None
 
+    # Use custom notes if provided, otherwise use automatic message
+    if custom_notes and custom_notes.strip():
+        notes = custom_notes.strip()
+    else:
+        notes = _("Generated automatically for change of route to special route (route {})").format(route_number)
+
     # Create the issue
     issue = Issue.objects.create(
         contact=subscription.contact,
@@ -45,7 +52,7 @@ def create_issue_for_special_route(subscription, route_number, user=None):
         status=status,
         manager=user,
         assigned_to=None,  # Not assigned to anyone
-        notes=_("Generated automatically for change of route to special route (route {})").format(route_number),
+        notes=notes,
     )
 
     return issue
