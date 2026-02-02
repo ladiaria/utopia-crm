@@ -1964,6 +1964,8 @@ class SalesRecordFilterSellersView(BreadcrumbsMixin, FilterView):
         # This queryset fetches all sales records with their product counts
         sales_records = queryset.annotate(total_products=Count('products')).values('id', 'total_products')
         df = pd.DataFrame(sales_records)
+        if df.empty:
+            return {}
         special_product_sales_ids = list(
             queryset.filter(products__slug='la-diaria-5-dias').values_list('id', flat=True)
         )
@@ -1980,9 +1982,13 @@ class SalesRecordFilterSellersView(BreadcrumbsMixin, FilterView):
     def get_sales_distribution_by_payment_type(self, queryset) -> dict:
         sales_records = queryset.values('subscription__payment_type')
         df = pd.DataFrame(sales_records)
+        if df.empty:
+            return {}
         # Only show values whose keys are in settings.SELLER_COMMISSION_PAYMENT_METHODS keys, if the setting exists
         if hasattr(settings, 'SELLER_COMMISSION_PAYMENT_METHODS'):
             df = df[df['subscription__payment_type'].isin(settings.SELLER_COMMISSION_PAYMENT_METHODS.keys())]
+        if df.empty:
+            return {}
         if hasattr(settings, 'SUBSCRIPTION_PAYMENT_METHODS'):
             # Convert choices to a dictionary
             payment_type_dict = dict(settings.SUBSCRIPTION_PAYMENT_METHODS)
@@ -1996,6 +2002,8 @@ class SalesRecordFilterSellersView(BreadcrumbsMixin, FilterView):
     def get_sales_distribution_by_subscription_frequency(self, queryset) -> dict:
         sales_records = queryset.values('subscription__frequency')
         df = pd.DataFrame(sales_records)
+        if df.empty:
+            return {}
         frequencies_dict = dict(core_choices.FREQUENCY_CHOICES)
         df['frequency_display'] = df['subscription__frequency'].map(frequencies_dict)
         distribution = df['frequency_display'].value_counts().sort_index().to_dict()
