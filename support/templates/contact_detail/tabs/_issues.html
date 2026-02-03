@@ -23,12 +23,12 @@
             {% for issue in all_issues %}
               <tr role="row">
                 <td>{{ issue.id }}</td>
-                <td>{{ issue.date }}</td>
-                <td>{{ issue.get_category }}</td>
-                <td>{{ issue.get_subcategory }}</td>
+                <td>{{ issue.date|default_if_none:"-" }}</td>
+                <td>{{ issue.get_category|default_if_none:"-" }}</td>
+                <td>{{ issue.get_subcategory|default_if_none:"-" }}</td>
                 <td>{{ issue.resolution|default_if_none:"-" }}</td>
-                <td>{{ issue.get_status }}</td>
-                <td>{{ issue.assigned_to }}</td>
+                <td>{{ issue.get_status|default_if_none:"-" }}</td>
+                <td>{{ issue.assigned_to|default_if_none:"-" }}</td>
                 <td>
                   <a href="{% url "view_issue" issue.id %}" class="btn btn-primary btn-sm">{% trans "View" %}</a>
                 </td>
