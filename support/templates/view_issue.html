@@ -229,6 +229,7 @@
                 </div>
                 <div class="form-group text-right">
                   <button type="submit" name="submit" class="btn bg-gradient-primary">{% trans "Update" %}</button>
+                  {% block issue_additional_actions %}{% endblock %}
                 </div>
               </form>
             </div>
