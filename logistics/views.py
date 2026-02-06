@@ -1751,7 +1751,7 @@ def change_subscription_routes(request, subscription_id):
     contact = subscription.contact
 
     if request.POST:
-        issues_created = []
+        special_route_numbers = []
         for name, value in list(request.POST.items()):
             if name.startswith("sp-") and value:
                 try:
@@ -1771,13 +1771,9 @@ def change_subscription_routes(request, subscription_id):
                         sp.label_message = request.POST.get("message-{}".format(sp_id), None)
                         sp.save()
 
-                        # Create issue if it's a special route (50-55)
-                        custom_notes = request.POST.get("issue-notes-{}".format(sp_id), None)
-                        issue = create_issue_for_special_route(
-                            subscription, new_route.number, request.user, custom_notes
-                        )
-                        if issue:
-                            issues_created.append(new_route.number)
+                        # Track special route numbers for a single issue
+                        if new_route.number in range(50, 56):
+                            special_route_numbers.append(new_route.number)
 
                 except Route.DoesNotExist:
                     messages.error(
@@ -1791,13 +1787,20 @@ def change_subscription_routes(request, subscription_id):
                 except SubscriptionProduct.DoesNotExist:
                     messages.error(request, _("Subscription product not found"))
 
-        # Show success message
-        if issues_created:
-            route_list = ", ".join(map(str, set(issues_created)))
-            messages.warning(
-                request,
-                _("Routes updated. Issues created for special routes: {}").format(route_list)
+        # Create a single issue for all special route changes
+        if special_route_numbers:
+            custom_notes = request.POST.get("issue-notes", None)
+            issue = create_issue_for_special_route(
+                subscription, user=request.user, custom_notes=custom_notes, route_numbers=special_route_numbers
             )
+            if issue:
+                route_list = ", ".join(map(str, sorted(set(special_route_numbers))))
+                messages.warning(
+                    request,
+                    _("Routes updated. Issue created for special routes: {}").format(route_list)
+                )
+            else:
+                messages.success(request, _("Routes updated successfully"))
         else:
             messages.success(request, _("Routes updated successfully"))
 
