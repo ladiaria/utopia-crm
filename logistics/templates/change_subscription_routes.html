@@ -190,26 +190,13 @@
           <div class="row mt-3">
             <div class="col-md-12">
               <h5>{% trans "Issue Notes for Special Routes" %}</h5>
-              <p class="text-muted">{% trans "If changing to a special route (50-55), you can add custom notes for the automatically created issue:" %}</p>
+              <p class="text-muted">{% trans "If changing to a special route (50-55), a single issue will be created. You can add custom notes below:" %}</p>
+              <textarea class="form-control"
+                        name="issue-notes"
+                        id="issue-notes"
+                        rows="3"
+                        placeholder="{% trans 'Custom notes for the issue (only used when changing to routes 50-55)' %}"></textarea>
             </div>
-          </div>
-
-          <div class="row">
-            {% for sp in subscription_products %}
-              <div class="col-md-6 mb-3">
-                <label for="issue-notes-{{ sp.id }}">
-                  <strong>{{ sp.product.name }}</strong>
-                  {% if sp.label_contact %}
-                    <small class="text-muted">({{ sp.label_contact.get_full_name }})</small>
-                  {% endif %}
-                </label>
-                <textarea class="form-control"
-                          name="issue-notes-{{ sp.id }}"
-                          id="issue-notes-{{ sp.id }}"
-                          rows="2"
-                          placeholder="{% trans 'Custom notes for issue (only for routes 50-55)' %}"></textarea>
-              </div>
-            {% endfor %}
           </div>
 
           <div class="form-group text-right mt-4">
