@@ -76,7 +76,7 @@ class SalesRecordAdmin(admin.ModelAdmin):
     list_display = ["date_time", "seller", "get_contact", "price", "show_products"]
     list_filter = ["date_time"]
     raw_id_fields = ["subscription"]
-    search_fields = ["contact__name"]
+    search_fields = ["subscription__contact__name"]
     date_hierarchy = "date_time"
     ordering = ["-date_time"]
     list_per_page = 50
