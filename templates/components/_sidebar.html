@@ -63,6 +63,16 @@
                 {% if request.user|in_group:"Advertisement" %}
                   {% include "components/sidebar_items/_advertisement.html" %}
                 {% endif %}
+                {% if request.user|has_perm:"support.can_access_community_console" %}
+                  {% url 'community_console' as community_console %}
+                  <li class="nav-item">
+                    <a href="{{ community_console }}"
+                       class="nav-link {% if request.path == community_console %}active{% endif %}">
+                      <i class="nav-icon fas fa-users"></i>
+                      <p>{% trans "Community console" %}</p>
+                    </a>
+                  </li>
+                {% endif %}
                 {% include_if_exists "sidebar_extra.html" %}
                 {% if request.user|in_group:"Sellers" %}
                   <li class="nav-item">

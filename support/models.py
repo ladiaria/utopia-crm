@@ -180,6 +180,9 @@ class Issue(models.Model):
     class Meta:
         verbose_name = _("Issue")
         verbose_name_plural = _("Issues")
+        permissions = [
+            ("can_access_community_console", _("Can access community management console")),
+        ]
 
     def get_category(self):
         categories = dict(get_issue_categories())

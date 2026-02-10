@@ -8,9 +8,9 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.mixins import UserPassesTestMixin
+from django.contrib.auth.mixins import PermissionRequiredMixin, UserPassesTestMixin
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
-from django.db.models import Count, Min, Sum, Case, When
+from django.db.models import Count, Min, Q, Sum, Case, When
 from django.http import (
     HttpResponse,
     HttpResponseNotFound,
@@ -687,6 +687,101 @@ class IssueListView(BreadcrumbsMixin, FilterView):
 
 # Keep the function for backward compatibility
 list_issues = IssueListView.as_view()
+
+
+class CommunityConsoleView(PermissionRequiredMixin, LoginRequiredMixin, BreadcrumbsMixin, TemplateView):
+    """
+    Community Management Console (GDC - Gestión de Comunidad).
+
+    Displays a dashboard of open issues assigned to the current user, grouped by
+    Category → Subcategory, with counts split into three temporal columns:
+    Overdue (date < today), Today (date == today), and Future (date > today).
+
+    Each count is a clickable link that opens the IssueListView with the appropriate filters.
+    """
+    template_name = "community_console.html"
+    permission_required = "support.can_access_community_console"
+
+    def breadcrumbs(self):
+        return [
+            {"url": reverse("home"), "label": _("Home")},
+            {"label": _("Community console")},
+        ]
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        today = date.today()
+        yesterday = today - timedelta(days=1)
+        tomorrow = today + timedelta(days=1)
+
+        # Get open issues assigned to the current user (not closed, not in terminal state)
+        terminal_statuses = getattr(settings, 'ISSUE_STATUS_FINISHED_LIST', [])
+        issues = Issue.objects.filter(
+            assigned_to=self.request.user,
+            closing_date__isnull=True,
+        ).exclude(
+            status__slug__in=terminal_statuses,
+        ).select_related('sub_category', 'status')
+
+        # Build category name lookup
+        category_dict = dict(get_issue_categories())
+
+        # Aggregate counts by category, subcategory, and temporal bucket
+        issue_data = issues.values(
+            'category', 'sub_category__id', 'sub_category__name'
+        ).annotate(
+            overdue=Count('id', filter=Q(date__lt=today)),
+            today_count=Count('id', filter=Q(date=today)),
+            future=Count('id', filter=Q(date__gt=today)),
+            total=Count('id'),
+        ).order_by('category', 'sub_category__name')
+
+        # Structure data as: {category_key: {name, subcategories: [{...}], totals: {...}}}
+        categories = {}
+        for row in issue_data:
+            cat_key = row['category'] or ''
+            if cat_key not in categories:
+                categories[cat_key] = {
+                    'name': category_dict.get(cat_key, _("Uncategorized")),
+                    'key': cat_key,
+                    'subcategories': [],
+                    'overdue': 0,
+                    'today_count': 0,
+                    'future': 0,
+                    'total': 0,
+                }
+            cat = categories[cat_key]
+            cat['subcategories'].append({
+                'id': row['sub_category__id'],
+                'name': row['sub_category__name'] or _("No subcategory"),
+                'overdue': row['overdue'],
+                'today_count': row['today_count'],
+                'future': row['future'],
+                'total': row['total'],
+            })
+            cat['overdue'] += row['overdue']
+            cat['today_count'] += row['today_count']
+            cat['future'] += row['future']
+            cat['total'] += row['total']
+
+        # Sort categories by name
+        sorted_categories = sorted(categories.values(), key=lambda c: c['name'])
+
+        # Grand totals
+        grand_totals = {
+            'overdue': sum(c['overdue'] for c in sorted_categories),
+            'today_count': sum(c['today_count'] for c in sorted_categories),
+            'future': sum(c['future'] for c in sorted_categories),
+            'total': sum(c['total'] for c in sorted_categories),
+        }
+
+        context['categories'] = sorted_categories
+        context['grand_totals'] = grand_totals
+        context['today'] = today
+        context['yesterday'] = yesterday
+        context['tomorrow'] = tomorrow
+        context['assigned_to_id'] = self.request.user.id
+        return context
 
 
 @method_decorator(login_required, name='dispatch')

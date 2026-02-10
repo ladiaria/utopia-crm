@@ -69,6 +69,11 @@ class IssueFilter(django_filters.FilterSet):
         widget=forms.Select(attrs={"class": "form-control"}),
         label=_('Resolution')
     )
+    exclude_finished = django_filters.BooleanFilter(
+        method='filter_exclude_finished',
+        label=_('Exclude finished'),
+        widget=forms.CheckboxInput(attrs={"class": "form-check-input"}),
+    )
 
     class Meta:
         model = Issue
@@ -93,6 +98,12 @@ class IssueFilter(django_filters.FilterSet):
             return queryset.filter(date__month=month, date__year=year)
         else:
             return queryset
+
+    def filter_exclude_finished(self, queryset, name, value):
+        if value:
+            finished_list = getattr(settings, 'ISSUE_STATUS_FINISHED_LIST', [])
+            return queryset.exclude(status__slug__in=finished_list)
+        return queryset
 
     def filter_by_next_action_date(self, queryset, name, value):
         today = date.today()
