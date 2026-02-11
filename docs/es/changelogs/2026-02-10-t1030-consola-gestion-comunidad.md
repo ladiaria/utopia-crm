@@ -8,7 +8,7 @@
 
 ## Resumen
 
-Nuevo panel interactivo para agentes de gestión de comunidad (GDC) que muestra las incidencias abiertas asignadas al usuario actual, agrupadas por Categoría y Subcategoría, con conteos divididos en tres columnas temporales: Vencidas, Hoy y Futuras. Cada conteo es un enlace clickeable que abre la lista de incidencias existente con los filtros correspondientes pre-aplicados. El acceso se controla mediante un permiso dedicado.
+Nuevo panel interactivo para agentes de gestión de comunidad (GDC) que muestra las incidencias abiertas asignadas al usuario actual, agrupadas por Categoría y Subcategoría, con conteos divididos en tres columnas temporales basadas en el campo `next_action_date`: Vencidas, Hoy y Futuras. Cada conteo es un enlace clickeable que abre la lista de incidencias existente con los filtros de `next_action_date` correspondientes pre-aplicados. El acceso se controla mediante un permiso dedicado.
 
 ## Motivación
 
@@ -25,7 +25,8 @@ Nueva `CommunityConsoleView` (hereda de `TemplateView`, `PermissionRequiredMixin
 - Consulta incidencias abiertas asignadas al usuario actual (`closing_date__isnull=True`)
 - Excluye incidencias en estado terminal (`ISSUE_STATUS_FINISHED_LIST` de settings)
 - Agrupa incidencias por Categoría → Subcategoría usando agregación de base de datos (`Count` con filtros `Q`)
-- Cuenta Vencidas (`date < hoy`), Hoy (`date == hoy`) y Futuras (`date > hoy`) para cada grupo
+- Cuenta Vencidas (`next_action_date < hoy`), Hoy (`next_action_date == hoy`) y Futuras (`next_action_date > hoy`) para cada grupo
+- Las incidencias sin `next_action_date` cuentan en el total pero no aparecen en ninguna columna de fecha
 - Pasa datos estructurados y referencias de fecha al template
 
 ### 2. Template de Panel Interactivo
@@ -35,10 +36,10 @@ Nueva `CommunityConsoleView` (hereda de `TemplateView`, `PermissionRequiredMixin
 - **Tarjetas resumen** en la parte superior mostrando totales generales para Vencidas (rojo), Hoy (amarillo), Futuras (verde) y Total (gris)
 - **Tarjetas de categoría colapsables** (estilo acordeón) con botones expandir/colapsar todo
 - **Tabla de subcategorías** dentro de cada tarjeta: Subcategoría | Vencidas | Hoy | Futuras | Total
-- **Conteos clickeables** que enlazan a `IssueListView` con filtros pre-aplicados (categoría, subcategoría, rango de fechas, asignado a, excluir finalizadas)
+- **Conteos clickeables** que enlazan a `IssueListView` con filtros pre-aplicados (categoría, subcategoría, rango de next_action_date, asignado a, excluir finalizadas)
 - **Badges con colores**: rojo para vencidas, amarillo para hoy, verde para futuras
 - **Barra de búsqueda en tiempo real** (JavaScript) para filtrar categorías/subcategorías por nombre
-- **Tarjeta de instrucciones** al final explicando cómo se determinan las fechas y cómo interactuar con la consola
+- **Tarjeta de instrucciones** al final explicando cómo se usa la fecha de próxima acción para la agrupación y cómo interactuar con la consola
 
 ### 3. Permiso Personalizado
 
@@ -122,7 +123,7 @@ Se agregó el checkbox "Excluir finalizadas" al formulario de filtros, junto al 
 ### Pruebas Manuales
 
 1. **Verificación de permisos:** Verificar que la consola solo es accesible para usuarios con `can_access_community_console`
-2. **Precisión de datos:** Verificar que los conteos de vencidas/hoy/futuras coinciden con las incidencias reales
+2. **Precisión de datos:** Verificar que los conteos de vencidas/hoy/futuras coinciden con las incidencias reales según `next_action_date`
 3. **Exclusión de estado terminal:** Verificar que las incidencias finalizadas/resueltas no aparecen en la consola
 4. **Navegación por enlaces:** Hacer clic en cada conteo y verificar que la lista de incidencias muestra los resultados filtrados correctos
 5. **Sin subcategoría:** Verificar que las incidencias sin subcategoría no causan "None" en las URLs
