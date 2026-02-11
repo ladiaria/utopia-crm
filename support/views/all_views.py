@@ -730,9 +730,9 @@ class CommunityConsoleView(PermissionRequiredMixin, LoginRequiredMixin, Breadcru
         issue_data = issues.values(
             'category', 'sub_category__id', 'sub_category__name'
         ).annotate(
-            overdue=Count('id', filter=Q(date__lt=today)),
-            today_count=Count('id', filter=Q(date=today)),
-            future=Count('id', filter=Q(date__gt=today)),
+            overdue=Count('id', filter=Q(next_action_date__lt=today)),
+            today_count=Count('id', filter=Q(next_action_date=today)),
+            future=Count('id', filter=Q(next_action_date__gt=today)),
             total=Count('id'),
         ).order_by('category', 'sub_category__name')
 

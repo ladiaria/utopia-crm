@@ -8,7 +8,7 @@
 
 ## Summary
 
-New interactive dashboard for community management (GDC) agents that displays open issues assigned to the current user, grouped by Category and Subcategory, with counts split into three temporal columns: Overdue, Today, and Future. Each count is a clickable link that opens the existing issue list with the appropriate filters pre-applied. Access is controlled by a dedicated permission.
+New interactive dashboard for community management (GDC) agents that displays open issues assigned to the current user, grouped by Category and Subcategory, with counts split into three temporal columns based on the `next_action_date` field: Overdue, Today, and Future. Each count is a clickable link that opens the existing issue list with the appropriate `next_action_date` filters pre-applied. Access is controlled by a dedicated permission.
 
 ## Motivation
 
@@ -25,7 +25,8 @@ New `CommunityConsoleView` (inherits from `TemplateView`, `PermissionRequiredMix
 - Queries open issues assigned to the current user (`closing_date__isnull=True`)
 - Excludes issues in terminal state (`ISSUE_STATUS_FINISHED_LIST` from settings)
 - Groups issues by Category → Subcategory using database aggregation (`Count` with `Q` filters)
-- Counts Overdue (`date < today`), Today (`date == today`), and Future (`date > today`) for each group
+- Counts Overdue (`next_action_date < today`), Today (`next_action_date == today`), and Future (`next_action_date > today`) for each group
+- Issues without a `next_action_date` count towards the total but not in any date column
 - Passes structured data and date references to the template
 
 ### 2. Interactive Dashboard Template
@@ -35,10 +36,10 @@ New `CommunityConsoleView` (inherits from `TemplateView`, `PermissionRequiredMix
 - **Summary cards** at the top showing grand totals for Overdue (red), Today (yellow), Future (green), and Total (gray)
 - **Collapsible category cards** (accordion-style) with expand/collapse all buttons
 - **Subcategory table** within each card: Subcategory | Overdue | Today | Future | Total
-- **Clickable counts** that link to `IssueListView` with pre-applied filters (category, subcategory, date range, assigned_to, exclude_finished)
+- **Clickable counts** that link to `IssueListView` with pre-applied filters (category, subcategory, next_action_date range, assigned_to, exclude_finished)
 - **Color-coded badges**: red for overdue, yellow for today, green for future
 - **Real-time search bar** (JavaScript) to filter categories/subcategories by name
-- **Instructions card** at the bottom explaining how dates are determined and how to interact with the console
+- **Instructions card** at the bottom explaining how next action dates are used for grouping and how to interact with the console
 
 ### 3. Custom Permission
 
@@ -122,7 +123,7 @@ Added the "Exclude finished" checkbox to the filter form, next to the issue coun
 ### Manual Testing
 
 1. **Permission check:** Verify the console is only accessible to users with `can_access_community_console`
-2. **Data accuracy:** Verify overdue/today/future counts match the actual issues
+2. **Data accuracy:** Verify overdue/today/future counts match the actual issues based on `next_action_date`
 3. **Terminal state exclusion:** Verify finished/resolved issues don't appear in the console
 4. **Link navigation:** Click each count and verify the issue list shows the correct filtered results
 5. **No subcategory:** Verify issues without a subcategory don't cause "None" in URLs
