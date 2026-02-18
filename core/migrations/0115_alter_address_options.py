@@ -5,7 +5,7 @@ from django.db import migrations
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("core", "0113_activity_metadata_historicalactivity_metadata_and_more"),
+        ("core", "0114_product_mercadopago_skip_sync_alter_address_email_and_more"),
     ]
 
     operations = [
