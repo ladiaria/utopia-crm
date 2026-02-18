@@ -31,7 +31,7 @@
       width: "100%"
     });
 
-    // Date range functionality
+    // Date range functionality for Issue Date
     $('#id_date').change(function(){
       var option = $(this).val();
       if(option == "custom") {
@@ -45,6 +45,21 @@
     $('#id_date').change();
     $('#id_date_gte').datepicker({ dateFormat: 'yy-mm-dd' });
     $('#id_date_lte').datepicker({ dateFormat: 'yy-mm-dd' });
+
+    // Date range functionality for Next Action Date
+    $('#id_next_action_date').change(function(){
+      var option = $(this).val();
+      if(option == "custom") {
+        $('.next-action-range').removeClass('d-none');
+      }else {
+        $('.next-action-range').addClass('d-none');
+        $('#id_next_action_date_gte').attr('value', '');
+        $('#id_next_action_date_lte').attr('value', '');
+      }
+    });
+    $('#id_next_action_date').change();
+    $('#id_next_action_date_gte').datepicker({ dateFormat: 'yy-mm-dd' });
+    $('#id_next_action_date_lte').datepicker({ dateFormat: 'yy-mm-dd' });
 
     // Dynamic subcategory filtering
     var categorySubcategories = {{ category_subcategories_json|safe }};
@@ -146,24 +161,60 @@
                 {% render_field filter.form.assigned_to class="form-control" %}
               </div>
               <div class="form-group col">
-                <label for="date">{% trans "Date" %}</label>
-                {% render_field filter.form.date class="form-control " %}
+                <label for="resolution">{% trans "Resolution" %}</label>
+                {% render_field filter.form.resolution class="form-control" %}
               </div>
-              <div class="creation-range hidden d-none col-4">
+            </div>
+            <div class="row">
+              <div class="form-group col-md-6">
+                <label for="date">
+                  {{ filter.form.date.label }}
+                  <small class="text-muted">{{ filter.form.date.help_text }}</small>
+                </label>
+                {% render_field filter.form.date class="form-control" %}
+              </div>
+              <div class="form-group col-md-6">
+                <label for="next_action_date">
+                  {{ filter.form.next_action_date.label }}
+                  <small class="text-muted">{{ filter.form.next_action_date.help_text }}</small>
+                </label>
+                {% render_field filter.form.next_action_date class="form-control" %}
+              </div>
+            </div>
+            <div class="row">
+              <div class="creation-range hidden d-none col-md-6">
                 <div class="row">
                   <div class="form-group col">
-                    <label for="creation_date_gte">{% trans "Creation date (from)" %}</label>
+                    <label for="date_gte">{{ filter.form.date_gte.label }}</label>
                     {% render_field filter.form.date_gte class="form-control" %}
                   </div>
                   <div class="form-group col">
-                    <label for="creation_date_lte">{% trans "Creation date (to)" %}</label>
+                    <label for="date_lte">{{ filter.form.date_lte.label }}</label>
                     {% render_field filter.form.date_lte class="form-control" %}
+                  </div>
+                </div>
+              </div>
+              <div class="next-action-range hidden d-none col-md-6">
+                <div class="row">
+                  <div class="form-group col">
+                    <label for="next_action_date_gte">{{ filter.form.next_action_date_gte.label }}</label>
+                    {% render_field filter.form.next_action_date_gte class="form-control" %}
+                  </div>
+                  <div class="form-group col">
+                    <label for="next_action_date_lte">{{ filter.form.next_action_date_lte.label }}</label>
+                    {% render_field filter.form.next_action_date_lte class="form-control" %}
                   </div>
                 </div>
               </div>
             </div>
             <div class="d-flex justify-content-between align-items-center">
-              <div>
+              <div class="d-flex align-items-center">
+                <div class="form-check mr-3">
+                  {{ filter.form.exclude_finished }}
+                  <label class="form-check-label" for="id_exclude_finished">
+                    {% trans "Exclude finished" %}
+                  </label>
+                </div>
                 {% if count %}
                   <div class="callout callout-info py-2 px-3 mb-0">
                     <strong>{{ count }}</strong> {% trans "issues found" %}
@@ -188,13 +239,24 @@
             <thead>
               <tr role="row">
                 <th>{% trans "Id" %}</th>
-                <th>{% trans "Start date" %}</th>
+                <th>
+                  <a href="?{% for key, value in request.GET.items %}{% if key != 'order_by' and key != 'p' %}{{ key }}={{ value }}&{% endif %}{% endfor %}order_by={% if request.GET.order_by == 'date' %}-date{% else %}date{% endif %}" class="text-dark">
+                    {% trans "Start date" %}
+                    {% if request.GET.order_by == 'date' %}<i class="fas fa-sort-up"></i>{% elif request.GET.order_by == '-date' %}<i class="fas fa-sort-down"></i>{% else %}<i class="fas fa-sort"></i>{% endif %}
+                  </a>
+                </th>
                 <th>{% trans "Contact" %}</th>
                 <th>{% trans "Category" %}</th>
                 <th>{% trans "Subcategory" %}</th>
+                <th>{% trans "Resolution" %}</th>
                 <th>{% trans "Status" %}</th>
                 <th>{% trans "Activities" %}</th>
-                <th>{% trans "Next action date" %}</th>
+                <th>
+                  <a href="?{% for key, value in request.GET.items %}{% if key != 'order_by' and key != 'p' %}{{ key }}={{ value }}&{% endif %}{% endfor %}order_by={% if request.GET.order_by == 'next_action_date' %}-next_action_date{% else %}next_action_date{% endif %}" class="text-dark">
+                    {% trans "Next action date" %}
+                    {% if request.GET.order_by == 'next_action_date' %}<i class="fas fa-sort-up"></i>{% elif request.GET.order_by == '-next_action_date' %}<i class="fas fa-sort-down"></i>{% else %}<i class="fas fa-sort"></i>{% endif %}
+                  </a>
+                </th>
                 <th>{% trans "Assigned to" %}</th>
               </tr>
             </thead>
@@ -208,6 +270,7 @@
                   <td>{{ issue.contact }}</td>
                   <td>{{ issue.get_category }}</td>
                   <td>{{ issue.get_subcategory }}</td>
+                  <td>{{ issue.resolution|default_if_none:"-" }}</td>
                   <td>{{ issue.status }}</td>
                   <td>{{ issue.activity_count }}</td>
                   <td>{{ issue.next_action_date|default_if_none:"-" }}</td>

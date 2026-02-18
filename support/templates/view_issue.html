@@ -22,6 +22,45 @@
     $(".datepicker").datepicker({
       dateFormat: 'yy-mm-dd'
     });
+
+    // Dynamic resolution filtering based on subcategory
+    const subcategoryResolutions = {{ subcategory_resolutions_json|safe }};
+    const $subcategorySelect = $('#id_sub_category');
+    const $resolutionSelect = $('#id_resolution');
+    const initialResolutionValue = $resolutionSelect.val();
+
+    function updateResolutionOptions() {
+      const selectedSubcategoryId = $subcategorySelect.val();
+      const currentResolutionValue = $resolutionSelect.val();
+
+      // Clear current options except the empty option
+      $resolutionSelect.find('option').not(':first').remove();
+
+      if (selectedSubcategoryId && subcategoryResolutions[selectedSubcategoryId]) {
+        // Add resolutions for the selected subcategory
+        const resolutions = subcategoryResolutions[selectedSubcategoryId];
+        resolutions.forEach(function(resolution) {
+          const option = new Option(resolution.name, resolution.id);
+          $resolutionSelect.append(option);
+        });
+
+        // Restore previous selection if it's still available
+        if (currentResolutionValue) {
+          $resolutionSelect.val(currentResolutionValue);
+        }
+      }
+    }
+
+    // Update resolution options when subcategory changes
+    $subcategorySelect.on('change', updateResolutionOptions);
+
+    // Initialize resolution options on page load
+    updateResolutionOptions();
+
+    // Restore initial resolution value if it exists
+    if (initialResolutionValue) {
+      $resolutionSelect.val(initialResolutionValue);
+    }
   });
   </script>
 {% endblock %}
@@ -137,6 +176,10 @@
                   <label for="id_sub_category">{{ form.sub_category.label }}</label>
                   {{ form.sub_category }}
                 </div>
+                <div class="form-group">
+                  <label for="id_resolution">{{ form.resolution.label }}</label>
+                  {{ form.resolution }}
+                </div>
                 <div class="row">
                   <div class="col-4">
                     <div class="form-group">
@@ -186,6 +229,7 @@
                 </div>
                 <div class="form-group text-right">
                   <button type="submit" name="submit" class="btn bg-gradient-primary">{% trans "Update" %}</button>
+                  {% block issue_additional_actions %}{% endblock %}
                 </div>
               </form>
             </div>

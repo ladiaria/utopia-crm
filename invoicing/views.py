@@ -8,14 +8,15 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import permission_required
 from django.contrib.admin.views.decorators import staff_member_required
-from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-from django.db.models import Q, Sum, Prefetch
+from django.db.models import Q, Sum, Min, Max, Prefetch
 from django.shortcuts import get_object_or_404, render
-from django.http import HttpResponseRedirect, HttpResponse
+from django.http import HttpResponseRedirect, HttpResponse, StreamingHttpResponse
 from django.utils.translation import gettext_lazy as _
 from django.views.generic import CreateView, DetailView
 from django.utils.decorators import method_decorator
 from django.contrib.auth.mixins import LoginRequiredMixin
+
+from django_filters.views import FilterView
 
 from reportlab.lib.units import mm
 from reportlab.pdfgen.canvas import Canvas
@@ -250,107 +251,143 @@ def download_invoice(request, invoice_id):
     return response
 
 
-@staff_member_required
-def invoice_filter(request):
-    if not request.GET:
-        queryset = Invoice.objects.select_related('contact').filter(creation_date=date.today())
-    else:
-        queryset = Invoice.objects.select_related('contact').all()
-    page_number = request.GET.get("p")
-    invoice_queryset = queryset.order_by("-id")
-    invoice_filter = InvoiceFilter(request.GET, queryset=invoice_queryset)
-    paginator = Paginator(invoice_filter.qs, 200)
-    try:
-        invoices = paginator.page(page_number)
-    except PageNotAnInteger:
-        # If page is not an integer, deliver first page.
-        invoices = paginator.page(1)
-    except EmptyPage:
-        # If page is out of range (e.g. 9999), deliver last page of results.
-        invoices = paginator.page(paginator.num_pages)
-    if request.GET.get('export'):
-        response = HttpResponse(content_type="text/csv")
-        response["Content-Disposition"] = 'attachment; filename="invoices_export.csv"'
-        writer = csv.writer(response)
-        header = [
-            _("Id"),
-            _("Contact name"),
-            _("Items"),
-            _("Contact id"),
-            _("Subscription id"),
-            _("Subscription Payment Type"),
-            _("Amount"),
-            _("Payment type"),
-            _("Date"),
-            _("Due"),
-            _("Service from"),
-            _("Service to"),
-            _("Status"),
-            _("Payment date"),
-            _("Serie"),
-            _("Number"),
-            _("Payment reference"),
+@method_decorator(staff_member_required, name='dispatch')
+class InvoiceFilterView(BreadcrumbsMixin, FilterView):
+    model = Invoice
+    template_name = 'invoice_filter.html'
+    filterset_class = InvoiceFilter
+    paginate_by = 200
+    page_kwarg = 'p'
+    context_object_name = 'invoices'
+
+    def breadcrumbs(self):
+        return [
+            {"label": _("Home"), "url": reverse("home")},
+            {"label": _("Invoice filter"), "url": ""},
         ]
-        writer.writerow(header)
-        for invoice in invoice_filter.qs.iterator():
-            writer.writerow(
-                [
-                    invoice.id,
-                    invoice.contact.get_full_name(),
-                    invoice.get_invoiceitem_description_list(html=False),
-                    invoice.contact.id,
-                    invoice.subscription.id if invoice.subscription else None,
-                    invoice.subscription.get_payment_type_display() if invoice.subscription else None,
-                    invoice.amount,
-                    invoice.get_payment_type(),
-                    invoice.creation_date,
-                    invoice.expiration_date,
-                    invoice.service_from,
-                    invoice.service_to,
-                    invoice.get_status(with_date=False),
-                    invoice.payment_date,
-                    invoice.serie,
-                    invoice.numero,
-                    invoice.payment_reference,
-                ]
-            )
+
+    def get_queryset(self):
+        return Invoice.objects.all().select_related(
+            'contact', 'subscription'
+        ).prefetch_related(
+            'invoiceitem_set',
+        ).order_by('-id')
+
+    def get(self, request, *args, **kwargs):
+        if not request.GET:
+            return HttpResponseRedirect('?creation_date=today')
+        if request.GET.get('export'):
+            return self.export_csv()
+        return super().get(request, *args, **kwargs)
+
+    def export_csv(self):
+        import io
+
+        filterset = self.get_filterset(self.filterset_class)
+
+        def generate_csv_rows():
+            buffer = io.StringIO()
+            writer = csv.writer(buffer)
+
+            header = [
+                _("Id"),
+                _("Contact name"),
+                _("Items"),
+                _("Contact id"),
+                _("ID document"),
+                _("Email"),
+                _("Phone"),
+                _("Mobile"),
+                _("Subscription id"),
+                _("Subscription Payment Type"),
+                _("Amount"),
+                _("Payment type"),
+                _("Date"),
+                _("Due"),
+                _("Service from"),
+                _("Service to"),
+                _("Status"),
+                _("Payment date"),
+                _("Serie"),
+                _("Number"),
+                _("Payment reference"),
+            ]
+            writer.writerow(header)
+            yield buffer.getvalue()
+            buffer.seek(0)
+            buffer.truncate(0)
+
+            for invoice in filterset.qs.select_related('contact', 'subscription').iterator(chunk_size=1000):
+                writer.writerow(
+                    [
+                        invoice.id,
+                        invoice.contact.get_full_name(),
+                        invoice.get_invoiceitem_description_list(html=False),
+                        invoice.contact.id,
+                        invoice.contact.id_document,
+                        invoice.contact.email,
+                        str(invoice.contact.phone) if invoice.contact.phone else "",
+                        str(invoice.contact.mobile) if invoice.contact.mobile else "",
+                        invoice.subscription.id if invoice.subscription else None,
+                        invoice.subscription.get_payment_type_display() if invoice.subscription else None,
+                        invoice.amount,
+                        invoice.get_payment_type(),
+                        invoice.creation_date,
+                        invoice.expiration_date,
+                        invoice.service_from,
+                        invoice.service_to,
+                        invoice.get_status(with_date=False),
+                        invoice.payment_date,
+                        invoice.serie,
+                        invoice.numero,
+                        invoice.payment_reference,
+                    ]
+                )
+                yield buffer.getvalue()
+                buffer.seek(0)
+                buffer.truncate(0)
+
+        response = StreamingHttpResponse(generate_csv_rows(), content_type="text/csv")
+        response["Content-Disposition"] = 'attachment; filename="invoices_export.csv"'
         return response
 
-    invoices_sum = invoice_filter.qs.aggregate(Sum('amount'))['amount__sum']
-    invoices_count = invoice_filter.qs.count()
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        filtered_qs = context['filter'].qs
 
-    pending = invoice_filter.qs.filter(
-        canceled=False, uncollectible=False, paid=False, debited=False, expiration_date__gt=date.today()
-    )
-    pending_sum = pending.aggregate(Sum('amount'))['amount__sum']
-    pending_count = pending.count()
+        invoices_sum = filtered_qs.aggregate(Sum('amount'))['amount__sum']
+        invoices_count = filtered_qs.count()
 
-    overdue = invoice_filter.qs.filter(
-        canceled=False, uncollectible=False, paid=False, debited=False, expiration_date__lt=date.today()
-    )
-    overdue_sum = overdue.aggregate(Sum('amount'))['amount__sum']
-    overdue_count = overdue.count()
+        pending = filtered_qs.filter(
+            canceled=False, uncollectible=False, paid=False, debited=False, expiration_date__gt=date.today()
+        )
+        pending_sum = pending.aggregate(Sum('amount'))['amount__sum']
+        pending_count = pending.count()
 
-    paid = invoice_filter.qs.filter(Q(paid=True) | Q(debited=True))
-    paid_sum = paid.aggregate(Sum('amount'))['amount__sum']
-    paid_count = paid.count()
+        overdue = filtered_qs.filter(
+            canceled=False, uncollectible=False, paid=False, debited=False, expiration_date__lt=date.today()
+        )
+        overdue_sum = overdue.aggregate(Sum('amount'))['amount__sum']
+        overdue_count = overdue.count()
 
-    canceled = invoice_filter.qs.filter(canceled=True)
-    canceled_sum = canceled.aggregate(Sum('amount'))['amount__sum']
-    canceled_count = canceled.count()
+        paid = filtered_qs.filter(Q(paid=True) | Q(debited=True))
+        paid_sum = paid.aggregate(Sum('amount'))['amount__sum']
+        paid_count = paid.count()
 
-    uncollectible = invoice_filter.qs.filter(uncollectible=True)
-    uncollectible_sum = uncollectible.aggregate(Sum('amount'))['amount__sum']
-    uncollectible_count = uncollectible.count()
+        canceled = filtered_qs.filter(canceled=True)
+        canceled_sum = canceled.aggregate(Sum('amount'))['amount__sum']
+        canceled_count = canceled.count()
 
-    return render(
-        request,
-        'invoice_filter.html',
-        {
-            'invoices': invoices,
-            'page': page_number,
-            'paginator': paginator,
-            'invoice_filter': invoice_filter,
+        uncollectible = filtered_qs.filter(uncollectible=True)
+        uncollectible_sum = uncollectible.aggregate(Sum('amount'))['amount__sum']
+        uncollectible_count = uncollectible.count()
+
+        date_range = filtered_qs.aggregate(
+            oldest_date=Min('creation_date'),
+            newest_date=Max('creation_date'),
+        )
+
+        context.update({
             'invoices_count': invoices_count,
             'pending_count': pending_count,
             'overdue_count': overdue_count,
@@ -363,8 +400,14 @@ def invoice_filter(request):
             'canceled_sum': canceled_sum,
             'uncollectible_sum': uncollectible_sum,
             'uncollectible_count': uncollectible_count,
-        },
-    )
+            'oldest_date': date_range['oldest_date'],
+            'newest_date': date_range['newest_date'],
+        })
+        return context
+
+
+# Keep backward compatibility
+invoice_filter = InvoiceFilterView.as_view()
 
 
 @staff_member_required

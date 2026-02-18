@@ -15,17 +15,23 @@ from django.contrib.auth.decorators import login_required, permission_required
 from django.db.models import F, Q
 from django.contrib import messages
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.views.generic import TemplateView, View
+from django.views.decorators.http import require_POST
+from django.utils.decorators import method_decorator
+from difflib import SequenceMatcher
 
 from reportlab.pdfgen.canvas import Canvas
 
 from core.models import SubscriptionProduct, Subscription, Product, Address
 from core.choices import PRODUCT_WEEKDAYS
+from core.mixins import BreadcrumbsMixin
 from logistics.models import Route, Edition
 from support.models import Issue
 
 from util.dates import next_business_day, format_date
 from .labels import LogisticsLabel, LogisticsLabel96x30, Roll, Roll96x30
 from .filters import OrderRouteFilter, AddressGeorefFilter
+from .utils import create_issue_for_special_route
 
 
 @login_required
@@ -289,6 +295,7 @@ def print_unordered_subscriptions(request):
 def change_route(request, route_id=1):
     """
     Changes route to a contact on a particular route.
+    Automatically creates an Issue when a route is changed to a special route (50-55).
 
     TODO: Do something to quickly change route form the template itself.
     """
@@ -296,6 +303,7 @@ def change_route(request, route_id=1):
     product_id, product = "all", None
     route_object = get_object_or_404(Route, pk=route_id)
     if request.POST:
+        issues_created = []
         for name, value in list(request.POST.items()):
             if name.startswith("sp-") and value and int(value) != route_object.number:
                 try:
@@ -310,6 +318,13 @@ def change_route(request, route_id=1):
                     sp.special_instructions = request.POST.get("instructions-{}".format(sp_id), None)
                     sp.label_message = request.POST.get("message-{}".format(sp_id), None)
                     sp.save()
+
+                    # Create issue if it's a special route (50-55)
+                    custom_notes = request.POST.get("issue-notes-{}".format(sp_id), None)
+                    issue = create_issue_for_special_route(sp.subscription, route.number, request.user, custom_notes)
+                    if issue:
+                        issues_created.append(route.number)
+
                 except Route.DoesNotExist:
                     messages.error(
                         request,
@@ -319,6 +334,15 @@ def change_route(request, route_id=1):
                             )
                         ),
                     )
+
+        # Show success message if issues were created
+        if issues_created:
+            route_list = ", ".join(map(str, set(issues_created)))
+            messages.warning(
+                request,
+                _("Routes updated. Issues created for special routes: {}").format(route_list)
+            )
+
         return HttpResponseRedirect(reverse("change_route", args=[route_id]))
 
     subscription_products = (
@@ -337,6 +361,11 @@ def change_route(request, route_id=1):
         exclude = request.GET.get("exclude", None)
         if exclude:
             subscription_products = subscription_products.exclude(product_id=exclude)
+    breadcrumbs = [
+        {"label": _("Home"), "url": reverse("home")},
+        {"label": _("Change routes"), "url": reverse("change_route", args=[route_id])},
+        {"label": str(route_object), "url": ""},
+    ]
     return render(
         request,
         "change_route.html",
@@ -346,6 +375,7 @@ def change_route(request, route_id=1):
             "product_list": product_list,
             "product_id": product_id,
             "product": product,
+            "breadcrumbs": breadcrumbs,
         },
     )
 
@@ -1464,5 +1494,336 @@ def mass_georef_address(request):
             "count": addr_filter.qs.count(),
             "now": datetime.now(),
             "url": request.META["PATH_INFO"],
+        },
+    )
+
+
+class MergeCompareAddressesView(BreadcrumbsMixin, TemplateView):
+    """
+    Class-based view for comparing two addresses side-by-side before merging.
+    Allows user to select which address to keep and which fields to preserve.
+    Can be accessed with a contact_id to show dropdowns of that contact's addresses,
+    or with address_1 and address_2 IDs for direct comparison.
+    """
+    template_name = "merge_compare_addresses.html"
+
+    @method_decorator(login_required)
+    @method_decorator(permission_required('core.can_merge_addresses', raise_exception=True))
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
+
+    def breadcrumbs(self):
+        from django.urls import reverse
+        breadcrumbs_list = [
+            {"url": reverse("home"), "label": _("Home")},
+            {"label": _("Merge addresses"), "url": reverse("merge_compare_addresses")},
+        ]
+
+        # Add contact breadcrumb if we have a contact_id (step 1)
+        contact_id = self.request.GET.get("contact_id")
+        if contact_id:
+            try:
+                from core.models import Contact
+                contact = Contact.objects.get(pk=contact_id)
+                breadcrumbs_list.insert(1, {
+                    "label": _("Contact list"),
+                    "url": reverse("contact_list")
+                })
+                breadcrumbs_list.insert(2, {
+                    "label": contact.get_full_name(),
+                    "url": reverse("contact_detail", args=[contact.id])
+                })
+            except Contact.DoesNotExist:
+                pass
+        else:
+            # Step 2: Check if addresses being compared have a contact
+            address_1_id = self.request.GET.get("address_1")
+            address_2_id = self.request.GET.get("address_2")
+            if address_1_id and address_2_id:
+                try:
+                    address1 = Address.objects.select_related('contact').get(pk=address_1_id)
+                    if address1.contact:
+                        breadcrumbs_list.insert(1, {
+                            "label": _("Contact list"),
+                            "url": reverse("contact_list")
+                        })
+                        breadcrumbs_list.insert(2, {
+                            "label": address1.contact.get_full_name(),
+                            "url": reverse("contact_detail", args=[address1.contact.id])
+                        })
+                except Address.DoesNotExist:
+                    pass
+
+        return breadcrumbs_list
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        contact_id = self.request.GET.get("contact_id", None)
+        address_1_id = self.request.GET.get("address_1", None)
+        address_2_id = self.request.GET.get("address_2", None)
+
+        # If contact_id is provided, show address selection dropdowns
+        if contact_id:
+            try:
+                from core.models import Contact
+                contact = Contact.objects.prefetch_related('addresses').get(pk=contact_id)
+                addresses = contact.addresses.select_related('state', 'country', 'city_fk').all()
+
+                if addresses.count() < 2:
+                    messages.warning(self.request, _("Contact must have at least 2 addresses to merge"))
+                    return context
+
+                context.update({
+                    'contact': contact,
+                    'available_addresses': addresses,
+                })
+            except Contact.DoesNotExist:
+                messages.error(self.request, _("Contact {id} does not exist").format(id=contact_id))
+                return context
+
+        # If both address IDs are provided, show comparison
+        if address_1_id and address_2_id:
+            if address_1_id == address_2_id:
+                messages.error(self.request, _("Address IDs must be different"))
+                return context
+
+            try:
+                address1 = Address.objects.select_related('contact', 'state', 'country', 'city_fk').get(pk=address_1_id)
+            except Address.DoesNotExist:
+                messages.error(self.request, _("Address {id} does not exist").format(id=address_1_id))
+                return context
+
+            try:
+                address2 = Address.objects.select_related('contact', 'state', 'country', 'city_fk').get(pk=address_2_id)
+            except Address.DoesNotExist:
+                messages.error(self.request, _("Address {id} does not exist").format(id=address_2_id))
+                return context
+
+            # Get counts of related objects for each address
+            address1_sp_count = address1.subscriptionproduct_set.count()
+            address2_sp_count = address2.subscriptionproduct_set.count()
+            address1_issue_count = address1.issue_set.count()
+            address2_issue_count = address2.issue_set.count()
+            address1_task_count = address1.scheduledtask_set.count()
+            address2_task_count = address2.scheduledtask_set.count()
+
+            # Calculate similarity between address_1 fields
+            similarity_ratio = 0.0
+            show_similarity_warning = False
+            if address1.address_1 and address2.address_1:
+                # Normalize strings for comparison (lowercase, strip whitespace)
+                addr1_normalized = address1.address_1.lower().strip()
+                addr2_normalized = address2.address_1.lower().strip()
+
+                # Calculate similarity ratio (0.0 to 1.0)
+                similarity_ratio = SequenceMatcher(None, addr1_normalized, addr2_normalized).ratio()
+
+                # Show warning if similarity is below 40% (very different addresses)
+                if similarity_ratio < 0.4:
+                    show_similarity_warning = True
+
+            context.update({
+                'address1': address1,
+                'address2': address2,
+                'address1_sp_count': address1_sp_count,
+                'address2_sp_count': address2_sp_count,
+                'address1_issue_count': address1_issue_count,
+                'address2_issue_count': address2_issue_count,
+                'address1_task_count': address1_task_count,
+                'address2_task_count': address2_task_count,
+                'similarity_ratio': similarity_ratio,
+                'similarity_percentage': int(similarity_ratio * 100),
+                'show_similarity_warning': show_similarity_warning,
+            })
+
+        return context
+
+
+class ProcessMergeAddressesView(View):
+    """
+    Class-based view for processing the address merge.
+    Handles POST request with selected fields and executes the merge.
+    """
+
+    @method_decorator(require_POST)
+    @method_decorator(login_required)
+    @method_decorator(permission_required('core.can_merge_addresses', raise_exception=True))
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        address1_id = request.POST.get("address1_id")
+        address2_id = request.POST.get("address2_id")
+        selected_address_id = request.POST.get("selected_address_id")
+
+        # Determine which is source and which is target
+        source_address_id_list = [address1_id, address2_id]
+        source_address_id_list.remove(selected_address_id)
+
+        try:
+            source_address = Address.objects.get(pk=source_address_id_list[0])
+            target_address = Address.objects.get(pk=selected_address_id)
+        except Address.DoesNotExist:
+            messages.error(request, _("One of the addresses does not exist"))
+            return HttpResponseRedirect(reverse("merge_compare_addresses"))
+
+        # Get field overrides from POST data
+        new_address_1 = request.POST.get("new_address_1", None)
+        new_address_2 = request.POST.get("new_address_2", None)
+        new_city = request.POST.get("new_city", None)
+        new_email = request.POST.get("new_email", None)
+        new_address_type = request.POST.get("new_address_type", None)
+        new_notes = request.POST.get("new_notes", None)
+        new_default = request.POST.get("new_default") == "True"
+        new_name = request.POST.get("new_name", None)
+        new_state_id = request.POST.get("new_state_id", None)
+        new_country_id = request.POST.get("new_country_id", None)
+        new_city_fk_id = request.POST.get("new_city_fk_id", None)
+        new_latitude = request.POST.get("new_latitude", None)
+        new_longitude = request.POST.get("new_longitude", None)
+        new_google_maps_url = request.POST.get("new_google_maps_url", None)
+
+        # Convert string IDs to integers or None
+        new_state_id = int(new_state_id) if new_state_id and new_state_id != "" else None
+        new_country_id = int(new_country_id) if new_country_id and new_country_id != "" else None
+        new_city_fk_id = int(new_city_fk_id) if new_city_fk_id and new_city_fk_id != "" else None
+
+        # Convert latitude/longitude, handling both comma and dot as decimal separator
+        if new_latitude and new_latitude != "":
+            new_latitude = float(new_latitude.replace(',', '.'))
+        else:
+            new_latitude = None
+
+        if new_longitude and new_longitude != "":
+            new_longitude = float(new_longitude.replace(',', '.'))
+        else:
+            new_longitude = None
+
+        # Store contact for redirect
+        contact = target_address.contact
+
+        # Execute the merge
+        errors = target_address.merge_other_address_into_this(
+            source_address,
+            address_1=new_address_1,
+            address_2=new_address_2,
+            city=new_city,
+            email=new_email,
+            address_type=new_address_type,
+            notes=new_notes,
+            default=new_default,
+            name=new_name,
+            state_id=new_state_id,
+            country_id=new_country_id,
+            city_fk_id=new_city_fk_id,
+            latitude=new_latitude,
+            longitude=new_longitude,
+            google_maps_url=new_google_maps_url,
+        )
+
+        if errors:
+            for error in errors:
+                messages.error(request, error)
+        else:
+            messages.success(
+                request,
+                _("Addresses merged into address {id}. Address {source_id} has been deleted.").format(
+                    id=target_address.id,
+                    source_id=source_address.id
+                )
+            )
+
+        # Redirect to contact detail if address has a contact, otherwise to merge page
+        if contact:
+            return HttpResponseRedirect(reverse("contact_detail", args=[contact.id]))
+        else:
+            return HttpResponseRedirect(reverse("merge_compare_addresses"))
+
+
+@login_required
+def change_subscription_routes(request, subscription_id):
+    """
+    Changes routes for all subscription products in a single subscription.
+    Automatically creates an Issue when a route is changed to a special route (50-55).
+    """
+    subscription = get_object_or_404(Subscription, pk=subscription_id)
+    contact = subscription.contact
+
+    if request.POST:
+        special_route_numbers = []
+        for name, value in list(request.POST.items()):
+            if name.startswith("sp-") and value:
+                try:
+                    # Get the subscription product ID
+                    sp_id = name.replace("sp-", "")
+                    sp = SubscriptionProduct.objects.get(pk=sp_id)
+
+                    # Get the new route
+                    new_route = Route.objects.get(number=int(value))
+
+                    # Check if route actually changed
+                    if sp.route != new_route:
+                        # Update the route
+                        sp.route = new_route
+                        sp.order = None
+                        sp.special_instructions = request.POST.get("instructions-{}".format(sp_id), None)
+                        sp.label_message = request.POST.get("message-{}".format(sp_id), None)
+                        sp.save()
+
+                        # Track special route numbers for a single issue
+                        if new_route.number in range(50, 56):
+                            special_route_numbers.append(new_route.number)
+
+                except Route.DoesNotExist:
+                    messages.error(
+                        request,
+                        _(
+                            "Product {}: Route {} does not exist".format(
+                                sp.product.name, value
+                            )
+                        ),
+                    )
+                except SubscriptionProduct.DoesNotExist:
+                    messages.error(request, _("Subscription product not found"))
+
+        # Create a single issue for all special route changes
+        if special_route_numbers:
+            custom_notes = request.POST.get("issue-notes", None)
+            issue = create_issue_for_special_route(
+                subscription, user=request.user, custom_notes=custom_notes, route_numbers=special_route_numbers
+            )
+            if issue:
+                route_list = ", ".join(map(str, sorted(set(special_route_numbers))))
+                messages.warning(
+                    request,
+                    _("Routes updated. Issue created for special routes: {}").format(route_list)
+                )
+            else:
+                messages.success(request, _("Routes updated successfully"))
+        else:
+            messages.success(request, _("Routes updated successfully"))
+
+        return HttpResponseRedirect(reverse("contact_detail", args=[contact.id]))
+
+    # Get all subscription products for this subscription
+    subscription_products = (
+        SubscriptionProduct.objects.filter(subscription=subscription)
+        .exclude(product__digital=True)
+        .select_related("product", "address", "route")
+        .order_by("product__name")
+    )
+
+    # Get all available routes
+    routes = Route.objects.filter(active=True).order_by("number")
+
+    return render(
+        request,
+        "change_subscription_routes.html",
+        {
+            "subscription": subscription,
+            "contact": contact,
+            "subscription_products": subscription_products,
+            "routes": routes,
         },
     )

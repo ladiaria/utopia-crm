@@ -6,7 +6,16 @@ from django.contrib import admin
 from simple_history.admin import SimpleHistoryAdmin
 
 from .forms import SellerForm
-from .models import ScheduledTask, Issue, Seller, IssueStatus, IssueSubcategory, SalesRecord, SellerConsoleAction
+from .models import (
+    ScheduledTask,
+    Issue,
+    Seller,
+    IssueStatus,
+    IssueSubcategory,
+    SalesRecord,
+    SellerConsoleAction,
+    IssueResolution,
+)
 
 
 @admin.register(Seller)
@@ -56,12 +65,18 @@ class IssueSubcategoryAdmin(admin.ModelAdmin):
     readonly_fields = ["slug"]
 
 
+@admin.register(IssueResolution)
+class IssueResolutionAdmin(admin.ModelAdmin):
+    list_editable = ["subcategory"]
+    list_display = ["name", "slug", "subcategory"]
+
+
 @admin.register(SalesRecord)
 class SalesRecordAdmin(admin.ModelAdmin):
     list_display = ["date_time", "seller", "get_contact", "price", "show_products"]
     list_filter = ["date_time"]
     raw_id_fields = ["subscription"]
-    search_fields = ["contact__name"]
+    search_fields = ["subscription__contact__name"]
     date_hierarchy = "date_time"
     ordering = ["-date_time"]
     list_per_page = 50

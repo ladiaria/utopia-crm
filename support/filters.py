@@ -8,13 +8,14 @@ from django.contrib.auth.models import User
 from django.db.models import Q
 
 from core.models import Activity, ContactCampaignStatus, Subscription, Campaign, Product
-from .models import Issue, IssueSubcategory, Seller, ScheduledTask, SalesRecord, SellerConsoleAction
+from .models import Issue, IssueSubcategory, IssueResolution, Seller, ScheduledTask, SalesRecord, SellerConsoleAction
 
 
 CREATION_CHOICES = (
     ('today', _('Today')),
     ('yesterday', _('Yesterday')),
     ('last_7_days', _('Last 7 days')),
+    ('next_7_days', _('Next 7 days')),
     ('last_30_days', _('Last 30 days')),
     ('this_month', _('This month')),
     ('last_month', _('Last month')),
@@ -23,21 +24,60 @@ CREATION_CHOICES = (
 
 
 class IssueFilter(django_filters.FilterSet):
-    date = django_filters.ChoiceFilter(choices=CREATION_CHOICES, method='filter_by_date')
+    date = django_filters.ChoiceFilter(
+        choices=CREATION_CHOICES,
+        method='filter_by_date',
+        label=_('Issue Date'),
+        help_text=_('When the issue was created')
+    )
     date_gte = django_filters.DateFilter(
-        field_name='date', lookup_expr='gte', widget=forms.TextInput(attrs={'autocomplete': 'off'})
+        field_name='date',
+        lookup_expr='gte',
+        widget=forms.TextInput(attrs={'autocomplete': 'off'}),
+        label=_('From')
     )
     date_lte = django_filters.DateFilter(
-        field_name='date', lookup_expr='lte', widget=forms.TextInput(attrs={'autocomplete': 'off'})
+        field_name='date',
+        lookup_expr='lte',
+        widget=forms.TextInput(attrs={'autocomplete': 'off'}),
+        label=_('To')
+    )
+    next_action_date = django_filters.ChoiceFilter(
+        choices=CREATION_CHOICES,
+        method='filter_by_next_action_date',
+        label=_('Next Action Date'),
+        help_text=_('When the next action is scheduled')
+    )
+    next_action_date_gte = django_filters.DateFilter(
+        field_name='next_action_date',
+        lookup_expr='gte',
+        widget=forms.TextInput(attrs={'autocomplete': 'off'}),
+        label=_('From')
+    )
+    next_action_date_lte = django_filters.DateFilter(
+        field_name='next_action_date',
+        lookup_expr='lte',
+        widget=forms.TextInput(attrs={'autocomplete': 'off'}),
+        label=_('To')
     )
     assigned_to = django_filters.ModelChoiceFilter(
         queryset=User.objects.filter(is_staff=True).order_by('username'),
         widget=forms.Select(attrs={"class": "form-control"}),
     )
+    resolution = django_filters.ModelChoiceFilter(
+        queryset=IssueResolution.objects.all(),
+        widget=forms.Select(attrs={"class": "form-control"}),
+        label=_('Resolution')
+    )
+    exclude_finished = django_filters.BooleanFilter(
+        method='filter_exclude_finished',
+        label=_('Exclude finished'),
+        widget=forms.CheckboxInput(attrs={"class": "form-check-input"}),
+    )
 
     class Meta:
         model = Issue
-        fields = ['category', 'sub_category', 'status', 'assigned_to']
+        fields = ['category', 'sub_category', 'status', 'assigned_to', 'resolution']
 
     def filter_by_date(self, queryset, name, value):
         if value == 'today':
@@ -46,6 +86,8 @@ class IssueFilter(django_filters.FilterSet):
             return queryset.filter(date=date.today() - timedelta(1))
         elif value == 'last_7_days':
             return queryset.filter(date__gte=date.today() - timedelta(7), date__lte=date.today())
+        elif value == 'next_7_days':
+            return queryset.filter(date__gte=date.today(), date__lte=date.today() + timedelta(7))
         elif value == 'last_30_days':
             return queryset.filter(date__gte=date.today() - timedelta(30), date__lte=date.today())
         elif value == 'this_month':
@@ -54,6 +96,45 @@ class IssueFilter(django_filters.FilterSet):
             month = date.today().month - 1 if date.today().month != 1 else 12
             year = date.today().year if date.today().month != 1 else date.today().year - 1
             return queryset.filter(date__month=month, date__year=year)
+        else:
+            return queryset
+
+    def filter_exclude_finished(self, queryset, name, value):
+        if value:
+            finished_list = getattr(settings, 'ISSUE_STATUS_FINISHED_LIST', [])
+            return queryset.exclude(status__slug__in=finished_list)
+        return queryset
+
+    def filter_by_next_action_date(self, queryset, name, value):
+        today = date.today()
+        if value == 'today':
+            return queryset.filter(next_action_date=today)
+        elif value == 'yesterday':
+            return queryset.filter(next_action_date=today - timedelta(1))
+        elif value == 'last_7_days':
+            return queryset.filter(
+                next_action_date__gte=today - timedelta(7),
+                next_action_date__lte=today
+            )
+        elif value == 'next_7_days':
+            return queryset.filter(
+                next_action_date__gte=today,
+                next_action_date__lte=today + timedelta(7)
+            )
+        elif value == 'last_30_days':
+            return queryset.filter(
+                next_action_date__gte=today - timedelta(30),
+                next_action_date__lte=today
+            )
+        elif value == 'this_month':
+            return queryset.filter(
+                next_action_date__month=today.month,
+                next_action_date__year=today.year
+            )
+        elif value == 'last_month':
+            month = today.month - 1 if today.month != 1 else 12
+            year = today.year if today.month != 1 else today.year - 1
+            return queryset.filter(next_action_date__month=month, next_action_date__year=year)
         else:
             return queryset
 

@@ -8,9 +8,9 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.mixins import UserPassesTestMixin
+from django.contrib.auth.mixins import PermissionRequiredMixin, UserPassesTestMixin
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
-from django.db.models import Count, Min, Sum, Case, When
+from django.db.models import Count, Min, Q, Sum, Case, When
 from django.http import (
     HttpResponse,
     HttpResponseNotFound,
@@ -560,6 +560,7 @@ def edit_products(request, subscription_id):
 class IssueListView(BreadcrumbsMixin, FilterView):
     """
     Shows a list of issues with filtering capabilities and dynamic subcategory filtering.
+    Supports ordering by date and next_action_date fields.
     """
     model = Issue
     template_name = "list_issues.html"
@@ -575,12 +576,33 @@ class IssueListView(BreadcrumbsMixin, FilterView):
         ]
 
     def get_queryset(self):
-        if logistics_is_installed():
-            return Issue.objects.all().order_by(
-                "-date", "subscription_product__product", "-subscription_product__route__number", "-id"
-            )
+        """Get queryset with optional ordering by date or next_action_date"""
+        queryset = Issue.objects.all()
+
+        # Get ordering parameter from request
+        order_by = self.request.GET.get('order_by', '-date')
+
+        # Validate ordering parameter to prevent SQL injection
+        valid_orderings = [
+            'date', '-date',
+            'next_action_date', '-next_action_date',
+            'status', '-status',
+            'category', '-category'
+        ]
+
+        if order_by in valid_orderings:
+            queryset = queryset.order_by(order_by)
         else:
-            return Issue.objects.all().order_by("-date", "subscription_product__product", "-id")
+            # Default ordering
+            if logistics_is_installed():
+                queryset = queryset.order_by(
+                    "-date", "subscription_product__product",
+                    "-subscription_product__route__number", "-id"
+                )
+            else:
+                queryset = queryset.order_by("-date", "subscription_product__product", "-id")
+
+        return queryset
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -627,6 +649,7 @@ class IssueListView(BreadcrumbsMixin, FilterView):
                 _("Contact name"),
                 _("Category"),
                 _("Subcategory"),
+                _("Resolution"),
                 _("Activities count"),
                 _("Status"),
                 _("Assigned to"),
@@ -638,13 +661,14 @@ class IssueListView(BreadcrumbsMixin, FilterView):
 
             # Write data rows in chunks
             filterset = self.get_filterset(self.filterset_class)
-            for issue in filterset.qs.iterator(chunk_size=1000):
+            for issue in filterset.qs.select_related('resolution').iterator(chunk_size=1000):
                 writer.writerow([
                     issue.date,
                     issue.contact.id,
                     issue.contact.get_full_name(),
                     issue.get_category(),
                     issue.get_subcategory(),
+                    issue.resolution.name if issue.resolution else "",
                     issue.activity_count(),
                     issue.get_status(),
                     issue.get_assigned_to(),
@@ -663,6 +687,101 @@ class IssueListView(BreadcrumbsMixin, FilterView):
 
 # Keep the function for backward compatibility
 list_issues = IssueListView.as_view()
+
+
+class CommunityConsoleView(PermissionRequiredMixin, LoginRequiredMixin, BreadcrumbsMixin, TemplateView):
+    """
+    Community Management Console (GDC - Gestión de Comunidad).
+
+    Displays a dashboard of open issues assigned to the current user, grouped by
+    Category → Subcategory, with counts split into three temporal columns:
+    Overdue (date < today), Today (date == today), and Future (date > today).
+
+    Each count is a clickable link that opens the IssueListView with the appropriate filters.
+    """
+    template_name = "community_console.html"
+    permission_required = "support.can_access_community_console"
+
+    def breadcrumbs(self):
+        return [
+            {"url": reverse("home"), "label": _("Home")},
+            {"label": _("Community console")},
+        ]
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        today = date.today()
+        yesterday = today - timedelta(days=1)
+        tomorrow = today + timedelta(days=1)
+
+        # Get open issues assigned to the current user (not closed, not in terminal state)
+        terminal_statuses = getattr(settings, 'ISSUE_STATUS_FINISHED_LIST', [])
+        issues = Issue.objects.filter(
+            assigned_to=self.request.user,
+            closing_date__isnull=True,
+        ).exclude(
+            status__slug__in=terminal_statuses,
+        ).select_related('sub_category', 'status')
+
+        # Build category name lookup
+        category_dict = dict(get_issue_categories())
+
+        # Aggregate counts by category, subcategory, and temporal bucket
+        issue_data = issues.values(
+            'category', 'sub_category__id', 'sub_category__name'
+        ).annotate(
+            overdue=Count('id', filter=Q(next_action_date__lt=today)),
+            today_count=Count('id', filter=Q(next_action_date=today)),
+            future=Count('id', filter=Q(next_action_date__gt=today)),
+            total=Count('id'),
+        ).order_by('category', 'sub_category__name')
+
+        # Structure data as: {category_key: {name, subcategories: [{...}], totals: {...}}}
+        categories = {}
+        for row in issue_data:
+            cat_key = row['category'] or ''
+            if cat_key not in categories:
+                categories[cat_key] = {
+                    'name': category_dict.get(cat_key, _("Uncategorized")),
+                    'key': cat_key,
+                    'subcategories': [],
+                    'overdue': 0,
+                    'today_count': 0,
+                    'future': 0,
+                    'total': 0,
+                }
+            cat = categories[cat_key]
+            cat['subcategories'].append({
+                'id': row['sub_category__id'],
+                'name': row['sub_category__name'] or _("No subcategory"),
+                'overdue': row['overdue'],
+                'today_count': row['today_count'],
+                'future': row['future'],
+                'total': row['total'],
+            })
+            cat['overdue'] += row['overdue']
+            cat['today_count'] += row['today_count']
+            cat['future'] += row['future']
+            cat['total'] += row['total']
+
+        # Sort categories by name
+        sorted_categories = sorted(categories.values(), key=lambda c: c['name'])
+
+        # Grand totals
+        grand_totals = {
+            'overdue': sum(c['overdue'] for c in sorted_categories),
+            'today_count': sum(c['today_count'] for c in sorted_categories),
+            'future': sum(c['future'] for c in sorted_categories),
+            'total': sum(c['total'] for c in sorted_categories),
+        }
+
+        context['categories'] = sorted_categories
+        context['grand_totals'] = grand_totals
+        context['today'] = today
+        context['yesterday'] = yesterday
+        context['tomorrow'] = tomorrow
+        context['assigned_to_id'] = self.request.user.id
+        return context
 
 
 @method_decorator(login_required, name='dispatch')
@@ -725,6 +844,20 @@ class NewIssueView(BreadcrumbsMixin, CreateView):
         # Add category name to context
         dict_categories = dict(get_issue_categories())
         context['category_name'] = dict_categories[self.category]
+
+        # Create mapping of subcategory_id -> list of resolution options for JavaScript filtering
+        from support.models import IssueResolution
+        subcategory_resolutions = {}
+        for resolution in IssueResolution.objects.all().select_related('subcategory'):
+            subcategory_id = resolution.subcategory_id
+            if subcategory_id not in subcategory_resolutions:
+                subcategory_resolutions[subcategory_id] = []
+            subcategory_resolutions[subcategory_id].append({
+                'id': resolution.id,
+                'name': resolution.name
+            })
+
+        context['subcategory_resolutions_json'] = json.dumps(subcategory_resolutions)
 
         return context
 
@@ -832,6 +965,18 @@ class IssueDetailView(BreadcrumbsMixin, UpdateView):
         )
         activity_form.fields["contact"].label = False
 
+        # Create mapping of subcategory_id -> list of resolution options for JavaScript filtering
+        from support.models import IssueResolution
+        subcategory_resolutions = {}
+        for resolution in IssueResolution.objects.all().select_related('subcategory'):
+            subcategory_id = resolution.subcategory_id
+            if subcategory_id not in subcategory_resolutions:
+                subcategory_resolutions[subcategory_id] = []
+            subcategory_resolutions[subcategory_id].append({
+                'id': resolution.id,
+                'name': resolution.name
+            })
+
         # Add additional context data
         context.update({
             "has_active_subscription": issue.contact.has_active_subscription(),
@@ -839,9 +984,37 @@ class IssueDetailView(BreadcrumbsMixin, UpdateView):
             "activities": issue.activity_set.all().order_by("-datetime", "id"),
             "activity_form": activity_form,
             "invoice_list": issue.contact.invoice_set.all().order_by("-creation_date", "id"),
+            "subcategory_resolutions_json": json.dumps(subcategory_resolutions),
         })
 
         return context
+
+    def form_valid(self, form):
+        """
+        Override form_valid to automatically set next_action_date when status changes.
+        If status has changed and next_action_date is missing or in the past, set it to tomorrow.
+        Does not set next_action_date if the new status is a terminal status.
+        """
+        issue = self.get_object()
+        old_status = issue.status
+
+        # Let the form save normally first
+        response = super().form_valid(form)
+
+        # Check if status has changed
+        new_status = self.object.status
+        if old_status != new_status:
+            # Skip setting next_action_date if the new status is terminal
+            terminal_statuses = getattr(settings, 'ISSUE_STATUS_FINISHED_LIST', [])
+            if new_status.slug not in terminal_statuses:
+                # Check if next_action_date needs to be updated
+                today = date.today()
+                if not self.object.next_action_date or self.object.next_action_date <= today:
+                    # Set next_action_date to tomorrow
+                    self.object.next_action_date = today + timedelta(days=1)
+                    self.object.save(update_fields=['next_action_date'])
+
+        return response
 
     def get_success_url(self):
         """Redirect back to the same issue after successful update"""
@@ -1886,6 +2059,8 @@ class SalesRecordFilterSellersView(BreadcrumbsMixin, FilterView):
         # This queryset fetches all sales records with their product counts
         sales_records = queryset.annotate(total_products=Count('products')).values('id', 'total_products')
         df = pd.DataFrame(sales_records)
+        if df.empty:
+            return {}
         special_product_sales_ids = list(
             queryset.filter(products__slug='la-diaria-5-dias').values_list('id', flat=True)
         )
@@ -1902,9 +2077,13 @@ class SalesRecordFilterSellersView(BreadcrumbsMixin, FilterView):
     def get_sales_distribution_by_payment_type(self, queryset) -> dict:
         sales_records = queryset.values('subscription__payment_type')
         df = pd.DataFrame(sales_records)
+        if df.empty:
+            return {}
         # Only show values whose keys are in settings.SELLER_COMMISSION_PAYMENT_METHODS keys, if the setting exists
         if hasattr(settings, 'SELLER_COMMISSION_PAYMENT_METHODS'):
             df = df[df['subscription__payment_type'].isin(settings.SELLER_COMMISSION_PAYMENT_METHODS.keys())]
+        if df.empty:
+            return {}
         if hasattr(settings, 'SUBSCRIPTION_PAYMENT_METHODS'):
             # Convert choices to a dictionary
             payment_type_dict = dict(settings.SUBSCRIPTION_PAYMENT_METHODS)
@@ -1918,6 +2097,8 @@ class SalesRecordFilterSellersView(BreadcrumbsMixin, FilterView):
     def get_sales_distribution_by_subscription_frequency(self, queryset) -> dict:
         sales_records = queryset.values('subscription__frequency')
         df = pd.DataFrame(sales_records)
+        if df.empty:
+            return {}
         frequencies_dict = dict(core_choices.FREQUENCY_CHOICES)
         df['frequency_display'] = df['subscription__frequency'].map(frequencies_dict)
         distribution = df['frequency_display'].value_counts().sort_index().to_dict()

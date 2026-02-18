@@ -43,6 +43,11 @@ def in_group(user, group_name):
 
 
 @register.filter(is_safe=True)
+def has_perm(user, perm):
+    return user.has_perm(perm)
+
+
+@register.filter(is_safe=True)
 def in_group_exclusive(user, group_name):
     # Same as the previous one, but it doesn't check for the Admins group
     if user.is_superuser:

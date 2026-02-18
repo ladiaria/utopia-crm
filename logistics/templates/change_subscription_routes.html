@@ -1,0 +1,295 @@
+{% extends "adminlte/base.html" %}
+{% load static i18n %}
+
+{% block stylesheets %}
+  {{ block.super }}
+  <link href="{% static 'admin-lte/plugins/select2/css/select2.min.css' %}" rel="stylesheet" />
+  <link href="{% static 'admin-lte/plugins/select2-bootstrap4-theme/select2-bootstrap4.min.css' %}" rel="stylesheet" />
+{% endblock stylesheets %}
+
+{% block extra_css %}
+<style>
+  .route-select {
+    min-width: 120px;
+  }
+  .special-route-warning {
+    background-color: #fff3cd;
+    border-left: 4px solid #ffc107;
+    padding: 10px;
+    margin-bottom: 15px;
+  }
+  .product-row {
+    border-bottom: 1px solid #dee2e6;
+    padding: 10px 0;
+  }
+  .product-row:last-child {
+    border-bottom: none;
+  }
+  .product-info {
+    font-weight: 500;
+  }
+  .address-info {
+    color: #6c757d;
+    font-size: 0.9rem;
+  }
+  .current-route-badge {
+    font-size: 0.9rem;
+  }
+  /* Select2 customization for special routes */
+  .select2-results__option--special-route {
+    font-weight: bold;
+    color: #856404;
+  }
+</style>
+{% endblock %}
+
+{% block no_heading %}
+  <h1>
+    <a href="{% url 'contact_detail' contact.id %}">{{ contact.get_full_name }}</a> >
+    {% trans "Subscription" %} #{{ subscription.id }} >
+    {% trans "Change Routes" %}
+  </h1>
+{% endblock %}
+
+{% block title %}
+  {% trans "Change Routes" %} - {% trans "Subscription" %} #{{ subscription.id }}
+{% endblock title %}
+
+{% block content %}
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">
+        <i class="fas fa-route"></i> {% trans "Change Routes for Subscription Products" %}
+      </h3>
+      <div class="card-tools">
+        <a href="{% url 'contact_detail' contact.id %}" class="btn btn-sm btn-secondary">
+          <i class="fas fa-arrow-left"></i> {% trans "Back to Contact" %}
+        </a>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="special-route-warning">
+        <i class="fas fa-exclamation-triangle"></i>
+        <strong>{% trans "Important:" %}</strong>
+        {% trans "Changing a route to a special route (50-55) will automatically create a logistics issue with subcategory 'not-delivered'." %}
+      </div>
+
+      <div class="alert alert-info">
+        <i class="fas fa-info-circle"></i>
+        <strong>{% trans "Subscription Information:" %}</strong><br>
+        {% trans "Type:" %} {{ subscription.get_type_display }} |
+        {% trans "Status:" %} {{ subscription.get_status_display }} |
+        {% trans "Start:" %} {{ subscription.start_date|date:"d/m/Y" }}
+        {% if subscription.end_date %}
+          | {% trans "End:" %} {{ subscription.end_date|date:"d/m/Y" }}
+        {% endif %}
+      </div>
+
+      {% if subscription_products %}
+        <form method="post">
+          {% csrf_token %}
+
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th style="width: 25%;">{% trans "Product" %}</th>
+                  <th style="width: 30%;">{% trans "Address" %}</th>
+                  <th style="width: 15%;">{% trans "Current Route" %}</th>
+                  <th style="width: 15%;">{% trans "New Route" %}</th>
+                  <th style="width: 15%;">{% trans "Label Message" %}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for sp in subscription_products %}
+                  <tr class="product-row">
+                    <td>
+                      <div class="product-info">
+                        {{ sp.product.name }}
+                      </div>
+                      {% if sp.label_contact %}
+                        <small class="text-muted">
+                          <i class="fas fa-user"></i> {{ sp.label_contact.get_full_name }}
+                        </small>
+                      {% endif %}
+                    </td>
+                    <td>
+                      <div class="address-info">
+                        <i class="fas fa-map-marker-alt"></i>
+                        {{ sp.address.address_1|default:"N/A" }}
+                        {% if sp.address.address_2 %}
+                          <br><small>{{ sp.address.address_2 }}</small>
+                        {% endif %}
+                      </div>
+                    </td>
+                    <td>
+                      {% if sp.route %}
+                        <span class="badge badge-primary current-route-badge">
+                          {% trans "Route" %} {{ sp.route.number }}
+                        </span>
+                      {% else %}
+                        <span class="badge badge-secondary">{% trans "No route" %}</span>
+                      {% endif %}
+                    </td>
+                    <td>
+                      <select class="form-control route-select"
+                              name="sp-{{ sp.id }}"
+                              id="route-{{ sp.id }}">
+                        <option value="">{% trans "Select route" %}</option>
+                        {% for route in routes %}
+                          <option value="{{ route.number }}"
+                                  {% if sp.route and sp.route.number == route.number %}selected{% endif %}
+                                  {% if route.number >= 50 and route.number <= 55 %}
+                                    class="text-warning font-weight-bold"
+                                  {% endif %}>
+                            {{ route.number }} - {{ route.name }}
+                            {% if route.number >= 50 and route.number <= 55 %}⚠️{% endif %}
+                          </option>
+                        {% endfor %}
+                      </select>
+                    </td>
+                    <td>
+                      <input class="form-control form-control-sm"
+                             maxlength="40"
+                             type="text"
+                             name="message-{{ sp.id }}"
+                             placeholder="{% trans "Optional message" %}"
+                             value="{{ sp.label_message|default_if_none:'' }}" />
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+
+          <div class="row mt-3">
+            <div class="col-md-12">
+              <h5>{% trans "Special Instructions" %}</h5>
+              <p class="text-muted">{% trans "Add any special instructions for each product below:" %}</p>
+            </div>
+          </div>
+
+          <div class="row">
+            {% for sp in subscription_products %}
+              <div class="col-md-6 mb-3">
+                <label for="instructions-{{ sp.id }}">
+                  <strong>{{ sp.product.name }}</strong>
+                  {% if sp.label_contact %}
+                    <small class="text-muted">({{ sp.label_contact.get_full_name }})</small>
+                  {% endif %}
+                </label>
+                <textarea class="form-control"
+                          name="instructions-{{ sp.id }}"
+                          id="instructions-{{ sp.id }}"
+                          rows="2"
+                          placeholder="{% trans 'Special instructions for delivery' %}">{{ sp.special_instructions|default_if_none:'' }}</textarea>
+              </div>
+            {% endfor %}
+          </div>
+
+          <div class="row mt-3">
+            <div class="col-md-12">
+              <h5>{% trans "Issue Notes for Special Routes" %}</h5>
+              <p class="text-muted">{% trans "If changing to a special route (50-55), a single issue will be created. You can add custom notes below:" %}</p>
+              <textarea class="form-control"
+                        name="issue-notes"
+                        id="issue-notes"
+                        rows="3"
+                        placeholder="{% trans 'Custom notes for the issue (only used when changing to routes 50-55)' %}"></textarea>
+            </div>
+          </div>
+
+          <div class="form-group text-right mt-4">
+            <a href="{% url 'contact_detail' contact.id %}" class="btn btn-secondary">
+              <i class="fas fa-times"></i> {% trans "Cancel" %}
+            </a>
+            <button type="submit" class="btn btn-primary btn-lg">
+              <i class="fas fa-save"></i> {% trans "Save Route Changes" %}
+            </button>
+          </div>
+        </form>
+      {% else %}
+        <div class="alert alert-warning">
+          <i class="fas fa-exclamation-circle"></i>
+          {% trans "This subscription has no products to update." %}
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'admin-lte/plugins/select2/js/select2.full.min.js' %}"></script>
+<script>
+  $(function() {
+    // Initialize Select2 on all route select dropdowns
+    $('select[name^="sp-"]').select2({
+      theme: 'bootstrap4',
+      width: '100%',
+      placeholder: "{% trans 'Select route' %}",
+      allowClear: true,
+      templateResult: formatRouteOption,
+      templateSelection: formatRouteSelection
+    });
+
+    // Custom formatting for route options in dropdown
+    function formatRouteOption(route) {
+      if (!route.id) {
+        return route.text;
+      }
+
+      var routeNumber = parseInt($(route.element).val());
+      var $route = $(
+        '<span>' + route.text + '</span>'
+      );
+
+      // Add warning icon for special routes (50-55)
+      if (routeNumber >= 50 && routeNumber <= 55) {
+        $route.prepend('<i class="fas fa-exclamation-triangle text-warning mr-1"></i>');
+        $route.addClass('font-weight-bold text-warning');
+      }
+
+      return $route;
+    }
+
+    // Custom formatting for selected route
+    function formatRouteSelection(route) {
+      if (!route.id) {
+        return route.text;
+      }
+
+      var routeNumber = parseInt($(route.element).val());
+      var $selection = $('<span>' + route.text + '</span>');
+
+      // Add warning icon for special routes (50-55)
+      if (routeNumber >= 50 && routeNumber <= 55) {
+        $selection.prepend('<i class="fas fa-exclamation-triangle text-warning mr-1"></i>');
+      }
+
+      return $selection;
+    }
+
+    // Highlight special routes (50-55) when selected
+    $('select[name^="sp-"]').on('change', function() {
+      var selectedValue = parseInt($(this).val());
+      var row = $(this).closest('tr');
+
+      if (selectedValue >= 50 && selectedValue <= 55) {
+        row.addClass('table-warning');
+        if (!row.find('.special-route-alert').length) {
+          $(this).closest('td').append(
+            "<div class=\"special-route-alert mt-1\"><small class=\"text-warning\"><i class=\"fas fa-exclamation-triangle\"></i> {% trans 'Special route - Issue will be created' %}</small></div>"
+          );
+        }
+      } else {
+        row.removeClass('table-warning');
+        row.find('.special-route-alert').remove();
+      }
+    });
+
+    // Trigger change event on page load to highlight any pre-selected special routes
+    $('select[name^="sp-"]').trigger('change');
+  });
+</script>
+{% endblock %}

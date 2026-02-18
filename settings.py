@@ -194,12 +194,19 @@ INVOICE_PAYMENT_METHODS = (("M", "Mastercard"), ("V", "Visa"), ("C", "Cash"))
 # How many days into the future are we going to bill contacts
 BILLING_EXTRA_DAYS = 2
 
+# Issue statuses
+ISSUE_STATUS_NEW = "new"
+ISSUE_STATUS_PENDING = "pending"
+ISSUE_STATUS_ASSIGNED = "assigned"
+ISSUE_STATUS_UNASSIGNED = "unassigned"
+
 # list of statuses slugs that will be used to mark the issue as finished
 ISSUE_STATUS_SOLVED = "solved"
 ISSUE_STATUS_FINISHED_LIST = [ISSUE_STATUS_SOLVED, "not-solved"]
 
 # logistics
 LOGISTICS_LABEL_INVOICE_PAYMENT_TYPES = []
+ISSUE_SUBCATEGORY_NOT_DELIVERED = "not-delivered"
 
 # Override to True if route for billing is required
 # Useful when you explicitly require to send the invoices via logistics
