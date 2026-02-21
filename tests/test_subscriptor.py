@@ -24,7 +24,7 @@ class TestContact(TestCase):
 
         # Set email to a value - no_email should automatically become False
         contact.email = 'cliente1@ladiaria.com.uy'
-        contact.save()
+        contact.save()  # TODO: check why we now we have to delete the user in CMS (not required some time ago)
         contact.refresh_from_db()
         self.assertFalse(contact.no_email, "no_email should be False when email is set")
 
