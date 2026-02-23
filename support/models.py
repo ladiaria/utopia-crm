@@ -2,7 +2,6 @@
 from datetime import date
 
 from django.db import models
-from django.db.models import Q
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.utils import timezone
@@ -10,13 +9,13 @@ from django.utils.translation import gettext_lazy as _
 from django.utils.safestring import mark_safe
 from autoslug import AutoSlugField
 
-
+from core.choices import ACTIVITY_STATUS, CAMPAIGN_RESOLUTION_CHOICES, CAMPAIGN_STATUS
 from core.models import Campaign
 
 from simple_history.models import HistoricalRecords
 
 from support.choices import (
-    ISSUE_CATEGORIES,
+    get_issue_categories,
     ISSUE_ANSWERS,
     ISSUE_SUBCATEGORIES,
     SCHEDULED_TASK_CATEGORIES,
@@ -40,9 +39,32 @@ class Seller(models.Model):
     def get_contact_count(self):
         return self.contact_set.all().count()
 
-    def get_unfinished_campaigns(self):
+    def get_all_campaigns(self):
         seller_campaigns = Campaign.objects.filter(
-            Q(end_date__isnull=True) | Q(end_date__gte=timezone.now()),
+            contactcampaignstatus__seller=self,
+            contactcampaignstatus__status__lt=4,
+        ).distinct()
+        return seller_campaigns
+
+    def get_active_campaigns(self):
+        seller_campaigns = Campaign.objects.filter(
+            active=True,
+            contactcampaignstatus__seller=self,
+            contactcampaignstatus__status__lt=4,
+        ).distinct()
+        return seller_campaigns
+
+    def get_campaigns_with_activities(self):
+        seller_campaigns = Campaign.objects.filter(
+            activity__seller=self,
+            activity__status="P",
+            activity__activity_type="C",
+            activity__datetime__lte=timezone.now(),
+        ).distinct()
+        return seller_campaigns
+
+    def get_pending_campaigns(self):
+        seller_campaigns = Campaign.objects.filter(
             contactcampaignstatus__seller=self,
             contactcampaignstatus__status__lt=4,
         ).distinct()
@@ -50,7 +72,7 @@ class Seller(models.Model):
 
     def get_campaigns_by_status(self, status):
         seller_campaigns = Campaign.objects.filter(
-            Q(end_date__isnull=True) | Q(end_date__gte=timezone.now()),
+            active=True,
             contactcampaignstatus__seller=self,
             contactcampaignstatus__status__in=status,
         ).distinct()
@@ -59,7 +81,6 @@ class Seller(models.Model):
     def upcoming_activity(self):
         return (
             self.activity_set.filter(
-                Q(campaign__end_date__isnull=True) | Q(campaign__end_date__gte=timezone.now()),
                 status="P",
                 activity_type="C",
             )
@@ -69,15 +90,13 @@ class Seller(models.Model):
 
     def total_pending_activities(self):
         return self.activity_set.filter(
-            Q(campaign__end_date__isnull=True) | Q(campaign__end_date__gte=timezone.now()),
-            status="P",
+            status__in=(ACTIVITY_STATUS.PENDING, ACTIVITY_STATUS.EXPIRED),
             activity_type="C",
         ).order_by("datetime")
 
     def total_pending_activities_count(self):
         activity_qs = self.activity_set.filter(
-            Q(campaign__end_date__isnull=True) | Q(campaign__end_date__gte=timezone.now()),
-            status="P",
+            status__in=(ACTIVITY_STATUS.PENDING, ACTIVITY_STATUS.EXPIRED),
             activity_type="C",
             datetime__lte=timezone.now(),
         )
@@ -97,13 +116,18 @@ class Issue(models.Model):
 
     date_created = models.DateField(auto_now_add=True)
     contact = models.ForeignKey("core.Contact", on_delete=models.CASCADE, verbose_name=_("Contact"))
-    date = models.DateField(default=date.today, verbose_name=_("Date"))
-    category = models.CharField(max_length=1, blank=True, null=True, choices=ISSUE_CATEGORIES)
-    subcategory = models.CharField(max_length=3, blank=True, null=True, choices=ISSUE_SUBCATEGORIES)
-    inside = models.BooleanField(default=True)
-    notes = models.TextField(blank=True, null=True)
+    date = models.DateField(default=date.today, verbose_name=_("Date"), help_text=_("Date of the issue"))
+    category = models.CharField(
+        verbose_name=_("Category"), max_length=1, blank=True, null=True, choices=get_issue_categories()
+    )
+    subcategory = models.CharField(
+        verbose_name=_("Subcategory"), max_length=3, blank=True, null=True, choices=ISSUE_SUBCATEGORIES
+    )
+    inside = models.BooleanField(verbose_name=_("Inside"), default=True)
+    notes = models.TextField(verbose_name=_("Notes"), blank=True, null=True)
     manager = models.ForeignKey(
         "auth.User",
+        verbose_name=_("Manager"),
         blank=True,
         null=True,
         related_name="issue_manager",
@@ -111,35 +135,57 @@ class Issue(models.Model):
     )  # User who created the issue. Non-editable
     assigned_to = models.ForeignKey(
         "auth.User",
+        verbose_name=_("Assigned to"),
         blank=True,
         null=True,
         related_name="issue_assigned",
         on_delete=models.SET_NULL,
     )  # Editable, assigned to which user
-    progress = models.TextField(blank=True, null=True)
-    answer_1 = models.CharField(max_length=2, blank=True, null=True, choices=ISSUE_ANSWERS)
-    answer_2 = models.TextField(blank=True, null=True)
-    status = models.ForeignKey("support.IssueStatus", blank=True, null=True, on_delete=models.SET_NULL)
-    sub_category = models.ForeignKey("support.IssueSubcategory", blank=True, null=True, on_delete=models.SET_NULL)
-    end_date = models.DateField(blank=True, null=True)
-    next_action_date = models.DateField(blank=True, null=True)
-    closing_date = models.DateField(blank=True, null=True)
-    copies = models.PositiveSmallIntegerField(default=0)
+    progress = models.TextField(verbose_name=_("Progress"), blank=True, null=True)
+    answer_1 = models.CharField(verbose_name=_("Answer 1"), max_length=2, blank=True, null=True, choices=ISSUE_ANSWERS)
+    answer_2 = models.TextField(verbose_name=_("Answer 2"), blank=True, null=True)
+    status = models.ForeignKey(
+        "support.IssueStatus", verbose_name=_("Status"), blank=True, null=True, on_delete=models.SET_NULL
+    )
+    sub_category = models.ForeignKey(
+        "support.IssueSubcategory", verbose_name=_("Subcategory"), blank=True, null=True, on_delete=models.SET_NULL
+    )
+    end_date = models.DateField(verbose_name=_("End date"), blank=True, null=True)
+    next_action_date = models.DateField(verbose_name=_("Next action date"), blank=True, null=True)
+    closing_date = models.DateField(verbose_name=_("Closing date"), blank=True, null=True)
+    copies = models.PositiveSmallIntegerField(verbose_name=_("Copies"), default=0)
     # Optional attributes
     subscription_product = models.ForeignKey(
-        "core.SubscriptionProduct", null=True, blank=True, on_delete=models.SET_NULL
+        "core.SubscriptionProduct",
+        verbose_name=_("Subscription product"),
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
     )
-    subscription = models.ForeignKey("core.Subscription", on_delete=models.CASCADE, null=True, blank=True)
-    product = models.ForeignKey("core.Product", on_delete=models.CASCADE, null=True, blank=True)
-    address = models.ForeignKey("core.Address", on_delete=models.CASCADE, null=True, blank=True)
+    subscription = models.ForeignKey(
+        "core.Subscription", verbose_name=_("Subscription"), on_delete=models.CASCADE, null=True, blank=True
+    )
+    product = models.ForeignKey(
+        "core.Product", verbose_name=_("Product"), on_delete=models.CASCADE, null=True, blank=True
+    )
+    address = models.ForeignKey(
+        "core.Address", verbose_name=_("Address"), on_delete=models.CASCADE, null=True, blank=True
+    )
     envelope = models.BooleanField(default=False, verbose_name=_("Envelope"), null=True)
+    resolution = models.ForeignKey(
+        "support.IssueResolution", verbose_name=_("Resolution"), blank=True, null=True, on_delete=models.SET_NULL
+    )
     history = HistoricalRecords()
 
     class Meta:
-        pass
+        verbose_name = _("Issue")
+        verbose_name_plural = _("Issues")
+        permissions = [
+            ("can_access_community_console", _("Can access community management console")),
+        ]
 
     def get_category(self):
-        categories = dict(ISSUE_CATEGORIES)
+        categories = dict(get_issue_categories())
         return categories.get(self.category, "N/A")
 
     def get_subcategory(self):
@@ -164,7 +210,7 @@ class Issue(models.Model):
         self.closing_date = date.today()
         if answer_2:
             if self.answer_2:
-                self.answer_2 = "{}\n\n{}".format(self.answer_2, answer_2)
+                self.answer_2 = f"{self.answer_2}\n\n{answer_2}"
             else:
                 self.answer_2 = answer_2
         self.save()
@@ -193,8 +239,8 @@ class Issue(models.Model):
     def __str__(self):
         return str(
             _(
-                "Issue of category {} for {} with status {}".format(
-                    self.get_category(), self.contact.name, self.get_status()
+                "Issue of category {category} for {contact} with status {status}".format(
+                    category=self.get_category(), contact=self.contact.get_full_name(), status=self.get_status()
                 )
             )
         )
@@ -227,14 +273,85 @@ class ScheduledTask(models.Model):
         categories = dict(SCHEDULED_TASK_CATEGORIES)
         return categories.get(self.category, "N/A")
 
+    def execute(self, debug=False, verbose=False):
+        """Execute the scheduled task based on its category"""
+        from core.models import SubscriptionProduct, ContactProductHistory
+        from logistics.models import RouteChange
+
+        if debug:
+            print(_(f"DEBUG: Executing {self.get_category_display()} for contact {self.contact.id}"))
+
+        if self.category in ('PD', 'PA'):  # Total pause start/end
+            self.subscription.active = self.category == 'PA'
+
+            if self.category == 'PD':  # Start of pause
+                self.subscription.status = 'PA'
+                if self.ends:
+                    date_difference = self.execution_date - self.ends.execution_date
+                    self.subscription.next_billing += date_difference
+            else:  # End of pause
+                self.subscription.status = 'OK'
+                # Create new contact product histories
+                for sp in SubscriptionProduct.objects.filter(subscription=self.subscription):
+                    ContactProductHistory.objects.create(
+                        contact=self.contact,
+                        subscription=self.subscription,
+                        product=sp.product,
+                        status='A',
+                        date=date.today(),
+                    )
+
+            self.subscription.save()
+
+        elif self.category in ('PS', 'PE'):  # Partial pause start/end
+            for sp in self.subscription_products.all():
+                sp.active = self.category == 'PE'
+                sp.save()
+
+        elif self.category == 'AC':  # Address change
+            for sp in self.subscription_products.all():
+                if "logistics" not in getattr(settings, "DISABLED_APPS", []) and sp.route:
+                    rc = RouteChange.objects.create(
+                        product=sp.product,
+                        old_route=sp.route,
+                        contact=self.contact,
+                    )
+                    if sp.address:
+                        rc.old_address = u"{} {}".format(sp.address.address_1, sp.address.address_2 or '')
+                        rc.old_city = sp.address.city or ''
+                        rc.save()
+
+                sp.address = self.address
+                sp.route = None
+                sp.order = None
+                sp.label_message = self.label_message
+                sp.special_instructions = self.special_instructions
+                sp.save()
+
+        self.completed = True
+        self.save()
+
+        if debug:
+            print(f"DEBUG: Task {self.id} completed successfully.")
+        if verbose:
+            return _(
+                "Task {id} of type {category} for contact {contact} completed successfully.".format(
+                    id=self.id, category=self.get_category(), contact=self.contact.get_full_name()
+                )
+            )
+        else:
+            return None
+
     class Meta:
-        pass
+        verbose_name = _("Scheduled task")
+        verbose_name_plural = _("Scheduled tasks")
+        ordering = ["execution_date"]
 
 
 class IssueStatus(models.Model):
     name = models.CharField(max_length=60)
     slug = AutoSlugField(populate_from="name", always_update=True, null=True, blank=True)
-    category = models.CharField(max_length=2, blank=True, null=True, choices=ISSUE_CATEGORIES)
+    category = models.CharField(max_length=2, blank=True, null=True, choices=get_issue_categories())
 
     def __str__(self):
         return self.name
@@ -244,12 +361,14 @@ class IssueStatus(models.Model):
 
     class Meta:
         ordering = ["category", "name"]
+        verbose_name = _("Issue Status")
+        verbose_name_plural = _("Issue Statuses")
 
 
 class IssueSubcategory(models.Model):
     name = models.CharField(max_length=60)
     slug = AutoSlugField(populate_from="name", always_update=True, null=True, blank=True)
-    category = models.CharField(max_length=2, blank=True, null=True, choices=ISSUE_CATEGORIES)
+    category = models.CharField(max_length=2, blank=True, null=True, choices=get_issue_categories())
 
     def __str__(self):
         return self.name
@@ -259,6 +378,26 @@ class IssueSubcategory(models.Model):
 
     class Meta:
         ordering = ["category", "name"]
+        verbose_name = _("Issue Subcategory")
+        verbose_name_plural = _("Issue Subcategories")
+
+
+class IssueResolution(models.Model):
+    subcategory = models.ForeignKey("support.IssueSubcategory", on_delete=models.CASCADE, verbose_name=_("Subcategory"))
+    name = models.CharField(verbose_name=_("Name"), max_length=100)
+    slug = models.SlugField(verbose_name=_("Slug"), max_length=100)
+    description = models.TextField(verbose_name=_("Description"), blank=True, null=True)
+
+    class Meta:
+        verbose_name = _("Issue Resolution")
+        verbose_name_plural = _("Issue Resolutions")
+        ordering = ["subcategory", "name"]
+
+    def __str__(self):
+        return self.name
+
+    def natural_key(self):
+        return (self.name, self.slug)
 
 
 class SalesRecord(models.Model):
@@ -302,7 +441,10 @@ class SalesRecord(models.Model):
         ordering = ["-date_time"]
 
     def __str__(self):
-        return f"{self.seller} - {self.subscription.contact.name} - {self.date_time}"
+        contact_name = (
+            self.subscription.contact.get_full_name() if self.subscription and self.subscription.contact else ""
+        )
+        return f"{self.seller} - {contact_name} - {self.date_time}"
 
     def show_products(self):
         return ", ".join([p.name for p in self.products.filter(type="S")])
@@ -342,26 +484,39 @@ class SalesRecord(models.Model):
             if products_count > max_count:
                 products_count = max_count
             return products_count
-        return self.subscription.subscriptionproduct_set.filter(type="S").count()
+        return self.subscription.subscriptionproduct_set.filter(product__type="S").count()
 
-    def set_commission_for_products_sold(self, save=False, return_value=False):
+    def calculate_specific_products_commission(self, return_value=False):
+        # For type of products sold. The commissions per product should be saved in the setting
+        # SELLER_COMMISSION_PRODUCTS_SLUGS
+        if hasattr(settings, "SELLER_COMMISSION_PRODUCTS_SLUGS"):
+            # We need to iterate over all the products that have been sold and sum the commissions if they exist
+            commission = 0
+            for product in self.products.all():
+                if product.slug in settings.SELLER_COMMISSION_PRODUCTS_SLUGS:
+                    commission += settings.SELLER_COMMISSION_PRODUCTS_SLUGS[product.slug]
+            if return_value:
+                return commission
+            self.commission_for_products_sold = commission
+        else:
+            if return_value:
+                return 0
+            self.commission_for_products_sold = 0
+
+    def calculate_products_count_commission(self, return_value=False):
         # For amount of products sold. Doesn't save unless specified
         if hasattr(settings, "SELLER_COMMISSION_PRODUCTS_COUNT"):
             products_count = self.max_products_count()
             commission = settings.SELLER_COMMISSION_PRODUCTS_COUNT.get(products_count, 0)
             if return_value:
                 return commission
-            self.commission_for_products_sold = commission
-            if save:
-                self.save()
+            self.commission_for_amount_of_products_sold = commission
         else:
             if return_value:
                 return 0
-            self.commission_for_products_sold = 0
-            if save:
-                self.save()
+            self.commission_for_amount_of_products_sold = 0
 
-    def set_commission_for_payment_type(self, save=False, return_value=False):
+    def calculate_payment_type_commission(self, return_value=False):
         # For payment type
         if hasattr(settings, "SELLER_COMMISSION_PAYMENT_METHODS") and self.sale_type == self.SALE_TYPE.FULL:
             payment_type = self.subscription.payment_type
@@ -369,16 +524,12 @@ class SalesRecord(models.Model):
             if return_value:
                 return commission
             self.commission_for_payment_type = commission
-            if save:
-                self.save()
         else:
             if return_value:
                 return 0
             self.commission_for_payment_type = 0
-            if save:
-                self.save()
 
-    def set_commission_for_subscription_frequency(self, save=False, return_value=False):
+    def calculate_frequency_commission(self, return_value=False):
         # For subscription frequency
         if hasattr(settings, "SELLER_COMMISSION_SUBSCRIPTION_FREQUENCY"):
             frequency = self.subscription.frequency
@@ -386,24 +537,22 @@ class SalesRecord(models.Model):
             if return_value:
                 return commission
             self.commission_for_subscription_frequency = commission
-            if save:
-                self.save()
         else:
             if return_value:
                 return 0
             self.commission_for_subscription_frequency = 0
-            if save:
-                self.save()
 
     def set_commissions(self, force=False) -> None:
         if (force or self.sale_type == self.SALE_TYPE.FULL) and self.can_be_commissioned:
-            self.set_commission_for_products_sold()
-            self.set_commission_for_payment_type()
-            self.set_commission_for_subscription_frequency()
+            self.calculate_products_count_commission()
+            self.calculate_payment_type_commission()
+            self.calculate_frequency_commission()
+            self.calculate_specific_products_commission()
             self.total_commission_value = (
-                self.commission_for_products_sold
+                self.commission_for_amount_of_products_sold
                 + self.commission_for_payment_type
                 + self.commission_for_subscription_frequency
+                + self.commission_for_products_sold
             )
             self.save()
 
@@ -421,18 +570,78 @@ class SalesRecord(models.Model):
             return _("N/A")
 
     def calculate_commission(self):
-        # Show all these in a separate line with a label
-        cpt = f"{self.set_commission_for_payment_type(return_value=True)} ({self.subscription.get_payment_type_display()})"  # noqa
-        cfp = f"{self.set_commission_for_products_sold(return_value=True)} ({self.max_products_count()})"
-        cfs = f"{self.set_commission_for_subscription_frequency(return_value=True)} ({self.subscription.get_frequency_display()})"  # noqa
-        return f"{cpt} + {cfp} + {cfs} = {self.calculate_total_commission()}"
+        # Show all commission components in separate lines with labels
+        payment_type_commission = (
+            f"{self.calculate_payment_type_commission(return_value=True)} "
+            f"({self.subscription.get_payment_type_display()})"
+        )
+        products_count_commission = (
+            f"{self.calculate_products_count_commission(return_value=True)} " f"({self.max_products_count()} products)"
+        )
+        frequency_commission = (
+            f"{self.calculate_frequency_commission(return_value=True)} " f"({self.subscription.frequency})"
+        )
+        specific_products_commission = (
+            f"{self.calculate_specific_products_commission(return_value=True)} " f"(specific products)"
+        )
+        # Error catching
+        try:
+            return (
+                f"{payment_type_commission} + {products_count_commission} + "
+                f"{frequency_commission} + {specific_products_commission} = "
+                f"{self.calculate_total_commission()}"
+            )
+        except Exception as e:
+            return f"Error: {e}"
 
     def calculate_total_commission(self):
         if self.sale_type == self.SALE_TYPE.FULL:
             value = (
-                    self.set_commission_for_payment_type(return_value=True)
-                    + self.set_commission_for_products_sold(return_value=True)
-                    + self.set_commission_for_subscription_frequency(return_value=True)
-                )
+                self.calculate_payment_type_commission(return_value=True)
+                + self.calculate_products_count_commission(return_value=True)
+                + self.calculate_frequency_commission(return_value=True)
+                + self.calculate_specific_products_commission(return_value=True)
+            )
             return value
         return 0
+
+
+class SellerConsoleAction(models.Model):
+    """
+    Model to store which actions the seller has done in the console. It is stored in the activity.
+    """
+
+    class ACTION_TYPES(models.TextChoices):
+        SUCCESS = "S", _("Success")
+        DECLINED = "D", _("Declined")
+        PENDING = "P", _("Pending")
+        NO_CONTACT = "N", _("No contact")
+        SCHEDULED = "C", _("Scheduled")
+        CALL_LATER = "L", _("Call later")
+
+    slug = models.SlugField(max_length=100, primary_key=True)
+    name = models.CharField(max_length=100, blank=True, null=True)
+    description = models.TextField(blank=True, null=True)
+    is_active = models.BooleanField(default=True)
+    action_type = models.CharField(max_length=1, choices=ACTION_TYPES.choices, blank=True, null=True)
+    campaign_status = models.PositiveSmallIntegerField(
+        choices=CAMPAIGN_STATUS.choices,
+        null=True,
+        blank=True,
+        help_text=_("Campaign status to set when this action is performed"),
+    )
+    campaign_resolution = models.CharField(
+        max_length=2,
+        choices=CAMPAIGN_RESOLUTION_CHOICES,
+        null=True,
+        blank=True,
+        help_text=_("Campaign resolution to set when this action is performed"),
+    )
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = _("Seller Console Action")
+        verbose_name_plural = _("Seller Console Actions")
+        ordering = ("name",)

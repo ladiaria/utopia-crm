@@ -1,15 +1,103 @@
-from datetime import date, timedelta
+from datetime import date, timedelta  # TODO: use django timezone objects instead
+import urllib3
 import collections
+from functools import wraps
+import json
 import requests
+from requests.status_codes import codes
 from requests.auth import HTTPBasicAuth
 from requests.exceptions import ReadTimeout, RequestException
-import html2text
 from typing import Literal
-
+import csv
+import logging
+import mercadopago
+from html2text import html2text
 
 from django.conf import settings
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
+from django.core.mail import mail_managers
+from django.utils.timezone import now
+from django.utils.translation import gettext as _
+from django.utils.text import format_lazy
+from rest_framework.decorators import authentication_classes
+
+
+logger = logging.getLogger(__name__)
+
+
+def mailtrain_api_call(endpoint, method='get', data=None):
+    try:
+        assert getattr(settings, "MAILTRAIN_API_URL", None) and getattr(
+            settings, "MAILTRAIN_API_KEY", None
+        ), "Mailtrain API URL or API Key is not configured properly."
+        url = f"{settings.MAILTRAIN_API_URL}{endpoint}"
+        params = {'access_token': settings.MAILTRAIN_API_KEY}
+        if method == 'get':
+            response = requests.get(url, params=params)
+        elif method == 'post':
+            response = requests.post(url, params=params, data=data)
+        response.raise_for_status()
+        return response
+    except (AssertionError, requests.RequestException) as e:
+        logger.error(f"Mailtrain API error: {str(e)}")
+        return None
+
+
+def subscribe_email_to_mailtrain_list(email, mailtrain_list_id):
+    if settings.DEBUG:
+        logger.debug(f"Sending email {email} to list {mailtrain_list_id}")
+    response = mailtrain_api_call(f'subscribe/{mailtrain_list_id}', method='post', data={'EMAIL': email})
+    return response.json() if response else None
+
+
+def unsubscribe_email_from_mailtrain_list(email, mailtrain_list_id):
+    if settings.DEBUG:
+        logger.debug(f"Unsubscribing email {email} from list {mailtrain_list_id}")
+    response = mailtrain_api_call(f'unsubscribe/{mailtrain_list_id}', method='post', data={'EMAIL': email})
+    return response.json() if response else None
+
+
+def delete_email_from_mailtrain_list(email, mailtrain_list_id):
+    if settings.DEBUG:
+        logger.debug(f"Deleting email {email} from list {mailtrain_list_id}")
+    response = mailtrain_api_call(f'delete/{mailtrain_list_id}', method='post', data={'EMAIL': email})
+    return response.json() if response else None
+
+
+def get_mailtrain_lists(email):
+    response = mailtrain_api_call(f'lists/{email}')
+    if response:
+        return [mlist["cid"] for mlist in response.json()["data"] if mlist["status"] == 1]
+    return []
+
+
+def get_emails_from_mailtrain_list(mailtrain_list_id, status=None, limit=None):
+    params = {}
+    if limit:
+        params['limit'] = limit
+    response = mailtrain_api_call(f'subscriptions/{mailtrain_list_id}', data=params)
+    if not response:
+        return []
+
+    data = response.json()
+    return [
+        subscription['email']
+        for subscription in data['data']['subscriptions']
+        if not status or subscription["status"] == status
+    ]
+
+
+def user_mailtrain_lists(email):
+    response = mailtrain_api_call(f'lists/{email}')
+    if not response:
+        return []
+
+    json_response = response.json()
+    return [
+        {'name': item.get('name'), 'status': item.get('status'), 'cid': item.get('cid')}
+        for item in json_response["data"]
+    ]
 
 
 dnames = ('monday', 'tuesday', 'wednesday', 'thursday', 'friday')
@@ -26,183 +114,348 @@ def addMonth(d, n=1):
     return eom.replace(day=d.day)
 
 
-# TODO: handle cases of setting missconf for the next 4 functions (mailtrain api calls)
-def subscribe_email_to_mailtrain_list(email, mailtrain_list_id):
-    if settings.DEBUG:
-        print(("sending email {} to {}".format(email, mailtrain_list_id)))
-    url = '{}subscribe/{}'.format(settings.MAILTRAIN_API_URL, mailtrain_list_id)
-    params = {'access_token': settings.MAILTRAIN_API_KEY}
-    return requests.post(url, params=params, data={'EMAIL': email})
-
-
-def unsubscribe_email_from_mailtrain_list(email, mailtrain_list_id):
-    if settings.DEBUG:
-        print(("sending email {} to {}".format(email, mailtrain_list_id)))
-    url = '{}unsubscribe/{}'.format(settings.MAILTRAIN_API_URL, mailtrain_list_id)
-    params = {'access_token': settings.MAILTRAIN_API_KEY}
-    return requests.post(url, params=params, data={'EMAIL': email})
-
-
-def delete_email_from_mailtrain_list(email, mailtrain_list_id):
-    if settings.DEBUG:
-        print(("deleting email {} from {}".format(email, mailtrain_list_id)))
-    url = '{}delete/{}'.format(settings.MAILTRAIN_API_URL, mailtrain_list_id)
-    params = {'access_token': settings.MAILTRAIN_API_KEY}
-    return requests.post(url, params=params, data={'EMAIL': email})
-
-
-def get_mailtrain_lists(email):
-    if not getattr(settings, 'MAILTRAIN_API_URL', None):
-        return []
-    url = '{}lists/{}'.format(settings.MAILTRAIN_API_URL, email)
-    params = {'access_token': settings.MAILTRAIN_API_KEY}
-    return [mlist["cid"] for mlist in requests.get(url, params=params).json()["data"] if mlist["status"] == 1]
-
-
-def get_emails_from_mailtrain_list(mailtrain_list_id, status=None, limit=None):
-    # TODO: A way to proceed in case the list has more emails than the limit (Mailtrain's default 10000) allows.
-    # NOTE: The limit passed can be greater than the Mailtrain's default (10000)
-    # Mailtrain's status ref: 1=Subscribed, 2=Unsubscribed ...
-    emails = []
-    url = '{}subscriptions/{}'.format(settings.MAILTRAIN_API_URL, mailtrain_list_id)
-    params = {'access_token': settings.MAILTRAIN_API_KEY}
-    if limit:
-        params['limit'] = limit
-    r = requests.get(url, params=params)
-    data = r.json()
-    for subscription in data['data']['subscriptions']:
-        if not status or subscription["status"] == status:
-            emails.append(subscription['email'])
-    return emails
-
-
-def user_mailtrain_lists(email):
-    url = f'{settings.MAILTRAIN_API_URL}/lists/{email}'
-    params = {'access_token': settings.MAILTRAIN_API_KEY}
-    r = requests.get(url, params=params)
-    try:
-        r.raise_for_status()
-        json_response = r.json()
-        items = json_response["data"]
-        # make a dictionary with list_ids, names, and status for each list
-        mailtrain_lists = [
-            {'name': item.get('name'), 'status': item.get('status'), 'cid': item.get('cid')} for item in items
-        ]
-        return mailtrain_lists
-    except Exception:
-        raise
-
-
-def calc_price_from_products(products_with_copies, frequency, debug_id=""):
+def calc_price_from_products(products_with_copies, frequency, debug_id="", create_items=None, subscription=None):
     """
-    Returns the prices, we need the products already processed.
+    Returns the prices and optionally creates invoice items if invoice is provided.
+    Args:
+        products_with_copies: Dictionary of product IDs and their quantities
+        frequency: Billing frequency
+        debug_id: Debug identifier. If provided, debug messages will be printed when prices are calculated.
+        invoice: Optional Invoice object to create items for
+        subscription: Optional Subscription object (required if invoice is provided)
+    Returns:
+        If invoice is None: returns calculated total price
+        If invoice is provided: returns (total_price, invoice_items)
+    Notes:
+        - Affectable: products that are affected by discounts
+        - Non-affectable: products that are not affected by discounts
+        - Frequency discount: discount applied to the total price based on the frequency
+        - One-shot products: products that are not affected by discounts and are not part of a subscription. They're
+        usually represented by products of the type "Other" and have an edition frequency of 4 (one-shot products).
+        They're affected by copies but not by frequency.
     """
-    from core.models import Product, AdvancedDiscount
+    from core.models import Product
+    from invoicing.models import InvoiceItem
 
+    invoice_items = [] if create_items else None
     total_price, discount_pct, frequency = 0, 0, int(frequency)
 
     percentage_discount, debug = None, getattr(settings, 'DEBUG_PRODUCTS', False)
     if debug and debug_id:
         debug_id += ": "
-    all_list, discount_list, non_discount_list, advanced_discount_list = products_with_copies.items(), [], [], []
+    # Fetch all Product instances needed in a single query using in_bulk
+    products = Product.objects.in_bulk(products_with_copies.keys())
+    if debug:
+        print(f"DEBUG: calc_price_from_products: products={products}")
+
+    # Create the dictionary with product_id as key and (Product instance, copies) as value
+    product_data = {
+        product_id: (products[product_id], int(copies))
+        for product_id, copies in products_with_copies.items()
+        if product_id in products
+    }
+
+    subscription_product_list, discount_product_list, other_product_list, advanced_discount_list = [], [], [], []
 
     # 1. partition the input by discount products / non discount products
-    for product_id, copies in all_list:
-        try:
-            product = Product.objects.get(pk=int(product_id))
-        except Product.DoesNotExist:
-            pass
-        else:
-            (non_discount_list if product.type == 'S' else discount_list).append(product)
+    for product, copies in product_data.values():
+        if product.type in ('D', 'P', 'A'):  # Discount, Percentage and Advanced discounts
+            discount_product_list.append(product)
+        elif product.type == "S":  # Subscription products
+            subscription_product_list.append(product)
+        elif product.type == "O":  # Other products
+            other_product_list.append(product)
 
+    if debug:
+        print("Discount products:", discount_product_list)
+        print("Subscription products:", subscription_product_list)
+        print("Other products:", other_product_list)
+        print("Advanced discount products:", advanced_discount_list)
     # 2. obtain 2 total cost amounts: affectable/non-affectable by discounts
     total_affectable, total_non_affectable = 0, 0
-    for product in non_discount_list:
+    for product in subscription_product_list:
         copies = int(products_with_copies[product.id])
+
+        # Create invoice item if needed
+        if create_items:
+            frequency_extra = (
+                _(' {frequency} months'.format(frequency=frequency))
+                if frequency > 1
+                and product.edition_frequency != 4
+                and product.billing_mode == Product.BillingModeChoices.PER_FREQUENCY
+                else ''
+            )
+            price = (
+                product.price * frequency
+                if product.billing_mode == Product.BillingModeChoices.PER_FREQUENCY
+                else product.price
+            )
+            item = InvoiceItem(
+                subscription=subscription,
+                invoice=None,  # They will be added to the invoice later
+                copies=copies,
+                price=price,
+                product=product,
+                description=format_lazy(
+                    '{product_name} {frequency_extra}', product_name=product.name, frequency_extra=frequency_extra
+                ),
+                type='I',
+                amount=price * copies,
+            )
+            invoice_items.append(item)
+
         if debug:
             print(
                 f"{debug_id}{product.name} {copies}x{'-' if product.type == 'D' else ''}"
                 f"{product.price} = {'-' if product.type == 'D' else ''}{product.price * copies}"
             )
-        # check first if this product is affected to any of the discounts
+
+        # Check if this product is affected to any of the discounts first. This also needs to create the invoice item.
         affectable = False
-        for discount_product in [d for d in discount_list if d.target_product == product]:
+        for discount_product in [d for d in discount_product_list if d.target_product == product]:
             affectable_delta = product.price * copies
+            if product.billing_mode == Product.BillingModeChoices.PER_FREQUENCY:
+                affectable_delta *= frequency
+            discount_copies = int(products_with_copies[discount_product.id])
             if discount_product.type == "D":
-                affectable_delta -= discount_product.price * int(products_with_copies[discount_product.id])
+                discount_amount = discount_product.price * discount_copies
+                if discount_product.billing_mode == Product.BillingModeChoices.PER_FREQUENCY:
+                    discount_amount *= frequency
+                affectable_delta -= discount_amount
             elif discount_product.type == "P":
                 affectable_delta_discount = (affectable_delta * discount_product.price) / 100
                 affectable_delta -= affectable_delta_discount
             total_affectable += affectable_delta
-            discount_list.remove(discount_product)
+            # We also need to create a product item for the discount
+            if create_items:
+                frequency_extra = (
+                    _(' {frequency} months'.format(frequency=frequency))
+                    if frequency > 1
+                    and discount_product.edition_frequency != 4
+                    and discount_product.billing_mode == Product.BillingModeChoices.PER_FREQUENCY
+                    else ''
+                )
+                item_discount = InvoiceItem(
+                    description=format_lazy('{} {}', discount_product.name, frequency_extra),
+                    price=discount_product.price * frequency,
+                    product=discount_product,
+                    copies=discount_copies,
+                    type='D',
+                    amount=discount_product.price * discount_copies,
+                )
+                invoice_items.append(item_discount)
+            discount_product_list.remove(discount_product)
             affectable = True
             break
         if not affectable:
-            # not affected by discounts but the product price can be also "affectable" if has_implicit_discount
+            # Not affected by discounts but the product price can be also "affectable" if has_implicit_discount
             product_delta = product.price * copies
+            if product.billing_mode == Product.BillingModeChoices.PER_FREQUENCY:
+                product_delta *= frequency
             if product.has_implicit_discount:
                 total_affectable += product_delta
             else:
                 total_non_affectable += product_delta
-
     if debug:
-        print(debug_id + "before3 affectable=%s, non-affectable=%s" % (total_affectable, total_non_affectable))
+        print(
+            debug_id
+            + f"Before iteration over discounts affectable={total_affectable}, non-affectable={total_non_affectable}"
+        )
 
     # 3. iterate over discounts left
-    for product in discount_list:
+    for product in discount_product_list:
+        if debug:
+            print(f"{debug_id}Discount Product: {product} {product.type}")
         if product.type == 'D':
-            total_non_affectable -= product.price * int(products_with_copies[product.id])
+            if create_items:
+                item = InvoiceItem(
+                    subscription=subscription,
+                    invoice=None,
+                    copies=int(products_with_copies[product.id]),
+                    price=product.price * frequency,
+                    product=product,
+                    description=format_lazy('{} {}', product.name, frequency_extra),
+                    type='D',
+                    amount=product.price * int(products_with_copies[product.id]),
+                )
+                if debug:
+                    print(f"{debug_id}Item: {item}")
+                invoice_items.append(item)
+            discount_amount = product.price * int(products_with_copies[product.id])
+            if product.billing_mode == Product.BillingModeChoices.PER_FREQUENCY:
+                discount_amount *= frequency
+            total_non_affectable -= discount_amount
         elif product.type == 'P':
             percentage_discount = product  # only one percentage discount product (the last one found in the list).
         elif product.type == 'A':
             advanced_discount_list.append(product)
 
     if debug:
-        print(debug_id + "after3 affectable=%s, non-affectable=%s" % (total_affectable, total_non_affectable))
+        print(
+            debug_id
+            + f"After iteration over discounts affectable={total_affectable}, non-affectable={total_non_affectable}"
+        )
 
-    # After calculating the prices of the product, we check out every product in the advanced_discount_list
-    # TODO: this must be tested
-    for discount_product in advanced_discount_list:
-        try:
-            advanced_discount = AdvancedDiscount.objects.get(discount_product=discount_product)
-        except AdvancedDiscount.DoesNotExist:
-            continue
-        else:
-            if advanced_discount.value_mode == 1:
-                discounted_product_price = advanced_discount.value
-            else:
-                discounted_product_price = 0
-                for product in advanced_discount.find_products.all():
-                    if product.id in products_with_copies:
-                        if product.type == 'S':
-                            discounted_product_price += int(products_with_copies[product.id]) * product.price
-                        else:
-                            discounted_product_price -= int(products_with_copies[product.id]) * product.price
-                discounted_product_price = (discounted_product_price * advanced_discount.value) / 100
-            total_non_affectable -= discounted_product_price
-
-    if debug:
-        print(debug_id + "before_pd affectable=%s, non-affectable=%s" % (total_affectable, total_non_affectable))
-
-    # After calculating the prices of S and D products, we need to calculate the one for P.
+    # Handle percentage discount
     if percentage_discount:
-        total_non_affectable -= (total_non_affectable * percentage_discount.price) / 100
+        discount_amount = (total_non_affectable * percentage_discount.price) / 100
+        if debug:
+            print(f"{debug_id}Percentage Discount: {percentage_discount} {discount_amount}")
+        if create_items:
+            item = InvoiceItem(
+                subscription=subscription,
+                invoice=None,
+                copies=1,
+                price=discount_amount,
+                product=percentage_discount,
+                description=format_lazy('{} {}', percentage_discount.name, frequency_extra),
+                type='D',
+                amount=discount_amount,
+            )
+            if debug:
+                print(f"{debug_id}Item added: {item}")
+            invoice_items.append(item)
+        total_non_affectable -= discount_amount
 
     if debug:
-        print(debug_id + "after_pd affectable=%s, non-affectable=%s" % (total_affectable, total_non_affectable))
+        print(
+            debug_id
+            + f"After percentage discount affectable={total_affectable}, non-affectable={total_non_affectable}"
+        )
 
-    # Then we multiply all this by the frequency
-    total_price = float((total_affectable + total_non_affectable) * frequency)
+    # Let's decide what ing mode we're using for the subscription and calculate the total price accordingly
+    billing_modes = {product.billing_mode for product in subscription_product_list}
 
-    # Next step is determining if there's a discount for frequency.
-    discount_pct = getattr(settings, 'DISCOUNT_%d_MONTHS' % frequency, 0)
+    # Calculate total price based on aggregated billing modes
+    if Product.BillingModeChoices.PER_FREQUENCY in billing_modes:
+        # Frequency-based logic
+        if debug:
+            print(f"Frequency operation: {total_affectable + total_non_affectable}. (frequency={frequency})")
+        # The frequency is already applied in the invoice item calculations, so we don't multiply again
+        total_price = float(total_affectable + total_non_affectable)
+    elif Product.BillingModeChoices.FIXED in billing_modes:
+        # Fixed-price logic
+        if debug:
+            print(f"Fixed price operation: {total_affectable + total_non_affectable}.")
+        total_price = float(total_affectable + total_non_affectable)
+    else:
+        # Default to fixed price for now
+        if debug:
+            print(
+                "Defaulting to fixed price because billing mode is not supported",
+                f"total_affectable={total_affectable}, total_non_affectable={total_non_affectable}",
+            )
+        total_price = float(total_affectable + total_non_affectable)
+
+    if debug:
+        print(debug_id + f"Before frequency discount total_price={total_price}")
+
+    # Handle frequency discount
+    discount_pct = getattr(settings, f'DISCOUNT_{frequency}_MONTHS', 0)
     if discount_pct:
-        total_price -= (total_price * discount_pct) / 100
+        discount_amount = (total_price * discount_pct) / 100
+        total_price -= discount_amount
+
+        if create_items:
+            frequency_discount_item = InvoiceItem(
+                subscription=subscription,
+                invoice=None,
+                copies=1,
+                description=_(
+                    '{frequency} months discount ({discount_pct}% discount)'.format(
+                        frequency=frequency, discount_pct=discount_pct
+                    )
+                ),
+                amount=discount_amount,
+                type='D',  # This means the item is a discount
+                type_dr=1,  # 1 means it's a plain value
+            )
+            invoice_items.append(frequency_discount_item)
+
+        if debug:
+            print(
+                debug_id
+                + f"After frequency discount total_price={total_price} (Discount: {discount_pct}% - {discount_amount})"
+            )
+
+    # Finally we add the price of the one-shot products. O stands for "Other". They can be affected by copies but
+    # they are not billed per frequency.
+    for product in other_product_list:
+        copies = int(products_with_copies[product.id])
+        product_price = float(product.price) * copies
+        total_price += product_price
+
+        if create_items:
+            item = InvoiceItem(
+                subscription=subscription,
+                invoice=None,
+                copies=copies,
+                price=product.price,
+                product=product,
+                description=product.name,
+                type='I',
+                amount=product_price,
+            )
+            invoice_items.append(item)
 
     if debug:
-        print(debug_id + "Total {}\n".format(total_price))
+        print(debug_id + f"Before rounding total_price={total_price}")
 
-    return round(total_price)
+    # We need to add a rounding item if the total price is not an integer
+    if total_price % 1 != 0:
+        rounding_price = total_price % 1
+        if create_items:
+            rounding_item = InvoiceItem(
+                subscription=subscription,
+                invoice=None,
+                copies=1,
+                description=_("Rounding"),
+                amount=rounding_price,
+                price=rounding_price,
+                type='R' if total_price > 0 else 'D',  # "R" for surcharge, "D" for discount
+                type_dr=1,
+            )
+            invoice_items.append(rounding_item)
+        if debug:
+            print(f"{debug_id}Rounding: {rounding_price}")
+        total_price = round(total_price)
+
+    if debug:
+        print(debug_id + f"Total {total_price}")
+
+    if create_items:
+        return total_price, invoice_items
+    return total_price
+
+
+def create_invoiceitem_for_corporate_subscription(subscription):
+    """This function assumes the subscription has a single product and it creates an invoiceitem for it.
+
+    Args:
+        subscription (Subscription): The subscription that will be processed
+
+    Returns:
+        list[InvoiceItem]: The created invoice item. This is a list because the main function calc_price_from_products
+        returns a list of invoice items, and this is mimicking that behavior.
+    """
+    from invoicing.models import InvoiceItem
+
+    if not subscription.type == "C":
+        raise ValidationError(_("The subscription needs to be corporate to use this function"))
+
+    product = subscription.products.first()
+    item = InvoiceItem(
+        subscription=subscription,
+        product=product,
+        invoice=None,
+        copies=1,
+        description=product.name,
+        amount=subscription.override_price,
+        price=subscription.override_price,
+        type="I",
+        type_dr=1,
+    )
+    return [item]
 
 
 def process_products(input_product_dict: dict) -> dict:
@@ -213,12 +466,17 @@ def process_products(input_product_dict: dict) -> dict:
     Each of the products must be a tuple with product and copies.
     """
     from core.models import Product, PriceRule
-
     input_product_ids = list(input_product_dict.keys())
-    input_products = Product.objects.filter(id__in=input_product_ids)
-    input_products_count, output_dict, non_discount_added = input_products.count(), {}, 0
+    input_products_list = list(Product.objects.filter(id__in=input_product_ids))
+    input_products_count, output_dict, non_discount_added = len(input_products_list), {}, 0
 
-    for pricerule in PriceRule.objects.filter(active=True).order_by('priority'):
+    price_rules = (
+        PriceRule.objects.filter(active=True)
+        .order_by('priority')
+        .prefetch_related('products_pool', 'products_not_pool', 'ignore_product_bundle')
+    )
+
+    for pricerule in price_rules:
         exit_loop = False
         products_in_list_and_pool = []
         pool = pricerule.products_pool.all()
@@ -227,7 +485,7 @@ def process_products(input_product_dict: dict) -> dict:
 
         if not_pool:
             for product in not_pool:
-                if product in input_products or product.id in list(output_dict.keys()):
+                if product in input_products_list or product.id in list(output_dict.keys()):
                     # If any of the products is in the list of input products and on the not_pool, we skip the rule
                     exit_loop = True
                     break
@@ -236,26 +494,27 @@ def process_products(input_product_dict: dict) -> dict:
             continue
 
         for bundle in ignore_product_bundle:
-            if collections.Counter(list(input_products)) == collections.Counter(list(bundle.products.all())):
+            if collections.Counter(list(input_products_list)) == collections.Counter(list(bundle.products.all())):
                 exit_loop = True
                 break
 
         if exit_loop:
             continue
 
-        rm_after = []
-        for input_product in input_products:
+        # This list will be used to exclude products that are affected by a discount rule.
+        temporary_exclude_list = []
+        for input_product in input_products_list:
             if pricerule.wildcard_mode == "pool_or_any":
                 if not input_product.has_implicit_discount:
                     if input_product.type in "DP" and input_product.target_product:
-                        rm_after.append(input_product.target_product)
+                        temporary_exclude_list.append(input_product.target_product)
                     else:
                         products_in_list_and_pool.append(input_product)
             elif input_product in pool:
                 products_in_list_and_pool.append(input_product)
 
         non_discount_added_ignore = 0
-        for p in rm_after:
+        for p in temporary_exclude_list:
             try:
                 products_in_list_and_pool.remove(p)
             except ValueError:
@@ -263,11 +522,11 @@ def process_products(input_product_dict: dict) -> dict:
                 if p.id in output_dict:
                     non_discount_added_ignore += 1
 
-        list_and_pool_len, pr_res_prod = len(products_in_list_and_pool), pricerule.resulting_product
+        list_and_pool_len, pricerule_resulting_product = len(products_in_list_and_pool), pricerule.resulting_product
         if pricerule.wildcard_mode == "pool_and_any":
             # wildcard_mode "AND ANY": it means it has to be in the pool, and MUST NOT be the only product in the mix.
             if input_products_count > 1 and list_and_pool_len > 0:
-                output_dict[pr_res_prod.id] = input_product_dict[input_product_ids[0]]
+                output_dict[pricerule_resulting_product.id] = input_product_dict[input_product_ids[0]]
         else:
             if pricerule.wildcard_mode == "pool_or_any":
                 # consider also non discount products that have been added to the output_dict by previous rules
@@ -279,101 +538,144 @@ def process_products(input_product_dict: dict) -> dict:
                 if pricerule.mode == 1:
                     # We use the copies for any of the products, the first one for instance, they should all be the
                     # same since they're on the 'choose all products' mode.
-                    output_dict[pr_res_prod.id] = input_product_dict[str(products_in_list_and_pool[0].id)]
+                    output_dict[pricerule_resulting_product.id] = input_product_dict[
+                        str(products_in_list_and_pool[0].id)
+                    ]
                     # We're going to exclude the products that were not used here so they can be used by other rules.
-                    for product in input_products:
-                        if product in pool:
-                            input_products = input_products.exclude(pk=product.id)
+                    input_products_list = [product for product in input_products_list if product not in pool]
                     # Increment "non discount" counter if is the case
-                    if pr_res_prod.type not in "DP" and not pr_res_prod.has_implicit_discount:
+                    if (
+                        pricerule_resulting_product.type not in "DP"
+                        and not pricerule_resulting_product.has_implicit_discount
+                    ):
                         non_discount_added += 1
                 elif pricerule.mode == 2:
                     # This is if we only need to change one product into another. WIP.
                     output_dict[pricerule.choose_one_product.id] = products_in_list_and_pool[0][1]
-                    for product in input_products:
-                        if product == pricerule.choose_one_product:
-                            # We're only going to replace the chosen product from the mix.
-                            input_products = input_products.exclude(pk=product.id)
+                    # We're only going to replace the chosen product from the mix.
+                    input_products_list = [
+                        product for product in input_products_list if product != pricerule.choose_one_product
+                    ]
                 elif pricerule.mode == 3:
                     # We just add an extra product to the list. We're not going to remove them from input products.
                     # Again we take the copies from the first product on the list. This might be dangerous, and might
                     # need a different value. We might change it to 1.
-                    output_dict[pr_res_prod.id] = input_product_dict[input_product_ids[0]]
+                    output_dict[pricerule_resulting_product.id] = input_product_dict[input_product_ids[0]]
 
     # In the end we will also add the remainder of the products that were not used to the output dictionary.
     # Note that this is useful to place the untargetted percentage discounts that came on input AFTER the untargetted
     # percentage discounts added by the rules, because the price calculation function will use only the LAST one found,
     # and as expected, the rules ones will not be applied.
-    for product in input_products:
+    for product in input_products_list:
         output_dict[product.id] = input_product_dict[str(product.id)]
     return output_dict
 
 
-def updatewebuser(id, email, newemail, field, value):
-    """
-    Esta es la funcion que hace el POST hacia la web, siempre recibe el mail actual y el nuevo (el que se esta
-    actualizando) porque son necesarios para buscar la ficha en la web.
-    Ademas recibe el nombre de campo y el nuevo valor actualizado, son utiles cuando se quiere sincronizar otros
-    campos.
-    ATENCION: No se sincroniza cuando el nuevo valor del campo es None
-    """
-    # TODO: translate docstring to english
-    # TODO: try to use the next function from here (DRY)
-    api_url, api_key = (getattr(settings, attr) for attr in ("WEB_UPDATE_USER_URI", "LDSOCIAL_API_KEY"))
-    if api_url and api_key:
-        data = {
-            "contact_id": id,
-            "email": email,
-            "newemail": newemail,
-            "field": field,
-            "value": value,
-        }
-        post_kwargs = {
-            "headers": {'Authorization': 'Api-Key ' + api_key},
-            "data": data,
-            "timeout": (5, 20),
-            "verify": settings.WEB_UPDATE_USER_VERIFY_SSL,
-        }
-        http_basic_auth = settings.WEB_UPDATE_HTTP_BASIC_AUTH
-        if http_basic_auth:
-            post_kwargs["auth"] = HTTPBasicAuth(*http_basic_auth)
-        r = requests.post(api_url, **post_kwargs)
-        if settings.DEBUG:
-            print("DEBUG: updatewebuser api response content: " + html2text.html2text(r.content.decode()).strip())
-        r.raise_for_status()  # TODO: is there a way to "attach" the exception content (if any) to this call?
+def no_op_decorator(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        return func(*args, **kwargs)
+
+    return wrapper
 
 
-def post_to_cms_rest_api(api_name, api_uri, post_data):
-    api_key = settings.LDSOCIAL_API_KEY
-    if not (api_uri or api_key):
-        return "ERROR"
-    post_kwargs = {
-        "headers": {'Authorization': 'Api-Key ' + api_key},
-        "data": post_data,
-        "timeout": (5, 20),
-        "verify": settings.WEB_UPDATE_USER_VERIFY_SSL,
-    }
+# Endpoints must be decorated with no auth classes if the deployment is under http basic auth, when no basic auth is
+# set, the decorator is no_op_decorator, which does nothing and let the endpoint acts as if it was not decorated.
+api_base_uri = getattr(settings, "LDSOCIAL_API_URI", None)
+api_view_auth_decorator = (
+    authentication_classes([]) if getattr(settings, "ENV_HTTP_BASIC_AUTH", False) else no_op_decorator
+)
+
+
+def cms_rest_api_kwargs(api_key, data=None, send_as_json=False):
     http_basic_auth = settings.WEB_UPDATE_HTTP_BASIC_AUTH
+    result = {
+        "headers": {"X-Api-Key": api_key} if http_basic_auth else {'Authorization': 'Api-Key ' + api_key},
+        "timeout": (5, 20),
+    }
+    if not getattr(settings, "WEB_UPDATE_USER_VERIFY_SSL", True):
+        result["verify"] = False
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+    if data:
+        # TODO: Check out if this is needed or a better logic needs to be implemented. This had to be added because
+        # some API endpoints expect the data to be sent as JSON, but others still expect it to be sent as form data.
+        # I'll leave the previous logic commented for further analysis.
+        # result["json" if isinstance(data, dict) else "data"] = data
+        if send_as_json:
+            result["json"] = data
+        else:
+            result["data"] = data
     if http_basic_auth:
-        post_kwargs["auth"] = HTTPBasicAuth(*http_basic_auth)
+        result["auth"] = HTTPBasicAuth(*http_basic_auth)
+    return result
+
+
+def cms_rest_api_request(api_name, api_uri, post_data, method="POST"):
+    """
+    Performs a request to the CMS REST API.
+    @param api_name: Name of the function that is calling the API
+    @param api_uri: URL of the endpoint.
+    @param post_data: Request data to be sent.
+    @param method: Http method to be used.
+    """
+    api_key = settings.LDSOCIAL_API_KEY
+    if not (api_uri or api_key) or method not in ("POST", "PUT", "PATCH", "DELETE"):
+        return "ERROR"
     try:
         if settings.DEBUG:
-            print("DEBUG: %s to %s with post_data='%s'" % (api_name, api_uri, post_data))
-        r = requests.post(api_uri, **post_kwargs)
-        r.raise_for_status()
-    except ReadTimeout:
-        return "TIMEOUT"
-    except RequestException:
-        return "ERROR"
-    else:
-        result = r.json()
+            print("DEBUG: %s to %s with method='%s', data='%s'" % (api_name, api_uri, method, post_data))
+
+        if (
+            settings.WEB_UPDATE_USER_ENABLED
+            if method in ("PUT", "PATCH")
+            else (settings.WEB_CREATE_USER_ENABLED or api_uri in settings.WEB_CREATE_USER_POST_WHITELIST)
+        ):
+            r = getattr(requests, method.lower())(api_uri, **cms_rest_api_kwargs(api_key, post_data))
+            r.raise_for_status()
+            if settings.DEBUG:
+                html2text_content = html2text(r.content.decode()).strip()
+                # TODO: can be improved splitting and stripping more unuseful info
+                print("DEBUG: CMS api response content: " + html2text_content.split("## Traceback")[0].strip())
+            r.raise_for_status()
+            result = r.json() if r.text else r.text
+            if settings.DEBUG:
+                print(f"DEBUG: {api_name} {method} result: {result}")
+            return result
+        else:
+            print(f"DEBUG: {api_name} {method} conditions to call CMS API not met")
+    except ReadTimeout as rt:
         if settings.DEBUG:
-            print("DEBUG: %s POST result: %s" % (api_name, result))
-        return result
+            print(f"DEBUG: {api_name} {method} read timeout: {str(rt)}")
+        return "TIMEOUT"
+    except RequestException as req_ex:
+        if settings.DEBUG:
+            print(f"DEBUG: {api_name} {method} request error: {str(req_ex)}")
+        return "NOT FOUND" if method == "PATCH" and r.status_code == codes.NOT_FOUND else "ERROR"
+    else:
+        return {"msg": "OK"}
+
+
+def updatewebuser(cid, email, newemail, name="", last_name="", fields_values={}, method="PUT"):
+    """
+    Performs a PUT or a POST to the WEB CMS REST API to update or create the CMS models related to the contact.
+    TODO: Document the usage of the fields_values parameter.
+    """
+    field_data = json.dumps(fields_values)
+    if settings.DEBUG:
+        print(f"DEBUG: updatewebuser field_data: {field_data}")
+    data = {
+        "contact_id": cid,
+        "name": name,
+        "last_name": last_name,
+        "email": email,
+        "newemail": newemail,
+        "fields": field_data,
+    }
+    return cms_rest_api_request("updatewebuser", settings.WEB_UPDATE_USER_URI, data, method)
 
 
 def validateEmailOnWeb(contact_id, email):
-    return post_to_cms_rest_api(
+    return cms_rest_api_request(
         "validateEmailOnWeb", settings.WEB_EMAIL_CHECK_URI, {"contact_id": contact_id, "email": email}
     )
 
@@ -396,3 +698,204 @@ def manage_mailtrain_subscription(email: str, list_id: str, action: Literal["sub
         result = delete_email_from_mailtrain_list(email, list_id)
 
     return result
+
+
+def select_or_create_contact(email, name=None, phone=None, id_document=None):
+    """
+    Check if a contact exists in the CRM, if not, create it.
+
+    Args:
+        email (str): The email address of the contact.
+        name (str): The name of the contact.
+        phone (str): The phone number of the contact.
+        id_document (str): The identification document of the contact.
+
+    Returns the contact object.
+    """
+    from core.models import Contact
+
+    contact_qs = Contact.objects.filter(email=email)
+    if contact_qs.exists():
+        contact_obj = contact_qs.first()
+    else:
+        contact_obj = Contact.objects.create(email=email, name=name, phone=phone, id_document=id_document)
+    return contact_obj
+
+
+def process_invoice_request(product_slugs, email, phone, name, id_document, payment_type):
+    from core.models import Product
+
+    """
+    Handles the core logic for processing an invoice request by selecting or creating a contact, retrieving
+    the specified products, and creating a one-time invoice.
+
+    This function encapsulates the process of validating input data, handling contact selection or creation,
+    and managing product retrieval before creating the invoice. It separates these steps from direct invoice
+    creation to allow for better code reusability, error handling, and potential pre- or post-processing logic,
+    such as logging, validation, or customization for different project requirements.
+
+    Args:
+        product_slugs (str): Comma-separated product slugs representing the items the user wants to purchase.
+        email (str): The email address of the user making the purchase, typically received from the CMS.
+        phone (str): The phone number of the user. If not provided, defaults to an empty string.
+        name (str): The name of the user. If not provided, defaults to an empty string.
+        payment_reference (str): A reference identifier for the payment transaction. This helps track payments.
+        payment_type (str): The type of payment used (e.g., credit card, PayPal).
+
+    Returns:
+        dict: A dictionary containing the invoice ID and contact ID, which can be used for further processing
+        or response.
+
+    Raises:
+        ValueError: If no products are found corresponding to the provided slugs.
+
+    Why This Function is Separate:
+    - Modularity: By separating this function from `add_single_invoice_with_products`, the logic for contact
+      and product handling is modular, making the code easier to maintain and extend. This separation allows the
+      function to be reused in different contexts where pre-processing of the invoice is needed before calling
+      the actual invoice creation method.
+    - Error Handling: The function includes input validation and error handling before the invoice is created,
+      ensuring that all necessary data is present and valid. This makes it easier to manage exceptions specific
+      to contact and product handling before attempting to create an invoice.
+    - CMS Integration: The function is designed to work with a CMS that may not know if the CRM already has a
+      contact for the provided email. Therefore, it is responsible for creating a new contact if one doesn't exist,
+      ensuring seamless integration between the CMS and CRM.
+    - Customization: This function can be customized or overridden in different contexts (e.g., different
+      projects or environments) without affecting the core invoice creation logic. For example, additional steps
+      can be added before or after the invoice creation based on specific business requirements.
+    """
+    contact_obj = select_or_create_contact(email, name, phone, id_document)
+    product_objs = Product.objects.filter(slug__in=product_slugs.split(","))
+
+    if not product_objs:
+        raise ValueError("No se encontraron productos")
+
+    invoice = contact_obj.add_single_invoice_with_products(product_objs, payment_type)
+    for product in product_objs:
+        contact_obj.tags.add(product.slug + "-added")
+
+    return {
+        "invoice_id": invoice.id,
+        "contact_id": contact_obj.id,
+    }
+
+
+def logistics_is_installed():
+    return "logistics" not in getattr(settings, "DISABLED_APPS", [])
+
+
+def detect_csv_delimiter(file_content):
+    """
+    Detect CSV delimiter by analyzing the first few lines of a file.
+
+    This utility function automatically detects whether a CSV file uses comma (,) or
+    semicolon (;) as its delimiter. This is particularly useful for handling regional
+    differences in CSV formats:
+    - Comma (,): Standard in Uruguay, US, and most English-speaking countries
+    - Semicolon (;): Standard in Colombia and many European countries when using Excel
+
+    Args:
+        file_content (io.StringIO or file-like object): The CSV file content to analyze.
+                                                       Must support seek() and read() operations.
+
+    Returns:
+        str: The detected delimiter character (',' or ';')
+
+    Example:
+        >>> import io
+        >>> csv_content = io.StringIO("email,name\\ntest@example.com,John")
+        >>> delimiter = detect_csv_delimiter(csv_content)
+        >>> print(delimiter)  # Output: ','
+
+        >>> csv_content = io.StringIO("email;name\\ntest@example.com;John")
+        >>> delimiter = detect_csv_delimiter(csv_content)
+        >>> print(delimiter)  # Output: ';'
+
+    Technical Details:
+        1. Uses Python's csv.Sniffer to intelligently detect the delimiter
+        2. Falls back to character counting if Sniffer fails
+        3. Automatically resets file pointer to beginning after analysis
+        4. Analyzes first 1024 characters for performance
+
+    Regional Usage:
+        - Colombia: Excel exports typically use semicolon (;) due to comma being decimal separator
+        - Uruguay/US: Standard comma (,) delimiter
+        - This function handles both automatically without user configuration
+    """
+    # Reset file pointer to beginning
+    file_content.seek(0)
+    sample = file_content.read(1024)
+    file_content.seek(0)
+
+    # Use csv.Sniffer to detect delimiter
+    sniffer = csv.Sniffer()
+    try:
+        dialect = sniffer.sniff(sample, delimiters=',;')
+        return dialect.delimiter
+    except csv.Error:
+        # Fallback: count occurrences of common delimiters
+        comma_count = sample.count(',')
+        semicolon_count = sample.count(';')
+
+        if semicolon_count > comma_count:
+            return ';'
+        else:
+            return ','
+
+
+def mail_managers_on_errors(process_name, error_msg, traceback_info=""):
+    """
+    Send error notification to the managers
+    @param process_name: Name of the process or function with error.
+    @param error_msg: Error message.
+    """
+    subject = f"System error happens in {process_name}"
+    msg = f"System error occurs {process_name} runs with error: {error_msg}\n\n"
+    if traceback_info:
+        msg += traceback_info  # Add the stack trace
+    mail_managers(subject=subject, message=msg)
+
+
+def mercadopago_access_token():
+    """
+    Returns the MercadoPago access token from settings if defined, otherwise returns an empty string.
+    """
+    return getattr(settings, "MERCADOPAGO_ACCESS_TOKEN", "") or ""
+
+
+def mercadopago_sdk(subscriptions_integration=True):
+    mp_access_token, app_id = mercadopago_access_token(), None
+    if mp_access_token:
+        if subscriptions_integration:
+            if mp_access_token.startswith("APP_USR-"):
+                app_id = mp_access_token.split("-")[1]
+                app_id = app_id if app_id.isdigit() else None
+    sdk = mercadopago.SDK(mp_access_token) if mp_access_token else None
+    return (sdk, app_id) if subscriptions_integration else (sdk, mp_access_token)
+
+
+def api_log_entry(api_id, service_id, operation_id, request_data, response_data, caller_id=None, caller_detail=None):
+    """
+    Generic logger to register API transactions.
+    We'll use a logger where each line will be a json object with the given information plus the timestamp.
+    """
+    # create the log entry as a JSON object
+    log_entry = {
+        'timestamp': now().isoformat(),
+        'api_id': api_id,
+        'service_id': service_id,
+        'operation_id': operation_id,
+        'request_data': request_data,
+        'response_data': response_data,
+        'caller_id': caller_id,
+        'caller_detail': caller_detail,
+    }
+    logger = logging.getLogger('utopia_crm.api_log')
+
+    # call the logger only if it has handlers
+    if logger.handlers:
+
+        # Log the JSON object as a single line
+        logger.info(json.dumps(log_entry, ensure_ascii=False))
+
+    return log_entry

@@ -1,0 +1,47 @@
+{% extends "adminlte/base.html" %}
+{% load static i18n widget_tweaks %}
+
+{% block extra_head %}
+  <link rel="stylesheet" type="text/css" href="{% static 'css/email_suggestion_dialog.css' %}">
+{% endblock %}
+
+{% block no_heading %}
+<h3>{% trans "New invoice" %}</h3>
+{% endblock no_heading %}
+
+{% block content %}
+  <section class="content">
+    {% if form.errors %}
+    {{ form.errors }}
+    {% endif %}
+    <form method="post">
+      {% csrf_token %}
+      {% render_field form.invoice %}
+      <div class="row mt-2">
+        <div class="col-6">
+          <label for="id_active_subscriptions">{% trans "Use an active subscription payment type" %}</label>
+          {% render_field form.active_subscriptions class="form-control" %}
+        </div>
+        <div class="col-6">
+          <label for="id_payment_type">{% trans "Use new payment type" %}</label>
+          {% render_field form.payment_type class="form-control" %}
+        </div>
+      </div>
+      {{ formset.management_form }}
+      <div id="product-forms">
+        {% for form in formset.forms %}
+          <div class="product-form row mt-2">
+            <div class="col-4">
+              {{ form.product.errors }}
+              <label for="{{ form.product.id_for_label }}" class="control-label">{% trans "Product" %}:</label>
+              {{ form.product|add_class:"form-control" }}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+      <div class="text-right mt-4">
+        <button type="submit" class="btn btn-primary">{% trans "Submit" %}</button>
+      </div>
+    </form>
+  </section>
+{% endblock %}

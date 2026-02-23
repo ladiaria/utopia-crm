@@ -1,14 +1,11 @@
-{% extends 'adminlte/base.html' %}
+{% extends "adminlte/base.html" %}
 {% load static i18n widget_tweaks %}
 
 {% block title %}{% trans "Book unsubscription" %}{% endblock title %}
 
 {% block extra_js %}
-<script type="text/javascript" src="{% static 'js/datepicker-es.js' %}"></script>
 <script type="text/javascript">
 $( function() {
-  $(".datepicker").datepicker({ dateFormat: 'yy-mm-dd' });
-
   $("#form").submit(function(event){
     if ($(".disable-product:checked").length == 0){
       alert("Selecciona productos para desactivar");
@@ -22,7 +19,9 @@ $( function() {
 {% endblock %}
 
 {% block no_heading %}
-<h1><a href="{% url 'contact_list' %}">{% trans "Contacts" %}</a> &raquo; <a href="{% url 'contact_detail' subscription.contact.id %}">{{subscription.contact.id}} - {{subscription.contact.name}}</a> &raquo; {% trans "Book unsubscription of some products" %} </h1>
+<h1>
+  {% trans "Book unsubscription of some products" %}
+</h1>
 {% endblock %}
 
 {% block content %}
@@ -31,10 +30,10 @@ $( function() {
     <div class="card">
       <div class="card-header p-2">
         <ul class="nav nav-pills">
-          <li class="new-item"><a class="nav-link" href="{% url 'book_unsubscription' subscription.id  %}">{% trans 'Unsubscription' %}</a></li>
-          <li class="new-item"><a class="nav-link active" href="{% url 'partial_unsubscription' subscription.id  %}">{% trans 'Partial unsubscription' %}</a></li>
-          <li class="new-item"><a class="nav-link" href="{% url 'product_change' subscription.id  %}">{% trans 'Product change' %}</a></li>
-          <li class="new-item"><a class="nav-link" href="{% url 'additional_product' subscription.id  %}">{% trans 'Add product' %}</a></li>
+          <li class="new-item"><a class="nav-link" href="{% url "book_unsubscription" subscription.id %}">{% trans "Unsubscription" %}</a></li>
+          <li class="new-item"><a class="nav-link active" href="{% url "partial_unsubscription" subscription.id %}">{% trans "Partial unsubscription" %}</a></li>
+          <li class="new-item"><a class="nav-link" href="{% url "product_change" subscription.id %}">{% trans "Product change" %}</a></li>
+          <li class="new-item"><a class="nav-link" href="{% url "additional_product" subscription.id %}">{% trans "Add product" %}</a></li>
         </ul>
       </div>
       <div class="card-body">
@@ -57,9 +56,9 @@ $( function() {
           <div class="row">
             <div class="col-6">
               <div class="form-group">
-                <label for="id_end_date">{{form.end_date.label}}</label>
-                {{form.end_date}}
-                <span class="error invalid-feedback">{{form.end_date.errors}}</span>
+                <label for="id_end_date">{{ form.end_date.label }}</label>
+                {% render_field form.end_date class="form-control" type="date" %}
+                <span class="error invalid-feedback">{{ form.end_date.errors }}</span>
               </div>
             </div>
             <div class="col-6">
@@ -67,8 +66,8 @@ $( function() {
                 <label>Desactivar estos productos</label>
                 {% for subscriptionproduct in subscription.get_subscriptionproducts %}
                   <div class="form-check">
-                    <input id="id-{{subscriptionproduct.id}}" class="form-check-input disable-product" type="checkbox" name="sp-{{subscriptionproduct.id}}">
-                    <label class="form-check-label" for="id-{{subscriptionproduct.id}}">{{subscriptionproduct.product.name}}</label>
+                    <input id="id-{{ subscriptionproduct.id }}" class="form-check-input disable-product" type="checkbox" name="sp-{{ subscriptionproduct.id }}">
+                    <label class="form-check-label" for="id-{{ subscriptionproduct.id }}">{{ subscriptionproduct.product.name }}</label>
                   </div>
                 {% endfor %}
               </div>
@@ -77,26 +76,26 @@ $( function() {
           <div class="row">
             <div class="col-6">
               <div class="form-group">
-                <label for="id_unsubscription_channel">{{form.unsubscription_channel.label}}</label>
-                {{form.unsubscription_channel}}
-                <span class="error invalid-feedback">{{form.unsubscription_channel.errors}}</span>
+                <label for="id_unsubscription_channel">{{ form.unsubscription_channel.label }}</label>
+                {{ form.unsubscription_channel }}
+                <span class="error invalid-feedback">{{ form.unsubscription_channel.errors }}</span>
               </div>
             </div>
             <div class="col-6">
               <div class="form-group">
-                <label for="id_unsubscription_reason">{{form.unsubscription_reason.label}}</label>
-                {{form.unsubscription_reason}}
-                <span class="error invalid-feedback">{{form.unsubscription_reason.errors}}</span>
+                <label for="id_unsubscription_reason">{{ form.unsubscription_reason.label }}</label>
+                {{ form.unsubscription_reason }}
+                <span class="error invalid-feedback">{{ form.unsubscription_reason.errors }}</span>
               </div>
             </div>
           </div>
           <div class="form-group">
-            <label for="id_unsubscription_addendum">{{form.unsubscription_addendum.label}}</label>
-            {{form.unsubscription_addendum}}
-            <span class="error invalid-feedback">{{form.unsubscription_addendum.errors}}</span>
+            <label for="id_unsubscription_addendum">{{ form.unsubscription_addendum.label }}</label>
+            {{ form.unsubscription_addendum }}
+            <span class="error invalid-feedback">{{ form.unsubscription_addendum.errors }}</span>
           </div>
           <div class="form-group text-right">
-            <input type="submit" name="submit" value='{% trans "Send" %}' class="btn bg-gradient-primary">
+            <input type="submit" name="submit" value="{% trans "Send" %}" class="btn bg-gradient-primary">
           </div>
         </form>
       </div>

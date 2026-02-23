@@ -1,11 +1,11 @@
-{% extends 'adminlte/base.html' %}
+{% extends "adminlte/base.html" %}
 {% load static i18n widget_tweaks core_tags leaflet_tags %}
 {% block extra_js %}
-<script src="{% static 'js/htmx.min.js' %}" defer></script>
-{% leaflet_js %}
-{% leaflet_css %}
-{% if lat and lng %}
-<script>
+  <script src="{% static 'js/htmx.min.js' %}" defer></script>
+  {% leaflet_js %}
+  {% leaflet_css %}
+  {% if lat and lng %}
+    <script>
   function map_init (map, options) {
     var lat = {{lat|stringformat:".6f"}}
     var lng = {{lng|stringformat:".6f"}}
@@ -28,9 +28,9 @@ $(window).on('beforeunload', function (e) {
     }
 });
 {% endif %}
-</script>
-{% endif %}
-<script type="text/javascript">
+    </script>
+  {% endif %}
+  <script type="text/javascript">
   $(function(){
     $("#sugerencia").change(function() {
       var optionValue = $(this).val();
@@ -38,116 +38,126 @@ $(window).on('beforeunload', function (e) {
       window.location = url + "?sugerencia=" + optionValue;
     });
   });
-</script>
+  </script>
 {% endblock extra_js %}
 
 {% block no_heading %}
-<h1><a href="{% url 'contact_list' %}">{% trans "Contacts" %}</a> &raquo; <a href="{%url 'contact_detail' contact.id %}">{{contact.id}} - {{contact.name}}</a> &raquo; Normalizar direcciones</h1>
+  <h1>
+    {% trans "Normalize address" %}
+  </h1>
 {% endblock no_heading %}
 
 {% block content %}
-<div class="card">
-  <div class="card-body">
-    <div class="row">
-      <div class="col-6">
-        <div class="card">
-          <div class="card-header">{% if address.verified %}Dirección ya normalizada{% else %}Dirección sin normalizar{% endif %}</div>
-          <div class="card-body">
-            <div class="row form-group">
-              <div class="col">
-                {% render_field form_actual.address_1 class="form-control" placeholder=form_actual.address_1.label readonly="True" %}
-              </div>
-              <div class="col">
-                {% render_field form_actual.address_2 class="form-control" placeholder=form_actual.address_2.label readonly="True" %}
-              </div>
-            </div>
-            <div class="row form-group">
-              <div class="col">
-                {% render_field form_actual.city class="form-control" placeholder=form_actual.city.label readonly="True" %}
-              </div>
-              <div class="col">
-                {% render_field form_actual.state class="form-control" placeholder=form_actual.state.label readonly="True" %}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      {% if address.verified %}
-      <div class="col-6">
-        <div class="card">
-          <div class="card-body">
-            <div class="m-2">
-              {% leaflet_map "mapa" callback="window.map_init" %}
-            </div>
-          </div>
-        </div>
-      </div>
-      {% else %}
-      <div class="col-6">
-        <div class="card">
-          <div class="card-header">Dirección normalizada</div>
-          <div class="card-body">
-            <div class="form-group">
-              Seleccionar una sugerencia
-              <select name="q_direccion" class="form-control" id="sugerencia">
-                {% for sugerencia in sugerencias %}
-                <option value="{{forloop.counter0}}" {% if forloop.counter0 == sugindex %}selected{% endif %}>{{sugerencia.resumen}}</option>
-                {% endfor %}
-              </select>
-            </div>
-            <div id="form_div">
-              <form action="" method="post" id="form_normalizar">
-                {% csrf_token %}
-                <div class="row form-group">
-                  <div class="col">
-                    {% render_field form_nuevo.address_1 class="form-control" placeholder=form_nuevo.address_1.label %}
-                  </div>
-                  <div class="col">
-                    {% render_field form_nuevo.address_2 class="form-control" placeholder=form_nuevo.address_2.label %}
-                  </div>
-                </div>
-                <div class="row form-group">
-                  <div class="col">
-                    {% render_field form_nuevo.city class="form-control" placeholder=form_nuevo.city.label readonly=True %}
-                  </div>
-                  <div class="col">
-                    {% render_field form_nuevo.state class="form-control" placeholder=form_nuevo.state.label readonly=True %}
-                  </div>
-                </div>
-                <div class="row form-group">
-                  <div class="col">
-                    {% render_field form_nuevo.latitude class="form-control" placeholder=form_nuevo.latitude.label required=True readonly=True %}
-                  </div>
-                  <div class="col">
-                    {% render_field form_nuevo.longitude class="form-control" placeholder=form_nuevo.longitude.label required=True readonly=True %}
-                  </div>
-                </div>
-                {% render_field form_nuevo.city_id hidden=True %}
-                {% render_field form_nuevo.state_id hidden=True %}
-                {% render_field form_nuevo.id hidden=True %}
-                {% render_field form_nuevo.address_type hidden=True %}
-                <div class="row">
-                  {% if lat and lng %}
-                  <div class="col text-right">
-                    <input type="submit" value="Guardar" class="btn-large btn btn-primary">
-                  </div>
-                  {% else %}
-                  <div class="col">Esta dirección no tiene valores de georreferenciación</div>
-                  <div class="col"><a href="{% url 'editar_direccion' contact.id address.id %}" class="btn btn-gradient btn-primary">{% trans 'Edit address' %}</a></div>
-                  {% endif %}
-                </div>
-              </form>
-              {% if lat and lng %}
-              <div class="m-2">
-                {% leaflet_map "mapa" callback="window.map_init" %}
-              </div>
+  <div class="card">
+    <div class="card-body">
+      <div class="row">
+        <div class="col-6">
+          <div class="card">
+            <div class="card-header">
+              {% if address.verified %}
+                Dirección ya normalizada
+              {% else %}
+                Dirección sin normalizar
               {% endif %}
             </div>
+            <div class="card-body">
+              <div class="row form-group">
+                <div class="col">
+                  {% render_field form_actual.address_1 class="form-control" placeholder=form_actual.address_1.label readonly="True" %}
+                </div>
+                <div class="col">
+                  {% render_field form_actual.address_2 class="form-control" placeholder=form_actual.address_2.label readonly="True" %}
+                </div>
+              </div>
+              <div class="row form-group">
+                <div class="col">
+                  {% render_field form_actual.city class="form-control" placeholder=form_actual.city.label readonly="True" %}
+                </div>
+                <div class="col">
+                  {% render_field form_actual.state class="form-control" placeholder=form_actual.state.label readonly="True" %}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
+        {% if address.verified %}
+          <div class="col-6">
+            <div class="card">
+              <div class="card-body">
+                <div class="m-2">{% leaflet_map "mapa" callback="window.map_init" %}</div>
+              </div>
+            </div>
+          </div>
+        {% else %}
+          <div class="col-6">
+            <div class="card">
+              <div class="card-header">Dirección normalizada</div>
+              <div class="card-body">
+                <div class="form-group">
+                  Seleccionar una sugerencia
+                  <select name="q_direccion" class="form-control" id="sugerencia">
+                    {% for sugerencia in sugerencias %}
+                      <option value="{{ forloop.counter0 }}"
+                              {% if forloop.counter0 == sugindex %}selected{% endif %}>
+                        {{ sugerencia.resumen }}
+                      </option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div id="form_div">
+                  <form action="" method="post" id="form_normalizar">
+                    {% csrf_token %}
+                    <div class="row form-group">
+                      <div class="col">
+                        {% render_field form_nuevo.address_1 class="form-control" placeholder=form_nuevo.address_1.label %}
+                      </div>
+                      <div class="col">
+                        {% render_field form_nuevo.address_2 class="form-control" placeholder=form_nuevo.address_2.label %}
+                      </div>
+                    </div>
+                    <div class="row form-group">
+                      <div class="col">
+                        {% render_field form_nuevo.city class="form-control" placeholder=form_nuevo.city.label readonly=True %}
+                      </div>
+                      <div class="col">
+                        {% render_field form_nuevo.state class="form-control" placeholder=form_nuevo.state.label readonly=True %}
+                      </div>
+                    </div>
+                    <div class="row form-group">
+                      <div class="col">
+                        {% render_field form_nuevo.latitude class="form-control" placeholder=form_nuevo.latitude.label required=True readonly=True %}
+                      </div>
+                      <div class="col">
+                        {% render_field form_nuevo.longitude class="form-control" placeholder=form_nuevo.longitude.label required=True readonly=True %}
+                      </div>
+                    </div>
+                    {% render_field form_nuevo.city_georef_id hidden=True %}
+                    {% render_field form_nuevo.state_georef_id hidden=True %}
+                    {% render_field form_nuevo.id hidden=True %}
+                    {% render_field form_nuevo.address_type hidden=True %}
+                    <div class="row">
+                      {% if lat and lng %}
+                        <div class="col text-right">
+                          <input type="submit" value="Guardar" class="btn-large btn btn-primary">
+                        </div>
+                      {% else %}
+                        <div class="col">Esta dirección no tiene valores de georreferenciación</div>
+                        <div class="col">
+                          <a href="{% url "editar_direccion" contact.id address.id %}"
+                             class="btn btn-gradient btn-primary">{% trans "Edit address" %}</a>
+                        </div>
+                      {% endif %}
+                    </div>
+                  </form>
+                  {% if lat and lng %}
+                    <div class="m-2">{% leaflet_map "mapa" callback="window.map_init" %}</div>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          </div>
+        {% endif %}
       </div>
-      {% endif %}
     </div>
   </div>
-</div>
 {% endblock content %}

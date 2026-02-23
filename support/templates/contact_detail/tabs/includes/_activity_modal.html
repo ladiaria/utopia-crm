@@ -1,0 +1,160 @@
+{% load i18n %}
+<div class="modal fade"
+     id="activityView-{{ activity.id }}"
+     tabindex="-1"
+     role="dialog">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h4 class="modal-title">
+          <i class="fas fa-clipboard-list mr-2"></i>{% trans "Activity Details" %}
+        </h4>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">×</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <!-- Basic Information Card -->
+        <div class="card mb-3">
+          <div class="card-header bg-light">
+            <h5 class="mb-0"><i class="fas fa-info-circle mr-2"></i>{% trans "Basic Information" %}</h5>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-6">
+                <p class="mb-2">
+                  <strong><i class="far fa-calendar-alt mr-1"></i> {% trans "Date" %}:</strong><br>
+                  <span class="ml-4">{{ activity.datetime }}</span>
+                </p>
+              </div>
+              <div class="col-md-6">
+                <p class="mb-2">
+                  <strong><i class="fas fa-tag mr-1"></i> {% trans "Type" %}:</strong><br>
+                  <span class="ml-4">{{ activity.get_activity_type_display }}</span>
+                </p>
+              </div>
+              <div class="col-md-6">
+                <p class="mb-2">
+                  <strong><i class="fas fa-exchange-alt mr-1"></i> {% trans "Direction" %}:</strong><br>
+                  <span class="ml-4">{{ activity.get_direction }}</span>
+                </p>
+              </div>
+              <div class="col-md-6">
+                <p class="mb-2">
+                  <strong><i class="fas fa-flag mr-1"></i> {% trans "Status" %}:</strong><br>
+                  <span class="ml-4">
+                    {% if activity.status == 'C' %}
+                      <span class="badge badge-success">{{ activity.get_status }}</span>
+                    {% elif activity.status == 'P' %}
+                      <span class="badge badge-warning">{{ activity.get_status }}</span>
+                    {% else %}
+                      <span class="badge badge-secondary">{{ activity.get_status }}</span>
+                    {% endif %}
+                  </span>
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Notes Card -->
+        {% if activity.notes %}
+          <div class="card mb-3">
+            <div class="card-header bg-light">
+              <h5 class="mb-0"><i class="fas fa-sticky-note mr-2"></i>{% trans "Notes" %}</h5>
+            </div>
+            <div class="card-body">
+              <div class="p-2 bg-light rounded">
+                {{ activity.notes|linebreaks }}
+              </div>
+            </div>
+          </div>
+        {% endif %}
+
+        <!-- People & Campaign Card -->
+        {% if activity.seller or activity.created_by or activity.campaign %}
+          <div class="card mb-3">
+            <div class="card-header bg-light">
+              <h5 class="mb-0"><i class="fas fa-users mr-2"></i>{% trans "People & Campaign" %}</h5>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                {% if activity.seller %}
+                  <div class="col-md-6">
+                    <p class="mb-2">
+                      <strong><i class="fas fa-user-tie mr-1"></i> {% trans "Seller" %}:</strong><br>
+                      <span class="ml-4">{{ activity.seller }}</span>
+                    </p>
+                  </div>
+                {% endif %}
+                {% if activity.created_by %}
+                  <div class="col-md-6">
+                    <p class="mb-2">
+                      <strong><i class="fas fa-user-plus mr-1"></i> {% trans "Created by" %}:</strong><br>
+                      <span class="ml-4">{{ activity.created_by_name }}</span>
+                    </p>
+                  </div>
+                {% endif %}
+                {% if activity.campaign %}
+                  <div class="col-md-12">
+                    <p class="mb-2">
+                      <strong><i class="fas fa-bullhorn mr-1"></i> {% trans "Campaign" %}:</strong><br>
+                      <span class="ml-4">{{ activity.campaign }}</span>
+                    </p>
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        {% endif %}
+
+        <!-- Topic & Response Card -->
+        {% if activity.topic or activity.response or activity.seller_console_action %}
+          <div class="card mb-3">
+            <div class="card-header bg-light">
+              <h5 class="mb-0"><i class="fas fa-comments mr-2"></i>{% trans "Interaction Details" %}</h5>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                {% if activity.topic %}
+                  <div class="col-md-6">
+                    <p class="mb-2">
+                      <strong><i class="fas fa-comment-dots mr-1"></i> {% trans "Topic" %}:</strong><br>
+                      <span class="ml-4">{{ activity.topic }}</span>
+                    </p>
+                  </div>
+                {% endif %}
+                {% if activity.response %}
+                  <div class="col-md-6">
+                    <p class="mb-2">
+                      <strong><i class="fas fa-reply mr-1"></i> {% trans "Response" %}:</strong><br>
+                      <span class="ml-4">{{ activity.response }}</span>
+                    </p>
+                  </div>
+                {% endif %}
+                {% if activity.seller_console_action %}
+                  <div class="col-md-12">
+                    <p class="mb-2">
+                      <strong><i class="fas fa-mouse-pointer mr-1"></i> {% trans "Seller console action" %}:</strong><br>
+                      <span class="ml-4">
+                        <span class="badge badge-info">{{ activity.seller_console_action }}</span>
+                      </span>
+                    </p>
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        {% endif %}
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">
+          <i class="fas fa-times mr-1"></i>{% trans "Close" %}
+        </button>
+      </div>
+    </div>
+    <!-- /.modal-content -->
+  </div>
+  <!-- /.modal-dialog -->
+</div>
+<!-- /.modal -->

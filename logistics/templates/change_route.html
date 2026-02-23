@@ -1,8 +1,7 @@
 {% extends "adminlte/base.html" %}
 {% load static i18n %}
-
 {% block extra_js %}
-<script type="text/javascript">
+  <script type="text/javascript">
   $(function(){
     $("#product_select").change(function() {
       var optionValue = $(this).val();
@@ -10,75 +9,113 @@
       window.location = url + "?product_id=" + optionValue;
     });
   });
-</script>
+  </script>
 {% endblock %}
 
 {% block no_heading %}
-<h1>{% trans "Logistics" %} &raquo; <a href="{% url 'list_routes' %}">{% trans "All routes" %}</a> &raquo; {% trans "Change route" %} {{route.number}}</h1>
+  <h1>
+    {% trans "Change route" %}
+  </h1>
 {% endblock %}
 
 {% block title %}
-{% trans "Change route" %}
+  {% trans "Change route" %}
 {% endblock title %}
 
 {% block content %}
-<div class="card">
-  <div class="card-header">
-    <h1 class="card-title">{% trans 'Change route to subscription products' %} {{route.number}} - {{route.name}} {% if product %} - {% trans "Product" %}: {{product.name}}{% endif %}</h1>
-  </div>
-  <div class="card-body">
-    <div class="card card-outline card-primary">
-      <div class="card-header">
-        <h3 class="card-title">{% trans 'Filter by product' %}</h3>
-        <div class="card-tools">
-          <button type="button" class="btn btn-tool" data-card-widget="collapse"><i class="fas fa-minus"></i>
-          </button>
+  <div class="card">
+    <div class="card-header">
+      <h1 class="card-title">
+        {% trans "Change route to subscription products" %} {{ route.number }} - {{ route.name }}
+        {% if product %}
+          - {% trans "Product" %}: {{ product.name }}
+        {% endif %}
+      </h1>
+    </div>
+    <div class="card-body">
+      <div class="card card-outline card-primary">
+        <div class="card-header">
+          <h3 class="card-title">{% trans "Filter by product" %}</h3>
+          <div class="card-tools">
+            <button type="button" class="btn btn-tool" data-card-widget="collapse">
+              <i class="fas fa-minus"></i>
+            </button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="form-group">
+            <select id="product_select" class="form-control">
+              <option value="all">{% trans "All" %}</option>
+              {% for p in product_list %}
+                <option value="{{ p.id }}" {% if product.id == p.id %}selected{% endif %}>{{ p.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
         </div>
       </div>
-      <div class="card-body">
-        <div class="form-group">
-          <select id="product_select" class="form-control">
-           <option value="all">{% trans 'All' %}</option>
-          {% for p in product_list %}
-           <option value="{{p.id}}" {% if product.id == p.id %}selected{% endif %}>{{p.name}}</option>
-          {% endfor %}
-         </select>
+      <form method="post">
+        {% csrf_token %}
+        <table class="table table-hover table-head-fixed">
+          <thead>
+            <tr>
+              <th>{% trans "Name" %}</th>
+              {% if not product %}
+                <th>{% trans "Product" %}</th>
+              {% endif %}
+              <th>{% trans "Address" %}</th>
+              <th>{% trans "Complement" %}</th>
+              <th>{% trans "Message" %}</th>
+              <th>{% trans "Instructions" %}</th>
+              <th>{% trans "Issue notes" %}<br><small class="text-muted">{% trans "(for special routes 50-55)" %}</small></th>
+              <th>{% trans "Route" %}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for sp in subscription_products %}
+              <tr class="{% cycle 'row1' 'row2' %}">
+                <td>
+                  <a href="{% url 'contact_detail' sp.subscription.contact.id %}">{{ sp.subscription.contact.get_full_name }}</a>
+                </td>
+                {% if not product %}<td>{{ sp.product.name }}</td>{% endif %}
+                <td>{{ sp.address.address_1|default_if_none:'' }}</td>
+                <td>{{ sp.address.address_2|default_if_none:'' }}</td>
+                <td>
+                  <input class="form-control"
+                         maxlength="40"
+                         type="text"
+                         name="message-{{ sp.id }}"
+                         value="{{ sp.label_message|default_if_none:'' }}" />
+                </td>
+                <td>
+                  <input class="form-control"
+                         type="text"
+                         name="instructions-{{ sp.id }}"
+                         value="{{ sp.special_instructions|default_if_none:'' }}" />
+                </td>
+                <td>
+                  <textarea class="form-control"
+                            name="issue-notes-{{ sp.id }}"
+                            rows="2"
+                            placeholder="{% trans 'Custom notes for issue (only for routes 50-55)' %}"></textarea>
+                </td>
+                <td>
+                  <input class="form-control"
+                         type="number"
+                         name="sp-{{ sp.id }}"
+                         value="{{ sp.route.number|default_if_none:'' }}"
+                         size="2"
+                         tabindex="{{ forloop.counter }}" />
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        <div class="text-right form-group">
+          <input type="submit"
+                 value="{% trans "Send" %}"
+                 class="btn btn-primary btn-gradient" />
         </div>
-      </div>
+      </form>
+    </div>
   </div>
-
-   <form method="post">
-      {% csrf_token %}
-      <table class="table table-hover table-head-fixed">
-        <thead>
-          <tr>
-              <th>{% trans 'Name' %}</th>
-              {% if not product %}<th>{% trans 'Product' %}</th>{% endif %}
-              <th>{% trans 'Address' %}</th>
-              <th>{% trans 'Complement' %}</th>
-              <th>{% trans 'Message' %}</th>
-              <th>{% trans 'Instructions' %}</th>
-              <th>{% trans 'Route' %}</th>
-          </tr>
-        </thead>
-        <tbody>
-        {% for sp in subscription_products %}
-          <tr class="{% cycle 'row1' 'row2' %}">
-              <td><a href="{% url 'contact_detail' sp.subscription.contact.id %}">{{ sp.subscription.contact.name }}</a></td>
-              {% if not product %}<td>{{ sp.product.name }}</td>{% endif %}
-              <td>{{ sp.address.address_1|default_if_none:'' }}</td>
-              <td>{{ sp.address.address_2|default_if_none:'' }}</td>
-              <td><input class="form-control" maxlength="40" type="text" name="message-{{ sp.id }}" value="{{ sp.label_message|default_if_none:'' }}" /></td>
-              <td><input class="form-control" type="text" name="instructions-{{ sp.id }}" value="{{ sp.special_instructions|default_if_none:'' }}" /></td>
-              <td><input class="form-control" type="number" name="sp-{{ sp.id }}" value="{{sp.route.number|default_if_none:''}}" size="2" tabindex="{{ forloop.counter }}"/></td>
-          </tr>
-        {% endfor %}
-        </tbody>
-      </table>
-      <div class="text-right form-group">
-        <input type="submit" value="{% trans 'Send' %}" class="btn btn-primary btn-gradient"/>
-      </div>
-    </form>
-  </div>
-</div>
 {% endblock %}

@@ -1,50 +1,85 @@
 {% load i18n admin_urls adminlte_helpers static admin_list %}
 {% block extrahead %}
-<link rel="stylesheet" type="text/css" href="{% static 'admin-lte/plugins/datatables-bs4/css/dataTables.bootstrap4.css' %}">
+  <link rel="stylesheet"
+        type="text/css"
+        href="{% static 'admin-lte/plugins/datatables-bs4/css/dataTables.bootstrap4.css' %}">
+  <style>
+    th.field-id,td.action-checkbox {
+      padding-top: 20px;
+    }
+    td.action-checkbox {
+      padding-left: 10px !important;
+    }
+  </style>
 {% endblock %}
 
 {% if result_hidden_fields %}
-<div class="hiddenfields">{# DIV for HTML validation #}
-  {% for item in result_hidden_fields %}{{ item }}{% endfor %}
-</div>
+  <div class="hiddenfields">
+    {# DIV for HTML validation #}
+    {% for item in result_hidden_fields %}{{ item }}{% endfor %}
+  </div>
 {% endif %}
 {% if results %}
-<div class="row">
-  <div class="col-12">
-    <div class="card">
-      <div class="card-body table-responsive">
-        <table id="result_list" class="table table-hover table-striped  table-head-fixed">
-          <thead>
-            <tr>
-              {% for header in result_headers %}
-              <th >
-                  <span>{{ header.text|capfirst }}</span>
-              </th>{% endfor %}
-            </tr>
-          </thead>
-          <tbody>
-            {% for result in results %}
-            {% if result.form.non_field_errors %}
-            <tr>
-              <td colspan="{{ result|length }}">{{ result.form.non_field_errors }}</td>
-            </tr>
-            {% endif %}
-            <tr class="{% cycle 'row1' 'row2' %}">{% for item in result %}{{ item }}{% endfor %}</tr>
-            {% endfor %}
-          </tbody>
-          <tfoot>
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-body table-responsive">
+          <table id="result_list"
+                 class="table table-hover table-striped  table-head-fixed">
+            <thead>
               <tr>
                 {% for header in result_headers %}
-                <th>
-                    <span>{{ header.text|capfirst }}</span>
-                </th>{% endfor %}
+                  <th>
+                    {% if header.sortable %}
+                      <a href="{{ header.url_primary }}">
+                        {{ header.text|capfirst }}
+                        {% if header.sorted %}
+                          {% if header.ascending %}
+                            <i class="fas fa-sort-up"></i> <!-- Icon for ascending -->
+                          {% else %}
+                            <i class="fas fa-sort-down"></i> <!-- Icon for descending -->
+                          {% endif %}
+                        {% endif %}
+                      </a>
+                      {% if header.sorted %}
+                        <!-- Remove sorting button -->
+                        <a href="{{ header.url_remove }}"
+                           title="{% trans "Remove sorting" %}"
+                           class="btn btn-sm btn-link">
+                          <i class="fas fa-times"></i> <!-- Icon for removing sorting -->
+                        </a>
+                      {% endif %}
+                    {% else %}
+                      <span>{{ header.text|capfirst }}</span>
+                    {% endif %}
+                  </th>
+                {% endfor %}
               </tr>
-          </tfoot>
-        </table>
+            </thead>
+            <tbody>
+              {% for result in results %}
+                {% if result.form.non_field_errors %}
+                  <tr>
+                    <td colspan="{{ result|length }}">{{ result.form.non_field_errors }}</td>
+                  </tr>
+                {% endif %}
+                <tr class="{% cycle 'row1' 'row2' %}">
+                  {% for item in result %}{{ item }}{% endfor %}
+                </tr>
+              {% endfor %}
+            </tbody>
+            <tfoot>
+              <tr>
+                {% for header in result_headers %}
+                  <th>
+                    <span>{{ header.text|capfirst }}</span>
+                  </th>
+                {% endfor %}
+              </tr>
+            </tfoot>
+          </table>
+        </div>
       </div>
     </div>
   </div>
-</div>
-
 {% endif %}
-

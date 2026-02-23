@@ -1,0 +1,29 @@
+{% load i18n %}
+{% load static %}
+{% load core_tags %}
+{% if debt %}
+  <div class="col-md-12">
+    <div class="alert alert-danger">
+      <i class="fas fa-exclamation-circle"></i>
+      <span class="info-box-text">{% trans "Debt" %}:</span>
+      <span class="info-box-number"><b>{{ debt }}</b></span>
+    </div>
+  </div>
+{% endif %}
+{% if request.user|in_group:"Finances" %}
+  <div class="col-md-12">
+    <a class="btn btn-sm btn-primary float-right mb-2"
+       href="{% url 'bill_one_contact' contact.id %}">
+      {% trans "Bill subscriptions" %}
+    </a>
+  </div>
+  <div class="clearfix"></div>
+{% endif %}
+<div id="invoices-htmx"
+     hx-get="{% url 'contact_invoices_htmx' contact.id %}"
+     hx-trigger="revealed"
+     hx-target="#invoices-htmx"
+     hx-swap="innerHTML">
+  <div class="spinner-border text-primary" role="status"></div>
+  {% trans "Loading" %}
+</div>

@@ -1,0 +1,120 @@
+{% extends "adminlte/base.html" %}
+{% load i18n widget_tweaks %}
+
+{% block no_heading %}
+  <h1>{% trans "Register Activity" %}</h1>
+{% endblock no_heading %}
+
+{% block content %}
+  <section class="content">
+    <div class="container-fluid">
+      <div class="row">
+        <div class="col-md-8">
+          <form method="post">
+            {% csrf_token %}
+            {{ form.contact }}
+            {{ form.status }}
+            <div class="card card-primary">
+              <div class="card-body">
+                <div class="form-row">
+                  <div class="form-group col-md-4">
+                    {{ form.activity_type.label_tag }}
+                    {{ form.activity_type|add_class:"form-control" }}
+                    {{ form.activity_type.errors }}
+                  </div>
+                  <div class="form-group col-md-4">
+                    {{ form.datetime.label_tag }}
+                    {{ form.datetime|add_class:"form-control datetimepicker"|attr:"autocomplete:off" }}
+                    {{ form.datetime.errors }}
+                  </div>
+                  <div class="form-group col-md-4">
+                    {{ form.direction.label_tag }}
+                    {{ form.direction|add_class:"form-control" }}
+                    {{ form.direction.errors }}
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group col">
+                    {{ form.topic.label_tag }}
+                    {{ form.topic|add_class:"form-control" }}
+                    {{ form.topic.errors }}
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group col">
+                    {{ form.response.label_tag }}
+                    {{ form.response|add_class:"form-control" }}
+                    {{ form.response.errors }}
+                  </div>
+                </div>
+                <div class="form-row form-group col">
+                  {{ form.notes.label_tag }}
+                  {{ form.notes|add_class:"form-control" }}
+                  {{ form.notes.errors }}
+                </div>
+              </div>
+              <div class="card-footer text-right">
+                <button type="submit" class="btn btn-primary">{% trans "Save" %}</button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const topicSelect = document.getElementById('id_topic');
+    const responseSelect = document.getElementById('id_response');
+    const topicResponses = {{ topic_responses_json|safe }};
+    
+    // Store all original response options
+    const allResponses = Array.from(responseSelect.options).slice(1); // Skip the empty option
+    
+    function filterResponses() {
+        const selectedTopicId = topicSelect.value;
+        
+        // Clear current options (keep the empty option)
+        responseSelect.innerHTML = '<option value="">---------</option>';
+        
+        if (selectedTopicId === '') {
+            // If no topic selected, show all responses
+            allResponses.forEach(option => {
+                responseSelect.appendChild(option.cloneNode(true));
+            });
+        } else {
+            // Show only responses for the selected topic
+            const topicKey = selectedTopicId === '' ? 'null' : selectedTopicId;
+            const availableResponses = topicResponses[topicKey] || [];
+            
+            availableResponses.forEach(response => {
+                const option = document.createElement('option');
+                option.value = response.id;
+                option.textContent = response.name;
+                responseSelect.appendChild(option);
+            });
+            
+            // Also include responses without a topic if a topic is selected
+            if (selectedTopicId !== '' && topicResponses['null']) {
+                topicResponses['null'].forEach(response => {
+                    const option = document.createElement('option');
+                    option.value = response.id;
+                    option.textContent = response.name + ' (General)';
+                    option.style.fontStyle = 'italic';
+                    responseSelect.appendChild(option);
+                });
+            }
+        }
+    }
+    
+    // Add event listener to topic select
+    topicSelect.addEventListener('change', filterResponses);
+    
+    // Initialize on page load
+    filterResponses();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,314 @@
+{% extends "adminlte/base.html" %}
+{% load i18n %}
+{% load static %}
+{% block title %}
+  {% trans "Check for Existing Contacts" %}
+{% endblock title %}
+
+{% block no_heading %}
+  <h1>{% trans "Check for Existing Contacts" %}</h1>
+{% endblock %}
+
+{% block content %}
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">{% trans "Upload Form" %}</h3>
+      <div class="card-tools">
+        <a href="?download_email_template=1" class="btn btn-success btn-sm mr-2">
+          <i class="fas fa-download"></i> {% trans "Download Email CSV Template" %}
+        </a>
+        <a href="?download_phone_template=1" class="btn btn-info btn-sm mr-2">
+          <i class="fas fa-download"></i> {% trans "Download Phone CSV Template" %}
+        </a>
+        <button type="button" class="btn btn-tool" data-card-widget="collapse">
+          <i class="fas fa-minus"></i>
+        </button>
+      </div>
+    </div>
+    <div class="card-body">
+      {% if form.errors %}
+        <h4>{% trans "Form has encountered some errors" %}:</h4>
+        <ul>
+          {% for error in form.errors %}
+            <li>{% trans "Error" %}: {{ error }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+      <!-- Collapsible Instructions Card -->
+      <div class="card card-info collapsed-card mb-3">
+        <div class="card-header">
+          <h3 class="card-title"><i class="fas fa-info-circle"></i> {% trans "Instructions - How Contact Matching Works" %}</h3>
+          <div class="card-tools">
+            <button type="button" class="btn btn-tool" data-card-widget="collapse">
+              <i class="fas fa-plus"></i>
+            </button>
+          </div>
+        </div>
+        <div class="card-body" style="display: none;">
+          <!-- Contact Matching Logic -->
+          <div class="alert alert-warning mb-3">
+            <h5><i class="fas fa-search"></i> {% trans "Two Ways to Check for Contacts" %}</h5>
+            <p><strong>{% trans "This tool can match contacts by EMAIL or by PHONE NUMBER." %}</strong></p>
+
+            <div class="callout callout-info">
+              <h6><i class="fas fa-envelope"></i> {% trans "Email Match (Case-Insensitive)" %}</h6>
+              <p class="mb-0">{% trans "The system searches for contacts by email address. The match is case-insensitive" %} (Example@email.com = example@email.com)</p>
+            </div>
+
+            <div class="callout callout-success">
+              <h6><i class="fas fa-phone"></i> {% trans "Phone Match" %}</h6>
+              <p class="mb-0">{% trans "The system searches for contacts by phone or mobile number. It checks both the 'phone' and 'mobile' fields in the database." %}</p>
+            </div>
+
+            <hr>
+
+            <h6><i class="fas fa-clipboard-list"></i> {% trans "What You'll See in Results" %}</h6>
+            <p>{% trans "For each matching contact found, you'll see:" %}</p>
+            <ul class="mb-2">
+              <li><strong>{% trans "Contact ID & Name" %}</strong>: {% trans "Link to the contact's detail page" %}</li>
+              <li><strong>{% trans "CSV Row Number" %}</strong>: {% trans "Which row in your CSV file matched this contact" %}</li>
+              <li><strong>{% trans "Has Active Subscription" %}</strong>: {% trans "Whether the contact currently has an active subscription" %}</li>
+              <li><strong>{% trans "In Active Campaign" %}</strong>: {% trans "Whether the contact is currently in an active campaign" %}</li>
+            </ul>
+
+            <div class="alert alert-success mb-2">
+              <i class="icon fas fa-check-circle"></i>
+              <strong>{% trans "Matches Found:" %}</strong> {% trans "These contacts already exist in the database. You can review their status and decide if you want to add them to a campaign or take other actions." %}
+            </div>
+
+            <div class="alert alert-info mb-0">
+              <i class="icon fas fa-info-circle"></i>
+              <strong>{% trans "No Matches Found:" %}</strong> {% trans "These entries don't exist in the database. These are potential new contacts that could be imported using the Import Contacts tool." %}
+            </div>
+          </div>
+
+          <!-- Expected Results Summary -->
+          <div class="alert alert-primary mb-0">
+            <h5><i class="fas fa-lightbulb"></i> {% trans "What to Expect After Checking" %}</h5>
+            <div class="row">
+              <div class="col-md-6">
+                <h6 class="text-success"><i class="fas fa-check-circle"></i> {% trans "Matching Contacts" %}</h6>
+                <p class="small mb-2">{% trans "You'll see a table with:" %}</p>
+                <ul class="small mb-0">
+                  <li>{% trans "Total number of matches found" %}</li>
+                  <li>{% trans "How many have active subscriptions" %}</li>
+                  <li>{% trans "How many are in active campaigns" %}</li>
+                  <li>{% trans "Export option to download results as CSV" %}</li>
+                </ul>
+              </div>
+
+              <div class="col-md-6">
+                <h6 class="text-warning"><i class="fas fa-exclamation-triangle"></i> {% trans "No Matches" %}</h6>
+                <p class="small mb-2">{% trans "You'll see a separate table with:" %}</p>
+                <ul class="small mb-0">
+                  <li>{% trans "Values not found in database" %}</li>
+                  <li>{% trans "CSV row numbers for reference" %}</li>
+                  <li>{% trans "Export option to download non-matches" %}</li>
+                </ul>
+              </div>
+            </div>
+
+            <hr class="my-2">
+
+            <p class="mb-0"><strong><i class="fas fa-info-circle"></i> {% trans "Pro Tip:" %}</strong> {% trans "Use this tool before importing contacts to avoid duplicates. Export the 'No Matches' list and use it with the Import Contacts tool to add only new contacts." %}</p>
+          </div>
+        </div>
+      </div>
+
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="form-group">
+          <label for="file">
+            {% trans "Choose a CSV file to check for existing contacts" %}:
+          </label>
+          <div class="alert alert-info mt-2">
+            <h5><i class="icon fas fa-info"></i> {% trans "CSV File Requirements" %}:</h5>
+            <ul class="mb-0">
+              <li><strong>{% trans "For Email Checking" %}:</strong> {% trans "Your CSV file must contain an 'email' column header" %}</li>
+              <li><strong>{% trans "For Phone Checking" %}:</strong> {% trans "Your CSV file must contain a 'phone' column header" %}</li>
+              <li>{% trans "The system automatically detects comma (,) or semicolon (;) delimiters" %}</li>
+              <li>{% trans "Download the appropriate template above for the correct format" %}</li>
+            </ul>
+          </div>
+          {{ form.file }}
+        </div>
+        <div class="btn-group" role="group">
+          <button type="submit" name="check_email" class="btn btn-primary">
+            <i class="fas fa-envelope"></i> {% trans "Check by Email" %}
+          </button>
+          <button type="submit" name="check_phone" class="btn btn-info">
+            <i class="fas fa-phone"></i> {% trans "Check by Phone" %}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {% if results %}
+    <div class="card mt-4">
+      <div class="card-header">
+        <h3 class="card-title">
+          {% trans "Matching Contacts Found" %} ({{ results|length }})
+          ({{ active_subscriptions }} {% trans "Active Subscriptions" %})
+          ({{ active_campaigns }} {% trans "In Active Campaigns" %})
+          {% if check_type == 'email' %}
+            - <span class="badge bg-primary"><i class="fas fa-envelope"></i> {% trans "Email Check" %}</span>
+          {% elif check_type == 'phone' %}
+            - <span class="badge bg-info"><i class="fas fa-phone"></i> {% trans "Phone Check" %}</span>
+          {% endif %}
+        </h3>
+        {% if detected_delimiter %}
+          <p class="mb-0"><small class="text-muted">{% trans "Detected delimiter" %}: {{ detected_delimiter }}</small></p>
+        {% endif %}
+        <div class="card-tools">
+          <button type="button" class="btn btn-tool" data-card-widget="collapse">
+            <i class="fas fa-minus"></i>
+          </button>
+          <button type="button" class="btn btn-success btn-sm ml-2" onclick="exportTableToCSV('matching-contacts.csv', 'results-table')">
+            <i class="fas fa-download"></i> {% trans "Export to CSV" %}
+          </button>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-bordered" id="results-table">
+            <thead>
+              <tr>
+                <th>{% trans "Contact ID" %}</th>
+                <th>{% trans "CSV Row" %}</th>
+                <th>{% trans "Contact" %}</th>
+                {% if check_type == 'email' %}
+                  <th>{% trans "Email" %}</th>
+                {% elif check_type == 'phone' %}
+                  <th>{% trans "Phone Number" %}</th>
+                  <th>{% trans "Match Type" %}</th>
+                {% endif %}
+                <th>{% trans "Has Active Subscription" %}</th>
+                <th>{% trans "In Active Campaign" %}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for result in results %}
+                <tr>
+                  <td>{{ result.contact.id }}</td>
+                  <td>{{ result.csv_row }}</td>
+                  <td>
+                    <a href="{% url 'contact_detail' result.contact.id %}">{{ result.contact }}</a>
+                  </td>
+                  {% if check_type == 'email' %}
+                    <td>{{ result.csv_value }}</td>
+                  {% elif check_type == 'phone' %}
+                    <td>{{ result.csv_value }}</td>
+                    <td>
+                      {% if result.phone_matches %}
+                        <span class="badge bg-info">{% trans "Phone" %}</span>
+                      {% endif %}
+                      {% if result.mobile_matches %}
+                        <span class="badge bg-success">{% trans "Mobile" %}</span>
+                      {% endif %}
+                    </td>
+                  {% endif %}
+                  <td>
+                    {% if result.has_active_subscription %}
+                      <span class="badge bg-success">{% trans "Yes" %}</span>
+                    {% else %}
+                      <span class="badge bg-danger">{% trans "No" %}</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if result.is_in_active_campaign %}
+                      <span class="badge bg-success">{% trans "Yes" %}</span>
+                    {% else %}
+                      <span class="badge bg-danger">{% trans "No" %}</span>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
+  {% if non_matches %}
+    <div class="card mt-4">
+      <div class="card-header">
+        <h3 class="card-title">
+          {% trans "No Matches Found" %} ({{ non_matches|length }})
+          {% if check_type == 'email' %}
+            - <span class="badge bg-primary"><i class="fas fa-envelope"></i> {% trans "Email Check" %}</span>
+          {% elif check_type == 'phone' %}
+            - <span class="badge bg-info"><i class="fas fa-phone"></i> {% trans "Phone Check" %}</span>
+          {% endif %}
+        </h3>
+        <div class="card-tools">
+          <button type="button" class="btn btn-tool" data-card-widget="collapse">
+            <i class="fas fa-minus"></i>
+          </button>
+          <button type="button" class="btn btn-success btn-sm ml-2" onclick="exportTableToCSV('no-matches.csv', 'non-matches-table')">
+            <i class="fas fa-download"></i> {% trans "Export to CSV" %}
+          </button>
+        </div>
+      </div>
+      <div class="card-body">
+        <p>{% trans "The following entries had no matching contacts:" %}</p>
+        <div class="table-responsive">
+          <table class="table table-bordered" id="non-matches-table">
+            <thead>
+              <tr>
+                <th>{% trans "CSV Row" %}</th>
+                {% if check_type == 'email' %}
+                  <th>{% trans "Email" %}</th>
+                {% elif check_type == 'phone' %}
+                  <th>{% trans "Phone Number" %}</th>
+                {% else %}
+                  <th>{% trans "Value" %}</th>
+                {% endif %}
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in non_matches %}
+                <tr>
+                  <td>{{ row.row_number }}</td>
+                  <td>{{ row.value|default:"-" }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function exportTableToCSV(filename, tableId) {
+    var csv = [];
+    var rows = document.getElementById(tableId).querySelectorAll('tr');
+
+    for (var i = 0; i < rows.length; i++) {
+        var row = [], cols = rows[i].querySelectorAll('td, th');
+
+        for (var j = 0; j < cols.length; j++) {
+            // Clean the text content to handle commas and quotes
+            var text = cols[j].textContent.replace(/"/g, '""');
+            row.push('"' + text.trim() + '"');
+        }
+
+        csv.push(row.join(','));
+    }
+
+    // Download CSV file
+    var csvFile = new Blob([csv.join('\n')], {type: "text/csv"});
+    var downloadLink = document.createElement("a");
+    downloadLink.download = filename;
+    downloadLink.href = window.URL.createObjectURL(csvFile);
+    downloadLink.style.display = "none";
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+}
+</script>
+{% endblock %}

@@ -2,44 +2,76 @@
 {% load static i18n core_tags %}
 {% block extra_js %}
   <script type="text/javascript">
-  $(function () {
-    $('[data-toggle="tooltip"]').tooltip();
-    hash = window.location.hash;
-    elements = $('a[href="' + hash + '"]');
-    if (elements.length === 0) {
-      $("ul.tabs li:first").addClass("active").show(); //Activate first tab
-      $(".tab_content:first").show(); //Show first tab content
-    } else {
-      elements.click();
-    }
-  });
+    document.addEventListener("DOMContentLoaded", () => {
+      // Initialize tooltips
+      document.querySelectorAll('[data-toggle="tooltip"]').forEach(el => {
+        new bootstrap.Tooltip(el);
+      });
+
+      // Check if there's a hash in the URL on page load
+      const hash = window.location.hash;
+      const tabLink = document.querySelector(`#contact-detail-tabs a[href="${hash}"]`);
+      if (tabLink) {
+        // If a valid hash exists, activate the corresponding tab
+        new bootstrap.Tab(tabLink).show();
+      } else {
+        // If no valid hash, activate the first tab by default
+        const firstTabLink = document.querySelector("#contact-detail-tabs a[data-toggle='tab']");
+        if (firstTabLink) {
+          new bootstrap.Tab(firstTabLink).show();
+        }
+      }
+
+      // Add click event to each tab link to update the URL hash
+      document.querySelectorAll("#contact-detail-tabs a[data-toggle='tab']").forEach(tab => {
+        tab.addEventListener("click", event => {
+          event.preventDefault();
+          const tabId = tab.getAttribute("href");
+          history.replaceState(null, null, tabId);
+          new bootstrap.Tab(tab).show(); // Show the clicked tab
+        });
+      });
+    });
   </script>
   <script src="{% static "js/htmx.min.js" %}" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 {% endblock %}
+
+{% block extra_head %}
+  <style>
+    dl dt {
+      margin-top: 0.5rem;
+    }
+
+    dl dt:first-child {
+      margin-top: 0;
+    }
+
+    dl dd {
+      margin-bottom: 0;
+    }
+  </style>
+{% endblock extra_head %}
 
 {% block body_class %}
   contact-detail
 {% endblock body_class %}
 
 {% block title %}
-  {{ contact.id }} - {{ contact.name }}
+  {{ contact.id }} - {{ contact.get_full_name }}
 {% endblock title %}
 
 {% block no_heading %}
-  <h1>
-    {{ contact.id }} - {{ contact.name }}
-  </h1>
+  <h1>{{ contact.id }} - {{ contact.get_full_name }}</h1>
 {% endblock no_heading %}
 
 {% block content %}
   <section>
-    <div class="container-fluid">
-      <div class="row mb-3">
-        <div class="col"></div>
-        <div class="col-sm-7 d-flex flex-wrap justify-content-end gap-4">
-        <a href="{% url "new_issue" contact.id "L" %}"
-           class="btn btn-sm btn-primary"><i class="fas fa-plus-circle"></i> {% trans "New Issue" %}</a>
+    <div class="d-flex flex-wrap justify-content-end gap-4 container-fluid mb-3">
+      <a href="{% url "create_activity" contact.id %}"
+         class="btn btn-sm btn-primary"><i class="fas fa-plus-circle"></i> {% trans "New Activity" %}</a>
+      <a href="{% url "new_issue" contact.id "L" %}"
+         class="btn btn-sm btn-primary"><i class="fas fa-plus-circle"></i> {% trans "New Issue" %}</a>
       {% if request.user|in_group:"Support" or request.user|in_group:"Managers" %}
         {% if request.user|in_group:"Managers" or request.user|in_group:"Support" or request.user|in_group:"Finances" %}
           <a href='{% url "admin:core_contact_change" contact.id %}'
@@ -51,168 +83,115 @@
            class="btn btn-sm btn-primary"><i class="far fa-clock"></i> {% trans "Partial Pause" %}</a>
         <a href="{% url "new_scheduled_task_address_change" contact.id %}"
            class="btn btn-sm btn-primary"><i class="fas fa-address-book"></i> {% trans "Address Change" %}</a>
-      <a href="{% url "history_extended" contact.id %}"
-         class="btn btn-sm btn-primary"><i class="fas fa-history"></i>
-    Historial</a>
-  {% endif %}
-</div>
-</div>
-</div>
-</section>
-<section class="content">
-  <div class="container-fluid">
-    <div class="row">
-      <div class="col-md-12">
-        <div class="card">
-          <div class="card-header p-2">
-            <ul class="nav nav-pills">
-              <li class="nav-item">
-                <a class="nav-link active" href="#overview" data-toggle="tab">{% trans "Overview" %}</a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link" href="#information" data-toggle="tab">{% trans "Contact information" %}</a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link" href="#subscriptions" data-toggle="tab">{% trans "Subscriptions" %}</a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link" href="#campaigns" data-toggle="tab">{% trans "Campaigns" %}
-                ({{ all_campaigns.count }})</a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link" href="#issues" data-toggle="tab">{% trans "Issues" %}
-                  ({{ contact.get_total_issues_count }}
-                  {% if contact.get_open_issues_count > 0 %}
-                    /
-                    {{ contact.get_open_issues_count }}
-                  {% endif %}
-                )</a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link" href="#tasks" data-toggle="tab">{% trans "Tasks" %}
-                ({{ contact.get_total_scheduledtask_count }})</a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link" href="#activities" data-toggle="tab">{% trans "Activities" %}
-                ({{ contact.get_total_activities_count }})</a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link" href="#last_read" data-toggle="tab">{% trans "Most Read Website" %}</a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link" href="#get_redeemed_vouchers" data-toggle="tab">{% trans "Vouchers" %}</a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link" href="#web_comments" data-toggle="tab">{% trans "Web Comments" %}</a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link" href="#whatsapp_messages" data-toggle="tab">{% trans "WhatsApp Messages" %}
-                {% block whatsapp_messages_count %}{% endblock whatsapp_messages_count %}</a>
-              </li>
-              <li class="nav-item">
-                <a class="text-light nav-link {% if contact.expired_invoices_count > 0 %}btn-danger{% else %}btn-success{% endif %}"
-                   href="{% url "contact_invoices" contact.id %}">{% trans "Go to Invoices" %}
-                  ({{ contact.get_total_invoices_count }}
-                  {% if contact.expired_invoices_count > 0 %}
-                    /
-                    {{ contact.expired_invoices_count }}
-                  {% endif %}
-                )</a>
-              </li>
-            </ul>
-          </div>
-          <div class="card-body">
-            <div class="tab-content">
-              <!-- Tab overview -->
-              <div class="active tab-pane" id="overview">{% include "contact_detail/tabs/_overview.html" %}</div>
-              <!-- Tab datos -->
-              <div class="tab-pane" id="information">{% include "contact_detail/tabs/_information.html" %}</div>
-              <!-- Tab Suscripciones -->
-              <div class="tab-pane" id="subscriptions">{% include "contact_detail/tabs/_subscriptions.html" %}</div>
-              <!-- Tab Issues -->
-              <div class="tab-pane" id="issues">{% include "contact_detail/tabs/_issues.html" %}</div>
-              <!-- Tab Campaigns -->
-              <div class="tab-pane" id="campaigns">{% include "contact_detail/tabs/_campaigns.html" %}</div>
-              <!-- Tab scheduled tasks -->
-              <div class="tab-pane" id="tasks">{% include "contact_detail/tabs/_tasks.html" %}</div>
-              <!-- Tab activities -->
-              <div class="tab-pane" id="activities">{% include "contact_detail/tabs/_activities.html" %}</div>
-              <!-- Tab last read -->
-              <div class="tab-pane" id="last_read">{% include "contact_detail/tabs/_last_read.html" %}</div>
-              <!-- Tab get redeemed vouchers -->
-              <div class="tab-pane" id="get_redeemed_vouchers">{% include "contact_detail/tabs/_get_redeemed_vouchers.html" %}</div>
-              <!-- Tab web comments -->
-              <div class="tab-pane" id="web_comments">{% include "contact_detail/tabs/_web_comments.html" %}</div>
-              <!-- Tab witty -->
-              <div class="tab-pane" id="whatsapp_messages">{% include "contact_detail/tabs/_whatsapp_messages.html" %}</div>
+        <a href="{% url "history_extended" contact.id %}"
+           class="btn btn-sm btn-primary"><i class="fas fa-history"></i> Historial</a>
+      {% endif %}
+    </div>
+  </section>
+  <section class="content">
+    <div class="container-fluid">
+      <div class="row">
+        <div class="col-md-12">
+          <div class="card">
+            <div class="card-header p-2">
+              <ul class="nav nav-pills" id="contact-detail-tabs">
+                <li class="nav-item">
+                  <a class="nav-link active" href="#overview" data-toggle="tab">{% trans "Overview" %}</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="#information" data-toggle="tab">{% trans "Information" %}</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="#subscriptions" data-toggle="tab">{% trans "Subscriptions" %}</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="#campaigns" data-toggle="tab">{% trans "Campaigns" %}
+                    <div class="ml-1 badge badge-pill badge-primary">{{ all_campaigns.count }}</div>
+                  </a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="#issues" data-toggle="tab">{% trans "Issues" %}
+                    <div class="ml-1 badge badge-pill badge-primary">
+                      {{ contact.get_total_issues_count }}
+                      {% if contact.get_open_issues_count > 0 %}/ {{ contact.get_open_issues_count }}{% endif %}
+                    </div>
+                  </a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="#tasks" data-toggle="tab">{% trans "Tasks" %}
+                    <div class="ml-1 badge badge-pill badge-primary">{{ contact.get_total_scheduledtask_count }}</div>
+                  </a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="#activities" data-toggle="tab">{% trans "Activities" %}
+                    <div class="ml-1 badge badge-pill badge-primary">{{ contact.get_total_activities_count }}</div>
+                  </a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="#last_read" data-toggle="tab">{% trans "Most Read" %}</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="#get_redeemed_vouchers" data-toggle="tab">{% trans "Vouchers" %}</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="#web_comments" data-toggle="tab">{% trans "Web Comments" %}</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="#whatsapp_messages" data-toggle="tab">{% trans "WhatsApp Messages" %}
+                    {% block whatsapp_messages_count %}
+                    {% endblock whatsapp_messages_count %}
+
+                  </a>
+                </li>
+                <li class="nav-item">
+                  <a class="text-light nav-link {% if contact.expired_invoices_count > 0 %}btn-danger{% else %}btn-success{% endif %}"
+                     href="#invoices"
+                     data-toggle="tab">
+                    {% trans "Invoices" %}
+                    <div class="ml-1 badge badge-pill badge-primary">
+                      {% with total=contact.get_total_invoices_count expired=contact.expired_invoices_count %}
+                        {{ total }}
+                        {% if expired > 0 %}/ {{ expired }}{% endif %}
+                      {% endwith %}
+                    </div>
+                  </a>
+                </li>
+              </ul>
+            </div>
+            <div class="card-body">
+              <div class="tab-content">
+                <!-- Tab overview -->
+                <div class="active tab-pane" id="overview">{% include "contact_detail/tabs/_overview.html" %}</div>
+                <!-- Tab datos -->
+                <div class="tab-pane" id="information">{% include "contact_detail/tabs/_information.html" %}</div>
+                <!-- Tab Suscripciones -->
+                <div class="tab-pane" id="subscriptions">{% include "contact_detail/tabs/_subscriptions.html" %}</div>
+                <!-- Tab Issues -->
+                <div class="tab-pane" id="issues">{% include "contact_detail/tabs/_issues.html" %}</div>
+                <!-- Tab Campaigns -->
+                <div class="tab-pane" id="campaigns">{% include "contact_detail/tabs/_campaigns.html" %}</div>
+                <!-- Tab scheduled tasks -->
+                <div class="tab-pane" id="tasks">{% include "contact_detail/tabs/_tasks.html" %}</div>
+                <!-- Tab activities -->
+                <div class="tab-pane" id="activities">{% include "contact_detail/tabs/_activities.html" %}</div>
+                <!-- Tab last read -->
+                <div class="tab-pane" id="last_read">{% include "contact_detail/tabs/_last_read.html" %}</div>
+                <!-- Tab get redeemed vouchers -->
+                <div class="tab-pane" id="get_redeemed_vouchers">{% include "contact_detail/tabs/_get_redeemed_vouchers.html" %}</div>
+                <!-- Tab web comments -->
+                <div class="tab-pane" id="web_comments">{% include "contact_detail/tabs/_web_comments.html" %}</div>
+                <!-- Tab witty -->
+                <div class="tab-pane" id="whatsapp_messages">{% include "contact_detail/tabs/_whatsapp_messages.html" %}</div>
+                <!-- Tab invoices -->
+                <div class="tab-pane" id="invoices">{% include "contact_detail/tabs/_invoices.html" %}</div>
+              </div>
             </div>
           </div>
         </div>
       </div>
     </div>
-  </div>
-</section>
-{% for activity in all_activities %}
-  <div class="modal fade"
-       id="activityView-{{ activity.id }}"
-       tabindex="-1"
-       role="dialog">
-    <div class="modal-dialog" role="document">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h4 class="modal-title">
-            {% trans "Activity" %} {{ activity.id }} ({{ activity.get_type }} -
-            {{ activity.get_direction }})
-          </h4>
-          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-            <span aria-hidden="true">×</span>
-          </button>
-        </div>
-        <div class="modal-body">
-          <dl>
-            <dd>
-              <b>{% trans "Date" %}</b>
-            </dd>
-            <dd>
-              {{ activity.datetime }}
-            </dd>
-            {% if activity.notes %}
-              <dd>
-                <b>{% trans "Notes" %}</b>
-              </dd>
-              <dd>
-                {{ activity.notes|linebreaks }}
-              </dd>
-            {% endif %}
-            {% if activity.seller %}
-              <dd>
-                <b>{% trans "Seller" %}</b>
-              </dd>
-              <dd>
-                {{ activity.seller }}
-              </dd>
-            {% endif %}
-            {% if activity.campaign %}
-              <dd>
-                <b>{% trans "Campaign" %}</b>
-              </dd>
-              <dd>
-                {{ activity.campaign }}
-              </dd>
-            {% endif %}
-            <dd>
-              <b>{% trans "Status" %}</b>
-            </dd>
-            <dd>
-              {{ activity.get_status }}
-            </dd>
-          </dl>
-        </div>
-      </div>
-      <!-- /.modal-content -->
-    </div>
-    <!-- /.modal-dialog -->
-  </div>
-  <!-- /.modal -->
-{% endfor %}
+  </section>
+  {% for activity in all_activities %}
+    {% include "contact_detail/tabs/includes/_activity_modal.html" %}
+  {% endfor %}
 {% endblock %}

@@ -1,174 +1,197 @@
 {% extends "adminlte/base.html" %}
 {% load static i18n core_tags %}
-
 {% block stylesheets %}
-    {{block.super}}
-    <link href="{% static 'css/stylish-tables.css' %}" type="text/css" rel="stylesheet" />
+  {{ block.super }}
+  <link href="{% static 'css/stylish-tables.css' %}"
+        type="text/css"
+        rel="stylesheet" />
 {% endblock %}
 
 {% block title %}
-    {% trans "Route details" %} ({{route_id}})
+  {% trans "Route details" %} ({{ route_id }})
 {% endblock title %}
 
 {% block content %}
-<div style="margin-bottom: 2em; font-size: 1.2em; font-weight: bold;">
-{% trans "Date" %}: {{ day }}<br>
-{% trans "Product" %}: {{ product }}
-</div>
-
-{% for route_id in route_list %}
+  <div style="margin-bottom: 2em; font-size: 1.2em; font-weight: bold;">
+    {% trans "Date" %}: {{ day }}
+    <br>
+    {% trans "Product" %}: {{ product }}
+  </div>
+  {% for route_id in route_list %}
     <hr>
     <div style="margin-bottom: 2em; font-size: 1.2em; font-weight: bold;">
-    {% trans "Route" %}: {{ route_id }}<br>
-    {% trans "Total" %}: {{ subscription_products_dict|get_item:route_id|length }}<br>
-    {% trans "Copies" %}: {{ copies_dict|get_item:route_id }}<br>
+      {% trans "Route" %}: {{ route_id }}
+      <br>
+      {% trans "Total" %}: {{ subscription_products_dict|get_item:route_id|length }}
+      <br>
+      {% trans "Copies" %}: {{ copies_dict|get_item:route_id }}
+      <br>
     </div>
-
     {% if subscription_products_dict|get_item:route_id %}
       <table cellpadding="2" cellspacing="2">
         <caption style="caption-side: top">{% trans "Contacts in route" %}</caption>
-            <tr>
-                <th width="1%">L</th>
-                <th width="1%">M</th>
-                <th width="1%">M</th>
-                <th width="1%">J</th>
-                <th width="1%">V</th>
-                <th width="1%">S</th>
-                <th width="1%">#</th>
-                <th width="1%">{% trans "New" %}</th>
-                <th>{% trans "Name" %}</th>
-                <th>{% trans "Phone" %}</th>
-                <th>{% trans "Mobile" %}</th>
-                <th>{% trans "Address/Instructions" %}</th>
-                <th>{% trans "City" %}</th>
-                <th>{% trans "Order" %}</th>
-            </tr>
+        <tr>
+          <th width="1%">L</th>
+          <th width="1%">M</th>
+          <th width="1%">M</th>
+          <th width="1%">J</th>
+          <th width="1%">V</th>
+          <th width="1%">S</th>
+          <th width="1%">#</th>
+          <th width="1%">{% trans "New" %}</th>
+          <th>{% trans "Name" %}</th>
+          <th>{% trans "Phone" %}</th>
+          <th>{% trans "Mobile" %}</th>
+          <th>{% trans "Address/Instructions" %}</th>
+          <th>{% trans "City" %}</th>
+          <th>{% trans "Order" %}</th>
+        </tr>
         {% for sp in subscription_products_dict|get_item:route_id %}
-            <tr class="{% cycle 'row1' 'row2' %}">
-                {% autoescape off %}
-                <td>{% if sp.subscription.has_monday %}*{% endif %}</td>
-                <td>{% if sp.subscription.has_tuesday %}*{% endif %}</td>
-                <td>{% if sp.subscription.has_wednesday %}*{% endif %}</td>
-                <td>{% if sp.subscription.has_thursday %}*{% endif %}</td>
-                <td>{% if sp.subscription.has_friday %}*{% endif %}</td>
-                <td>{% if sp.subscription.has_weekend %}{% trans "Yes" %}{% else %}{% trans "No" %}{% endif %}</td>
-                {% endautoescape %}
-                {% if sp.copies != 1 %}
-                    <td><strong>{{ sp.copies }}</strong></td>
+          <tr class="{% cycle 'row1' 'row2' %}">
+            {% autoescape off %}
+              <td>
+                {% if sp.subscription.has_monday %}*{% endif %}
+              </td>
+              <td>
+                {% if sp.subscription.has_tuesday %}*{% endif %}
+              </td>
+              <td>
+                {% if sp.subscription.has_wednesday %}*{% endif %}
+              </td>
+              <td>
+                {% if sp.subscription.has_thursday %}*{% endif %}
+              </td>
+              <td>
+                {% if sp.subscription.has_friday %}*{% endif %}
+              </td>
+              <td>
+                {% if sp.subscription.has_weekend %}
+                  {% trans "Yes" %}
                 {% else %}
-                    <td></td>
+                  {% trans "No" %}
                 {% endif %}
-                {% if sp.subscription.start_date > one_month_ago %}
-                    <td>*</td>
+              </td>
+            {% endautoescape %}
+            {% if sp.copies != 1 %}
+              <td>
+                <strong>{{ sp.copies }}</strong>
+              </td>
+            {% else %}
+              <td></td>
+            {% endif %}
+            {% if sp.subscription.start_date > one_month_ago %}
+              <td>*</td>
+            {% else %}
+              <td></td>
+            {% endif %}
+            <td>
+              <a href="{% url 'contact_detail' sp.subscription.contact.id %}">{{ sp.subscription.contact.get_full_name }}</a>
+            </td>
+            <td>{{ sp.subscription.contact.phone|default_if_none:"" }}</td>
+            <td>{{ sp.subscription.contact.mobile|default_if_none:"" }}</td>
+            <td>
+              {{ sp.address.address_1 }} {{ sp.address.address_2|default_if_none:"" }}
+              {% if sp.special_instructions %}
+                <br />
+                {% if sp.subscription.highlight_in_listing %}
+                  <strong>{% trans "Special Instructions" %}: {{ sp.special_instructions }}</strong>
                 {% else %}
-                    <td></td>
+                  <strong>--&gt;</strong>{% trans "Special Instructions" %}: {{ sp.special_instructions }} <strong>&lt;--</strong>
                 {% endif %}
-                <td><a href="{% url 'contact_detail' sp.subscription.contact.id %}">{{ sp.subscription.contact.name }}</a></td>
-                <td>{{sp.subscription.contact.phone|default_if_none:""}}</td>
-                <td>{{sp.subscription.contact.mobile|default_if_none:""}}</td>
-                <td>
-                  {{ sp.address.address_1 }} {{ sp.address.address_2|default_if_none:"" }}
-                {% if sp.special_instructions %}
-                  <br/>
-                  {% if sp.subscription.highlight_in_listing %}
-                    <strong>{% trans "Special Instructions" %}: {{ sp.special_instructions }}</strong>
-                  {% else %}
-                    <strong>--&gt;</strong>{% trans "Special Instructions" %}: {{ sp.special_instructions }} <strong>&lt;--</strong>
-                  {% endif %}
+              {% endif %}
+              {% if sp.label_message %}
+                <br />
+                {% if sp.subscription.highlight_in_listing %}
+                  <strong>{% trans "Label Message" %}: {{ sp.label_message }}</strong>
+                {% else %}
+                  <strong>--&gt;</strong>{% trans "Label Message" %}: {{ sp.label_message }} <strong>&lt;--</strong>
                 {% endif %}
-                {% if sp.label_message %}
-                  <br/>
-                  {% if sp.subscription.highlight_in_listing %}
-                    <strong>{% trans "Label Message" %}: {{ sp.label_message }}</strong>
-                  {% else %}
-                    <strong>--&gt;</strong>{% trans "Label Message" %}: {{ sp.label_message }} <strong>&lt;--</strong>
-                  {% endif %}
-                {% endif %}
-                </td>
-                <td>{{ sp.address.city|default_if_none:"" }}</td>
-                <td>{{ sp.order|default_if_none:"&nbsp;&nbsp;" }}</td>
-            </tr>
+              {% endif %}
+            </td>
+            <td>{{ sp.address.city|default_if_none:"" }}</td>
+            <td>{{ sp.order|default_if_none:"&nbsp;&nbsp;" }}</td>
+          </tr>
         {% endfor %}
-        </table>
-
-        {% if changes_dict|get_item:route_id %}
+      </table>
+      {% if changes_dict|get_item:route_id %}
         <strong>{% trans "Changes in route" %}</strong>
         <ul>
-            {% for rc in changes_dict|get_item:route_id %}
-                <li>{{ rc.contact.name }} - {{ rc.old_address }}</li>
-            {% endfor %}
+          {% for rc in changes_dict|get_item:route_id %}<li>{{ rc.contact.name }} - {{ rc.old_address }}</li>{% endfor %}
         </ul>
-        {% endif %}
-        {% if directions_dict|get_item:route_id %}
-            <pre style="font-size:1.4em;font-weight:bold;padding:1em;">{{ directions_dict|get_item:route_id }}</pre>
-        {% endif %}
+      {% endif %}
+      {% if directions_dict|get_item:route_id %}
+        <pre style="font-size:1.4em;font-weight:bold;padding:1em;">{{ directions_dict|get_item:route_id }}</pre>
+      {% endif %}
       {% if issues_dict|get_item:route_id %}
-      <div class="container-fluid">
-        <table>
+        <div class="container-fluid">
+          <table>
             <caption style="caption-side: top">{% trans "Issues" %}</caption>
             <thead>
-                <tr>
-                    <th>{% trans "Date" %}</th>
-                    <th>{% trans "Contact" %}</th>
-                    <th>{% trans "Phone" %}</th>
-                    <th>{% trans "Address" %}</th>
-                    <th>{% trans "Issue type" %}</th>
-                    <th>{% trans "Product" %}</th>
-                    <th>{% trans "Notes" %}</th>
-                </tr>
+              <tr>
+                <th>{% trans "Date" %}</th>
+                <th>{% trans "Contact" %}</th>
+                <th>{% trans "Phone" %}</th>
+                <th>{% trans "Address" %}</th>
+                <th>{% trans "Issue type" %}</th>
+                <th>{% trans "Product" %}</th>
+                <th>{% trans "Notes" %}</th>
+              </tr>
             </thead>
             <tbody>
-                {% for issue in issues_dict|get_item:route_id %}
+              {% for issue in issues_dict|get_item:route_id %}
                 <tr>
-                    <td>{{issue.date}}</td>
-                    <td><a href="{% url 'contact_detail' issue.contact.id %}">{{ issue.contact.name }}</a></td>
-                    <td>{{issue.contact.phone}} {% if issue.contact.mobile %}{{issue.contact.mobile}}{% endif %}</td>
-                    <td>{{issue.get_address}}</td>
-                    <td>{{issue.get_subcategory}}</td>
-                    <td>{{issue.product}}</td>
-                    <td>{{issue.notes}}</td>
+                  <td>{{ issue.date }}</td>
+                  <td>
+                    <a href="{% url 'contact_detail' issue.contact.id %}">{{ issue.contact.get_full_name }}</a>
+                  </td>
+                  <td>
+                    {{ issue.contact.phone }}
+                    {% if issue.contact.mobile %}{{ issue.contact.mobile }}{% endif %}
+                  </td>
+                  <td>{{ issue.get_address }}</td>
+                  <td>{{ issue.get_subcategory }}</td>
+                  <td>{{ issue.product }}</td>
+                  <td>{{ issue.notes }}</td>
                 </tr>
-                {% endfor %}
+              {% endfor %}
             </tbody>
-        </table>
-      </div>
+          </table>
+        </div>
       {% endif %}
       {% if closing_subscriptions_dict|get_item:route_id %}
-      <div class='container-fluid'>
+        <div class="container-fluid">
           <table>
-              <caption style="caption-side: top">{% trans "Closing subscriptions" %}</caption>
-              <thead>
-                  <tr>
-                    <th>Id</th>
-                    <th>{% trans "Name" %}</th>
-                    <th>{% trans "Address" %}</th>
-                    <th>{% trans "Phone" %}</th>
-                    <th>{% trans "City" %}</th>
-                    <th>{% trans "State" %}</th>
-                    <th>{% trans "End date" %}</th>
-                  </tr>
-              </thead>
-              <tbody>
-                {% for sp in closing_subscriptions_dict|get_item:route_id %}
-                    <tr>
-                        <td>{{sp.subscription.contact.id}}</td>
-                        <td><a href="{% url 'contact_detail' sp.subscription.contact.id %}">{{ sp.subscription.contact.name }}</a></td>
-                        <td>{{sp.subscription.contact.phone}} - {{sp.subscription.contact.mobile|default_if_none:""}}</td>
-                        <td>{{sp.address.address_1}}</td>
-                        <td>{{sp.address.city}}</td>
-                        <td>{{sp.address.state}}</td>
-                        <td>{{sp.subscription.end_date}}</td>
-                    </tr>
-                {% endfor %}
-              </tbody>
+            <caption style="caption-side: top">{% trans "Closing subscriptions" %}</caption>
+            <thead>
+              <tr>
+                <th>Id</th>
+                <th>{% trans "Name" %}</th>
+                <th>{% trans "Address" %}</th>
+                <th>{% trans "Phone" %}</th>
+                <th>{% trans "City" %}</th>
+                <th>{% trans "State" %}</th>
+                <th>{% trans "End date" %}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for sp in closing_subscriptions_dict|get_item:route_id %}
+                <tr>
+                  <td>{{ sp.subscription.contact.id }}</td>
+                  <td>
+                    <a href="{% url 'contact_detail' sp.subscription.contact.id %}">{{ sp.subscription.contact.get_full_name }}</a>
+                  </td>
+                  <td>{{ sp.subscription.contact.phone }} - {{ sp.subscription.contact.mobile|default_if_none:"" }}</td>
+                  <td>{{ sp.address.address_1 }}</td>
+                  <td>{{ sp.address.city }}</td>
+                  <td>{{ sp.address.state_name }}</td>
+                  <td>{{ sp.subscription.end_date }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
           </table>
-      </div>
-
-
+        </div>
       {% endif %}
-
-
     {% endif %}
-<div style="page-break-after: always"></div>
-{% endfor %}
+    <div style="page-break-after: always"></div>
+  {% endfor %}
 {% endblock %}

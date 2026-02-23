@@ -1,10 +1,5 @@
 {% extends "adminlte/base.html" %}
-{% load static core_tags i18n %}
-
-{% block stylesheets %}
-  {{ block.super }}
-  <link href="{% static 'css/stylish-tables.css' %}" type="text/css" rel="stylesheet" />
-{% endblock %}
+{% load i18n %}
 
 {% block no_heading %}
   <h1>{% trans "Home" %}</h1>
@@ -15,11 +10,12 @@
   <div class="card">
     <div class="card-header">
       <h2 class="card-title">
-        {% blocktrans with first_name=request.user.first_name  %}Hi {{first_name}}, choose your destination{% endblocktrans %}
+        {% blocktrans with first_name=request.user.first_name %}Hi {{first_name}}, choose your destination{% endblocktrans %}
       </h2>
     </div>
     <div class="card-body">
-      <div class="row">
+      {% block main_menu_content %}
+        <div class="row">
           <div class="col-lg-3 col-6">
             <div class="card">
               <div class="card-header">
@@ -33,7 +29,8 @@
               </div>
             </div>
           </div>
-      </div>
+        </div>
+      {% endblock %}
     </div>
   </div>
 {% endblock %}

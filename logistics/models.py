@@ -8,6 +8,8 @@ from django.db.models import Sum
 from django.contrib.gis.db.models import PointField, PolygonField
 from django.utils.translation import gettext_lazy as _
 
+from phonenumber_field.modelfields import PhoneNumberField
+
 from logistics.choices import RESORT_STATUS_CHOICES, MESSAGE_PLACES
 from core.models import SubscriptionProduct
 
@@ -17,14 +19,14 @@ class Route(models.Model):
     A route is a territory which is used to deliver a product easily, allowing us to organize the delivery of the
     product for the different distributors. There are routes that are parents of other routes in hierarchy.
     """
-
     number = models.IntegerField(primary_key=True, verbose_name=_('Number'))
     name = models.CharField(max_length=40, verbose_name=_('Name'), blank=True, null=True)
     state = models.CharField(max_length=20, verbose_name=_('State'), blank=True, null=True)
     description = models.TextField(blank=True, verbose_name=_('Description'))
     distributor = models.CharField(max_length=40, blank=True, verbose_name=_('Distributor'))
-    phone = models.CharField(max_length=20, blank=True, verbose_name=_('Phone'))
-    mobile = models.CharField(max_length=20, blank=True, verbose_name=_('Mobile'))
+    phone = PhoneNumberField(blank=True, default="", verbose_name=_('Phone'))
+    phone_extension = models.CharField(blank=True, default="", max_length=16, verbose_name=_('Phone extension'))
+    mobile = PhoneNumberField(blank=True, default="", verbose_name=_('Mobile'))
     email = models.CharField(max_length=100, blank=True, verbose_name=_('Email'))
     delivery_place = models.CharField(max_length=40, blank=True, verbose_name=_('Delivery place'))
     arrival_time = models.TimeField(blank=True, null=True, verbose_name=_('Arrival time'))
@@ -39,7 +41,12 @@ class Route(models.Model):
         max_digits=10, decimal_places=2, blank=True, null=True, verbose_name=_('Price per copy')
     )
     parent_route = models.ForeignKey(
-        'self', on_delete=models.CASCADE, related_name='child_route', blank=True, null=True, verbose_name=_('Parent route')
+        'self',
+        on_delete=models.CASCADE,
+        related_name='child_route',
+        blank=True,
+        null=True,
+        verbose_name=_('Parent route'),
     )
     the_geom = PolygonField(blank=True, null=True, srid=32721)
 
@@ -247,7 +254,9 @@ class RouteChange(models.Model):
 
     dt = models.DateTimeField(auto_now_add=True, verbose_name=_('Dt'))
     contact = models.ForeignKey('core.Contact', on_delete=models.CASCADE, verbose_name=_('Contact'))
-    product = models.ForeignKey('core.Product', on_delete=models.CASCADE, verbose_name=_('Product'), null=True, blank=True)
+    product = models.ForeignKey(
+        'core.Product', on_delete=models.CASCADE, verbose_name=_('Product'), null=True, blank=True
+    )
     old_route = models.ForeignKey(Route, on_delete=models.CASCADE, verbose_name=_('Old route'))
     old_address = models.CharField(max_length=255, null=True, blank=True, verbose_name=_('Old address'))
     old_city = models.CharField(max_length=64, null=True, blank=True, verbose_name=_('Old city'))
@@ -293,7 +302,7 @@ class Edition(models.Model):
         unique_together = ('product', 'date')
 
     def __str__(self):
-        return _('Edition %s %s') % (self.product, self.date)
+        return _("Edition {product} {date}").format(product=self.product, date=self.date)
 
 
 class EditionRoute(models.Model):

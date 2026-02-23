@@ -1,0 +1,64 @@
+{% extends "adminlte/base.html" %}
+{% load static widget_tweaks %}
+{% block no_heading %}
+  <h1>Agregar Suscripción Afiliada</h1>
+{% endblock no_heading %}
+
+{% block extra_js %}
+  <script src="{% static 'js/htmx.min.js' %}" defer></script>
+{% endblock extra_js %}
+
+{% block content %}
+  <div class="card">
+    <div class="card-body">
+      <p>Afiliados actuales: {{ current_affiliates }} / {{ corporate_subscription.number_of_subscriptions }}</p>
+      <p>Espacios disponibles: {{ available_slots }}</p>
+      <p>Contacto principal: {{ corporate_subscription.contact.get_full_name }}</p>
+      <p>
+        Producto disponible: {{ corporate_subscription.products.first.name }} - Duración: {{ corporate_subscription.products.first.duration_months }} meses
+      </p>
+      <form method="post">
+        {% csrf_token %}
+        <label for="{{ form.contact.id_for_label }}">Buscar contacto:</label>
+        <input type="text"
+               id="{{ form.contact.id_for_label }}"
+               name="q"
+               class="form-control mb-2"
+               hx-get="{% url 'search_contacts_htmx' %}"
+               hx-target="#contact_htmx_results"
+               hx-trigger="keyup changed delay:500ms">
+        <div id="contact_htmx_results">{% include "partials/search_contacts_results.html" %}</div>
+        <div class="row mt-2">
+          <div class="col-md-6">
+            <label for="{{ form.start_date.id_for_label }}">Fecha de inicio:</label>
+            {% render_field form.start_date class="form-control mb-2" %}
+          </div>
+          <div class="col-md-6">
+            <label for="{{ form.end_date.id_for_label }}">Fecha de fin:</label>
+            {% render_field form.end_date class="form-control mb-2" %}
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary">Guardar</button>
+        <a href="{% url 'contact_detail' corporate_subscription.contact.id %}"
+           class="btn btn-secondary">Cancelar</a>
+      </form>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header">
+      <h3>Afiliados actuales</h3>
+    </div>
+    <div class="card-body">
+      <ul>
+        {% for affiliate in affiliate_subscriptions %}
+          <li>
+            <a href="{% url 'contact_detail' affiliate.contact.id %}">
+              {{ affiliate.contact.get_full_name }} - {{ affiliate.contact.id_document_type|default_if_none:"N/A" }} {{ affiliate.contact.id_document|default_if_none:"-" }}
+            </a>
+            - {{ affiliate.start_date }} - {{ affiliate.end_date }}
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+{% endblock %}

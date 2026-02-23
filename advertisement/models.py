@@ -4,6 +4,9 @@ from django.contrib.auth.models import User
 from django.utils.translation import gettext_lazy as _
 from django.urls import reverse
 
+from phonenumber_field.modelfields import PhoneNumberField
+from core.fields import LowercaseEmailField
+
 
 class Advertiser(models.Model):
     # This model is used to store the advertisers
@@ -24,17 +27,17 @@ class Advertiser(models.Model):
     other_contacts = models.ManyToManyField(
         "core.Contact", verbose_name=_("Other contacts"), related_name="other_advertisements", blank=True
     )
-    email = models.EmailField(_("Email"), max_length=254, null=True, blank=True)
-    phone = models.CharField(_("Phone"), max_length=50, null=True, blank=True)
+    email = LowercaseEmailField(_("Email"), max_length=254, null=True, blank=True)
+    phone = PhoneNumberField(_("Phone"), blank=True, default="")
     priority = models.CharField(_("Importance"), max_length=2, choices=Priority.choices, default=Priority.MID)
 
     # Billing data
     billing_name = models.CharField(_("Billing name"), max_length=50, null=True, blank=True)
     billing_id_document = models.CharField(_("Billing ID document"), max_length=20, blank=True, null=True)
     utr = models.CharField(_("Unique taxpayer reference"), max_length=50, blank=True, null=True)
-    billing_phone = models.CharField(_("Billing phone"), max_length=50, null=True, blank=True)
+    billing_phone = PhoneNumberField(_("Billing phone"), blank=True, default="")
     billing_address = models.CharField(_("Billing address"), max_length=50, null=True, blank=True)
-    billing_email = models.EmailField(_("Billing email field"), max_length=254, null=True, blank=True)
+    billing_email = LowercaseEmailField(_("Billing email field"), max_length=254, null=True, blank=True)
     main_seller = models.ForeignKey(
         "advertisement.advertisementseller",
         verbose_name=_("Seller"),
@@ -96,16 +99,16 @@ class Agency(models.Model):
         "core.Contact", verbose_name=_("Other contacts"), related_name="other_agencies", blank=True
     )
     priority = models.CharField(_("Importance"), max_length=2, choices=Priority.choices, default=Priority.MID)
-    email = models.EmailField(_("Email"), max_length=254, null=True, blank=True)
-    phone = models.CharField(_("Phone"), max_length=50, null=True, blank=True)
+    email = LowercaseEmailField(_("Email"), max_length=254, null=True, blank=True)
+    phone = PhoneNumberField(_("Phone"), blank=True, default="")
 
     # Billing data
     billing_name = models.CharField(_("Billing name"), max_length=50, null=True, blank=True)
     billing_id_document = models.CharField(_("Billing ID document"), max_length=20, blank=True, null=True)
     utr = models.CharField(_("Unique taxpayer reference"), max_length=50, blank=True, null=True)
-    billing_phone = models.CharField(_("Billing phone"), max_length=50, null=True, blank=True)
+    billing_phone = PhoneNumberField(_("Billing phone"), blank=True, default="")
     billing_address = models.CharField(_("Billing address"), max_length=50, null=True, blank=True)
-    billing_email = models.EmailField(_("Billing email field"), max_length=254, null=True, blank=True)
+    billing_email = LowercaseEmailField(_("Billing email field"), max_length=254, null=True, blank=True)
     main_seller = models.ForeignKey(
         "advertisement.advertisementseller",
         verbose_name=_("Seller"),
@@ -286,7 +289,7 @@ class Agent(models.Model):
     agency = models.ForeignKey("advertisement.agency", on_delete=models.CASCADE)
     advertiser = models.ForeignKey("advertisement.advertiser", on_delete=models.CASCADE)
     contact = models.ForeignKey("core.Contact", on_delete=models.CASCADE, null=True, blank=True)
-    email = models.EmailField(_("Email"), max_length=254, null=True, blank=True)
+    email = LowercaseEmailField(_("Email"), max_length=254, null=True, blank=True)
     notes = models.TextField(_("Notes"), null=True, blank=True)
 
     class Meta:

@@ -1,43 +1,82 @@
 {% extends "adminlte/base.html" %}
 {% load static i18n widget_tweaks core_tags %}
 
+{% block extra_head %}
+<style>
+  .select2-container .select2-selection--single {
+    height: 38px;
+    padding: 6px 12px;
+  }
+  .table th {
+    background-color: #f4f6f9;
+  }
+</style>
+{% endblock %}
 {% block title %}
-    {% trans "Scheduled activities" %}
+  {% trans "Scheduled activities" %}
 {% endblock %}
 
 {% block no_heading %}
-<h1>{% trans "Activities" %}</h1>
-<p>{% trans "All your upcoming and scheduled activities." %}</p>
+  <h1><i class="fas fa-calendar-alt mr-2"></i>{% trans "Activities" %}</h1>
+  <p class="text-muted">{% trans "All your upcoming and scheduled activities." %}</p>
 {% endblock %}
 
 {% block content %}
-<div class="row">
+  <div class="row">
     <div class="col-md-12">
-      <div class="card card-outline card-primary">
-        <div class="card-header">
-          <h3 class="card-title">{% trans "Filter" %} ({{ count }} {% trans "activities" %})</h3>
+      <div class="card card-outline card-primary shadow-sm">
+        <div class="card-header bg-gradient-light">
+          <h3 class="card-title"><i class="fas fa-filter mr-2"></i>{% trans "Filter" %} <span class="badge badge-primary ml-2">{{ count }}</span></h3>
           <div class="card-tools">
-              <button type="button" class="btn btn-tool" data-card-widget="collapse"><i class="fas fa-minus"></i>
-              </button>
-            </div>
+            <button type="button" class="btn btn-tool" data-card-widget="collapse">
+              <i class="fas fa-minus"></i>
+            </button>
+          </div>
         </div>
         <div class="card-body">
           <form method="get" id="form">
             <div class="row">
-              <div class="form-group row col-5">
-                <label for="phone" class="col-sm-3 col-form-label">{% trans "Status" %}</label>
-                <div class="col-sm-9">
-                  {% render_field filter.form.status class="form-control" %}
+              <div class="col-md-4 col-sm-6">
+                <div class="form-group">
+                  <label for="status"><i class="fas fa-tag mr-1"></i>{% trans "Status" %}</label>
+                  {% render_field filter.form.status class="form-control select2" style="width: 100%;" data-placeholder="Select status" %}
                 </div>
               </div>
-              <div class="form-group row col-6">
-                <label for="state" class="col-sm-3 col-form-label">{% trans "Campaign" %}</label>
-                <div class="col-sm-9">
-                  {% render_field filter.form.campaign class="form-control" %}
+              <div class="col-md-4 col-sm-6">
+                <div class="form-group">
+                  <label for="campaign"><i class="fas fa-bullhorn mr-1"></i>{% trans "Campaign" %}</label>
+                  {% render_field filter.form.campaign class="form-control select2" style="width: 100%;" data-placeholder="Select campaign" %}
                 </div>
               </div>
-              <div class="form-group col-sm-1">
-                <input type="submit" class="btn bg-gradient-primary" value="{% trans "Go" %}" />
+              <div class="col-md-4 col-sm-6">
+                <div class="form-group">
+                  <label for="seller_console_action"><i class="fas fa-tasks mr-1"></i>{% trans "Console Action" %}</label>
+                  {% render_field filter.form.seller_console_action class="form-control select2" style="width: 100%;" data-placeholder="Select action" %}
+                </div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 col-sm-6">
+                <div class="form-group">
+                  <label for="subscription_end_date_min"><i class="fas fa-calendar-alt mr-1"></i>{% trans "Subscription End Date From" %}</label>
+                  {% render_field filter.form.subscription_end_date_min class="form-control" %}
+                </div>
+              </div>
+              <div class="col-md-6 col-sm-6">
+                <div class="form-group">
+                  <label for="subscription_end_date_max"><i class="fas fa-calendar-alt mr-1"></i>{% trans "Subscription End Date To" %}</label>
+                  {% render_field filter.form.subscription_end_date_max class="form-control" %}
+                </div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-12 text-right">
+                <a href="{% url 'scheduled_activities' %}" class="btn btn-default mr-2">
+                  <i class="fas fa-undo mr-1"></i>{% trans "Reset" %}
+                </a>
+                <button type="submit" class="btn bg-gradient-primary">
+                  <i class="fas fa-search mr-1"></i>{% trans "Search" %}
+                </button>
               </div>
             </div>
           </form>
@@ -45,68 +84,69 @@
       </div>
     </div>
     <div class="col-md-12">
-        <div class="card">
-          <div class="card-body">
-            <table class="table table-bordered table-striped">
-              <thead>
-                  <tr role="row">
-                    <th>{% trans "Contact name" %}</th>
-                    <th>{% trans "Campaign" %}</th>
-                    <th>{% trans "Status" %}</th>
-                    <th>{% trans "Date and time" %}</th>
-                    <th></th>
-                  </tr>
-              </thead>
-              <tbody>
-                {% for activity in activities %}
-                <tr role="row" {% if activity.datetime > now %}class="table-info"{% endif %}>
-                    <td>{{ activity.contact.name }}</td>
-                    <td>{{ activity.campaign.name }}</td>
-                    <td>{{ activity.get_status }}</td>
-                    <td>{{ activity.datetime }}</td>
-                    <td>
-                      <a class="btn btn-primary" href="{% url "seller_console" "act" activity.campaign.id %}?a={{ activity.id }}">{% trans "See in console" %}</a>
-                      <a href="{% url "contact_detail" activity.contact.id %}" class="btn btn-primary">{% trans "Contact Details" %}</a>
-                    </td>
+      <div class="card shadow-sm">
+        <div class="card-header bg-white">
+          <h3 class="card-title"><i class="fas fa-calendar-check mr-2"></i>{% trans "Scheduled Activities" %}</h3>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-bordered table-striped table-hover">
+            <thead>
+              <tr role="row">
+                <th>{% trans "Contact name" %}</th>
+                <th>{% trans "Campaign" %}</th>
+                <th>{% trans "Status" %}</th>
+                <th>{% trans "Date and time" %}</th>
+                <th>
+                  <a href="?{% if request.GET.urlencode %}{{ request.GET.urlencode }}&{% endif %}sort_by={% if sort_by == 'latest_subscription_end_date' %}-{% endif %}latest_subscription_end_date">
+                    {% trans "Latest Subscription End Date" %}
+                    {% if sort_by == 'latest_subscription_end_date' %}
+                      <i class="fas fa-sort-up"></i>
+                    {% elif sort_by == '-latest_subscription_end_date' %}
+                      <i class="fas fa-sort-down"></i>
+                    {% else %}
+                      <i class="fas fa-sort"></i>
+                    {% endif %}
+                  </a>
+                </th>
+                <th>{% trans "Console Action" %}</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for activity in activities %}
+                <tr role="row"
+                    {% if activity.datetime > now %}class="table-info"{% endif %}>
+                  <td>{{ activity.contact.get_full_name }}</td>
+                  <td>{{ activity.campaign.name }}</td>
+                  <td>{{ activity.get_status }}</td>
+                  <td>{{ activity.datetime }}</td>
+                  <td>{{ activity.latest_subscription_end_date|default:"N/A" }}</td>
+                  <td>{{ activity.seller_console_action|default:"N/A" }}</td>
+                  <td class="text-center">
+                    <div class="btn-group">
+                      <a class="btn btn-sm btn-outline-primary" title="{% trans "See in console" %}"
+                         href="{% url "seller_console" "act" activity.campaign.id %}?a={{ activity.id }}">
+                        <i class="fas fa-desktop mr-1"></i> {% trans "Console" %}
+                      </a>
+                      <a href="{% url "contact_detail" activity.contact.id %}" title="{% trans "Contact Details" %}"
+                         class="btn btn-sm btn-outline-info">
+                        <i class="fas fa-user mr-1"></i> {% trans "Contact" %}
+                      </a>
+                    </div>
+                  </td>
                 </tr>
-                {% endfor %}
-              </tbody>
-            </table>
+              {% endfor %}
+            </tbody>
+          </table>
           </div>
         </div>
       </div>
+    </div>
   </div>
-  {% if contacts.has_other_pages %}
-    {% load proper_paginate %}
-    {% load url_replace %}
-    <ul class="pagination">
-        {% if contacts.number == 1 %}
-            <li class="page-item disabled"><span class="page-link">{% trans "first" %}</span></li>
-        {% else %}
-            <li><a class="page-link" href="?{% url_replace request "p" 1 %}">{% trans "first" %}</a></li>
-        {% endif %}
-        {% if contacts.has_previous %}
-            <li><a class="page-link" href="?{% url_replace request "p" contacts.previous_page_number %}">&laquo;</a></li>
-        {% else %}
-            <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
-        {% endif %}
-        {% for i in paginator|proper_paginate:contacts.number %}
-            {% if contacts.number == i %}
-                <li class="page-item active"><span class="page-link">{{ i }} <span class="sr-only">(current)</span></span></li>
-            {% else %}
-                <li><a class="page-link" href="?{% url_replace request "p" i %}">{{ i }}</a></li>
-            {% endif %}
-        {% endfor %}
-        {% if contacts.has_next %}
-            <li><a class="page-link" href="?{% url_replace request "p" contacts.next_page_number %}">&raquo;</a></li>
-        {% else %}
-            <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
-        {% endif %}
-        {% if contacts.number == paginator.num_pages %}
-            <li class="page-item disabled"><span class="page-link">{% trans "last" %}</span></li>
-        {% else %}
-            <li><a class="page-link" href="?{% url_replace request "p" paginator.num_pages %}">{% trans "last" %}</a></li>
-        {% endif %}
-    </ul>
-  {% endif %}
+    <div class="mt-3">
+    {% if activities.has_other_pages %}
+      {% include "components/_pagination.html" with page_obj=activities paginator=paginator %}
+    {% endif %}
+  </div>
 {% endblock %}

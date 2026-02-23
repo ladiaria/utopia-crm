@@ -1,11 +1,11 @@
 # coding=utf-8
-from datetime import date, timedelta
-
+from datetime import date
 import django_filters
-from django import forms
+
 from django.utils.translation import gettext_lazy as _
 
 from core.models import SubscriptionProduct, Product, Address
+
 
 EMPTY_ORDER_CHOICES = (
     ("only_ordered", _("Only ordered")),

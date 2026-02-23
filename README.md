@@ -8,15 +8,9 @@
 <!-- PROJECT LOGO -->
 <br />
 <p align="center">
-  <a href="https://github.com/ladiaria/utopia-crm">
-    <img src="static/img/logo-utopia.png" alt="Logo">
-  </a>
-
+  <a href="https://github.com/ladiaria/utopia-crm"><img src="static/img/logo-utopia.png" alt="Logo"></a>
   <h3 align="center">Utopía CRM</h3>
-
-  <p align="center">
-    Open Source Customer Relationship Manager (CRM) written in Python using Django framework.
-  </p>
+  <p align="center">Open Source Customer Relationship Manager (CRM) written in Python using Django framework.</p>
 </p>
 
 <!-- TABLE OF CONTENTS -->
@@ -107,7 +101,6 @@ Project Link: [https://github.com/ladiaria/utopia-crm](https://github.com/ladiar
 ## Acknowledgements
 
 Utopia is developed at [la diaria](https://ladiaria.com.uy/) and it has been released open source in 2020 thanks to the support of [Google News Initiative](https://newsinitiative.withgoogle.com/).
-
 
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->

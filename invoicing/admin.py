@@ -1,22 +1,21 @@
 # coding=utf-8
-
-
 from django.contrib import admin
 from django.utils.translation import gettext_lazy as _
 
 from simple_history.admin import SimpleHistoryAdmin
 
-from .models import *
+from invoicing.models import CreditNote, Invoice, InvoiceItem, TransactionType
 
 
 @admin.register(CreditNote)
 class CreditNoteAdmin(SimpleHistoryAdmin):
     model = CreditNote
     search_fields = ('numero', 'invoice__id', 'invoice__contact__id')
-    list_display = ('invoice', 'serie', 'numero', 'get_contact_id')
+    list_display = ('invoice', 'serie', 'numero', 'get_contact_id', 'amount')
     raw_id_fields = ['invoice']
-    readonly_fields = ['invoice', 'uuid', 'serie', 'numero']
+    readonly_fields = ['invoice', 'uuid', 'serie', 'numero', 'created_at', 'updated_at']
     ordering = ["-id"]
+    date_hierarchy = 'created_at'
 
 
 class InvoiceItemInline(admin.StackedInline):
@@ -64,7 +63,17 @@ class InvoiceAdmin(SimpleHistoryAdmin):
     )
     raw_id_fields = ['contact', 'subscription']
     inlines = (InvoiceItemInline,)
-    readonly_fields = ['canceled', 'cancelation_date', 'uuid', 'serie', 'numero', 'pdf']
+    readonly_fields = [
+        'canceled',
+        'cancelation_date',
+        'uuid',
+        'serie',
+        'numero',
+        'pdf',
+        'payment_method_name',
+        'payment_type_name',
+        "consecutive_payment",
+    ]
     ordering = ['-id']
 
 
@@ -73,27 +82,8 @@ class InvoiceItemAdmin(admin.ModelAdmin):
     pass
 
 
-@admin.register(Billing)
-class BillingAdmin(admin.ModelAdmin):
-    list_display = ('id', 'product', 'start', 'amount_billed', 'count', 'progress', 'status')
-    # readonly_fields = ['exclude']
-
-    def get_readonly_fields(self, request, obj=None):
-        if request.user.is_staff:
-            if request.user.is_superuser:
-                return (
-                    'id',
-                    'start',
-                    'exclude',
-                    'errors',
-                    'created_by',
-                    'started_by',
-                    'dpp',
-                    'billing_date',
-                    'end',
-                    'subscriber_amount',
-                )
-            else:
-                return [f.name for f in self.model._meta.fields]
-
-
+@admin.register(TransactionType)
+class TransactionTypeAdmin(admin.ModelAdmin):
+    list_display = ('name', 'code')
+    search_fields = ('name', 'code')
+    ordering = ['-id']

@@ -1,4 +1,4 @@
-{% extends 'adminlte/base.html' %}
+{% extends "adminlte/base.html" %}
 {% load static i18n widget_tweaks %}
 
 {% block extra_head %}
@@ -16,7 +16,7 @@
 {% endblock extra_js %}
 
 {% block no_heading %}
-<div class="col-9"><h1><a href="{% url 'agency_list' %}">{% trans "All agencies" %}</a> &raquo; <a href="{% url 'agency_detail' agency.id %}">{{agency.name}}</a> &raquo; {% trans "New Agent" %}</h1></div>
+<div class="col-9"><h1><a href="{% url "agency_list" %}">{% trans "All agencies" %}</a> > <a href="{% url "agency_detail" agency.id %}">{{ agency.name }}</a> > {% trans "New Agent" %}</h1></div>
 {% endblock no_heading %}
 
 {% block content %}
@@ -43,13 +43,13 @@
               <div class="row mt-2">
                 <div class="col-4">
                   <label for="contact">{% trans "Search contact by ID" %}:</label>
-                  <input type="text" id="contact_search" hx-get="{% url "htmx_search_contacts" %}" hx-trigger="keyup changed delay:500ms" hx-target="#select_contact" class="form-control" name="contact_id" {% if main_contact %}value="{{main_contact.id}}"{% endif %}>
+                  <input type="text" id="contact_search" hx-get="{% url "search_contacts_htmx" %}" hx-trigger="keyup changed delay:500ms" hx-target="#select_contact" class="form-control" name="contact_id" {% if contact %}value="{{ contact.id }}"{% endif %}>
                 </div>
                 <div class="col-4" id="select_contact">
                   <label for="contact">{% trans "Current contact" %}:</label>
                   <select id="id_contact" name="contact" class="form-control">
                     {% if contact %}
-                    <option value="{{contact.id}}">{{contact.id}} - {{contact.name}}</option>
+                    <option value="{{ contact.id }}">{{ contact.id }} - {{ contact.get_full_name }}</option>
                     {% endif %}
                   </select>
                 </div>

@@ -1,16 +1,18 @@
 #!/bin/env python
 # coding=utf-8
-
 from reportlab.pdfgen.canvas import Canvas
 from reportlab.lib.units import mm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 
+from django.conf import settings
 
-pdfmetrics.registerFont(TTFont('Ldcode', 'static/fonts/ldcode.ttf'))
-pdfmetrics.registerFont(TTFont('Roboto', 'static/fonts/Roboto-Regular.ttf'))
-pdfmetrics.registerFont(TTFont('Roboto-Bold', 'static/fonts/Roboto-Bold.ttf'))
-pdfmetrics.registerFont(TTFont('3of9', 'static/fonts/FREE3OF9.TTF'))
+
+fonts_dir = settings.STATIC_ROOT + '/fonts/'
+pdfmetrics.registerFont(TTFont('Ldcode', fonts_dir + 'ldcode.ttf'))
+pdfmetrics.registerFont(TTFont('Roboto', fonts_dir + 'Roboto-Regular.ttf'))
+pdfmetrics.registerFont(TTFont('Roboto-Bold', fonts_dir + 'Roboto-Bold.ttf'))
+pdfmetrics.registerFont(TTFont('3of9', fonts_dir + 'FREE3OF9.TTF'))
 
 
 class PrintableArea(object):
@@ -57,7 +59,10 @@ class PrintableArea(object):
 
     def putLine(self, line, bold=False, br=True, font='Roboto'):
         # TODO: la implementacion del <br> no funciona
-        self.max_line_width = max(self.max_line_width, self.canvas.stringWidth(line, self.getFont(bold=bold, font=font), self.default_font_size))
+        self.max_line_width = max(
+            self.max_line_width,
+            self.canvas.stringWidth(line, self.getFont(bold=bold, font=font), self.default_font_size),
+        )
         self.lines.append((line, bold, font))
         if br:
             self.max_paragraph_height += self.lineHeight(font, self.default_font_size)
@@ -192,7 +197,7 @@ class LogisticsLabel(Label):
         # Area de comunicacion cliente o distribuidor
         p3 = PrintableArea(self.canvas, 0, self.height - barcode_h - 5 * self.octavio, self.width, 2 * self.octavio)
 
-        if not self.message_for_contact:  # No hay comunicacion cliente, podemos usar este espacio para mensaje distribuidor
+        if not self.message_for_contact:  # No hay comunic. cliente, podemos usar este espacio para msg distribuidor
             for line in self.message_for_distributor.splitlines():
                 p3.putLine(line, bold=True)
 

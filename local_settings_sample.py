@@ -1,9 +1,8 @@
 # coding=utf-8
-from settings import INSTALLED_APPS, MIDDLEWARE
+from settings import MIDDLEWARE
 
 
 DEBUG = True
-DEBUG_TOOLBAR_ENABLE = False  # requirements to enable: pip install "django-debug-toolbar<3.2" && cstatic
 
 DATABASES = {
     "default": {
@@ -17,11 +16,6 @@ DATABASES = {
 if DEBUG:
     # CorsMiddleware used in debug mode
     MIDDLEWARE.insert(2, "corsheaders.middleware.CorsMiddleware")
-
-if DEBUG_TOOLBAR_ENABLE:
-    INTERNAL_IPS = ('127.0.0.1', )  # '0.0.0.0' or '*' also can be used here
-    INSTALLED_APPS.append('debug_toolbar')
-    MIDDLEWARE.append('debug_toolbar.middleware.DebugToolbarMiddleware')
 
 # Make this unique, and don't share it with anybody.
 SECRET_KEY = ""
@@ -86,3 +80,9 @@ ISSUE_SUBCATEGORY_GENERIC_DEBT = 'generic-debt'
 # GDAL_LIBRARY_PATH = "/opt/homebrew/opt/gdal/lib/libgdal.dylib"
 # GEOS_LIBRARY_PATH = "/opt/homebrew/opt/geos/lib/libgeos_c.dylib"
 
+# Mercado Pago settings, this is optional. Enable to use Mercado Pago as a payment platform, but leave it
+# disabled to not use it.
+MERCADOPAGO_ENABLED = False  # Override to True to enable Mercado Pago
+# MERCADOPAGO_ACCESS_TOKEN = ""  # Override to your Mercado Pago access token in local_settings.py
+# MERCADOPAGO_API_MAX_ATTEMPTS = 10  # Override to the maximum number of attempts to get a successful payment
+# MERCADOPAGO_FORCE_FAIL_PAYMENT = False  # Override to True to make the payment fail

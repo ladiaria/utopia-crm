@@ -9,6 +9,8 @@
 {% url 'release_seller_contacts' as release_seller_contacts %}
 {% url 'upload_do_not_call_numbers' as upload_do_not_call_numbers %}
 {% url 'sales_record_filter' as sales_record_filter %}
+{% url "check_for_existing_contacts" as check_for_existing_contacts %}
+{% url 'bulk_delete_campaign_status' as bulk_delete_campaign_status %}
 
 <li class="nav-item has-treeview">
   <a href="#" class="nav-link">
@@ -24,6 +26,13 @@
          class="nav-link {% if request.path == import_contacts %}active{% endif %}">
         <i class="nav-icon fas fa-download"></i>
         <p>{% trans "Import Contacts" %}</p>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a href="{{ check_for_existing_contacts }}"
+         class="nav-link {% if request.path == check_for_existing_contacts %}active{% endif %}">
+        <i class="nav-icon fas fa-check"></i>
+        <p>{% trans "Check for existing contacts" %}</p>
       </a>
     </li>
     <li class="nav-item">
@@ -53,29 +62,46 @@
         <p>{% trans "New campaign" %}</p></a>
     </li>
     <li class="nav-item">
-      <a href="{{ campaign_statistics_list }}?active=true" class="nav-link">
+      <a href="{{ campaign_statistics_list }}?active=true"
+         class="nav-link {% if request.path == campaign_statistics_list %}active{% endif %}">
         <i class="nav-icon fas fa-chart-bar"></i>
-        <p>{% trans "Campaign statistics" %}</p></a>
+        <p>{% trans "Campaign statistics" %}</p>
+      </a>
     </li>
     <li class="nav-item">
-      <a href="{{ seller_performance_by_time }}" class="nav-link">
+      <a href="{{ seller_performance_by_time }}"
+         class="nav-link {% if request.path == seller_performance_by_time %}active{% endif %}">
         <i class="nav-icon fas fa-chart-bar"></i>
-        <p>{% trans "Sellers performance" %}</p></a>
+        <p>{% trans "Sellers performance" %}</p>
+      </a>
     </li>
     <li class="nav-item">
-      <a href="{{ release_seller_contacts }}" class="nav-link">
+      <a href="{{ release_seller_contacts }}"
+         class="nav-link {% if request.path == release_seller_contacts %}active{% endif %}">
         <i class="nav-icon fas fa-user-check"></i>
-        <p>{% trans "Release seller contacts" %}</p></a>
+        <p>{% trans "Release seller contacts" %}</p>
+      </a>
     </li>
     <li class="nav-item">
-      <a href="{{ upload_do_not_call_numbers }}" class="nav-link">
+      <a href="{{ upload_do_not_call_numbers }}"
+         class="nav-link {% if request.path == upload_do_not_call_numbers %}active{% endif %}">
         <i class="nav-icon fas fa-upload"></i>
-        <p>{% trans "Upload do not call list" %}</p></a>
+        <p>{% trans "Upload do not call list" %}</p>
+      </a>
     </li>
     <li class="nav-item">
-      <a href="{{ sales_record_filter }}" class="nav-link">
+      <a href="{{ sales_record_filter }}"
+         class="nav-link {% if request.path == sales_record_filter %}active{% endif %}">
         <i class="nav-icon fas fa-file-invoice-dollar"></i>
-        <p>{% trans "Sales Records" %}</p></a>
+        <p>{% trans "Sales Records" %}</p>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a href="{{ bulk_delete_campaign_status }}"
+         class="nav-link {% if request.path == bulk_delete_campaign_status %}active{% endif %}">
+        <i class="nav-icon fas fa-trash-alt"></i>
+        <p>{% trans "Bulk Delete Campaign Status" %}</p>
+      </a>
     </li>
     {% include_if_exists "campaign_management_sidebar_extra.html" %}
   </ul>

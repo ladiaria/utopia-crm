@@ -1,0 +1,406 @@
+{% extends "adminlte/base.html" %}
+{% load static i18n %}
+
+{% block title %}{% trans "Community console" %}{% endblock %}
+
+{% block stylesheets %}
+  {{ block.super }}
+  <style>
+    .badge-overdue { background-color: #dc3545; color: #fff; }
+    .badge-today { background-color: #ffc107; color: #212529; }
+    .badge-future { background-color: #28a745; color: #fff; }
+    .badge-total { background-color: #6c757d; color: #fff; }
+
+    .count-link {
+      font-size: 1.1em;
+      font-weight: 600;
+      text-decoration: none;
+    }
+    .count-link:hover {
+      text-decoration: underline;
+    }
+    .count-link.overdue { color: #dc3545; }
+    .count-link.today { color: #856404; }
+    .count-link.future { color: #28a745; }
+    .count-link.zero { color: #adb5bd; pointer-events: none; }
+
+    .category-header {
+      cursor: pointer;
+      user-select: none;
+    }
+    .category-header:hover {
+      background-color: #f4f6f9 !important;
+    }
+    .category-header .collapse-icon {
+      transition: transform 0.2s ease;
+    }
+    .category-header.collapsed .collapse-icon {
+      transform: rotate(-90deg);
+    }
+
+    .subcategory-table th {
+      font-size: 0.85em;
+      text-transform: uppercase;
+      color: #6c757d;
+      border-top: none;
+    }
+    .subcategory-table td {
+      vertical-align: middle;
+    }
+
+    .summary-card .card-body {
+      padding: 1rem;
+    }
+    .summary-number {
+      font-size: 2rem;
+      font-weight: 700;
+      line-height: 1;
+    }
+    .summary-label {
+      font-size: 0.85rem;
+      color: #6c757d;
+      margin-top: 0.25rem;
+    }
+
+    .search-box {
+      max-width: 400px;
+    }
+
+    .category-card {
+      transition: all 0.2s ease;
+    }
+    .category-card.d-none-search {
+      display: none !important;
+    }
+
+    .no-results-message {
+      display: none;
+      text-align: center;
+      padding: 2rem;
+      color: #6c757d;
+    }
+  </style>
+{% endblock %}
+
+{% block no_heading %}
+  <h1>{% trans "Community console" %}</h1>
+  <p>{% trans "Issue management dashboard" %}</p>
+{% endblock %}
+
+{% block content %}
+  {# Summary cards #}
+  <div class="row mb-3">
+    <div class="col-lg-3 col-6">
+      <div class="small-box bg-danger">
+        <div class="inner">
+          <h3>{{ grand_totals.overdue }}</h3>
+          <p>{% trans "Overdue" %}</p>
+        </div>
+        <div class="icon"><i class="fas fa-exclamation-circle"></i></div>
+      </div>
+    </div>
+    <div class="col-lg-3 col-6">
+      <div class="small-box bg-warning">
+        <div class="inner">
+          <h3>{{ grand_totals.today_count }}</h3>
+          <p>{% trans "Today" %}</p>
+        </div>
+        <div class="icon"><i class="fas fa-clock"></i></div>
+      </div>
+    </div>
+    <div class="col-lg-3 col-6">
+      <div class="small-box bg-success">
+        <div class="inner">
+          <h3>{{ grand_totals.future }}</h3>
+          <p>{% trans "Future" %}</p>
+        </div>
+        <div class="icon"><i class="fas fa-calendar-alt"></i></div>
+      </div>
+    </div>
+    <div class="col-lg-3 col-6">
+      <div class="small-box bg-secondary">
+        <div class="inner">
+          <h3>{{ grand_totals.total }}</h3>
+          <p>{% trans "Total open" %}</p>
+        </div>
+        <div class="icon"><i class="fas fa-tasks"></i></div>
+      </div>
+    </div>
+  </div>
+
+  {# Search and filter bar #}
+  <div class="card">
+    <div class="card-body py-2">
+      <div class="d-flex justify-content-between align-items-center">
+        <div class="input-group search-box">
+          <div class="input-group-prepend">
+            <span class="input-group-text"><i class="fas fa-search"></i></span>
+          </div>
+          <input type="text" id="categorySearch" class="form-control"
+                 placeholder="{% trans 'Filter by category or subcategory...' %}"
+                 autocomplete="off">
+        </div>
+        <div>
+          <button id="expandAll" class="btn btn-sm btn-outline-secondary mr-1">
+            <i class="fas fa-expand-alt"></i> {% trans "Expand all" %}
+          </button>
+          <button id="collapseAll" class="btn btn-sm btn-outline-secondary">
+            <i class="fas fa-compress-alt"></i> {% trans "Collapse all" %}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# Category accordion #}
+  {% if categories %}
+    <div id="categoryAccordion">
+      {% for cat in categories %}
+        <div class="card category-card mb-2" data-category-name="{{ cat.name|lower }}"
+             data-subcategories="{% for sub in cat.subcategories %}{{ sub.name|lower }}{% if not forloop.last %},{% endif %}{% endfor %}">
+          {# Category header #}
+          <div class="card-header category-header py-2 px-3" id="heading-{{ cat.key }}"
+               data-toggle="collapse" data-target="#collapse-{{ cat.key }}"
+               aria-expanded="true" aria-controls="collapse-{{ cat.key }}">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <i class="fas fa-chevron-down collapse-icon mr-2"></i>
+                <strong>{{ cat.name }}</strong>
+                <span class="ml-2 text-muted">({{ cat.subcategories|length }} {% trans "subcategories" %})</span>
+              </div>
+              <div>
+                {% if cat.overdue %}
+                  <span class="badge badge-overdue px-2 py-1 mr-1">
+                    <i class="fas fa-exclamation-circle"></i> {{ cat.overdue }}
+                  </span>
+                {% endif %}
+                {% if cat.today_count %}
+                  <span class="badge badge-today px-2 py-1 mr-1">
+                    <i class="fas fa-clock"></i> {{ cat.today_count }}
+                  </span>
+                {% endif %}
+                {% if cat.future %}
+                  <span class="badge badge-future px-2 py-1 mr-1">
+                    <i class="fas fa-calendar-alt"></i> {{ cat.future }}
+                  </span>
+                {% endif %}
+                <span class="badge badge-total px-2 py-1">{{ cat.total }}</span>
+              </div>
+            </div>
+          </div>
+
+          {# Subcategory table (collapsible) #}
+          <div id="collapse-{{ cat.key }}" class="collapse show" aria-labelledby="heading-{{ cat.key }}">
+            <div class="card-body p-0">
+              <table class="table table-hover subcategory-table mb-0">
+                <thead>
+                  <tr>
+                    <th style="width: 40%">{% trans "Subcategory" %}</th>
+                    <th class="text-center" style="width: 15%">{% trans "Overdue" %}</th>
+                    <th class="text-center" style="width: 15%">{% trans "Today" %}</th>
+                    <th class="text-center" style="width: 15%">{% trans "Future" %}</th>
+                    <th class="text-center" style="width: 15%">{% trans "Total" %}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for sub in cat.subcategories %}
+                    <tr class="subcategory-row" data-subcategory-name="{{ sub.name|lower }}">
+                      <td>
+                        <i class="fas fa-tag text-muted mr-1"></i>
+                        {{ sub.name }}
+                      </td>
+                      <td class="text-center">
+                        {% if sub.overdue %}
+                          <a href="{% url 'list_issues' %}?category={{ cat.key }}{% if sub.id %}&sub_category={{ sub.id }}{% endif %}&next_action_date=custom&next_action_date_lte={{ yesterday|date:'Y-m-d' }}&assigned_to={{ assigned_to_id }}&exclude_finished=true"
+                             class="count-link overdue" title="{% trans 'View overdue issues' %}">
+                            {{ sub.overdue }}
+                          </a>
+                        {% else %}
+                          <span class="count-link zero">0</span>
+                        {% endif %}
+                      </td>
+                      <td class="text-center">
+                        {% if sub.today_count %}
+                          <a href="{% url 'list_issues' %}?category={{ cat.key }}{% if sub.id %}&sub_category={{ sub.id }}{% endif %}&next_action_date=today&assigned_to={{ assigned_to_id }}&exclude_finished=true"
+                             class="count-link today" title="{% trans 'View today issues' %}">
+                            {{ sub.today_count }}
+                          </a>
+                        {% else %}
+                          <span class="count-link zero">0</span>
+                        {% endif %}
+                      </td>
+                      <td class="text-center">
+                        {% if sub.future %}
+                          <a href="{% url 'list_issues' %}?category={{ cat.key }}{% if sub.id %}&sub_category={{ sub.id }}{% endif %}&next_action_date=custom&next_action_date_gte={{ tomorrow|date:'Y-m-d' }}&assigned_to={{ assigned_to_id }}&exclude_finished=true"
+                             class="count-link future" title="{% trans 'View future issues' %}">
+                            {{ sub.future }}
+                          </a>
+                        {% else %}
+                          <span class="count-link zero">0</span>
+                        {% endif %}
+                      </td>
+                      <td class="text-center">
+                        <a href="{% url 'list_issues' %}?category={{ cat.key }}{% if sub.id %}&sub_category={{ sub.id }}{% endif %}&assigned_to={{ assigned_to_id }}&exclude_finished=true"
+                           class="count-link" title="{% trans 'View all issues' %}">
+                          <strong>{{ sub.total }}</strong>
+                        </a>
+                      </td>
+                    </tr>
+                  {% endfor %}
+                  {# Category totals row #}
+                  <tr class="table-active font-weight-bold">
+                    <td>{% trans "Total" %}</td>
+                    <td class="text-center">
+                      {% if cat.overdue %}
+                        <a href="{% url 'list_issues' %}?category={{ cat.key }}&next_action_date=custom&next_action_date_lte={{ yesterday|date:'Y-m-d' }}&assigned_to={{ assigned_to_id }}&exclude_finished=true"
+                           class="count-link overdue">{{ cat.overdue }}</a>
+                      {% else %}
+                        <span class="count-link zero">0</span>
+                      {% endif %}
+                    </td>
+                    <td class="text-center">
+                      {% if cat.today_count %}
+                        <a href="{% url 'list_issues' %}?category={{ cat.key }}&next_action_date=today&assigned_to={{ assigned_to_id }}&exclude_finished=true"
+                           class="count-link today">{{ cat.today_count }}</a>
+                      {% else %}
+                        <span class="count-link zero">0</span>
+                      {% endif %}
+                    </td>
+                    <td class="text-center">
+                      {% if cat.future %}
+                        <a href="{% url 'list_issues' %}?category={{ cat.key }}&next_action_date=custom&next_action_date_gte={{ tomorrow|date:'Y-m-d' }}&assigned_to={{ assigned_to_id }}&exclude_finished=true"
+                           class="count-link future">{{ cat.future }}</a>
+                      {% else %}
+                        <span class="count-link zero">0</span>
+                      {% endif %}
+                    </td>
+                    <td class="text-center">
+                      <a href="{% url 'list_issues' %}?category={{ cat.key }}&assigned_to={{ assigned_to_id }}&exclude_finished=true"
+                         class="count-link"><strong>{{ cat.total }}</strong></a>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+
+    <div id="noResults" class="no-results-message">
+      <i class="fas fa-search fa-2x mb-2"></i>
+      <p>{% trans "No categories or subcategories match your search." %}</p>
+    </div>
+
+  {% else %}
+    <div class="card">
+      <div class="card-body text-center py-5">
+        <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+        <h4>{% trans "No open issues assigned to you" %}</h4>
+        <p class="text-muted">{% trans "All caught up! There are no open issues assigned to you at this time." %}</p>
+      </div>
+    </div>
+  {% endif %}
+
+  {# Instructions card #}
+  <div class="card card-outline card-info mt-3">
+    <div class="card-header">
+      <h3 class="card-title"><i class="fas fa-info-circle mr-1"></i> {% trans "How this console works" %}</h3>
+      <div class="card-tools">
+        <button type="button" class="btn btn-tool" data-card-widget="collapse">
+          <i class="fas fa-minus"></i>
+        </button>
+      </div>
+    </div>
+    <div class="card-body">
+      <p>{% trans "This console shows all open issues assigned to you, grouped by category and subcategory. Issues in a terminal state (finished/resolved) are excluded." %}</p>
+      <h6><strong>{% trans "Date columns" %}</strong></h6>
+      <ul>
+        <li><span class="badge badge-overdue">{% trans "Overdue" %}</span> — {% trans "Issues whose next action date is before today. These need immediate attention." %}</li>
+        <li><span class="badge badge-today">{% trans "Today" %}</span> — {% trans "Issues whose next action date is today. These are due now." %}</li>
+        <li><span class="badge badge-future">{% trans "Future" %}</span> — {% trans "Issues whose next action date is after today. These are scheduled for later." %}</li>
+      </ul>
+      <h6><strong>{% trans "Interacting with the console" %}</strong></h6>
+      <ul>
+        <li>{% trans "Click on any number to open the issue list filtered by that category, subcategory, and date range." %}</li>
+        <li>{% trans "Use the search bar to quickly find a specific category or subcategory." %}</li>
+        <li>{% trans "Click on a category header to expand or collapse its details." %}</li>
+        <li>{% trans "Use the Expand All / Collapse All buttons to toggle all categories at once." %}</li>
+      </ul>
+      <p class="text-muted mb-0"><small>{% trans "The date used for grouping is the issue's next action date. Issues without a next action date will count towards the total but not appear in any date column." %}</small></p>
+    </div>
+  </div>
+{% endblock %}
+
+{% block extra_js %}
+  <script>
+  $(function() {
+    // Search/filter functionality
+    $('#categorySearch').on('input', function() {
+      var query = $(this).val().toLowerCase().trim();
+      var visibleCount = 0;
+
+      if (!query) {
+        // Show everything
+        $('.category-card').removeClass('d-none-search');
+        $('.subcategory-row').show();
+        $('#noResults').hide();
+        return;
+      }
+
+      $('.category-card').each(function() {
+        var $card = $(this);
+        var categoryName = $card.data('category-name');
+        var categoryMatch = categoryName.indexOf(query) !== -1;
+
+        if (categoryMatch) {
+          // Show entire card if category matches
+          $card.removeClass('d-none-search');
+          $card.find('.subcategory-row').show();
+          visibleCount++;
+        } else {
+          // Check subcategories
+          var hasVisibleSub = false;
+          $card.find('.subcategory-row').each(function() {
+            var subName = $(this).data('subcategory-name');
+            if (subName && subName.indexOf(query) !== -1) {
+              $(this).show();
+              hasVisibleSub = true;
+            } else {
+              $(this).hide();
+            }
+          });
+
+          if (hasVisibleSub) {
+            $card.removeClass('d-none-search');
+            // Ensure the card is expanded when filtering
+            $card.find('.collapse').addClass('show');
+            $card.find('.category-header').removeClass('collapsed');
+            visibleCount++;
+          } else {
+            $card.addClass('d-none-search');
+          }
+        }
+      });
+
+      $('#noResults').toggle(visibleCount === 0);
+    });
+
+    // Expand/Collapse all
+    $('#expandAll').click(function() {
+      $('.collapse').addClass('show');
+      $('.category-header').removeClass('collapsed');
+    });
+
+    $('#collapseAll').click(function() {
+      $('.collapse').removeClass('show');
+      $('.category-header').addClass('collapsed');
+    });
+
+    // Toggle collapsed class on header click for icon rotation
+    $('.category-header').on('click', function() {
+      $(this).toggleClass('collapsed');
+    });
+  });
+  </script>
+{% endblock %}

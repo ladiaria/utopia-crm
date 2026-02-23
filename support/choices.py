@@ -1,5 +1,24 @@
 # coding=utf-8
+from django.db import models
 from django.utils.translation import gettext_lazy as _
+from django.conf import settings
+
+
+class ISSUE_CATEGORIES(models.TextChoices):
+    """
+    Issue categories using Django's TextChoices for better type safety and IDE support.
+    
+    These categories represent the main types of issues that can be created in the system.
+    Each category has specific subcategories and workflows associated with it.
+    """
+    LOGISTICS = 'L', _('Logistics')
+    INVOICING = 'I', _('Invoicing')
+    COLLECTIONS = 'M', _('Collections')
+    CONTENTS = 'C', _('Contents')
+    WEB = 'W', _('Web')
+    SERVICE = 'S', _('Service')
+    COMMUNITY = 'O', _('Community')
+
 
 SCHEDULED_TASK_CATEGORIES = (
     ('AC', _('Address change')),
@@ -9,8 +28,8 @@ SCHEDULED_TASK_CATEGORIES = (
     ('PE', _('End of partial pause')),
 )
 
-
-ISSUE_CATEGORIES = (
+# Backward compatibility: Keep the tuple format for legacy code
+DEFAULT_ISSUE_CATEGORIES = (
     ('L', _('Logistics')),
     ('I', _('Invoicing')),
     ('M', _('Collections')),
@@ -19,6 +38,17 @@ ISSUE_CATEGORIES = (
     ('S', _('Service')),
     ('O', _('Community')),
 )
+
+
+def get_issue_categories():
+    """
+    Get issue categories from settings or use default.
+    
+    Returns tuple format for backward compatibility with existing code.
+    For new code, prefer using ISSUE_CATEGORIES.choices directly.
+    """
+    return getattr(settings, "ISSUE_CATEGORIES", DEFAULT_ISSUE_CATEGORIES)
+
 
 ISSUE_SUBCATEGORIES = (
     # Logistics

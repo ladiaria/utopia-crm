@@ -1,0 +1,77 @@
+{# djlint:off H021 #}
+{% extends "adminlte/base.html" %}
+{% load i18n %}
+{% block no_heading %}
+  <h1>{% trans "Never paid issues" %}</h1>
+  <p>{% trans "Contacts who never paid their first invoice" %}</p>
+{% endblock %}
+
+{% block content %}
+  <div class="alert alert-info">
+    <i class="fas fa-info-circle"></i>
+    <strong>{% trans "Priority order" %}:</strong>
+    {% trans "Issues are shown with the most overdue invoices first, then by oldest subscription start date. This helps you focus on the most urgent cases." %}
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">{% trans "Contacts that never paid their first invoice" %}</h3>
+    </div>
+    <div class="card-body">
+      <table class="table table-bordered">
+        <thead>
+          <tr>
+            <th>{% trans "Issue ID" %}</th>
+            <th>{% trans "Contact" %}</th>
+            <th>{% trans "Contact ID" %}</th>
+            <th>{% trans "Subscription start date" %}</th>
+            <th>{% trans "Overdue invoices" %}</th>
+            <th>{% trans "Email" %}</th>
+            <th>{% trans "Phone" %}</th>
+            <th>{% trans "Mobile" %}</th>
+            <th>{% trans "Status" %}</th>
+            <th>{% trans "Actions" %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for issue in issues_never_paid %}
+            <tr>
+              <td>{{ issue.id }}</td>
+              <td>{{ issue.contact.get_full_name }}</td>
+              <td>
+                <a href="{% url "contact_detail" issue.contact.id %}">{{ issue.contact.id }}</a>
+              </td>
+              <td>
+                {% if issue.subscription %}
+                  {{ issue.subscription.start_date|date:"SHORT_DATE_FORMAT" }}
+                {% else %}
+                  -
+                {% endif %}
+              </td>
+              <td class="text-center">
+                {% if issue.overdue_invoices_count > 0 %}
+                  <span class="btn btn-danger btn-sm" style="min-width: 50px; font-weight: bold; font-size: 16px; cursor: default;">
+                    {{ issue.overdue_invoices_count }}
+                  </span>
+                {% else %}
+                  <span class="btn btn-success btn-sm" style="min-width: 50px; font-weight: bold; font-size: 16px; cursor: default;">
+                    0
+                  </span>
+                {% endif %}
+              </td>
+              <td>{{ issue.contact.email|default_if_none:"" }}</td>
+              <td>{{ issue.contact.phone|default_if_none:"" }}</td>
+              <td>{{ issue.contact.mobile|default_if_none:"" }}</td>
+              <td>{{ issue.status }}</td>
+              <td>
+                <a class="btn btn-primary btn-sm" href="{% url "view_issue" issue.id %}">
+                  <i class="fas fa-eye"></i> {% trans "View issue" %}
+                </a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endblock %}

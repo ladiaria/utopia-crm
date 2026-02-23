@@ -1,5 +1,6 @@
 # coding=utf-8
 from datetime import date
+from unidecode import unidecode
 
 from simple_history.models import HistoricalRecords
 
@@ -7,6 +8,7 @@ from django.conf import settings
 from django.db import models
 from django.db.models import Sum, Q
 from django.contrib.auth.models import User
+from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
 
 from core.models import Subscription, Contact
@@ -15,46 +17,111 @@ from invoicing.choices import INVOICEITEM_TYPE_CHOICES, INVOICEITEM_DR_TYPE_CHOI
 
 class Invoice(models.Model):
     contact = models.ForeignKey("core.Contact", on_delete=models.CASCADE)
-    creation_date = models.DateField()
-    expiration_date = models.DateField()
-    service_from = models.DateField()
-    service_to = models.DateField()
+    creation_date = models.DateField(verbose_name=_("Creation Date"))
+    expiration_date = models.DateField(verbose_name=_("Expiration Date"))
+    service_from = models.DateField(verbose_name=_("Service From"))
+    service_to = models.DateField(verbose_name=_("Service To"))
     balance = models.DecimalField(_("Balance"), max_digits=10, decimal_places=2, blank=True, null=True)
     amount = models.DecimalField(_("Amount"), max_digits=10, decimal_places=2, blank=True, null=True)
-    payment_type = models.CharField(_("Payment type"), max_length=2, choices=settings.INVOICE_PAYMENT_METHODS)
-    debited = models.BooleanField(_("Debited"), default=False)
-    paid = models.BooleanField(_("Paid"), default=False)
-    payment_date = models.DateField(_("Payment date"), blank=True, null=True)
-    payment_reference = models.CharField(_("Payment reference"), max_length=32, blank=True, null=True)
-    notes = models.TextField(_("Invoice notes"), blank=True, null=True)
-    canceled = models.BooleanField(_("Canceled"), default=False, editable=False)
-    cancelation_date = models.DateField(_("Cancelation date"), blank=True, editable=False, null=True)
-    uncollectible = models.BooleanField(_("Uncollectible"), default=False)
-    subscription = models.ForeignKey("core.Subscription", blank=True, null=True, on_delete=models.SET_NULL)
-    print_date = models.DateField(null=True, blank=True)
+    payment_type = models.CharField(
+        _("Payment type"),
+        max_length=2,
+        choices=settings.INVOICE_PAYMENT_METHODS,
+        blank=True,
+        null=True,
+    )
+    debited = models.BooleanField(default=False, verbose_name=_("Debited"))
+    paid = models.BooleanField(default=False, verbose_name=_("Paid"))
+    payment_date = models.DateField(blank=True, null=True, verbose_name=_("Payment date"))
+    payment_reference = models.CharField(
+        max_length=50, blank=True, null=True, db_index=True, verbose_name=_("Payment reference")
+    )
+    notes = models.TextField(blank=True, null=True, verbose_name=_("Invoice notes"))
+    canceled = models.BooleanField(default=False, editable=False, verbose_name=_("Canceled"))
+    cancelation_date = models.DateField(blank=True, editable=False, null=True, verbose_name=_("Cancelation date"))
+    uncollectible = models.BooleanField(default=False, verbose_name=_("Uncollectible"))
+    subscription = models.ForeignKey(
+        "core.Subscription", blank=True, null=True, on_delete=models.SET_NULL, verbose_name=_("Subscription")
+    )
+    print_date = models.DateField(null=True, blank=True, verbose_name=_("Print date"))
     uuid = models.CharField(max_length=36, editable=False, blank=True, null=True)
-    serie = models.CharField(max_length=1, editable=False, blank=True, null=True)
-    numero = models.PositiveIntegerField(editable=False, blank=True, null=True)
-    pdf = models.FileField(upload_to=settings.INVOICES_PATH, editable=False, blank=True, null=True)
+    serie = models.CharField(max_length=1, editable=False, blank=True, null=True, verbose_name=_("Serie"))
+    numero = models.PositiveIntegerField(editable=False, blank=True, null=True, verbose_name=_("Number"))
+    pdf = models.FileField(
+        upload_to=settings.INVOICES_PATH, editable=False, blank=True, null=True, verbose_name=_("PDF")
+    )
+    payment_method_fk = models.ForeignKey(
+        "core.PaymentMethod",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name=_("Payment method"),
+        help_text=_(
+            "Payment method used to pay for the subscription, for example: "
+            "'Cash', 'Credit Card', 'Debit Card', 'Bank Transfer', etc."
+        ),
+    )
+    payment_type_fk = models.ForeignKey(
+        "core.PaymentType",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name=_("Payment type"),
+        help_text=_(
+            "Payment type used to pay for the subscription, for example:"
+            " 'American Express', 'Visa', 'Mastercard', etc."
+        ),
+    )
+    # These two fields are used to save the payment method and type in case they are deleted from the database
+    payment_method_name = models.CharField(max_length=255, blank=True, null=True)
+    payment_type_name = models.CharField(max_length=255, blank=True, null=True)
 
     # Fields for CFE
     billing_address = models.CharField(max_length=255, blank=True, null=True, verbose_name=_("Billing Address"))
-    billing_state = models.CharField(max_length=50, blank=True, null=True, verbose_name=_("Billing State"))
-    billing_city = models.CharField(max_length=64, blank=True, null=True, verbose_name=_("Billing City"))
+    billing_country = models.CharField(max_length=255, blank=True, null=True, verbose_name=_("Billing Country"))
+    billing_state = models.CharField(max_length=255, blank=True, null=True, verbose_name=_("Billing State"))
+    billing_city = models.CharField(max_length=255, blank=True, null=True, verbose_name=_("Billing City"))
     billing_document = models.CharField(
         max_length=20,
         blank=True,
         null=True,
         verbose_name=_("Billing Identifcation Document"),
     )
-    billing_name = models.CharField(max_length=100, verbose_name=_("Billing Name"), null=True, blank=True)
+    billing_name = models.CharField(max_length=255, verbose_name=_("Billing Name"), null=True, blank=True)
 
     # Fields for logistics
-    route = models.PositiveIntegerField(blank=True, null=True)
-    order = models.PositiveIntegerField(blank=True, null=True)
+    route = models.PositiveIntegerField(blank=True, null=True, verbose_name=_("Route"))
+    order = models.PositiveIntegerField(blank=True, null=True, verbose_name=_("Order"))
+    fiscal_invoice_code = models.CharField(max_length=50, blank=True, null=True, verbose_name=_("Fiscal Invoice Code"))
+    internal_provider_text = models.TextField(blank=True, null=True, verbose_name=_("Internal Provider Text"))
+
+    transaction_type = models.ForeignKey(
+        "invoicing.TransactionType",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name=_("Transaction Type"),
+    )
+    transaction_number = models.CharField(verbose_name=_("Transaction Number"), max_length=50, blank=True, null=True)
+
+    consecutive_payment = models.PositiveIntegerField(verbose_name=_("Consecutive Payment"), blank=True, null=True)
 
     billing = models.ForeignKey("invoicing.Billing", blank=True, null=True, on_delete=models.SET_NULL)
     history = HistoricalRecords()
+
+    created_at = models.DateTimeField(verbose_name=_("Created at"), auto_now_add=True, null=True, blank=True)
+    updated_at = models.DateTimeField(verbose_name=_("Updated at"), auto_now=True, null=True, blank=True)
+
+    old_pk = models.PositiveIntegerField(blank=True, null=True)
+
+    def save(self, *args, **kwargs):
+        # Save the payment method and type in case they are deleted from the database to preserve the integrity
+        # of the invoice data.
+        if self.payment_method_fk:
+            self.payment_method_name = self.payment_method_fk.name
+        if self.payment_type_fk:
+            self.payment_type_name = self.payment_type_fk.name
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return '%s %d' % (_('Invoice'), self.id)
@@ -69,32 +136,34 @@ class Invoice(models.Model):
             amount = amount - i.amount if i.type == "D" else amount + i.amount
         return amount
 
+    @property
+    def is_paid(self):
+        return self.paid or self.debited
+
+    @property
+    def is_overdue(self):
+        if self.canceled or self.uncollectible:
+            return False
+        return self.expiration_date <= date.today() and not self.paid and not self.debited
+
+    @property
+    def is_pending(self):
+        return not self.is_paid and not self.is_overdue
+
     def get_status(self, with_date=True):
-        if self.paid or self.debited:
-            if with_date:
+        if self.canceled:
+            return _("Canceled")
+        elif self.uncollectible:
+            return _("Uncollectible")
+        elif self.is_paid:
+            if with_date and self.payment_date:
                 return _("Paid on {}".format(self.payment_date))
             else:
                 return _("Paid")
-        elif self.uncollectible:
-            return _("Uncollectible")
-        elif self.canceled:
-            return _("Canceled")
-        elif not (self.paid or self.debited) and self.expiration_date <= date.today():
+        elif self.is_overdue:
             return _("Overdue")
         else:
             return _("Pending")
-
-    def get_status_code(self):
-        if self.paid or self.debited:
-            return "p"
-        elif self.uncollectible:
-            return "u"
-        elif self.canceled:
-            return "c"
-        elif not (self.paid or self.debited) and self.expiration_date <= date.today():
-            return "o"
-        else:
-            return "d"
 
     def get_payment_type(self):
         types = dict(settings.INVOICE_PAYMENT_METHODS)
@@ -132,10 +201,62 @@ class Invoice(models.Model):
         else:
             return None
 
+    def add_item(self, product, amount=None, copies=1, description=None, price=None, discount=None, notes=None):
+        """
+        Adds a product to the invoice. If the product is a discount, the amount should be negative.
+        """
+        if not description:
+            description = product.name
+        if not price:
+            price = product.price
+        amount = price * copies if not amount else amount
+        item = InvoiceItem(
+            invoice=self,
+            amount=amount,
+            product=product,
+            copies=copies,
+            description=description,
+            price=price,
+            discount=discount,
+            notes=notes,
+        )
+        item.save()
+
+    def get_total_amount(self):
+        total = 0
+        for item in self.invoiceitem_set.all():
+            total += item.amount
+        return total
+
+    def get_discount_items(self):
+        return self.invoiceitem_set.filter(type="D")
+
+    def get_product_items(self):
+        return self.invoiceitem_set.filter(type="I")
+
+    def get_discount_total(self):
+        """Returns the total amount of all discount items"""
+        return self.invoiceitem_set.filter(type="D").aggregate(total=Sum('amount'))['total'] or 0
+
+    def get_product_total(self):
+        """Returns the total amount of all product items"""
+        return self.invoiceitem_set.filter(type="I").aggregate(total=Sum('amount'))['total'] or 0
+
+    def get_rounding_total(self):
+        return self.invoiceitem_set.filter(type="R").aggregate(total=Sum('amount'))['total'] or 0
+
     class Meta:
-        verbose_name = "invoice"
-        verbose_name_plural = "invoices"
+        verbose_name = _("invoice")
+        verbose_name_plural = _("invoices")
         ordering = ["creation_date"]
+        permissions = [
+            ("can_download_pdf", "Can download PDF"),
+            ("can_cancel_invoice", "Can cancel invoice"),
+            ("can_generate_invoices", "Can generate invoices"),
+            ("can_send_duplicate_via_email", "Can send duplicate via email"),
+            ("can_send_to_mercadopago", "Can send to MercadoPago"),
+            ("can_send_to_provider", "Can send to provider"),
+        ]
 
 
 class InvoiceCopy(Invoice):
@@ -149,28 +270,48 @@ class InvoiceCopy(Invoice):
 
 
 class InvoiceItem(models.Model):
-    invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, blank=True, null=True)
-    amount = models.DecimalField(max_digits=10, decimal_places=2)
-    product = models.ForeignKey("core.Product", blank=True, null=True, on_delete=models.SET_NULL)
-    subscription = models.ForeignKey("core.Subscription", blank=True, null=True, on_delete=models.SET_NULL)
-    copies = models.PositiveSmallIntegerField(default=1)
-    description = models.CharField(max_length=500)
-    price = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
-    discount = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
-    notes = models.TextField(blank=True, null=True)
-    service_from = models.DateField(null=True, blank=True)
-    service_to = models.DateField(null=True, blank=True)
+    invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, blank=True, null=True, verbose_name=_("Invoice"))
+    amount = models.DecimalField(
+        max_digits=10, decimal_places=2, help_text=_("Total amount"), verbose_name=_("Total amount")
+    )
+    product = models.ForeignKey(
+        "core.Product", blank=True, null=True, on_delete=models.SET_NULL, verbose_name=_("Product")
+    )
+    subscription = models.ForeignKey(
+        "core.Subscription", blank=True, null=True, on_delete=models.SET_NULL, verbose_name=_("Subscription")
+    )
+    copies = models.PositiveSmallIntegerField(default=1, verbose_name=_("Copies"))
+    description = models.CharField(max_length=500, verbose_name=_("Description"))
+    price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        blank=True,
+        null=True,
+        help_text=_("Price per copy"),
+        verbose_name=_("Price per copy"),
+    )
+    discount = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True, verbose_name=_("Discount"))
+    notes = models.TextField(blank=True, null=True, verbose_name=_("Notes"))
+    service_from = models.DateField(null=True, blank=True, verbose_name=_("Service from"))
+    service_to = models.DateField(null=True, blank=True, verbose_name=_("Service to"))
 
     # Fields for CFE
-    type = models.CharField(max_length=1, default="I", choices=INVOICEITEM_TYPE_CHOICES)
-    type_dr = models.CharField(max_length=1, blank=True, null=True, choices=INVOICEITEM_DR_TYPE_CHOICES, default="1")
+    type = models.CharField(max_length=1, default="I", choices=INVOICEITEM_TYPE_CHOICES, verbose_name=_("Type"))
+    type_dr = models.CharField(
+        max_length=1,
+        blank=True,
+        null=True,
+        choices=INVOICEITEM_DR_TYPE_CHOICES,
+        default="1",
+        verbose_name=_("Type Discount/Surcharge"),
+    )
 
     def __str__(self):
         return str(self.description)
 
     class Meta:
-        verbose_name = "invoice item"
-        verbose_name_plural = "invoice items"
+        verbose_name = _("Invoice item")
+        verbose_name_plural = _("Invoice items")
         ordering = ["invoice"]
 
 
@@ -257,14 +398,19 @@ class CreditNote(models.Model):
     Esto modela las notas de crédito necesarias para la factura electrónica.
     """
 
-    invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE)
+    invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, verbose_name=_("Invoice"))
     uuid = models.CharField(max_length=36, blank=True, null=True)
-    serie = models.CharField(max_length=1, editable=False, blank=True, null=True)
-    numero = models.PositiveIntegerField(editable=False, blank=True, null=True)
+    serie = models.CharField(max_length=1, editable=False, blank=True, null=True, verbose_name=_("Serie"))
+    numero = models.PositiveIntegerField(editable=False, blank=True, null=True, verbose_name=_("Number"))
+    amount = models.PositiveIntegerField(blank=True, null=True, verbose_name=_("Amount"))
+    old_pk = models.PositiveIntegerField(blank=True, null=True)
+    created_at = models.DateTimeField(verbose_name=_("Created at"), auto_now_add=True, null=True, blank=True)
+    updated_at = models.DateTimeField(verbose_name=_("Updated at"), auto_now=True, null=True, blank=True)
     history = HistoricalRecords()
 
     class Meta:
-        verbose_name_plural = "credit notes"
+        verbose_name_plural = _("credit notes")
+        verbose_name = _("credit note")
 
     def get_contact_id(self):
         return self.invoice.contact_id
@@ -278,3 +424,42 @@ class CreditNoteCopy(CreditNote):
 
     class Meta:
         proxy = True
+
+
+class MercadoPagoData(models.Model):
+    contact = models.OneToOneField("core.Contact", on_delete=models.CASCADE, related_name='mercadopago_data')
+    card_id = models.CharField(max_length=255, blank=True, null=True)
+    customer_id = models.CharField(max_length=255, blank=True, null=True)
+    payment_method_id = models.CharField(max_length=255, blank=True, null=True)
+    identification_type = models.CharField(max_length=50, blank=True, null=True)
+    identification_number = models.CharField(max_length=50, blank=True, null=True)
+    last_four_digits = models.CharField(max_length=4, blank=True, null=True)
+    payment_method_type = models.CharField(max_length=50, blank=True, null=True)
+    token = models.CharField(max_length=255, blank=True, null=True)
+
+    def __str__(self):
+        return f"Mercado Pago Data for {self.contact}"
+
+    class Meta:
+        verbose_name = _("Mercado Pago Data")
+        verbose_name_plural = _("Mercado Pago Data")
+
+
+class TransactionType(models.Model):
+    name = models.CharField(max_length=255, unique=True, verbose_name=_("Name"))
+    code = models.CharField(max_length=255, unique=True, null=True, blank=True, verbose_name=_("Code"))
+    description = models.TextField(blank=True, verbose_name=_("Description"))
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = _("Transaction Type")
+        verbose_name_plural = _("Transaction Types")
+
+    def save(self, *args, **kwargs):
+        if not self.code:
+            base = unidecode(self.name)
+            code = slugify(base).replace('-', '_')
+            self.code = code
+        super().save(*args, **kwargs)

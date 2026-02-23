@@ -4,6 +4,7 @@ from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 from django.urls import reverse
 from django.utils.safestring import mark_safe
+from django.utils import timezone
 
 from core.models import SubscriptionProduct
 
@@ -39,6 +40,11 @@ def in_group(user, group_name):
     if user.groups.filter(name=group_name).exists():
         return True
     return False
+
+
+@register.filter(is_safe=True)
+def has_perm(user, perm):
+    return user.has_perm(perm)
 
 
 @register.filter(is_safe=True)
@@ -111,3 +117,18 @@ def is_app_installed(app_name):
 def is_app_hidden(app_name):
     hidden_apps = getattr(settings, 'DISABLED_APPS', [])
     return app_name in hidden_apps
+
+
+@register.simple_tag
+def days_until(target_date):
+    current_date = timezone.now().date()
+    try:
+        if current_date > target_date:
+            return _("Expired")
+    except Exception:
+        return "-"
+
+    delta = target_date - current_date
+
+    msg = _('{days} days remaining').format(days=delta.days)
+    return msg

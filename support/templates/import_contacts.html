@@ -1,80 +1,337 @@
-{% extends 'adminlte/base.html' %}
-{% load static i18n %}
+{% extends "adminlte/base.html" %}
+{% load static i18n core_tags %}
 
 {% block title %}{% trans "Import contacts" %}{% endblock title %}
 
 {% block no_heading %}
-<h1>{% trans 'Support' %}</h1>
-<p>{% trans 'Import new contacts' %}</p>
+<h1>{% trans "Campaign Administration" %}</h1>
 {% endblock %}
 {% block breadcrumbs %}
 <ol class="breadcrumb">
-  <li class="breadcrumb-item"><a href="/support/">{% trans 'Support' %}</a></li>
-  <li class="breadcrumb-item active">{% trans 'Import new contacts' %}</li>
+  <li class="breadcrumb-item active">{% trans "Import new contacts" %}</li>
 </ol>
 {% endblock %}
 
 {% block content %}
-<div class="card">
-  <div class="card-header">
-    <h3 class="card-title">{% trans 'Import new contacts' %}</h3>
-  </div>
-  <div class="card-body">
-    {% if new_contacts_count %}
-    <h4>{{new_contacts_count}} {% trans 'new contacts imported' %}:</h4>
-    {% endif %}
+<div class="row">
+  <div class="col-md-12">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">{% trans "Import Contacts from CSV" %}</h3>
+        <div class="card-tools">
+          <a href="?download_template=1" class="btn btn-sm btn-success">
+            <i class="fas fa-download"></i> {% trans "Download CSV Template" %}
+          </a>
+        </div>
+      </div>
+      <div class="card-body">
+        <!-- Instructions Alert -->
+        <div class="alert alert-info">
+          <h5><i class="icon fas fa-info-circle"></i> {% trans "Instructions" %}</h5>
+          <p>{% trans "Follow these steps to import contacts:" %}</p>
+          <ol>
+            <li>{% trans "Download the CSV template using the button above" %}</li>
+            <li>{% trans "Fill in the template with your contact data" %}</li>
+            <li>{% trans "Upload the completed CSV file below" %}</li>
+            <li>{% trans "Configure tags for different contact types" %}</li>
+            <li>{% trans "Click Import to process the file" %}</li>
+          </ol>
+        </div>
 
-    {% if in_active_campaign %}
-    <p>{{in_active_campaign}} contactos fueron encontrados en campañas activas.</p>
-    {% endif %}
-    {% if active_contacts %}<p>{{active_contacts}} contactos estaban activos.</p>{% endif %}
-    {% if existing_inactive_contacts %}<p>{{existing_inactive_contacts}} contactos estaban inactivos.</p>{% endif %}
-    {% if added_emails %}
-    <p>{{added_emails}} emails fueron agregados a contactos existentes.</p>
-    {% endif %}
+        <!-- Contact Matching Logic -->
+        <div class="card card-outline card-warning">
+          <div class="card-header">
+            <h3 class="card-title"><i class="fas fa-search"></i> {% trans "How Contact Matching Works" %}</h3>
+          </div>
+          <div class="card-body">
+            <p><strong>{% trans "The system uses a two-step matching process to find existing contacts:" %}</strong></p>
+            
+            <div class="row">
+              <div class="col-md-6">
+                <div class="callout callout-info">
+                  <h5><i class="fas fa-envelope"></i> {% trans "Step 1: Email Match" %}</h5>
+                  <p>{% trans "The system first tries to find contacts by email address (exact match, case-insensitive)." %}</p>
+                  <p class="mb-0"><strong>{% trans "If found:" %}</strong> {% trans "The contact is considered a match and will be categorized accordingly." %}</p>
+                </div>
+              </div>
+              
+              <div class="col-md-6">
+                <div class="callout callout-info">
+                  <h5><i class="fas fa-phone"></i> {% trans "Step 2: Phone Match" %}</h5>
+                  <p>{% trans "If no email match is found, the system tries to match by phone number (checks both phone and mobile fields)." %}</p>
+                  <p class="mb-0"><strong>{% trans "If found:" %}</strong> {% trans "The contact is matched and the email from CSV will be added if the contact doesn't have one." %}</p>
+                </div>
+              </div>
+            </div>
 
-    {% if errors_list %}
-    <h4>{% trans 'Import has encountered some errors' %}:</h4>
-    <ul>
-      {% for error in errors_list %}
-      <li>{% trans "Error" %}: {{error}}</li>
-      {% endfor %}
-    </ul>
-    {% endif %}
+            <hr>
 
+            <h5><i class="fas fa-tags"></i> {% trans "What Happens When Contacts Are Found (Coincidences)" %}</h5>
+            <p>{% trans "When a contact is found in the database, it will be categorized into one of these groups and tagged accordingly:" %}</p>
+            
+            <div class="table-responsive">
+              <table class="table table-sm table-bordered">
+                <thead class="thead-light">
+                  <tr>
+                    <th>{% trans "Contact Status" %}</th>
+                    <th>{% trans "What Happens" %}</th>
+                    <th>{% trans "Tags Applied" %}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr class="table-danger">
+                    <td><strong>{% trans "In Active Campaign" %}</strong></td>
+                    <td>{% trans "Contact is already in an active campaign. No new data is added to avoid conflicts." %}</td>
+                    <td><span class="badge badge-danger">{% trans "Tags for contacts in campaigns" %}</span></td>
+                  </tr>
+                  <tr class="table-warning">
+                    <td><strong>{% trans "Has Active Subscription" %}</strong></td>
+                    <td>{% trans "Contact has an active subscription. Phone numbers may be added if missing." %}</td>
+                    <td><span class="badge badge-warning">{% trans "Tags for active contacts" %}</span></td>
+                  </tr>
+                  <tr class="table-info">
+                    <td><strong>{% trans "Existing Inactive Contact" %}</strong></td>
+                    <td>{% trans "Contact exists but has no active subscription or campaign. Phone numbers may be added if missing." %}</td>
+                    <td><span class="badge badge-info">{% trans "Tags for existing contacts" %}</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
 
-    <form action="" method="post" enctype="multipart/form-data">
-      {% csrf_token %}
-      <div class="form-group">
-        <label
-          for="file">{% trans 'Choose file to send. It has to be a csv file with the following header and columns' %}:</label>
-        <p>{% trans "name, phone, email, mobile, work_phone, notes, address_1, address_2, city, state" %}</p>
-        <p>{% trans "All columns must be present in the header. Only name and phone are required in the content." %}</p>
-        <input type="file" name="file" id="file" class="form-control" accept=".csv">
-      </div>
-      <div class="form-group">
-        <label for="tags">Etiqueta para los contactos inexistentes:</label>
-        <input type="text" id="tags" name="tags" class="form-control" required />
-      </div>
-      <div class="form-group">
-        <label for="tags">Etiqueta para los contactos existentes, fuera de campaña, inactivos, y sin deuda (Dejar en
-          blanco si no es requerido):</label>
-        <input type="text" id="tags" name="tags_existing" class="form-control" />
-      </div>
-      <div class="form-group">
-        <label for="tags">Etiqueta para los contactos existentes, activos (Dejar en blanco si no es requerido):</label>
-        <input type="text" id="tags" name="tags_active" class="form-control" />
-      </div>
-      <div class="form-group">
-        <label for="tags">Etiqueta para los contactos existentes, en campañas (Dejar en blanco si no es
-          requerido):</label>
-        <input type="text" id="tags" name="tags_in_campaign" class="form-control" />
-      </div>
+            <div class="alert alert-warning mt-3">
+              <i class="icon fas fa-info-circle"></i>
+              <strong>{% trans "Phone Number Updates:" %}</strong> {% trans "If only one matching contact is found, the system will add phone numbers from the CSV if the contact is missing them. If the contact already has a phone number, the CSV phone will be added to the mobile field." %}
+            </div>
 
-      <div class="form-group text-right">
-        <input type="submit" value="{% trans 'Import' %}" class="btn bg-gradient-primary">
+            <hr>
+
+            <h5><i class="fas fa-user-plus"></i> {% trans "What Happens When No Coincidences Are Found" %}</h5>
+            <p>{% trans "When no matching contact is found (neither by email nor phone), a completely new contact will be created with:" %}</p>
+            <ul>
+              <li>{% trans "All data from the CSV file (name, email, phone, address, etc.)" %}</li>
+              <li>{% trans "A physical address if address_1 is provided" %}</li>
+              <li>{% trans "The tags configured for new contacts" %}</li>
+            </ul>
+            
+            <div class="alert alert-success">
+              <i class="icon fas fa-check-circle"></i>
+              <strong>{% trans "Result:" %}</strong> {% trans "You will see a success message showing how many new contacts were created." %}
+            </div>
+          </div>
+        </div>
+
+        <!-- CSV Format Information -->
+        <div class="card card-outline card-primary">
+          <div class="card-header">
+            <h3 class="card-title">{% trans "CSV File Format" %}</h3>
+          </div>
+          <div class="card-body">
+            <p><strong>{% trans "Required columns (in order):" %}</strong></p>
+            <div class="table-responsive">
+              <table class="table table-sm table-bordered">
+                <thead>
+                  <tr>
+                    <th>{% trans "Column Name" %}</th>
+                    <th>{% trans "Description" %}</th>
+                    <th>{% trans "Required" %}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>name</code></td>
+                    <td>{% trans "First name" %}</td>
+                    <td><span class="badge badge-danger">{% trans "Yes" %}</span></td>
+                  </tr>
+                  <tr>
+                    <td><code>last_name</code></td>
+                    <td>{% trans "Last name" %}</td>
+                    <td><span class="badge badge-warning">{% trans "No" %}</span></td>
+                  </tr>
+                  <tr>
+                    <td><code>email</code></td>
+                    <td>{% trans "Email address" %}</td>
+                    <td><span class="badge badge-warning">{% trans "No" %}</span></td>
+                  </tr>
+                  <tr>
+                    <td><code>phone</code></td>
+                    <td>{% trans "Phone number" %}</td>
+                    <td><span class="badge badge-warning">{% trans "No" %}</span></td>
+                  </tr>
+                  <tr>
+                    <td><code>mobile</code></td>
+                    <td>{% trans "Mobile number" %}</td>
+                    <td><span class="badge badge-warning">{% trans "No" %}</span></td>
+                  </tr>
+                  <tr>
+                    <td><code>notes</code></td>
+                    <td>{% trans "Additional notes" %}</td>
+                    <td><span class="badge badge-warning">{% trans "No" %}</span></td>
+                  </tr>
+                  <tr>
+                    <td><code>address_1</code></td>
+                    <td>{% trans "Primary address" %}</td>
+                    <td><span class="badge badge-warning">{% trans "No" %}</span></td>
+                  </tr>
+                  <tr>
+                    <td><code>address_2</code></td>
+                    <td>{% trans "Secondary address" %}</td>
+                    <td><span class="badge badge-warning">{% trans "No" %}</span></td>
+                  </tr>
+                  <tr>
+                    <td><code>city</code></td>
+                    <td>{% trans "City" %}</td>
+                    <td><span class="badge badge-warning">{% trans "No" %}</span></td>
+                  </tr>
+                  <tr>
+                    <td><code>state</code></td>
+                    <td>{% trans "State/Department" %}</td>
+                    <td><span class="badge badge-warning">{% trans "No" %}</span></td>
+                  </tr>
+                  <tr>
+                    <td><code>country</code></td>
+                    <td>{% trans "Country" %}</td>
+                    <td><span class="badge badge-warning">{% trans "No" %}</span></td>
+                  </tr>
+                  <tr>
+                    <td><code>id_document_type</code></td>
+                    <td>{% trans "ID document type" %}</td>
+                    <td><span class="badge badge-warning">{% trans "No" %}</span></td>
+                  </tr>
+                  <tr>
+                    <td><code>id_document</code></td>
+                    <td>{% trans "ID document number" %}</td>
+                    <td><span class="badge badge-warning">{% trans "No" %}</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="alert alert-warning mt-3">
+              <i class="icon fas fa-exclamation-triangle"></i>
+              <strong>{% trans "Important:" %}</strong> {% trans "All columns must be present in the CSV file, even if they are empty. Use the template to ensure correct formatting." %}
+            </div>
+          </div>
+        </div>
+
+        <!-- Expected Results Summary -->
+        <div class="card card-outline card-success">
+          <div class="card-header">
+            <h3 class="card-title"><i class="fas fa-clipboard-check"></i> {% trans "What to Expect After Import" %}</h3>
+          </div>
+          <div class="card-body">
+            <p>{% trans "After processing your CSV file, you will receive detailed feedback messages showing:" %}</p>
+            
+            <div class="row">
+              <div class="col-md-6">
+                <h6 class="text-success"><i class="fas fa-check-circle"></i> {% trans "Success Messages" %}</h6>
+                <ul class="list-unstyled">
+                  <li><i class="fas fa-user-plus text-success"></i> {% trans "Number of new contacts created" %}</li>
+                  <li><i class="fas fa-envelope text-success"></i> {% trans "Number of emails added to existing contacts" %}</li>
+                  <li><i class="fas fa-phone text-success"></i> {% trans "Number of phone numbers added" %}</li>
+                </ul>
+              </div>
+              
+              <div class="col-md-6">
+                <h6 class="text-warning"><i class="fas fa-exclamation-triangle"></i> {% trans "Warning Messages" %}</h6>
+                <ul class="list-unstyled">
+                  <li><i class="fas fa-bullhorn text-danger"></i> {% trans "Contacts found in active campaigns" %}</li>
+                  <li><i class="fas fa-star text-warning"></i> {% trans "Contacts with active subscriptions" %}</li>
+                  <li><i class="fas fa-user text-info"></i> {% trans "Existing inactive contacts" %}</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="alert alert-info mt-3">
+              <i class="icon fas fa-lightbulb"></i>
+              <strong>{% trans "Pro Tip:" %}</strong> {% trans "Use different tags for each contact type to easily filter and manage them after import. This helps you track which contacts were new vs. existing, and their current status." %}
+            </div>
+          </div>
+        </div>
+
+        <!-- Import Form -->
+        <form action="" method="post" enctype="multipart/form-data">
+          {% csrf_token %}
+          
+          <div class="card card-outline card-success">
+            <div class="card-header">
+              <h3 class="card-title">{% trans "Upload CSV File" %}</h3>
+            </div>
+            <div class="card-body">
+              <div class="form-group">
+                <label for="id_file">{{ form.file.label }}</label>
+                {{ form.file }}
+                {% if form.file.help_text %}
+                  <small class="form-text text-muted">{{ form.file.help_text }}</small>
+                {% endif %}
+                {% if form.file.errors %}
+                  <div class="text-danger">{{ form.file.errors }}</div>
+                {% endif %}
+              </div>
+              
+              <div class="form-group">
+                <div class="form-check">
+                  {{ form.use_headers }}
+                  <label class="form-check-label" for="id_use_headers">
+                    {{ form.use_headers.label }}
+                  </label>
+                </div>
+                {% if form.use_headers.help_text %}
+                  <small class="form-text text-muted">{{ form.use_headers.help_text }}</small>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+          <div class="card card-outline card-info">
+            <div class="card-header">
+              <h3 class="card-title">{% trans "Configure Tags" %}</h3>
+            </div>
+            <div class="card-body">
+              <p class="text-muted">
+                {% trans "Tags help you categorize and organize contacts. Enter comma-separated tags for each contact type." %}
+              </p>
+              
+              <div class="form-group">
+                <label for="id_tags">{{ form.tags.label }}</label>
+                {{ form.tags }}
+                <small class="form-text text-muted">
+                  {% trans "These tags will be applied to newly created contacts" %}
+                </small>
+              </div>
+              
+              <div class="form-group">
+                <label for="id_tags_existing">{{ form.tags_existing.label }}</label>
+                {{ form.tags_existing }}
+                <small class="form-text text-muted">
+                  {% trans "Applied to existing contacts without active subscriptions or campaigns (optional)" %}
+                </small>
+              </div>
+              
+              <div class="form-group">
+                <label for="id_tags_active">{{ form.tags_active.label }}</label>
+                {{ form.tags_active }}
+                <small class="form-text text-muted">
+                  {% trans "Applied to existing contacts with active subscriptions (optional)" %}
+                </small>
+              </div>
+              
+              <div class="form-group">
+                <label for="id_tags_in_campaign">{{ form.tags_in_campaign.label }}</label>
+                {{ form.tags_in_campaign }}
+                <small class="form-text text-muted">
+                  {% trans "Applied to existing contacts in active campaigns (optional)" %}
+                </small>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group text-right">
+            <button type="submit" class="btn btn-lg bg-gradient-primary">
+              <i class="fas fa-upload"></i> {% trans "Import Contacts" %}
+            </button>
+          </div>
+        </form>
       </div>
-    </form>
+    </div>
   </div>
 </div>
 {% endblock %}

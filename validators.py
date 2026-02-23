@@ -6,7 +6,7 @@ from django.utils.translation import gettext as _
 
 class NumberValidator(object):
     def validate(self, password, user=None):
-        if not re.findall('\d', password):
+        if not re.findall(r'\d', password):
             raise ValidationError(
                 _("The password must contain at least 1 digit, 0-9."),
                 code='password_no_number',

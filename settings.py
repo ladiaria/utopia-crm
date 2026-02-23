@@ -104,6 +104,8 @@ INSTALLED_APPS = [
     "leaflet",
     "djgeojson",
     'markdownify.apps.MarkdownifyConfig',
+    'django_select2',
+    "phonenumber_field",
     # crm apps enabled
     "core",
     "support",
@@ -141,16 +143,24 @@ LOGO = "static/img/logo-utopia.png"
 # logo for the invoices.
 INVOICE_LOGO = LOGO
 
-# Background tasks settings
-MAX_ATTEMPTS = 1
-MAX_RUN_TIME = 10800
-
 TABBED_ADMIN_USE_JQUERY_UI = True
 
 GRAPH_MODELS = {
     "all_applications": True,
     "group_models": True,
 }
+
+# Background tasks
+MAX_ATTEMPTS = 1
+MAX_RUN_TIME = 10800
+
+# django-select2
+SELECT2_CACHE_BACKEND = "default"  # it can use any other cache backend supported by Django like redis
+
+# default NLs map, format:
+# key=function to eval receiving contact as arg, value: default NLs product slugs to add if key function returns True
+# use special key True to add default NLs in the entry for all contacts, example: {True: ["default"]}
+CORE_DEFAULT_NEWSLETTERS = {}
 
 # Predefined states in Address model. If you don't want to use a choice for the states, override this to False
 USE_STATES_CHOICE = True
@@ -184,12 +194,19 @@ INVOICE_PAYMENT_METHODS = (("M", "Mastercard"), ("V", "Visa"), ("C", "Cash"))
 # How many days into the future are we going to bill contacts
 BILLING_EXTRA_DAYS = 2
 
+# Issue statuses
+ISSUE_STATUS_NEW = "new"
+ISSUE_STATUS_PENDING = "pending"
+ISSUE_STATUS_ASSIGNED = "assigned"
+ISSUE_STATUS_UNASSIGNED = "unassigned"
+
 # list of statuses slugs that will be used to mark the issue as finished
 ISSUE_STATUS_SOLVED = "solved"
 ISSUE_STATUS_FINISHED_LIST = [ISSUE_STATUS_SOLVED, "not-solved"]
 
 # logistics
 LOGISTICS_LABEL_INVOICE_PAYMENT_TYPES = []
+ISSUE_SUBCATEGORY_NOT_DELIVERED = "not-delivered"
 
 # Override to True if route for billing is required
 # Useful when you explicitly require to send the invoices via logistics
@@ -206,8 +223,8 @@ SPECIAL_ROUTES_FOR_SELLERS_LIST = []
 WEB_UPDATE_USER_ENABLED = False  # TODO: write analogous systemcheck made in CMS when this is True and "no url"
 LDSOCIAL_URL = ""  # The SITE_URL setting of the "associated" utopia-cms deplyment (CMS)
 LDSOCIAL_API_KEY = ""  # A key generated in the CMS using "rest_framework_api_key" app
-WEB_UPDATE_USER_VERIFY_SSL = True
-WEB_UPDATE_HTTP_BASIC_AUTH = None  # Override to tuple (user, pass) if the CMS is also restricted using basic auth
+WEB_UPDATE_HTTP_BASIC_AUTH = None  # Override to tuple (user, pass) if the CMS is restricted using basic auth
+ENV_HTTP_BASIC_AUTH = False  # Override to True if this CRM deployment is restricted using basic auth
 # Subscriptions to publication and area newsletters sync (to find usage, do not grep literally, use "_MEWSLETTER_MAP")
 WEB_UPDATE_NEWSLETTER_MAP = {
     # Override to sync CMS Publication newsletters subscriptions, format: key: CMS Publication.id, value: product.slug
@@ -215,20 +232,54 @@ WEB_UPDATE_NEWSLETTER_MAP = {
 WEB_UPDATE_AREA_NEWSLETTER_MAP = {
     # Override to sync CMS Area newsletters subscriptions, format: key: CMS Category.id, value: product.slug
 }
-# Api uris which their default value will be assigned after local_settings import, if not overrided there
-WEB_UPDATE_USER_URI = None
-WEB_EMAIL_CHECK_URI = None
+# If True, allows queuing subscriptions to start after the active one ends. This is useful for
+# example to queue a subscription to start after the current one ends, in the case the customer
+# wants to pay for a new subscription before the current one ends.
+ALLOW_QUEUE_SUBSCRIPTIONS = False
 
+# MercadoPago integration (override this to True in your local_settings.py to enable)
+MERCADOPAGO_ENABLED = False
+
+# phonenumbers default region
+PHONENUMBER_DEFAULT_REGION = "UY"
+
+# Variables which their default value will be assigned after local_settings import, if not overrided there
+WEB_UPDATE_USER_URI = None
+WEB_DELETE_USER_URI = None
+WEB_EMAIL_CHECK_URI = None
+WEB_CREATE_USER_ENABLED = None
+WEB_CREATE_USER_POST_WHITELIST = []
+
+GEOREF_SERVICES = False
 
 # Import local settings if they exist
-# TODO: improve hardcoded load of community settings (which are this community settings?)
+# TODO: - improve hardcoded load of community settings (which are this community settings?)
+#         (maybe is the app "community", which defines variables that can be better migrated to this settings file)
+#       - investigate usage of django-environ to manage settings more easily
 try:
     from local_settings import *  # noqa
 except ImportError:
     pass
 
+if locals().get("DEBUG_TOOLBAR_ENABLE"):
+    # NOTE when enabled, you need to: pip install django-debug-toolbar && ./manage.py collectstatic
+    INTERNAL_IPS = ('127.0.0.1', )  # '0.0.0.0' or '*' also can be used here
+    INSTALLED_APPS.append('debug_toolbar')
+    MIDDLEWARE.append('debug_toolbar.middleware.DebugToolbarMiddleware')
 
 # utopia-cms interoperability default urls. TODO: s/(WEB_|LDSOCIAL_)/UTOPIACMS_/
 if LDSOCIAL_URL:
     WEB_UPDATE_USER_URI = WEB_UPDATE_USER_URI or (LDSOCIAL_URL + 'usuarios/fromcrm')
+    WEB_DELETE_USER_URI = WEB_DELETE_USER_URI or (LDSOCIAL_URL + 'usuarios/deletefromcrm')
     WEB_EMAIL_CHECK_URI = WEB_EMAIL_CHECK_URI or (LDSOCIAL_URL + 'usuarios/api/email_check/')
+    LDSOCIAL_API_URI = f"{LDSOCIAL_URL}api/"
+
+if WEB_CREATE_USER_ENABLED is None:
+    WEB_CREATE_USER_ENABLED = WEB_UPDATE_USER_ENABLED
+
+if not WEB_CREATE_USER_ENABLED and WEB_EMAIL_CHECK_URI not in WEB_CREATE_USER_POST_WHITELIST:
+    WEB_CREATE_USER_POST_WHITELIST.append(WEB_EMAIL_CHECK_URI)
+
+if ENV_HTTP_BASIC_AUTH and not locals().get("API_KEY_CUSTOM_HEADER"):
+    # by default, this variable is not defined, thats why we use locals() instead of set a "neutral" value
+    API_KEY_CUSTOM_HEADER = "HTTP_X_API_KEY"

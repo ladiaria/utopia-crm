@@ -1,0 +1,25 @@
+{% load i18n %}
+
+{% if sp.product.digital %}
+  <i class="fas fa-desktop" title="Producto digital" data-toggle="tooltip"></i>
+{% elif sp.product.type == "D" or sp.product.type == "A" %}
+  <i class="fas fa-wallet" title="Descuento" data-toggle="tooltip"></i>
+{% else %}
+  <i class="fas fa-newspaper"
+     title="Producto en papel"
+     data-toggle="tooltip"></i>
+{% endif %}
+{% if sp.has_envelope == 1 %}
+  <i class="fas fa-envelope"
+     title="{% trans "Paid envelope" %}"
+     data-toggle="tooltip"></i>
+{% elif sp.has_envelope == 2 %}
+  <i class="far fa-envelope"
+     title="{% trans "Free envelope" %}"
+     data-toggle="tooltip"></i>
+{% endif %}
+{% if sp.active == False %}
+  <i class="fas fa-pause"
+     title="{% trans "Paused" %}"
+     data-toggle="tooltip"></i>
+{% endif %}

@@ -46,6 +46,36 @@
     $("#campaign_resolution_reason").change(rejectHandler);
   });
   </script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const resultButtons = document.querySelectorAll('.result-btn');
+      const form = document.getElementById('consoleForm');
+      const resultInput = document.getElementById('resultValue');
+
+      let submitted = false;
+
+      resultButtons.forEach(button => {
+        button.addEventListener('click', function() {
+          if (submitted) return; // Prevent second submission
+
+          const result = this.getAttribute('data-result');
+          const confirmMsg = this.getAttribute('data-confirm');
+
+          if (confirmMsg && !confirm(confirmMsg)) {
+            return;
+          }
+
+          submitted = true;
+
+          // Optional: disable all buttons to give visual feedback
+          resultButtons.forEach(btn => btn.disabled = true);
+
+          resultInput.value = result;
+          form.submit();
+        });
+      });
+    });
+  </script>
 {% endblock %}
 
 {% block content %}
@@ -84,7 +114,7 @@
         <div class="card-header">
           <div class="d-flex justify-content-between">
             <h3>
-              <a href="{% url 'contact_detail' contact.id %}" target="_blank">{{ contact.id }} - {{ contact.name }}</a>
+              <a href="{% url 'contact_detail' contact.id %}" target="_blank">{{ contact.id }} - {{ contact.get_full_name }}</a>
             </h3>
             <span>{% trans "Contact " %}{{ offset }} {% trans "of" %} {{ count }}</span>
           </div>
@@ -123,7 +153,7 @@
               {% if contact.work_phone %}
                 <tr {% if contact.do_not_call_work_phone %}class="table-danger"{% endif %}>
                   <td>
-                    <i class="fas fa-phone"></i> {% trans "Work phone" %}:
+                    <i class="fas fa-phone"></i> {% trans "Institutional phone" %}:
                   </td>
                   <td>
                     {% if contact.do_not_call_work_phone %}<span>No llamar:</span>{% endif %}
@@ -139,6 +169,33 @@
                   <td>
                     {% if contact.do_not_call_mobile %}<span>No llamar:</span>{% endif %}
                     {{ contact.mobile|sip }}
+                  </td>
+                </tr>
+              {% endif %}
+              {% if phone_duplicates_count > 0 %}
+                <tr class="table-warning">
+                  <td>
+                    <i class="fas fa-exclamation-triangle"></i> {% trans "Phone duplicates" %}:
+                  </td>
+                  <td>
+                    <strong>{{ phone_duplicates_count }} {% trans "other contact(s) with same phone number" %}</strong>
+                    <div class="mt-2">
+                      {% for duplicate in phone_duplicates %}
+                        <div class="small">
+                          <a href="{% url 'contact_detail' duplicate.id %}"
+                             target="_blank"
+                             class="text-primary">
+                            <i class="fas fa-user"></i> {{ duplicate.id }} - {{ duplicate.get_full_name }}
+                          </a>
+                          {% if duplicate.phone %}
+                            <span class="text-muted">({% trans "Phone" %}: {{ duplicate.phone }})</span>
+                          {% endif %}
+                          {% if duplicate.mobile %}
+                            <span class="text-muted">({% trans "Mobile" %}: {{ duplicate.mobile }})</span>
+                          {% endif %}
+                        </div>
+                      {% endfor %}
+                    </div>
                   </td>
                 </tr>
               {% endif %}
@@ -180,6 +237,9 @@
                   {% if a.seller %}
                     - {% trans "Seller" %}: {{ a.seller }}
                   {% endif %}
+                  {% if a.seller_console_action %}
+                    - {% trans "Action" %}: {{ a.seller_console_action }}
+                  {% endif %}
                 </h3>
                 <div class="card-tools">
                   <button type="button" class="btn btn-tool" data-card-widget="collapse">
@@ -193,7 +253,7 @@
           {% if not all_activities %}
             <p>{% trans "There are no previous activities" %}</p>
           {% endif %}
-          <form method="post">
+          <form method="post" id="consoleForm">
             {% csrf_token %}
             <input type="hidden" name="offset" value="{{ offset }}" />
             <input type="hidden" name="category" value="{{ category }}" />
@@ -201,6 +261,7 @@
             <input type="hidden" name="campaign_id" value="{{ campaign.id }}" />
             <input type="hidden" name="seller_id" value="{{ seller.id }}" />
             <input type="hidden" name="url" value="{{ url }}" />
+            <input type="hidden" name="result" id="resultValue" value="" />
             <div class="form-group">
               <label for="notes">{% trans "Register activity" %}</label>
               <br>
@@ -222,69 +283,78 @@
             </div>
             <br>
             <div class="row">
-              <div class="col-sm-3">
-                <input class="btn btn-block bg-gradient-warning btn-sm "
-                       type="submit"
-                       name="result"
-                       value="No encontrado, llamar más tarde" />
-                <input class="btn btn-block bg-gradient-warning btn-sm"
-                       type="submit"
-                       name="result"
-                       value="{% trans "Error in promotion" %}"
-                       onclick="return confirm('{% trans "Do you want to continue?" %}');" />
-                <input class="btn btn-block bg-gradient-warning btn-sm "
-                       type="submit"
-                       name="result"
-                       value="Inubicable, retirar de campaña"
-                       onclick="return confirm('{% trans "Do you want to continue?" %}');" />
-                <input class="btn btn-block bg-gradient-warning btn-sm "
-                       type="submit"
-                       name="result"
-                       value="Mover a la mañana"
-                       onclick="return confirm('{% trans "Do you want to continue?" %}');" />
-                <input class="btn btn-block bg-gradient-warning btn-sm "
-                       type="submit"
-                       name="result"
-                       value="Mover a la tarde"
-                       onclick="return confirm('{% trans "Do you want to continue?" %}');" />
+              <!-- PENDING Actions Column -->
+              <div class="col-sm-4">
+                <h6 class="text-warning">
+                  <i class="fas fa-clock"></i> <strong>Pendientes</strong>
+                </h6>
+                <button class="btn btn-block bg-gradient-warning btn-sm result-btn"
+                        type="button"
+                        data-result="call-later">Llamar más tarde</button>
+                <button class="btn btn-block bg-gradient-warning btn-sm result-btn"
+                        type="button"
+                        data-result="move-morning"
+                        data-confirm="{% trans "Do you want to continue?" %}">Mover a la mañana</button>
+                <button class="btn btn-block bg-gradient-warning btn-sm result-btn"
+                        type="button"
+                        data-result="move-afternoon"
+                        data-confirm="{% trans "Do you want to continue?" %}">Mover a la tarde</button>
               </div>
-              <div class="col-sm-3">
-                <input class="reject btn btn-block bg-gradient-danger btn-sm "
-                       type="submit"
-                       name="result"
-                       value="No volver a llamar" />
-                <input class="reject btn btn-block bg-gradient-danger btn-sm"
-                       type="submit"
-                       name="result"
-                       value="{% trans "Not interested" %}" />
-                <input class="reject btn btn-block bg-gradient-danger btn-sm"
-                       type="submit"
-                       name="result"
-                       value="{% trans "Logistics" %}" />
-                <input class="reject btn btn-block bg-gradient-danger btn-sm"
-                       type="submit"
-                       name="result"
-                       value="{% trans "Already a subscriber" %}" />
+              <!-- DECLINED Actions Column -->
+              <div class="col-sm-4">
+                <h6 class="text-danger">
+                  <i class="fas fa-times-circle"></i> <strong>Rechazados / Sin Contacto</strong>
+                </h6>
+                <button class="reject btn btn-block bg-gradient-danger btn-sm result-btn"
+                        type="button"
+                        data-result="not-interested">No interesado</button>
+                <button class="reject btn btn-block bg-gradient-danger btn-sm result-btn"
+                        type="button"
+                        data-result="do-not-call">No llamar</button>
+                <button class="reject btn btn-block bg-gradient-danger btn-sm result-btn"
+                        type="button"
+                        data-result="logistics">Logística</button>
+                <button class="reject btn btn-block bg-gradient-danger btn-sm result-btn"
+                        type="button"
+                        data-result="already-subscriber">Ya suscrito</button>
+                <button class="reject btn btn-block bg-gradient-danger btn-sm result-btn"
+                        type="button"
+                        data-result="error-promotion"
+                        data-confirm="{% trans "Do you want to continue?" %}">Error en promoción</button>
+                <button class="reject btn btn-block bg-gradient-secondary btn-sm result-btn"
+                        type="button"
+                        data-result="uncontactable"
+                        data-confirm="{% trans "Do you want to continue?" %}">No contactable</button>
+                <button class="btn btn-block bg-gradient-secondary btn-sm result-btn"
+                        type="button"
+                        data-result="close-without-contact">Cerrar sin contacto</button>
               </div>
-              <div class="col-sm-3">
+              <!-- SUCCESS Actions & Schedule Column -->
+              <div class="col-sm-4">
+                <h6 class="text-success">
+                  <i class="fas fa-check-circle"></i> <strong>Acciones de Venta</strong>
+                </h6>
                 {% if not contact.has_active_subscription %}
                   <a href="{% url 'send_promo' contact.id %}?url={{ url }}&offset={{ offset }}&{{ category }}={{ console_instance.id }}"
                      class="btn btn-block bg-gradient-success btn-sm">{% trans "Send promo" %}</a>
                 {% endif %}
                 {% if contact.has_active_subscription %}
+                  {% if campaign.product.edition_frequency == 4 %}
+                    <a href="{% url 'edit_subscription' contact.id contact.get_first_active_subscription.id %}?url={{ url }}&offset={{ offset }}&{{ category }}={{ console_instance.id }}"
+                       class="btn btn-block bg-gradient-success btn-sm mb-1">{% trans "Edit subscription" %}</a>
+                  {% endif %}
                   <a href="{% url 'additional_product' contact.get_first_active_subscription.id %}?url={{ url }}&offset={{ offset }}&{{ category }}={{ console_instance.id }}"
-                     class="btn btn-block bg-gradient-success btn-sm">Agregar productos</a>
+                     class="btn btn-block bg-gradient-success btn-sm mb-1">{% trans "Add product" %}</a>
                   <a href="{% url 'product_change' contact.get_first_active_subscription.id %}?url={{ url }}&offset={{ offset }}&{{ category }}={{ console_instance.id }}"
-                     class="btn btn-block bg-gradient-success btn-sm">Cambiar productos</a>
+                     class="btn btn-block bg-gradient-success btn-sm mb-1">{% trans "Change product" %}</a>
                 {% else %}
                   <a href="{% url 'new_subscription' contact.id %}?url={{ url }}&offset={{ offset }}&{{ category }}={{ console_instance.id }}"
                      class="btn btn-block bg-gradient-success btn-sm">{% trans "Sell" %}</a>
                 {% endif %}
-                <a href="{{ url }}?offset={{ position }}"
-                   class="btn btn-block bg-gradient-secondary btn-sm">Siguiente (No
-                hacer nada)</a>
-              </div>
-              <div class="col-sm-3">
+                <hr>
+                <h6 class="text-info">
+                  <i class="fas fa-calendar-alt"></i> <strong>Programar</strong>
+                </h6>
                 <div class="form-group row">
                   <div class="col-sm-3">
                     <label for="call_date">{% trans "Date" %}:</label>
@@ -312,117 +382,121 @@
                            max="21:00" />
                   </div>
                 </div>
-                <input type="submit"
-                       class="btn btn-sm btn-primary float-right"
-                       name="result"
-                       value="{% trans "Schedule" %}" />
+                <button type="button"
+                        class="btn btn-sm btn-primary btn-block result-btn"
+                        data-result="schedule">{% trans "Schedule" %}</button>
+                <hr>
+                <a href="{{ url }}?offset={{ position }}"
+                   class="btn btn-block bg-gradient-light btn-sm">Omitir y pasar al siguiente contacto</a>
               </div>
             </div>
-          </div>
+          </form>
         </div>
       </div>
-      <div class="col-sm-3">
-        {% if all_subscriptions or all_activities or other_campaigns %}
-          {% if other_campaigns %}
-            <div class="card card-primary card-outline">
-              <div class="card-header">
-                <h3 class="card-title">
-                  <i class="fas fa-money-check-alt"></i> <b>{% trans "Other campaigns" %}</b>
-                </h3>
-              </div>
-              <div class="card-body">
-                {% for campaign_status in other_campaigns %}
-                  <div class="card">
-                    <div class="card-header">
-                      <h3 class="card-title">
-                        <b>{{ campaign_status.campaign.name }}</b>
-                      </h3>
-                    </div>
-                    <div class="card-body">
-                      {% trans "Status:" %} {{ campaign_status.get_status }}
+    </div>
+    <div class="col-sm-3">
+      {% if all_subscriptions or all_activities or other_campaigns %}
+        {% if other_campaigns %}
+          <div class="card card-primary card-outline">
+            <div class="card-header">
+              <h3 class="card-title">
+                <i class="fas fa-money-check-alt"></i> <b>{% trans "Other campaigns" %}</b>
+              </h3>
+            </div>
+            <div class="card-body">
+              {% for campaign_status in other_campaigns %}
+                <div class="card">
+                  <div class="card-header">
+                    <h3 class="card-title">
+                      <b>{{ campaign_status.campaign.name }}</b>
+                    </h3>
+                  </div>
+                  <div class="card-body">
+                    {% trans "Status:" %} {{ campaign_status.get_status }}
+                    <br>
+                    {% trans "Last action:" %} {{ campaign_status.last_action_date }}
+                    <br>
+                    {% if campaign_status.seller %}
+                      {% trans "Seller:" %} {{ campaign_status.seller.name }}
+                    {% endif %}
+                    {% if campaign_status.campaign_resolution %}
+                      {% trans "Resolution:" %}
+                      {{ campaign_status.get_campaign_resolution }}
                       <br>
-                      {% trans "Last action:" %} {{ campaign_status.last_action_date }}
-                      <br>
-                      {% if campaign_status.seller %}
-                        {% trans "Seller:" %} {{ campaign_status.seller.name }}
-                      {% endif %}
-                      {% if campaign_status.campaign_resolution %}
-                        {% trans "Resolution:" %}
-                        {{ campaign_status.get_campaign_resolution }}
-                        <br>
-                      {% endif %}
-                      {% if campaign_status.resolution_reason %}
-                        {% trans "Reason:" %}
-                        {{ campaign_status.get_resolution_reason }}
-                      {% endif %}
-                    </div>
+                    {% endif %}
+                    {% if campaign_status.resolution_reason %}
+                      {% trans "Reason:" %}
+                      {{ campaign_status.get_resolution_reason }}
+                    {% endif %}
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+        {% endif %}
+        {% if all_subscriptions %}
+          <div class="card card-primary card-outline">
+            <div class="card-header">
+              <h3 class="card-title">
+                <i class="fas fa-money-check-alt"></i> <b>{% trans "Other subscriptions" %}</b>
+              </h3>
+            </div>
+            <div class="card-body">
+              <dl>
+                {% for s in all_subscriptions %}
+                  <dt {% if forloop.counter != 1 %}class="border-top mt-4 pt-3"{% endif %}>
+                    {% trans "Type:" %} {{ s.get_type_display }}
+                  </dt>
+                  <dd>
+                    <b>{% trans "Active" %}:</b> {{ s.active }}
+                  </dd>
+                  {% if s.active == False %}
+                    <button class="btn btn-primary btn-sm"
+                            type="button"
+                            data-toggle="collapse"
+                            data-target="#collapse-{{ s.id }}"
+                            aria-expanded="false"
+                            aria-controls="collapseExample">+ {% trans "Expand" %}</button>
+                  {% endif %}
+                  <div class="{% if s.active == False %}collapse{% endif %}"
+                       id="collapse-{{ s.id }}">
+                    {% if s.type == "P" %}
+                      <dd>
+                        <i>{{ s.campaign.name }}</i>
+                      </dd>
+                    {% endif %}
+                    {% autoescape off %}
+                      <dd>
+                        {{ s.show_products_html }}
+                      </dd>
+                    {% endautoescape %}
+                    <dd>
+                      <b>{% trans "Start" %}</b>: {{ s.start_date|date:"SHORT_DATE_FORMAT" }}
+                    </dd>
+                    {% if s.end_date %}
+                      <dd>
+                        <b>{% trans "End" %}</b>: {{ s.end_date|date:"SHORT_DATE_FORMAT" }}
+                      </dd>
+                    {% endif %}
+                    {% if s.type == "N" %}
+                      <dd>
+                        <b>{% trans "Payment type" %}:</b> {{ s.get_payment_type }}
+                      </dd>
+                    {% endif %}
+                    {% if s.unsubscription_reason %}
+                      <dt>{% trans "Unsubscription reason" %}:</dt>
+                      <dd>
+                        {{ s.get_unsubscription_reason }}
+                      </dd>
+                    {% endif %}
                   </div>
                 {% endfor %}
-              </div>
+              </dl>
             </div>
-          {% endif %}
-          {% if all_subscriptions %}
-            <div class="card card-primary card-outline">
-              <div class="card-header">
-                <h3 class="card-title">
-                  <i class="fas fa-money-check-alt"></i> <b>{% trans "Other subscriptions" %}</b>
-                </h3>
-              </div>
-              <div class="card-body">
-                <dl>
-                  {% for s in all_subscriptions %}
-                    <dt {% if forloop.counter != 1 %}class="border-top mt-4 pt-3"{% endif %}>{% trans "Type:" %} {{ s.get_type }}</dt>
-                    <dd>
-                      <b>{% trans "Active" %}:</b> {{ s.active }}
-                    </dd>
-                    {% if s.active == False %}
-                      <button class="btn btn-primary btn-sm"
-                              type="button"
-                              data-toggle="collapse"
-                              data-target="#collapse-{{ s.id }}"
-                              aria-expanded="false"
-                              aria-controls="collapseExample">+ {% trans "Expand" %}</button>
-                    {% endif %}
-                    <div class="{% if s.active == False %}collapse{% endif %}"
-                         id="collapse-{{ s.id }}">
-                      {% if s.type == "P" %}
-                        <dd>
-                          <i>{{ s.campaign.name }}</i>
-                        </dd>
-                      {% endif %}
-                      {% autoescape off %}
-                        <dd>
-                          {{ s.show_products_html }}
-                        </dd>
-                      {% endautoescape %}
-                      <dd>
-                        <b>{% trans "Start" %}</b>: {{ s.start_date|date:"SHORT_DATE_FORMAT" }}
-                      </dd>
-                      {% if s.end_date %}
-                        <dd>
-                          <b>{% trans "End" %}</b>: {{ s.end_date|date:"SHORT_DATE_FORMAT" }}
-                        </dd>
-                      {% endif %}
-                      {% if s.type == "N" %}
-                        <dd>
-                          <b>{% trans "Payment type" %}:</b> {{ s.get_payment_type }}
-                        </dd>
-                      {% endif %}
-                      {% if s.unsubscription_reason %}
-                        <dt>{% trans "Unsubscription reason" %}:</dt>
-                        <dd>
-                          {{ s.get_unsubscription_reason }}
-                        </dd>
-                      {% endif %}
-                    </div>
-                  {% endfor %}
-                </dl>
-              </div>
-            </div>
-          {% endif %}
+          </div>
         {% endif %}
-        <div hx-get="{% url 'last_read_articles' contact.id %}" hx-trigger="load"></div>
-      </form>
+      {% endif %}
+      <div hx-get="{% url 'last_read_articles' contact.id %}" hx-trigger="load"></div>
     </div>
   </div>
 {% endblock %}

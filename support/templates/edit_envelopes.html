@@ -1,29 +1,32 @@
-{% extends 'adminlte/base.html' %}
+{% extends "adminlte/base.html" %}
 {% load static i18n widget_tweaks %}
-
-{% block title %}{% trans "Edit envelopes" %}{% endblock title %} 
+{% block title %}
+  {% trans "Edit envelopes" %}
+{% endblock title %}
 
 {% block extra_js %}
-<script type="text/javascript" src="{% static 'js/datepicker-es.js' %}"></script>
-<script type="text/javascript">
+  <script type="text/javascript" src="{% static 'js/datepicker-es.js' %}"></script>
+  <script type="text/javascript">
     $( function() {
         $(".datepicker").datepicker({ dateFormat: 'yy-mm-dd' });
       });
-</script>
+  </script>
 {% endblock %}
 
 {% block no_heading %}
-<h1><a href="{% url 'contact_list' %}">{% trans "Contacts" %}</a> &raquo; <a href="{% url 'contact_detail' subscription.contact.id %}">{{subscription.contact.id}} - {{subscription.contact.name}}</a> &raquo; {% trans "Edit envelopes" %} </h1>
+  <h1>
+    <a href="{% url "contact_list" %}">{% trans "Contacts" %}</a> &raquo; <a href="{% url "contact_detail" subscription.contact.id %}">{{ subscription.contact.id }} - {{ subscription.contact.get_full_name }}</a> &raquo; {% trans "Edit envelopes" %}
+  </h1>
 {% endblock no_heading %}
 
 {% block content %}
-<section class="content">
-  <div class="container-fluid">
-    <div class="row">
-      <div class="col-md-12">
-        <div class="card">
-          <div class="card-body">
-            <div class="tab-pane" id="newsletters">
+  <section class="content">
+    <div class="container-fluid">
+      <div class="row">
+        <div class="col-md-12">
+          <div class="card">
+            <div class="card-body">
+              <div class="tab-pane" id="newsletters">
                 <div class="row">
                   <div class="col-md-8">
                     <form method="post">
@@ -36,11 +39,9 @@
                           <div class="form-group">
                             {% for sp in subscription_products %}
                               <div class="row {% if forloop.counter > 1 %}border-top{% endif %}">
+                                <div class="col-5 m-2">{{ sp.product.name }}</div>
                                 <div class="col-5 m-2">
-                                  {{sp.product.name}}
-                                </div>
-                                <div class="col-5 m-2">
-                                  <select name="env-{{sp.id}}" class="form-control">
+                                  <select name="env-{{ sp.id }}" class="form-control">
                                     <option {% if not sp.has_envelope %}selected{% endif %}>-</option>
                                     <option {% if sp.has_envelope == 1 %}selected{% endif %} value="1">{% trans "Paid envelope" %}</option>
                                     <option {% if sp.has_envelope == 2 %}selected{% endif %} value="2">{% trans "Free envelope" %}</option>
@@ -56,12 +57,12 @@
                       </div>
                     </form>
                   </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
     </div>
-  </div>
-</section>
+  </section>
 {% endblock %}

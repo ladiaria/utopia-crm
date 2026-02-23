@@ -5,6 +5,7 @@ from logistics.views import (
     assign_routes,
     order_route,
     change_route,
+    change_subscription_routes,
     list_routes,
     route_details,
     issues_labels,
@@ -25,6 +26,8 @@ from logistics.views import (
     print_labels_for_product_date,
     addresses_with_complementary_information,
     mass_georef_address,
+    MergeCompareAddressesView,
+    ProcessMergeAddressesView,
 )
 
 
@@ -36,8 +39,11 @@ urlpatterns = [
     re_path(r'^order_route/(\d+)/$', order_route, name='order_route'),
     path('print_unordered_subscriptions/', print_unordered_subscriptions, name='print_unordered_subscriptions'),
     re_path(r'^change_route/(\d+)/$', change_route, name='change_route'),
+    re_path(r'^change_subscription_routes/(\d+)/$', change_subscription_routes, name='change_subscription_routes'),
     re_path(r'^convert_orders_to_tens/(\d+)/$', convert_orders_to_tens, name='convert_orders_to_tens'),
-    re_path(r'^convert_orders_to_tens/(\d+)/(\d+)/$', convert_orders_to_tens, name='convert_orders_to_tens_by_product'),
+    re_path(
+        r'^convert_orders_to_tens/(\d+)/(\d+)/$', convert_orders_to_tens, name='convert_orders_to_tens_by_product'
+    ),
     path('routes/', list_routes, name='list_routes'),
     path('routes_detailed/', list_routes_detailed, name='list_routes_detailed'),
     re_path(r'^routes/(?P<route_list>\d+(,\d+)*)/$', route_details, name='route_details'),
@@ -49,8 +55,11 @@ urlpatterns = [
 
     # Label printing system
     re_path(
-        r'^print_labels_for_product/(?P<page>Roll|SheetA4)/(?P<product_id>\d+)(/(?P<list_type>route)/(?P<route_list>\d+(,\d+)*))?/$',
-        print_labels_for_product, name='print_labels_for_product'),
+        r'^print_labels_for_product/(?P<page>Roll|SheetA4)/(?P<product_id>\d+)(/(?P<list_type>route)/'
+        r'(?P<route_list>\d+(,\d+)*))?/$',
+        print_labels_for_product,
+        name='print_labels_for_product',
+    ),
     re_path(
         r'^print_labels/(?P<page>Roll|SheetA4)(/(?P<list_type>route)/(?P<route_list>\d+(,\d+)*))?/$',
         print_labels, name='print_labels'),
@@ -59,6 +68,12 @@ urlpatterns = [
     path('print_labels_for_product_date/', print_labels_for_product_date, name='print_labels_for_product_date'),
 
     re_path(r'^edition_time/(?P<direction>arrival|departure)/$', edition_time, name='edition_time'),
-    path('addresses_with_complementary_information/', addresses_with_complementary_information, name='addresses_with_complementary_information'),
+    path(
+        'addresses_with_complementary_information/',
+        addresses_with_complementary_information,
+        name='addresses_with_complementary_information',
+    ),
     path("mass_georef_address/", mass_georef_address, name="mass_georef_address"),
+    path("merge_addresses/", MergeCompareAddressesView.as_view(), name="merge_compare_addresses"),
+    path("process_merge_addresses/", ProcessMergeAddressesView.as_view(), name="process_merge_addresses"),
 ]

@@ -36,17 +36,40 @@ STATUS_CHOICES = (
 
 
 class InvoiceFilter(django_filters.FilterSet):
-    contact_name = django_filters.CharFilter(method='filter_by_contact_name')
+    contact_name = django_filters.CharFilter(
+        method='filter_by_contact_name',
+        widget=forms.TextInput(attrs={'placeholder': _('Name or last name'), 'autocomplete': 'off'}),
+    )
+    contact_email = django_filters.CharFilter(
+        method='filter_by_contact_email',
+        widget=forms.TextInput(attrs={'placeholder': _('Email'), 'autocomplete': 'off'}),
+    )
+    contact_id_document = django_filters.CharFilter(
+        method='filter_by_contact_id_document',
+        widget=forms.TextInput(attrs={'placeholder': _('ID document'), 'autocomplete': 'off'}),
+    )
+    contact_phone = django_filters.CharFilter(
+        method='filter_by_contact_phone',
+        widget=forms.TextInput(attrs={'placeholder': _('Phone or mobile'), 'autocomplete': 'off'}),
+    )
     creation_date = django_filters.ChoiceFilter(choices=CREATION_CHOICES, method='filter_by_creation_date')
     creation_gte = django_filters.DateFilter(
-        field_name='creation_date', lookup_expr='gte', widget=forms.TextInput(attrs={'autocomplete': 'off'}))
+        field_name='creation_date', lookup_expr='gte',
+        widget=forms.DateInput(attrs={'type': 'date', 'autocomplete': 'off'}),
+    )
     creation_lte = django_filters.DateFilter(
-        field_name='creation_date', lookup_expr='lte', widget=forms.TextInput(attrs={'autocomplete': 'off'}))
+        field_name='creation_date', lookup_expr='lte',
+        widget=forms.DateInput(attrs={'type': 'date', 'autocomplete': 'off'}),
+    )
     status = django_filters.ChoiceFilter(choices=STATUS_CHOICES, method='filter_by_status')
     payment_gte = django_filters.DateFilter(
-        field_name='payment_date', lookup_expr='gte', widget=forms.TextInput(attrs={'autocomplete': 'off'}))
+        field_name='payment_date', lookup_expr='gte',
+        widget=forms.DateInput(attrs={'type': 'date', 'autocomplete': 'off'}),
+    )
     payment_lte = django_filters.DateFilter(
-        field_name='payment_date', lookup_expr='lte', widget=forms.TextInput(attrs={'autocomplete': 'off'}))
+        field_name='payment_date', lookup_expr='lte',
+        widget=forms.DateInput(attrs={'type': 'date', 'autocomplete': 'off'}),
+    )
     no_serial = django_filters.ChoiceFilter(choices=YESNO_CHOICES, method='filter_by_no_serial')
 
     class Meta:
@@ -55,6 +78,17 @@ class InvoiceFilter(django_filters.FilterSet):
 
     def filter_by_contact_name(self, queryset, name, value):
         return queryset.filter(contact__name__icontains=value)
+
+    def filter_by_contact_email(self, queryset, name, value):
+        return queryset.filter(contact__email__icontains=value)
+
+    def filter_by_contact_id_document(self, queryset, name, value):
+        return queryset.filter(contact__id_document__icontains=value)
+
+    def filter_by_contact_phone(self, queryset, name, value):
+        return queryset.filter(
+            Q(contact__phone__icontains=value) | Q(contact__mobile__icontains=value)
+        )
 
     def filter_by_creation_date(self, queryset, name, value):
         if value == 'today':
@@ -90,7 +124,7 @@ class InvoiceFilter(django_filters.FilterSet):
             return queryset.filter(uncollectible=True)
         elif value == 'overdue':
             return queryset.filter(
-                paid=False, debited=False, canceled=False, uncollectible=False, expiration_date__lte=date.today())
+                paid=False, debited=False, canceled=False, uncollectible=False, expiration_date__lt=date.today())
         elif value == 'not_paid':
             return queryset.filter(
                 paid=False, debited=False, canceled=False, uncollectible=False,
@@ -98,7 +132,7 @@ class InvoiceFilter(django_filters.FilterSet):
         else:
             return queryset.filter(
                 paid=False, debited=False, uncollectible=False, canceled=False, expiration_date__gt=date.today())
-    
+
     def filter_by_no_serial(self, queryset, name, value):
         if value == 'yes':
             return queryset.filter(

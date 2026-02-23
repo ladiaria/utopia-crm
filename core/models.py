@@ -12,46 +12,47 @@ from django.contrib.gis.geos import Point
 from django.conf import settings
 from django.core.validators import RegexValidator, MinValueValidator, MaxValueValidator
 from django.db import models
-from django.db.models import Q, Sum, Count, Max
+from django.db.models import Q, Sum, Count, Max, Prefetch
+from django.db.utils import IntegrityError
 from django.forms import ValidationError
-from django.utils.translation import gettext_lazy as _
+from django.utils.translation import gettext_lazy as _, gettext
 from django_extensions.db.fields import AutoSlugField
 from django.utils.html import mark_safe
+from django.utils.functional import cached_property
+from django.utils.text import format_lazy
 from django.urls import reverse
 from django.utils import timezone
 
 from taggit.managers import TaggableManager
 from simple_history.models import HistoricalRecords
+from phonenumber_field.modelfields import PhoneNumberField
 
 from util.dates import get_default_next_billing, get_default_start_date, diff_month
 
 from .managers import ProductManager
 from .choices import (
     ACTIVITY_DIRECTION_CHOICES,
-    ACTIVITY_STATUS_CHOICES,
-    ACTIVITY_TYPES,
+    ACTIVITY_STATUS,
     ADDRESS_TYPE_CHOICES,
     CAMPAIGN_RESOLUTION_CHOICES,
     CAMPAIGN_RESOLUTION_REASONS_CHOICES,
-    CAMPAIGN_STATUS_CHOICES,
+    CAMPAIGN_STATUS,
     DEBTOR_CONCACTS_CHOICES,
     DYNAMIC_CONTACT_FILTER_MODES,
     EDUCATION_CHOICES,
     ENVELOPE_CHOICES,
     FREQUENCY_CHOICES,
     GENDERS,
-    INACTIVITY_REASONS,
     PRICERULE_MODE_CHOICES,
     PRICERULE_WILDCARD_MODE_CHOICES,
     PRICERULE_AMOUNT_TO_PICK_CONDITION_CHOICES,
     PRIORITY_CHOICES,
+    PRODUCT_BILLING_FREQUENCY_CHOICES,
     PRODUCT_EDITION_FREQUENCY,
-    PRODUCT_TYPE_CHOICES,
     PRODUCT_WEEKDAYS,
     PRODUCTHISTORY_CHOICES,
     SUBSCRIPTION_STATUS_CHOICES,
     SUBSCRIPTION_TYPE_CHOICES,
-    UNSUBSCRIPTION_TYPE_CHOICES,
     VARIABLE_TYPES,
     DISCOUNT_PRODUCT_MODE_CHOICES,
     DISCOUNT_VALUE_MODE_CHOICES,
@@ -59,6 +60,7 @@ from .choices import (
     EMAIL_BOUNCE_ACTIONLOG_CHOICES,
     EMAIL_BOUNCE_ACTION_MAXREACH,
     FreeSubscriptionRequestedBy,
+    get_activity_types,
 )
 from .utils import (
     delete_email_from_mailtrain_list,
@@ -67,11 +69,13 @@ from .utils import (
     validateEmailOnWeb,
     updatewebuser,
 )
+from .orm_helpers import get_latest_from_prefetch
+from .fields import LowercaseEmailField
 
 
 regex_alphanumeric = r"^[@A-Za-z0-9ñüáéíóúÑÜÁÉÍÓÚ _'.\-]*$"  # noqa
 regex_alphanumeric_msg = _(
-    "This name only supports alphanumeric characters, at, apostrophes, spaces, hyphens, underscores, and periods."
+    "This field only supports alphanumeric characters, at, apostrophes, spaces, hyphens, underscores, and periods."
 )
 
 alphanumeric = RegexValidator(regex_alphanumeric, regex_alphanumeric_msg)
@@ -157,27 +161,174 @@ class Variable(models.Model):
         ordering = ("name",)
 
 
+class ProductSubscriptionPeriod(models.Model):
+    """
+    Represents a period of time for a product. This is used mainly to categorize the product by its duration.
+    """
+
+    name = models.CharField(max_length=255, unique=True)
+    months_duration = models.PositiveIntegerField(help_text=_("Number of months this period represents."))
+    description = models.TextField(blank=True, help_text=_("Optional description for this period, if needed."))
+
+    class Meta:
+        verbose_name = _("Product Subscription Period")
+        verbose_name_plural = _("Product Subscription Periods")
+        ordering = ['months_duration']
+
+    def __str__(self):
+        return self.name
+
+
 class Product(models.Model):
     """
     Products that a subscription can have. (They must have a billing priority to be billed).
     """
 
-    name = models.CharField(max_length=50, verbose_name=_("Name"), db_index=True)
-    slug = AutoSlugField(populate_from="name", null=True, blank=True)
-    active = models.BooleanField(default=False, verbose_name=_("Active"))
-    price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    type = models.CharField(max_length=1, default="O", choices=PRODUCT_TYPE_CHOICES, db_index=True)
-    weekday = models.IntegerField(default=None, choices=PRODUCT_WEEKDAYS, null=True, blank=True)
-    offerable = models.BooleanField(default=False, verbose_name=_("Allow offer"))
-    has_implicit_discount = models.BooleanField(default=False, verbose_name=_("Has implicit discount"))
-    billing_priority = models.PositiveSmallIntegerField(null=True, blank=True)
-    digital = models.BooleanField(default=False, verbose_name=_("Digital"))
-    edition_frequency = models.IntegerField(default=None, choices=PRODUCT_EDITION_FREQUENCY, null=True, blank=True)
-    temporary_discount_months = models.PositiveSmallIntegerField(null=True, blank=True)
-    target_product = models.ForeignKey(
-        "self", blank=True, null=True, on_delete=models.SET_NULL, limit_choices_to={"offerable": True, "type": "S"}
+    class RenewalTypeChoices(models.TextChoices):
+        """Choices for the renewal type"""
+
+        AUTOMATIC = "A", _("Automatic")
+        MANUAL = "M", _("Manual")
+        BOTH = "X", _("Both")
+
+    class ProductTypeChoices(models.TextChoices):
+        """Choices for the product type"""
+
+        SUBSCRIPTION = "S", _("Subscription")
+        NEWSLETTER = "N", _("Newsletter")
+        DISCOUNT = "D", _("Discount")
+        PERCENTAGE_DISCOUNT = "P", _("Percentage discount")
+        ADVANCED_DISCOUNT = "A", _("Advanced discount")
+        OTHER = "O", _("Other")
+
+    class BillingModeChoices(models.TextChoices):
+        PER_FREQUENCY = "F", _("Per Frequency")
+        FIXED = "X", _("Fixed Price")
+        CUSTOM = "C", _("Custom")
+
+    class DiscountCategoryChoices(models.TextChoices):
+        """Choices for the discount category field"""
+
+        RETENTION = "R", _("Retention")
+        PROMOTION = "P", _("Promotion")
+        STAFF = "S", _("Staff")
+        OTHER = "O", _("Other")
+
+    name = models.CharField(max_length=100, verbose_name=_("Name"), unique=True, db_index=True)
+    slug = AutoSlugField(populate_from="name", max_length=100, unique=True, editable=True)
+    active = models.BooleanField(
+        default=getattr(settings, "CORE_PRODUCT_ACTIVE_DEFAULT", False), verbose_name=_("Active")
     )
-    old_pk = models.PositiveIntegerField(blank=True, null=True)
+    price = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name=_("Price"))
+    type = models.CharField(
+        max_length=1, default="O", choices=ProductTypeChoices.choices, db_index=True, verbose_name=_("Type")
+    )
+    weekday = models.IntegerField(
+        default=None, choices=PRODUCT_WEEKDAYS, null=True, blank=True, verbose_name=_("Weekday")
+    )
+    offerable = models.BooleanField(
+        default=False,
+        verbose_name=_("Allow offer"),
+        help_text=_("Allow product to be shown in the new subscription forms"),
+    )
+    has_implicit_discount = models.BooleanField(default=False, verbose_name=_("Has implicit discount"))
+    billing_priority = models.PositiveSmallIntegerField(null=True, blank=True, verbose_name=_("Billing priority"))
+    digital = models.BooleanField(
+        default=getattr(settings, "CORE_PRODUCT_DIGITAL_DEFAULT", False), verbose_name=_("Digital")
+    )
+    edition_frequency = models.IntegerField(
+        default=None, choices=PRODUCT_EDITION_FREQUENCY, null=True, blank=True, verbose_name=_("Edition frequency")
+    )
+    temporary_discount_months = models.PositiveSmallIntegerField(
+        null=True, blank=True, verbose_name=_("Temporary discount months")
+    )
+    target_product = models.ForeignKey(
+        "self",
+        blank=True,
+        null=True,
+        on_delete=models.SET_NULL,
+        limit_choices_to={"active": True, "type": "S"},
+        verbose_name=_("Target product"),
+        help_text=_("The subscription product this discount applies to. Only active subscription products are shown."),
+    )
+    cms_subscription_type = models.SlugField(
+        max_length=100,
+        unique=True,
+        blank=True,
+        null=True,
+        verbose_name=_("CMS subscription type"),
+        help_text=_(
+            "The subscription type of the SubscriptionPrice object in utopia-cms, used for synchronization with this "
+            "Product. Also used by the CMS front-end to build the related subscription form page URL and for traffic "
+            "tracking tools."
+        ),
+    )
+    internal_code = models.CharField(max_length=50, blank=True, null=True, verbose_name=_("Internal code"))
+    billing_days = models.PositiveSmallIntegerField(
+        default=30,
+        verbose_name=_("Billing frequency"),
+        choices=PRODUCT_BILLING_FREQUENCY_CHOICES,
+        null=True,
+        blank=True,
+    )
+    renewal_type = models.CharField(
+        max_length=1,
+        default=RenewalTypeChoices.AUTOMATIC,
+        choices=RenewalTypeChoices.choices,
+        verbose_name=_("Renewal type"),
+        null=True,
+        blank=True,
+    )
+    duration_months = models.PositiveSmallIntegerField(
+        default=1,
+        verbose_name=_("Duration in months"),
+        null=True,
+        blank=True,
+    )
+    subscription_period = models.ForeignKey(
+        ProductSubscriptionPeriod,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name=_("Subscription Period"),
+    )
+    terms_and_conditions = models.ManyToManyField(
+        "core.TermsAndConditions",
+        through="core.TermsAndConditionsProduct",
+    )
+    mercadopago_skip_sync = models.BooleanField(
+        default=False,
+        verbose_name=_("Do not sync this product with a MercadoPago plan"),
+        help_text=_(
+            "If checked, this product will not be synchronized with a MercadoPago plan until this field is unchecked "
+            "and the object is saved. This means that the field is disabled if the product has a MercadoPago ID set."
+        ),
+    )
+    mercadopago_id = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        verbose_name=_("MercadoPago ID"),
+        help_text=_("If MercadoPago product sync is enabled, this field is auto-filled when this product is saved."),
+    )
+    billing_mode = models.CharField(
+        max_length=1,
+        default=BillingModeChoices.PER_FREQUENCY,
+        choices=BillingModeChoices.choices,
+        verbose_name=_("Billing mode"),
+        help_text=_(
+            "How the product is billed. Fixed uses the price set in the product, per frequency uses the "
+            "price calculated from the products in the subscription with the frequency set in the product."
+        ),
+    )
+    discount_category = models.CharField(
+        max_length=1,
+        choices=DiscountCategoryChoices.choices,
+        verbose_name=_("Discount category"),
+        null=True,
+        blank=True,
+        help_text=_("Category of the discount. Mandatory if the product type is discount.")
+    )
     objects = ProductManager()
 
     def __str__(self):
@@ -189,13 +340,6 @@ class Product(models.Model):
     def natural_key(self):
         return (self.slug,)
 
-    def get_type(self):
-        """
-        Returns the type of product
-        """
-        types = dict(PRODUCT_TYPE_CHOICES)
-        return types.get(self.type, "N/A")
-
     def get_weekday(self):
         """
         Returns the weekday of the product. Used only for products that are bound to a specific day.
@@ -203,16 +347,38 @@ class Product(models.Model):
         weekdays = dict(PRODUCT_WEEKDAYS)
         return weekdays.get(self.weekday, "N/A")
 
+    def has_terms_and_conditions(self):
+        return self.terms_and_conditions.exists()
+
+    def get_last_terms_and_conditions(self):
+        if self.has_terms_and_conditions():
+            return (
+                self.terms_and_conditions.through.objects.filter(product=self)
+                .order_by("-date")
+                .first()
+                .terms_and_conditions
+            )
+        return None
+
+    @property
+    def duration_days(self):
+        if self.duration_months == 12:
+            return 365
+        elif self.duration_months == 24:
+            return 730
+        else:
+            return self.duration_months * 30
+
     class Meta:
         verbose_name = _("product")
         verbose_name_plural = _("products")
-        ordering = ("-type", "id")
+        ordering = ("id",)
 
 
 class EmailBounceActionLog(models.Model):
     created = models.DateField(editable=False, auto_now_add=True)
     contact = models.ForeignKey("Contact", blank=True, null=True, on_delete=models.SET_NULL)
-    email = models.EmailField(editable=False)
+    email = LowercaseEmailField(editable=False)
     action = models.PositiveSmallIntegerField(choices=EMAIL_BOUNCE_ACTIONLOG_CHOICES)
 
     @staticmethod
@@ -230,10 +396,30 @@ class EmailBounceActionLog(models.Model):
     class Meta:
         unique_together = ("created", "contact", "email", "action")
         ordering = ("-created", "email")
+        verbose_name = _("Email Bounce Action Log")
+        verbose_name_plural = _("Email Bounce Action Logs")
+
+
+class IdDocumentType(models.Model):
+    id = models.PositiveIntegerField(primary_key=True)
+    name = models.CharField(max_length=50, verbose_name=_("Name"))
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = _("ID Document Type")
+        verbose_name_plural = _("ID Document Types")
 
 
 class Contact(models.Model):
     """Holds people personal information"""
+
+    class ContactTypeChoices(models.TextChoices):
+        """Choices for the contact type"""
+
+        PERSON = "P", _("Person")
+        COMPANY = "C", _("Company")
 
     subtype = models.ForeignKey(
         Subtype,
@@ -257,12 +443,38 @@ class Contact(models.Model):
         verbose_name=_("Institution"),
         on_delete=models.SET_NULL,
     )
+
     name = models.CharField(max_length=100, validators=[alphanumeric], verbose_name=_("Name"))
+    last_name = models.CharField(
+        max_length=100, validators=[alphanumeric], blank=True, null=True, verbose_name=_("Last name")
+    )
+    contact_type = models.CharField(
+        max_length=1,
+        choices=ContactTypeChoices.choices,
+        default="P",
+        verbose_name=_("Contact type"),
+        null=True,
+        blank=True,
+    )
     id_document = models.CharField(max_length=20, blank=True, null=True, verbose_name=_("Identifcation Document"))
-    phone = models.CharField(max_length=20, verbose_name=_("Phone"), blank=True, null=True)
-    work_phone = models.CharField(max_length=20, blank=True, null=True, verbose_name=_("Work phone"))
-    mobile = models.CharField(max_length=20, blank=True, null=True, verbose_name=_("Mobile"))
-    email = models.EmailField(blank=True, null=True, unique=True, verbose_name=_("Email"))
+    id_document_type = models.ForeignKey(
+        "core.IdDocumentType",
+        blank=True,
+        null=True,
+        verbose_name=_("Document type"),
+        on_delete=models.SET_NULL,
+    )
+    phone = PhoneNumberField(blank=True, default="", verbose_name=_("Phone"), db_index=True)
+    phone_extension = models.CharField(blank=True, default="", max_length=16, verbose_name=_("Phone extension"))
+    mobile = PhoneNumberField(blank=True, default="", verbose_name=_("Mobile"), db_index=True)
+    work_phone = models.CharField(blank=True, default="", max_length=50, verbose_name=_("Work phone"), db_index=True)
+    work_phone_extension = models.CharField(
+        blank=True,
+        default="",
+        max_length=16,
+        verbose_name=_("Work phone extension"),
+    )
+    email = LowercaseEmailField(blank=True, null=True, unique=True, verbose_name=_("Email"))
     no_email = models.BooleanField(default=False, verbose_name=_("No email"))
     gender = models.CharField(max_length=1, choices=GENDERS, blank=True, null=True, verbose_name=_("Gender"))
     ocupation = models.ForeignKey(
@@ -284,6 +496,17 @@ class Contact(models.Model):
     allow_polls = models.BooleanField(default=True, verbose_name=_("Allows polls"))
     allow_promotions = models.BooleanField(default=True, verbose_name=_("Allows promotions"))
     cms_date_joined = models.DateTimeField(blank=True, null=True, verbose_name=_("CMS join date"))
+    ranking = models.PositiveSmallIntegerField(blank=True, null=True, verbose_name=_("Ranking"))
+    person_type = models.ForeignKey(
+        'core.PersonType', blank=True, null=True, verbose_name=_("Person type"), on_delete=models.SET_NULL
+    )
+    business_entity_type = models.ForeignKey(
+        'core.BusinessEntityType',
+        blank=True,
+        null=True,
+        verbose_name=_("Business entity type"),
+        on_delete=models.SET_NULL,
+    )
     history = HistoricalRecords()
 
     def __str__(self):
@@ -292,17 +515,31 @@ class Contact(models.Model):
     def get_absolute_url(self):
         return reverse('contact_detail', args=[str(self.id)])
 
+    def get_normalized_email(self):
+        """
+        Returns the normalized (lowercased) email if it exists.
+        """
+        return self.email.lower() if self.email else None
+
+    def get_old_email(self):
+        """
+        Returns the old email in lowercase if it exists.
+        """
+        if self.id:
+            old_email = self.__class__.objects.get(id=self.id).email
+            return old_email.lower() if old_email else None
+
     def clean(self, debug=False):
-        email = self.email
-        if email:
-            email = email.lower()
-        old_email = self.id and self.__class__.objects.get(id=self.id).email
-        if old_email:
-            old_email = old_email.lower()
-        if old_email != email and EmailBounceActionLog.email_is_bouncer(email):
-            raise ValidationError(
-                {"email": "El email '%s' registra exceso de rebotes, no se permite su utilización" % email}
-            )
+        email = self.get_normalized_email()
+
+        if self.pk and self.__class__.objects.filter(pk=self.pk).exists():
+            old_email = self.get_old_email()
+            if old_email and old_email != email:
+                if EmailBounceActionLog.email_is_bouncer(email):
+                    raise ValidationError(
+                        {"email": f"El email '{email}' registra exceso de rebotes, no se permite su utilización"}
+                    )
+
         if settings.WEB_UPDATE_USER_ENABLED and email and self.id:
             self.custom_clean(email, debug)
 
@@ -337,9 +574,19 @@ class Contact(models.Model):
                     raise ValidationError({"email": msg})
 
     def save(self, *args, **kwargs):
-        if not getattr(self, "updatefromweb", False) and not getattr(self, "_skip_clean", False):
+        skip_clean = getattr(self, "_skip_clean", False)
+        if not getattr(self, "updatefromweb", False) and not skip_clean:
             self.clean(debug=settings.DEBUG_CONTACT_CLEAN)
-        return super().save(*args, **kwargs)
+        # TODO: next line breaks test_subscriptor.TestContact.test2_cliente_que_no_tiene_email_debe_tener_email_en_...
+        #       Fix the test and explain why the field is not needed anymore or submit a different solution.
+        self.no_email = self.email is None
+        try:
+            return super().save(*args, **kwargs)
+        except IntegrityError as ie_exc:
+            if skip_clean:
+                raise ValidationError(ie_exc)
+            else:
+                raise
 
     def is_debtor(self):
         """
@@ -361,7 +608,7 @@ class Contact(models.Model):
         Returns a queryset with the expired invoices for the contact.
         """
         return self.invoice_set.filter(
-            expiration_date__lte=date.today(),
+            expiration_date__lt=date.today(),
             paid=False,
             debited=False,
             canceled=False,
@@ -388,15 +635,40 @@ class Contact(models.Model):
 
     def add_to_campaign(self, campaign_id):
         """
-        Adds a contact to a campaign. If the contact is already in that campaign this will raise an exception.
+        Adds a contact to a campaign if not already added.
+
+        Args:
+            campaign_id (int): The ID of the campaign to add the contact to.
+
+        Returns:
+            str: A success message if the contact was added.
+
+        Raises:
+            Campaign.DoesNotExist: If the campaign with the given ID doesn't exist.
+            ContactAlreadyInCampaignError: If the contact is already in the campaign.
         """
-        campaign = Campaign.objects.get(pk=campaign_id)
-        if not ContactCampaignStatus.objects.filter(contact=self, campaign=campaign).exists():
-            # We first create the big object that will hold the status for the campaign
-            ContactCampaignStatus.objects.create(contact=self, campaign=campaign)
-            return _("Contact %s (ID: %s) added to campaign") % (self.name, self.id)
+        try:
+            campaign = Campaign.objects.get(pk=campaign_id)
+        except Campaign.DoesNotExist:
+            raise Campaign.DoesNotExist(f"Campaign with ID {campaign_id} does not exist.")
+
+        contact_campaign_status, created = ContactCampaignStatus.objects.get_or_create(contact=self, campaign=campaign)
+
+        if created:
+            return _("Contact %(name)s (ID: %(id)s) added to campaign %(campaign)s") % {
+                "name": self.get_full_name(),
+                "id": self.id,
+                "campaign": campaign.name,
+            }
         else:
-            raise Exception(_("Contact %s (ID: %s) already in campaign") % (self.name, self.id))
+            raise Exception(
+                _("Contact %(name)s (ID: %(id)s) is already in campaign %(campaign)s")
+                % {
+                    "name": self.get_full_name(),
+                    "id": self.id,
+                    "campaign": campaign.name,
+                }
+            )
 
     def has_active_subscription(self, count=False):
         """
@@ -411,7 +683,7 @@ class Contact(models.Model):
         Returns how much money the contact owes.
         """
         sum_import = self.invoice_set.filter(
-            expiration_date__lte=date.today(),
+            expiration_date__lt=date.today(),
             paid=False,
             debited=False,
             canceled=False,
@@ -444,12 +716,23 @@ class Contact(models.Model):
         """
         return self.subscriptions.all()
 
-    def get_active_subscriptions(self):
-        return self.subscriptions.filter(active=True)
+    def get_active_subscriptions(self, exclude_id=None):
+        result = self.subscriptions.filter(active=True)
+        if exclude_id:
+            result = result.exclude(id=exclude_id)
+        return result
 
     def get_active_subscriptionproducts(self):
-        return SubscriptionProduct.objects.filter(subscription__active=True, subscription__contact=self).order_by(
-            "product__billing_priority", "product__id"
+        return (
+            SubscriptionProduct.objects.filter(subscription__active=True, subscription__contact=self)
+            .select_related('product')  # Assumes `product` is a ForeignKey
+            .prefetch_related(
+                Prefetch(
+                    'label_contact',
+                    queryset=Contact.objects.only('id', 'name', 'last_name'),  # Customize fields as needed
+                )
+            )
+            .order_by("product__billing_priority", "product__id")
         )
 
     def get_subscriptions_with_expired_invoices(self):
@@ -476,10 +759,47 @@ class Contact(models.Model):
         """
         Returns the latest activity of this contact.
         """
-        if self.activity_set.exists():
-            return self.activity_set.latest("id")
-        else:
+        return get_latest_from_prefetch(self, "activity_set")
+
+    def last_incoming_activity(self):
+        """
+        Returns the latest incoming activity (direction='I') of this contact.
+        """
+        try:
+            return self.activity_set.filter(direction='I').latest('datetime')
+        except Activity.DoesNotExist:
             return None
+
+    def last_outgoing_activity(self):
+        """
+        Returns the latest outgoing activity (direction='O') of this contact.
+        """
+        try:
+            return self.activity_set.filter(direction='O').latest('datetime')
+        except Activity.DoesNotExist:
+            return None
+
+    def get_last_activity_formatted(self):
+        """
+        Returns formatted string with both last incoming and outgoing activities.
+        Format: "<b>In:</b> DD/MM/YYYY Type | <b>Out:</b> DD/MM/YYYY Type"
+        Returns HTML-safe string with bold labels.
+        """
+        parts = []
+
+        last_in = self.last_incoming_activity()
+        if last_in:
+            in_date = last_in.datetime.date().strftime("%d/%m/%Y")
+            in_type = last_in.get_activity_type_display() or ''
+            parts.append(f'<b>{_("In")}:</b> {in_date} {in_type}')
+
+        last_out = self.last_outgoing_activity()
+        if last_out:
+            out_date = last_out.datetime.date().strftime("%d/%m/%Y")
+            out_type = last_out.get_activity_type_display() or ''
+            parts.append(f'<b>{_("Out")}:</b> {out_date} {out_type}')
+
+        return mark_safe(' | '.join(parts)) if parts else None
 
     def get_gender(self):
         """
@@ -638,37 +958,39 @@ class Contact(models.Model):
         return self.activity_set.count()
 
     def offer_default_newsletters_condition(self):
-        return all(
-            (
-                getattr(settings, "CORE_DEFAULT_NEWSLETTERS", {}),
-                self.email,
-                not self.get_newsletters(),
-                self.get_active_subscriptions(),
-            )
-        )
+        result = settings.CORE_DEFAULT_NEWSLETTERS and self.email and not self.get_newsletters()
+        if result and getattr(settings, "CORE_DEFAULT_NEWSLETTERS_ACTIVE_SUBSCRIPTION_REQUIRED", False):
+            result = bool(self.get_active_subscriptions())
+        return result
 
     def add_default_newsletters(self):
         computed_slug_set, result = set(), []
-        for func_path, nl_slugs in list(getattr(settings, "CORE_DEFAULT_NEWSLETTERS", {}).items()):
-            func_module, func_name = func_path.rsplit(".", 1)
-            func_def = getattr(import_module(func_module), func_name, None)
-            if func_def and func_def(self):
+        for func_path, nl_slugs in list(settings.CORE_DEFAULT_NEWSLETTERS.items()):
+            add_nl_slugs = func_path is True
+            if not add_nl_slugs:
+                func_module, func_name = func_path.rsplit(".", 1)
+                func_def = getattr(import_module(func_module), func_name, None)
+                if func_def and func_def(self):
+                    add_nl_slugs = True
+            if add_nl_slugs:
                 computed_slug_set = computed_slug_set.union(set(nl_slugs))
         for product_slug in computed_slug_set:
             try:
                 self.add_newsletter_by_slug(product_slug)
-            except Exception as e:
+            except Exception as exc:
                 if settings.DEBUG:
-                    print(e)
+                    print(f"DEBUG: error in add_default_newsletters: {exc}")
             else:
                 result.append(product_slug)
         return result
 
     def do_not_call(self, phone_att="phone"):
-        number = getattr(self, phone_att, None)
-        if number and DoNotCallNumber.objects.filter(number__contains=number[-8:]).exists():
-            return True
-        return False
+        number = getattr(self, phone_att)
+        if phone_att == "work_phone":
+            return DoNotCallNumber.objects.filter(number__iexact=number).exists()
+        elif number is None or number.national_number is None:
+            return False
+        return DoNotCallNumber.objects.filter(number__contains=number.national_number).exists()
 
     def do_not_call_phone(self):
         return self.do_not_call("phone")
@@ -689,6 +1011,7 @@ class Contact(models.Model):
         self,
         source: "Contact",
         name: str = None,
+        last_name: str = None,
         id_document: str = None,
         phone: str = None,
         mobile: str = None,
@@ -705,6 +1028,7 @@ class Contact(models.Model):
         Args:
             source (Contact): The contact whose data is going to be deleted and merged into this one.
             name (str, optional): Override name. Defaults to None.
+            last_name (str, optional): Override last name. Defaults to None.
             id_document (str, optional): Override id document. Defaults to None.
             phone (str, optional): Override phone. Defaults to None.
             mobile (str, optional): Override mobie. Defaults to None.
@@ -731,6 +1055,8 @@ class Contact(models.Model):
             self.save()  # check for the try
             if name:
                 self.name = name.strip()
+            if last_name:
+                self.last_name = last_name.strip()
             if id_document:
                 if source.id_document == id_document.strip():
                     source.id_document = None
@@ -754,9 +1080,11 @@ class Contact(models.Model):
                 self.ocupation_id = int(ocupation_id.strip())
             if birthdate:
                 self.birthdate = birthdate.strip()
-            self.notes = f"Combined from {source.id} - {source.name} at {date.today()}" + f"\n{self.notes or ''}"
+            self.notes = (
+                f"Combined from {source.id} - {source.get_full_name()} at {date.today()}" + f"\n{self.notes or ''}"
+            )
             if source.notes:
-                self.notes += f"\n\nNotes imported from {source.id} - {source.name}\n\n"
+                self.notes += f"\n\nNotes imported from {source.id} - {source.get_full_name()}\n\n"
                 self.notes += source.notes
             for tag in source.tags.all():
                 self.tags.add(tag.name)
@@ -764,6 +1092,9 @@ class Contact(models.Model):
             source.addresses.update(contact=self)
             source.subscriptions.update(contact=self)
             source.invoice_set.update(contact=self)
+            # We need to delete the activities that have a campaign and are yet to be resolved
+            source.activity_set.filter(campaign__isnull=False, status__in=["A", "P"]).delete()
+            # Then we update the contact of the remaining activities
             source.activity_set.update(contact=self)
             source.issue_set.update(contact=self)
             # ContactCampaignStatus have a unique constraint on (contact, campaign)
@@ -778,10 +1109,133 @@ class Contact(models.Model):
 
         return errors
 
+    def add_single_invoice_with_products(self, products, payment_type, expiration_days=30):
+        from invoicing.models import Invoice
+
+        invoice = Invoice.objects.create(
+            contact=self,
+            payment_type=payment_type,
+            creation_date=date.today(),
+            expiration_date=date.today() + timedelta(days=expiration_days),
+            service_to=date.today(),
+            service_from=date.today(),
+            amount=0,
+        )
+        for product in products:
+            invoice.add_item(product)
+        invoice.amount = invoice.get_total_amount()
+        invoice.save()
+        return invoice
+
+    def get_full_name(self):
+        return " ".join(filter(None, (self.name, self.last_name)))
+
+    get_full_name.short_description = _("Full name")
+
+    def get_full_id_document(self):
+        return " ".join(
+            filter(None, (self.id_document_type.name if self.id_document_type else None, self.id_document))
+        )
+
+    get_full_id_document.short_description = _("Full ID document")
+
+    def create_address_from_email(self):
+        if self.email:
+            address = Address.objects.create(
+                address_1=self.email,
+                city=getattr(settings, "DEFAULT_CITY", None),
+                state=State.objects.get(name=getattr(settings, "DEFAULT_STATE", None)),
+                address_type="digital",
+                contact=self,
+            )
+            return address
+        return None
+
+    def get_last_subscription(self):
+        return self.subscriptions.order_by("-id").first()
+
+    def get_last_subscription_renewal_type(self):
+        last_subscription = self.get_last_subscription()
+        if last_subscription:
+            return last_subscription.get_renewal_type_display()
+        return None
+
+    def get_last_subscription_end_date(self, include_cancelled=False, include_unsubscribed=False):
+        """
+        Get the end date of the last subscription.
+
+        Args:
+            include_cancelled: Whether to include cancelled subscriptions
+            include_unsubscribed: Whether to include unsubscribed subscriptions
+
+        Returns:
+            Date object or None
+        """
+        queryset = self.subscriptions.all()
+
+        if not include_cancelled:
+            # Filter out cancelled subscriptions by checking if their invoices are cancelled
+            queryset = queryset.filter(invoice__canceled=False)
+
+        if not include_unsubscribed:
+            # Filter out unsubscribed subscriptions
+            queryset = queryset.filter(unsubscription_date__isnull=True)
+
+        last_subscription = queryset.order_by("-start_date").first()
+
+        if last_subscription and last_subscription.end_date:
+            return last_subscription.end_date
+        return None
+
     class Meta:
         verbose_name = _("contact")
         verbose_name_plural = _("contacts")
         ordering = ("-id",)
+
+
+class Country(models.Model):
+    name = models.CharField(max_length=50)
+    code = models.CharField(max_length=2, unique=True)  # ISO 3166-1 alpha-2 codes
+    active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = _("country")
+        verbose_name_plural = _("countries")
+        ordering = ('name',)
+
+
+class State(models.Model):
+    name = models.CharField(max_length=100)
+    code = models.CharField(max_length=10, null=True, blank=True)  # State/region code
+    country = models.ForeignKey(Country, on_delete=models.SET_NULL, null=True)
+    active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = _("state")
+        verbose_name_plural = _("states")
+        ordering = ('name',)
+        unique_together = [['code', 'country']]
+
+
+class City(models.Model):
+    name = models.CharField(max_length=100)
+    code = models.CharField(max_length=10, null=True, blank=True)
+    state = models.ForeignKey(State, on_delete=models.SET_NULL, null=True)
+    active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = _("city")
+        verbose_name_plural = _("cities")
+        ordering = ('name',)
 
 
 class Address(models.Model):
@@ -807,20 +1261,11 @@ class Address(models.Model):
         default=getattr(settings, "DEFAULT_CITY", None),
         verbose_name=_("City"),
     )
-    state = models.CharField(
-        max_length=50,
-        blank=True,
-        null=True,
-        default=getattr(settings, "DEFAULT_STATE", None),
-        verbose_name=_("State"),
-    )
-    if settings.USE_STATES_CHOICE:
-        state.choices = settings.STATES
-    email = models.EmailField(blank=True, null=True, verbose_name=_("Email"))
+    email = LowercaseEmailField(blank=True, null=True, verbose_name=_("Email"))
     address_type = models.CharField(max_length=50, choices=ADDRESS_TYPE_CHOICES, verbose_name=_("Address type"))
     notes = models.TextField(blank=True, null=True, verbose_name=_("Notes"))
     default = models.BooleanField(default=False, verbose_name=_("Default"))
-    history = HistoricalRecords()
+    # history = HistoricalRecords()
     picture = models.FileField(upload_to="address_pictures/", blank=True, null=True)
     google_maps_url = models.CharField(max_length=2048, null=True, blank=True)
     do_not_show = models.BooleanField(default=False, help_text=_("Do not show in picture/google maps list"))
@@ -833,18 +1278,70 @@ class Address(models.Model):
     needs_georef = models.BooleanField(null=True, default=False)
     # These last three fields are here for debug reasons. The first one is totally unused
     address_georef_id = models.IntegerField(null=True, blank=True)
-    state_id = models.IntegerField(null=True, blank=True)
-    city_id = models.IntegerField(null=True, blank=True)
+    state_georef_id = models.IntegerField(null=True, blank=True)
+    city_georef_id = models.IntegerField(null=True, blank=True)
+    country_old = models.CharField(
+        verbose_name=_("Country (old)"),
+        max_length=50,
+        blank=True,
+        null=True,
+    )
+    state_old = models.CharField(
+        verbose_name=_("State (old)"),
+        max_length=50,
+        blank=True,
+        null=True,
+        default=getattr(settings, "DEFAULT_STATE", None),
+    )
+    if settings.USE_STATES_CHOICE:
+        state_old.choices = settings.STATES
+
+    # New fields with explicit column names
+    country = models.ForeignKey(
+        'core.Country',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name=_("Country"),
+        db_column='country_fk',  # Explicit different column name
+    )
+    state = models.ForeignKey(
+        'core.State',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name=_("State"),
+        db_column='state_fk',  # Explicit different column name
+    )
+    city_fk = models.ForeignKey(
+        'core.City',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name=_("City"),
+        db_column='city_fk',  # Explicit different column name
+    )
+    name = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        verbose_name=_("Name"),
+        help_text=_("Name of the address. It can be a reference to the address or the name of the person"),
+    )
+
+    @cached_property
+    def country_name(self):
+        return self.country.name if self.country else None
+
+    @cached_property
+    def state_name(self):
+        return self.state.name if self.state else None
 
     def __str__(self):
-        return ' '.join(filter(None, (self.address_1, self.address_2, self.city, self.state)))
-
-    def get_type(self):
-        """
-        Returns the type of the address.
-        """
-        types = dict(ADDRESS_TYPE_CHOICES)
-        return types.get(self.address_type, "N/A")
+        address_str = ', '.join(
+            filter(None, (self.address_1, self.address_2, self.get_city(), self.state_name, self.country_name))
+        )
+        return f"{address_str} ({self.name})" if self.name else address_str
 
     def add_note(self, note):
         self.notes = f"{note}" if not self.notes else self.notes + f"\n{note}"
@@ -874,13 +1371,127 @@ class Address(models.Model):
         if self.georef_point and not (self.latitude and self.longitude):
             self.latitude = self.georef_point.y
             self.longitude = self.georef_point.x
-        if self.state_id and self.city_id and self.georef_point:
+        if self.state_georef_id and self.city_georef_id and self.georef_point:
             self.verified = True
         super(Address, self).save(*args, **kwargs)
+
+    def get_city(self):
+        return self.city_fk.name if self.city_fk else self.city
+
+    def merge_other_address_into_this(
+        self,
+        source: "Address",
+        address_1: str = None,
+        address_2: str = None,
+        city: str = None,
+        email: str = None,
+        address_type: str = None,
+        notes: str = None,
+        default: bool = None,
+        name: str = None,
+        state_id: int = None,
+        country_id: int = None,
+        city_fk_id: int = None,
+        latitude: float = None,
+        longitude: float = None,
+        google_maps_url: str = None,
+    ) -> list:
+        """Takes a source address and merges it into this one, allowing manual field overrides.
+
+        Args:
+            source (Address): The address to be merged into this one and then deleted.
+            address_1 (str, optional): Override address line 1.
+            address_2 (str, optional): Override address line 2.
+            city (str, optional): Override city string.
+            email (str, optional): Override email.
+            address_type (str, optional): Override address type.
+            notes (str, optional): Override notes.
+            default (bool, optional): Override default status.
+            name (str, optional): Override address name.
+            state_id (int, optional): Override state FK.
+            country_id (int, optional): Override country FK.
+            city_fk_id (int, optional): Override city FK.
+            latitude (float, optional): Override latitude.
+            longitude (float, optional): Override longitude.
+            google_maps_url (str, optional): Override Google Maps URL.
+
+        Returns:
+            list: List of errors encountered during merge, empty if successful.
+        """
+        errors = []
+        try:
+            # Update fields with provided overrides
+            if address_1 is not None:
+                self.address_1 = address_1.strip() if address_1 else None
+            if address_2 is not None:
+                self.address_2 = address_2.strip() if address_2 else None
+            if city is not None:
+                self.city = city.strip() if city else None
+            if email is not None:
+                self.email = email.strip() if email else None
+            if address_type is not None:
+                self.address_type = address_type
+            if name is not None:
+                self.name = name.strip() if name else None
+            if default is not None:
+                self.default = default
+            if google_maps_url is not None:
+                self.google_maps_url = google_maps_url.strip() if google_maps_url else None
+
+            # Handle FK fields
+            if state_id is not None:
+                self.state_id = state_id if state_id else None
+            if country_id is not None:
+                self.country_id = country_id if country_id else None
+            if city_fk_id is not None:
+                self.city_fk_id = city_fk_id if city_fk_id else None
+
+            # Handle georef data
+            if latitude is not None:
+                self.latitude = latitude
+            if longitude is not None:
+                self.longitude = longitude
+
+            # Merge notes
+            if notes is not None:
+                self.notes = notes
+            else:
+                # Append source notes if not overridden
+                merge_note = f"Merged from address {source.id} on {date.today()}"
+                if self.notes:
+                    self.notes = f"{merge_note}\n{self.notes}"
+                else:
+                    self.notes = merge_note
+
+                if source.notes:
+                    self.notes += f"\n\nNotes from address {source.id}:\n{source.notes}"
+
+            self.save()
+
+            # Transfer all related objects from source to target
+            # SubscriptionProducts
+            source.subscriptionproduct_set.update(address=self)
+
+            # Issues
+            source.issue_set.update(address=self)
+
+            # ScheduledTasks
+            source.scheduledtask_set.update(address=self)
+
+            # Delete the source address
+            source.delete()
+
+        except Exception as e:
+            errors.append(str(e))
+
+        return errors
 
     class Meta:
         verbose_name = _("address")
         verbose_name_plural = _("addresses")
+        permissions = [
+            ("can_merge_addresses", _("Can merge addresses")),
+        ]
 
 
 class SubscriptionProduct(models.Model):
@@ -890,10 +1501,12 @@ class SubscriptionProduct(models.Model):
     is delivered, and route/order.
     """
 
-    product = models.ForeignKey("core.Product", on_delete=models.CASCADE, null=True)
-    subscription = models.ForeignKey("core.Subscription", on_delete=models.CASCADE)
-    copies = models.PositiveSmallIntegerField(default=1)
-    address = models.ForeignKey("core.Address", blank=True, null=True, on_delete=models.SET_NULL)
+    product = models.ForeignKey("core.Product", on_delete=models.CASCADE, null=True, verbose_name=_("Product"))
+    subscription = models.ForeignKey("core.Subscription", on_delete=models.CASCADE, verbose_name=_("Subscription"))
+    copies = models.PositiveSmallIntegerField(default=1, verbose_name=_("Copies"))
+    address = models.ForeignKey(
+        "core.Address", blank=True, null=True, on_delete=models.SET_NULL, verbose_name=_("Address")
+    )
     route = models.ForeignKey(
         "logistics.Route",
         blank=True,
@@ -902,28 +1515,45 @@ class SubscriptionProduct(models.Model):
         on_delete=models.SET_NULL,
     )
     order = models.PositiveSmallIntegerField(verbose_name=_("Order"), blank=True, null=True)
-    label_message = models.CharField(max_length=40, blank=True, null=True)
-    special_instructions = models.TextField(blank=True, null=True)
-    label_contact = models.ForeignKey("core.contact", blank=True, null=True, on_delete=models.SET_NULL)
-    seller = models.ForeignKey("support.Seller", blank=True, null=True, on_delete=models.SET_NULL)
+    label_message = models.CharField(max_length=40, blank=True, null=True, verbose_name=_("Label message"))
+    special_instructions = models.TextField(blank=True, null=True, verbose_name=_("Special instructions"))
+    label_contact = models.ForeignKey(
+        "core.contact", blank=True, null=True, on_delete=models.SET_NULL, verbose_name=_("Label contact")
+    )
+    seller = models.ForeignKey(
+        "support.Seller", blank=True, null=True, on_delete=models.SET_NULL, verbose_name=_("Seller")
+    )
     has_envelope = models.PositiveSmallIntegerField(
         blank=True, null=True, verbose_name=_("Envelope"), choices=ENVELOPE_CHOICES
+    )
+    original_datetime = models.DateTimeField(
+        blank=True,
+        null=True,
+        default=timezone.now,
+        verbose_name=_("Original date and time"),
+        help_text=_(
+            "Date and time when the subscription product was originally created, regardless of the subscription."
+            " This product might have been inherited from another subscription."
+        ),
     )
     active = models.BooleanField(default=True)
 
     def __str__(self):
-        # TODO: result translation (i18n)
+        parts = [str(self.product)] if self.product else []
         if self.address:
-            address = self.address.address_1
-        else:
-            address = ""
-
-        return "{} - {} - (Suscripción de ${})".format(
-            self.product, address, self.subscription.get_price_for_full_period()
-        )
+            parts.append(str(self.address.address_1))
+        try:
+            parts.append(self.subscription.contact.get_full_name())
+        except Subscription.DoesNotExist:
+            pass
+        return " - ".join(parts)
 
     def get_subscription_active(self):
         return self.subscription.active
+
+    class Meta:
+        verbose_name = _("Subscription Product")
+        verbose_name_plural = _("Subscription Products")
 
 
 class SubscriptionNewsletter(models.Model):
@@ -945,11 +1575,33 @@ class Subscription(models.Model):
     Model that holds a contract in which the contact will be able to receive one or more products (see
     SubscriptionProduct). This will allow you to bill the contact for this service (invoicing app) if the subscription
     has a paid type.
+    # TODO: active field can be implemented using status field, it will be less confusing and redundant, do it ASAP
     """
 
     class RENEWAL_TYPE_CHOICES(models.TextChoices):
-        AUTOMATIC = "A", _("Auto-renewal")
-        MANUAL = "M", _("One-time")
+        AUTOMATIC = "A", _("Auto-renewal subscription")
+        MANUAL = "M", _("One-time subscription")
+
+    class InactivityReasonChoices(models.IntegerChoices):
+        # Formerly INACTIVITY_REASONS
+        NORMAL_END = 1, _("Normal end")
+        PAUSED = 2, _("Paused")
+        ADDED_PRODUCTS = 3, _("Added products")
+        CHANGED_PRODUCTS = 4, _("Changed products")
+        DEBTOR = 13, _("Debtor")
+        DEBTOR_AUTOMATIC = 16, _("Debtor, automatic unsubscription")
+        RETENTION = 17, _("Retention")
+        ALL_PRODUCTS_REMOVED = 18, _("All products removed")
+        NOT_APPLICABLE = 99, _("N/A")
+
+    class UnsubscriptionTypeChoices(models.IntegerChoices):
+        # Formerly UNSUBSCRIPTION_TYPE
+        COMPLETE = 1, _("Complete unsubscription")
+        PARTIAL = 2, _("Partial unsubscription")
+        CHANGED_PRODUCTS = 3, _("Changed products")
+        ADDED_PRODUCTS = 4, _("Added products")
+        RETENTION = 5, _("Retention")
+        ALL_PRODUCTS_REMOVED = 6, _("All products removed")
 
     campaign = models.ForeignKey(
         "core.Campaign", blank=True, null=True, verbose_name=_("Campaign"), on_delete=models.SET_NULL
@@ -958,16 +1610,21 @@ class Subscription(models.Model):
     contact = models.ForeignKey(
         Contact, on_delete=models.CASCADE, verbose_name=_("Contact"), related_name="subscriptions"
     )
-    type = models.CharField(max_length=1, default="N", choices=SUBSCRIPTION_TYPE_CHOICES)
-    status = models.CharField(default="OK", max_length=2, choices=SUBSCRIPTION_STATUS_CHOICES)
+    type = models.CharField(max_length=1, default="N", choices=SUBSCRIPTION_TYPE_CHOICES, verbose_name=_("Type"))
+    status = models.CharField(
+        default="OK", max_length=2, choices=SUBSCRIPTION_STATUS_CHOICES, verbose_name=_("Status")
+    )
 
     # Billing information. This is added in case it's necessary.
     billing_name = models.CharField(max_length=100, blank=True, null=True, verbose_name=_("Billing name"))
     billing_id_doc = models.CharField(
         max_length=20, blank=True, null=True, verbose_name=_("Billing Identification Document")
     )
-    rut = models.CharField(max_length=12, blank=True, null=True, verbose_name=_("R.U.T."))
-    billing_phone = models.CharField(max_length=20, blank=True, null=True, verbose_name=_("Billing phone"))
+    rut = models.CharField(max_length=12, blank=True, null=True, verbose_name=_("UTR"))
+    billing_phone = PhoneNumberField(blank=True, default="", verbose_name=_("Billing phone"), db_index=True)
+    billing_phone_extension = models.CharField(
+        blank=True, default="", max_length=16, verbose_name=_("Billing phone extension")
+    )
     balance = models.DecimalField(
         max_digits=10,
         decimal_places=2,
@@ -985,7 +1642,7 @@ class Subscription(models.Model):
         related_name="billing_contacts",
         on_delete=models.SET_NULL,
     )
-    billing_email = models.EmailField(blank=True, null=True, verbose_name=_("Billing email"))
+    billing_email = LowercaseEmailField(blank=True, null=True, verbose_name=_("Billing email"))
     envelope = models.BooleanField(default=False, verbose_name=_("Envelope"), null=True)
     free_envelope = models.BooleanField(default=False, verbose_name=_("Free envelope"), null=True)
     start_date = models.DateField(blank=True, null=True, default=get_default_start_date, verbose_name=_("Start date"))
@@ -996,7 +1653,11 @@ class Subscription(models.Model):
     highlight_in_listing = models.BooleanField(default=False, verbose_name=_("Highlight in listing"))
     send_pdf = models.BooleanField(default=False, verbose_name=_("Send pdf"))
     inactivity_reason = models.IntegerField(
-        choices=INACTIVITY_REASONS, blank=True, null=True, verbose_name=_("Inactivity reason")
+        choices=InactivityReasonChoices.choices,
+        blank=True,
+        null=True,
+        verbose_name=_("Inactivity reason"),
+        help_text=_("Reason for the inactivity of the subscription"),
     )
     pickup_point = models.ForeignKey(
         "logistics.PickupPoint", on_delete=models.CASCADE, blank=True, null=True, verbose_name=_("Pickup point")
@@ -1008,7 +1669,11 @@ class Subscription(models.Model):
         User, verbose_name=_("Unsubscription manager"), null=True, blank=True, on_delete=models.SET_NULL
     )
     unsubscription_reason = models.PositiveSmallIntegerField(
-        choices=settings.UNSUBSCRIPTION_REASON_CHOICES, blank=True, null=True, verbose_name=_("Unsubscription reason")
+        choices=settings.UNSUBSCRIPTION_REASON_CHOICES,
+        blank=True,
+        null=True,
+        verbose_name=_("Unsubscription reason"),
+        help_text=_("Reason why the user finished definitively the subscription"),
     )
     unsubscription_channel = models.PositiveSmallIntegerField(
         choices=settings.UNSUBSCRIPTION_CHANNEL_CHOICES,
@@ -1017,7 +1682,7 @@ class Subscription(models.Model):
         verbose_name=_("Unsubscription channel"),
     )
     unsubscription_type = models.PositiveSmallIntegerField(
-        choices=UNSUBSCRIPTION_TYPE_CHOICES,
+        choices=UnsubscriptionTypeChoices.choices,
         blank=True,
         null=True,
         verbose_name=_("Unsubscription type"),
@@ -1029,9 +1694,12 @@ class Subscription(models.Model):
     )
 
     # Product
-    products = models.ManyToManyField(Product, through="SubscriptionProduct")
-    frequency = models.PositiveSmallIntegerField(default=1, choices=FREQUENCY_CHOICES)
+    products = models.ManyToManyField(Product, through="SubscriptionProduct", verbose_name=_("Products"))
+    frequency = models.PositiveSmallIntegerField(
+        default=1, help_text=_("Frequency of billing in months"), verbose_name=_("Frequency")
+    )
     payment_type = models.CharField(
+        # TODO: Should've been deprecated when the new FKs for method and type were introduced, do it ASAP
         max_length=2,
         choices=settings.SUBSCRIPTION_PAYMENT_METHODS,
         null=True,
@@ -1039,8 +1707,12 @@ class Subscription(models.Model):
         verbose_name=_("Payment type"),
     )
 
-    updated_from = models.OneToOneField("core.Subscription", on_delete=models.SET_NULL, blank=True, null=True)
-    payment_certificate = models.FileField(upload_to="certificates/", blank=True, null=True)
+    updated_from = models.OneToOneField(
+        "core.Subscription", on_delete=models.SET_NULL, blank=True, null=True, verbose_name=_("Updated from")
+    )
+    payment_certificate = models.FileField(
+        upload_to="certificates/", blank=True, null=True, verbose_name=_("Payment certificate")
+    )
 
     free_subscription_requested_by = models.CharField(
         max_length=2,
@@ -1068,20 +1740,97 @@ class Subscription(models.Model):
 
     history = HistoricalRecords()
 
+    billing_contact = models.ForeignKey(
+        Contact,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="billed_subscriptions",
+        verbose_name=_("Billing Contact"),
+    )
+    terms_and_conditions = models.ForeignKey(
+        "core.TermsAndConditions",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name=_("Terms and conditions"),
+    )
+    number_of_subscriptions = models.IntegerField(
+        default=1,
+        help_text="Number of subscriptions to create, more than 1 for corporate subscriptions",
+        verbose_name=_("Number of subscriptions"),
+    )
+    override_price = models.IntegerField(
+        null=True,
+        blank=True,
+        help_text="Override the price of the subscription, useful for corporate subscriptions",
+        verbose_name=_("Override price"),
+    )
+    parent_subscription = models.ForeignKey(
+        "core.Subscription",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name=_("Parent subscription"),
+        related_name="affiliate_subscriptions",
+    )
+    payment_method_fk = models.ForeignKey(
+        "core.PaymentMethod",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name=_("Payment method"),
+        help_text=_(
+            "Payment method used to pay for the subscription, for example: "
+            "'Cash', 'Credit Card', 'Debit Card', 'Bank Transfer', etc."
+        ),
+    )
+    payment_type_fk = models.ForeignKey(
+        "core.PaymentType",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name=_("Payment type"),
+        help_text=_(
+            "Payment type used to pay for the subscription, for example:"
+            " 'American Express', 'Visa', 'Mastercard', etc."
+        ),
+    )
+    purchase_date = models.DateField(default=date.today, verbose_name=_("Purchase date"), null=True, blank=True)
+    creation_date = models.DateTimeField(auto_now_add=True, verbose_name=_("Creation date"), null=True, blank=True)
+
+    # Zoho fields
+    zoho_synced = models.BooleanField(default=False, verbose_name="Zoho Synced")
+    zoho_sync_date = models.DateTimeField(blank=True, null=True, verbose_name="Zoho Sync Date")
+
     def __str__(self):
-        return str(
-            _("{} subscription for the contact {} {}").format(
-                _("Active") if self.active else _("Inactive"),
-                self.contact.name,
-                "({})".format(self.get_price_for_full_period()) if self.type == "N" else "",
-            )
-        )
+        parts = [gettext("Active") if self.active else gettext("Inactive"), gettext("subscription")]
+        try:
+            parts.extend([gettext("for the contact"), self.contact.get_full_name()])
+        except Contact.DoesNotExist:
+            pass
+        parts.extend([gettext("with"), str(self.get_product_count()), gettext("products")])
+        return " ".join(parts)
 
     def get_product_count(self):
         """
         Returns the amount of products in this subscription
         """
-        return self.products.count()
+        return self.products.count() if self.pk else 0
+
+    def get_used_affiliate_slots(self):
+        """
+        Returns the number of used affiliate slots for the parent subscription. It already adds the current
+        subscription.
+        """
+        return self.affiliate_subscriptions.count() + 1
+
+    def get_available_affiliate_slots(self):
+        """
+        Returns the number of available affiliate slots for the parent subscription. It already subtracts the current
+        subscription from the total number of subscriptions.
+        """
+        return self.number_of_subscriptions - self.affiliate_subscriptions.count() - 1
 
     def edit_products_field(self):
         """
@@ -1114,6 +1863,7 @@ class Subscription(models.Model):
         seller_id=None,
         override_date=None,
         label_contact=None,
+        tag=False,
     ):
         """
         Used to add products to the current subscription. It is encouraged to always use this method when you want
@@ -1140,13 +1890,17 @@ class Subscription(models.Model):
             seller=sp.seller,
             override_date=override_date,
         )
+        if product.edition_frequency == 4 and tag:
+            self.contact.tags.add(product.slug + "-added")
         return sp
 
     def remove_product(self, product):
         """
         Used to remove products from the current subscription. It is encouraged to always use this method when you want
         to remove a product from a subscription, so you always have control of what happens here. This also creates a
-        product history with the current subscription, product, and date, with the type 'D' (De-activation)
+        product history with the current subscription, product, and date, with the type 'D' (De-activation).
+
+        If that was the last product, mark the subscription as inactive, and mark the reason as ALL_PRODUCTS_REMOVED.
         """
         try:
             sp = SubscriptionProduct.objects.get(subscription=self, product=product)
@@ -1156,25 +1910,43 @@ class Subscription(models.Model):
         else:
             self.contact.add_product_history(self, product, "D")
 
+        if not self.subscriptionproduct_set.exists():
+            self.active = False
+            self.status = "OK"
+            self.inactivity_reason = self.InactivityReasonChoices.ALL_PRODUCTS_REMOVED
+            self.unsubscription_addendum = _("All products were removed.")
+            self.unsubscription_type = self.UnsubscriptionTypeChoices.ALL_PRODUCTS_REMOVED
+            self.end_date = date.today()
+            self.save()
+
+    def get_billing_contact(self):
+        """
+        Returns the contact to bill for this subscription.
+        If no specific billing contact is set, returns the subscription's contact.
+        """
+        return self.billing_contact or self.contact
+
     def get_billing_name(self):
         """
         Gets the billing name for the contact. If it doesn't have one, then the contact's name is returned.
         Used primarily in invoicing.
         """
+        billing_contact = self.get_billing_contact()
         if self.billing_name:
             return self.billing_name
         else:
-            return self.contact.name
+            return billing_contact.get_full_name()
 
     def get_billing_phone(self):
         """
         Gets the billing phone for the contact. If it doesn't have one, then the contact's phone is returned.
         Used primarily in invoicing.
         """
+        billing_contact = self.get_billing_contact()
         if self.billing_phone:
             return self.billing_phone
         else:
-            return self.contact.phone
+            return billing_contact.phone
 
     def get_billing_document(self):
         """
@@ -1182,12 +1954,13 @@ class Subscription(models.Model):
         in that order.
         Used primarily in invoicing.
         """
+        billing_contact = self.get_billing_contact()
         if self.rut:
             return self.rut
         elif self.billing_id_doc:
             return self.billing_id_doc
         else:
-            return self.contact.id_document
+            return billing_contact.id_document
 
     def get_billing_address(self):
         """
@@ -1214,13 +1987,13 @@ class Subscription(models.Model):
         state.
         Used primarily in invoicing.
         """
-        if self.billing_address and self.billing_address.state:
-            return self.billing_address.state
+        if self.billing_address and self.billing_address.state_name:
+            return self.billing_address.state_name
         else:
             sub_prods = SubscriptionProduct.objects.filter(subscription=self)
             addresses = [sp.address for sp in sub_prods]
             if addresses:
-                return addresses[0].state
+                return addresses[0].state_name
             else:
                 return ""
 
@@ -1244,7 +2017,9 @@ class Subscription(models.Model):
         """
         Returns the first product by priority
         """
-        products = self.products.filter(type="S").order_by("billing_priority")
+        products = self.products.filter(
+            type__in=[Product.ProductTypeChoices.SUBSCRIPTION, Product.ProductTypeChoices.OTHER]
+        ).order_by("billing_priority")
         if products.exists():
             return products.first()
         else:
@@ -1261,32 +2036,25 @@ class Subscription(models.Model):
         result = {}
         product = self.get_first_product_by_priority()
         if product:
+            result.update({"name": self.get_billing_name()})
             sp = self.subscriptionproduct_set.filter(product=product).first()
-            if sp.address and sp.address.address_1:
-                address = sp.address.address_1
-                state = sp.address.state
-                city = sp.address.city
-            elif sp.product.digital and self.contact.email:
-                address = self.contact.email
-                state = getattr(settings, "DEFAULT_STATE", None)
-                city = getattr(settings, "DEFAULT_CITY", None)
+            # TODO: Remove or at least explain why a hardcoded frequency of "4" has an special treatment on next line
+            # TODO: "56" route should be turned into a feature and its id should not be used in a hardcoded way
+            default_state = getattr(settings, "DEFAULT_STATE", None)
+            default_city = getattr(settings, "DEFAULT_CITY", None)
+            if (sp.product.edition_frequency == 4 or sp.product.digital) and self.contact.email:
+                route, address, state, city = 56, self.contact.email, default_state, default_city
+            elif sp.address and sp.address.address_1:
+                route, address, state, city = sp.route_id, sp.address.address_1, sp.address.state_name, sp.address.city
             else:
-                address, state, city = None, None, None
-            if address:
-                result = {
-                    "route": sp.route_id,
-                    "order": sp.order,
-                    "address": address,
-                    "state": state,
-                    "city": city,
-                    "name": self.get_billing_name(),
-                }
-            elif settings.DEBUG:
-                print(("DEBUG: No address found in the billing data for subscription %d." % self.id))
+                route, address, state, city = None, None, None, None
+            if not address:
+                address = getattr(settings, "DEFAULT_BILLING_ADDRESS", None)
+            result.update({"address": address, "route": route, "order": sp.order, "state": state, "city": city})
+            if settings.DEBUG:
+                print(f"DEBUG: get_billing_data_by_priority (if product) result: {result}")
         elif settings.DEBUG:
             print(("DEBUG: No product found in the billing data for subscription %d." % self.id))
-        if not result and getattr(settings, "FORCE_DUMMY_MISSING_BILLING_DATA", False):
-            result = {}
         return result
 
     def get_full_address_by_priority(self):
@@ -1322,19 +2090,13 @@ class Subscription(models.Model):
     def get_first_day_of_the_week(self):
         """
         Returns an integer representing the first weekday (based on isoweekday) on the products this subscription has.
+        Returns 6 if no weekday products are found.
         """
-        if SubscriptionProduct.objects.filter(subscription=self, product__weekday=1).exists():
-            return 1
-        elif SubscriptionProduct.objects.filter(subscription=self, product__weekday=2).exists():
-            return 2
-        elif SubscriptionProduct.objects.filter(subscription=self, product__weekday=3).exists():
-            return 3
-        elif SubscriptionProduct.objects.filter(subscription=self, product__weekday=4).exists():
-            return 4
-        elif SubscriptionProduct.objects.filter(subscription=self, product__weekday=5).exists():
-            return 5
-        else:
-            return 6
+        # Check weekdays 1-5 in order and return the first match
+        for weekday in range(1, 6):
+            if SubscriptionProduct.objects.filter(subscription=self, product__weekday=weekday).exists():
+                return weekday
+        return 6
 
     def get_invoiceitems(self):
         """
@@ -1349,7 +2111,7 @@ class Subscription(models.Model):
             # Get the copies for this product, when used on with_copies
             item.copies = product[1]
             # Add the amount of frequency if necessary
-            frequency_extra = _(" {} months".format(self.frequency)) if self.frequency > 1 else ""
+            frequency_extra = _("{} months".format(self.frequency)) if self.frequency > 1 else ""
             item.description = product[0].name + frequency_extra
             item.price = product[0].price * self.frequency
             item.amount = item.price * item.copies
@@ -1362,7 +2124,7 @@ class Subscription(models.Model):
         for discount in self.get_discounts():
             discount_item = InvoiceItem()
             # Add the amount of frequency if necessary
-            frequency_extra = _(" {} months".format(self.frequency)) if self.frequency > 1 else ""
+            frequency_extra = _("{} months".format(self.frequency)) if self.frequency > 1 else ""
             discount_item.description = discount["description"] + frequency_extra
             discount_item.amount = discount["amount"] * self.frequency
             discount_item.type_dr = discount["type_dr"]
@@ -1382,9 +2144,8 @@ class Subscription(models.Model):
         subscription_products = SubscriptionProduct.objects.filter(subscription=self)
         if with_pauses:
             subscription_products = subscription_products.filter(active=True)
-        dict_all_products = {}
-        for sp in subscription_products:
-            dict_all_products[str(sp.product.id)] = str(sp.copies)
+
+        dict_all_products = {str(sp.product.id): str(sp.copies) for sp in subscription_products if sp.product}
         return process_products(dict_all_products)
 
     def product_summary_list(self, with_pauses=False) -> list:
@@ -1400,9 +2161,7 @@ class Subscription(models.Model):
         return output + "</ul>"
 
     def get_price_for_full_period(self, debug_id=""):
-        """
-        Returns the price for a single period on this customer, taking a view from invoicing as aid.
-        """
+        """Returns the price for a single period on this customer"""
         from .utils import calc_price_from_products
 
         return calc_price_from_products(self.product_summary(), self.frequency, debug_id)
@@ -1434,10 +2193,18 @@ class Subscription(models.Model):
         return self.get_price_for_full_period() / (self.period_end() - self.period_start()).days
 
     def days_elapsed_since_period_start(self):
-        return (date.today() - self.period_start()).days
+        period_start = self.period_start()
+        if not period_start:
+            return 0
+        return (date.today() - period_start).days
 
     def days_remaining_in_period(self):
-        return (self.period_end() - date.today()).days
+        period_end = self.period_end()
+        if not period_end:
+            return 0
+        if (period_end - date.today()).days < 0:
+            return 0
+        return (period_end - date.today()).days
 
     def amount_already_paid_in_period(self):
         """
@@ -1450,6 +2217,8 @@ class Subscription(models.Model):
         """
         assert self.type == "N", _("Subscription must be normal to use this method")
         period_start = self.period_start()
+        if not period_start:
+            return 0
         days_already_used = (date.today() - period_start).days
         amount = int(self.price_per_day() * days_already_used)
         if amount > self.get_price_for_full_period():
@@ -1466,9 +2235,11 @@ class Subscription(models.Model):
         """
         assert self.type == "N", _("Subscription must be normal to use this method")
         period_start, period_end = self.get_current_period()
+        if not period_start or not period_end:
+            return 0
         price_per_day = self.get_price_for_full_period() / (period_end - period_start).days
         days_not_used = 30 * self.frequency - (date.today() - period_start).days
-        return int(price_per_day * days_not_used)
+        return int(price_per_day * days_not_used) if days_not_used > 0 else 0
 
     def render_weekdays(self):
         """
@@ -1573,12 +2344,12 @@ class Subscription(models.Model):
             count = self.products.filter(offerable=True).count()
             if ul:
                 if sp.label_contact:
-                    output += "<li>{} ({})</li>".format(sp.product.name, sp.label_contact.name)
+                    output += "<li>{} ({})</li>".format(sp.product.name, sp.label_contact.get_full_name())
                 else:
                     output += "<li>{}</li>".format(sp.product.name)
             else:
                 if sp.label_contact:
-                    output += "{} ({})".format(sp.product.name, sp.label_contact.name)
+                    output += "{} ({})".format(sp.product.name, sp.label_contact.get_full_name())
                 else:
                     output += "{}".format(sp.product.name)
                 if count > 1:
@@ -1589,13 +2360,6 @@ class Subscription(models.Model):
         if ul:
             output += "</ul>"
         return output
-
-    def get_inactivity_reason(self):
-        """
-        Returns the unsubscription reason.
-        """
-        inactivity_reasons = dict(INACTIVITY_REASONS)
-        return inactivity_reasons.get(self.inactivity_reason, "N/A")
 
     def get_unsubscription_reason(self):
         """
@@ -1611,13 +2375,6 @@ class Subscription(models.Model):
         unsubscription_channels = dict(settings.UNSUBSCRIPTION_CHANNEL_CHOICES)
         return unsubscription_channels.get(self.unsubscription_channel, "N/A")
 
-    def get_unsubscription_type(self):
-        """
-        Returns the unsubscription reason.
-        """
-        unsubscription_types = dict(UNSUBSCRIPTION_TYPE_CHOICES)
-        return unsubscription_types.get(self.unsubscription_type, "N/A")
-
     def get_payment_type(self):
         """
         Returns the payment type.
@@ -1632,19 +2389,12 @@ class Subscription(models.Model):
         states = dict(SUBSCRIPTION_STATUS_CHOICES)
         return states.get(self.status, "N/A")
 
-    def get_type(self):
-        """
-        Returns the type.
-        """
-        types = dict(SUBSCRIPTION_TYPE_CHOICES)
-        return types.get(self.type, "N/A")
-
     def get_frequency(self):
         """
         Returns the frequency.
         """
         frequencies = dict(FREQUENCY_CHOICES)
-        return frequencies.get(self.frequency, "N/A")
+        return frequencies.get(self.frequency, format_lazy("{months} months", months=self.frequency))
 
     def get_copies_for_product(self, product_id):
         try:
@@ -1682,7 +2432,11 @@ class Subscription(models.Model):
         return months
 
     def get_subscriptionproducts(self, without_discounts=False):
-        qs = SubscriptionProduct.objects.filter(subscription=self).select_related("product")
+        qs = (
+            SubscriptionProduct.objects.filter(subscription=self)
+            .select_related("product")
+            .order_by("product__billing_priority", "product_id")
+        )
         if without_discounts:
             qs = qs.exclude(product__type="D")
         return qs
@@ -1695,6 +2449,36 @@ class Subscription(models.Model):
             return Subscription.objects.get(updated_from=self)
         else:
             return None
+
+    def can_be_reactivated(self):
+        """
+        Check if this subscription can be reactivated.
+
+        Requirements:
+        - Must have an end_date (be unsubscribed)
+        - Must be a complete unsubscription (unsubscription_type == 1)
+        - Must be within 30 days of unsubscription_date
+
+        Returns:
+            bool: True if subscription can be reactivated, False otherwise
+        """
+        from datetime import date
+
+        # Must be unsubscribed
+        if not self.end_date:
+            return False
+
+        # Must be a complete unsubscription
+        if self.unsubscription_type != 1:
+            return False
+
+        # Must be within 30 days of unsubscription_date
+        if self.unsubscription_date:
+            days_since_unsubscription = (date.today() - self.unsubscription_date).days
+            if days_since_unsubscription > 30:
+                return False
+
+        return True
 
     def balance_abs(self):
         return abs(self.balance)
@@ -1778,10 +2562,40 @@ class Subscription(models.Model):
         self.validated_date = timezone.now()
         self.save()
 
+    @property
+    def unsubscription_manager_name(self):
+        if not self.unsubscription_manager:
+            return None
+        if self.unsubscription_manager.get_full_name():
+            return self.unsubscription_manager.get_full_name()
+        else:
+            return self.unsubscription_manager.username
+
+    def billing_requirements_met(self):
+        pass
+
+    def bill(self, billing_date=None, dpp=10, force_by_date=False, billing_date_override=None):
+        from invoicing.utils import bill_subscription
+
+        return bill_subscription(self, billing_date, dpp, force_by_date, billing_date_override)
+
+    @property
+    def frequency_days(self):
+        if self.frequency == 12:
+            return 365
+        elif self.frequency == 24:
+            return 730
+        else:
+            return self.frequency * 30
+
     class Meta:
         verbose_name = _("subscription")
         verbose_name_plural = _("subscriptions")
-        permissions = [("can_add_free_subscription", _("Can add free subscription"))]
+        permissions = [
+            ("can_add_free_subscription", _("Can add free subscription")),
+            ("can_add_corporate_subscription", _("Can add corporate subscription")),
+            ("can_offer_retention", _("Can offer retention")),
+        ]
 
 
 class Campaign(models.Model):
@@ -1915,30 +2729,91 @@ class Campaign(models.Model):
         )
 
 
+class ActivityTopic(models.Model):
+    """
+    Model to store the topics for activities.
+    """
+
+    name = models.CharField(max_length=255, unique=True, verbose_name=_("Name"))
+    description = models.TextField(blank=True, verbose_name=_("Description"))
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = _("activity topic")
+        verbose_name_plural = _("activity topics")
+        ordering = ["name"]
+
+
+class ActivityResponse(models.Model):
+    """
+    Model to store the responses for activities.
+    """
+
+    name = models.CharField(max_length=255, unique=True, verbose_name=_("Name"))
+    description = models.TextField(blank=True, verbose_name=_("Description"))
+    topic = models.ForeignKey(ActivityTopic, on_delete=models.CASCADE, verbose_name=_("Topic"), null=True, blank=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = _("activity response")
+        verbose_name_plural = _("activity responses")
+        ordering = ["name"]
+
+
 class Activity(models.Model):
     """
     Model that stores every interaction the company has with Contacts. They range from calls, to emails, in-place
     visits or comments on a website.
     """
 
-    contact = models.ForeignKey(Contact, on_delete=models.CASCADE, null=True, blank=True)
-    campaign = models.ForeignKey(Campaign, on_delete=models.CASCADE, null=True, blank=True)
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, null=True, blank=True)
+    contact = models.ForeignKey(Contact, on_delete=models.CASCADE, null=True, blank=True, verbose_name=_("Contact"))
+    campaign = models.ForeignKey(Campaign, on_delete=models.CASCADE, null=True, blank=True, verbose_name=_("Campaign"))
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, null=True, blank=True, verbose_name=_("Product"))
     seller = models.ForeignKey(
         "support.Seller", on_delete=models.CASCADE, blank=True, null=True, verbose_name=_("Seller")
     )
     issue = models.ForeignKey(
         "support.Issue", on_delete=models.CASCADE, blank=True, null=True, verbose_name=_("Issue")
     )
-    datetime = models.DateTimeField(blank=True, null=True)
-    asap = models.BooleanField(default=False)
-    notes = models.TextField(blank=True, null=True)
+    datetime = models.DateTimeField(blank=True, null=True, verbose_name=_("Date"))
+    asap = models.BooleanField(default=False, verbose_name=_("ASAP"))
+    notes = models.TextField(blank=True, null=True, verbose_name=_("Notes"))
 
-    priority = models.SmallIntegerField(choices=PRIORITY_CHOICES, default=3)
-    activity_type = models.CharField(choices=ACTIVITY_TYPES, max_length=1, null=True, blank=True)
-    status = models.CharField(choices=ACTIVITY_STATUS_CHOICES, default="P", max_length=1)
-    direction = models.CharField(choices=ACTIVITY_DIRECTION_CHOICES, default="O", max_length=1)
+    priority = models.SmallIntegerField(choices=PRIORITY_CHOICES, default=3, verbose_name=_("Priority"))
+    activity_type = models.CharField(
+        choices=get_activity_types(), max_length=1, null=True, blank=True, verbose_name=_("Type")
+    )
+    status = models.CharField(
+        choices=ACTIVITY_STATUS.choices, default=ACTIVITY_STATUS.PENDING, max_length=1, verbose_name=_("Status")
+    )
+    direction = models.CharField(
+        choices=ACTIVITY_DIRECTION_CHOICES, default="O", max_length=1, verbose_name=_("Direction")
+    )
+    created_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True, verbose_name=_("Created by")
+    )
+    topic = models.ForeignKey(ActivityTopic, on_delete=models.SET_NULL, null=True, blank=True, verbose_name=_("Topic"))
+    response = models.ForeignKey(
+        ActivityResponse, on_delete=models.SET_NULL, null=True, blank=True, verbose_name=_("Response")
+    )
     history = HistoricalRecords()
+    seller_console_action = models.ForeignKey(
+        "support.SellerConsoleAction",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name=_("Seller console action"),
+    )
+    metadata = models.JSONField(
+        blank=True,
+        null=True,
+        verbose_name=_("Metadata"),
+        help_text=_("Structured data for storing additional activity information (e.g., unsubscription data)")
+    )
 
     def __str__(self):
         return str(_("Activity {} for contact {}".format(self.id, self.contact.id)))
@@ -1956,19 +2831,14 @@ class Activity(models.Model):
         priorities = dict(PRIORITY_CHOICES)
         return priorities.get(self.priority, "N/A")
 
-    def get_type(self):
-        """
-        Returns a description of the type for this activity.
-        """
-        types = dict(ACTIVITY_TYPES)
-        return types.get(self.activity_type, "N/A")
-
     def get_status(self):
         """
         Returns a description of the status for this activity.
         """
-        statuses = dict(ACTIVITY_STATUS_CHOICES)
-        return statuses.get(self.status, "N/A")
+        try:
+            return ACTIVITY_STATUS(self.status).label
+        except ValueError:
+            return "N/A"
 
     def get_direction(self):
         """
@@ -1977,9 +2847,18 @@ class Activity(models.Model):
         directions = dict(ACTIVITY_DIRECTION_CHOICES)
         return directions.get(self.direction, "N/A")
 
+    def get_activity_type_display(self):
+        """
+        Returns the display name for the activity type.
+        This method is needed because activity_type uses a dynamic function get_activity_types()
+        instead of static choices, so Django's automatic get_FOO_display doesn't work.
+        """
+        activity_types = dict(get_activity_types())
+        return activity_types.get(self.activity_type, "N/A")
+
     def mark_as_sale(self, register_activity, campaign, subscription=None):
         # Update the activity
-        self.status = "C"
+        self.status = ACTIVITY_STATUS.COMPLETED
         activity_notes = _("Success in sale after scheduling {}\n{}").format(
             datetime.now().strftime("%Y-%m-%d %H:%M"), register_activity
         )
@@ -1996,9 +2875,18 @@ class Activity(models.Model):
             subscription.campaign = campaign
             subscription.save()
 
+    @property
+    def created_by_name(self):
+        if self.created_by:
+            # Return the full name if it exists, otherwise return the username
+            return self.created_by.get_full_name() or self.created_by.username
+        # If created_by is None, return an empty string
+        return ""
+
     class Meta:
         verbose_name = _("activity")
         verbose_name_plural = _("activities")
+        get_latest_by = "id"
 
 
 class ContactProductHistory(models.Model):
@@ -2028,6 +2916,11 @@ class ContactProductHistory(models.Model):
         statuses = dict(PRODUCTHISTORY_CHOICES)
         return statuses.get(self.status, "N/A")
 
+    class Meta:
+        verbose_name = _("Contact Product History")
+        verbose_name_plural = _("Contact Product Histories")
+        ordering = ["id"]
+
 
 class ContactCampaignStatus(models.Model):
     """
@@ -2036,7 +2929,7 @@ class ContactCampaignStatus(models.Model):
 
     contact = models.ForeignKey(Contact, on_delete=models.CASCADE)
     campaign = models.ForeignKey(Campaign, on_delete=models.CASCADE)
-    status = models.SmallIntegerField(choices=CAMPAIGN_STATUS_CHOICES, default=1)
+    status = models.SmallIntegerField(choices=CAMPAIGN_STATUS.choices, default=1)
     campaign_resolution = models.CharField(choices=CAMPAIGN_RESOLUTION_CHOICES, null=True, blank=True, max_length=2)
     seller = models.ForeignKey("support.Seller", on_delete=models.CASCADE, null=True, blank=True)
     date_created = models.DateField(auto_now_add=True)
@@ -2044,9 +2937,15 @@ class ContactCampaignStatus(models.Model):
     last_action_date = models.DateField(auto_now=True)
     times_contacted = models.SmallIntegerField(default=0)
     resolution_reason = models.SmallIntegerField(choices=CAMPAIGN_RESOLUTION_REASONS_CHOICES, null=True, blank=True)
+    last_console_action = models.ForeignKey(
+        "support.SellerConsoleAction", on_delete=models.SET_NULL, null=True, blank=True
+    )
 
     class Meta:
         unique_together = ["contact", "campaign"]
+        verbose_name = _("Contact Campaign Status")
+        verbose_name_plural = _("Contact Campaign Statuses")
+        ordering = ["id"]
 
     def get_last_activity(self):
         """
@@ -2058,7 +2957,7 @@ class ContactCampaignStatus(models.Model):
         """
         Returns a description of the status for this campaign on this contact.
         """
-        return dict(CAMPAIGN_STATUS_CHOICES).get(self.status, "N/A")
+        return CAMPAIGN_STATUS(self.status).label if self.status in CAMPAIGN_STATUS.values else "N/A"
 
     def get_campaign_resolution(self):
         """
@@ -2176,6 +3075,11 @@ class PriceRule(models.Model):
     # TODO: describe this field
     history = HistoricalRecords()
 
+    class Meta:
+        verbose_name = _("Price Rule")
+        verbose_name_plural = _("Price Rules")
+        ordering = ["id"]
+
 
 class DynamicContactFilter(models.Model):
     """
@@ -2228,7 +3132,7 @@ class DynamicContactFilter(models.Model):
             subscriptions = subscriptions.filter(contact__allow_polls=True)
         if self.debtor_contacts:
             only_debtors = subscriptions.filter(
-                contact__invoice__expiration_date__lte=date.today(),
+                contact__invoice__expiration_date__lt=date.today(),
                 contact__invoice__paid=False,
                 contact__invoice__debited=False,
                 contact__invoice__canceled=False,
@@ -2266,7 +3170,8 @@ class DynamicContactFilter(models.Model):
         emails_in_filter = self.get_emails()
         emails_in_mailtrain = get_emails_from_mailtrain_list(self.mailtrain_id)
 
-        print(("synchronizing DCF {} with list {}".format(self.id, self.mailtrain_id)))
+        if settings.DEBUG:
+            print(f"DEBUG: synchronizing DCF {self.id} with list {self.mailtrain_id}")
 
         # First we're going to delete the ones that don't belong to the list
         for email_in_mailtrain in emails_in_mailtrain:
@@ -2295,9 +3200,19 @@ class DynamicContactFilter(models.Model):
     def get_autosync(self):
         return _("Active") if self.autosync else _("Inactive")
 
+    class Meta:
+        verbose_name = _("Dynamic Contact Filter")
+        verbose_name_plural = _("Dynamic Contact Filters")
+        ordering = ["id"]
+
 
 class ProductBundle(models.Model):
     products = models.ManyToManyField(Product)
+
+    class Meta:
+        verbose_name = _("Product Bundle")
+        verbose_name_plural = _("Product Bundles")
+        ordering = ["id"]
 
     def __str__(self):
         return_str = "Bundle: "
@@ -2324,6 +3239,10 @@ class AdvancedDiscount(models.Model):
             value = "${}".format(self.value)
         return "{} ({})".format(self.discount_product.name, value)
 
+    class Meta:
+        verbose_name = _("Advanced Discount")
+        verbose_name_plural = _("Advanced Discounts")
+
 
 class DoNotCallNumber(models.Model):
     number = models.CharField(max_length=20, primary_key=True)
@@ -2343,6 +3262,8 @@ class DoNotCallNumber(models.Model):
         return self.number
 
     class Meta:
+        verbose_name = _("Do Not Call Number")
+        verbose_name_plural = _("Do Not Call Numbers")
         ordering = ["number"]
 
 
@@ -2360,17 +3281,20 @@ class EmailReplacement(models.Model):
         return EmailReplacement.objects.filter(domain=domain, replacement=replacement, status="rejected").exists()
 
     def __str__(self):
-        return "%s -> %s (%s)" % (self.domain, self.replacement, self.get_status_display())
+        return f"{self.domain} -> {self.replacement} ({self.get_status_display()})"
 
     class Meta:
+        verbose_name = _("Email Replacement")
+        verbose_name_plural = _("Email Replacements")
         ordering = ("status", "domain")
 
 
 def update_customer(cust, newmail, field, value):
     # TODO: rename to update_contact or similar, rename cust arg accordingly also
     if settings.DEBUG:
-        print("DEBUG: update_customer(%s, %s, %s, %s)" % (cust, newmail, field, value))
-    cust.updatefromweb = True
+        print("DEBUG: core.models.update_customer(%s[id=%d], %s, %s, %s)" % (cust, cust.id, newmail, field, value))
+    if not getattr(cust, 'updatefromweb', False):
+        cust.updatefromweb = True
     if field:
         if field in ("newsletters", "area_newsletters", "newsletters_remove", "area_newsletters_remove"):
             map_setting = getattr(
@@ -2387,7 +3311,7 @@ def update_customer(cust, newmail, field, value):
                         except KeyError:
                             pass
             else:
-                # special call for only remove one newsletter
+                # special call for only remove one newsletter. TODO: recheck this assumption
                 obj_id = json.loads(value)[0]
                 try:
                     cust.subscriptionnewsletter_set.filter(product__slug=map_setting[obj_id]).delete()
@@ -2396,43 +3320,85 @@ def update_customer(cust, newmail, field, value):
         else:
             mfield = getattr(settings, "WEB_UPDATE_SUBSCRIBER_MAP", {}).get(field, None)
             if mfield:
+                # fk treatment
+                if mfield == "id_document_type":
+                    try:
+                        value = IdDocumentType.objects.get(id=value)
+                    except IdDocumentType.DoesNotExist:
+                        value = None
                 setattr(cust, mfield, eval(value) if type(getattr(cust, mfield)) is bool else value)
+                cust.save()
     else:
         cust.email = newmail or None
-    cust.save()
+        cust.save()
 
 
-def update_web_user(contact, newsletter_data=None, area_newsletters=False):
+def update_web_user(contact, target_email=None, newsletter_data=None, area_newsletters=False, method="PUT"):
     """
-    Sincroniza algunos campos del contact con su respectiva ficha de suscriptor en la web.
+    Sync some fields from contact with the web CMS linked subscriptor target reference.
     If newsletter_data is given, newsletters will be sent to websync.
+    @param contact: Contact object
+    @param target_email: Email used to set the connection. If not, use given contact's email
+    @param newsletter_data: field data for newsletters.
+    @param area_newsletters: field name for newsletters.
     """
-    # TODO: rename better and translate docstring to en.
     if settings.WEB_UPDATE_USER_ENABLED and not getattr(contact, "updatefromweb", False) and contact.id:
-        if newsletter_data:
-            try:
+        fields_to_update = {}
+        try:
+            if newsletter_data:
                 field = ("area_" if area_newsletters else "") + "newsletters"
-                updatewebuser(contact.id, contact.email, contact.email, field, newsletter_data)
-            except RequestException:
-                raise ValidationError(_("CMS sync error"))
+                fields_to_update.update({field: newsletter_data})
+
+            # Get previous contact history if available (may not exist for newly created contacts)
+            contact_prev = None
+            if method == "PUT":
+                try:
+                    contact_prev = contact.history.latest().get_previous_by_history_date()
+                except (contact.history.model.DoesNotExist, AttributeError):
+                    # No history exists yet (new contact) or no previous history
+                    contact_prev = None
+            # TODO: change this 1-field-per-request approach to a new 1-request-only approach with all chanmges
+            # NOTE: name and last_name are considered to allways be in the setting, even if not.
+            for f in getattr(settings, "WEB_UPDATE_USER_CHECKED_FIELDS", []):
+                before_saved_value = getattr(contact_prev, f) if contact_prev else None
+                current_saved_value = getattr(contact, f)
+                if settings.DEBUG:
+                    print(f"DEBUG: update_web_user: {f} before: {before_saved_value}, current: {current_saved_value}")
+                if current_saved_value != before_saved_value:
+                    if current_saved_value:
+                        if f == 'phone':
+                            current_saved_value = current_saved_value.as_e164
+                        elif f == 'id_document_type':
+                            current_saved_value = current_saved_value.id
+                    fields_to_update.update({f: current_saved_value})
+            # call for sync if there are fields to update
+            api_result = updatewebuser(
+                contact.id, target_email, contact.email, contact.name, contact.last_name, fields_to_update, method
+            )
+        except RequestException as e:
+            raise ValidationError("{}: {}".format(_("CMS sync error"), e))
+        except Contact.DoesNotExist:
+            pass
         else:
-            try:
-                current_contact = Contact.objects.get(pk=contact.id)
-                # TODO: change this 1-field-per-request approach to a new 1-request-only approach with all chanmges
-                for f in getattr(settings, "WEB_UPDATE_USER_CHECKED_FIELDS", []):
-                    newvalue = getattr(contact, f)
-                    if newvalue is not None and getattr(current_contact, f) != newvalue:
-                        try:
-                            updatewebuser(contact.id, current_contact.email, contact.email, f, newvalue)
-                        except RequestException as e:
-                            raise ValidationError("{}: {}".format(_("CMS sync error"), e))
-            except Contact.DoesNotExist:
-                pass
+            if api_result in ("TIMEOUT", "ERROR"):
+                contact.sync_error = api_result  # TODO: try to get more info from the error
+
+
+def update_web_user_newsletters(contact):
+    """
+    Update web user newsletters when they are edited
+    @params contact: Contact instance
+    """
+    try:
+        newsletters_slugs = list(contact.get_newsletter_products().values_list('slug', flat=True))
+        update_web_user(contact, contact.email, json.dumps(newsletters_slugs))
+    except Exception as exc:
+        if settings.DEBUG:
+            print(f"DEBUG: Error sending the request to CMS: {exc}")
 
 
 class MailtrainList(models.Model):
-    """MailtrainList
-
+    """
     Stores Mailtrain lists to use when updating contacts in the Mailtrain system. This is also used in the CMS
     and should be synced to the model in the CMS.
 
@@ -2450,3 +3416,113 @@ class MailtrainList(models.Model):
     class Meta:
         verbose_name = _("Mailtrain List")
         verbose_name_plural = _("Mailtrain Lists")
+
+
+class TermsAndConditions(models.Model):
+    version = models.CharField(max_length=255, verbose_name=_("Version"), blank=True, null=True)
+    date = models.DateField(verbose_name=_("Date"))
+    code = models.CharField(
+        max_length=255,
+        verbose_name=_("Description code"),
+        blank=True,
+        null=True,
+        help_text=_("Description for internal use"),
+    )
+    pdf_file = models.FileField(upload_to="terms_and_conditions", null=True, blank=True, verbose_name=_("PDF File"))
+    text = models.TextField(verbose_name=_("Text"))
+
+    def __str__(self) -> str:
+        return f"T&C {self.code} ({self.date})"
+
+    class Meta:
+        verbose_name = _("Terms and Conditions")
+        verbose_name_plural = _("Terms and Conditions")
+
+
+class TermsAndConditionsProduct(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, verbose_name=_("Product"))
+    terms_and_conditions = models.ForeignKey(
+        TermsAndConditions, on_delete=models.CASCADE, verbose_name=_("Terms and Conditions")
+    )
+    date = models.DateField(verbose_name=_("Date"))
+
+    def __str__(self) -> str:
+        return f"T&C {self.terms_and_conditions.code} ({self.date}) for {self.product.name}"
+
+    class Meta:
+        verbose_name = _("Terms and Conditions Product")
+        verbose_name_plural = _("Terms and Conditions Products")
+
+
+class BusinessEntityType(models.Model):
+    name = models.CharField(max_length=255, verbose_name=_("Name"))
+    description = models.TextField(blank=True, verbose_name=_("Description"))
+
+    def __str__(self) -> str:
+        return self.name
+
+    class Meta:
+        verbose_name = _("Business Entity Type")
+        verbose_name_plural = _("Business Entity Types")
+
+
+class PersonType(models.Model):
+    name = models.CharField(max_length=255, verbose_name=_("Name"))
+    description = models.TextField(blank=True, verbose_name=_("Description"))
+
+    def __str__(self) -> str:
+        return self.name
+
+    class Meta:
+        verbose_name = _("Person Type")
+        verbose_name_plural = _("Person Types")
+
+
+class PaymentMethod(models.Model):
+    """
+    Payment methods are the ways in which the customer can pay for the subscription. These are a higher level of
+    categorization than payment types.
+
+    This model will save the payment methods that are used in the subscription, for example:
+    - Cash
+    - Credit Card
+    - Debit Card
+    - Bank Transfer
+    - etc.
+    """
+
+    name = models.CharField(max_length=255, verbose_name=_("Name"))
+    description = models.TextField(blank=True, verbose_name=_("Description"))
+    active = models.BooleanField(default=True, verbose_name=_("Active"))
+
+    class Meta:
+        verbose_name = _("Payment Method")
+        verbose_name_plural = _("Payment Methods")
+        ordering = ["name"]
+
+    def __str__(self) -> str:
+        return self.name
+
+
+class PaymentType(models.Model):
+    """
+    Subcategorization of payment methods. They don't necessarily depend on the payment method.
+
+    This model will save the payment types that are used in the payment methods, for example:
+    - American Express
+    - Visa
+    - Mastercard
+    - etc.
+    """
+
+    name = models.CharField(max_length=255, verbose_name=_("Name"))
+    description = models.TextField(blank=True, verbose_name=_("Description"))
+    active = models.BooleanField(default=True, verbose_name=_("Active"))
+
+    class Meta:
+        verbose_name = _("Payment Type")
+        verbose_name_plural = _("Payment Types")
+        ordering = ["name"]
+
+    def __str__(self) -> str:
+        return self.name

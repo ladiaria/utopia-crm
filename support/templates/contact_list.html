@@ -1,181 +1,261 @@
-{% extends 'adminlte/base.html' %}
+{% extends "adminlte/base.html" %}
 {% load static i18n widget_tweaks core_tags %}
-
 {% block stylesheets %}
-{{block.super}}
-<link rel="stylesheet" href="{% static '/admin-lte/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css' %}" />
-{% endblock %}
-
-{% block extra_js %}
-<script type="text/javascript" src="{% static '/admin-lte/plugins/datatables/jquery.dataTables.min.js' %}"></script>
-<script src="{% static '/admin-lte/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js' %}"></script>
-<script>
-  $(function () {
-    $("#table1").DataTable({
-      "paging": false,
-      "info": false,
-      "order": [
-        [0, "desc"]
-      ],
-    });
-  });
-</script>
+  {{ block.super }}
+  <link rel="stylesheet" href="{% static "/admin-lte/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css" %}" />
+  <link rel="stylesheet" type="text/css" href="{% static 'tagify/tagify.css' %}">
+  <style>
+    .tagify {
+      max-height: 150px;
+      overflow-y: auto;
+      border: 1px solid #ced4da;
+      padding-right: 10px;
+      background: linear-gradient(to bottom, white 60%, #f8f9fa);
+    }
+    .table-responsive-custom {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .table-responsive-custom table {
+      min-width: 1200px;
+    }
+    .phone-column {
+      white-space: nowrap;
+      min-width: 150px;
+    }
+    .tags-column {
+      max-width: 200px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .tags-column .badge {
+      margin-right: 4px;
+      margin-bottom: 2px;
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .tags-column .badge:hover {
+      background-color: #0056b3 !important;
+      transform: scale(1.05);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    .scroll-indicator {
+      background: linear-gradient(90deg, rgba(0,123,255,0.1) 0%, rgba(0,123,255,0.05) 100%);
+      border-left: 3px solid #007bff;
+      padding: 8px 12px;
+      margin-bottom: 10px;
+      border-radius: 4px;
+    }
+  </style>
 {% endblock %}
 
 {% block title %}
-{% trans "Contacts" %}
+  {% trans "Contacts" %}
 {% endblock title %}
 
+{% block extra_js %}
+  <script type="text/javascript" src="{% static 'tagify/tagify.js' %}"></script>
+  <script type="text/javascript">
+    document.addEventListener("DOMContentLoaded", function () {
+      const tag_input = document.querySelector('input[name="tags"]');
+      if (tag_input) {
+        const tagify = new Tagify(tag_input);
+        
+        // Convert Tagify JSON to comma-separated values before form submission
+        const form = document.getElementById('form');
+        form.addEventListener('submit', function(e) {
+          // Get the tags from Tagify
+          const tags = tagify.value;
+          
+          // Convert JSON array to comma-separated string
+          if (tags && tags.length > 0) {
+            const tagNames = tags.map(tag => tag.value).join(',');
+            tag_input.value = tagNames;
+          } else {
+            tag_input.value = '';
+          }
+        });
+      }
+    });
+  </script>
+{% endblock extra_js %}
+
 {% block no_heading %}
-<h1>{% trans 'Contacts' %}</h1>
-<p>{% trans 'Manage all contacts in the database.' %}</p>
+  <h1>{% trans "Contacts" %}</h1>
+  <p>{% trans "Manage all contacts in the database." %}</p>
 {% endblock %}
 
 {% block content %}
-<div class="row">
-  <div class="col-md-12">
-    <div class="card card-outline card-primary">
-      <div class="card-header">
-        <h3 class="card-title">{% trans 'Search' %}</h3>
-        <div class="card-tools">
-          <button type="button" class="btn btn-tool" data-card-widget="collapse"><i class="fas fa-minus"></i>
-          </button>
+  <div class="row">
+    <div class="col-md-12">
+      <div class="card card-outline card-primary">
+        <div class="card-header">
+          <h3 class="card-title">{% trans "Search" %}</h3>
+          <div class="card-tools">
+            <button type="button" class="btn btn-tool" data-card-widget="collapse">
+              <i class="fas fa-minus"></i>
+            </button>
+          </div>
         </div>
-      </div>
-      <div class="card-body">
-        <form method="GET" id="form">
-          <div class="row">
-            <div class="form-group row col">
-              <label for="phone" class="col-sm-3 col-form-label">{% trans 'Filter' %}</label>
-              <div class="col-sm-9">
-                {% render_field filter.form.filter_multiple class="form-control" %}
+        <div class="card-body">
+          <form method="get" id="form">
+            <div class="row">
+              <div class="form-group col-md-12">
+                <label for="filter_multiple">
+                  <strong>{% trans "Main Search" %}</strong>
+                  <i class="fas fa-info-circle text-info" data-toggle="tooltip" data-placement="right"
+                     title="{% trans "Search by: ID, Name, Last Name, Email, Phone, Mobile, Work Phone, or ID Document" %}"></i>
+                </label>
+                {% render_field filter.form.filter_multiple class="form-control" placeholder="Search by name, email, phone, ID..." %}
+                <small class="form-text text-muted">
+                  {% trans "You can search by: Contact ID, Name, Last Name, Email, Phone, Mobile, Work Phone, or ID Document" %}
+                </small>
               </div>
             </div>
-            <div class="form-group row col">
-              <label for="state" class="col-sm-3 col-form-label">{% trans 'State' %}</label>
-              <div class="col-sm-9">
+            <div class="row">
+              <div class="form-group col-md-4">
+                <label for="state">{% trans "State" %}</label>
                 {% render_field filter.form.state class="form-control" %}
               </div>
-            </div>
-            <div class="form-group row col">
-              <label for="active_subscriptions"
-                class="col-sm-3 col-form-label">{% trans 'Active subscriptions' %}</label>
-              <div class="col-sm-9">
+              <div class="form-group col-md-4">
+                <label for="active_subscriptions">{% trans "Active subscriptions" %}</label>
                 {% render_field filter.form.active_subscriptions class="form-control" %}
               </div>
-            </div>
-          </div>
-          <div class="row">
-            <div class="form-group row col">
-              <label for="tags" class="col-sm-3 col-form-label">{% trans 'Tags' %}</label>
-              <div class="col-sm-9">
-                {% render_field filter.form.tags class="form-control" %}
+              <div class="form-group col-md-4">
+                <label for="address">{% trans "Address" %}</label>
+                {% render_field filter.form.address class="form-control" placeholder="Search by street address..." %}
               </div>
             </div>
-            <div class="form-group row col">
-              <label for="tags" class="col-sm-3 col-form-label">{% trans 'Address' %}</label>
-              <div class="col-sm-9">
-                {% render_field filter.form.address class="form-control" %}
+            <div class="row">
+              <div class="form-group col-md-8">
+                <label for="tags">{% trans "Tags" %}</label>
+                {% render_field filter.form.tags class="form-control" placeholder="Type tag names separated by commas..." %}
+                <small class="form-text text-muted">
+                  {% trans "Enter tag names separated by commas. Tags will appear as removable chips." %}
+                </small>
+              </div>
+              <div class="form-group col-md-4 d-flex align-items-end">
+                <div class="w-100">
+                  <input type="submit"
+                         class="btn bg-gradient-primary btn-block"
+                         value="{% trans "Search" %}" />
+                  {% if request.user|in_group:"Managers" %}
+                    <input type="submit"
+                           class="btn bg-gradient-success btn-block mt-2"
+                           name="export"
+                           value="{% trans "Export to CSV" %}" />
+                  {% endif %}
+                  <p class="text-center mt-2 mb-0"><strong>{{ paginator.count }}</strong> {% trans "contacts" %}</p>
+                </div>
               </div>
             </div>
-            <div class="form-group col-sm-1">
-              <input type="submit" class="btn bg-gradient-primary" value="{% trans 'Search' %}" />
-            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-12">
+      <div class="card">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <h3>{% trans "All contacts" %}</h3>
+            <a href="{% url "create_contact" %}" class="btn btn-primary">{% trans "Create contact" %}</a>
           </div>
-
-          {% if request.user|in_group:"Managers" %}
-          <div class="row">
-            <div class="form-group col-4">
-              <input type="submit" class="btn bg-gradient-primary" name="export" value="{% trans 'Export to CSV' %}" />
-              {{count}} {% trans "contacts" %}
-            </div>
+          <div class="scroll-indicator">
+            <i class="fas fa-arrows-alt-h"></i>
+            <small>{% trans "Scroll horizontally to see all columns" %}</small>
           </div>
-          {% endif %}
-
-        </form>
+          <div class="table-responsive-custom">
+          <table id="table1" class="table table-bordered table-striped mt-2">
+            <thead>
+              <tr role="row">
+                <th>{% trans "Full name" %}</th>
+                <th>{% trans "Email" %}</th>
+                <th class="phone-column">{% trans "Phone" %}</th>
+                <th>{% trans "Subscription" %}</th>
+                <th>{% trans "Addresses" %}</th>
+                <th class="tags-column">{% trans "Tags" %}</th>
+                <th>{% trans "Last activity" %}</th>
+                <th>{% trans "Actions" %}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for contact in page_obj %}
+                <tr role="row">
+                  <td>
+                    <a href="{% url "contact_detail" contact.id %}">{{ contact.get_full_name|default_if_none:"" }}</a>
+                    {% if contact.id_document %}
+                      <br>
+                      {% if contact.id_document_type %}
+                        {{ contact.id_document_type }}
+                        <br>
+                      {% endif %}
+                      <i class="fas fa-id-card"
+                         title="{% trans "ID document" %}"
+                         data-toggle="tooltip"></i>
+                      {{ contact.id_document }}
+                    {% endif %}
+                  </td>
+                  <td>{{ contact.email|default_if_none:"-" }}</td>
+                  <td class="phone-column">
+                    {% if contact.phone %}
+                      <i class="fas fa-phone"></i> {{ contact.phone|default_if_none:"" }}
+                    {% endif %}
+                    {% if contact.phone and contact.mobile %}
+                      <br>
+                    {% endif %}
+                    {% if contact.mobile %}
+                      <i class="fas fa-mobile"></i> {{ contact.mobile|default_if_none:"" }}
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% for sp in contact.get_active_subscriptionproducts %}
+                      {% if sp.has_envelope == 1 %}
+                        <i class="fas fa-envelope"
+                           title="{% trans "Paid envelope" %}"
+                           data-toggle="tooltip"></i>
+                      {% elif sp.has_envelope == 2 %}
+                        <i class="far fa-envelope"
+                           title="{% trans "Free envelope" %}"
+                           data-toggle="tooltip"></i>
+                      {% endif %}
+                      {{ sp.product.name }}
+                      {% if sp.label_contact %}({{ sp.label_contact.get_full_name }}){% endif %}
+                      <br>
+                    {% endfor %}
+                  </td>
+                  <td>
+                    <ul class="ml-0 pl-2 list-unstyled">
+                      {% for address in contact.addresses.all %}
+                        <li>{{ address.address_1|default_if_none:"" }} {{ address.state|default_if_none:"" }}</li>
+                      {% endfor %}
+                    </ul>
+                  </td>
+                  <td class="tags-column">
+                    {% for tag in contact.tags.all %}
+                      <a href="?tags={{ tag.name }}" class="badge badge-info" title="{% trans "Filter by this tag" %}">
+                        {{ tag.name }}
+                      </a>
+                    {% empty %}
+                      <span class="text-muted">-</span>
+                    {% endfor %}
+                  </td>
+                  <td>
+                    {{ contact.get_last_activity_formatted|default_if_none:"" }}
+                  </td>
+                  <td>
+                    <a href="{% url "contact_detail" contact.id %}" class="btn btn-primary"><i class="fa fa-eye"></i></a>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          </div>
+        </div>
       </div>
     </div>
   </div>
-  <div class="col-md-12">
-    <div class="card">
-      <div class="card-body">
-        <h3>{% trans "All contacts" %}</h3>
-        <table id="table1" class="table table-bordered table-striped">
-          <thead>
-            <tr role="row">
-              <th>{% trans "Id" %}</th>
-              <th>{% trans "Full name" %}</th>
-              <th>{% trans "Email" %}</th>
-              <th>{% trans "Phone" %}</th>
-              <th>{% trans "Subscription" %}</th>
-              <th>{% trans "Addresses" %}</th>
-              <th>{% trans "Last activity" %}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for contact in contacts %}
-            <tr role="row">
-              <td><a href='{% url "contact_detail" contact.id %}'>{{contact.id}}</a></td>
-              <td>{{contact.name}}</td>
-              <td>{{contact.email|default_if_none:""}}</td>
-              <td>{{contact.phone}}</td>
-              <td>
-                {% for sp in contact.get_active_subscriptionproducts %}
-                {% if sp.has_envelope == 1 %}
-                <i class="fas fa-envelope" title="{% trans 'Paid envelope' %}" data-toggle="tooltip"></i>
-                {% elif sp.has_envelope == 2 %}
-                <i class="far fa-envelope" title="{% trans 'Free envelope' %}" data-toggle="tooltip"></i>
-                {% endif %} {{sp.product.name}} {% if sp.label_contact %}({{sp.label_contact.name}}){% endif %}<br>
-                {% endfor %}
-              </td>
-              <td>
-                <ul>
-                  {% for address in contact.addresses.all %}
-                  {{address.address_1|default_if_none:""}} {{address.state|default_if_none:""}}
-                  {% endfor %}
-                </ul>
-              </td>
-              <td>{{contact.last_activity.datetime|date:"SHORT_DATE_FORMAT"}}
-                {% if contact.last_activity.activity_type %}/ {{contact.last_activity.get_type}}{% endif %}</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-</div>
-{% if contacts.has_other_pages %}
-{% load proper_paginate %}
-{% load url_replace %}
-<ul class="pagination">
-  {% if contacts.number == 1 %}
-  <li class="page-item disabled"><span class="page-link">{% trans "first" %}</span></li>
-  {% else %}
-  <li><a class="page-link" href="?{% url_replace request 'p' 1 %}">{% trans "first" %}</a></li>
+  {% if page_obj.has_other_pages %}
+    {% include "components/_pagination.html" %}
   {% endif %}
-  {% if contacts.has_previous %}
-  <li><a class="page-link" href="?{% url_replace request 'p' contacts.previous_page_number %}">&laquo;</a></li>
-  {% else %}
-  <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
-  {% endif %}
-  {% for i in paginator|proper_paginate:contacts.number %}
-  {% if contacts.number == i %}
-  <li class="page-item active"><span class="page-link">{{ i }} <span class="sr-only">(current)</span></span></li>
-  {% else %}
-  <li><a class="page-link" href="?{% url_replace request 'p' i %}">{{ i }}</a></li>
-  {% endif %}
-  {% endfor %}
-  {% if contacts.has_next %}
-  <li><a class="page-link" href="?{% url_replace request 'p' contacts.next_page_number %}">&raquo;</a></li>
-  {% else %}
-  <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
-  {% endif %}
-  {% if contacts.number == paginator.num_pages %}
-  <li class="page-item disabled"><span class="page-link">{% trans "last" %}</span></li>
-  {% else %}
-  <li><a class="page-link" href="?{% url_replace request 'p' paginator.num_pages %}">{% trans "last" %}</a></li>
-  {% endif %}
-</ul>
-{% endif %}
 {% endblock %}
