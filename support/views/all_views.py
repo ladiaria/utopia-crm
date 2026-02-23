@@ -9,6 +9,7 @@ from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import PermissionRequiredMixin, UserPassesTestMixin
+from django.contrib.auth.models import User
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
 from django.db.models import Count, Min, Q, Sum, Case, When
 from django.http import (
@@ -781,6 +782,421 @@ class CommunityConsoleView(PermissionRequiredMixin, LoginRequiredMixin, Breadcru
         context['yesterday'] = yesterday
         context['tomorrow'] = tomorrow
         context['assigned_to_id'] = self.request.user.id
+        return context
+
+
+class CommunityManagerDashboardView(PermissionRequiredMixin, LoginRequiredMixin, BreadcrumbsMixin, TemplateView):
+    """
+    GDC Manager Dashboard.
+
+    Shows subcategories with unassigned open issues (assigned_to is NULL, not in terminal state).
+    Managers can click a subcategory to go to the assignment screen, or view the team overview.
+    """
+    template_name = "community_manager_dashboard.html"
+    permission_required = "support.can_manage_community_console"
+
+    def breadcrumbs(self):
+        return [
+            {"url": reverse("home"), "label": _("Home")},
+            {"label": _("Community manager dashboard")},
+        ]
+
+    def _get_open_unassigned_issues_qs(self):
+        terminal_statuses = getattr(settings, 'ISSUE_STATUS_FINISHED_LIST', [])
+        return Issue.objects.filter(
+            assigned_to__isnull=True,
+            closing_date__isnull=True,
+        ).exclude(
+            status__slug__in=terminal_statuses,
+        )
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        today = date.today()
+
+        issues_qs = self._get_open_unassigned_issues_qs()
+
+        # Aggregate unassigned counts by category + subcategory
+        category_dict = dict(get_issue_categories())
+
+        issue_data = issues_qs.values(
+            'category', 'sub_category__id', 'sub_category__name'
+        ).annotate(
+            overdue=Count('id', filter=Q(next_action_date__lt=today)),
+            today_count=Count('id', filter=Q(next_action_date=today)),
+            future=Count('id', filter=Q(next_action_date__gt=today)),
+            no_date=Count('id', filter=Q(next_action_date__isnull=True)),
+            total=Count('id'),
+        ).order_by('category', 'sub_category__name')
+
+        categories = {}
+        for row in issue_data:
+            cat_key = row['category'] or ''
+            if cat_key not in categories:
+                categories[cat_key] = {
+                    'name': category_dict.get(cat_key, _("Uncategorized")),
+                    'key': cat_key,
+                    'subcategories': [],
+                    'overdue': 0,
+                    'today_count': 0,
+                    'future': 0,
+                    'no_date': 0,
+                    'total': 0,
+                }
+            cat = categories[cat_key]
+            cat['subcategories'].append({
+                'id': row['sub_category__id'],
+                'name': row['sub_category__name'] or _("No subcategory"),
+                'overdue': row['overdue'],
+                'today_count': row['today_count'],
+                'future': row['future'],
+                'no_date': row['no_date'],
+                'total': row['total'],
+            })
+            cat['overdue'] += row['overdue']
+            cat['today_count'] += row['today_count']
+            cat['future'] += row['future']
+            cat['no_date'] += row['no_date']
+            cat['total'] += row['total']
+
+        sorted_categories = sorted(categories.values(), key=lambda c: c['name'])
+
+        grand_totals = {
+            'overdue': sum(c['overdue'] for c in sorted_categories),
+            'today_count': sum(c['today_count'] for c in sorted_categories),
+            'future': sum(c['future'] for c in sorted_categories),
+            'no_date': sum(c['no_date'] for c in sorted_categories),
+            'total': sum(c['total'] for c in sorted_categories),
+        }
+
+        context['categories'] = sorted_categories
+        context['grand_totals'] = grand_totals
+        context['today'] = today
+        return context
+
+
+class CommunityManagerAssignView(PermissionRequiredMixin, LoginRequiredMixin, BreadcrumbsMixin, TemplateView):
+    """
+    GDC Manager Issue Assignment View.
+
+    For a given subcategory, shows:
+    - Number of unassigned open issues available
+    - List of GDC group users with their current unfinished issue count
+    - Text input per user to specify how many issues to assign
+    - Round-robin assignment from oldest to newest issues
+    - Updates next_action_date to tomorrow if null or in the past
+    """
+    template_name = "community_manager_assign.html"
+    permission_required = "support.can_manage_community_console"
+
+    def breadcrumbs(self):
+        sub_cat_name = self.sub_category.name if self.sub_category else _("All")
+        return [
+            {"url": reverse("home"), "label": _("Home")},
+            {"url": reverse("community_manager_dashboard"), "label": _("Community manager dashboard")},
+            {"label": _("Assign issues: %(subcategory)s") % {"subcategory": sub_cat_name}},
+        ]
+
+    def dispatch(self, request, *args, **kwargs):
+        sub_category_id = kwargs.get('sub_category_id')
+        self.sub_category = get_object_or_404(IssueSubcategory, pk=sub_category_id)
+        return super().dispatch(request, *args, **kwargs)
+
+    def _get_unassigned_issues_qs(self):
+        terminal_statuses = getattr(settings, 'ISSUE_STATUS_FINISHED_LIST', [])
+        return Issue.objects.filter(
+            sub_category=self.sub_category,
+            assigned_to__isnull=True,
+            closing_date__isnull=True,
+        ).exclude(
+            status__slug__in=terminal_statuses,
+        ).order_by('date')  # oldest first
+
+    def _get_gdc_users(self):
+        return User.objects.filter(
+            user_permissions__codename='can_access_community_console',
+            is_active=True,
+        ).distinct() | User.objects.filter(
+            groups__permissions__codename='can_access_community_console',
+            is_active=True,
+        ).distinct()
+
+    def _get_user_open_issue_count(self, user):
+        terminal_statuses = getattr(settings, 'ISSUE_STATUS_FINISHED_LIST', [])
+        return Issue.objects.filter(
+            assigned_to=user,
+            closing_date__isnull=True,
+        ).exclude(
+            status__slug__in=terminal_statuses,
+        ).count()
+
+    def _create_round_robin_queue(self, user_assignments):
+        """
+        Creates a round-robin assignment queue from a list of (user, amount) tuples.
+        Returns a list of User objects in round-robin order.
+        """
+        queue = []
+        user_counters = {user: amount for user, amount in user_assignments}
+        user_list = [user for user, _ in user_assignments]
+        num_users = len(user_list)
+
+        if num_users == 0:
+            return queue
+
+        total = sum(user_counters.values())
+        current_index = 0
+        while len(queue) < total:
+            current_user = user_list[current_index]
+            if user_counters[current_user] > 0:
+                queue.append(current_user)
+                user_counters[current_user] -= 1
+            current_index = (current_index + 1) % num_users
+            if len(queue) >= total:
+                break
+
+        return queue
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        today = date.today()
+
+        unassigned_qs = self._get_unassigned_issues_qs()
+        unassigned_count = unassigned_qs.count()
+
+        # Temporal breakdown of unassigned issues
+        unassigned_overdue = unassigned_qs.filter(next_action_date__lt=today).count()
+        unassigned_today = unassigned_qs.filter(next_action_date=today).count()
+        unassigned_future = unassigned_qs.filter(next_action_date__gt=today).count()
+        unassigned_no_date = unassigned_qs.filter(next_action_date__isnull=True).count()
+
+        # Get GDC users with their open issue counts
+        gdc_users = self._get_gdc_users()
+        terminal_statuses = getattr(settings, 'ISSUE_STATUS_FINISHED_LIST', [])
+        user_data = []
+        for user in gdc_users.order_by('username'):
+            open_count = Issue.objects.filter(
+                assigned_to=user,
+                closing_date__isnull=True,
+            ).exclude(
+                status__slug__in=terminal_statuses,
+            ).count()
+            # Also get per-temporal-bucket counts for this user
+            user_issues = Issue.objects.filter(
+                assigned_to=user,
+                closing_date__isnull=True,
+            ).exclude(
+                status__slug__in=terminal_statuses,
+            )
+            user_data.append({
+                'user': user,
+                'open_count': open_count,
+                'overdue': user_issues.filter(next_action_date__lt=today).count(),
+                'today_count': user_issues.filter(next_action_date=today).count(),
+                'future': user_issues.filter(next_action_date__gt=today).count(),
+            })
+
+        context['sub_category'] = self.sub_category
+        context['unassigned_count'] = unassigned_count
+        context['unassigned_overdue'] = unassigned_overdue
+        context['unassigned_today'] = unassigned_today
+        context['unassigned_future'] = unassigned_future
+        context['unassigned_no_date'] = unassigned_no_date
+        context['user_data'] = user_data
+        context['today'] = today
+        return context
+
+    def post(self, request, *args, **kwargs):
+        today = date.today()
+        tomorrow = today + timedelta(days=1)
+
+        # Collect user assignments from POST data
+        user_assignments = []
+        for key, value in request.POST.items():
+            if key.startswith("user-") and value:
+                try:
+                    user_id = int(key.replace("user-", ""))
+                    amount = int(value)
+                    if amount > 0:
+                        user = User.objects.get(pk=user_id, is_active=True)
+                        user_assignments.append((user, amount))
+                except (ValueError, User.DoesNotExist):
+                    continue
+
+        if not user_assignments:
+            messages.warning(request, _("No assignments specified."))
+            return HttpResponseRedirect(
+                reverse("community_manager_assign", args=[self.sub_category.pk])
+            )
+
+        total_requested = sum(amount for _, amount in user_assignments)
+        unassigned_qs = self._get_unassigned_issues_qs()
+        available_count = unassigned_qs.count()
+
+        if total_requested > available_count:
+            messages.error(
+                request,
+                _("Requested %(requested)s assignments but only %(available)s issues are available.")
+                % {"requested": total_requested, "available": available_count},
+            )
+            return HttpResponseRedirect(
+                reverse("community_manager_assign", args=[self.sub_category.pk])
+            )
+
+        # Build round-robin queue
+        assignment_queue = self._create_round_robin_queue(user_assignments)
+
+        # Get issues to assign (oldest first)
+        issues_to_assign = list(unassigned_qs[:total_requested])
+
+        # Get the "assigned" status
+        assigned_status = None
+        assigned_status_slug = getattr(settings, 'ISSUE_STATUS_ASSIGNED', None)
+        if assigned_status_slug:
+            try:
+                assigned_status = IssueStatus.objects.get(slug=assigned_status_slug)
+            except IssueStatus.DoesNotExist:
+                pass
+
+        # Assign issues using round-robin
+        assigned_count = 0
+        for i, issue in enumerate(issues_to_assign):
+            if i < len(assignment_queue):
+                issue.assigned_to = assignment_queue[i]
+
+                # Update next_action_date: set to tomorrow if null or in the past
+                if issue.next_action_date is None or issue.next_action_date < today:
+                    issue.next_action_date = tomorrow
+
+                # Set status to "assigned" if available
+                if assigned_status:
+                    issue.status = assigned_status
+
+                issue.save()
+                assigned_count += 1
+
+        messages.success(
+            request,
+            _("%(count)s issues were assigned successfully using round-robin distribution.")
+            % {"count": assigned_count},
+        )
+        return HttpResponseRedirect(
+            reverse("community_manager_assign", args=[self.sub_category.pk])
+        )
+
+
+class CommunityManagerOverviewView(PermissionRequiredMixin, LoginRequiredMixin, BreadcrumbsMixin, TemplateView):
+    """
+    GDC Manager Team Overview.
+
+    Shows all GDC users with their issue statistics:
+    - Total open issues
+    - Overdue / Today / Future breakdown
+    - Similar to CommunityConsoleView but for managers to see ALL GDC users at once
+    """
+    template_name = "community_manager_overview.html"
+    permission_required = "support.can_manage_community_console"
+
+    def breadcrumbs(self):
+        return [
+            {"url": reverse("home"), "label": _("Home")},
+            {"url": reverse("community_manager_dashboard"), "label": _("Community manager dashboard")},
+            {"label": _("Team overview")},
+        ]
+
+    def _get_gdc_users(self):
+        return User.objects.filter(
+            user_permissions__codename='can_access_community_console',
+            is_active=True,
+        ).distinct() | User.objects.filter(
+            groups__permissions__codename='can_access_community_console',
+            is_active=True,
+        ).distinct()
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        today = date.today()
+        yesterday = today - timedelta(days=1)
+        tomorrow = today + timedelta(days=1)
+
+        terminal_statuses = getattr(settings, 'ISSUE_STATUS_FINISHED_LIST', [])
+        gdc_users = self._get_gdc_users().order_by('username')
+
+        team_data = []
+        grand_totals = {'overdue': 0, 'today_count': 0, 'future': 0, 'total': 0}
+
+        category_dict = dict(get_issue_categories())
+
+        for user in gdc_users:
+            user_issues = Issue.objects.filter(
+                assigned_to=user,
+                closing_date__isnull=True,
+            ).exclude(
+                status__slug__in=terminal_statuses,
+            ).select_related('sub_category', 'status')
+
+            overdue = user_issues.filter(next_action_date__lt=today).count()
+            today_count = user_issues.filter(next_action_date=today).count()
+            future = user_issues.filter(next_action_date__gt=today).count()
+            total = user_issues.count()
+
+            # Per-category/subcategory breakdown for this user
+            breakdown_data = user_issues.values(
+                'category', 'sub_category__id', 'sub_category__name'
+            ).annotate(
+                overdue=Count('id', filter=Q(next_action_date__lt=today)),
+                today_count=Count('id', filter=Q(next_action_date=today)),
+                future=Count('id', filter=Q(next_action_date__gt=today)),
+                total=Count('id'),
+            ).order_by('category', 'sub_category__name')
+
+            user_categories = {}
+            for row in breakdown_data:
+                cat_key = row['category'] or ''
+                if cat_key not in user_categories:
+                    user_categories[cat_key] = {
+                        'name': category_dict.get(cat_key, _("Uncategorized")),
+                        'key': cat_key,
+                        'subcategories': [],
+                        'overdue': 0,
+                        'today_count': 0,
+                        'future': 0,
+                        'total': 0,
+                    }
+                cat = user_categories[cat_key]
+                cat['subcategories'].append({
+                    'id': row['sub_category__id'],
+                    'name': row['sub_category__name'] or _("No subcategory"),
+                    'overdue': row['overdue'],
+                    'today_count': row['today_count'],
+                    'future': row['future'],
+                    'total': row['total'],
+                })
+                cat['overdue'] += row['overdue']
+                cat['today_count'] += row['today_count']
+                cat['future'] += row['future']
+                cat['total'] += row['total']
+
+            sorted_user_categories = sorted(user_categories.values(), key=lambda c: c['name'])
+
+            team_data.append({
+                'user': user,
+                'overdue': overdue,
+                'today_count': today_count,
+                'future': future,
+                'total': total,
+                'categories': sorted_user_categories,
+            })
+
+            grand_totals['overdue'] += overdue
+            grand_totals['today_count'] += today_count
+            grand_totals['future'] += future
+            grand_totals['total'] += total
+
+        context['team_data'] = team_data
+        context['grand_totals'] = grand_totals
+        context['today'] = today
+        context['yesterday'] = yesterday
+        context['tomorrow'] = tomorrow
         return context
 
 

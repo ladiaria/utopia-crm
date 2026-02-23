@@ -61,7 +61,7 @@ def mercadopago_debit(invoice, debug=False):
     if mp_access_token.startswith("TEST"):
         # the "test" security_code is needed in testing environment (TODO: recheck this need)
         card_token_post_data["security_code"] = "123"
-    card_token_response = sdk.card_token().create(card_token_post_data).get("response")
+    card_token_response = sdk.card_token().create(card_token_post_data).get("response")  # TODO: register in api log
 
     if card_token_response:
         # binary_mode in True indicates that the payment cannot be delayed,
@@ -80,14 +80,14 @@ def mercadopago_debit(invoice, debug=False):
         try:
             if debug:
                 print(f"DEBUG: calling mp.post with\n{payment_data}")
-            payment_response = sdk.payment().create(payment_data).get("response", {})
+            payment_response = sdk.payment().create(payment_data).get("response", {})  # TODO: register in api log
             payment_response_status = payment_response.get("status")
 
             # max attempts to resend the request if we get a 400 or 500 status (this happens frequently in test API)
             mp_max_attempts = getattr(settings, "MERCADOPAGO_API_MAX_ATTEMPTS", 10)
             mp_attempts = 0
             while payment_response_status in (400, 500) and mp_attempts < mp_max_attempts:
-                payment_response = sdk.payment().create(payment_data).get("response", {})
+                payment_response = sdk.payment().create(payment_data).get("response", {})  # TODO: register in api log
                 payment_response_status = payment_response.get("status")
                 mp_attempts += 1
 

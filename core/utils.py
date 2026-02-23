@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import date, timedelta  # TODO: use django timezone objects instead
 import urllib3
 import collections
 from functools import wraps
@@ -17,6 +17,7 @@ from django.conf import settings
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
 from django.core.mail import mail_managers
+from django.utils.timezone import now
 from django.utils.translation import gettext as _
 from django.utils.text import format_lazy
 from rest_framework.decorators import authentication_classes
@@ -630,6 +631,7 @@ def cms_rest_api_request(api_name, api_uri, post_data, method="POST"):
             else (settings.WEB_CREATE_USER_ENABLED or api_uri in settings.WEB_CREATE_USER_POST_WHITELIST)
         ):
             r = getattr(requests, method.lower())(api_uri, **cms_rest_api_kwargs(api_key, post_data))
+            r.raise_for_status()
             if settings.DEBUG:
                 html2text_content = html2text(r.content.decode()).strip()
                 # TODO: can be improved splitting and stripping more unuseful info
@@ -870,3 +872,30 @@ def mercadopago_sdk(subscriptions_integration=True):
                 app_id = app_id if app_id.isdigit() else None
     sdk = mercadopago.SDK(mp_access_token) if mp_access_token else None
     return (sdk, app_id) if subscriptions_integration else (sdk, mp_access_token)
+
+
+def api_log_entry(api_id, service_id, operation_id, request_data, response_data, caller_id=None, caller_detail=None):
+    """
+    Generic logger to register API transactions.
+    We'll use a logger where each line will be a json object with the given information plus the timestamp.
+    """
+    # create the log entry as a JSON object
+    log_entry = {
+        'timestamp': now().isoformat(),
+        'api_id': api_id,
+        'service_id': service_id,
+        'operation_id': operation_id,
+        'request_data': request_data,
+        'response_data': response_data,
+        'caller_id': caller_id,
+        'caller_detail': caller_detail,
+    }
+    logger = logging.getLogger('utopia_crm.api_log')
+
+    # call the logger only if it has handlers
+    if logger.handlers:
+
+        # Log the JSON object as a single line
+        logger.info(json.dumps(log_entry, ensure_ascii=False))
+
+    return log_entry

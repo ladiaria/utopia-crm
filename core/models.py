@@ -70,6 +70,7 @@ from .utils import (
     updatewebuser,
 )
 from .orm_helpers import get_latest_from_prefetch
+from .fields import LowercaseEmailField
 
 
 regex_alphanumeric = r"^[@A-Za-z0-9ñüáéíóúÑÜÁÉÍÓÚ _'.\-]*$"  # noqa
@@ -295,12 +296,20 @@ class Product(models.Model):
         "core.TermsAndConditions",
         through="core.TermsAndConditionsProduct",
     )
+    mercadopago_skip_sync = models.BooleanField(
+        default=False,
+        verbose_name=_("Do not sync this product with a MercadoPago plan"),
+        help_text=_(
+            "If checked, this product will not be synchronized with a MercadoPago plan until this field is unchecked "
+            "and the object is saved. This means that the field is disabled if the product has a MercadoPago ID set."
+        ),
+    )
     mercadopago_id = models.CharField(
         max_length=255,
         blank=True,
         null=True,
         verbose_name=_("MercadoPago ID"),
-        help_text=_("If MercadoPago product sync is enabled, this field is auto-filled when this product is created."),
+        help_text=_("If MercadoPago product sync is enabled, this field is auto-filled when this product is saved."),
     )
     billing_mode = models.CharField(
         max_length=1,
@@ -369,7 +378,7 @@ class Product(models.Model):
 class EmailBounceActionLog(models.Model):
     created = models.DateField(editable=False, auto_now_add=True)
     contact = models.ForeignKey("Contact", blank=True, null=True, on_delete=models.SET_NULL)
-    email = models.EmailField(editable=False)
+    email = LowercaseEmailField(editable=False)
     action = models.PositiveSmallIntegerField(choices=EMAIL_BOUNCE_ACTIONLOG_CHOICES)
 
     @staticmethod
@@ -465,7 +474,7 @@ class Contact(models.Model):
         max_length=16,
         verbose_name=_("Work phone extension"),
     )
-    email = models.EmailField(blank=True, null=True, unique=True, verbose_name=_("Email"))
+    email = LowercaseEmailField(blank=True, null=True, unique=True, verbose_name=_("Email"))
     no_email = models.BooleanField(default=False, verbose_name=_("No email"))
     gender = models.CharField(max_length=1, choices=GENDERS, blank=True, null=True, verbose_name=_("Gender"))
     ocupation = models.ForeignKey(
@@ -1252,7 +1261,7 @@ class Address(models.Model):
         default=getattr(settings, "DEFAULT_CITY", None),
         verbose_name=_("City"),
     )
-    email = models.EmailField(blank=True, null=True, verbose_name=_("Email"))
+    email = LowercaseEmailField(blank=True, null=True, verbose_name=_("Email"))
     address_type = models.CharField(max_length=50, choices=ADDRESS_TYPE_CHOICES, verbose_name=_("Address type"))
     notes = models.TextField(blank=True, null=True, verbose_name=_("Notes"))
     default = models.BooleanField(default=False, verbose_name=_("Default"))
@@ -1633,7 +1642,7 @@ class Subscription(models.Model):
         related_name="billing_contacts",
         on_delete=models.SET_NULL,
     )
-    billing_email = models.EmailField(blank=True, null=True, verbose_name=_("Billing email"))
+    billing_email = LowercaseEmailField(blank=True, null=True, verbose_name=_("Billing email"))
     envelope = models.BooleanField(default=False, verbose_name=_("Envelope"), null=True)
     free_envelope = models.BooleanField(default=False, verbose_name=_("Free envelope"), null=True)
     start_date = models.DateField(blank=True, null=True, default=get_default_start_date, verbose_name=_("Start date"))

@@ -182,6 +182,7 @@ class Issue(models.Model):
         verbose_name_plural = _("Issues")
         permissions = [
             ("can_access_community_console", _("Can access community management console")),
+            ("can_manage_community_console", _("Can manage community console (assign issues)")),
         ]
 
     def get_category(self):

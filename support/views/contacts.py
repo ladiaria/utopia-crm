@@ -273,6 +273,44 @@ class ContactDetailView(BreadcrumbsMixin, DetailView):
         context.update(self.get_overview_subscriptions())
         context.update(self.get_expensive_calculations())
         context["subscriptions_count"] = self.get_subscriptions().count()
+
+        # Add last read articles data from CMS API
+        if settings.LDSOCIAL_URL and self.object.email:
+            from core.utils import cms_rest_api_request
+
+            last_read = cms_rest_api_request(
+                "lastread",
+                f"{settings.LDSOCIAL_URL}usuarios/api/last_read/",
+                {"email": self.object.email},
+                method="POST",
+            )
+            if last_read != "ERROR":
+                context["last_read"] = last_read
+            most_read = cms_rest_api_request(
+                "mostread",
+                f"{settings.LDSOCIAL_URL}usuarios/api/most_read/",
+                {"email": self.object.email},
+                method="POST",
+            )
+            if most_read != "ERROR":
+                context["most_read"] = most_read
+            read_percentage = cms_rest_api_request(
+                "percentage",
+                f"{settings.LDSOCIAL_URL}usuarios/api/read_articles_percentage/",
+                {"email": self.object.email},
+                method="POST",
+            )
+            if read_percentage != "ERROR":
+                context["read_percentage"] = read_percentage
+            web_comments = cms_rest_api_request(
+                "webcomments",
+                f"{settings.LDSOCIAL_URL}usuarios/api/comments/",
+                {"email": self.object.email},
+                method="POST",
+            )
+            if isinstance(web_comments, dict) and 'nodes' in web_comments:
+                context["web_comments"] = web_comments['nodes']
+
         return context
 
     def get_all_querysets_and_lists(self):
