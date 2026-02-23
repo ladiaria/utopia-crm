@@ -1,0 +1,380 @@
+{% extends "adminlte/base.html" %}
+{% load static i18n %}
+
+{% block title %}{% trans "Team overview" %}{% endblock %}
+
+{% block stylesheets %}
+  {{ block.super }}
+  <style>
+    .badge-overdue { background-color: #dc3545; color: #fff; }
+    .badge-today { background-color: #ffc107; color: #212529; }
+    .badge-future { background-color: #28a745; color: #fff; }
+    .badge-total { background-color: #6c757d; color: #fff; }
+
+    .count-link {
+      font-size: 1.1em;
+      font-weight: 600;
+      text-decoration: none;
+    }
+    .count-link:hover { text-decoration: underline; }
+    .count-link.overdue { color: #dc3545; }
+    .count-link.today { color: #856404; }
+    .count-link.future { color: #28a745; }
+    .count-link.zero { color: #adb5bd; pointer-events: none; }
+
+    .user-card {
+      transition: all 0.2s ease;
+    }
+    .user-card:hover {
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+
+    .user-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background-color: #007bff;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2em;
+      font-weight: 700;
+    }
+
+    .progress-bar-overdue { background-color: #dc3545; }
+    .progress-bar-today { background-color: #ffc107; }
+    .progress-bar-future { background-color: #28a745; }
+
+    .user-summary-row { cursor: pointer; user-select: none; }
+    .user-summary-row:hover { background-color: #e9ecef !important; }
+    .user-summary-row .expand-icon { transition: transform 0.2s ease; }
+    .user-summary-row.collapsed .expand-icon { transform: rotate(-90deg); }
+
+    .user-breakdown { background-color: #f8f9fa; }
+    .user-breakdown td { padding-top: 0.3rem; padding-bottom: 0.3rem; }
+
+    .breakdown-category-header td {
+      font-weight: 600;
+      background-color: #e9ecef;
+      font-size: 0.9em;
+    }
+    .breakdown-subcategory td {
+      font-size: 0.85em;
+      padding-left: 2rem !important;
+    }
+    .breakdown-subcategory td:first-child { padding-left: 2.5rem !important; }
+  </style>
+{% endblock %}
+
+{% block no_heading %}
+  <div class="d-flex justify-content-between align-items-center">
+    <div>
+      <h1>{% trans "Team overview" %}</h1>
+      <p class="text-muted">{% trans "Issue status for all GDC team members" %}</p>
+    </div>
+    <div>
+      <a href="{% url 'community_manager_dashboard' %}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left mr-1"></i> {% trans "Back to dashboard" %}
+      </a>
+    </div>
+  </div>
+{% endblock %}
+
+{% block content %}
+  {# Grand totals summary #}
+  <div class="row mb-3">
+    <div class="col-lg-3 col-6">
+      <div class="small-box bg-danger">
+        <div class="inner">
+          <h3>{{ grand_totals.overdue }}</h3>
+          <p>{% trans "Overdue (assigned)" %}</p>
+        </div>
+        <div class="icon"><i class="fas fa-exclamation-circle"></i></div>
+      </div>
+    </div>
+    <div class="col-lg-3 col-6">
+      <div class="small-box bg-warning">
+        <div class="inner">
+          <h3>{{ grand_totals.today_count }}</h3>
+          <p>{% trans "Today (assigned)" %}</p>
+        </div>
+        <div class="icon"><i class="fas fa-clock"></i></div>
+      </div>
+    </div>
+    <div class="col-lg-3 col-6">
+      <div class="small-box bg-success">
+        <div class="inner">
+          <h3>{{ grand_totals.future }}</h3>
+          <p>{% trans "Future (assigned)" %}</p>
+        </div>
+        <div class="icon"><i class="fas fa-calendar-alt"></i></div>
+      </div>
+    </div>
+    <div class="col-lg-3 col-6">
+      <div class="small-box bg-secondary">
+        <div class="inner">
+          <h3>{{ grand_totals.total }}</h3>
+          <p>{% trans "Total assigned to team" %}<br><small>{% trans "(includes issues without next action date)" %}</small></p>
+        </div>
+        <div class="icon"><i class="fas fa-tasks"></i></div>
+      </div>
+    </div>
+  </div>
+
+  {# Team members table #}
+  {% if team_data %}
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">
+          <i class="fas fa-users mr-1"></i>
+          {% trans "Team members" %}
+          <span class="badge badge-total ml-2">{{ team_data|length }}</span>
+        </h3>
+      </div>
+      <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+          <thead>
+            <tr>
+              <th style="width: 25%">{% trans "Team member" %}</th>
+              <th class="text-center" style="width: 15%">
+                <span class="text-danger"><i class="fas fa-exclamation-circle"></i> {% trans "Overdue" %}</span>
+              </th>
+              <th class="text-center" style="width: 15%">
+                <span class="text-warning"><i class="fas fa-clock"></i> {% trans "Today" %}</span>
+              </th>
+              <th class="text-center" style="width: 15%">
+                <span class="text-success"><i class="fas fa-calendar-alt"></i> {% trans "Future" %}</span>
+              </th>
+              <th class="text-center" style="width: 12%">{% trans "Total" %}</th>
+              <th style="width: 18%">{% trans "Distribution" %}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for member in team_data %}
+              {# User summary row (clickable to expand) #}
+              <tr class="user-summary-row collapsed" data-toggle="collapse"
+                  data-target=".breakdown-{{ member.user.id }}" aria-expanded="false">
+                <td>
+                  <div class="d-flex align-items-center">
+                    <i class="fas fa-chevron-down expand-icon text-muted mr-2"></i>
+                    <div class="user-avatar mr-3">
+                      {{ member.user.first_name|default:member.user.username|first|upper }}
+                    </div>
+                    <div>
+                      <strong>{{ member.user.get_full_name|default:member.user.username }}</strong>
+                      <br><small class="text-muted">{{ member.user.username }}</small>
+                    </div>
+                  </div>
+                </td>
+                <td class="text-center">
+                  {% if member.overdue %}
+                    <a href="{% url 'list_issues' %}?assigned_to={{ member.user.id }}&next_action_date=custom&next_action_date_lte={{ yesterday|date:'Y-m-d' }}&exclude_finished=true"
+                       class="count-link overdue" title="{% trans 'View overdue issues' %}"
+                       onclick="event.stopPropagation();">
+                      {{ member.overdue }}
+                    </a>
+                  {% else %}
+                    <span class="count-link zero">0</span>
+                  {% endif %}
+                </td>
+                <td class="text-center">
+                  {% if member.today_count %}
+                    <a href="{% url 'list_issues' %}?assigned_to={{ member.user.id }}&next_action_date=today&exclude_finished=true"
+                       class="count-link today" title="{% trans 'View today issues' %}"
+                       onclick="event.stopPropagation();">
+                      {{ member.today_count }}
+                    </a>
+                  {% else %}
+                    <span class="count-link zero">0</span>
+                  {% endif %}
+                </td>
+                <td class="text-center">
+                  {% if member.future %}
+                    <a href="{% url 'list_issues' %}?assigned_to={{ member.user.id }}&next_action_date=custom&next_action_date_gte={{ tomorrow|date:'Y-m-d' }}&exclude_finished=true"
+                       class="count-link future" title="{% trans 'View future issues' %}"
+                       onclick="event.stopPropagation();">
+                      {{ member.future }}
+                    </a>
+                  {% else %}
+                    <span class="count-link zero">0</span>
+                  {% endif %}
+                </td>
+                <td class="text-center">
+                  <a href="{% url 'list_issues' %}?assigned_to={{ member.user.id }}&exclude_finished=true"
+                     class="count-link" title="{% trans 'View all issues' %}"
+                     onclick="event.stopPropagation();">
+                    <strong>{{ member.total }}</strong>
+                  </a>
+                </td>
+                <td>
+                  {% if member.total > 0 %}
+                    <div class="progress" style="height: 20px;" title="{% trans 'Overdue' %}: {{ member.overdue }} | {% trans 'Today' %}: {{ member.today_count }} | {% trans 'Future' %}: {{ member.future }}">
+                      {% if member.overdue %}
+                        {% widthratio member.overdue member.total 100 as overdue_pct %}
+                        <div class="progress-bar progress-bar-overdue" style="width: {{ overdue_pct }}%">
+                          {% if overdue_pct > 10 %}{{ member.overdue }}{% endif %}
+                        </div>
+                      {% endif %}
+                      {% if member.today_count %}
+                        {% widthratio member.today_count member.total 100 as today_pct %}
+                        <div class="progress-bar progress-bar-today" style="width: {{ today_pct }}%">
+                          {% if today_pct > 10 %}{{ member.today_count }}{% endif %}
+                        </div>
+                      {% endif %}
+                      {% if member.future %}
+                        {% widthratio member.future member.total 100 as future_pct %}
+                        <div class="progress-bar progress-bar-future" style="width: {{ future_pct }}%">
+                          {% if future_pct > 10 %}{{ member.future }}{% endif %}
+                        </div>
+                      {% endif %}
+                    </div>
+                  {% else %}
+                    <span class="text-muted">—</span>
+                  {% endif %}
+                </td>
+              </tr>
+
+              {# Collapsible category/subcategory breakdown rows #}
+              {% if member.categories %}
+                {% for cat in member.categories %}
+                  <tr class="collapse breakdown-{{ member.user.id }} user-breakdown breakdown-category-header">
+                    <td>
+                      <i class="fas fa-folder-open text-muted mr-1"></i>
+                      {{ cat.name }}
+                    </td>
+                    <td class="text-center">
+                      {% if cat.overdue %}<span class="text-danger">{{ cat.overdue }}</span>{% else %}<span class="text-muted">0</span>{% endif %}
+                    </td>
+                    <td class="text-center">
+                      {% if cat.today_count %}<span class="text-warning">{{ cat.today_count }}</span>{% else %}<span class="text-muted">0</span>{% endif %}
+                    </td>
+                    <td class="text-center">
+                      {% if cat.future %}<span class="text-success">{{ cat.future }}</span>{% else %}<span class="text-muted">0</span>{% endif %}
+                    </td>
+                    <td class="text-center"><strong>{{ cat.total }}</strong></td>
+                    <td></td>
+                  </tr>
+                  {% for sub in cat.subcategories %}
+                    <tr class="collapse breakdown-{{ member.user.id }} user-breakdown breakdown-subcategory">
+                      <td>
+                        <i class="fas fa-tag text-muted mr-1"></i>
+                        {{ sub.name }}
+                      </td>
+                      <td class="text-center">
+                        {% if sub.overdue %}<span class="text-danger">{{ sub.overdue }}</span>{% else %}<span class="text-muted">0</span>{% endif %}
+                      </td>
+                      <td class="text-center">
+                        {% if sub.today_count %}<span class="text-warning">{{ sub.today_count }}</span>{% else %}<span class="text-muted">0</span>{% endif %}
+                      </td>
+                      <td class="text-center">
+                        {% if sub.future %}<span class="text-success">{{ sub.future }}</span>{% else %}<span class="text-muted">0</span>{% endif %}
+                      </td>
+                      <td class="text-center">{{ sub.total }}</td>
+                      <td></td>
+                    </tr>
+                  {% endfor %}
+                {% endfor %}
+              {% endif %}
+            {% endfor %}
+          </tbody>
+          <tfoot>
+            <tr class="table-active font-weight-bold">
+              <td>{% trans "Total" %}</td>
+              <td class="text-center">
+                {% if grand_totals.overdue %}
+                  <span class="text-danger">{{ grand_totals.overdue }}</span>
+                {% else %}
+                  <span class="text-muted">0</span>
+                {% endif %}
+              </td>
+              <td class="text-center">
+                {% if grand_totals.today_count %}
+                  <span class="text-warning">{{ grand_totals.today_count }}</span>
+                {% else %}
+                  <span class="text-muted">0</span>
+                {% endif %}
+              </td>
+              <td class="text-center">
+                {% if grand_totals.future %}
+                  <span class="text-success">{{ grand_totals.future }}</span>
+                {% else %}
+                  <span class="text-muted">0</span>
+                {% endif %}
+              </td>
+              <td class="text-center"><strong>{{ grand_totals.total }}</strong></td>
+              <td>
+                {% if grand_totals.total > 0 %}
+                  <div class="progress" style="height: 20px;">
+                    {% if grand_totals.overdue %}
+                      {% widthratio grand_totals.overdue grand_totals.total 100 as g_overdue_pct %}
+                      <div class="progress-bar progress-bar-overdue" style="width: {{ g_overdue_pct }}%"></div>
+                    {% endif %}
+                    {% if grand_totals.today_count %}
+                      {% widthratio grand_totals.today_count grand_totals.total 100 as g_today_pct %}
+                      <div class="progress-bar progress-bar-today" style="width: {{ g_today_pct }}%"></div>
+                    {% endif %}
+                    {% if grand_totals.future %}
+                      {% widthratio grand_totals.future grand_totals.total 100 as g_future_pct %}
+                      <div class="progress-bar progress-bar-future" style="width: {{ g_future_pct }}%"></div>
+                    {% endif %}
+                  </div>
+                {% endif %}
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+
+    {# Legend #}
+    <div class="card card-outline card-info">
+      <div class="card-header">
+        <h3 class="card-title"><i class="fas fa-info-circle mr-1"></i> {% trans "How to read this overview" %}</h3>
+        <div class="card-tools">
+          <button type="button" class="btn btn-tool" data-card-widget="collapse">
+            <i class="fas fa-minus"></i>
+          </button>
+        </div>
+      </div>
+      <div class="card-body">
+        <p>{% trans "This overview shows the current workload of all GDC team members." %}</p>
+        <h6><strong>{% trans "Columns" %}</strong></h6>
+        <ul>
+          <li><span class="badge badge-overdue">{% trans "Overdue" %}</span> — {% trans "Issues whose next action date is before today. These need immediate attention." %}</li>
+          <li><span class="badge badge-today">{% trans "Today" %}</span> — {% trans "Issues whose next action date is today." %}</li>
+          <li><span class="badge badge-future">{% trans "Future" %}</span> — {% trans "Issues whose next action date is after today." %}</li>
+          <li><strong>{% trans "Distribution" %}</strong> — {% trans "Visual bar showing the proportion of overdue (red), today (yellow), and future (green) issues." %}</li>
+        </ul>
+        <h6><strong>{% trans "Interacting" %}</strong></h6>
+        <ul>
+          <li>{% trans "Click on a team member's row to expand/collapse their per-category and subcategory breakdown." %}</li>
+          <li>{% trans "Click on any number to open the issue list filtered by that user and date range." %}</li>
+          <li>{% trans "The Total column may be higher than Overdue + Today + Future because some issues don't have a next action date set." %}</li>
+          <li>{% trans "A high proportion of red (overdue) indicates the team member may need help or reassignment." %}</li>
+          <li>{% trans "Use the dashboard to assign more issues to team members with lighter workloads." %}</li>
+        </ul>
+      </div>
+    </div>
+
+  {% else %}
+    <div class="card">
+      <div class="card-body text-center py-5">
+        <i class="fas fa-users fa-3x text-muted mb-3"></i>
+        <h4>{% trans "No GDC team members found" %}</h4>
+        <p class="text-muted">{% trans "Make sure users have the community console permission assigned." %}</p>
+      </div>
+    </div>
+  {% endif %}
+{% endblock %}
+
+{% block extra_js %}
+  <script>
+  $(function() {
+    // Toggle the expand icon when a user summary row is clicked
+    $('.user-summary-row').on('click', function() {
+      $(this).toggleClass('collapsed');
+    });
+  });
+  </script>
+{% endblock %}
