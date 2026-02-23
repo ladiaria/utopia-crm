@@ -8,15 +8,9 @@
 <!-- PROJECT LOGO -->
 <br />
 <p align="center">
-  <a href="https://github.com/ladiaria/utopia-crm">
-    <img src="static/img/logo-utopia.png" alt="Logo">
-  </a>
-
+  <a href="https://github.com/ladiaria/utopia-crm"><img src="static/img/logo-utopia.png" alt="Logo"></a>
   <h3 align="center">Utopía CRM</h3>
-
-  <p align="center">
-    Open Source Customer Relationship Manager (CRM) written in Python using Django framework.
-  </p>
+  <p align="center">Open Source Customer Relationship Manager (CRM) written in Python using Django framework.</p>
 </p>
 
 <!-- TABLE OF CONTENTS -->
