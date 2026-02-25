@@ -1048,15 +1048,6 @@ class CommunityManagerAssignView(PermissionRequiredMixin, LoginRequiredMixin, Br
         # Get issues to assign (oldest first)
         issues_to_assign = list(unassigned_qs[:total_requested])
 
-        # Get the "assigned" status
-        assigned_status = None
-        assigned_status_slug = getattr(settings, 'ISSUE_STATUS_ASSIGNED', None)
-        if assigned_status_slug:
-            try:
-                assigned_status = IssueStatus.objects.get(slug=assigned_status_slug)
-            except IssueStatus.DoesNotExist:
-                pass
-
         # Assign issues using round-robin
         assigned_count = 0
         for i, issue in enumerate(issues_to_assign):
@@ -1066,10 +1057,6 @@ class CommunityManagerAssignView(PermissionRequiredMixin, LoginRequiredMixin, Br
                 # Update next_action_date: set to tomorrow if null or in the past
                 if issue.next_action_date is None or issue.next_action_date < today:
                     issue.next_action_date = tomorrow
-
-                # Set status to "assigned" if available
-                if assigned_status:
-                    issue.status = assigned_status
 
                 issue.save()
                 assigned_count += 1

@@ -224,7 +224,7 @@
           <li>{% trans "When assigning to multiple users, a round-robin algorithm distributes issues evenly. This ensures older/higher-priority issues are spread equally among all selected users." %}</li>
           <li>{% trans "Upon assignment, if an issue has no next action date or its date is in the past, it will be set to tomorrow." %}</li>
           <li>{% trans "If the issue already has a future next action date, it will remain unchanged." %}</li>
-          <li>{% trans "The issue status will be updated to 'Assigned' if that status exists in the system." %}</li>
+          <li>{% trans "The issue status will not be changed upon assignment — it keeps its current status." %}</li>
         </ul>
       </div>
     </div>
