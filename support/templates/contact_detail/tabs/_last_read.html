@@ -3,11 +3,11 @@
 <div class="row">
   <div class="card col-sm-12">
     <div class="card-header">
-      <h3 class="card-title">{% trans "Last Read Articles" %}</h3>
+      <h3 class="card-title">{% trans "Web Reading" %}</h3>
     </div>
     <div class="card-body">
       {% if last_read %}
-        <h5>{% trans "Last Read" %}</h5>
+        <h5>{% trans "Last read" %}</h5>
         <ul class="list-group mb-3">
           {% for article in last_read %}
             <li class="list-group-item">
@@ -18,7 +18,7 @@
       {% endif %}
 
       {% if most_read %}
-        <h5>{% trans "Most Read" %}</h5>
+        <h5>{% trans "Most read" %}</h5>
         <ul class="list-group mb-3">
           {% for article in most_read %}
             <li class="list-group-item">
@@ -29,7 +29,7 @@
       {% endif %}
 
       {% if read_percentage %}
-        <h5>{% trans "Read Percentage" %}</h5>
+        <h5>{% trans "Categories reading percentages" %}</h5>
         <ul class="list-group mb-3">
           {% for category in read_percentage.values %}
             <li class="list-group-item">
@@ -40,7 +40,7 @@
       {% endif %}
 
       {% if not last_read and not most_read and not read_percentage %}
-        <p class="text-muted">{% trans "No reading data available for this contact" %}</p>
+        <p class="text-muted">{% trans "No web reading data available for this contact" %}</p>
       {% endif %}
     </div>
   </div>

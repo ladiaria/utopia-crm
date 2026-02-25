@@ -1056,74 +1056,6 @@ msgstr ""
 msgid "Purchase order has been marked as billed"
 msgstr "La orden de compra se marcó como facturada"
 
-#: archive/tests/old_bill_subscription.py:28 invoicing/utils.py:355
-msgid "This subscription is not active and should not be billed."
-msgstr "La suscripción no está activa y no debería ser facturada."
-
-#: archive/tests/old_bill_subscription.py:31
-msgid "This subscription is not normal and should not be billed."
-msgstr "La suscripción no es normal y no debería ser facturada."
-
-#: archive/tests/old_bill_subscription.py:34 invoicing/utils.py:349
-msgid "Could not bill because next billing date does not exist"
-msgstr "No se pudo facturar porque la próxima fecha de facturación no existe"
-
-#: archive/tests/old_bill_subscription.py:37 invoicing/utils.py:359
-msgid "The subscription has no payment type, it can't be billed"
-msgstr "La suscripción no tiene forma de pago, no se puede facturar"
-
-#: archive/tests/old_bill_subscription.py:41 invoicing/utils.py:364
-msgid "This subscription has an end date greater than its next billing"
-msgstr ""
-"La suscripción tiene una fecha de fin mayor que su fecha de próxima "
-"facturación"
-
-#: archive/tests/old_bill_subscription.py:45 invoicing/utils.py:352
-msgid "This subscription should not be billed yet."
-msgstr "Esta suscripción aún no debería ser facturada."
-
-#: archive/tests/old_bill_subscription.py:112
-#: archive/tests/old_bill_subscription.py:129
-#: archive/tests/old_bill_subscription.py:160
-#: archive/tests/old_bill_subscription.py:199
-#: archive/tests/old_bill_subscription.py:214
-#, python-brace-format
-msgid " {} months"
-msgstr " {} meses"
-
-#: archive/tests/old_bill_subscription.py:238 core/models.py:1527
-#: core/models.py:1646 invoicing/utils.py:403 support/models.py:174
-msgid "Envelope"
-msgstr "Sobre"
-
-#: archive/tests/old_bill_subscription.py:253
-#, python-brace-format
-msgid "{} months discount ({} discount)"
-msgstr "{} meses de descuento ({} descuento)"
-
-#: archive/tests/old_bill_subscription.py:273 core/models.py:1633
-#: invoicing/models.py:24 invoicing/utils.py:413
-#: support/templates/contact_detail/tabs/includes/_overview_subscription_list_item.html:77
-#: support/templates/sales_record_create.html:135
-#: support/templates/sales_record_create.html:196
-#: support/templates/validate_subscription_sales_record.html:161
-#: support/templates/validate_subscription_sales_record.html:222
-msgid "Balance"
-msgstr "Saldo"
-
-#: archive/tests/old_bill_subscription.py:283
-msgid "Balance owed"
-msgstr "Saldo adeudado"
-
-#: archive/tests/old_bill_subscription.py:301 core/utils.py:412
-#: invoicing/templates/invoice/invoice_detail.html:278
-msgid "Rounding"
-msgstr "Redondeo"
-
-#: archive/tests/old_bill_subscription.py:359
-msgid "This subscription wasn't billed since amount is 0"
-msgstr "Esta suscripción no será facturada dado que el monto es 0"
-
 #: community/apps.py:7 support/choices.py:20 support/choices.py:39
 #: support/templates/new_issue.html:237
 msgid "Community"
@@ -2049,10 +1981,9 @@ msgid ""
 "until this field is unchecked and the object is saved. This means that the "
 "field is disabled if the product has a MercadoPago ID set."
 msgstr ""
-"Si se selecciona, este producto no será sincronizado con un plan de "
-"MercadoPago hasta que este campo sea deseleccionado y el objeto sea "
-"guardado. Esto significa que si campo está desactivado si el producto tiene "
-"un ID de MercadoPago seleccionado."
+"Si está activado, este producto no se sincronizará con un plan de MercadoPago "
+"hasta que este campo se desactive y el objeto se guarde. Esto significa que el "
+"campo está deshabilitado si el producto tiene un ID de MercadoPago establecido."
 
 #: core/models.py:311
 msgid "MercadoPago ID"
@@ -2063,8 +1994,8 @@ msgid ""
 "If MercadoPago product sync is enabled, this field is auto-filled when this "
 "product is saved."
 msgstr ""
-"Si la sincronización con MercadoPago está activada este campo se rellena "
-"automáticamente cuando se guarda este producto."
+"Cuando está activada la sincronización con MercadoPago, este campo se "
+"autocompleta al guardar el producto."
 
 #: core/models.py:318
 msgid "Billing mode"
@@ -2521,6 +2452,11 @@ msgstr "Instrucciones especiales"
 msgid "Label contact"
 msgstr "Contacto de la etiqueta"
 
+#: core/models.py:1527 core/models.py:1646 invoicing/utils.py:403
+#: support/models.py:174
+msgid "Envelope"
+msgstr "Sobre"
+
 #: core/models.py:1533
 msgid "Original date and time"
 msgstr "Fecha y hora de origen"
@@ -2616,6 +2552,15 @@ msgstr "RUT"
 #: core/models.py:1626
 msgid "Billing phone extension"
 msgstr "Teléfono de facturación extensión"
+
+#: core/models.py:1633 invoicing/models.py:24 invoicing/utils.py:413
+#: support/templates/contact_detail/tabs/includes/_overview_subscription_list_item.html:77
+#: support/templates/sales_record_create.html:135
+#: support/templates/sales_record_create.html:196
+#: support/templates/validate_subscription_sales_record.html:161
+#: support/templates/validate_subscription_sales_record.html:222
+msgid "Balance"
+msgstr "Saldo"
 
 #: core/models.py:1634
 msgid "Positive for discount, negative for surcharge"
@@ -3163,6 +3108,10 @@ msgstr " {frequency} meses"
 #, python-brace-format
 msgid "{frequency} months discount ({discount_pct}% discount)"
 msgstr "descuento de {frequency} meses ({discount_pct}% de descuento)"
+
+#: core/utils.py:412 invoicing/templates/invoice/invoice_detail.html:278
+msgid "Rounding"
+msgstr "Redondeo"
 
 #: core/utils.py:444
 msgid "The subscription needs to be corporate to use this function"
@@ -3875,6 +3824,28 @@ msgstr "El cliente es deudor, no esta autorizado crearle una suscripción."
 #: invoicing/utils.py:345
 msgid "This subscription is not normal or corporate and should not be billed."
 msgstr "La suscripción no es normal o corporativa y no debería ser facturada."
+
+#: invoicing/utils.py:349
+msgid "Could not bill because next billing date does not exist"
+msgstr "No se pudo facturar porque la próxima fecha de facturación no existe"
+
+#: invoicing/utils.py:352
+msgid "This subscription should not be billed yet."
+msgstr "Esta suscripción aún no debería ser facturada."
+
+#: invoicing/utils.py:355
+msgid "This subscription is not active and should not be billed."
+msgstr "La suscripción no está activa y no debería ser facturada."
+
+#: invoicing/utils.py:359
+msgid "The subscription has no payment type, it can't be billed"
+msgstr "La suscripción no tiene forma de pago, no se puede facturar"
+
+#: invoicing/utils.py:364
+msgid "This subscription has an end date greater than its next billing"
+msgstr ""
+"La suscripción tiene una fecha de fin mayor que su fecha de próxima "
+"facturación"
 
 #: invoicing/utils.py:489
 msgid "This subscription wasn't billed since amount is not greater than 0"
@@ -5591,7 +5562,7 @@ msgstr "Resolución"
 
 #: support/filters.py:74 support/templates/list_issues.html:215
 msgid "Exclude finished"
-msgstr "Excluír finalizadas"
+msgstr "Excluir finalizadas"
 
 #: support/filters.py:155 support/templates/scheduled_activities.html:61
 msgid "Subscription End Date From"
@@ -7537,6 +7508,11 @@ msgstr "Artículos más leídos"
 msgid "Vouchers"
 msgstr "Beneficios"
 
+#: support/templates/contact_detail/detail.html:134
+#: support/templates/contact_detail/tabs/_last_read.html:6
+msgid "Web Reading"
+msgstr "Lectura en el sitio"
+
 #: support/templates/contact_detail/detail.html:137
 #: support/templates/contact_detail/tabs/_web_comments.html:6
 msgid "Web Comments"
@@ -7671,20 +7647,20 @@ msgstr "Últimas incidencias"
 msgid "This contact has no issues"
 msgstr "Este contacto no tiene incidencias"
 
-#: support/templates/contact_detail/tabs/_last_read.html:6
-msgid "Last Read Articles"
-msgstr "Lectura en el sitio"
-
 #: support/templates/contact_detail/tabs/_last_read.html:10
-msgid "Last Read"
-msgstr "Lo último leído"
+msgid "Last read"
+msgstr "Últimos artículos leídos"
+
+#: support/templates/contact_detail/tabs/_last_read.html:21
+msgid "Most read"
+msgstr "Artículos más leídos"
 
 #: support/templates/contact_detail/tabs/_last_read.html:32
-msgid "Read Percentage"
-msgstr "Perfil de lectura"
+msgid "Categories reading percentages"
+msgstr "Porcentajes de lectura por categoría"
 
 #: support/templates/contact_detail/tabs/_last_read.html:43
-msgid "No reading data available for this contact"
+msgid "No web reading data available for this contact"
 msgstr "No hay datos de lectura en el sitio para este contacto"
 
 #: support/templates/contact_detail/tabs/_overview.html:6
@@ -7784,7 +7760,7 @@ msgstr "Este contacto no tiene tareas programadas"
 
 #: support/templates/contact_detail/tabs/_web_comments.html:19
 msgid "No web comments available for this contact"
-msgstr "No hay comentarios disponibles para este contacto."
+msgstr "No hay comentarios de este usuario en el sitio"
 
 #: support/templates/contact_detail/tabs/includes/_activity_modal.html:20
 msgid "Basic Information"
@@ -10830,129 +10806,19 @@ msgstr "La contraseña debe contener al menos 1 letra minúscula, a-z."
 msgid "Your password must contain at least 1 lowercase letter, a-z."
 msgstr "Tu contraseña debe contener al menos 1 letra minúscula, a-z."
 
-#~ msgid ""
-#~ "You cannot remove all products - at least one subscription product must "
-#~ "remain"
-#~ msgstr ""
-#~ "No puedes remover todos los productos - al menos un producto de retención "
-#~ "se debe quedar"
-
-#~ msgid "Select a retention discount to continue"
-#~ msgstr "Selecciona un descuento de retención para continuar"
-
-#~ msgid "Bulk Subscriptions"
-#~ msgstr "Suscripciones en paquete"
-
-#~ msgid "Bulk Subscriptions for Main Subscription"
-#~ msgstr "Suscripciones en paquete para la suscripción principal"
-
-#~ msgid "Main Subscription Details"
-#~ msgstr "Suscripción Principal"
-
-#~ msgid "Add New Bulk Subscription"
-#~ msgstr "Agregar nueva suscripción en paquete"
-
-#~ msgid "Add Bulk Subscription"
-#~ msgstr "Agregar suscripción en paquete"
-
-#~ msgid "Current Bulk Subscriptions"
-#~ msgstr "Suscripciones en paquete actuales"
-
-#~ msgid "No bulk subscriptions found."
-#~ msgstr "No se encontraron suscripciones en paquete."
-
-#~ msgid "Upgraded"
-#~ msgstr "Mejorada"
-
-#~ msgid "Upgrade"
-#~ msgstr "Mejorar"
-
-#~ msgid ""
-#~ "This tool uses EMAIL-ONLY matching to find existing contacts in the "
-#~ "database."
-#~ msgstr ""
-#~ "Esta herramienta utiliza búsquedas de coincidencias de contactos en la "
-#~ "base de datos SÓLAMENTE con email"
-
-#~ msgid "Only email addresses will be used for matching existing contacts"
-#~ msgstr ""
-#~ "Solo se utilizarán direcciones de correo electrónico para buacar "
-#~ "contactos existentes"
-
-#~ msgid "Upload and Check"
-#~ msgstr "Subir y chequear"
-
-#~ msgid "Indentifier"
-#~ msgstr "Identificador"
-
-#~ msgid "Saved without Georef"
-#~ msgstr "Guardado sin georreferenciación"
-
-#~ msgid "Address notes"
-#~ msgstr "Observaciones"
-
-#~ msgid "Total invoices paid"
-#~ msgstr "Total de facturas pagas"
-
-#~ msgid "Payment type of last invoice"
-#~ msgstr "Forma de pago de última factura"
-
-#~ msgid "Subscription paused until"
-#~ msgstr "Suscripción pausada hasta"
-
-#~ msgid "Subscription awaiting payment"
-#~ msgstr "Suscripción pendiente de pago"
-
-#~ msgid "because of pause"
-#~ msgstr "por pausa"
-
-#~ msgid "Positive Balance (Discount)"
-#~ msgstr "Saldo positivo (descuento)"
-
-#~ msgid "Negative Balance (Surcharge)"
-#~ msgstr "Saldo negativo (recargo)"
-
-#~ msgid "Go to parent subscription"
-#~ msgstr "Ir a la suscripción padre"
-
-#~ msgid "because of Pause"
-#~ msgstr "por pausa"
-
-#~ msgid "Last paid invoice"
-#~ msgstr "Última factura paga"
-
-#~ msgid "Import has encountered some errors"
-#~ msgstr "La importación ha encontrado algunos errores"
-
-#~ msgid ""
-#~ "Choose file to send. It has to be a csv file with the following header "
-#~ "and columns"
-#~ msgstr ""
-#~ "Elija el archivo a enviar. Debe ser un archivo CSV con los siguientes "
-#~ "cabezales y columnas"
-
-#~ msgid "All columns must be present in the header."
-#~ msgstr "Todas las columnas Deben estar presents en el encabezado."
-
-#~ msgid "Add new address"
-#~ msgstr "Agregar nueva dirección"
-
-#~ msgid "R.U.T."
-#~ msgstr "R.U.T."
+#~ msgid "This subscription is not normal and should not be billed."
+#~ msgstr "La suscripción no es normal y no debería ser facturada."
 
 #, python-brace-format
-#~ msgid ""
-#~ "{active} subscription for the contact {contact} with {products} products"
-#~ msgstr ""
-#~ "suscripción {active} para el contacto {contact} con los productos "
-#~ "{products}"
+#~ msgid " {} months"
+#~ msgstr " {} meses"
 
-#, python-format
-#~ msgid "Edition %s %s"
-#~ msgstr "Edición %s %s"
+#, python-brace-format
+#~ msgid "{} months discount ({} discount)"
+#~ msgstr "{} meses de descuento ({} descuento)"
 
-#~ msgid "scheduled"
-#~ msgstr "agendado"
+#~ msgid "Balance owed"
+#~ msgstr "Saldo adeudado"
 
-#~ msgid "updated"
-#~ msgstr "actualizado"
+#~ msgid "This subscription wasn't billed since amount is 0"
+#~ msgstr "Esta suscripción no será facturada dado que el monto es 0"
