@@ -69,7 +69,7 @@ Se agregó un nuevo permiso en `Issue.Meta.permissions` que controla el acceso a
 - **Algoritmo de asignación round-robin** que distribuye las incidencias sin asignar más antiguas equitativamente entre los usuarios seleccionados
 - Al asignar:
   - Establece `assigned_to` al usuario seleccionado
-  - Actualiza `status` al estado configurado de asignación (`ISSUE_STATUS_ASSIGNED`)
+  - Mantiene el estado actual de la incidencia sin cambios
   - Establece `next_action_date` a mañana si es nulo o está en el pasado
 - **Validación del lado del cliente** asegura que el total asignado no exceda las incidencias disponibles
 - Mensaje de éxito después de la asignación con redirección al panel
@@ -145,7 +145,6 @@ En todas las vistas se prestó especial atención a que los números sean inequ�
 ### Dependencias de Configuración
 
 - `ISSUE_STATUS_FINISHED_LIST` — Lista de slugs de estados considerados terminales/finalizados
-- `ISSUE_STATUS_ASSIGNED` — Slug de estado a establecer al asignar incidencias (opcional)
 
 ## Recomendaciones de Pruebas
 

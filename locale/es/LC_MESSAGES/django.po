@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: django\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-02-24 15:31-0300\n"
-"PO-Revision-Date: 2026-01-28 16:27-0300\n"
+"POT-Creation-Date: 2026-02-25 18:13-0300\n"
+"PO-Revision-Date: 2026-02-25 18:13-0300\n"
 "Last-Translator: tanyatree\n"
 "Language-Team: \n"
 "Language: es\n"
@@ -47,7 +47,7 @@ msgstr "Anunciante"
 #: advertisement/templates/advertiser_list.html:84
 #: advertisement/templates/agency_detail.html:58
 #: advertisement/templates/agency_list.html:84 core/models.py:1524
-#: core/models.py:2777 support/models.py:415
+#: core/models.py:2777 support/models.py:416
 #: support/templates/activities/activity_detail.html:59
 #: support/templates/assign_sellers.html:38
 #: support/templates/contact_detail/tabs/_activities.html:23
@@ -62,7 +62,7 @@ msgstr "Anunciante"
 #: support/templates/seller_console.html:238
 #: support/templates/validate_subscription_sales_record.html:242
 #: support/templates/validate_subscription_sales_record.html:277
-#: support/views/all_views.py:2165
+#: support/views/all_views.py:2568
 msgid "Seller"
 msgstr "Vendedor"
 
@@ -96,7 +96,7 @@ msgstr "Facturar a"
 #: support/templates/invoicing_issues.html:57
 #: support/templates/seller_console.html:360
 #: support/templates/unsubscription_statistics.html:47
-#: support/templates/view_issue.html:261 support/views/all_views.py:2164
+#: support/templates/view_issue.html:261 support/views/all_views.py:2567
 msgid "Date"
 msgstr "Fecha"
 
@@ -158,7 +158,7 @@ msgstr "Bajo"
 #: logistics/templates/route_details.html:42
 #: logistics/templates/route_details.html:168 support/forms.py:151
 #: support/forms.py:283 support/forms.py:950 support/models.py:31
-#: support/models.py:387 support/templates/campaign_statistics_detail.html:34
+#: support/models.py:388 support/templates/campaign_statistics_detail.html:34
 #: support/templates/campaign_statistics_list.html:43
 #: support/templates/campaign_statistics_list.html:59
 #: support/templates/campaign_statistics_per_seller.html:42
@@ -171,7 +171,7 @@ msgstr "Bajo"
 #: support/templates/seller_console_list_campaigns.html:24
 #: support/templates/seller_console_special_routes.html:22
 #: support/templates/seller_performance_by_time.html:74
-#: support/views/all_views.py:1286
+#: support/views/all_views.py:1689
 msgid "Name"
 msgstr "Nombre"
 
@@ -191,7 +191,7 @@ msgstr "Contacto principal"
 #: advertisement/templates/my_advertisers.html:122
 #: advertisement/templates/my_advertisers.html:151 core/models.py:224
 #: core/models.py:1613 core/models.py:2788 invoicing/models.py:299
-#: invoicing/templates/print.html:48 support/models.py:255
+#: invoicing/templates/print.html:48 support/models.py:256
 #: support/templates/activities/activity_detail.html:40
 #: support/templates/contact_detail/tabs/includes/_activity_modal.html:32
 #: support/templates/contact_detail/tabs/includes/_subscription_card.html:89
@@ -230,7 +230,7 @@ msgstr "Otros contactos"
 #: support/templates/seller_console_never_paid_issues.html:29
 #: support/templates/seller_console_special_routes.html:25
 #: support/templates/subscriptions/subscription_end_date_list.html:88
-#: support/views/all_views.py:1287 support/views/all_views.py:2015
+#: support/views/all_views.py:1690 support/views/all_views.py:2418
 #: support/views/contacts.py:152
 msgid "Email"
 msgstr "Email"
@@ -257,7 +257,7 @@ msgstr "Email"
 #: support/templates/seller_console.html:191
 #: support/templates/seller_console_never_paid_issues.html:30
 #: support/templates/subscriptions/subscription_end_date_list.html:89
-#: support/views/all_views.py:1289 support/views/all_views.py:2016
+#: support/views/all_views.py:1692 support/views/all_views.py:2419
 #: support/views/contacts.py:153
 msgid "Phone"
 msgstr "Teléfono"
@@ -350,7 +350,7 @@ msgstr "Vendedores de publicidad"
 #: invoicing/templates/invoice/invoice_detail.html:220
 #: invoicing/templates/invoice/invoice_detail.html:247 logistics/models.py:25
 #: logistics/models.py:187 logistics/templates/list_routes_detailed.html:46
-#: support/models.py:389 support/templates/campaign_statistics_detail.html:51
+#: support/models.py:390 support/templates/campaign_statistics_detail.html:51
 #: support/templates/campaign_statistics_per_seller.html:47
 #: support/templates/dynamic_contact_filter_list.html:39
 #: support/templates/import_contacts.html:135
@@ -383,7 +383,7 @@ msgstr "Tipo de anuncio"
 #: advertisement/templates/ad_purchase_order_detail.html:90 core/models.py:222
 #: invoicing/templates/bill_subscriptions_for_one_contact.html:67
 #: invoicing/templates/invoice/invoice_detail.html:222 invoicing/views.py:221
-#: support/models.py:421
+#: support/models.py:422
 #: support/templates/contact_detail/tabs/includes/_overview_subscription_list_item.html:59
 #: support/templates/contact_detail/tabs/includes/_subscription_card.html:66
 #: support/templates/sales_record_create.html:80
@@ -402,8 +402,8 @@ msgstr "Precio"
 #: support/templates/sales_record_filter.html:142
 #: support/templates/subscriptions/corporate_subscription.html:45
 #: support/templates/validate_subscription_sales_record.html:144
-#: support/templates/view_issue.html:87 support/views/all_views.py:647
-#: support/views/all_views.py:1442
+#: support/templates/view_issue.html:87 support/views/all_views.py:648
+#: support/views/all_views.py:1845
 msgid "Start date"
 msgstr "Fecha de comienzo"
 
@@ -514,13 +514,13 @@ msgstr "Mensajería instantánea"
 #: invoicing/choices.py:17 invoicing/filters.py:30 invoicing/models.py:166
 #: invoicing/templates/invoice/invoice_detail.html:120
 #: invoicing/templates/invoice/invoice_detail.html:152
-#: invoicing/templates/invoice_filter.html:193 support/models.py:617
+#: invoicing/templates/invoice_filter.html:193 support/models.py:618
 #: support/templates/seller_console_list_campaigns.html:126
 msgid "Pending"
 msgstr "Pendiente"
 
 #: advertisement/models.py:249 core/choices.py:83 core/choices.py:91
-#: invoicing/choices.py:21 support/models.py:259
+#: invoicing/choices.py:21 support/models.py:260
 #: support/templates/contact_detail/tabs/_tasks.html:15
 #: support/templates/scheduled_task_filter.html:49
 #: support/templates/scheduled_task_filter.html:89
@@ -529,7 +529,7 @@ msgid "Completed"
 msgstr "Completado"
 
 #: advertisement/models.py:251 core/models.py:1800
-#: invoicing/templates/invoice_filter.html:99 support/models.py:265
+#: invoicing/templates/invoice_filter.html:99 support/models.py:266
 #: support/templates/contact_detail/tabs/_tasks.html:13
 #: support/templates/scheduled_task_filter.html:87
 #: support/views/scheduled_tasks.py:235
@@ -794,7 +794,7 @@ msgstr "Dirección"
 #: support/templates/seller_console_never_paid_issues.html:32
 #: support/templates/validate_subscription_sales_record.html:133
 #: support/templates/view_issue.html:257 support/templates/view_issue.html:326
-#: support/views/all_views.py:654 support/views/all_views.py:1446
+#: support/views/all_views.py:655 support/views/all_views.py:1849
 msgid "Status"
 msgstr "Estado"
 
@@ -1055,6 +1055,74 @@ msgstr ""
 #: advertisement/views.py:386
 msgid "Purchase order has been marked as billed"
 msgstr "La orden de compra se marcó como facturada"
+
+#: archive/tests/old_bill_subscription.py:28 invoicing/utils.py:355
+msgid "This subscription is not active and should not be billed."
+msgstr "La suscripción no está activa y no debería ser facturada."
+
+#: archive/tests/old_bill_subscription.py:31
+msgid "This subscription is not normal and should not be billed."
+msgstr "La suscripción no es normal y no debería ser facturada."
+
+#: archive/tests/old_bill_subscription.py:34 invoicing/utils.py:349
+msgid "Could not bill because next billing date does not exist"
+msgstr "No se pudo facturar porque la próxima fecha de facturación no existe"
+
+#: archive/tests/old_bill_subscription.py:37 invoicing/utils.py:359
+msgid "The subscription has no payment type, it can't be billed"
+msgstr "La suscripción no tiene forma de pago, no se puede facturar"
+
+#: archive/tests/old_bill_subscription.py:41 invoicing/utils.py:364
+msgid "This subscription has an end date greater than its next billing"
+msgstr ""
+"La suscripción tiene una fecha de fin mayor que su fecha de próxima "
+"facturación"
+
+#: archive/tests/old_bill_subscription.py:45 invoicing/utils.py:352
+msgid "This subscription should not be billed yet."
+msgstr "Esta suscripción aún no debería ser facturada."
+
+#: archive/tests/old_bill_subscription.py:112
+#: archive/tests/old_bill_subscription.py:129
+#: archive/tests/old_bill_subscription.py:160
+#: archive/tests/old_bill_subscription.py:199
+#: archive/tests/old_bill_subscription.py:214
+#, python-brace-format
+msgid " {} months"
+msgstr " {} meses"
+
+#: archive/tests/old_bill_subscription.py:238 core/models.py:1527
+#: core/models.py:1646 invoicing/utils.py:403 support/models.py:174
+msgid "Envelope"
+msgstr "Sobre"
+
+#: archive/tests/old_bill_subscription.py:253
+#, python-brace-format
+msgid "{} months discount ({} discount)"
+msgstr "{} meses de descuento ({} descuento)"
+
+#: archive/tests/old_bill_subscription.py:273 core/models.py:1633
+#: invoicing/models.py:24 invoicing/utils.py:413
+#: support/templates/contact_detail/tabs/includes/_overview_subscription_list_item.html:77
+#: support/templates/sales_record_create.html:135
+#: support/templates/sales_record_create.html:196
+#: support/templates/validate_subscription_sales_record.html:161
+#: support/templates/validate_subscription_sales_record.html:222
+msgid "Balance"
+msgstr "Saldo"
+
+#: archive/tests/old_bill_subscription.py:283
+msgid "Balance owed"
+msgstr "Saldo adeudado"
+
+#: archive/tests/old_bill_subscription.py:301 core/utils.py:412
+#: invoicing/templates/invoice/invoice_detail.html:278
+msgid "Rounding"
+msgstr "Redondeo"
+
+#: archive/tests/old_bill_subscription.py:359
+msgid "This subscription wasn't billed since amount is 0"
+msgstr "Esta suscripción no será facturada dado que el monto es 0"
 
 #: community/apps.py:7 support/choices.py:20 support/choices.py:39
 #: support/templates/new_issue.html:237
@@ -1415,11 +1483,11 @@ msgstr "Éxito con promoción"
 msgid "Success with direct sale"
 msgstr "Éxito con venta directa"
 
-#: core/choices.py:123 support/models.py:619
+#: core/choices.py:123 support/models.py:620
 msgid "Scheduled"
 msgstr "Programado"
 
-#: core/choices.py:124 support/models.py:620
+#: core/choices.py:124 support/models.py:621
 msgid "Call later"
 msgstr "Llamar nuevamente"
 
@@ -1628,21 +1696,22 @@ msgstr "Dirección de publicidad"
 #: core/decorators.py:11 core/templates/main_menu.html:5 invoicing/views.py:94
 #: invoicing/views.py:265 invoicing/views.py:500 logistics/views.py:365
 #: logistics/views.py:1518 support/location.py:190
-#: support/views/activities.py:27 support/views/all_views.py:152
-#: support/views/all_views.py:266 support/views/all_views.py:574
-#: support/views/all_views.py:707 support/views/all_views.py:798
-#: support/views/all_views.py:926 support/views/all_views.py:1609
-#: support/views/all_views.py:2044 support/views/all_views.py:2137
-#: support/views/campaign_management.py:39 support/views/contacts.py:56
-#: support/views/contacts.py:244 support/views/contacts.py:468
-#: support/views/contacts.py:536 support/views/contacts.py:878
-#: support/views/contacts.py:1124 support/views/seller_console.py:60
-#: support/views/seller_console.py:132 support/views/subscriptions.py:1377
-#: support/views/subscriptions.py:1564 support/views/subscriptions.py:1964
-#: support/views/subscriptions.py:2054 templates/admin/change_form.html:27
-#: templates/admin/change_list.html:38 templates/admin/index.html:68
-#: templates/admin/object_history.html:17 templates/components/_header.html:12
-#: templates/components/_sidebar.html:41
+#: support/views/activities.py:27 support/views/all_views.py:153
+#: support/views/all_views.py:267 support/views/all_views.py:575
+#: support/views/all_views.py:708 support/views/all_views.py:800
+#: support/views/all_views.py:895 support/views/all_views.py:1088
+#: support/views/all_views.py:1201 support/views/all_views.py:1329
+#: support/views/all_views.py:2012 support/views/all_views.py:2447
+#: support/views/all_views.py:2540 support/views/campaign_management.py:39
+#: support/views/contacts.py:56 support/views/contacts.py:244
+#: support/views/contacts.py:468 support/views/contacts.py:536
+#: support/views/contacts.py:878 support/views/contacts.py:1124
+#: support/views/seller_console.py:60 support/views/seller_console.py:132
+#: support/views/subscriptions.py:1377 support/views/subscriptions.py:1564
+#: support/views/subscriptions.py:1964 support/views/subscriptions.py:2054
+#: templates/admin/change_form.html:27 templates/admin/change_list.html:38
+#: templates/admin/index.html:68 templates/admin/object_history.html:17
+#: templates/components/_header.html:12 templates/components/_sidebar.html:41
 msgid "Home"
 msgstr "Inicio"
 
@@ -1849,7 +1918,7 @@ msgstr "Ambos"
 #: invoicing/templates/invoice/invoice_detail.html:52
 #: logistics/templates/change_subscription_routes.html:49
 #: logistics/templates/change_subscription_routes.html:55 support/forms.py:420
-#: support/models.py:166 support/models.py:417
+#: support/models.py:166 support/models.py:418
 #: support/templates/contact_detail/htmx/_invoices_htmx.html:6
 #: support/templates/contact_list.html:175
 #: support/templates/new_scheduled_task_address_change.html:228
@@ -1980,9 +2049,10 @@ msgid ""
 "until this field is unchecked and the object is saved. This means that the "
 "field is disabled if the product has a MercadoPago ID set."
 msgstr ""
-"Si está activado, este producto no se sincronizará con un plan de MercadoPago "
-"hasta que este campo se desactive y el objeto se guarde. Esto significa que el "
-"campo está deshabilitado si el producto tiene un ID de MercadoPago establecido."
+"Si está activado, este producto no se sincronizará con un plan de "
+"MercadoPago hasta que este campo se desactive y el objeto se guarde. Esto "
+"significa que el campo está deshabilitado si el producto tiene un ID de "
+"MercadoPago establecido."
 
 #: core/models.py:311
 msgid "MercadoPago ID"
@@ -2096,7 +2166,7 @@ msgstr "Teléfono extensión"
 #: support/templates/seller_console.html:194
 #: support/templates/seller_console_never_paid_issues.html:31
 #: support/templates/seller_console_special_routes.html:27
-#: support/views/all_views.py:1290 support/views/all_views.py:2017
+#: support/views/all_views.py:1693 support/views/all_views.py:2420
 #: support/views/contacts.py:154
 msgid "Mobile"
 msgstr "Celular"
@@ -2233,7 +2303,7 @@ msgstr "ciudades"
 #: logistics/templates/merge_compare_addresses.html:45
 #: logistics/templates/merge_compare_addresses.html:419
 #: logistics/templates/route_details.html:132 support/forms.py:396
-#: support/models.py:118 support/models.py:254 support/models.py:461
+#: support/models.py:118 support/models.py:255 support/models.py:462
 #: support/templates/activities/activity_detail.html:27
 #: support/templates/check_for_existing_contacts.html:179
 #: support/templates/invoicing_issues.html:104
@@ -2398,7 +2468,7 @@ msgstr "Copias"
 #: logistics/templates/print_unordered_subscriptions_list.html:23
 #: logistics/templates/route_details.html:134
 #: logistics/templates/route_details.html:169 support/forms.py:449
-#: support/forms.py:458 support/models.py:172 support/models.py:257
+#: support/forms.py:458 support/models.py:172 support/models.py:258
 #: support/templates/contact_list.html:126
 #: support/templates/free_subscription_form.html:200
 #: support/templates/free_subscription_form.html:247
@@ -2451,11 +2521,6 @@ msgstr "Instrucciones especiales"
 msgid "Label contact"
 msgstr "Contacto de la etiqueta"
 
-#: core/models.py:1527 core/models.py:1646 invoicing/utils.py:403
-#: support/models.py:174
-msgid "Envelope"
-msgstr "Sobre"
-
 #: core/models.py:1533
 msgid "Original date and time"
 msgstr "Fecha y hora de origen"
@@ -2506,7 +2571,7 @@ msgstr "Deudor, baja automática"
 msgid "All products removed"
 msgstr "Todos los productos removidos"
 
-#: core/models.py:1595 support/models.py:570
+#: core/models.py:1595 support/models.py:571
 msgid "N/A"
 msgstr "N/A"
 
@@ -2523,7 +2588,7 @@ msgid "Partial unsubscription"
 msgstr "Baja parcial"
 
 #: core/models.py:1607 core/models.py:2774 support/forms.py:1039
-#: support/models.py:423 support/templates/activities/activity_detail.html:65
+#: support/models.py:424 support/templates/activities/activity_detail.html:65
 #: support/templates/contact_detail/tabs/_activities.html:16
 #: support/templates/contact_detail/tabs/includes/_activity_modal.html:101
 #: support/templates/contact_detail/tabs/includes/_overview_subscription_list_item.html:87
@@ -2536,7 +2601,7 @@ msgstr "Baja parcial"
 #: support/templates/seller_console_list_campaigns.html:162
 #: support/templates/validate_subscription_sales_record.html:117
 #: support/templates/validate_subscription_sales_record.html:281
-#: support/views/all_views.py:2168
+#: support/views/all_views.py:2571
 msgid "Campaign"
 msgstr "Campaña"
 
@@ -2551,15 +2616,6 @@ msgstr "RUT"
 #: core/models.py:1626
 msgid "Billing phone extension"
 msgstr "Teléfono de facturación extensión"
-
-#: core/models.py:1633 invoicing/models.py:24 invoicing/utils.py:413
-#: support/templates/contact_detail/tabs/includes/_overview_subscription_list_item.html:77
-#: support/templates/sales_record_create.html:135
-#: support/templates/sales_record_create.html:196
-#: support/templates/validate_subscription_sales_record.html:161
-#: support/templates/validate_subscription_sales_record.html:222
-msgid "Balance"
-msgstr "Saldo"
 
 #: core/models.py:1634
 msgid "Positive for discount, negative for surcharge"
@@ -2627,14 +2683,14 @@ msgstr "Adenda de baja"
 
 #: core/models.py:1697
 #: invoicing/templates/bill_subscriptions_for_one_contact.html:66
-#: support/filters.py:311 support/filters.py:345 support/models.py:419
-#: support/models.py:452 support/templates/reactivate_subscription.html:42
+#: support/filters.py:311 support/filters.py:345 support/models.py:420
+#: support/models.py:453 support/templates/reactivate_subscription.html:42
 #: support/templates/sales_record_create.html:29
 #: support/templates/sales_record_filter.html:95
 #: support/templates/sales_record_filter.html:144
 #: support/templates/sales_record_filter.html:203
 #: support/templates/validate_subscription_sales_record.html:55
-#: support/views/all_views.py:2167
+#: support/views/all_views.py:2570
 msgid "Products"
 msgstr "Productos"
 
@@ -2672,7 +2728,7 @@ msgid "Free subscription requested by"
 msgstr "Suscripción gratuita a pedido de"
 
 #: core/models.py:1724 support/templates/sales_record_filter.html:108
-#: support/views/all_views.py:2171
+#: support/views/all_views.py:2574
 msgid "Validated"
 msgstr "Validado"
 
@@ -3071,8 +3127,8 @@ msgstr "Hola %(first_name)s, elige donde quieres ir"
 #: support/templates/seller_console_list_campaigns.html:25
 #: support/templates/subscriptions/subscription_end_date_list.html:10
 #: support/templates/upload_payment_certificate.html:9
-#: support/views/all_views.py:799 support/views/all_views.py:927
-#: support/views/all_views.py:2206 support/views/contacts.py:879
+#: support/views/all_views.py:1202 support/views/all_views.py:1330
+#: support/views/all_views.py:2609 support/views/contacts.py:879
 #: templates/components/_sidebar.html:48
 msgid "Contacts"
 msgstr "Contactos"
@@ -3107,10 +3163,6 @@ msgstr " {frequency} meses"
 #, python-brace-format
 msgid "{frequency} months discount ({discount_pct}% discount)"
 msgstr "descuento de {frequency} meses ({discount_pct}% de descuento)"
-
-#: core/utils.py:412 invoicing/templates/invoice/invoice_detail.html:278
-msgid "Rounding"
-msgstr "Redondeo"
 
 #: core/utils.py:444
 msgid "The subscription needs to be corporate to use this function"
@@ -3153,7 +3205,14 @@ msgstr "Completado con errores"
 #: invoicing/filters.py:16 logistics/templates/list_routes.html:38
 #: support/filters.py:15 support/templates/community_console.html:106
 #: support/templates/community_console.html:200
-#: support/templates/community_console.html:320 util/dates.py:82
+#: support/templates/community_console.html:320
+#: support/templates/community_manager_assign.html:75
+#: support/templates/community_manager_assign.html:135
+#: support/templates/community_manager_dashboard.html:192
+#: support/templates/community_manager_dashboard.html:322
+#: support/templates/community_manager_overview.html:144
+#: support/templates/community_manager_overview.html:212
+#: support/templates/community_manager_overview.html:345 util/dates.py:82
 msgid "Today"
 msgstr "Hoy"
 
@@ -3211,6 +3270,13 @@ msgstr "Incobrable"
 #: support/templates/community_console.html:97
 #: support/templates/community_console.html:199
 #: support/templates/community_console.html:319
+#: support/templates/community_manager_assign.html:66
+#: support/templates/community_manager_assign.html:132
+#: support/templates/community_manager_dashboard.html:191
+#: support/templates/community_manager_dashboard.html:321
+#: support/templates/community_manager_overview.html:141
+#: support/templates/community_manager_overview.html:212
+#: support/templates/community_manager_overview.html:344
 msgid "Overdue"
 msgstr "Vencida"
 
@@ -3229,7 +3295,7 @@ msgstr "Documento de identidad"
 
 #: invoicing/filters.py:53
 msgid "Phone or mobile"
-msgstr "Teléfono o celular"
+msgstr "Número de teléfono o celular"
 
 #: invoicing/models.py:20 invoicing/templates/invoice/invoice_detail.html:85
 msgid "Creation Date"
@@ -3656,6 +3722,10 @@ msgstr "Total de descuento"
 #: logistics/templates/route_details.html:25
 #: support/templates/community_console.html:202
 #: support/templates/community_console.html:252
+#: support/templates/community_manager_dashboard.html:195
+#: support/templates/community_manager_dashboard.html:249
+#: support/templates/community_manager_overview.html:149
+#: support/templates/community_manager_overview.html:283
 msgid "Total"
 msgstr "Total"
 
@@ -3675,15 +3745,15 @@ msgstr "Filtros"
 
 #: invoicing/templates/invoice_filter.html:80 invoicing/views.py:294
 #: support/templates/scheduled_activities.html:96
-#: support/views/all_views.py:649 support/views/all_views.py:1444
-#: support/views/all_views.py:1524 support/views/all_views.py:2014
+#: support/views/all_views.py:650 support/views/all_views.py:1847
+#: support/views/all_views.py:1927 support/views/all_views.py:2417
 #: support/views/scheduled_tasks.py:233
 msgid "Contact name"
 msgstr "Nombre de contacto"
 
 #: invoicing/templates/invoice_filter.html:94
 msgid "Searches both phone and mobile"
-msgstr "Busca tanto teléfono como celular"
+msgstr "Busca tanto en teléfono como en celular"
 
 #: invoicing/templates/invoice_filter.html:121
 msgid "Payment from"
@@ -3806,28 +3876,6 @@ msgstr "El cliente es deudor, no esta autorizado crearle una suscripción."
 msgid "This subscription is not normal or corporate and should not be billed."
 msgstr "La suscripción no es normal o corporativa y no debería ser facturada."
 
-#: invoicing/utils.py:349
-msgid "Could not bill because next billing date does not exist"
-msgstr "No se pudo facturar porque la próxima fecha de facturación no existe"
-
-#: invoicing/utils.py:352
-msgid "This subscription should not be billed yet."
-msgstr "Esta suscripción aún no debería ser facturada."
-
-#: invoicing/utils.py:355
-msgid "This subscription is not active and should not be billed."
-msgstr "La suscripción no está activa y no debería ser facturada."
-
-#: invoicing/utils.py:359
-msgid "The subscription has no payment type, it can't be billed"
-msgstr "La suscripción no tiene forma de pago, no se puede facturar"
-
-#: invoicing/utils.py:364
-msgid "This subscription has an end date greater than its next billing"
-msgstr ""
-"La suscripción tiene una fecha de fin mayor que su fecha de próxima "
-"facturación"
-
 #: invoicing/utils.py:489
 msgid "This subscription wasn't billed since amount is not greater than 0"
 msgstr ""
@@ -3842,7 +3890,7 @@ msgstr "La factura {} fue creada con éxito"
 #: logistics/views.py:1547 support/location.py:93 support/location.py:191
 #: support/location.py:239 support/views/activities.py:149
 #: support/views/activities.py:200 support/views/activities.py:225
-#: support/views/all_views.py:1937 support/views/contacts.py:57
+#: support/views/all_views.py:2340 support/views/contacts.py:57
 #: support/views/contacts.py:245 support/views/contacts.py:469
 #: support/views/contacts.py:537 support/views/contacts.py:1125
 #: support/views/scheduled_tasks.py:66 support/views/scheduled_tasks.py:137
@@ -3972,6 +4020,13 @@ msgstr "Sin día"
 #: support/templates/community_console.html:115
 #: support/templates/community_console.html:201
 #: support/templates/community_console.html:321
+#: support/templates/community_manager_assign.html:84
+#: support/templates/community_manager_assign.html:138
+#: support/templates/community_manager_dashboard.html:193
+#: support/templates/community_manager_dashboard.html:323
+#: support/templates/community_manager_overview.html:147
+#: support/templates/community_manager_overview.html:212
+#: support/templates/community_manager_overview.html:346
 msgid "Future"
 msgstr "Futuro"
 
@@ -4189,6 +4244,7 @@ msgstr "Filtrar por producto"
 #: logistics/templates/change_route.html:48
 #: logistics/templates/print_routes_simple.html:51
 #: logistics/templates/print_unordered_subscriptions_form.html:33
+#: support/views/all_views.py:893
 msgid "All"
 msgstr "Todos"
 
@@ -4266,20 +4322,16 @@ msgid "Change route to subscription products"
 msgstr "Rerutear"
 
 #: logistics/templates/change_route.html:69
-#, fuzzy
-#| msgid "Issue Date"
 msgid "Issue notes"
-msgstr "Fecha de emisión"
+msgstr "Notas de la incidencia"
 
 #: logistics/templates/change_route.html:69
-#, fuzzy
-#| msgid "Contacts in special routes"
 msgid "(for special routes 50-55)"
-msgstr "Contactos en rutas especiales"
+msgstr "(para rutas especiales 50-55)"
 
 #: logistics/templates/change_route.html:99
 msgid "Custom notes for issue (only for routes 50-55)"
-msgstr ""
+msgstr "Notas personalizadas para incidencia (solo para rutas 50-55)"
 
 #: logistics/templates/change_subscription_routes.html:50
 #: logistics/templates/change_subscription_routes.html:55
@@ -4374,20 +4426,22 @@ msgid "Special instructions for delivery"
 msgstr "Instrucciones especiales"
 
 #: logistics/templates/change_subscription_routes.html:192
-#, fuzzy
-#| msgid "Special Routes"
 msgid "Issue Notes for Special Routes"
-msgstr "Rutas especiales"
+msgstr "Notas de incidencia para rutas especiales"
 
 #: logistics/templates/change_subscription_routes.html:193
 msgid ""
 "If changing to a special route (50-55), a single issue will be created. You "
 "can add custom notes below:"
 msgstr ""
+"Si se cambia a una ruta especial (50-55) se creará una incidencia única. "
+"Puedes agregar notas personalizadas más abajo:"
 
 #: logistics/templates/change_subscription_routes.html:198
 msgid "Custom notes for the issue (only used when changing to routes 50-55)"
 msgstr ""
+"Notas personalizadas para la incidencia (solo se utiliza cuando se cambia a "
+"rutas 50-55)"
 
 #: logistics/templates/change_subscription_routes.html:207
 msgid "Save Route Changes"
@@ -4468,7 +4522,7 @@ msgstr "Suscripciones activas"
 #: logistics/templates/merge_compare_addresses.html:347
 #: logistics/templates/route_details.html:128 support/models.py:182
 #: support/templates/contact_detail/detail.html:113
-#: support/templates/history_extended.html:129 support/views/all_views.py:575
+#: support/templates/history_extended.html:129 support/views/all_views.py:576
 #: templates/components/sidebar_items/_support.html:23
 msgid "Issues"
 msgstr "Incidencias"
@@ -4514,6 +4568,7 @@ msgstr "Mañana"
 #: logistics/templates/list_routes.html:40
 #: logistics/templates/list_routes_detailed.html:44
 #: logistics/templates/order_routes_list.html:39
+#: support/templates/community_manager_dashboard.html:196
 #: support/templates/contact_list.html:179
 #: support/templates/seller_console_never_paid_issues.html:33
 #: support/templates/subscriptions/subscription_end_date_list.html:92
@@ -4625,7 +4680,7 @@ msgstr "Dirección de entrega"
 
 #: logistics/templates/merge_compare_addresses.html:95
 msgid "Apartment, suite, etc."
-msgstr "Dirección complemento"
+msgstr "Apartamento, datos complementarios, etc."
 
 #: logistics/templates/merge_compare_addresses.html:114
 msgid ""
@@ -4713,7 +4768,7 @@ msgstr "Solo observaciones de dirección 2"
 msgid "Subscription products"
 msgstr "Productos de suscripción"
 
-#: logistics/templates/merge_compare_addresses.html:354 support/models.py:347
+#: logistics/templates/merge_compare_addresses.html:354 support/models.py:348
 #: templates/components/sidebar_items/_support.html:50
 msgid "Scheduled tasks"
 msgstr "Tareas programadas"
@@ -5082,12 +5137,9 @@ msgstr ""
 "Generado automáticamente por cambio de ruta a una ruta especial (ruta {})"
 
 #: logistics/utils.py:62
-#, fuzzy, python-brace-format
-#| msgid ""
-#| "Generated automatically for change of route to special route (route {})"
+#, python-brace-format
 msgid "Generated automatically for change of routes to special routes ({})"
-msgstr ""
-"Generado automáticamente por cambio de ruta a una ruta especial (ruta {})"
+msgstr "Generada automáticamente por cambio de ruta a rutas especiales ({})"
 
 #: logistics/views.py:63 logistics/views.py:123 logistics/views.py:332
 #, python-brace-format
@@ -5197,10 +5249,9 @@ msgid "Subscription product not found"
 msgstr "Producto de suscripción no encontrado"
 
 #: logistics/views.py:1800
-#, fuzzy, python-brace-format
-#| msgid "Routes updated. Issues created for special routes: {}"
+#, python-brace-format
 msgid "Routes updated. Issue created for special routes: {}"
-msgstr "Rutas actualizadas. Incidencias creadas para rutas especiales: {}"
+msgstr "Rutas actualizadas. Incidencia creada para rutas especiales: {}"
 
 #: logistics/views.py:1803 logistics/views.py:1805
 msgid "Routes updated successfully"
@@ -5534,7 +5585,7 @@ msgstr "Para cuándo se agendó la siguiente acción de la incidencia"
 #: support/templates/contact_detail/tabs/_campaigns.html:102
 #: support/templates/contact_detail/tabs/_issues.html:16
 #: support/templates/list_issues.html:164
-#: support/templates/list_issues.html:251 support/views/all_views.py:652
+#: support/templates/list_issues.html:251 support/views/all_views.py:653
 msgid "Resolution"
 msgstr "Resolución"
 
@@ -5637,7 +5688,7 @@ msgstr "Selecciona un tipo de actividad"
 #: support/templates/invoicing_issues.html:118
 #: support/templates/list_issues.html:160
 #: support/templates/list_issues.html:260 support/templates/new_issue.html:347
-#: support/views/all_views.py:655 support/views/all_views.py:1451
+#: support/views/all_views.py:656 support/views/all_views.py:1854
 msgid "Assigned to"
 msgstr "Asignado a"
 
@@ -5662,7 +5713,7 @@ msgstr "Pausar"
 msgid "Change address"
 msgstr "Cambiar dirección"
 
-#: support/forms.py:708 support/models.py:418
+#: support/forms.py:708 support/models.py:419
 #: support/templates/scheduled_activities.html:99
 msgid "Date and time"
 msgstr "Fecha/hora"
@@ -5841,18 +5892,19 @@ msgstr "Fecha de la incidencia"
 #: support/templates/list_issues.html:249 support/templates/new_issue.html:188
 #: support/templates/scheduled_task_filter.html:45
 #: support/templates/scheduled_task_filter.html:86
-#: support/templates/view_issue.html:101 support/views/all_views.py:650
+#: support/templates/view_issue.html:101 support/views/all_views.py:651
 #: support/views/scheduled_tasks.py:234
 msgid "Category"
 msgstr "Categoría"
 
-#: support/models.py:124 support/models.py:151 support/models.py:386
+#: support/models.py:124 support/models.py:151 support/models.py:387
 #: support/templates/community_console.html:198
+#: support/templates/community_manager_dashboard.html:190
 #: support/templates/contact_detail/tabs/_issues.html:15
 #: support/templates/invoicing_issues.html:53
 #: support/templates/invoicing_issues.html:106
 #: support/templates/list_issues.html:156
-#: support/templates/list_issues.html:250 support/views/all_views.py:651
+#: support/templates/list_issues.html:250 support/views/all_views.py:652
 msgid "Subcategory"
 msgstr "Subcategoría"
 
@@ -5873,7 +5925,7 @@ msgid "Answer 2"
 msgstr "Respuesta 2"
 
 #: support/models.py:154 support/templates/invoicing_issues.html:108
-#: support/templates/list_issues.html:256 support/views/all_views.py:1447
+#: support/templates/list_issues.html:256 support/views/all_views.py:1850
 msgid "Next action date"
 msgstr "Fecha de próxima acción"
 
@@ -5887,22 +5939,27 @@ msgstr "Producto de suscripción"
 
 #: support/models.py:184
 msgid "Can access community management console"
-msgstr ""
+msgstr "Puede acceder a la consola de gestión de comunidad"
 
-#: support/models.py:242
+#: support/models.py:185
+msgid "Can manage community console (assign issues)"
+msgstr ""
+"Puede administrar la consola de gestión de comunidad (asignar incidencias)"
+
+#: support/models.py:243
 #, python-brace-format
 msgid "Issue of category {category} for {contact} with status {status}"
 msgstr "Incidencia de categoría {category} para {contact} con estado {status}"
 
-#: support/models.py:260
+#: support/models.py:261
 msgid "Date of execution"
 msgstr "Fecha de ejecución"
 
-#: support/models.py:266
+#: support/models.py:267
 msgid "Modification date"
 msgstr "Fecha de modificación"
 
-#: support/models.py:338
+#: support/models.py:339
 #, python-brace-format
 msgid ""
 "Task {id} of type {category} for contact {contact} completed successfully."
@@ -5910,101 +5967,101 @@ msgstr ""
 "Tarea {id} del tipo {category} para el contacto {contact} completada con "
 "éxito."
 
-#: support/models.py:346
+#: support/models.py:347
 msgid "Scheduled task"
 msgstr "Tareas programadas"
 
-#: support/models.py:364
+#: support/models.py:365
 msgid "Issue Status"
 msgstr "Estado de incidencia"
 
-#: support/models.py:365
+#: support/models.py:366
 msgid "Issue Statuses"
 msgstr "Estados de incidencia"
 
-#: support/models.py:381
+#: support/models.py:382
 msgid "Issue Subcategory"
 msgstr "Subcategoría de incidencia"
 
-#: support/models.py:382
+#: support/models.py:383
 msgid "Issue Subcategories"
 msgstr "Subcategorías de incidencia"
 
-#: support/models.py:388
+#: support/models.py:389
 msgid "Slug"
 msgstr "Slug"
 
-#: support/models.py:392
+#: support/models.py:393
 msgid "Issue Resolution"
 msgstr "Resolución de incidencia"
 
-#: support/models.py:393
+#: support/models.py:394
 msgid "Issue Resolutions"
 msgstr "Resoluciones de incidencia"
 
-#: support/models.py:411
+#: support/models.py:412
 msgid "Full"
 msgstr "Completo"
 
-#: support/models.py:412
+#: support/models.py:413
 msgid "Partial"
 msgstr "Parcial"
 
-#: support/models.py:425
+#: support/models.py:426
 msgid "Commission for payment type"
 msgstr "Comisiones por forma de pago"
 
-#: support/models.py:428
+#: support/models.py:429
 msgid "Commission for products sold"
 msgstr "Comisiones por productos vendidos"
 
-#: support/models.py:431
+#: support/models.py:432
 msgid "Commission for subscription frequency"
 msgstr "Comisiones por periodicidad de suscripción"
 
-#: support/models.py:434
+#: support/models.py:435
 msgid "Total commission value"
 msgstr "Valor total de la comisión"
 
-#: support/models.py:436
+#: support/models.py:437
 #: support/templates/validate_subscription_sales_record.html:291
 msgid "Can be commissioned"
 msgstr "Puede ser comisionado"
 
-#: support/models.py:439
+#: support/models.py:440
 msgid "Sales record"
 msgstr "Registro de ventas"
 
-#: support/models.py:440
+#: support/models.py:441
 msgid "Sales records"
 msgstr "Registros de ventas"
 
-#: support/models.py:615
+#: support/models.py:616
 msgid "Success"
 msgstr "Éxito"
 
-#: support/models.py:616
+#: support/models.py:617
 msgid "Declined"
 msgstr "Rechazado"
 
-#: support/models.py:618
+#: support/models.py:619
 msgid "No contact"
 msgstr "Sin contacto"
 
-#: support/models.py:631
+#: support/models.py:632
 msgid "Campaign status to set when this action is performed"
 msgstr "El estado de campaña que será asignado cuando se realice esta acción"
 
-#: support/models.py:638
+#: support/models.py:639
 msgid "Campaign resolution to set when this action is performed"
 msgstr ""
 "La resolucion de campaña que será aplicada cuando se realice esta acción"
 
-#: support/models.py:645
+#: support/models.py:646
 msgid "Seller Console Action"
 msgstr "Acción de consola de ventas"
 
-#: support/models.py:646
+#: support/models.py:647
 msgid "Seller Console Actions"
 msgstr "Acciones de consola de ventas"
 
@@ -6273,7 +6330,7 @@ msgid "Remove these products"
 msgstr "Remover estos productos"
 
 #: support/templates/assign_campaigns.html:5
-#: support/templates/assign_campaigns.html:9 support/views/all_views.py:153
+#: support/templates/assign_campaigns.html:9 support/views/all_views.py:154
 msgid "Assign campaigns"
 msgstr "Asignar campañas"
 
@@ -6313,6 +6370,9 @@ msgstr ""
 "antiguas"
 
 #: support/templates/assign_sellers.html:40
+#: support/templates/community_manager_assign.html:140
+#: support/templates/community_manager_assign.html:200
+#: support/templates/community_manager_dashboard.html:241
 msgid "Assign"
 msgstr "Asignar"
 
@@ -6388,7 +6448,7 @@ msgid "Bulk Delete Campaign Status"
 msgstr "Borrar estados de campaña en masa"
 
 #: support/templates/campaign_management/bulk_delete_campaign_status.html:7
-#: support/views/all_views.py:2138
+#: support/views/all_views.py:2541
 #: templates/components/sidebar_items/_campaign_management.html:19
 msgid "Campaign Management"
 msgstr "Administración de campaña"
@@ -6885,9 +6945,9 @@ msgstr "Delimitador detectado"
 
 #: support/templates/check_for_existing_contacts.html:177
 #: support/templates/seller_console_never_paid_issues.html:26
-#: support/views/all_views.py:648 support/views/all_views.py:1285
-#: support/views/all_views.py:1443 support/views/all_views.py:1523
-#: support/views/all_views.py:2013 support/views/all_views.py:2163
+#: support/views/all_views.py:649 support/views/all_views.py:1688
+#: support/views/all_views.py:1846 support/views/all_views.py:1926
+#: support/views/all_views.py:2416 support/views/all_views.py:2566
 #: support/views/scheduled_tasks.py:232
 msgid "Contact ID"
 msgstr "ID de contacto"
@@ -6915,126 +6975,140 @@ msgid "The following entries had no matching contacts:"
 msgstr "Las siguientes entradas no tienen coincidencias:"
 
 #: support/templates/community_console.html:4
-#: support/templates/community_console.html:86 support/views/all_views.py:708
+#: support/templates/community_console.html:86 support/views/all_views.py:709
 #: templates/components/_sidebar.html:72
 msgid "Community console"
-msgstr "Consola de comunidad"
+msgstr "Panel de gestión de comunidad"
 
 #: support/templates/community_console.html:87
 msgid "Issue management dashboard"
-msgstr ""
+msgstr "Panel de gestión de incidencias"
 
 #: support/templates/community_console.html:124
-#, fuzzy
-#| msgid "Total price"
 msgid "Total open"
-msgstr "Precio total"
+msgstr "Total abiertas"
 
 #: support/templates/community_console.html:140
+#: support/templates/community_manager_dashboard.html:132
 msgid "Filter by category or subcategory..."
 msgstr "Filtrar por categoría o subcategoría..."
 
 #: support/templates/community_console.html:145
+#: support/templates/community_manager_dashboard.html:137
 msgid "Expand all"
-msgstr "Expandir todo"
+msgstr "Expandir todas"
 
 #: support/templates/community_console.html:148
+#: support/templates/community_manager_dashboard.html:140
 msgid "Collapse all"
-msgstr "Colapsar todo"
+msgstr "Colapsar todas"
 
 #: support/templates/community_console.html:169
+#: support/templates/community_manager_dashboard.html:161
 msgid "subcategories"
 msgstr "subcategorías"
 
 #: support/templates/community_console.html:215
-#, fuzzy
-#| msgid "View issue"
+#: support/templates/community_manager_overview.html:173
 msgid "View overdue issues"
-msgstr "Ver incidencia"
+msgstr "Ver incidencias vencidas"
 
 #: support/templates/community_console.html:225
-#, fuzzy
-#| msgid "View issue"
+#: support/templates/community_manager_overview.html:184
 msgid "View today issues"
-msgstr "Ver incidencia"
+msgstr "Ver las incidencias para hoy"
 
 #: support/templates/community_console.html:235
-#, fuzzy
-#| msgid "View issue"
+#: support/templates/community_manager_overview.html:195
 msgid "View future issues"
-msgstr "Ver incidencia"
+msgstr "Ver incidencias futuras"
 
 #: support/templates/community_console.html:244
-#, fuzzy
-#| msgid "View issue"
+#: support/templates/community_manager_overview.html:205
 msgid "View all issues"
-msgstr "Ver incidencia"
+msgstr "Ver todas las incidencias"
 
 #: support/templates/community_console.html:292
-#, fuzzy
-#| msgid "No tags found matching your search criteria."
+#: support/templates/community_manager_dashboard.html:291
 msgid "No categories or subcategories match your search."
-msgstr "No se encontraron coincidencias con tus criterios de búsqueda."
+msgstr "No hay subcategorías que coincidan con la búsqueda."
 
 #: support/templates/community_console.html:299
 msgid "No open issues assigned to you"
-msgstr ""
+msgstr "No tienes incidencias asignadas"
 
 #: support/templates/community_console.html:300
 msgid "All caught up! There are no open issues assigned to you at this time."
-msgstr ""
+msgstr "Todo en orden. No tienes incidencias asignadas en este momento."
 
 #: support/templates/community_console.html:308
 msgid "How this console works"
-msgstr ""
+msgstr "Cómo funciona este panel"
 
 #: support/templates/community_console.html:316
 msgid ""
 "This console shows all open issues assigned to you, grouped by category and "
 "subcategory. Issues in a terminal state (finished/resolved) are excluded."
 msgstr ""
+"Este panel muestra todas las incidencias que tengas asignadas, agrupadas por "
+"categoría y subcategoría. Las incidencias en un estado terminal (finalizadas "
+"o resueltas) son excluídas."
 
 #: support/templates/community_console.html:317
+#: support/templates/community_manager_dashboard.html:319
 msgid "Date columns"
-msgstr "Columnas de fecha"
+msgstr "Columnas de fechas"
 
 #: support/templates/community_console.html:319
+#: support/templates/community_manager_overview.html:344
 msgid ""
 "Issues whose next action date is before today. These need immediate "
 "attention."
 msgstr ""
+"Las incidencias cuya fecha de próxima acción es anterior a hoy. Estas "
+"requieren acción inmediata."
 
 #: support/templates/community_console.html:320
 msgid "Issues whose next action date is today. These are due now."
-msgstr ""
+msgstr "Incidencias cuya fecha de próxima acción es hoy."
 
 #: support/templates/community_console.html:321
 msgid ""
 "Issues whose next action date is after today. These are scheduled for later."
 msgstr ""
+"Incidencias cuya fecha de próxima acción es futura. Están agendadas para más "
+"tarde."
 
 #: support/templates/community_console.html:323
 msgid "Interacting with the console"
-msgstr ""
+msgstr "Cómo interactuar con el panel"
 
 #: support/templates/community_console.html:325
 msgid ""
 "Click on any number to open the issue list filtered by that category, "
 "subcategory, and date range."
 msgstr ""
+"Haz clic en cualquier número para abrir la lista de incidencias filtrada por "
+"esa categoría, subcategoría y rango de fechas."
 
 #: support/templates/community_console.html:326
 msgid "Use the search bar to quickly find a specific category or subcategory."
 msgstr ""
+"Utiliza la barra de búsqueda para encontrar rápidamente una categoría o "
+"subcategoría específica."
 
 #: support/templates/community_console.html:327
 msgid "Click on a category header to expand or collapse its details."
 msgstr ""
+"Haz clic en el cabezal de una categoría para expandir o colapsar sus "
+"detalles."
 
 #: support/templates/community_console.html:328
 msgid ""
 "Use the Expand All / Collapse All buttons to toggle all categories at once."
 msgstr ""
+"Utiliza los botones de “Expandir todas” / “Colapsar todas” para cambiar "
+"todas las categorías con un solo clic."
 
 #: support/templates/community_console.html:330
 msgid ""
@@ -7042,6 +7116,366 @@ msgid ""
 "next action date will count towards the total but not appear in any date "
 "column."
 msgstr ""
+"La fecha utilizada para agrupar las incidencias es la fecha de próxima "
+"acción. Las incidencias sin una fecha de próxima acción cuentan para el "
+"total pero no aparecen en ninguna columna de fecha."
+
+#: support/templates/community_manager_assign.html:4
+#: support/templates/community_manager_assign.html:45
+#: support/templates/community_manager_dashboard.html:240
+msgid "Assign issues"
+msgstr "Asignar incidencias"
+
+#: support/templates/community_manager_assign.html:46
+msgid "Distribute unassigned issues to GDC team members"
+msgstr ""
+"Distribuír incidencias sin asignar a miembros del equipo de gestión de "
+"comunidad"
+
+#: support/templates/community_manager_assign.html:50
+#: support/templates/community_manager_assign.html:239
+#: support/templates/community_manager_overview.html:78
+msgid "Back to dashboard"
+msgstr "Volver al panel"
+
+#: support/templates/community_manager_assign.html:53
+#: support/templates/community_manager_dashboard.html:76
+#: support/templates/community_manager_dashboard.html:301
+#: support/templates/community_manager_overview.html:4
+#: support/templates/community_manager_overview.html:73
+#: support/views/all_views.py:1090
+msgid "Team overview"
+msgstr "Vista general del equipo"
+
+#: support/templates/community_manager_assign.html:66
+#: support/templates/community_manager_assign.html:75
+#: support/templates/community_manager_assign.html:84
+#: support/templates/community_manager_assign.html:93
+msgid "(Unassigned)"
+msgstr "(Sin asignar)"
+
+#: support/templates/community_manager_assign.html:93
+msgid "Total available"
+msgstr "Total disponible"
+
+#: support/templates/community_manager_assign.html:93
+#: support/templates/community_manager_dashboard.html:116
+#: support/templates/community_manager_overview.html:118
+msgid "(includes issues without next action date)"
+msgstr "(incluye incidencias sin fecha de próxima acción)"
+
+#: support/templates/community_manager_assign.html:103
+#, python-format
+msgid ""
+"\n"
+"        %(count)s issue(s) have no next action date set. Upon assignment, "
+"they will get tomorrow as their next action date.\n"
+"      "
+msgstr ""
+"\n"
+"        %(count)s incidencia(s) no tienen fecha de próxima acción. Luego de "
+"asignadas, se les agregará el día de mañana como fecha de próxiam acción.\n"
+"      "
+
+#: support/templates/community_manager_assign.html:115
+msgid "Assign issues to team members"
+msgstr "Asignar incidencias a miembros del equipo"
+
+#: support/templates/community_manager_assign.html:119
+#, python-format
+msgid "%(count)s issues available"
+msgstr "%(count)s incidencias disponibles"
+
+#: support/templates/community_manager_assign.html:129
+#: support/templates/community_manager_overview.html:139
+msgid "Team member"
+msgstr "Miembro del equipo"
+
+#: support/templates/community_manager_assign.html:130
+msgid "Current total open issues"
+msgstr "Incidencias totales abiertas actualmente"
+
+#: support/templates/community_manager_assign.html:130
+msgid "(includes without date)"
+msgstr "(incluye sin fecha)"
+
+#: support/templates/community_manager_assign.html:185
+msgid ""
+"No GDC team members found. Make sure users have the community console "
+"permission."
+msgstr ""
+"No se encontraron miembros del equipo de gestión de comunidad. Asegúrate de "
+"que haya usuarios con el permiso de gestión de comunidad."
+
+#: support/templates/community_manager_assign.html:194
+msgid "Total to assign:"
+msgstr "Total para asignar:"
+
+#: support/templates/community_manager_assign.html:214
+msgid "How assignment works"
+msgstr "Cómo funciona la asignación"
+
+#: support/templates/community_manager_assign.html:223
+msgid "Issues are assigned from oldest to newest (by issue date)."
+msgstr ""
+"Las incidencias se asignan de más viejas a más nuevas por fecha de creación."
+
+#: support/templates/community_manager_assign.html:224
+msgid ""
+"When assigning to multiple users, a round-robin algorithm distributes issues "
+"evenly. This ensures older/higher-priority issues are spread equally among "
+"all selected users."
+msgstr ""
+"Cuando se asigna a múltiples usuarios se utiliza un algoritmo de todos "
+"contra todos (Algoritmo de planificación Round-robin) para asignar las "
+"incidencias de forma equitativa. Esto asegura que las incidencias más viejas "
+"y de más alta prioridad sean distribuídas de forma igualitaria entre todos "
+"los usuarios seleccionadas."
+
+#: support/templates/community_manager_assign.html:225
+msgid ""
+"Upon assignment, if an issue has no next action date or its date is in the "
+"past, it will be set to tomorrow."
+msgstr ""
+"Luego de la asignación, si una incidencia no tiene fecha de próxima acción o "
+"su fecha de próxima acción está en el pasado, esta fecha será ahora “mañana”."
+
+#: support/templates/community_manager_assign.html:226
+msgid ""
+"If the issue already has a future next action date, it will remain unchanged."
+msgstr ""
+"Si la incidencia ya tiene una fecha de próxima acción en el futuro, "
+"continuará sin cambios."
+
+#: support/templates/community_manager_assign.html:227
+msgid ""
+"The issue status will not be changed upon assignment — it keeps its current "
+"status."
+msgstr ""
+"El estado de la incidencia no cambiará una vez sea asignada, mantiene su "
+"estado actual."
+
+#: support/templates/community_manager_assign.html:236
+#: support/templates/community_manager_dashboard.html:298
+msgid "No unassigned issues"
+msgstr "No hay incidencias sin asignar"
+
+#: support/templates/community_manager_assign.html:237
+msgid "All issues in this subcategory have been assigned."
+msgstr "Todas las incidencias en esta subcategoría fueron asignadas."
+
+#: support/templates/community_manager_assign.html:285
+msgid "Are you sure you want to assign"
+msgstr "¿Confirmar que quieres asignar"
+
+#: support/templates/community_manager_assign.html:285
+msgid "issues using round-robin distribution?"
+msgstr "incidencias usando distribución Round-robin?"
+
+#: support/templates/community_manager_dashboard.html:4
+#: support/templates/community_manager_dashboard.html:71
+#: support/views/all_views.py:801 support/views/all_views.py:896
+#: support/views/all_views.py:1089
+msgid "Community manager dashboard"
+msgstr "Panel de supervisión de comunidad"
+
+#: support/templates/community_manager_dashboard.html:72
+msgid "Unassigned issues by subcategory"
+msgstr "Incidencias sin asignar por subcategoría"
+
+#: support/templates/community_manager_dashboard.html:89
+msgid "Overdue (unassigned)"
+msgstr "Vencidas (sin asignar)"
+
+#: support/templates/community_manager_dashboard.html:98
+msgid "Today (unassigned)"
+msgstr "Hoy (sin asignar)"
+
+#: support/templates/community_manager_dashboard.html:107
+msgid "Future (unassigned)"
+msgstr "Futuras (sin asignar)"
+
+#: support/templates/community_manager_dashboard.html:116
+msgid "Total unassigned"
+msgstr "Total sin asignar"
+
+#: support/templates/community_manager_dashboard.html:194
+#: support/templates/community_manager_dashboard.html:324
+msgid "No date"
+msgstr "Sin fecha"
+
+#: support/templates/community_manager_dashboard.html:299
+msgid ""
+"All issues have been assigned. Check the team overview to see how everyone "
+"is doing."
+msgstr ""
+"Todas las incidencias han sido asignadas. Revisa la vista general del equipo "
+"para ver cómo van las tareas."
+
+#: support/templates/community_manager_dashboard.html:310
+msgid "How this dashboard works"
+msgstr "Cómo funciona este panel"
+
+#: support/templates/community_manager_dashboard.html:318
+msgid ""
+"This dashboard shows all open issues that have not been assigned to anyone, "
+"grouped by category and subcategory."
+msgstr ""
+"Este panel muestra todas las incidencias que no han sido asignadas a nadie, "
+"agrupadas por categoría y subcategoría."
+
+#: support/templates/community_manager_dashboard.html:321
+msgid "Issues whose next action date is before today."
+msgstr "Incidencias cuya acción es antes de hoy."
+
+#: support/templates/community_manager_dashboard.html:322
+#: support/templates/community_manager_overview.html:345
+msgid "Issues whose next action date is today."
+msgstr "Incidencias cuya fecha de próxima acción es hoy."
+
+#: support/templates/community_manager_dashboard.html:323
+#: support/templates/community_manager_overview.html:346
+msgid "Issues whose next action date is after today."
+msgstr "Incidencias cuya fecha de próxima acción es luego de mañana."
+
+#: support/templates/community_manager_dashboard.html:324
+msgid "Issues without a next action date set."
+msgstr "Incidencias sin una fecha de próxima acción asignada."
+
+#: support/templates/community_manager_dashboard.html:326
+msgid "Assigning issues"
+msgstr "Asignar incidencias"
+
+#: support/templates/community_manager_dashboard.html:328
+msgid ""
+"Click the 'Assign' button next to a subcategory to open the assignment "
+"screen."
+msgstr ""
+"Haz clic en el botón “Asignar” al lado de una subcategoría para abrir la "
+"pantalla de asignación."
+
+#: support/templates/community_manager_dashboard.html:329
+msgid ""
+"In the assignment screen, you can distribute issues among GDC team members "
+"using round-robin."
+msgstr ""
+"En la pantalla de asignación, puedes distribuír incidencias entre los "
+"miembros del equipo de gestión de comunidad utilizando round-robin."
+
+#: support/templates/community_manager_dashboard.html:330
+msgid ""
+"Use the 'Team overview' button to see how all team members are performing."
+msgstr ""
+"Utiliza el botón “Vista general del equipo” para ver cómo les va a los "
+"miembros del equipo."
+
+#: support/templates/community_manager_overview.html:74
+msgid "Issue status for all GDC team members"
+msgstr ""
+"Estados de incidencias para todos los miembros del equipo de gestión de "
+"comunidad"
+
+#: support/templates/community_manager_overview.html:91
+msgid "Overdue (assigned)"
+msgstr "Vencidas (asignadas)"
+
+#: support/templates/community_manager_overview.html:100
+msgid "Today (assigned)"
+msgstr "Hoy (asignadas)"
+
+#: support/templates/community_manager_overview.html:109
+msgid "Future (assigned)"
+msgstr "Futuras (asignadas)"
+
+#: support/templates/community_manager_overview.html:118
+msgid "Total assigned to team"
+msgstr "Total asignado al equipo"
+
+#: support/templates/community_manager_overview.html:131
+msgid "Team members"
+msgstr "Miembros del equipo"
+
+#: support/templates/community_manager_overview.html:150
+#: support/templates/community_manager_overview.html:347
+msgid "Distribution"
+msgstr "Distribución"
+
+#: support/templates/community_manager_overview.html:333
+msgid "How to read this overview"
+msgstr "Cómo leer esta vista general"
+
+#: support/templates/community_manager_overview.html:341
+msgid "This overview shows the current workload of all GDC team members."
+msgstr ""
+"Esta vista general muestra la carga de trabajo actual de los miembros de "
+"gestión de comunidad."
+
+#: support/templates/community_manager_overview.html:342
+msgid "Columns"
+msgstr "Columnas"
+
+#: support/templates/community_manager_overview.html:347
+msgid ""
+"Visual bar showing the proportion of overdue (red), today (yellow), and "
+"future (green) issues."
+msgstr ""
+"Barra visual mostrando la proporción de incidencias vencidas (rojo), para "
+"hoy (amarillo) y futuras (verdes)"
+
+#: support/templates/community_manager_overview.html:349
+msgid "Interacting"
+msgstr "Interacuando"
+
+#: support/templates/community_manager_overview.html:351
+msgid ""
+"Click on a team member's row to expand/collapse their per-category and "
+"subcategory breakdown."
+msgstr ""
+"Haz clic en la fila de un miembro del equipo para expandir/colapsar su "
+"resumen por categoría y subcategoría."
+
+#: support/templates/community_manager_overview.html:352
+msgid ""
+"Click on any number to open the issue list filtered by that user and date "
+"range."
+msgstr ""
+"Haz clic en cualquier número para abrir la lista de incidencias filtrado por "
+"ese usuario y rango de fechas."
+
+#: support/templates/community_manager_overview.html:353
+msgid ""
+"The Total column may be higher than Overdue + Today + Future because some "
+"issues don't have a next action date set."
+msgstr ""
+"La columna “total” puede contener un número más grande que Vencidas + Hoy + "
+"Futuras porque algunas incidencias pueden no tener una fecha de próxima "
+"acción."
+
+#: support/templates/community_manager_overview.html:354
+msgid ""
+"A high proportion of red (overdue) indicates the team member may need help "
+"or reassignment."
+msgstr ""
+"Una gran proporción de rojo (vencido) indica que el miembro del equipo puede "
+"necesitar ayuda o reasignación."
+
+#: support/templates/community_manager_overview.html:355
+msgid ""
+"Use the dashboard to assign more issues to team members with lighter "
+"workloads."
+msgstr ""
+"Utiliza el panel para asignar más incidencias a miembros del equipo con "
+"cargas de trabajo más ligeras."
+
+#: support/templates/community_manager_overview.html:364
+msgid "No GDC team members found"
+msgstr "No se encontraron miembros del equipo de gestión de comunidad"
+
+#: support/templates/community_manager_overview.html:365
+msgid "Make sure users have the community console permission assigned."
+msgstr ""
+"Asegúrate de que los usuarios tienen el permiso de gestión de comunidad "
+"asignado. Contacta a un administrador o supervisor."
 
 #: support/templates/contact_detail/detail.html:72
 msgid "New Activity"
@@ -7077,7 +7511,7 @@ msgstr "Suscripciones"
 #: support/templates/contact_detail/detail.html:108
 #: support/templates/contact_detail/tabs/_campaigns.html:6
 #: support/templates/seller_console_list_campaigns.html:3
-#: support/views/all_views.py:1610
+#: support/views/all_views.py:2013
 msgid "Campaigns"
 msgstr "Campañas"
 
@@ -7585,7 +8019,7 @@ msgid "Enter a valid local or international mobile number"
 msgstr "Ingrese un celular local o internacional válido"
 
 #: support/templates/create_contact/tabs/_data.html:43
-#: support/templates/seller_console.html:156 support/views/all_views.py:1291
+#: support/templates/seller_console.html:156 support/views/all_views.py:1694
 msgid "Institutional phone"
 msgstr "Teléfono institucional"
 
@@ -7660,24 +8094,24 @@ msgstr "Ordenar por"
 #: support/templates/debtor_contacts.html:55
 #: support/templates/debtor_contacts.html:91
 #: support/templates/invoicing_issues.html:64
-#: support/templates/invoicing_issues.html:110 support/views/all_views.py:1448
-#: support/views/all_views.py:1526
+#: support/templates/invoicing_issues.html:110 support/views/all_views.py:1851
+#: support/views/all_views.py:1929
 msgid "Owed invoices"
 msgstr "Facturas vencidas"
 
 #: support/templates/debtor_contacts.html:56
 #: support/templates/debtor_contacts.html:93
 #: support/templates/invoicing_issues.html:65
-#: support/templates/invoicing_issues.html:113 support/views/all_views.py:1449
-#: support/views/all_views.py:1529
+#: support/templates/invoicing_issues.html:113 support/views/all_views.py:1852
+#: support/views/all_views.py:1932
 msgid "Debt amount"
 msgstr "Cantidad de deuda"
 
 #: support/templates/debtor_contacts.html:58
 #: support/templates/debtor_contacts.html:94
 #: support/templates/invoicing_issues.html:66
-#: support/templates/invoicing_issues.html:116 support/views/all_views.py:1450
-#: support/views/all_views.py:1530
+#: support/templates/invoicing_issues.html:116 support/views/all_views.py:1853
+#: support/views/all_views.py:1933
 msgid "Oldest invoice"
 msgstr "Factura más vieja"
 
@@ -7893,7 +8327,7 @@ msgstr "Creado"
 msgid "Extended history"
 msgstr "Historial extendido"
 
-#: support/templates/history_extended.html:8 support/views/all_views.py:1942
+#: support/templates/history_extended.html:8 support/views/all_views.py:2345
 #: templates/admin/change_form.html:68
 msgid "History"
 msgstr "Historial"
@@ -8352,7 +8786,7 @@ msgid "Normalize address"
 msgstr "Normalizar dirección"
 
 #: support/templates/new_issue.html:4 support/templates/new_issue.html:144
-#: support/views/all_views.py:801
+#: support/views/all_views.py:1204
 msgid "New issue"
 msgstr "Nueva incidencia"
 
@@ -8602,7 +9036,7 @@ msgstr "Liberar %(contacts_not_worked)s contactos"
 
 #: support/templates/sales_record_create.html:4
 #: support/templates/validate_subscription_sales_record.html:4
-#: support/views/all_views.py:2211
+#: support/views/all_views.py:2614
 msgid "Validate subscription"
 msgstr "Validar suscripción"
 
@@ -8648,7 +9082,7 @@ msgstr "RUT"
 
 #: support/templates/sales_record_create.html:213
 #: support/templates/validate_subscription_sales_record.html:239
-#: support/views/all_views.py:2139
+#: support/views/all_views.py:2542
 msgid "Sales Record"
 msgstr "Registros de ventas"
 
@@ -8791,8 +9225,8 @@ msgstr "Todas las incidencias"
 #: support/templates/seller_console.html:4
 #: support/templates/seller_console.html:11
 #: support/templates/seller_console_list_campaigns.html:6
-#: support/views/activities.py:28 support/views/all_views.py:2045
-#: templates/components/_sidebar.html:82
+#: support/views/activities.py:28 support/views/all_views.py:2448
+#: templates/components/_sidebar.html:92
 msgid "Seller console"
 msgstr "Consola de vendedor"
 
@@ -8987,7 +9421,7 @@ msgid "Issue ID"
 msgstr "ID de incidencia"
 
 #: support/templates/seller_console_never_paid_issues.html:27
-#: support/views/all_views.py:2166
+#: support/views/all_views.py:2569
 msgid "Subscription start date"
 msgstr "Fecha de inicio de la suscripción"
 
@@ -9280,7 +9714,7 @@ msgid "Added Products"
 msgstr "Productos agregados"
 
 #: support/templates/validate_subscription_sales_record.html:258
-#: support/views/all_views.py:2169
+#: support/views/all_views.py:2572
 msgid "Sale Type"
 msgstr "Tipo de venta"
 
@@ -9320,109 +9754,133 @@ msgstr "Facturas de contacto"
 msgid "Update activity"
 msgstr "Actualizar actividad"
 
-#: support/views/all_views.py:267
+#: support/views/all_views.py:268
 msgid "Assign sellers"
 msgstr "Asignar vendedores"
 
-#: support/views/all_views.py:653 support/views/all_views.py:1445
+#: support/views/all_views.py:654 support/views/all_views.py:1848
 msgid "Activities count"
 msgstr "Cantidad de actividades"
 
-#: support/views/all_views.py:745
-#, fuzzy
-#| msgid "Uncategorized logistics issue"
+#: support/views/all_views.py:746 support/views/all_views.py:837
+#: support/views/all_views.py:1144
 msgid "Uncategorized"
-msgstr "Incidencias de logística sin categorizar"
+msgstr "Sin categoría"
 
-#: support/views/all_views.py:756
-#, fuzzy
-#| msgid "No sub-category"
+#: support/views/all_views.py:757 support/views/all_views.py:849
+#: support/views/all_views.py:1155
 msgid "No subcategory"
 msgstr "Sin subcategoría"
 
-#: support/views/all_views.py:901
+#: support/views/all_views.py:897
+#, python-format
+msgid "Assign issues: %(subcategory)s"
+msgstr "Asignar incidencias: %(subcategory)s"
+
+#: support/views/all_views.py:1026
+msgid "No assignments specified."
+msgstr "No se especificaron asignaciones."
+
+#: support/views/all_views.py:1038
+#, python-format
+msgid ""
+"Requested %(requested)s assignments but only %(available)s issues are "
+"available."
+msgstr ""
+"Se solicitaron %(requested)s asignaciones pero solo hay %(available)s "
+"incidencias disponibles."
+
+#: support/views/all_views.py:1066
+#, python-format
+msgid ""
+"%(count)s issues were assigned successfully using round-robin distribution."
+msgstr ""
+"%(count)s incidencias fueron asignadas de forma exitosa utilizando "
+"distribución Round-robin."
+
+#: support/views/all_views.py:1304
 msgid "See related issue"
 msgstr "Ver incidencia relacionada"
 
-#: support/views/all_views.py:929
+#: support/views/all_views.py:1332
 #, python-brace-format
 msgid "Issue #{}"
 msgstr "Incidencia #{}"
 
-#: support/views/all_views.py:1288
+#: support/views/all_views.py:1691
 msgid "id document"
 msgstr "documento de identidad"
 
-#: support/views/all_views.py:1315
+#: support/views/all_views.py:1718
 msgid "This filter has no mailtrain id. To use the sync function"
 msgstr "Error: Este filtro no tiene id de mailtrain"
 
-#: support/views/all_views.py:1373
+#: support/views/all_views.py:1776
 msgid "Envelope data has been saved."
 msgstr "Los datos de sobre fueron guardados."
 
-#: support/views/all_views.py:1393
+#: support/views/all_views.py:1796
 msgid "Payment certificate has been uploaded successfully"
 msgstr "El certificado de pago ha sido subido con éxito"
 
-#: support/views/all_views.py:1525 support/views/contacts.py:155
+#: support/views/all_views.py:1928 support/views/contacts.py:155
 msgid "Has active subscriptions"
 msgstr "Tiene suscripciones activas"
 
-#: support/views/all_views.py:1527
+#: support/views/all_views.py:1930
 msgid "Unfinished invoicing issues"
 msgstr "Incidencias de finanzas sin terminar"
 
-#: support/views/all_views.py:1528
+#: support/views/all_views.py:1931
 msgid "Finished invoicing issues"
 msgstr "Incidencias de finanzas terminadas"
 
-#: support/views/all_views.py:1868
+#: support/views/all_views.py:2271
 msgid "Address information has been updated successfully"
 msgstr "La información de la dirección ha sido editada con éxito"
 
-#: support/views/all_views.py:1970
+#: support/views/all_views.py:2373
 msgid "Numbers have been uploaded successfully."
 msgstr "Los números fueron subidos con éxito."
 
-#: support/views/all_views.py:2046 templates/components/_sidebar.html:89
+#: support/views/all_views.py:2449 templates/components/_sidebar.html:99
 msgid "My Sales"
 msgstr "Mis ventas"
 
-#: support/views/all_views.py:2116
+#: support/views/all_views.py:2519
 msgid "You have no sales records."
 msgstr "No tienes registros de ventas."
 
-#: support/views/all_views.py:2144 support/views/all_views.py:2216
+#: support/views/all_views.py:2547 support/views/all_views.py:2619
 #: support/views/seller_console.py:157
 msgid "You are not authorized to see this page"
 msgstr "No tienes permiso para ver esta página"
 
-#: support/views/all_views.py:2147
+#: support/views/all_views.py:2550
 msgid "There are no sales records."
 msgstr "No hay registros de ventas."
 
-#: support/views/all_views.py:2170
+#: support/views/all_views.py:2573
 msgid "Total Commission"
 msgstr "Comisión total"
 
-#: support/views/all_views.py:2237
+#: support/views/all_views.py:2640
 msgid "The sale and subscription have been validated."
 msgstr "La venta y la suscripción fueron validadas."
 
-#: support/views/all_views.py:2253
+#: support/views/all_views.py:2656
 msgid "There was an error validating the sale and subscription."
 msgstr "Hubo un error validando la venta y la suscripción."
 
-#: support/views/all_views.py:2267
+#: support/views/all_views.py:2670
 msgid "This subscription has no sales record."
 msgstr "Esta suscripción no tiene registros de ventas."
 
-#: support/views/all_views.py:2270
+#: support/views/all_views.py:2673
 msgid "This subscription has already been validated."
 msgstr "Esta suscripción ya fue validada."
 
-#: support/views/all_views.py:2294
+#: support/views/all_views.py:2697
 msgid "This subscription already has a sales record."
 msgstr "Esta suscripción ya tiene un registro de ventas."
 
@@ -9959,11 +10417,15 @@ msgstr "Contraseña"
 msgid "Login"
 msgstr "Ingresar"
 
-#: templates/components/_sidebar.html:97
+#: templates/components/_sidebar.html:82
+msgid "Community manager"
+msgstr "Administración de GDC"
+
+#: templates/components/_sidebar.html:107
 msgid "Admin panel"
 msgstr "Panel de administración"
 
-#: templates/components/_sidebar.html:104
+#: templates/components/_sidebar.html:114
 msgid "Logout"
 msgstr "Cerrar sesión"
 
@@ -10368,19 +10830,5 @@ msgstr "La contraseña debe contener al menos 1 letra minúscula, a-z."
 msgid "Your password must contain at least 1 lowercase letter, a-z."
 msgstr "Tu contraseña debe contener al menos 1 letra minúscula, a-z."
 
-#~ msgid "This subscription is not normal and should not be billed."
-#~ msgstr "La suscripción no es normal y no debería ser facturada."
-
-#, python-brace-format
-#~ msgid " {} months"
-#~ msgstr " {} meses"
-
-#, python-brace-format
-#~ msgid "{} months discount ({} discount)"
-#~ msgstr "{} meses de descuento ({} descuento)"
-
-#~ msgid "Balance owed"
-#~ msgstr "Saldo adeudado"
-
-#~ msgid "This subscription wasn't billed since amount is 0"
-#~ msgstr "Esta suscripción no será facturada dado que el monto es 0"
+#~ msgid "Most Read"
+#~ msgstr "Artículos más leídos"

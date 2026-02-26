@@ -69,7 +69,7 @@ Added a new permission to `Issue.Meta.permissions` that controls access to all t
 - **Round-robin assignment algorithm** distributes oldest unassigned issues evenly among selected users
 - On assignment:
   - Sets `assigned_to` to the selected user
-  - Updates `status` to the configured assigned status (`ISSUE_STATUS_ASSIGNED`)
+  - Keeps the issue's current status unchanged
   - Sets `next_action_date` to tomorrow if null or in the past
 - **Client-side validation** ensures total assigned doesn't exceed available issues
 - Success message after assignment with redirect back to dashboard
@@ -145,7 +145,6 @@ Throughout all views, special attention was paid to making the numbers unambiguo
 ### Settings Dependencies
 
 - `ISSUE_STATUS_FINISHED_LIST` — List of status slugs considered terminal/finished
-- `ISSUE_STATUS_ASSIGNED` — Status slug to set when assigning issues (optional)
 
 ## Testing Recommendations
 
