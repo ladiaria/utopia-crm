@@ -19,6 +19,7 @@ CREATION_CHOICES = (
     ('last_30_days', _('Last 30 days')),
     ('this_month', _('This month')),
     ('last_month', _('Last month')),
+    ('no_date', _('No date set')),
     ('custom', _('Custom')),
 )
 
@@ -69,6 +70,11 @@ class IssueFilter(django_filters.FilterSet):
         widget=forms.Select(attrs={"class": "form-control"}),
         label=_('Resolution')
     )
+    unassigned = django_filters.BooleanFilter(
+        method='filter_unassigned',
+        label=_('Unassigned only'),
+        widget=forms.CheckboxInput(attrs={"class": "form-check-input"}),
+    )
     exclude_finished = django_filters.BooleanFilter(
         method='filter_exclude_finished',
         label=_('Exclude finished'),
@@ -98,6 +104,11 @@ class IssueFilter(django_filters.FilterSet):
             return queryset.filter(date__month=month, date__year=year)
         else:
             return queryset
+
+    def filter_unassigned(self, queryset, name, value):
+        if value:
+            return queryset.filter(assigned_to__isnull=True)
+        return queryset
 
     def filter_exclude_finished(self, queryset, name, value):
         if value:
@@ -135,6 +146,8 @@ class IssueFilter(django_filters.FilterSet):
             month = today.month - 1 if today.month != 1 else 12
             year = today.year if today.month != 1 else today.year - 1
             return queryset.filter(next_action_date__month=month, next_action_date__year=year)
+        elif value == 'no_date':
+            return queryset.filter(next_action_date__isnull=True)
         else:
             return queryset
 

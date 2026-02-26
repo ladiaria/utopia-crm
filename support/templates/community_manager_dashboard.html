@@ -12,16 +12,22 @@
     .badge-total { background-color: #6c757d; color: #fff; }
     .badge-nodate { background-color: #17a2b8; color: #fff; }
 
-    .count-link {
+    a.count-link {
       font-size: 1.1em;
       font-weight: 600;
       text-decoration: none;
+      cursor: pointer !important;
+      position: relative;
+      z-index: 2;
+      display: inline-block;
+      padding: 2px 4px;
     }
-    .count-link:hover { text-decoration: underline; }
-    .count-link.overdue { color: #dc3545; }
-    .count-link.today { color: #856404; }
-    .count-link.future { color: #28a745; }
-    .count-link.zero { color: #adb5bd; pointer-events: none; }
+    a.count-link:hover { text-decoration: underline; }
+    a.count-link.overdue { color: #dc3545; }
+    a.count-link.today { color: #856404; }
+    a.count-link.future { color: #28a745; }
+    a.count-link.no-date { color: #17a2b8; }
+    span.count-link.zero { color: #adb5bd; font-size: 1.1em; font-weight: 600; }
 
     .category-header {
       cursor: pointer;
@@ -82,7 +88,7 @@
 {% block content %}
   {# Summary cards #}
   <div class="row mb-3">
-    <div class="col-lg-3 col-6">
+    <div class="col-lg-2 col-6">
       <div class="small-box bg-danger">
         <div class="inner">
           <h3>{{ grand_totals.overdue }}</h3>
@@ -91,7 +97,7 @@
         <div class="icon"><i class="fas fa-exclamation-circle"></i></div>
       </div>
     </div>
-    <div class="col-lg-3 col-6">
+    <div class="col-lg-2 col-6">
       <div class="small-box bg-warning">
         <div class="inner">
           <h3>{{ grand_totals.today_count }}</h3>
@@ -100,7 +106,7 @@
         <div class="icon"><i class="fas fa-clock"></i></div>
       </div>
     </div>
-    <div class="col-lg-3 col-6">
+    <div class="col-lg-2 col-6">
       <div class="small-box bg-success">
         <div class="inner">
           <h3>{{ grand_totals.future }}</h3>
@@ -109,11 +115,20 @@
         <div class="icon"><i class="fas fa-calendar-alt"></i></div>
       </div>
     </div>
-    <div class="col-lg-3 col-6">
+    <div class="col-lg-2 col-6">
+      <div class="small-box bg-info">
+        <div class="inner">
+          <h3>{{ grand_totals.no_date }}</h3>
+          <p>{% trans "No date (unassigned)" %}</p>
+        </div>
+        <div class="icon"><i class="fas fa-calendar-times"></i></div>
+      </div>
+    </div>
+    <div class="col-lg-2 col-6">
       <div class="small-box bg-secondary">
         <div class="inner">
           <h3>{{ grand_totals.total }}</h3>
-          <p>{% trans "Total unassigned" %}<br><small>{% trans "(includes issues without next action date)" %}</small></p>
+          <p>{% trans "Total unassigned" %}</p>
         </div>
         <div class="icon"><i class="fas fa-inbox"></i></div>
       </div>
@@ -176,6 +191,11 @@
                     <i class="fas fa-calendar-alt"></i> {{ cat.future }}
                   </span>
                 {% endif %}
+                {% if cat.no_date %}
+                  <span class="badge badge-nodate px-2 py-1 mr-1">
+                    <i class="fas fa-calendar-times"></i> {{ cat.no_date }}
+                  </span>
+                {% endif %}
                 <span class="badge badge-total px-2 py-1">{{ cat.total }}</span>
               </div>
             </div>
@@ -205,34 +225,49 @@
                       </td>
                       <td class="text-center">
                         {% if sub.overdue %}
-                          <span class="count-link overdue">{{ sub.overdue }}</span>
+                          <a href="{% url 'list_issues' %}?category={{ cat.key }}{% if sub.id %}&sub_category={{ sub.id }}{% endif %}&next_action_date=custom&next_action_date_lte={{ yesterday|date:'Y-m-d' }}&unassigned=true&exclude_finished=true"
+                             class="count-link overdue" title="{% trans 'View overdue issues' %}">
+                            {{ sub.overdue }}
+                          </a>
                         {% else %}
                           <span class="count-link zero">0</span>
                         {% endif %}
                       </td>
                       <td class="text-center">
                         {% if sub.today_count %}
-                          <span class="count-link today">{{ sub.today_count }}</span>
+                          <a href="{% url 'list_issues' %}?category={{ cat.key }}{% if sub.id %}&sub_category={{ sub.id }}{% endif %}&next_action_date=today&unassigned=true&exclude_finished=true"
+                             class="count-link today" title="{% trans 'View today issues' %}">
+                            {{ sub.today_count }}
+                          </a>
                         {% else %}
                           <span class="count-link zero">0</span>
                         {% endif %}
                       </td>
                       <td class="text-center">
                         {% if sub.future %}
-                          <span class="count-link future">{{ sub.future }}</span>
+                          <a href="{% url 'list_issues' %}?category={{ cat.key }}{% if sub.id %}&sub_category={{ sub.id }}{% endif %}&next_action_date=custom&next_action_date_gte={{ tomorrow|date:'Y-m-d' }}&unassigned=true&exclude_finished=true"
+                             class="count-link future" title="{% trans 'View future issues' %}">
+                            {{ sub.future }}
+                          </a>
                         {% else %}
                           <span class="count-link zero">0</span>
                         {% endif %}
                       </td>
                       <td class="text-center">
                         {% if sub.no_date %}
-                          <span class="text-info font-weight-bold">{{ sub.no_date }}</span>
+                          <a href="{% url 'list_issues' %}?category={{ cat.key }}{% if sub.id %}&sub_category={{ sub.id }}{% endif %}&next_action_date=no_date&unassigned=true&exclude_finished=true"
+                             class="count-link no-date" title="{% trans 'View issues without date' %}">
+                            {{ sub.no_date }}
+                          </a>
                         {% else %}
                           <span class="count-link zero">0</span>
                         {% endif %}
                       </td>
                       <td class="text-center">
-                        <strong>{{ sub.total }}</strong>
+                        <a href="{% url 'list_issues' %}?category={{ cat.key }}{% if sub.id %}&sub_category={{ sub.id }}{% endif %}&unassigned=true&exclude_finished=true"
+                           class="count-link" title="{% trans 'View all issues' %}">
+                          <strong>{{ sub.total }}</strong>
+                        </a>
                       </td>
                       <td class="text-center">
                         {% if sub.id %}
@@ -249,33 +284,40 @@
                     <td>{% trans "Total" %}</td>
                     <td class="text-center">
                       {% if cat.overdue %}
-                        <span class="text-danger">{{ cat.overdue }}</span>
+                        <a href="{% url 'list_issues' %}?category={{ cat.key }}&next_action_date=custom&next_action_date_lte={{ yesterday|date:'Y-m-d' }}&unassigned=true&exclude_finished=true"
+                           class="count-link overdue">{{ cat.overdue }}</a>
                       {% else %}
-                        <span class="text-muted">0</span>
+                        <span class="count-link zero">0</span>
                       {% endif %}
                     </td>
                     <td class="text-center">
                       {% if cat.today_count %}
-                        <span class="text-warning">{{ cat.today_count }}</span>
+                        <a href="{% url 'list_issues' %}?category={{ cat.key }}&next_action_date=today&unassigned=true&exclude_finished=true"
+                           class="count-link today">{{ cat.today_count }}</a>
                       {% else %}
-                        <span class="text-muted">0</span>
+                        <span class="count-link zero">0</span>
                       {% endif %}
                     </td>
                     <td class="text-center">
                       {% if cat.future %}
-                        <span class="text-success">{{ cat.future }}</span>
+                        <a href="{% url 'list_issues' %}?category={{ cat.key }}&next_action_date=custom&next_action_date_gte={{ tomorrow|date:'Y-m-d' }}&unassigned=true&exclude_finished=true"
+                           class="count-link future">{{ cat.future }}</a>
                       {% else %}
-                        <span class="text-muted">0</span>
+                        <span class="count-link zero">0</span>
                       {% endif %}
                     </td>
                     <td class="text-center">
                       {% if cat.no_date %}
-                        <span class="text-info">{{ cat.no_date }}</span>
+                        <a href="{% url 'list_issues' %}?category={{ cat.key }}&next_action_date=no_date&unassigned=true&exclude_finished=true"
+                           class="count-link no-date">{{ cat.no_date }}</a>
                       {% else %}
-                        <span class="text-muted">0</span>
+                        <span class="count-link zero">0</span>
                       {% endif %}
                     </td>
-                    <td class="text-center"><strong>{{ cat.total }}</strong></td>
+                    <td class="text-center">
+                      <a href="{% url 'list_issues' %}?category={{ cat.key }}&unassigned=true&exclude_finished=true"
+                         class="count-link"><strong>{{ cat.total }}</strong></a>
+                    </td>
                     <td></td>
                   </tr>
                 </tbody>
@@ -323,8 +365,9 @@
         <li><span class="badge badge-future">{% trans "Future" %}</span> — {% trans "Issues whose next action date is after today." %}</li>
         <li><span class="badge badge-nodate">{% trans "No date" %}</span> — {% trans "Issues without a next action date set." %}</li>
       </ul>
-      <h6><strong>{% trans "Assigning issues" %}</strong></h6>
+      <h6><strong>{% trans "Interacting" %}</strong></h6>
       <ul>
+        <li>{% trans "Click on any number to open the issue list filtered by that category, subcategory, and date range." %}</li>
         <li>{% trans "Click the 'Assign' button next to a subcategory to open the assignment screen." %}</li>
         <li>{% trans "In the assignment screen, you can distribute issues among GDC team members using round-robin." %}</li>
         <li>{% trans "Use the 'Team overview' button to see how all team members are performing." %}</li>
