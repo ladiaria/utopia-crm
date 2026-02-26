@@ -73,6 +73,16 @@
                     </a>
                   </li>
                 {% endif %}
+                {% if request.user|has_perm:"support.can_manage_community_console" %}
+                  {% url 'community_manager_dashboard' as community_manager_dashboard %}
+                  <li class="nav-item">
+                    <a href="{{ community_manager_dashboard }}"
+                       class="nav-link {% if 'community_manager' in request.path %}active{% endif %}">
+                      <i class="nav-icon fas fa-user-shield"></i>
+                      <p>{% trans "Community manager" %}</p>
+                    </a>
+                  </li>
+                {% endif %}
                 {% include_if_exists "sidebar_extra.html" %}
                 {% if request.user|in_group:"Sellers" %}
                   <li class="nav-item">

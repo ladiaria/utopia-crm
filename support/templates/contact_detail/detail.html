@@ -128,19 +128,17 @@
                   </a>
                 </li>
                 <li class="nav-item">
-                  <a class="nav-link" href="#last_read" data-toggle="tab">{% trans "Most Read" %}</a>
+                  <a class="nav-link" href="#get_redeemed_vouchers" data-toggle="tab">{% trans "Vouchers" %}</a>
                 </li>
                 <li class="nav-item">
-                  <a class="nav-link" href="#get_redeemed_vouchers" data-toggle="tab">{% trans "Vouchers" %}</a>
+                  <a class="nav-link" href="#last_read" data-toggle="tab">{% trans "Web Reading" %}</a>
                 </li>
                 <li class="nav-item">
                   <a class="nav-link" href="#web_comments" data-toggle="tab">{% trans "Web Comments" %}</a>
                 </li>
                 <li class="nav-item">
                   <a class="nav-link" href="#whatsapp_messages" data-toggle="tab">{% trans "WhatsApp Messages" %}
-                    {% block whatsapp_messages_count %}
-                    {% endblock whatsapp_messages_count %}
-
+                    {% block whatsapp_messages_count %}{% endblock %}
                   </a>
                 </li>
                 <li class="nav-item">

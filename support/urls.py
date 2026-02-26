@@ -51,7 +51,13 @@ from support.views import (
     not_contacted_campaign,
     api_get_addresses,
 )
-from support.views.all_views import CommunityConsoleView, IssueListView
+from support.views.all_views import (
+    CommunityConsoleView,
+    CommunityManagerAssignView,
+    CommunityManagerDashboardView,
+    CommunityManagerOverviewView,
+    IssueListView,
+)
 from support.views.campaign_management import bulk_delete_campaign_status
 
 from django.urls import path, re_path
@@ -111,6 +117,13 @@ urlpatterns = [
     path("api_get_addresses/<int:contact_id>/", api_get_addresses, name="api_get_addresses"),
     # Issues
     path("community_console/", CommunityConsoleView.as_view(), name="community_console"),
+    path("community_manager/", CommunityManagerDashboardView.as_view(), name="community_manager_dashboard"),
+    path(
+        "community_manager/assign/<int:sub_category_id>/",
+        CommunityManagerAssignView.as_view(),
+        name="community_manager_assign",
+    ),
+    path("community_manager/overview/", CommunityManagerOverviewView.as_view(), name="community_manager_overview"),
     path("list_issues/", IssueListView.as_view(), name="list_issues"),
     path("invoicing_issues/", invoicing_issues, name="invoicing_issues"),
     path("debtor_contacts/", debtor_contacts, name="debtor_contacts"),
