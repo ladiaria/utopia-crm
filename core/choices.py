@@ -122,6 +122,7 @@ CAMPAIGN_RESOLUTION_CHOICES = (
     ("S2", _("Success with direct sale")),
     ("SC", _("Scheduled")),
     ("CL", _("Call later")),
+    ("NF", _("Not found")),
     ("UN", _("Cannot find contact")),
     ("CW", _("Close without contact")),
 )

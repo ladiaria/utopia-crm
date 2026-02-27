@@ -481,9 +481,12 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
 
         messages.success(self.request, success_msg_html, extra_tags='safe')
 
-        # Convert offset to int and increment it only for "Call later" result
+        # Convert offset to int and increment it for "Call later" and "Not found" results
         try:
-            if seller_console_action.action_type == SellerConsoleAction.ACTION_TYPES.CALL_LATER:
+            if seller_console_action.action_type in (
+                SellerConsoleAction.ACTION_TYPES.CALL_LATER,
+                SellerConsoleAction.ACTION_TYPES.NOT_FOUND,
+            ):
                 offset = int(offset) + 1
         except (TypeError, ValueError):
             offset = 2  # If offset is None or invalid, start at 2 (next item)
@@ -538,6 +541,17 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
         # Get phone duplicate information
         phone_duplicates_info = self.get_phone_duplicates_info(contact)
 
+        # Get the datetime of the last console action (if any) for the badge display
+        last_action_datetime = None
+        if hasattr(console_instance, 'last_console_action') and console_instance.last_console_action:
+            last_action_activity = Activity.objects.filter(
+                contact=contact,
+                campaign=campaign,
+                seller_console_action=console_instance.last_console_action,
+            ).order_by('-datetime').first()
+            if last_action_activity:
+                last_action_datetime = last_action_activity.datetime
+
         context.update(
             {
                 'campaign': campaign,
@@ -563,6 +577,7 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
                 'other_campaigns': ContactCampaignStatus.objects.filter(contact=contact).exclude(campaign=campaign),
                 'phone_duplicates_count': phone_duplicates_info['count'],
                 'phone_duplicates': phone_duplicates_info['contacts'],
+                'last_action_datetime': last_action_datetime,
             }
         )
         return context
@@ -673,7 +688,7 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
         """
         category = self.kwargs['category']
         if category == "new":
-            return campaign.get_not_contacted(seller.id)
+            return campaign.get_not_contacted(seller.id).select_related('last_console_action')
         if getattr(settings, "ALLOW_ACCESSING_FUTURE_ACTIVITIES_IN_SELLER_CONSOLE", False):
             return campaign.activity_set.filter(activity_type="C", seller=seller, status="P").order_by(
                 "datetime", "id"

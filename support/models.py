@@ -619,6 +619,7 @@ class SellerConsoleAction(models.Model):
         NO_CONTACT = "N", _("No contact")
         SCHEDULED = "C", _("Scheduled")
         CALL_LATER = "L", _("Call later")
+        NOT_FOUND = "F", _("Not found")
 
     slug = models.SlugField(max_length=100, primary_key=True)
     name = models.CharField(max_length=100, blank=True, null=True)
