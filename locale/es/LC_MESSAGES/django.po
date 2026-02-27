@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: django\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-02-26 17:20-0300\n"
-"PO-Revision-Date: 2026-02-26 17:22-0300\n"
+"POT-Creation-Date: 2026-02-27 16:04-0300\n"
+"PO-Revision-Date: 2026-02-27 16:04-0300\n"
 "Last-Translator: tanyatree\n"
 "Language-Team: \n"
 "Language: es\n"
@@ -1690,8 +1690,8 @@ msgid "Management"
 msgstr "Gerencia"
 
 #: core/choices.py:237
-msgid "Journalism direction"
-msgstr "Dirección de publicidad"
+msgid "Newsroom"
+msgstr "Redacción"
 
 #: core/decorators.py:11 core/templates/main_menu.html:5 invoicing/views.py:94
 #: invoicing/views.py:265 invoicing/views.py:500 logistics/views.py:365
@@ -10848,6 +10848,9 @@ msgstr "La contraseña debe contener al menos 1 letra minúscula, a-z."
 #: validators.py:45
 msgid "Your password must contain at least 1 lowercase letter, a-z."
 msgstr "Tu contraseña debe contener al menos 1 letra minúscula, a-z."
+
+#~ msgid "Journalism direction"
+#~ msgstr "Dirección de publicidad"
 
 #~ msgid "Assigning issues"
 #~ msgstr "Asignar incidencias"

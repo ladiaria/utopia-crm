@@ -234,5 +234,5 @@ class FreeSubscriptionRequestedBy(TextChoices):
     HR = "HR", _("Human resources")
     ADVERTISEMENT = "AD", _("Advertisement")
     MANAGEMENT = "MA", _("Management")
-    JOURNALISM_DIRECTOR = "JD", _("Journalism direction")
+    NEWSROOM = "JD", _("Newsroom")
     PROMOTION = "PR", _("Promotion")
