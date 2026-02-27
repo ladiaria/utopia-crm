@@ -122,6 +122,7 @@ CAMPAIGN_RESOLUTION_CHOICES = (
     ("S2", _("Success with direct sale")),
     ("SC", _("Scheduled")),
     ("CL", _("Call later")),
+    ("NF", _("Not found")),
     ("UN", _("Cannot find contact")),
     ("CW", _("Close without contact")),
 )
@@ -234,5 +235,5 @@ class FreeSubscriptionRequestedBy(TextChoices):
     HR = "HR", _("Human resources")
     ADVERTISEMENT = "AD", _("Advertisement")
     MANAGEMENT = "MA", _("Management")
-    JOURNALISM_DIRECTOR = "JD", _("Journalism direction")
+    NEWSROOM = "JD", _("Newsroom")
     PROMOTION = "PR", _("Promotion")

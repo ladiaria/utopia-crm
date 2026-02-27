@@ -10,6 +10,7 @@
     .badge-today { background-color: #ffc107; color: #212529; }
     .badge-future { background-color: #28a745; color: #fff; }
     .badge-total { background-color: #6c757d; color: #fff; }
+    .badge-no-date { background-color: #17a2b8; color: #fff; }
 
     .count-link {
       font-size: 1.1em;
@@ -22,6 +23,7 @@
     .count-link.overdue { color: #dc3545; }
     .count-link.today { color: #856404; }
     .count-link.future { color: #28a745; }
+    .count-link.no-date { color: #17a2b8; }
     .count-link.zero { color: #adb5bd; pointer-events: none; }
 
     .category-header {
@@ -90,7 +92,7 @@
 {% block content %}
   {# Summary cards #}
   <div class="row mb-3">
-    <div class="col-lg-3 col-6">
+    <div class="col-lg-2 col-6">
       <div class="small-box bg-danger">
         <div class="inner">
           <h3>{{ grand_totals.overdue }}</h3>
@@ -99,7 +101,7 @@
         <div class="icon"><i class="fas fa-exclamation-circle"></i></div>
       </div>
     </div>
-    <div class="col-lg-3 col-6">
+    <div class="col-lg-2 col-6">
       <div class="small-box bg-warning">
         <div class="inner">
           <h3>{{ grand_totals.today_count }}</h3>
@@ -108,7 +110,7 @@
         <div class="icon"><i class="fas fa-clock"></i></div>
       </div>
     </div>
-    <div class="col-lg-3 col-6">
+    <div class="col-lg-2 col-6">
       <div class="small-box bg-success">
         <div class="inner">
           <h3>{{ grand_totals.future }}</h3>
@@ -117,7 +119,16 @@
         <div class="icon"><i class="fas fa-calendar-alt"></i></div>
       </div>
     </div>
-    <div class="col-lg-3 col-6">
+    <div class="col-lg-2 col-6">
+      <div class="small-box bg-info">
+        <div class="inner">
+          <h3>{{ grand_totals.no_date }}</h3>
+          <p>{% trans "No date set" %}</p>
+        </div>
+        <div class="icon"><i class="fas fa-calendar-times"></i></div>
+      </div>
+    </div>
+    <div class="col-lg-2 col-6">
       <div class="small-box bg-secondary">
         <div class="inner">
           <h3>{{ grand_totals.total }}</h3>
@@ -184,6 +195,11 @@
                     <i class="fas fa-calendar-alt"></i> {{ cat.future }}
                   </span>
                 {% endif %}
+                {% if cat.no_date %}
+                  <span class="badge badge-no-date px-2 py-1 mr-1">
+                    <i class="fas fa-calendar-times"></i> {{ cat.no_date }}
+                  </span>
+                {% endif %}
                 <span class="badge badge-total px-2 py-1">{{ cat.total }}</span>
               </div>
             </div>
@@ -195,11 +211,12 @@
               <table class="table table-hover subcategory-table mb-0">
                 <thead>
                   <tr>
-                    <th style="width: 40%">{% trans "Subcategory" %}</th>
-                    <th class="text-center" style="width: 15%">{% trans "Overdue" %}</th>
-                    <th class="text-center" style="width: 15%">{% trans "Today" %}</th>
-                    <th class="text-center" style="width: 15%">{% trans "Future" %}</th>
-                    <th class="text-center" style="width: 15%">{% trans "Total" %}</th>
+                    <th style="width: 30%">{% trans "Subcategory" %}</th>
+                    <th class="text-center" style="width: 14%">{% trans "Overdue" %}</th>
+                    <th class="text-center" style="width: 14%">{% trans "Today" %}</th>
+                    <th class="text-center" style="width: 14%">{% trans "Future" %}</th>
+                    <th class="text-center" style="width: 14%">{% trans "No date" %}</th>
+                    <th class="text-center" style="width: 14%">{% trans "Total" %}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -240,6 +257,16 @@
                         {% endif %}
                       </td>
                       <td class="text-center">
+                        {% if sub.no_date %}
+                          <a href="{% url 'list_issues' %}?category={{ cat.key }}{% if sub.id %}&sub_category={{ sub.id }}{% endif %}&next_action_date=no_date&assigned_to={{ assigned_to_id }}&exclude_finished=true"
+                             class="count-link no-date" title="{% trans 'View issues without date' %}">
+                            {{ sub.no_date }}
+                          </a>
+                        {% else %}
+                          <span class="count-link zero">0</span>
+                        {% endif %}
+                      </td>
+                      <td class="text-center">
                         <a href="{% url 'list_issues' %}?category={{ cat.key }}{% if sub.id %}&sub_category={{ sub.id }}{% endif %}&assigned_to={{ assigned_to_id }}&exclude_finished=true"
                            class="count-link" title="{% trans 'View all issues' %}">
                           <strong>{{ sub.total }}</strong>
@@ -270,6 +297,14 @@
                       {% if cat.future %}
                         <a href="{% url 'list_issues' %}?category={{ cat.key }}&next_action_date=custom&next_action_date_gte={{ tomorrow|date:'Y-m-d' }}&assigned_to={{ assigned_to_id }}&exclude_finished=true"
                            class="count-link future">{{ cat.future }}</a>
+                      {% else %}
+                        <span class="count-link zero">0</span>
+                      {% endif %}
+                    </td>
+                    <td class="text-center">
+                      {% if cat.no_date %}
+                        <a href="{% url 'list_issues' %}?category={{ cat.key }}&next_action_date=no_date&assigned_to={{ assigned_to_id }}&exclude_finished=true"
+                           class="count-link no-date">{{ cat.no_date }}</a>
                       {% else %}
                         <span class="count-link zero">0</span>
                       {% endif %}
@@ -327,7 +362,7 @@
         <li>{% trans "Click on a category header to expand or collapse its details." %}</li>
         <li>{% trans "Use the Expand All / Collapse All buttons to toggle all categories at once." %}</li>
       </ul>
-      <p class="text-muted mb-0"><small>{% trans "The date used for grouping is the issue's next action date. Issues without a next action date will count towards the total but not appear in any date column." %}</small></p>
+      <p class="text-muted mb-0"><small>{% trans "The date used for grouping is the issue's next action date. Issues without a next action date appear in the 'No date' column." %}</small></p>
     </div>
   </div>
 {% endblock %}

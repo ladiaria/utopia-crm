@@ -734,6 +734,7 @@ class CommunityConsoleView(PermissionRequiredMixin, LoginRequiredMixin, Breadcru
             overdue=Count('id', filter=Q(next_action_date__lt=today)),
             today_count=Count('id', filter=Q(next_action_date=today)),
             future=Count('id', filter=Q(next_action_date__gt=today)),
+            no_date=Count('id', filter=Q(next_action_date__isnull=True)),
             total=Count('id'),
         ).order_by('category', 'sub_category__name')
 
@@ -749,6 +750,7 @@ class CommunityConsoleView(PermissionRequiredMixin, LoginRequiredMixin, Breadcru
                     'overdue': 0,
                     'today_count': 0,
                     'future': 0,
+                    'no_date': 0,
                     'total': 0,
                 }
             cat = categories[cat_key]
@@ -758,11 +760,13 @@ class CommunityConsoleView(PermissionRequiredMixin, LoginRequiredMixin, Breadcru
                 'overdue': row['overdue'],
                 'today_count': row['today_count'],
                 'future': row['future'],
+                'no_date': row['no_date'],
                 'total': row['total'],
             })
             cat['overdue'] += row['overdue']
             cat['today_count'] += row['today_count']
             cat['future'] += row['future']
+            cat['no_date'] += row['no_date']
             cat['total'] += row['total']
 
         # Sort categories by name
@@ -773,6 +777,7 @@ class CommunityConsoleView(PermissionRequiredMixin, LoginRequiredMixin, Breadcru
             'overdue': sum(c['overdue'] for c in sorted_categories),
             'today_count': sum(c['today_count'] for c in sorted_categories),
             'future': sum(c['future'] for c in sorted_categories),
+            'no_date': sum(c['no_date'] for c in sorted_categories),
             'total': sum(c['total'] for c in sorted_categories),
         }
 
@@ -872,6 +877,8 @@ class CommunityManagerDashboardView(PermissionRequiredMixin, LoginRequiredMixin,
         context['categories'] = sorted_categories
         context['grand_totals'] = grand_totals
         context['today'] = today
+        context['yesterday'] = today - timedelta(days=1)
+        context['tomorrow'] = today + timedelta(days=1)
         return context
 
 
@@ -1109,7 +1116,7 @@ class CommunityManagerOverviewView(PermissionRequiredMixin, LoginRequiredMixin, 
         gdc_users = self._get_gdc_users().order_by('username')
 
         team_data = []
-        grand_totals = {'overdue': 0, 'today_count': 0, 'future': 0, 'total': 0}
+        grand_totals = {'overdue': 0, 'today_count': 0, 'future': 0, 'no_date': 0, 'total': 0}
 
         category_dict = dict(get_issue_categories())
 
@@ -1124,6 +1131,7 @@ class CommunityManagerOverviewView(PermissionRequiredMixin, LoginRequiredMixin, 
             overdue = user_issues.filter(next_action_date__lt=today).count()
             today_count = user_issues.filter(next_action_date=today).count()
             future = user_issues.filter(next_action_date__gt=today).count()
+            no_date = user_issues.filter(next_action_date__isnull=True).count()
             total = user_issues.count()
 
             # Per-category/subcategory breakdown for this user
@@ -1133,6 +1141,7 @@ class CommunityManagerOverviewView(PermissionRequiredMixin, LoginRequiredMixin, 
                 overdue=Count('id', filter=Q(next_action_date__lt=today)),
                 today_count=Count('id', filter=Q(next_action_date=today)),
                 future=Count('id', filter=Q(next_action_date__gt=today)),
+                no_date=Count('id', filter=Q(next_action_date__isnull=True)),
                 total=Count('id'),
             ).order_by('category', 'sub_category__name')
 
@@ -1147,6 +1156,7 @@ class CommunityManagerOverviewView(PermissionRequiredMixin, LoginRequiredMixin, 
                         'overdue': 0,
                         'today_count': 0,
                         'future': 0,
+                        'no_date': 0,
                         'total': 0,
                     }
                 cat = user_categories[cat_key]
@@ -1156,11 +1166,13 @@ class CommunityManagerOverviewView(PermissionRequiredMixin, LoginRequiredMixin, 
                     'overdue': row['overdue'],
                     'today_count': row['today_count'],
                     'future': row['future'],
+                    'no_date': row['no_date'],
                     'total': row['total'],
                 })
                 cat['overdue'] += row['overdue']
                 cat['today_count'] += row['today_count']
                 cat['future'] += row['future']
+                cat['no_date'] += row['no_date']
                 cat['total'] += row['total']
 
             sorted_user_categories = sorted(user_categories.values(), key=lambda c: c['name'])
@@ -1170,6 +1182,7 @@ class CommunityManagerOverviewView(PermissionRequiredMixin, LoginRequiredMixin, 
                 'overdue': overdue,
                 'today_count': today_count,
                 'future': future,
+                'no_date': no_date,
                 'total': total,
                 'categories': sorted_user_categories,
             })
@@ -1177,6 +1190,7 @@ class CommunityManagerOverviewView(PermissionRequiredMixin, LoginRequiredMixin, 
             grand_totals['overdue'] += overdue
             grand_totals['today_count'] += today_count
             grand_totals['future'] += future
+            grand_totals['no_date'] += no_date
             grand_totals['total'] += total
 
         context['team_data'] = team_data

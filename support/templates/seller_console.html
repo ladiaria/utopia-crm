@@ -101,8 +101,10 @@
         </div>
         <div class="card-body">
           {% for instance in console_instances %}
-            <a class="btn btn-sm {% if instance.contact == contact %}btn-primary{% else %}btn-secondary{% endif %} m-2"
-               href="{% url 'seller_console' category campaign.id %}?offset={{ forloop.counter }}">{{ instance.contact }}</a>
+            <a class="btn btn-sm {% if instance.contact == contact %}btn-primary{% elif instance.last_console_action and instance.last_console_action.action_type == 'F' %}btn-warning text-dark{% elif instance.last_console_action and instance.last_console_action.action_type == 'L' %}btn-info{% else %}btn-secondary{% endif %} m-2"
+               href="{% url 'seller_console' category campaign.id %}?offset={{ forloop.counter }}">
+              {% if instance.last_console_action and instance.last_console_action.action_type == 'F' %}<i class="fas fa-question-circle"></i> {% endif %}{{ instance.contact }}
+            </a>
           {% endfor %}
         </div>
       </div>
@@ -115,6 +117,15 @@
           <div class="d-flex justify-content-between">
             <h3>
               <a href="{% url 'contact_detail' contact.id %}" target="_blank">{{ contact.id }} - {{ contact.get_full_name }}</a>
+              {% if console_instance.last_console_action.action_type == 'F' %}
+                <span class="badge badge-warning text-dark ml-2" style="font-size: 0.6em; vertical-align: middle; padding: 5px 10px;">
+                  <i class="fas fa-question-circle"></i> No encontrado{% if last_action_datetime %} — {{ last_action_datetime|date:"d/m/Y H:i" }}{% endif %}
+                </span>
+              {% elif console_instance.last_console_action.action_type == 'L' %}
+                <span class="badge badge-info ml-2" style="font-size: 0.6em; vertical-align: middle; padding: 5px 10px;">
+                  <i class="fas fa-clock"></i> Llamar más tarde{% if last_action_datetime %} — {{ last_action_datetime|date:"d/m/Y H:i" }}{% endif %}
+                </span>
+              {% endif %}
             </h3>
             <span>{% trans "Contact " %}{{ offset }} {% trans "of" %} {{ count }}</span>
           </div>
@@ -283,24 +294,7 @@
             </div>
             <br>
             <div class="row">
-              <!-- PENDING Actions Column -->
-              <div class="col-sm-4">
-                <h6 class="text-warning">
-                  <i class="fas fa-clock"></i> <strong>Pendientes</strong>
-                </h6>
-                <button class="btn btn-block bg-gradient-warning btn-sm result-btn"
-                        type="button"
-                        data-result="call-later">Llamar más tarde</button>
-                <button class="btn btn-block bg-gradient-warning btn-sm result-btn"
-                        type="button"
-                        data-result="move-morning"
-                        data-confirm="{% trans "Do you want to continue?" %}">Mover a la mañana</button>
-                <button class="btn btn-block bg-gradient-warning btn-sm result-btn"
-                        type="button"
-                        data-result="move-afternoon"
-                        data-confirm="{% trans "Do you want to continue?" %}">Mover a la tarde</button>
-              </div>
-              <!-- DECLINED Actions Column -->
+              <!-- DECLINED Actions Column (RED - Left) -->
               <div class="col-sm-4">
                 <h6 class="text-danger">
                   <i class="fas fa-times-circle"></i> <strong>Rechazados / Sin Contacto</strong>
@@ -329,7 +323,27 @@
                         type="button"
                         data-result="close-without-contact">Cerrar sin contacto</button>
               </div>
-              <!-- SUCCESS Actions & Schedule Column -->
+              <!-- PENDING Actions Column (YELLOW - Middle) -->
+              <div class="col-sm-4">
+                <h6 class="text-warning">
+                  <i class="fas fa-clock"></i> <strong>Pendientes</strong>
+                </h6>
+                <button class="btn btn-block bg-gradient-warning btn-sm result-btn"
+                        type="button"
+                        data-result="call-later">Llamar más tarde</button>
+                <button class="btn btn-block bg-gradient-warning btn-sm result-btn"
+                        type="button"
+                        data-result="not-found">No encontrado</button>
+                <button class="btn btn-block bg-gradient-warning btn-sm result-btn"
+                        type="button"
+                        data-result="move-morning"
+                        data-confirm="{% trans "Do you want to continue?" %}">Mover a la mañana</button>
+                <button class="btn btn-block bg-gradient-warning btn-sm result-btn"
+                        type="button"
+                        data-result="move-afternoon"
+                        data-confirm="{% trans "Do you want to continue?" %}">Mover a la tarde</button>
+              </div>
+              <!-- SUCCESS Actions & Schedule Column (GREEN - Right) -->
               <div class="col-sm-4">
                 <h6 class="text-success">
                   <i class="fas fa-check-circle"></i> <strong>Acciones de Venta</strong>
