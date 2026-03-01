@@ -210,6 +210,12 @@
             <div class="d-flex justify-content-between align-items-center">
               <div class="d-flex align-items-center">
                 <div class="form-check mr-3">
+                  {{ filter.form.unassigned }}
+                  <label class="form-check-label" for="id_unassigned">
+                    {% trans "Unassigned only" %}
+                  </label>
+                </div>
+                <div class="form-check mr-3">
                   {{ filter.form.exclude_finished }}
                   <label class="form-check-label" for="id_exclude_finished">
                     {% trans "Exclude finished" %}
