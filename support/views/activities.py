@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 
 from django.contrib.auth.models import User
 from django.views.generic import CreateView, UpdateView, ListView, DetailView
@@ -125,7 +125,8 @@ class ScheduledActivitiesView(BreadcrumbsMixin, UserPassesTestMixin, ListView):
                 "seller": self.seller,
                 "count": self.get_queryset().count(),
                 "now": datetime.now(),
-                "sort_by": sort_by  # Pass the sort parameter to the template
+                "today": date.today(),
+                "sort_by": sort_by,  # Pass the sort parameter to the template
             }
         )
 
