@@ -12,7 +12,7 @@ from django.contrib.gis.geos import Point
 from django.conf import settings
 from django.core.validators import RegexValidator, MinValueValidator, MaxValueValidator
 from django.db import models
-from django.db.models import Q, Sum, Count, Max, Prefetch
+from django.db.models import F, Q, Sum, Count, Max, Prefetch
 from django.db.utils import IntegrityError
 from django.forms import ValidationError
 from django.utils.translation import gettext_lazy as _, gettext
@@ -2695,6 +2695,7 @@ class Campaign(models.Model):
             # TODO: @ prev TODO
             # .exclude(contact__id__in=contacts_with_lower_priority_activities.values('pk'))
             # .exclude(contact__id__in=contacts_with_same_priority_activities.values('pk'))
+            .order_by(F('date_assigned').asc(nulls_last=True), 'contact__id')
         )
 
     def get_not_contacted_count(self, seller_id):
