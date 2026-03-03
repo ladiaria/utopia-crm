@@ -1060,12 +1060,23 @@ class CommunityManagerAssignView(PermissionRequiredMixin, LoginRequiredMixin, Br
         for i, issue in enumerate(issues_to_assign):
             if i < len(assignment_queue):
                 issue.assigned_to = assignment_queue[i]
+                fields_to_update = ['assigned_to']
+
+                # Set status to "new" if the issue has no status
+                if issue.status is None:
+                    new_status_slug = getattr(settings, 'ISSUE_STATUS_NEW', 'new')
+                    try:
+                        issue.status = IssueStatus.objects.get(slug=new_status_slug)
+                        fields_to_update.append('status')
+                    except IssueStatus.DoesNotExist:
+                        pass
 
                 # Update next_action_date: set to tomorrow if null or in the past
                 if issue.next_action_date is None or issue.next_action_date < today:
                     issue.next_action_date = tomorrow
+                    fields_to_update.append('next_action_date')
 
-                issue.save()
+                issue.save(update_fields=fields_to_update)
                 assigned_count += 1
 
         messages.success(
