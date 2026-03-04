@@ -427,7 +427,7 @@ class CreditNoteCopy(CreditNote):
 
 
 class MercadoPagoData(models.Model):
-    contact = models.OneToOneField("core.Contact", on_delete=models.CASCADE, related_name='mercadopago_data')
+    subscription = models.OneToOneField("core.Subscription", on_delete=models.CASCADE, related_name='mercadopago_data')
     card_id = models.CharField(max_length=255, blank=True, null=True)
     customer_id = models.CharField(max_length=255, blank=True, null=True)
     payment_method_id = models.CharField(max_length=255, blank=True, null=True)
@@ -436,9 +436,30 @@ class MercadoPagoData(models.Model):
     last_four_digits = models.CharField(max_length=4, blank=True, null=True)
     payment_method_type = models.CharField(max_length=50, blank=True, null=True)
     token = models.CharField(max_length=255, blank=True, null=True)
+    preapproval_id = models.CharField(
+        "MercadoPago preapproval (aka subscription) id",
+        max_length=32,
+        blank=True,
+        null=True,
+        unique=True,
+        help_text=(
+            "This field is intended to be populated automatically when the subscription is created in MercadoPago and "
+            "will never change. In order to keep data consistency, when the field is set, critical operations over "
+            "this CRM related Subscription will be restricted, otherwise, recurring payments coming from MercadoPago "
+            "can fail to be processed."
+        ),
+    )
 
     def __str__(self):
-        return f"Mercado Pago Data for {self.contact}"
+        return f"Mercado Pago Data for {self.subscription}"
+
+    @staticmethod
+    def warning_message():
+        return (
+            "Esta suscripción está asociada a una suscripción recurrente autorrenovable de Mercado Pago. "
+            "La edición incorrecta de campos importantes como el tipo de renovación, el producto o las fechas, podría "
+            "afectar la sincronización y posterior recepción de los pagos automáticos realizados por Mercadopago."
+        )
 
     class Meta:
         verbose_name = _("Mercado Pago Data")
