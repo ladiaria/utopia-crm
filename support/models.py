@@ -115,6 +115,7 @@ class Issue(models.Model):
     """
 
     date_created = models.DateField(auto_now_add=True)
+    date_modified = models.DateTimeField(auto_now=True, null=True, blank=True, verbose_name=_("Date modified"))
     contact = models.ForeignKey("core.Contact", on_delete=models.CASCADE, verbose_name=_("Contact"))
     date = models.DateField(default=date.today, verbose_name=_("Date"), help_text=_("Date of the issue"))
     category = models.CharField(
