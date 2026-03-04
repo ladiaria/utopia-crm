@@ -11,7 +11,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import PermissionRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.models import User
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
-from django.db.models import Count, Min, Q, Sum, Case, When
+from django.db.models import Count, Min, Q, Sum, Case, When, Prefetch
 from django.http import (
     HttpResponse,
     HttpResponseNotFound,
@@ -1230,7 +1230,23 @@ class NewIssueView(BreadcrumbsMixin, CreateView):
         ]
 
     def get_contact(self, contact_id):
-        self.contact = get_object_or_404(Contact, pk=contact_id)
+        """Fetch contact with prefetched relations to avoid N+1 queries"""
+        self.contact = get_object_or_404(
+            Contact.objects.prefetch_related(
+                'addresses',
+                Prefetch(
+                    'subscriptions',
+                    queryset=Subscription.objects.filter(active=True).prefetch_related(
+                        Prefetch(
+                            'products',
+                            queryset=SubscriptionProduct.objects.select_related('product')
+                        )
+                    ),
+                    to_attr='active_subscriptions_list'
+                )
+            ),
+            pk=contact_id
+        )
         return self.contact
 
     def dispatch(self, request, *args, **kwargs):
@@ -1240,20 +1256,54 @@ class NewIssueView(BreadcrumbsMixin, CreateView):
 
     def get_initial(self):
         initial = super().get_initial()
+
+        # Cache status lookup to avoid repeated queries
+        if not hasattr(self, '_cached_new_status'):
+            self._cached_new_status = IssueStatus.objects.get(
+                slug=getattr(settings, "ISSUE_STATUS_NEW", "new")
+            )
+
         initial.update({
             'copies': 1,
             'contact': self.contact,
             'category': self.category,
+            'status': self._cached_new_status,
+            'assigned_to': self.request.user,
         })
         return initial
 
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
 
-        # Filter querysets based on contact
-        form.fields["subscription_product"].queryset = self.contact.get_active_subscriptionproducts()
-        form.fields["subscription"].queryset = self.contact.get_active_subscriptions()
+        # Use prefetched data to avoid N+1 queries
+        # Addresses are already prefetched - use the prefetched queryset
         form.fields["contact_address"].queryset = self.contact.addresses.all()
+
+        # Use prefetched active subscriptions with optimized queries
+        if hasattr(self.contact, 'active_subscriptions_list'):
+            active_subs = self.contact.active_subscriptions_list
+            # Build ID lists from prefetched data without triggering queries
+            sub_ids = [sub.id for sub in active_subs]
+            sub_product_ids = []
+            for sub in active_subs:
+                # Access prefetched products without triggering query
+                sub_product_ids.extend([sp.id for sp in sub.products.all()])
+
+            # Create querysets with select_related to prevent N+1 queries
+            # Subscription.__str__ accesses contact.get_full_name(), so we need select_related
+            form.fields["subscription"].queryset = Subscription.objects.filter(
+                id__in=sub_ids
+            ).select_related('contact')
+
+            # SubscriptionProduct.__str__ accesses subscription.contact.get_full_name()
+            # So we need select_related for both subscription and contact
+            form.fields["subscription_product"].queryset = SubscriptionProduct.objects.filter(
+                id__in=sub_product_ids
+            ).select_related('product', 'subscription__contact', 'address')
+        else:
+            # Fallback to original methods if prefetch didn't work
+            form.fields["subscription_product"].queryset = self.contact.get_active_subscriptionproducts()
+            form.fields["subscription"].queryset = self.contact.get_active_subscriptions()
 
         # Filter subcategories based on category (with special case for M/I)
         if self.category == "M":
@@ -1274,18 +1324,21 @@ class NewIssueView(BreadcrumbsMixin, CreateView):
         context['category_name'] = dict_categories[self.category]
 
         # Create mapping of subcategory_id -> list of resolution options for JavaScript filtering
-        from support.models import IssueResolution
-        subcategory_resolutions = {}
-        for resolution in IssueResolution.objects.all().select_related('subcategory'):
-            subcategory_id = resolution.subcategory_id
-            if subcategory_id not in subcategory_resolutions:
-                subcategory_resolutions[subcategory_id] = []
-            subcategory_resolutions[subcategory_id].append({
-                'id': resolution.id,
-                'name': resolution.name
-            })
+        # Cache this data to avoid repeated queries
+        if not hasattr(self.__class__, '_cached_subcategory_resolutions'):
+            from support.models import IssueResolution
+            subcategory_resolutions = {}
+            for resolution in IssueResolution.objects.all().select_related('subcategory'):
+                subcategory_id = resolution.subcategory_id
+                if subcategory_id not in subcategory_resolutions:
+                    subcategory_resolutions[subcategory_id] = []
+                subcategory_resolutions[subcategory_id].append({
+                    'id': resolution.id,
+                    'name': resolution.name
+                })
+            self.__class__._cached_subcategory_resolutions = json.dumps(subcategory_resolutions)
 
-        context['subcategory_resolutions_json'] = json.dumps(subcategory_resolutions)
+        context['subcategory_resolutions_json'] = self.__class__._cached_subcategory_resolutions
 
         return context
 
@@ -1306,10 +1359,6 @@ class NewIssueView(BreadcrumbsMixin, CreateView):
         # Determine status based on form data
         if form.cleaned_data["status"]:
             status = form.cleaned_data["status"]
-        elif form.cleaned_data["assigned_to"]:
-            status = IssueStatus.objects.get(slug=settings.ISSUE_STATUS_ASSIGNED)
-        else:
-            status = IssueStatus.objects.get(slug=settings.ISSUE_STATUS_UNASSIGNED)
 
         # Save the issue with all required fields
         issue = form.save(commit=False)

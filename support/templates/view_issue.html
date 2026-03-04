@@ -1,12 +1,68 @@
 {% extends "adminlte/base.html" %}
 {% load static i18n sip_tags core_tags %}
 {% block title %}
-  {% trans "View issue" %}
+  {% trans "View issue" %} #{{ issue.id }}
 {% endblock %}
 
 {% block stylesheets %}
   {{ block.super }}
   <link rel="stylesheet" href="{% static "css/choices.min.css" %}" />
+  <style>
+    .issue-detail-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #6c757d;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 0.15rem;
+    }
+    .issue-detail-value {
+      margin-bottom: 0.5rem;
+    }
+    .issue-notes-box {
+      background-color: #fffef5;
+      border-left: 4px solid #ffc107;
+      padding: 0.75rem 1rem;
+      border-radius: 0.25rem;
+      min-height: 60px;
+    }
+    .issue-notes-box:empty::after,
+    .issue-notes-box .empty-notes::after {
+      content: "-";
+      color: #adb5bd;
+    }
+    .form-section {
+      background-color: #f8f9fa;
+      padding: 0.75rem 1rem;
+      border-radius: 0.25rem;
+      margin-bottom: 0.75rem;
+    }
+    .form-section-title {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #495057;
+      margin-bottom: 0.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .activity-card {
+      border-left: 3px solid #007bff;
+      margin-bottom: 0.5rem;
+      font-size: 0.875rem;
+    }
+    .activity-card .card-body {
+      padding: 0.5rem 0.75rem;
+    }
+    .activity-card .card-header {
+      padding: 0.35rem 0.75rem;
+    }
+    .debt-alert {
+      background-color: #fff3cd;
+      border: 1px solid #ffeaa7;
+      border-radius: 0.25rem;
+      padding: 0.5rem 0.75rem;
+    }
+  </style>
 {% endblock %}
 
 {% block no_heading %}
@@ -19,9 +75,6 @@
   $(function () {
     const sub_category = new Choices($('#id_sub_category')[0]);
     const assigned_to = new Choices($('#id_assigned_to')[0]);
-    $(".datepicker").datepicker({
-      dateFormat: 'yy-mm-dd'
-    });
 
     // Dynamic resolution filtering based on subcategory
     const subcategoryResolutions = {{ subcategory_resolutions_json|safe }};
@@ -69,218 +122,332 @@
   <section class="content">
     <div class="container-fluid">
       <div class="row">
-        <div class="col-md-9">
-          <div class="card">
-            <div class="card-header p-2">
-              <h3>{% trans "Issue details" %}</h3>
+        <!-- Left column: Details + Form -->
+        <div class="col-lg-8">
+
+          <!-- Issue Details Card -->
+          <div class="card shadow-sm">
+            <div class="card-header bg-white py-2 px-3 d-flex justify-content-between align-items-center">
+              <h5 class="mb-0">
+                <i class="fas fa-info-circle text-primary mr-1"></i>
+                {% trans "Issue details" %}
+              </h5>
+              <div class="d-flex align-items-center flex-wrap" style="gap: 0.4rem;">
+                <span class="text-muted" style="font-size: 0.8rem;">{% trans "Category" %}:</span>
+                <span class="badge badge-pill badge-secondary" style="font-size: 0.85rem; padding: 0.35em 0.75em;">{{ issue.get_category }}</span>
+                <span class="text-muted" style="font-size: 0.8rem;">{% trans "Subcategory" %}:</span>
+                <span class="badge badge-pill badge-info" style="font-size: 0.85rem; padding: 0.35em 0.75em;">{{ issue.get_subcategory }}</span>
+                {% if issue.status %}
+                  <span class="text-muted" style="font-size: 0.8rem;">{% trans "Status" %}:</span>
+                  <span class="badge badge-pill badge-primary" style="font-size: 0.85rem; padding: 0.35em 0.75em;">{{ issue.status }}</span>
+                {% endif %}
+              </div>
             </div>
-            <div class="card-body">
-              <dl>
-                <dt>{% trans "Contact" %}</dt>
-                <dd>
-                  <a href="{% url "contact_detail" issue.contact.id %}">{{ issue.contact }}
+            <div class="card-body py-2 px-3">
+              <!-- Contact & dates row -->
+              <div class="row">
+                <div class="col-md-4">
+                  <div class="issue-detail-label">{% trans "Contact" %}</div>
+                  <div class="issue-detail-value">
+                    <a href="{% url "contact_detail" issue.contact.id %}">
+                      <i class="fas fa-user mr-1"></i>{{ issue.contact }}
+                    </a>
                     {% if not has_active_subscription %}
-                      ({% trans "Inactive" %})
+                      <span class="badge badge-warning ml-1">{% trans "Inactive" %}</span>
                     {% endif %}
-                  </a>
-                </dd>
-                <dt>{% trans "Start date" %}</dt>
-                <dd>
-                  {{ issue.date_created }}
-                </dd>
-                <dt>{% trans "Contact phone" %}</dt>
-                <dd>
-                  {{ issue.contact.phone|sip }}
-                </dd>
-                {% if issue.contact.mobile %}
-                  <dt>{% trans "Contact mobile phone" %}</dt>
-                  <dd>
-                    {{ issue.contact.mobile|sip }}
-                  </dd>
-                {% endif %}
-                <dt>{% trans "Category" %}</dt>
-                <dd>
-                  {{ issue.get_category }} - {{ issue.get_subcategory }}
-                </dd>
-                {% if issue.manager %}
-                  <dt>{% trans "Created by" %}</dt>
-                  <dd>
-                    {{ issue.manager|default_if_none:"-" }}
-                  </dd>
-                {% endif %}
-                <dt>{% trans "Notes" %}</dt>
-                <dd>
-                  {{ issue.notes|default_if_none:"-"|linebreaks }}
-                </dd>
-                {% if issue.subscription_product %}
-                  <dt>{% trans "Subscription product" %}</dt>
-                  <dd>
-                    {{ issue.subscription_product.product }}
-                  </dd>
-                  <dd>
-                    {{ issue.subscription_product.address }}
-                  </dd>
-                  <dd>
-                    {{ issue.subscription_product.route }}
-                  </dd>
-                {% endif %}
-                {% if issue.product %}
-                  <dt>{% trans "Product" %}</dt>
-                  <dd>
-                    {{ issue.product }}
-                  </dd>
-                {% endif %}
-                {% if issue.address %}
-                  <dt>{% trans "Address" %}</dt>
-                  <dd>
-                    {{ issue.address }}
-                  </dd>
-                {% endif %}
-                {% if issue.subscription %}
-                  <dt>{% trans "Subscription" %}</dt>
-                  <dd>
-                    {{ issue.subscription }}
-                  </dd>
-                {% endif %}
-                {% if issue.category == "I" %}
-                  {% if issue.contact.get_debt %}
-                    <dt>{% trans "Debt" %}</dt>
-                    <dd>
-                      ${{ issue.contact.get_debt }} ({{ issue.contact.expired_invoices_count }}
-                      {% trans "overdue invoices" %})<i class="fas fa-exclamation-triangle text-danger"></i><a href="#"
-   class="btn btn-primary btn-sm"
-   data-toggle="modal"
-   data-target="#invoices_modal">{% trans "View" %}</a>
-                    </dd>
-                  {% else %}
-                    <dt>{% trans "This contact doesn't have a debt" %}</dt>
+                  </div>
+                </div>
+                <div class="col-md-2">
+                  <div class="issue-detail-label">{% trans "Start date" %}</div>
+                  <div class="issue-detail-value">{{ issue.date_created|date:"SHORT_DATE_FORMAT" }}</div>
+                </div>
+                <div class="col-md-3">
+                  <div class="issue-detail-label">{% trans "Phone" %}</div>
+                  <div class="issue-detail-value">
+                    <i class="fas fa-phone fa-sm mr-1 text-muted"></i>{{ issue.contact.phone|sip }}
+                    {% if issue.contact.mobile %}
+                      <br><i class="fas fa-mobile-alt fa-sm mr-1 text-muted"></i>{{ issue.contact.mobile|sip }}
+                    {% endif %}
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  {% if issue.manager %}
+                    <div class="issue-detail-label">{% trans "Created by" %}</div>
+                    <div class="issue-detail-value">
+                      {% if issue.manager.get_full_name %}
+                        {{ issue.manager.get_full_name }} ({{ issue.manager.username }})
+                      {% else %}
+                        {{ issue.manager.username }}
+                      {% endif %}
+                    </div>
                   {% endif %}
-                {% endif %}
-              </dl>
+                </div>
+              </div>
+
+              <!-- Related items row (compact) -->
+              {% if issue.subscription_product or issue.product or issue.address or issue.subscription %}
+                <div class="row border-top pt-2 mt-1">
+                  {% if issue.subscription_product %}
+                    <div class="col-md-4">
+                      <div class="issue-detail-label">{% trans "Subscription product" %}</div>
+                      <div class="issue-detail-value">
+                        {{ issue.subscription_product.product }}
+                        {% if issue.subscription_product.address %}
+                          <br><small class="text-muted"><i class="fas fa-map-marker-alt mr-1"></i>{{ issue.subscription_product.address }}</small>
+                        {% endif %}
+                        {% if issue.subscription_product.route %}
+                          <br><small class="text-muted"><i class="fas fa-route mr-1"></i>{{ issue.subscription_product.route }}</small>
+                        {% endif %}
+                      </div>
+                    </div>
+                  {% endif %}
+                  {% if issue.product %}
+                    <div class="col-md-4">
+                      <div class="issue-detail-label">{% trans "Product" %}</div>
+                      <div class="issue-detail-value">{{ issue.product }}</div>
+                    </div>
+                  {% endif %}
+                  {% if issue.address %}
+                    <div class="col-md-4">
+                      <div class="issue-detail-label">{% trans "Address" %}</div>
+                      <div class="issue-detail-value">{{ issue.address }}</div>
+                    </div>
+                  {% endif %}
+                  {% if issue.subscription %}
+                    <div class="col-md-4">
+                      <div class="issue-detail-label">{% trans "Subscription" %}</div>
+                      <div class="issue-detail-value">{{ issue.subscription }}</div>
+                    </div>
+                  {% endif %}
+                </div>
+              {% endif %}
+
+              <!-- Debt info for invoicing issues -->
+              {% if issue.category == "I" %}
+                <div class="border-top pt-2 mt-1">
+                  {% if issue.contact.get_debt %}
+                    <div class="debt-alert d-flex align-items-center justify-content-between">
+                      <span>
+                        <i class="fas fa-exclamation-triangle text-danger mr-1"></i>
+                        <strong>{% trans "Debt" %}:</strong> ${{ issue.contact.get_debt }}
+                        ({{ issue.contact.expired_invoices_count }} {% trans "overdue invoices" %})
+                      </span>
+                      <a href="{% url "contact_detail" issue.contact.id %}#invoices"
+                         target="_blank"
+                         class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-external-link-alt mr-1"></i>
+                        {% trans "View invoices" %}
+                        <small class="text-muted ml-1">({% trans "new tab" %})</small>
+                      </a>
+                    </div>
+                  {% else %}
+                    <div class="d-flex align-items-center text-success">
+                      <i class="fas fa-check-circle mr-1"></i>
+                      {% trans "This contact doesn't have a debt" %}
+                    </div>
+                  {% endif %}
+                </div>
+              {% endif %}
+
+              <!-- Notes section - prominent -->
+              <div class="border-top pt-2 mt-1">
+                <div class="issue-detail-label">
+                  <i class="fas fa-sticky-note mr-1"></i>{% trans "Notes" %}
+                </div>
+                <div class="issue-notes-box">
+                  {% if issue.notes %}
+                    {{ issue.notes|linebreaks }}
+                  {% else %}
+                    <span class="text-muted">-</span>
+                  {% endif %}
+                </div>
+              </div>
             </div>
-            <!-- /.card-body -->
           </div>
-          <div class="card">
-            <div class="card-header p-2">
-              <h3>{% trans "Progress" %}</h3>
+
+          <!-- Progress/Edit Form Card -->
+          <div class="card shadow-sm">
+            <div class="card-header bg-white py-2 px-3">
+              <h5 class="mb-0">
+                <i class="fas fa-edit text-primary mr-1"></i>
+                {% trans "Progress" %}
+              </h5>
             </div>
-            <!-- /.card-header -->
-            <div class="card-body">
+            <div class="card-body py-2 px-3">
               <form method="post">
                 {% csrf_token %}
                 <div class="form-group d-none">
-                  <label for="id_progress">{{ form.contact.label }}</label>
                   {{ form.contact }}
                 </div>
-                <div class="form-group">
-                  <label for="id_sub_category">{{ form.sub_category.label }}</label>
-                  {{ form.sub_category }}
-                </div>
-                <div class="form-group">
-                  <label for="id_resolution">{{ form.resolution.label }}</label>
-                  {{ form.resolution }}
-                </div>
-                <div class="row">
-                  <div class="col-4">
-                    <div class="form-group">
-                      <label for="id_status">{{ form.status.label }}</label>
-                      {{ form.status }}
-                    </div>
+
+                <!-- Status & Assignment row (most important - at the top) -->
+                <div class="form-section">
+                  <div class="form-section-title">
+                    <i class="fas fa-user-check mr-1"></i>
+                    {% trans "Status & Assignment" %}
                   </div>
-                  {% if issue.category == "S" or issue.category == "L" %}
-                    <div class="col-2">
-                      <div class="form-group">
-                        <label for="id_status">{{ form.copies.label }}</label>
-                        {{ form.copies }}
+                  <div class="row">
+                    <div class="col-md-3">
+                      <div class="form-group mb-2">
+                        <label for="id_status">{{ form.status.label }}</label>
+                        {{ form.status }}
                       </div>
                     </div>
-                  {% endif %}
-                  <div class="col-4">
-                    <div class="form-group">
-                      <label for="id_assigned_to">{{ form.next_action_date.label }}</label>
-                      {{ form.next_action_date }}
+                    <div class="col-md-4">
+                      <div class="form-group mb-2">
+                        <label for="id_assigned_to">{{ form.assigned_to.label }}</label>
+                        {{ form.assigned_to }}
+                      </div>
                     </div>
-                  </div>
-                  <div class="col-2">
-                    <div class="form-group">
-                      <label for="id_envelope">{{ form.envelope.label }}</label>
-                      <div class="form-check">
-                        {{ form.envelope }}
-                        <label class="form-check-label">{% trans "Add" %}</label>
+                    <div class="col-md-3">
+                      <div class="form-group mb-2">
+                        <label for="id_next_action_date">{{ form.next_action_date.label }}</label>
+                        {{ form.next_action_date }}
+                      </div>
+                    </div>
+                    {% if issue.category == "S" or issue.category == "L" %}
+                      <div class="col-md-1">
+                        <div class="form-group mb-2">
+                          <label for="id_copies">{{ form.copies.label }}</label>
+                          {{ form.copies }}
+                        </div>
+                      </div>
+                    {% endif %}
+                    <div class="col-md-{% if issue.category == 'S' or issue.category == 'L' %}1{% else %}2{% endif %}">
+                      <div class="form-group mb-2">
+                        <label for="id_envelope">{{ form.envelope.label }}</label>
+                        <div class="form-check mt-1">
+                          {{ form.envelope }}
+                          <label class="form-check-label">{% trans "Add" %}</label>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
-                <div class="form-group">
-                  <label for="id_progress">{{ form.progress.label }}</label>
-                  {{ form.progress }}
+
+                <!-- Category & Resolution row -->
+                <div class="form-section">
+                  <div class="form-section-title">
+                    <i class="fas fa-tag mr-1"></i>
+                    {% trans "Classification" %}
+                  </div>
+                  <div class="row">
+                    <div class="col-md-6">
+                      <div class="form-group mb-2">
+                        <label for="id_sub_category">{{ form.sub_category.label }}</label>
+                        {{ form.sub_category }}
+                      </div>
+                    </div>
+                    <div class="col-md-6">
+                      <div class="form-group mb-2">
+                        <label for="id_resolution">{{ form.resolution.label }}</label>
+                        {{ form.resolution }}
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div class="form-group">
-                  <label id="id_answer_1">{{ form.answer_1.label }}</label>
-                  {{ form.answer_1 }}
+
+                <!-- Progress notes -->
+                <div class="form-section">
+                  <div class="form-section-title">
+                    <i class="fas fa-clipboard mr-1"></i>
+                    {% trans "Progress notes" %}
+                  </div>
+                  <div class="form-group mb-2">
+                    <label for="id_progress">{{ form.progress.label }}</label>
+                    {{ form.progress }}
+                  </div>
+                  <div class="row">
+                    <div class="col-md-6">
+                      <div class="form-group mb-2">
+                        <label for="id_answer_1">{{ form.answer_1.label }}</label>
+                        {{ form.answer_1 }}
+                      </div>
+                    </div>
+                    <div class="col-md-6">
+                      <div class="form-group mb-2">
+                        <label for="id_answer_2">{{ form.answer_2.label }}</label>
+                        {{ form.answer_2 }}
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div class="form-group">
-                  <label for="id_answer_2">{{ form.answer_2.label }}</label>
-                  {{ form.answer_2 }}
-                </div>
-                <div class="form-group">
-                  <label for="id_assigned_to">{{ form.assigned_to.label }}</label>
-                  {{ form.assigned_to }}
-                </div>
-                <div class="form-group text-right">
-                  <button type="submit" name="submit" class="btn bg-gradient-primary">{% trans "Update" %}</button>
+
+                <!-- Submit -->
+                <div class="d-flex justify-content-end align-items-center pt-2">
                   {% block issue_additional_actions %}{% endblock %}
+                  <button type="submit" name="submit" class="btn btn-primary ml-2">
+                    <i class="fas fa-save mr-1"></i>
+                    {% trans "Update" %}
+                  </button>
                 </div>
               </form>
             </div>
           </div>
         </div>
-        <div class="col-md-3">
-          <h5>{% trans "Activities" %}</h5>
-          <a href="#activity_modal"
-             id="add_address"
-             data-toggle="modal"
-             data-target="#activity_modal"
-             class="btn bg-gradient-success mb-3"><i class="fas fa-plus"></i>{% trans "Register activity" %}</a>
-          {% for a in activities %}
-            <div class="card card-primary card-outline">
-              <div class="card-header">
-                <h3 class="card-title">
-                  <i class="fas fa-route"></i> <b>{% trans "Activity:" %} {{ a.get_type_display }}
-                  ({{ a.get_direction }})</b>
-                </h3>
-              </div>
-              <div class="card-body">
-                <dl>
-                  <dt></dt>
-                  <dd>
-                    <b>{% trans "Status" %}</b>: {{ a.get_status }}
-                  </dd>
-                  {% if a.datetime %}
-                    <dd>
-                      <b>{% trans "Date" %}</b>: {{ a.datetime|date:"SHORT_DATETIME_FORMAT" }}
-                    </dd>
-                  {% endif %}
-                  {% if a.notes %}
-                    <dd>
-                      <b>{% trans "Notes" %}</b>: {{ a.notes|default_if_none:"" }}
-                    </dd>
-                  {% endif %}
-                </dl>
-              </div>
+
+        <!-- Right column: Activities sidebar -->
+        <div class="col-lg-4">
+          <div class="card shadow-sm">
+            <div class="card-header bg-white py-2 px-3 d-flex justify-content-between align-items-center">
+              <h5 class="mb-0">
+                <i class="fas fa-history text-primary mr-1"></i>
+                {% trans "Activities" %}
+              </h5>
+              <a href="#activity_modal"
+                 data-toggle="modal"
+                 data-target="#activity_modal"
+                 class="btn btn-success btn-sm">
+                <i class="fas fa-plus mr-1"></i>{% trans "Register" %}
+              </a>
             </div>
-          {% endfor %}
+            <div class="card-body py-2 px-2" style="max-height: 600px; overflow-y: auto;">
+              {% for a in activities %}
+                <div class="card activity-card">
+                  <div class="card-header bg-light py-1 d-flex justify-content-between align-items-center">
+                    <span>
+                      <i class="fas fa-{% if a.direction == 'I' %}sign-in-alt text-success{% else %}sign-out-alt text-info{% endif %} mr-1"></i>
+                      <strong>{{ a.get_type_display }}</strong>
+                    </span>
+                    <span class="badge badge-{% if a.status == 'C' %}success{% elif a.status == 'P' %}warning{% else %}secondary{% endif %}">
+                      {{ a.get_status }}
+                    </span>
+                  </div>
+                  <div class="card-body">
+                    {% if a.datetime %}
+                      <small class="text-muted">
+                        <i class="far fa-clock mr-1"></i>{{ a.datetime|date:"SHORT_DATETIME_FORMAT" }}
+                      </small>
+                    {% endif %}
+                    {% if a.notes %}
+                      <div class="mt-1">{{ a.notes|default_if_none:"" }}</div>
+                    {% endif %}
+                  </div>
+                </div>
+              {% empty %}
+                <div class="text-center text-muted py-3">
+                  <i class="fas fa-inbox fa-2x mb-2 d-block"></i>
+                  {% trans "No activities registered" %}
+                </div>
+              {% endfor %}
+            </div>
+          </div>
         </div>
       </div>
     </div>
   </section>
+
+  <!-- Activity Modal -->
   <div id="activity_modal" class="modal" tabindex="-1" role="dialog">
     <div class="modal-dialog" role="document">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title" id="exampleModalLabel">{% trans "Register activity" %}</h5>
+          <h5 class="modal-title">
+            <i class="fas fa-plus-circle mr-1"></i>
+            {% trans "Register activity" %}
+          </h5>
           <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-            <span aria-hidden="true">x</span>
+            <span aria-hidden="true">&times;</span>
           </button>
         </div>
         <div class="modal-body">
@@ -294,60 +461,10 @@
                 <input id="submit_address"
                        type="submit"
                        value="{% trans "Send" %}"
-                       class="btn bg-gradient-primary">
+                       class="btn btn-primary">
               </div>
             {% endif %}
           </form>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div id="invoices_modal" class="modal" tabindex="-1" role="dialog">
-    <div class="modal-dialog" role="document">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="exampleModalLabel">{% trans "Contact invoices" %}</h5>
-          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-            <span aria-hidden="true">x</span>
-          </button>
-        </div>
-        <div class="modal-body">
-          <div class="card-body">
-            <table class="table text-center">
-              <thead>
-                <tr role="row">
-                  <th>{% trans "Invoice" %}</th>
-                  <th>{% trans "From" %}</th>
-                  <th>{% trans "To" %}</th>
-                  <th>{% trans "Issue" %}</th>
-                  <th>{% trans "Due" %}</th>
-                  <th>{% trans "Amount" %}</th>
-                  <th>{% trans "Payment method" %}</th>
-                  <th>{% trans "Status" %}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for invoice in invoice_list %}
-                  <tr role="row">
-                    <td>
-                      <a href="{% url "admin:invoicing_invoice_change" invoice.id %}">{{ invoice.id }}</a>
-                      <a href="{% url "download_invoice" invoice.id %}"
-                         title="{% trans "Download invoice" %}">
-                        <img src="{% static "img/pdficon_small.png" %}" alt="PDF" height="16" width="16" />
-                      </a>
-                    </td>
-                    <td>{{ invoice.service_from|date:"SHORT_DATE_FORMAT" }}</td>
-                    <td>{{ invoice.service_to|date:"SHORT_DATE_FORMAT" }}</td>
-                    <td>{{ invoice.creation_date|date:"SHORT_DATE_FORMAT" }}</td>
-                    <td>{{ invoice.expiration_date|date:"SHORT_DATE_FORMAT" }}</td>
-                    <td>{{ invoice.amount }}</td>
-                    <td>{{ invoice.payment_type }}</td>
-                    <td>{{ invoice.get_status }}</td>
-                  </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
         </div>
       </div>
     </div>
