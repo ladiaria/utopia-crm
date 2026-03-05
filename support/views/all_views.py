@@ -1432,16 +1432,6 @@ class IssueDetailView(BreadcrumbsMixin, UpdateView):
         context = super().get_context_data(**kwargs)
         issue = self.get_object()
 
-        # Set up activity form
-        activity_form = NewActivityForm(
-            initial={
-                "contact": issue.contact,
-                "direction": "O",
-                "activity_type": "C",
-            }
-        )
-        activity_form.fields["contact"].label = False
-
         # Create mapping of subcategory_id -> list of resolution options for JavaScript filtering
         from support.models import IssueResolution
         subcategory_resolutions = {}
@@ -1458,9 +1448,6 @@ class IssueDetailView(BreadcrumbsMixin, UpdateView):
         context.update({
             "has_active_subscription": issue.contact.has_active_subscription(),
             "invoicing": issue.category in ("I", "M"),
-            "activities": issue.activity_set.all().order_by("-datetime", "id"),
-            "activity_form": activity_form,
-            "invoice_list": issue.contact.invoice_set.all().order_by("-creation_date", "id"),
             "subcategory_resolutions_json": json.dumps(subcategory_resolutions),
         })
 

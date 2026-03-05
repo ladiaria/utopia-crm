@@ -576,9 +576,9 @@ class IssueChangeForm(forms.ModelForm):
         model = Issue
         widgets = {
             "contact": forms.Textarea(attrs={"class": "form-control"}),
-            "progress": forms.Textarea(attrs={"class": "form-control"}),
+            "progress": forms.Textarea(attrs={"class": "form-control", "rows": 4}),
             "answer_1": forms.Select(attrs={"class": "form-control"}),
-            "answer_2": forms.Textarea(attrs={"class": "form-control"}),
+            "answer_2": forms.Textarea(attrs={"class": "form-control", "rows": 2}),
             "status": forms.Select(attrs={"class": "form-control"}),
             "envelope": forms.CheckboxInput(attrs={"class": "form-check-input"}),
             "copies": forms.TextInput(attrs={"class": "form-control"}),
@@ -640,9 +640,9 @@ class InvoicingIssueChangeForm(forms.ModelForm):
         model = Issue
         widgets = {
             "contact": forms.Textarea(attrs={"class": "form-control"}),
-            "progress": forms.Textarea(attrs={"class": "form-control"}),
+            "progress": forms.Textarea(attrs={"class": "form-control", "rows": 4}),
             "answer_1": forms.Select(attrs={"class": "form-control"}),
-            "answer_2": forms.Textarea(attrs={"class": "form-control"}),
+            "answer_2": forms.Textarea(attrs={"class": "form-control", "rows": 2}),
             "status": forms.Select(attrs={"class": "form-control"}),
             "envelope": forms.CheckboxInput(attrs={"class": "form-check-input"}),
             "resolution": forms.Select(attrs={"class": "form-control"}),

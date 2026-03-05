@@ -8,60 +8,76 @@
   {{ block.super }}
   <link rel="stylesheet" href="{% static "css/choices.min.css" %}" />
   <style>
-    .issue-detail-label {
-      font-size: 0.75rem;
+    .issue-label {
+      font-size: 0.7rem;
       font-weight: 600;
       color: #6c757d;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 0.15rem;
+      letter-spacing: 0.3px;
+      margin-bottom: 0;
     }
-    .issue-detail-value {
-      margin-bottom: 0.5rem;
+    .issue-section {
+      border-bottom: 1px solid #e9ecef;
+      padding: 0.5rem 0;
     }
-    .issue-notes-box {
-      background-color: #fffef5;
-      border-left: 4px solid #ffc107;
-      padding: 0.75rem 1rem;
-      border-radius: 0.25rem;
-      min-height: 60px;
-    }
-    .issue-notes-box:empty::after,
-    .issue-notes-box .empty-notes::after {
-      content: "-";
-      color: #adb5bd;
-    }
-    .form-section {
-      background-color: #f8f9fa;
-      padding: 0.75rem 1rem;
-      border-radius: 0.25rem;
-      margin-bottom: 0.75rem;
-    }
-    .form-section-title {
-      font-size: 0.8rem;
-      font-weight: 600;
+    .issue-section:last-child { border-bottom: none; }
+    .issue-section-title {
+      font-size: 0.7rem;
+      font-weight: 700;
       color: #495057;
-      margin-bottom: 0.5rem;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.3px;
+      margin-bottom: 0.4rem;
     }
-    .activity-card {
-      border-left: 3px solid #007bff;
-      margin-bottom: 0.5rem;
-      font-size: 0.875rem;
+    .notes-collapsed {
+      max-height: 3em;
+      overflow: hidden;
+      position: relative;
     }
-    .activity-card .card-body {
-      padding: 0.5rem 0.75rem;
+    .notes-collapsed::after {
+      content: "";
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 1.5em;
+      background: linear-gradient(transparent, #fffef5);
     }
-    .activity-card .card-header {
-      padding: 0.35rem 0.75rem;
+    .notes-toggle {
+      cursor: pointer;
+      font-size: 0.75rem;
+      color: #6c757d;
+      text-decoration: underline;
     }
-    .debt-alert {
+    .notes-toggle:hover { color: #495057; }
+    .notes-box {
+      background-color: #fffef5;
+      border-left: 3px solid #e0d9a8;
+      padding: 0.4rem 0.6rem;
+      font-size: 0.85rem;
+      line-height: 1.4;
+    }
+    .debt-bar {
       background-color: #fff3cd;
-      border: 1px solid #ffeaa7;
-      border-radius: 0.25rem;
-      padding: 0.5rem 0.75rem;
+      border: 1px solid #ede2a7;
+      padding: 0.35rem 0.75rem;
+      font-size: 0.85rem;
     }
+    .form-group { margin-bottom: 0.4rem; }
+    .form-group label { font-size: 0.75rem; margin-bottom: 0.1rem; font-weight: 600; }
+    .form-control { font-size: 0.85rem; padding: 0.25rem 0.5rem; height: auto; }
+    textarea.form-control { min-height: 40px; resize: vertical; }
+    #id_progress { min-height: 90px; overflow-y: hidden; }
+    #id_answer_2 { min-height: 44px; overflow-y: hidden; }
+    a.btn-primary, .button.btn-primary { color: #fff !important; }
+    .choices { margin-bottom: 0; }
+    .choices .choices__inner { min-height: auto; padding: 0.25rem 0.5rem; font-size: 0.85rem; border-color: #ced4da; }
+    .choices .choices__list--single { padding: 0; }
+    .choices .choices__item { font-size: 0.85rem; }
+    .card { margin-bottom: 0.5rem; }
+    .compact-info { font-size: 0.8rem; }
+    .compact-info a { color: #495057; }
+    .compact-info a:hover { color: #007bff; }
   </style>
 {% endblock %}
 
@@ -114,6 +130,39 @@
     if (initialResolutionValue) {
       $resolutionSelect.val(initialResolutionValue);
     }
+
+    // Auto-expand progress and answer_2 textareas
+    function autoResize(el, minHeight) {
+      el.style.height = 'auto';
+      el.style.height = Math.max(minHeight, el.scrollHeight) + 'px';
+    }
+    var $progress = document.getElementById('id_progress');
+    if ($progress) {
+      $progress.addEventListener('input', function() { autoResize(this, 90); });
+      autoResize($progress, 90);
+    }
+    var $answer2 = document.getElementById('id_answer_2');
+    if ($answer2) {
+      $answer2.addEventListener('input', function() { autoResize(this, 44); });
+      autoResize($answer2, 44);
+    }
+
+    // Collapsible notes with hidden line count
+    var $notesContent = $('#notes-content');
+    if ($notesContent.length && $notesContent.prop('scrollHeight') > $notesContent.outerHeight() + 5) {
+      // Count total lines vs visible (~1.4em line-height, 3em max = ~2 visible lines)
+      var totalLines = Math.round($notesContent.prop('scrollHeight') / (parseFloat($notesContent.css('line-height')) || 19));
+      var visibleLines = 2;
+      var hiddenLines = Math.max(0, totalLines - visibleLines);
+      var showMoreText = '{% trans "Show more" %}' + (hiddenLines > 0 ? ' (' + hiddenLines + ' {% trans "lines hidden" %})' : '') + ' ▼';
+      var collapseText = '{% trans "Collapse" %} ▲';
+      $('#notes-toggle').text(showMoreText).show();
+    }
+    $('#notes-toggle').on('click', function() {
+      $notesContent.toggleClass('notes-collapsed');
+      var expanded = !$notesContent.hasClass('notes-collapsed');
+      $(this).text(expanded ? collapseText : showMoreText);
+    });
   });
   </script>
 {% endblock %}
@@ -121,352 +170,236 @@
 {% block content %}
   <section class="content">
     <div class="container-fluid">
-      <div class="row">
-        <!-- Left column: Details + Form -->
-        <div class="col-lg-8">
 
-          <!-- Issue Details Card -->
-          <div class="card shadow-sm">
-            <div class="card-header bg-white py-2 px-3 d-flex justify-content-between align-items-center">
-              <h5 class="mb-0">
-                <i class="fas fa-info-circle text-primary mr-1"></i>
-                {% trans "Issue details" %}
-              </h5>
-              <div class="d-flex align-items-center flex-wrap" style="gap: 0.4rem;">
-                <span class="text-muted" style="font-size: 0.8rem;">{% trans "Category" %}:</span>
-                <span class="badge badge-pill badge-secondary" style="font-size: 0.85rem; padding: 0.35em 0.75em;">{{ issue.get_category }}</span>
-                <span class="text-muted" style="font-size: 0.8rem;">{% trans "Subcategory" %}:</span>
-                <span class="badge badge-pill badge-info" style="font-size: 0.85rem; padding: 0.35em 0.75em;">{{ issue.get_subcategory }}</span>
-                {% if issue.status %}
-                  <span class="text-muted" style="font-size: 0.8rem;">{% trans "Status" %}:</span>
-                  <span class="badge badge-pill badge-primary" style="font-size: 0.85rem; padding: 0.35em 0.75em;">{{ issue.status }}</span>
-                {% endif %}
+      <!-- Header bar: badges -->
+      <div class="card mb-1">
+        <div class="card-body py-2 px-3 d-flex justify-content-between align-items-center">
+          <span class="font-weight-bold" style="font-size: 0.85rem;">
+            {% trans "Issue details" %}
+          </span>
+          <div class="d-flex align-items-center" style="gap: 0.5rem;">
+            <span class="text-muted" style="font-size: 0.75rem;">{% trans "Category" %}:</span>
+            <span class="badge badge-dark" style="font-size: 0.8rem;">{{ issue.get_category }}</span>
+            <span class="text-muted" style="font-size: 0.75rem;">{% trans "Subcategory" %}:</span>
+            <span class="badge badge-secondary" style="font-size: 0.8rem;">{{ issue.get_subcategory }}</span>
+            {% if issue.status %}
+              <span class="text-muted" style="font-size: 0.75rem;">{% trans "Status" %}:</span>
+              <span class="badge badge-dark" style="font-size: 0.8rem;">{{ issue.status }}</span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Debt alert (invoicing issues only) -->
+      {% if issue.category == "I" %}
+        {% if issue.contact.get_debt %}
+          <div class="debt-bar d-flex align-items-center justify-content-between mb-1 rounded">
+            <span>
+              <strong>{% trans "Debt" %}:</strong> ${{ issue.contact.get_debt }}
+              ({{ issue.contact.expired_invoices_count }} {% trans "overdue invoices" %})
+            </span>
+            <a href="{% url "contact_detail" issue.contact.id %}#invoices"
+               target="_blank"
+               class="btn btn-outline-dark btn-sm"
+               style="font-size: 0.75rem;">
+              {% trans "View invoices" %} ({% trans "new tab" %})
+            </a>
+          </div>
+        {% else %}
+          <div class="text-muted mb-1" style="font-size: 0.8rem;">
+            ✓ {% trans "This contact doesn't have a debt" %}
+          </div>
+        {% endif %}
+      {% endif %}
+
+      <!-- Main form -->
+      <div class="card">
+        <div class="card-body py-2 px-3">
+          <form method="post">
+            {% csrf_token %}
+            <div class="d-none">{{ form.contact }}</div>
+
+            <!-- Classification -->
+            <div class="issue-section">
+              <div class="issue-section-title">{% trans "Classification" %}</div>
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="form-group">
+                    <label>{{ form.sub_category.label }}</label>
+                    {{ form.sub_category }}
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="form-group">
+                    <label>{{ form.resolution.label }}</label>
+                    {{ form.resolution }}
+                  </div>
+                </div>
               </div>
             </div>
-            <div class="card-body py-2 px-3">
-              <!-- Contact & dates row -->
+
+            <!-- Status & Assignment -->
+            <div class="issue-section">
+              <div class="issue-section-title">{% trans "Status & Assignment" %}</div>
               <div class="row">
-                <div class="col-md-4">
-                  <div class="issue-detail-label">{% trans "Contact" %}</div>
-                  <div class="issue-detail-value">
-                    <a href="{% url "contact_detail" issue.contact.id %}">
-                      <i class="fas fa-user mr-1"></i>{{ issue.contact }}
-                    </a>
-                    {% if not has_active_subscription %}
-                      <span class="badge badge-warning ml-1">{% trans "Inactive" %}</span>
-                    {% endif %}
+                <div class="col-md-3">
+                  <div class="form-group">
+                    <label>{{ form.status.label }}</label>
+                    {{ form.status }}
                   </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="form-group">
+                    <label>{{ form.assigned_to.label }}</label>
+                    {{ form.assigned_to }}
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="form-group">
+                    <label>{{ form.next_action_date.label }}</label>
+                    {{ form.next_action_date }}
+                  </div>
+                </div>
+                {% if issue.category == "S" or issue.category == "L" %}
+                  <div class="col-md-1">
+                    <div class="form-group">
+                      <label>{{ form.copies.label }}</label>
+                      {{ form.copies }}
+                    </div>
+                  </div>
+                {% endif %}
+                <div class="col-md-{% if issue.category == 'S' or issue.category == 'L' %}1{% else %}2{% endif %}">
+                  <div class="form-group">
+                    <label>{{ form.envelope.label }}</label>
+                    <div class="form-check">
+                      {{ form.envelope }}
+                      <label class="form-check-label" style="font-weight: normal;">{% trans "Add" %}</label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Progress notes -->
+            <div class="issue-section">
+              <div class="issue-section-title">{% trans "Progress notes" %}</div>
+              <div class="form-group">
+                <label>{{ form.progress.label }}</label>
+                {{ form.progress }}
+              </div>
+            </div>
+
+            <!-- Answers (same visual weight, aligned) -->
+            <div class="issue-section">
+              <div class="row align-items-start">
+                <div class="col-md-4">
+                  <div class="form-group">
+                    <label>{{ form.answer_1.label }}</label>
+                    {{ form.answer_1 }}
+                  </div>
+                </div>
+                <div class="col-md-8">
+                  <div class="form-group">
+                    <label>{{ form.answer_2.label }}</label>
+                    {{ form.answer_2 }}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Contact info (compact, below form) -->
+            <div class="issue-section compact-info">
+              <div class="row">
+                <div class="col-md-3">
+                  <span class="issue-label">{% trans "Contact" %}</span><br>
+                  <a href="{% url "contact_detail" issue.contact.id %}">{{ issue.contact }}</a>
+                  {% if not has_active_subscription %}
+                    <span class="badge badge-warning" style="font-size: 0.65rem;">{% trans "Inactive" %}</span>
+                  {% endif %}
                 </div>
                 <div class="col-md-2">
-                  <div class="issue-detail-label">{% trans "Start date" %}</div>
-                  <div class="issue-detail-value">{{ issue.date_created|date:"SHORT_DATE_FORMAT" }}</div>
+                  <span class="issue-label">{% trans "Start date" %}</span><br>
+                  {{ issue.date_created|date:"SHORT_DATE_FORMAT" }}
                 </div>
                 <div class="col-md-3">
-                  <div class="issue-detail-label">{% trans "Phone" %}</div>
-                  <div class="issue-detail-value">
-                    <i class="fas fa-phone fa-sm mr-1 text-muted"></i>{{ issue.contact.phone|sip }}
-                    {% if issue.contact.mobile %}
-                      <br><i class="fas fa-mobile-alt fa-sm mr-1 text-muted"></i>{{ issue.contact.mobile|sip }}
-                    {% endif %}
-                  </div>
+                  <span class="issue-label">{% trans "Phone" %}</span><br>
+                  {{ issue.contact.phone|sip }}
+                  {% if issue.contact.mobile %}
+                    · {{ issue.contact.mobile|sip }}
+                  {% endif %}
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-2">
                   {% if issue.manager %}
-                    <div class="issue-detail-label">{% trans "Created by" %}</div>
-                    <div class="issue-detail-value">
-                      {% if issue.manager.get_full_name %}
-                        {{ issue.manager.get_full_name }} ({{ issue.manager.username }})
-                      {% else %}
-                        {{ issue.manager.username }}
-                      {% endif %}
-                    </div>
+                    <span class="issue-label">{% trans "Created by" %}</span><br>
+                    {% if issue.manager.get_full_name %}
+                      {{ issue.manager.get_full_name }} ({{ issue.manager.username }})
+                    {% else %}
+                      {{ issue.manager.username }}
+                    {% endif %}
+                  {% endif %}
+                </div>
+                <div class="col-md-2">
+                  {% if issue.subscription_product %}
+                    <span class="issue-label">{% trans "Product" %}</span><br>
+                    {{ issue.subscription_product.product }}
+                  {% elif issue.product %}
+                    <span class="issue-label">{% trans "Product" %}</span><br>
+                    {{ issue.product }}
                   {% endif %}
                 </div>
               </div>
-
-              <!-- Related items row (compact) -->
-              {% if issue.subscription_product or issue.product or issue.address or issue.subscription %}
-                <div class="row border-top pt-2 mt-1">
-                  {% if issue.subscription_product %}
-                    <div class="col-md-4">
-                      <div class="issue-detail-label">{% trans "Subscription product" %}</div>
-                      <div class="issue-detail-value">
-                        {{ issue.subscription_product.product }}
-                        {% if issue.subscription_product.address %}
-                          <br><small class="text-muted"><i class="fas fa-map-marker-alt mr-1"></i>{{ issue.subscription_product.address }}</small>
-                        {% endif %}
-                        {% if issue.subscription_product.route %}
-                          <br><small class="text-muted"><i class="fas fa-route mr-1"></i>{{ issue.subscription_product.route }}</small>
-                        {% endif %}
-                      </div>
+              {% if issue.subscription_product.address or issue.address or issue.subscription %}
+                <div class="row mt-1">
+                  {% if issue.subscription_product.address %}
+                    <div class="col-md-5">
+                      <span class="issue-label">{% trans "Address" %}</span><br>
+                      {{ issue.subscription_product.address }}
+                      {% if issue.subscription_product.route %}
+                        <small class="text-muted">({{ issue.subscription_product.route }})</small>
+                      {% endif %}
                     </div>
-                  {% endif %}
-                  {% if issue.product %}
-                    <div class="col-md-4">
-                      <div class="issue-detail-label">{% trans "Product" %}</div>
-                      <div class="issue-detail-value">{{ issue.product }}</div>
-                    </div>
-                  {% endif %}
-                  {% if issue.address %}
-                    <div class="col-md-4">
-                      <div class="issue-detail-label">{% trans "Address" %}</div>
-                      <div class="issue-detail-value">{{ issue.address }}</div>
+                  {% elif issue.address %}
+                    <div class="col-md-5">
+                      <span class="issue-label">{% trans "Address" %}</span><br>
+                      {{ issue.address }}
                     </div>
                   {% endif %}
                   {% if issue.subscription %}
                     <div class="col-md-4">
-                      <div class="issue-detail-label">{% trans "Subscription" %}</div>
-                      <div class="issue-detail-value">{{ issue.subscription }}</div>
+                      <span class="issue-label">{% trans "Subscription" %}</span><br>
+                      {{ issue.subscription }}
                     </div>
                   {% endif %}
                 </div>
               {% endif %}
+            </div>
 
-              <!-- Debt info for invoicing issues -->
-              {% if issue.category == "I" %}
-                <div class="border-top pt-2 mt-1">
-                  {% if issue.contact.get_debt %}
-                    <div class="debt-alert d-flex align-items-center justify-content-between">
-                      <span>
-                        <i class="fas fa-exclamation-triangle text-danger mr-1"></i>
-                        <strong>{% trans "Debt" %}:</strong> ${{ issue.contact.get_debt }}
-                        ({{ issue.contact.expired_invoices_count }} {% trans "overdue invoices" %})
-                      </span>
-                      <a href="{% url "contact_detail" issue.contact.id %}#invoices"
-                         target="_blank"
-                         class="btn btn-outline-primary btn-sm">
-                        <i class="fas fa-external-link-alt mr-1"></i>
-                        {% trans "View invoices" %}
-                        <small class="text-muted ml-1">({% trans "new tab" %})</small>
-                      </a>
-                    </div>
-                  {% else %}
-                    <div class="d-flex align-items-center text-success">
-                      <i class="fas fa-check-circle mr-1"></i>
-                      {% trans "This contact doesn't have a debt" %}
-                    </div>
-                  {% endif %}
-                </div>
-              {% endif %}
-
-              <!-- Notes section - prominent -->
-              <div class="border-top pt-2 mt-1">
-                <div class="issue-detail-label">
-                  <i class="fas fa-sticky-note mr-1"></i>{% trans "Notes" %}
-                </div>
-                <div class="issue-notes-box">
-                  {% if issue.notes %}
+            <!-- Notes (collapsible) -->
+            <div class="issue-section">
+              <span class="issue-label">{% trans "Notes" %}</span>
+              {% if issue.notes %}
+                <div class="notes-box mt-1">
+                  <div id="notes-content" class="notes-collapsed">
                     {{ issue.notes|linebreaks }}
-                  {% else %}
-                    <span class="text-muted">-</span>
-                  {% endif %}
+                  </div>
                 </div>
-              </div>
+                <span id="notes-toggle" class="notes-toggle" style="display:none;">{% trans "Show more" %} ▼</span>
+              {% else %}
+                <span class="text-muted ml-2">-</span>
+              {% endif %}
             </div>
-          </div>
 
-          <!-- Progress/Edit Form Card -->
-          <div class="card shadow-sm">
-            <div class="card-header bg-white py-2 px-3">
-              <h5 class="mb-0">
-                <i class="fas fa-edit text-primary mr-1"></i>
-                {% trans "Progress" %}
-              </h5>
+            <!-- Submit -->
+            <div class="d-flex justify-content-end align-items-center pt-2">
+              {% block issue_additional_actions %}{% endblock %}
+              <button type="submit" name="submit" class="btn btn-primary btn-sm ml-2">
+                {% trans "Update" %}
+              </button>
             </div>
-            <div class="card-body py-2 px-3">
-              <form method="post">
-                {% csrf_token %}
-                <div class="form-group d-none">
-                  {{ form.contact }}
-                </div>
-
-                <!-- Status & Assignment row (most important - at the top) -->
-                <div class="form-section">
-                  <div class="form-section-title">
-                    <i class="fas fa-user-check mr-1"></i>
-                    {% trans "Status & Assignment" %}
-                  </div>
-                  <div class="row">
-                    <div class="col-md-3">
-                      <div class="form-group mb-2">
-                        <label for="id_status">{{ form.status.label }}</label>
-                        {{ form.status }}
-                      </div>
-                    </div>
-                    <div class="col-md-4">
-                      <div class="form-group mb-2">
-                        <label for="id_assigned_to">{{ form.assigned_to.label }}</label>
-                        {{ form.assigned_to }}
-                      </div>
-                    </div>
-                    <div class="col-md-3">
-                      <div class="form-group mb-2">
-                        <label for="id_next_action_date">{{ form.next_action_date.label }}</label>
-                        {{ form.next_action_date }}
-                      </div>
-                    </div>
-                    {% if issue.category == "S" or issue.category == "L" %}
-                      <div class="col-md-1">
-                        <div class="form-group mb-2">
-                          <label for="id_copies">{{ form.copies.label }}</label>
-                          {{ form.copies }}
-                        </div>
-                      </div>
-                    {% endif %}
-                    <div class="col-md-{% if issue.category == 'S' or issue.category == 'L' %}1{% else %}2{% endif %}">
-                      <div class="form-group mb-2">
-                        <label for="id_envelope">{{ form.envelope.label }}</label>
-                        <div class="form-check mt-1">
-                          {{ form.envelope }}
-                          <label class="form-check-label">{% trans "Add" %}</label>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Category & Resolution row -->
-                <div class="form-section">
-                  <div class="form-section-title">
-                    <i class="fas fa-tag mr-1"></i>
-                    {% trans "Classification" %}
-                  </div>
-                  <div class="row">
-                    <div class="col-md-6">
-                      <div class="form-group mb-2">
-                        <label for="id_sub_category">{{ form.sub_category.label }}</label>
-                        {{ form.sub_category }}
-                      </div>
-                    </div>
-                    <div class="col-md-6">
-                      <div class="form-group mb-2">
-                        <label for="id_resolution">{{ form.resolution.label }}</label>
-                        {{ form.resolution }}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Progress notes -->
-                <div class="form-section">
-                  <div class="form-section-title">
-                    <i class="fas fa-clipboard mr-1"></i>
-                    {% trans "Progress notes" %}
-                  </div>
-                  <div class="form-group mb-2">
-                    <label for="id_progress">{{ form.progress.label }}</label>
-                    {{ form.progress }}
-                  </div>
-                  <div class="row">
-                    <div class="col-md-6">
-                      <div class="form-group mb-2">
-                        <label for="id_answer_1">{{ form.answer_1.label }}</label>
-                        {{ form.answer_1 }}
-                      </div>
-                    </div>
-                    <div class="col-md-6">
-                      <div class="form-group mb-2">
-                        <label for="id_answer_2">{{ form.answer_2.label }}</label>
-                        {{ form.answer_2 }}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Submit -->
-                <div class="d-flex justify-content-end align-items-center pt-2">
-                  {% block issue_additional_actions %}{% endblock %}
-                  <button type="submit" name="submit" class="btn btn-primary ml-2">
-                    <i class="fas fa-save mr-1"></i>
-                    {% trans "Update" %}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-
-        <!-- Right column: Activities sidebar -->
-        <div class="col-lg-4">
-          <div class="card shadow-sm">
-            <div class="card-header bg-white py-2 px-3 d-flex justify-content-between align-items-center">
-              <h5 class="mb-0">
-                <i class="fas fa-history text-primary mr-1"></i>
-                {% trans "Activities" %}
-              </h5>
-              <a href="#activity_modal"
-                 data-toggle="modal"
-                 data-target="#activity_modal"
-                 class="btn btn-success btn-sm">
-                <i class="fas fa-plus mr-1"></i>{% trans "Register" %}
-              </a>
-            </div>
-            <div class="card-body py-2 px-2" style="max-height: 600px; overflow-y: auto;">
-              {% for a in activities %}
-                <div class="card activity-card">
-                  <div class="card-header bg-light py-1 d-flex justify-content-between align-items-center">
-                    <span>
-                      <i class="fas fa-{% if a.direction == 'I' %}sign-in-alt text-success{% else %}sign-out-alt text-info{% endif %} mr-1"></i>
-                      <strong>{{ a.get_type_display }}</strong>
-                    </span>
-                    <span class="badge badge-{% if a.status == 'C' %}success{% elif a.status == 'P' %}warning{% else %}secondary{% endif %}">
-                      {{ a.get_status }}
-                    </span>
-                  </div>
-                  <div class="card-body">
-                    {% if a.datetime %}
-                      <small class="text-muted">
-                        <i class="far fa-clock mr-1"></i>{{ a.datetime|date:"SHORT_DATETIME_FORMAT" }}
-                      </small>
-                    {% endif %}
-                    {% if a.notes %}
-                      <div class="mt-1">{{ a.notes|default_if_none:"" }}</div>
-                    {% endif %}
-                  </div>
-                </div>
-              {% empty %}
-                <div class="text-center text-muted py-3">
-                  <i class="fas fa-inbox fa-2x mb-2 d-block"></i>
-                  {% trans "No activities registered" %}
-                </div>
-              {% endfor %}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Activity Modal -->
-  <div id="activity_modal" class="modal" tabindex="-1" role="dialog">
-    <div class="modal-dialog" role="document">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">
-            <i class="fas fa-plus-circle mr-1"></i>
-            {% trans "Register activity" %}
-          </h5>
-          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-            <span aria-hidden="true">&times;</span>
-          </button>
-        </div>
-        <div class="modal-body">
-          <form method="post"
-                id="activity_form"
-                action='{% url "register_activity" %}?issue_id={{ issue.id }}'>
-            {% csrf_token %}
-            {{ activity_form.as_p }}
-            {% if request.user|in_group:"Managers" or request.user|in_group:"Support" or request.user|in_group:"Logistics" or request.user|in_group:"Finances" %}
-              <div class="form-group text-right">
-                <input id="submit_address"
-                       type="submit"
-                       value="{% trans "Send" %}"
-                       class="btn btn-primary">
-              </div>
-            {% endif %}
           </form>
         </div>
       </div>
+
     </div>
-  </div>
+  </section>
 {% endblock %}
