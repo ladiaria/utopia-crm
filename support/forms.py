@@ -387,6 +387,16 @@ class NewSubscriptionForm(EmailValidationForm, forms.ModelForm):
                 )
 
 
+class UserFullNameChoiceField(forms.ModelChoiceField):
+    """ModelChoiceField that displays users as 'Full Name (username)'"""
+
+    def label_from_instance(self, obj):
+        full_name = obj.get_full_name()
+        if full_name:
+            return f"{full_name} ({obj.username})"
+        return obj.username
+
+
 class IssueStartForm(forms.ModelForm):
     """
     Used when you want to start an issue to track logistics, what used to be 'Claims
@@ -439,7 +449,7 @@ class IssueStartForm(forms.ModelForm):
         queryset=IssueStatus.objects.all(),
         widget=forms.Select(attrs={"class": "form-control"}),
     )
-    assigned_to = forms.ModelChoiceField(
+    assigned_to = UserFullNameChoiceField(
         label=_("Assigned to"),
         required=False,
         queryset=User.objects.filter(is_staff=True).order_by('username'),
@@ -479,16 +489,14 @@ class IssueStartForm(forms.ModelForm):
         widget=forms.Select(attrs={"class": "form-control"}),
     )
     resolution = forms.ModelChoiceField(
-        required=False,
-        queryset=None,
-        widget=forms.Select(attrs={"class": "form-control"}),
-        label=_("Resolution")
+        required=False, queryset=None, widget=forms.Select(attrs={"class": "form-control"}), label=_("Resolution")
     )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Initialize resolution queryset as empty - will be filtered by JavaScript
         from .models import IssueResolution
+
         self.fields['resolution'].queryset = IssueResolution.objects.all()
 
     def clean(self):
@@ -536,34 +544,41 @@ class IssueChangeForm(forms.ModelForm):
     """
 
     sub_category = forms.ModelChoiceField(
-        required=False, queryset=IssueSubcategory.objects.all(), widget=forms.Select(attrs={"class": "form-control"})
+        label=_("Subcategory"),
+        required=False,
+        queryset=IssueSubcategory.objects.all(),
+        widget=forms.Select(attrs={"class": "form-control"}),
     )
     contact = forms.ModelChoiceField(queryset=Contact.objects, widget=forms.TextInput)
     next_action_date = forms.DateField(
+        label=_("Next action date"),
         required=False,
-        widget=forms.DateInput(format="%Y-%m-%d", attrs={"class": "datepicker form-control", "autocomplete": "off"}),
+        widget=forms.DateInput(format="%Y-%m-%d", attrs={"class": "form-control", "type": "date"}),
     )
     resolution = forms.ModelChoiceField(
+        required=False, queryset=None, widget=forms.Select(attrs={"class": "form-control"}), label=_("Resolution")
+    )
+    assigned_to = UserFullNameChoiceField(
+        label=_("Assigned to"),
         required=False,
-        queryset=None,
+        queryset=User.objects.filter(is_staff=True).order_by('username'),
         widget=forms.Select(attrs={"class": "form-control"}),
-        label=_("Resolution")
     )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Initialize resolution queryset as empty - will be filtered by JavaScript
         from .models import IssueResolution
+
         self.fields['resolution'].queryset = IssueResolution.objects.all()
 
     class Meta:
         model = Issue
         widgets = {
             "contact": forms.Textarea(attrs={"class": "form-control"}),
-            "progress": forms.Textarea(attrs={"class": "form-control"}),
-            "assigned_to": forms.Select(attrs={"class": "form-control"}),
+            "progress": forms.Textarea(attrs={"class": "form-control", "rows": 4}),
             "answer_1": forms.Select(attrs={"class": "form-control"}),
-            "answer_2": forms.Textarea(attrs={"class": "form-control"}),
+            "answer_2": forms.Textarea(attrs={"class": "form-control", "rows": 2}),
             "status": forms.Select(attrs={"class": "form-control"}),
             "envelope": forms.CheckboxInput(attrs={"class": "form-check-input"}),
             "copies": forms.TextInput(attrs={"class": "form-control"}),
@@ -590,36 +605,44 @@ class InvoicingIssueChangeForm(forms.ModelForm):
     """
 
     sub_category = forms.ModelChoiceField(
+        label=_("Subcategory"),
         required=False,
         queryset=IssueSubcategory.objects.filter(category='I'),
         widget=forms.Select(attrs={"class": "form-control"}),
     )
     contact = forms.ModelChoiceField(queryset=Contact.objects, widget=forms.TextInput)
     next_action_date = forms.DateField(
+        label=_("Next action date"),
         required=False,
-        widget=forms.DateInput(format="%Y-%m-%d", attrs={"class": "datepicker form-control", "autocomplete": "off"}),
+        widget=forms.DateInput(format="%Y-%m-%d", attrs={"class": "form-control", "type": "date"}),
     )
     resolution = forms.ModelChoiceField(
+        label=_("Resolution"),
         required=False,
         queryset=None,
         widget=forms.Select(attrs={"class": "form-control"}),
-        label=_("Resolution")
+    )
+    assigned_to = UserFullNameChoiceField(
+        label=_("Assigned to"),
+        required=False,
+        queryset=User.objects.filter(is_staff=True).order_by('username'),
+        widget=forms.Select(attrs={"class": "form-control"}),
     )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Initialize resolution queryset as empty - will be filtered by JavaScript
         from .models import IssueResolution
+
         self.fields['resolution'].queryset = IssueResolution.objects.all()
 
     class Meta:
         model = Issue
         widgets = {
             "contact": forms.Textarea(attrs={"class": "form-control"}),
-            "progress": forms.Textarea(attrs={"class": "form-control"}),
-            "assigned_to": forms.Select(attrs={"class": "form-control"}),
+            "progress": forms.Textarea(attrs={"class": "form-control", "rows": 4}),
             "answer_1": forms.Select(attrs={"class": "form-control"}),
-            "answer_2": forms.Textarea(attrs={"class": "form-control"}),
+            "answer_2": forms.Textarea(attrs={"class": "form-control", "rows": 2}),
             "status": forms.Select(attrs={"class": "form-control"}),
             "envelope": forms.CheckboxInput(attrs={"class": "form-check-input"}),
             "resolution": forms.Select(attrs={"class": "form-control"}),
@@ -654,6 +677,7 @@ class NewAddressForm(forms.Form):
     )
     address_notes = forms.CharField(required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
     address_type = forms.ChoiceField(
+        label=_("Address type"),
         required=False,
         choices=ADDRESS_TYPE_CHOICES,
         widget=forms.Select(attrs={"class": "form-control"}),
@@ -778,6 +802,7 @@ class AdditionalProductForm(forms.ModelForm):
 
 class RetentionDiscountForm(forms.ModelForm):
     """Form for adding retention discounts to a subscription"""
+
     start_date = forms.DateField(
         required=True,
         label=_("Start date for new subscription"),
@@ -947,6 +972,7 @@ class CheckForExistingContactsForm(forms.Form):
 
 class FreeSubscriptionForm(EmailValidationForm):
     """Form for creating and updating free subscriptions."""
+
     name = forms.CharField(label=_("Name"), widget=forms.TextInput(attrs={"class": "form-control"}))
     last_name = forms.CharField(
         label=_("Last name"), widget=forms.TextInput(attrs={"class": "form-control"}), required=False
@@ -999,9 +1025,10 @@ class FreeSubscriptionForm(EmailValidationForm):
 
         # Import here to avoid circular imports
         from core.choices import FreeSubscriptionRequestedBy
-        self.fields["free_subscription_requested_by"].choices = [
-            ("", "---------")
-        ] + list(FreeSubscriptionRequestedBy.choices)
+
+        self.fields["free_subscription_requested_by"].choices = [("", "---------")] + list(
+            FreeSubscriptionRequestedBy.choices
+        )
 
     def clean_email(self):
         """Validate that email is unique, excluding the current contact."""
@@ -1030,16 +1057,17 @@ class BulkDeleteCampaignStatusForm(forms.Form):
     Form for bulk deleting ContactCampaignStatus records.
     Allows uploading a CSV file with contact IDs and selecting a campaign.
     """
+
     csv_file = forms.FileField(
         label=_('CSV File'),
         help_text=_('Upload a CSV file with contact IDs. Expected column: contact_id, id, or similar.'),
-        widget=forms.FileInput(attrs={'accept': '.csv', 'class': 'form-control'})
+        widget=forms.FileInput(attrs={'accept': '.csv', 'class': 'form-control'}),
     )
     campaign = forms.ModelChoiceField(
         label=_('Campaign'),
         queryset=Campaign.objects.filter(active=True).order_by('-id'),
         widget=forms.Select(attrs={'class': 'form-control select2', 'style': 'width: 100%;'}),
-        help_text=_('Select the campaign to delete status records from')
+        help_text=_('Select the campaign to delete status records from'),
     )
 
     def clean_csv_file(self):

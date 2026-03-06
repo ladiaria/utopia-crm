@@ -1,6 +1,6 @@
 # Plan: short title  (Trello: t####)
 
-**Owner:** @tanyatree · **Status:** Active | Archived · **Updated:** 2025-10-13
+**Owner:** @johndoe · **Status:** Active | Archived · **Updated:** 2025-10-13
 
 ## Context
 
