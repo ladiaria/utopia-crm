@@ -86,6 +86,13 @@ class Command(BaseCommand):
             "EP",  # Error in promotion
         ),
         (
+            SellerConsoleAction.ACTION_TYPES.NOT_FOUND,
+            "not-found",
+            "No encontrado",
+            CAMPAIGN_STATUS.CALLED_COULD_NOT_CONTACT,
+            "NF",  # Not found - keeps contact in campaign
+        ),
+        (
             SellerConsoleAction.ACTION_TYPES.NO_CONTACT,
             "uncontactable",
             "No contactable",
