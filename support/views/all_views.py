@@ -1381,6 +1381,15 @@ class NewIssueView(BreadcrumbsMixin, CreateView):
                 direction="I",
             )
 
+        # Add success message with link to the created issue
+        issue_url = reverse('view_issue', args=[issue.id])
+        message = _('Issue <a href="{url}">#{issue_id}</a> created for contact {contact_name}').format(
+            url=issue_url,
+            issue_id=issue.id,
+            contact_name=self.contact.get_full_name()
+        )
+        messages.success(self.request, message, extra_tags='safe')
+
         return super().form_valid(form)
 
     def get_success_url(self):
@@ -1477,6 +1486,13 @@ class IssueDetailView(BreadcrumbsMixin, UpdateView):
                     # Set next_action_date to tomorrow
                     self.object.next_action_date = today + timedelta(days=1)
                     self.object.save(update_fields=['next_action_date'])
+
+        # Add success message for issue update
+        message = _('Issue #{issue_id} updated for contact {contact_name}').format(
+            issue_id=self.object.id,
+            contact_name=self.object.contact.get_full_name()
+        )
+        messages.success(self.request, message)
 
         return response
 
