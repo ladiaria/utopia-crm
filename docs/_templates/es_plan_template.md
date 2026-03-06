@@ -1,6 +1,6 @@
 # Plan: título corto  (Trello: t####)
 
-**Responsable:** @tanyatree · **Estado:** Activo | Archivado · **Actualizado:** 2025-10-13
+**Responsable:** @johndoe · **Estado:** Activo | Archivado · **Actualizado:** 2025-10-13
 
 ## Contexto
 
