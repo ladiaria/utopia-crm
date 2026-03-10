@@ -158,9 +158,40 @@ class InvoicingIssueFilter(IssueFilter):
     )
 
 
+ACTIVITY_DATE_CHOICES = (
+    ('past', _('Past (overdue)')),
+    ('today', _('Today')),
+    ('future', _('Future')),
+    ('past_and_today', _('Past + Today')),
+    ('today_and_future', _('Today + Future')),
+    ('custom', _('Custom')),
+)
+
+
 class ScheduledActivityFilter(django_filters.FilterSet):
+    campaign = django_filters.ModelChoiceFilter(
+        queryset=Campaign.objects.filter(active=True).order_by('name'),
+    )
     seller_console_action = django_filters.ModelChoiceFilter(
         queryset=SellerConsoleAction.objects.filter(is_active=True)
+    )
+    date_range = django_filters.ChoiceFilter(
+        choices=ACTIVITY_DATE_CHOICES,
+        method='filter_by_date_range',
+        label=_('Activity Date'),
+        widget=forms.HiddenInput(),
+    )
+    date_from = django_filters.DateFilter(
+        field_name='datetime',
+        lookup_expr='gte',
+        label=_('Date From'),
+        widget=forms.DateInput(attrs={'type': 'date'}),
+    )
+    date_to = django_filters.DateTimeFilter(
+        field_name='datetime',
+        lookup_expr='lte',
+        label=_('Date To'),
+        widget=forms.DateInput(attrs={'type': 'date'}),
     )
     # Add date range filters for the subscription end date
     # These will be used in the view to filter activities after they've been annotated
@@ -174,6 +205,20 @@ class ScheduledActivityFilter(django_filters.FilterSet):
         widget=forms.DateInput(attrs={'type': 'date'}),
         method='filter_subscription_end_date_max',
     )
+
+    def filter_by_date_range(self, queryset, name, value):
+        today = date.today()
+        if value == 'past':
+            return queryset.filter(datetime__date__lt=today)
+        elif value == 'today':
+            return queryset.filter(datetime__date=today)
+        elif value == 'future':
+            return queryset.filter(datetime__date__gt=today)
+        elif value == 'past_and_today':
+            return queryset.filter(datetime__date__lte=today)
+        elif value == 'today_and_future':
+            return queryset.filter(datetime__date__gte=today)
+        return queryset
 
     def filter_subscription_end_date_min(self, queryset, name, value):
         # This is a placeholder method - actual filtering happens in the view

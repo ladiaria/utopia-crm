@@ -370,6 +370,25 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
         # If the ACTION_TYPE was DECLINED, we won't create a new activity
         if seller_console_action.action_type == SellerConsoleAction.ACTION_TYPES.DECLINED:
             return
+
+        # For CALL_LATER and NOT_FOUND in "act" mode, always create a new pending activity so the contact
+        # stays in the "act" queue. For other cases, only create future activities if the setting is enabled.
+        if seller_console_action.action_type in (
+            SellerConsoleAction.ACTION_TYPES.CALL_LATER,
+            SellerConsoleAction.ACTION_TYPES.NOT_FOUND,
+        ) and category == "act":
+            Activity.objects.create(
+                contact=contact,
+                activity_type="C",  # Call
+                datetime=datetime.now() + timedelta(days=getattr(settings, "SELLER_CONSOLE_CALL_LATER_DAYS", 1)),
+                campaign=campaign,
+                seller=seller,
+                status="P",  # Pending
+                seller_console_action=seller_console_action,
+                notes="",
+            )
+            return
+
         # If we're using the setting to keep contacts in campaigns indefinitely, we'll need to set the datetime
         # to a future date, otherwise we'll use the current date and set this as closed. Anyways we'll mark the
         # current activity as closed and create a new one with the future datetime.
@@ -435,8 +454,16 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
             activity.notes = data.get("notes")
             activity.status = ACTIVITY_STATUS.COMPLETED
             activity.datetime = datetime.now()  # Set the datetime to the current time
+            activity.seller_console_action = seller_console_action
             activity.save()
-            if getattr(settings, "KEEP_CONTACTS_IN_CAMPAIGNS_INDEFINITELY", False):
+            # For CALL_LATER and NOT_FOUND, always create a new pending activity so the contact
+            # stays in the "act" queue instead of falling back to "new".
+            if seller_console_action.action_type in (
+                SellerConsoleAction.ACTION_TYPES.CALL_LATER,
+                SellerConsoleAction.ACTION_TYPES.NOT_FOUND,
+            ):
+                self.register_new_activity(instance_id, category, campaign, seller, notes, result)
+            elif getattr(settings, "KEEP_CONTACTS_IN_CAMPAIGNS_INDEFINITELY", False):
                 # This is only here so that we can register a new activity if the setting is enabled
                 self.register_new_activity(instance_id, category, campaign, seller, notes, result)
         else:  # category == "new"
@@ -481,9 +508,12 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
 
         messages.success(self.request, success_msg_html, extra_tags='safe')
 
-        # Convert offset to int and increment it only for "Call later" result
+        # Convert offset to int and increment it for "Call later" and "Not found" results
         try:
-            if seller_console_action.action_type == SellerConsoleAction.ACTION_TYPES.CALL_LATER:
+            if seller_console_action.action_type in (
+                SellerConsoleAction.ACTION_TYPES.CALL_LATER,
+                SellerConsoleAction.ACTION_TYPES.NOT_FOUND,
+            ):
                 offset = int(offset) + 1
         except (TypeError, ValueError):
             offset = 2  # If offset is None or invalid, start at 2 (next item)
@@ -538,6 +568,22 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
         # Get phone duplicate information
         phone_duplicates_info = self.get_phone_duplicates_info(contact)
 
+        # Get the datetime of the last console action (if any) for the badge display.
+        # For "new" mode, console_instance is a ContactCampaignStatus with last_console_action.
+        # For "act" mode, console_instance is an Activity with seller_console_action.
+        last_action_datetime = None
+        console_action = getattr(console_instance, 'last_console_action', None) or getattr(
+            console_instance, 'seller_console_action', None
+        )
+        if console_action:
+            last_action_activity = Activity.objects.filter(
+                contact=contact,
+                campaign=campaign,
+                seller_console_action=console_action,
+            ).order_by('-datetime').first()
+            if last_action_activity:
+                last_action_datetime = last_action_activity.datetime
+
         context.update(
             {
                 'campaign': campaign,
@@ -563,6 +609,7 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
                 'other_campaigns': ContactCampaignStatus.objects.filter(contact=contact).exclude(campaign=campaign),
                 'phone_duplicates_count': phone_duplicates_info['count'],
                 'phone_duplicates': phone_duplicates_info['contacts'],
+                'last_action_datetime': last_action_datetime,
             }
         )
         return context
@@ -673,14 +720,14 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
         """
         category = self.kwargs['category']
         if category == "new":
-            return campaign.get_not_contacted(seller.id)
+            return campaign.get_not_contacted(seller.id).select_related('last_console_action')
         if getattr(settings, "ALLOW_ACCESSING_FUTURE_ACTIVITIES_IN_SELLER_CONSOLE", False):
-            return campaign.activity_set.filter(activity_type="C", seller=seller, status="P").order_by(
-                "datetime", "id"
-            )
+            return campaign.activity_set.filter(
+                activity_type="C", seller=seller, status="P"
+            ).select_related('seller_console_action').order_by("datetime", "id")
         return campaign.activity_set.filter(
             activity_type="C", seller=seller, status="P", datetime__lte=datetime.now()
-        ).order_by("datetime", "id")
+        ).select_related('seller_console_action').order_by("datetime", "id")
 
     def post(self, request, *args, **kwargs):
         return self.handle_post_request()
