@@ -550,8 +550,19 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
         offset = int(offset) if offset else 1
         call_datetime = datetime.strftime(date.today() + timedelta(1), "%Y-%m-%d")
 
-        console_instances = self.get_console_instances(campaign, seller)
-        count = console_instances.count()
+        console_instances_qs = self.get_console_instances(campaign, seller)
+        count = console_instances_qs.count()
+
+        # Materialize and annotate each instance with a unified 'console_action' attribute so the
+        # template doesn't need to probe for model-specific fields. Accessing a non-existent
+        # attribute via |default crashes in production (DEBUG=False) with VariableDoesNotExist.
+        # In "new" mode instances are ContactCampaignStatus (has last_console_action).
+        # In "act" mode instances are Activity (has seller_console_action).
+        console_instances = list(console_instances_qs)
+        for inst in console_instances:
+            inst.console_action = getattr(inst, 'last_console_action', None) or getattr(
+                inst, 'seller_console_action', None
+            )
 
         # Get console instance based on activity_id or offset
         console_instance = self.get_console_instance(
@@ -569,12 +580,9 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
         phone_duplicates_info = self.get_phone_duplicates_info(contact)
 
         # Get the datetime of the last console action (if any) for the badge display.
-        # For "new" mode, console_instance is a ContactCampaignStatus with last_console_action.
-        # For "act" mode, console_instance is an Activity with seller_console_action.
+        # console_action is already set on console_instance by the annotation loop above.
         last_action_datetime = None
-        console_action = getattr(console_instance, 'last_console_action', None) or getattr(
-            console_instance, 'seller_console_action', None
-        )
+        console_action = console_instance.console_action
         if console_action:
             last_action_activity = Activity.objects.filter(
                 contact=contact,
@@ -664,7 +672,7 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
         Retrieve a single console instance based on an activity ID or offset.
 
         Args:
-            console_instances (QuerySet): The queryset of available console instances.
+            console_instances (list): The list of available console instances.
             activity_id (int): Optional. The ID of a specific activity to retrieve.
             count (int): The total number of console instances.
             offset (int): The current offset (1-based index) for navigating instances.
@@ -679,21 +687,21 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
             - Used mainly to show the seller the current contact to call.
         """
         if activity_id:
-            try:
-                activity = console_instances.get(pk=activity_id)
-                # Check if the contact is still in the campaign
-                campaign = activity.campaign
-                if not ContactCampaignStatus.objects.filter(campaign=campaign, contact=activity.contact).exists():
-                    # Contact is not in campaign anymore, delete the orphaned activity
-                    activity.delete()
-                    messages.warning(
-                        self.request, _("Activity was removed because the contact is no longer in the campaign")
-                    )
-                    return None
-                return activity
-            except Activity.DoesNotExist:
+            activity_id = int(activity_id)
+            activity = next((inst for inst in console_instances if inst.pk == activity_id), None)
+            if activity is None:
                 messages.error(self.request, _("An error has occurred with activity number {}".format(activity_id)))
                 return None
+            # Check if the contact is still in the campaign
+            campaign = activity.campaign
+            if not ContactCampaignStatus.objects.filter(campaign=campaign, contact=activity.contact).exists():
+                # Contact is not in campaign anymore, delete the orphaned activity
+                activity.delete()
+                messages.warning(
+                    self.request, _("Activity was removed because the contact is no longer in the campaign")
+                )
+                return None
+            return activity
 
         # Get item by offset (offset is 1-based, but list indexing is 0-based)
         index = offset - 1
