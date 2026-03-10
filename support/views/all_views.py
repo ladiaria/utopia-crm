@@ -2104,6 +2104,103 @@ class CampaignStatisticsDetailView(BreadcrumbsMixin, UserPassesTestMixin, Filter
         self.campaign = get_object_or_404(Campaign, pk=self.kwargs['campaign_id'])
         return self.campaign.contactcampaignstatus_set.all()
 
+    def get(self, request, *args, **kwargs):
+        if request.GET.get("export") == "csv":
+            return self.export_csv()
+        return super().get(request, *args, **kwargs)
+
+    def export_csv(self):
+        """Export filtered campaign statistics to CSV with optimized queries."""
+        # Get filtered queryset (applies same filters as the page view)
+        filterset = self.filterset_class(self.request.GET, queryset=self.get_queryset())
+        filtered_qs = filterset.qs
+
+        # Annotate activity count per contact-campaign
+        filtered_qs = filtered_qs.select_related(
+            'contact', 'seller', 'last_console_action'
+        ).annotate(
+            activity_count=Count(
+                'contact__activity',
+                filter=Q(contact__activity__campaign=self.campaign),
+            )
+        )
+
+        # Build a dict of contact_id -> subscription data for this campaign
+        # This avoids N+1 queries in the loop
+        campaign_subscriptions = Subscription.objects.filter(
+            campaign=self.campaign,
+        ).select_related('contact').prefetch_related(
+            Prefetch(
+                'subscriptionproduct_set',
+                queryset=SubscriptionProduct.objects.select_related('product'),
+            )
+        )
+
+        # Map contact_id -> (start_date, products_str)
+        subscription_data = {}
+        for sub in campaign_subscriptions:
+            products = ", ".join(
+                sp.product.name for sp in sub.subscriptionproduct_set.all() if sp.product
+            )
+            subscription_data[sub.contact_id] = {
+                "start_date": sub.start_date,
+                "products": products,
+            }
+
+        response = HttpResponse(content_type="text/csv")
+        response["Content-Disposition"] = (
+            'attachment; filename="campaign_{}_{}.csv"'.format(
+                self.campaign.id, date.today().strftime("%Y%m%d")
+            )
+        )
+
+        writer = csv.writer(response)
+        writer.writerow([
+            _("Contact ID"),
+            _("Contact name"),
+            _("Email"),
+            _("Phone"),
+            _("Mobile"),
+            _("Status"),
+            _("Campaign resolution"),
+            _("Resolution reason"),
+            _("Seller"),
+            _("Date assigned"),
+            _("Last action date"),
+            _("Date created"),
+            _("Times contacted"),
+            _("Activity count"),
+            _("Last console action"),
+            _("Subscription start date"),
+            _("Products sold"),
+        ])
+
+        for ccs in filtered_qs.iterator(chunk_size=1000):
+            contact = ccs.contact
+            sub_data = subscription_data.get(contact.id, {})
+
+            writer.writerow([
+                contact.id,
+                contact.get_full_name(),
+                contact.email or "",
+                str(contact.phone) if contact.phone else "",
+                str(contact.mobile) if contact.mobile else "",
+                ccs.get_status(),
+                ccs.get_campaign_resolution(),
+                ccs.get_resolution_reason(),
+                ccs.seller.name if ccs.seller else "",
+                ccs.date_assigned or "",
+                ccs.last_action_date or "",
+                ccs.date_created or "",
+                ccs.times_contacted,
+                ccs.activity_count,
+                ccs.last_console_action.name if ccs.last_console_action else "",
+                sub_data.get("start_date", ""),
+                sub_data.get("products", ""),
+            ])
+
+        return response
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
