@@ -103,7 +103,8 @@ class _Menu:
 
     def admin_apps(self, context, r):
         request = context['request']
-        for app in context['available_apps']:
+        available_apps = context.get('available_apps', [])
+        for app in available_apps:
             is_active = str(app['app_url']) in request.path
             active_class = ' active' if is_active else ''
             menu_open = ' menu-open' if is_active else ''
