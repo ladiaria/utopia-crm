@@ -945,7 +945,7 @@ def issues_labels(request):
 
 
 @login_required
-def route_details(request, route_list):
+def route_details(request, route_list, extra_context=None):
     """
     Shows details for a selected route.
     """
@@ -1097,6 +1097,7 @@ def route_details(request, route_list):
             "subscription_products_dict": subscription_products_dict,
             "deactivated_list": [],  # lista_desactivados,
             "current_url": current_url,
+            **(extra_context or {}),
         },
     )
 
