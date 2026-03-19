@@ -8,10 +8,17 @@
 {% endblock %}
 
 {% block title %}
-  {% trans "Route details" %} ({{ route_id }})
+  {% trans "List of routes" %}
 {% endblock title %}
 
 {% block content %}
+  <div style="margin-bottom: 1em;">
+    <form method="get" action="{{ current_url }}" class="form-inline" style="display: inline-flex; align-items: center; gap: 8px;">
+      <label for="date" style="font-weight: bold;">{% trans "Date" %}:</label>
+      <input type="date" id="date" name="date" value="{{ day|date:'Y-m-d' }}" class="form-control form-control-sm" style="width: auto;">
+      <button type="submit" class="btn btn-sm btn-primary"><i class="fas fa-search"></i> {% trans "Go" %}</button>
+    </form>
+  </div>
   <div style="margin-bottom: 2em; font-size: 1.2em; font-weight: bold;">
     {% trans "Date" %}: {{ day }}
     <br>
@@ -50,22 +57,22 @@
           <tr class="{% cycle 'row1' 'row2' %}">
             {% autoescape off %}
               <td>
-                {% if sp.subscription.has_monday %}*{% endif %}
+                {% if sp.sub_has_monday %}*{% endif %}
               </td>
               <td>
-                {% if sp.subscription.has_tuesday %}*{% endif %}
+                {% if sp.sub_has_tuesday %}*{% endif %}
               </td>
               <td>
-                {% if sp.subscription.has_wednesday %}*{% endif %}
+                {% if sp.sub_has_wednesday %}*{% endif %}
               </td>
               <td>
-                {% if sp.subscription.has_thursday %}*{% endif %}
+                {% if sp.sub_has_thursday %}*{% endif %}
               </td>
               <td>
-                {% if sp.subscription.has_friday %}*{% endif %}
+                {% if sp.sub_has_friday %}*{% endif %}
               </td>
               <td>
-                {% if sp.subscription.has_weekend %}
+                {% if sp.sub_has_weekend %}
                   {% trans "Yes" %}
                 {% else %}
                   {% trans "No" %}
