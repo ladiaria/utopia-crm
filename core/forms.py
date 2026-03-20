@@ -15,6 +15,12 @@ from .models import Contact, Subscription, Address, EmailBounceActionLog
 
 no_email_validation_msg = _('email must be left blank if the contact has no email')
 
+# Allowed roles to remove email from a contact that already has one
+# Add more roles here as needed (e.g., 'Support', 'Finances', etc.)
+ROLES_ALLOWED_TO_REMOVE_EMAIL = [
+    'Managers',
+]
+
 
 class EmailValidationError(forms.ValidationError):
     def __init__(self, *args, **kwargs):
@@ -129,6 +135,10 @@ class ContactAdminForm(EmailValidationForm, forms.ModelForm):
             "birthdate": forms.TextInput(attrs={"class": "form-control datepicker"}),
         }
 
+    def __init__(self, *args, request=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.request = request
+
     def clean(self):
         cleaned_data = super().clean()
         protected = cleaned_data.get("protected")
@@ -139,6 +149,30 @@ class ContactAdminForm(EmailValidationForm, forms.ModelForm):
             self.add_error("protection_reason", forms.ValidationError(msg))
         else:
             email = cleaned_data.get("email")
+
+            # Check if the user had an email before
+            if self.instance and self.instance.pk:
+                old_email = self.instance.email  # Original email from DB
+
+                # If had email before and now it's blank
+                if old_email and not email:
+                    # Check user permissions
+                    user = getattr(self, 'request', None) and getattr(self.request, 'user', None)
+
+                    # Check if user is admin or has allowed roles
+                    user_is_allowed = False
+                    if user:
+                        # Check if is superuser (admin)
+                        if user.is_superuser:
+                            user_is_allowed = True
+                        # Check if has any of the allowed groups
+                        elif ROLES_ALLOWED_TO_REMOVE_EMAIL and user.groups.filter(name__in=ROLES_ALLOWED_TO_REMOVE_EMAIL).exists():
+                            user_is_allowed = True
+
+                    if not user_is_allowed:
+                        msg = "No tienes permisos para eliminar el email de un contacto que ya tiene uno. Solo los administradores pueden hacer esto."
+                        self.add_error("email", forms.ValidationError(msg))
+
             if email:
                 email = self.email_extra_clean(cleaned_data)
 
