@@ -31,6 +31,32 @@
           new bootstrap.Tab(tab).show(); // Show the clicked tab
         });
       });
+
+      // Expand/collapse issue notes in overview
+      document.querySelectorAll(".issue-notes-toggle").forEach(link => {
+        link.addEventListener("click", event => {
+          event.preventDefault();
+          const id = link.dataset.id;
+          const shortEl = document.querySelector(`.issue-notes-short-${id}`);
+          const fullEl = document.querySelector(`.issue-notes-full-${id}`);
+          const expanded = fullEl.classList.toggle("d-none");
+          shortEl.classList.toggle("d-none");
+          link.textContent = expanded ? "{% trans "expand" %}" : "{% trans "collapse" %}";
+        });
+      });
+
+      // Expand/collapse activity details in overview
+      document.querySelectorAll(".activity-extra-toggle").forEach(link => {
+        link.addEventListener("click", event => {
+          event.preventDefault();
+          const id = link.dataset.id;
+          const extraEl = document.querySelector(`.activity-extra-${id}`);
+          const shortEl = document.querySelector(`.activity-notes-short-${id}`);
+          const collapsed = extraEl.classList.toggle("d-none");
+          if (shortEl) shortEl.classList.toggle("d-none");
+          link.textContent = collapsed ? "{% trans "expand" %}" : "{% trans "collapse" %}";
+        });
+      });
     });
   </script>
   <script src="{% static "js/htmx.min.js" %}" defer></script>

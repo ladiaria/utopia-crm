@@ -2141,9 +2141,14 @@ class Subscription(models.Model):
         # products = self.products.filter(type='S')  # TODO: explain the usage of this commented line or remove it
         from .utils import process_products
 
-        subscription_products = SubscriptionProduct.objects.filter(subscription=self)
-        if with_pauses:
-            subscription_products = subscription_products.filter(active=True)
+        if "subscriptionproduct_set" in getattr(self, "_prefetched_objects_cache", {}):
+            subscription_products = self._prefetched_objects_cache["subscriptionproduct_set"]
+            if with_pauses:
+                subscription_products = [sp for sp in subscription_products if sp.active]
+        else:
+            subscription_products = SubscriptionProduct.objects.filter(subscription=self)
+            if with_pauses:
+                subscription_products = subscription_products.filter(active=True)
 
         dict_all_products = {str(sp.product.id): str(sp.copies) for sp in subscription_products if sp.product}
         return process_products(dict_all_products)
@@ -2434,7 +2439,7 @@ class Subscription(models.Model):
     def get_subscriptionproducts(self, without_discounts=False):
         qs = (
             SubscriptionProduct.objects.filter(subscription=self)
-            .select_related("product")
+            .select_related("product", "address", "route")
             .order_by("product__billing_priority", "product_id")
         )
         if without_discounts:
