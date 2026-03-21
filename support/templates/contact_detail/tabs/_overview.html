@@ -238,22 +238,27 @@
             {% for a in activities %}
               <div class="list-group-item py-2 px-3">
                 <div class="d-flex justify-content-between align-items-center">
-                  <span class="font-weight-bold">{{ a.get_type_display }}{% if a.campaign %} - <span class="font-italic font-weight-normal">{{ a.campaign.name }}</span>{% endif %}</span>
+                  <span class="font-weight-bold">{{ a.get_activity_type_display }} ({{ a.get_direction }})</span>
                   <div class="d-flex align-items-center ml-2 flex-shrink-0">
                     <span class="badge badge-secondary mr-2">{{ a.get_status }}</span>
                     {% if a.datetime %}<span class="text-muted mr-2">{{ a.datetime|date:"d/m/Y" }}</span>{% endif %}
                     {% if a.seller %}<span class="text-muted mr-2">{{ a.seller.name }}</span>{% endif %}
                   </div>
                 </div>
-                {% if a.notes or a.seller_console_action or a.topic or a.response or a.created_by %}
+                {% if a.campaign %}
+                  <div class="text-muted"><small>{% trans "Campaign" %}: <span class="font-italic">{{ a.campaign.name }}</span></small></div>
+                {% endif %}
+                {% if a.seller_console_action %}
+                  <div class="text-muted"><small>{% trans "Action" %}: {{ a.seller_console_action.name }}</small></div>
+                {% endif %}
+                {% if a.notes or a.topic or a.response or a.created_by %}
                   <div class="text-muted mt-1">
                     {% if a.notes %}
-                      <span class="activity-notes-short-{{ a.id }}">{{ a.notes|truncatechars:60 }}</span>
+                      <small>{{ a.notes|truncatechars:60 }}</small>
                     {% endif %}
-                    {% if a.notes|length > 60 or a.seller_console_action or a.topic or a.response or a.created_by %}
+                    {% if a.notes|length > 60 or a.topic or a.response or a.created_by %}
                       <span class="activity-extra-{{ a.id }} d-none">
-                        {% if a.notes|length > 60 %}<span class="activity-notes-full-{{ a.id }}">{{ a.notes }}</span>{% endif %}
-                        {% if a.seller_console_action %}<span class="d-block"><strong>{% trans "Action" %}:</strong> {{ a.seller_console_action.name }}</span>{% endif %}
+                        {% if a.notes|length > 60 %}<span class="d-block">{{ a.notes }}</span>{% endif %}
                         {% if a.topic %}<span class="d-block"><strong>{% trans "Topic" %}:</strong> {{ a.topic }}</span>{% endif %}
                         {% if a.response %}<span class="d-block"><strong>{% trans "Response" %}:</strong> {{ a.response }}</span>{% endif %}
                         {% if a.created_by %}<span class="d-block"><strong>{% trans "Created by" %}:</strong> {{ a.created_by_name|default_if_none:"-" }}</span>{% endif %}
