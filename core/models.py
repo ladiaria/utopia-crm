@@ -988,7 +988,11 @@ class Contact(models.Model):
         number = getattr(self, phone_att)
         if phone_att == "work_phone":
             return DoNotCallNumber.objects.filter(number__iexact=number).exists()
-        elif number is None or number.national_number is None:
+        elif not number:
+            return False
+        elif isinstance(number, str):
+            return DoNotCallNumber.objects.filter(number__contains=number).exists()
+        elif number.national_number is None:
             return False
         return DoNotCallNumber.objects.filter(number__contains=number.national_number).exists()
 

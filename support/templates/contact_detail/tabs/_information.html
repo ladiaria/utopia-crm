@@ -29,7 +29,15 @@
           <div class="mb-2">
             <i class="fas fa-phone text-success"></i> <strong>{% trans "Phone" %}:</strong>
             {% if contact.phone %}
-              <a href="tel:{{ contact.phone }}">{{ contact.phone.as_national }}</a>
+              {% if contact.do_not_call_phone %}
+                <span class="text-danger">
+                  <a href="tel:{{ contact.phone }}" class="text-danger">{{ contact.phone.as_national }}</a>
+                  <i class="fas fa-times-circle ml-1" title="{% trans "Number in do not call list" %}"></i>
+                  <small>{% trans "Number in do not call list" %}</small>
+                </span>
+              {% else %}
+                <a href="tel:{{ contact.phone }}">{{ contact.phone.as_national }}</a>
+              {% endif %}
             {% else %}
               -
             {% endif %}
@@ -37,12 +45,29 @@
           {% if contact.mobile %}
             <div class="mb-2">
               <i class="fas fa-mobile-alt text-success"></i> <strong>{% trans "Mobile" %}:</strong>
-              <a href="tel:{{ contact.mobile }}">{{ contact.mobile.as_national }}</a>
+              {% if contact.do_not_call_mobile %}
+                <span class="text-danger">
+                  <a href="tel:{{ contact.mobile }}" class="text-danger">{{ contact.mobile.as_national }}</a>
+                  <i class="fas fa-times-circle ml-1" title="{% trans "Number in do not call list" %}"></i>
+                  <small>{% trans "Number in do not call list" %}</small>
+                </span>
+              {% else %}
+                <a href="tel:{{ contact.mobile }}">{{ contact.mobile.as_national }}</a>
+              {% endif %}
             </div>
           {% endif %}
           {% if contact.work_phone %}
             <div class="mb-2">
-              <i class="fas fa-building text-secondary"></i> <strong>{% trans "Work" %}:</strong> {{ contact.work_phone }}
+              <i class="fas fa-building text-secondary"></i> <strong>{% trans "Work" %}:</strong>
+              {% if contact.do_not_call_work_phone %}
+                <span class="text-danger">
+                  {{ contact.work_phone }}
+                  <i class="fas fa-times-circle ml-1" title="{% trans "Number in do not call list" %}"></i>
+                  <small>{% trans "Number in do not call list" %}</small>
+                </span>
+              {% else %}
+                {{ contact.work_phone }}
+              {% endif %}
             </div>
           {% endif %}
         </div>
