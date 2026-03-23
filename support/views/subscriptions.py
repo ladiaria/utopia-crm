@@ -582,7 +582,9 @@ def reactivate_subscription(request, subscription_id):
 
     Business Rules:
     - Can only reactivate within 30 days of unsubscription_date
-    - If next_billing is in the past, it will be adjusted to today + 1 day
+    - next_billing is shifted forward by the number of days the subscription was inactive
+      (today - end_date), so the customer is not charged for the inactive period
+    - The payment method can be updated at the moment of reactivation
     """
     subscription = get_object_or_404(Subscription, pk=subscription_id)
 
@@ -700,6 +702,12 @@ def reactivate_subscription(request, subscription_id):
             )
             stored_data = fallback_data
 
+        # Capture end_date before clearing — needed for the billing date adjustment
+        inactive_end_date = subscription.end_date
+
+        # Update payment method if submitted (blank value clears the field)
+        subscription.payment_type = request.POST.get("payment_type") or None
+
         # Perform the reactivation
         subscription.end_date = None
         subscription.unsubscription_reason = None
@@ -710,9 +718,11 @@ def reactivate_subscription(request, subscription_id):
         subscription.unsubscription_manager = None
         subscription.unsubscription_products.clear()
 
-        # Adjust next_billing if it's in the past to prevent unwanted invoices
-        if subscription.next_billing and subscription.next_billing < date.today():
-            subscription.next_billing = date.today() + timedelta(days=1)
+        # Shift next_billing forward by the number of days the subscription was inactive
+        # so the customer is not billed for the period when the subscription was paused
+        if subscription.next_billing and inactive_end_date and inactive_end_date < date.today():
+            inactive_days = (date.today() - inactive_end_date).days
+            subscription.next_billing += timedelta(days=inactive_days)
 
         subscription.save()
 
@@ -769,6 +779,12 @@ def reactivate_subscription(request, subscription_id):
     reason_display = subscription.get_unsubscription_reason_display() if subscription.unsubscription_reason else None
     channel_display = subscription.get_unsubscription_channel_display() if subscription.unsubscription_channel else None
 
+    # Compute the projected next_billing date after the inactive-period shift, for display
+    new_next_billing = None
+    if subscription.next_billing and subscription.end_date and subscription.end_date < date.today():
+        inactive_days = (date.today() - subscription.end_date).days
+        new_next_billing = subscription.next_billing + timedelta(days=inactive_days)
+
     # stored_data is already set from the activity lookup above
     return render(
         request,
@@ -780,6 +796,8 @@ def reactivate_subscription(request, subscription_id):
             "breadcrumbs": breadcrumbs,
             "reason_display": reason_display,
             "channel_display": channel_display,
+            "payment_method_choices": settings.SUBSCRIPTION_PAYMENT_METHODS,
+            "new_next_billing": new_next_billing,
         },
     )
 
