@@ -20,7 +20,21 @@
             {% render_field form.last_name class="form-control" %}
           </div>
           <div class="form-group col-4">
-            <label for="">{% trans "Email" %}</label>
+            <label for="">
+              {% if contact %}
+                {% with email_bounce=contact.get_email_bounce_action %}
+                  {% if email_bounce %}
+                    <span class="text-danger">
+                      <i class="fas fa-times-circle"></i> {% trans "Email" %} — {{ email_bounce.get_action_display }}
+                    </span>
+                  {% else %}
+                    {% trans "Email" %}
+                  {% endif %}
+                {% endwith %}
+              {% else %}
+                {% trans "Email" %}
+              {% endif %}
+            </label>
             {% render_field form.email class="form-control" %}
           </div>
         </div>

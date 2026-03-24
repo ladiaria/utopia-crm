@@ -220,12 +220,17 @@
                 </tr>
               {% endif %}
               {% if contact.email %}
-                <tr>
-                  <td>
-                    <i class="fas fa-at"></i> {% trans "Email" %}:
-                  </td>
-                  <td>{{ contact.email }}</td>
-                </tr>
+                {% with email_bounce=contact.get_email_bounce_action %}
+                  <tr {% if email_bounce %}class="table-danger"{% endif %}>
+                    <td>
+                      <i class="fas fa-at"></i> {% trans "Email" %}:
+                    </td>
+                    <td>
+                      {% if email_bounce %}<span>{{ email_bounce.get_action_display }}:</span> {% endif %}
+                      {{ contact.email }}
+                    </td>
+                  </tr>
+                {% endwith %}
               {% endif %}
               <tr>
                 <td>
