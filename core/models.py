@@ -1005,6 +1005,11 @@ class Contact(models.Model):
     def do_not_call_mobile(self):
         return self.do_not_call("mobile")
 
+    def get_email_bounce_action(self):
+        if not self.email:
+            return None
+        return EmailBounceActionLog.objects.filter(email=self.email).order_by("-created").first()
+
     def date_of_first_invoice(self):
         if self.invoice_set.exists():
             return self.invoice_set.first().creation_date

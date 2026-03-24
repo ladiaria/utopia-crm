@@ -17,11 +17,21 @@
         {% endif %}
         <div class="mb-2">
           <i class="fas fa-envelope text-info"></i> <strong>{% trans "Email" %}:</strong>
-          {% if contact.email %}
-            <a href="mailto:{{ contact.email }}">{{ contact.email }}</a>
-          {% else %}
-            -
-          {% endif %}
+          {% with email_bounce=contact.get_email_bounce_action %}
+            {% if contact.email %}
+              {% if email_bounce %}
+                <span class="text-danger">
+                  <a href="mailto:{{ contact.email }}" class="text-danger">{{ contact.email }}</a>
+                  <i class="fas fa-times-circle ml-1" title="{{ email_bounce.get_action_display }}"></i>
+                  <small>{{ email_bounce.get_action_display }}</small>
+                </span>
+              {% else %}
+                <a href="mailto:{{ contact.email }}">{{ contact.email }}</a>
+              {% endif %}
+            {% else %}
+              -
+            {% endif %}
+          {% endwith %}
         </div>
         <div class="mb-2">
           <i class="fas fa-phone text-success"></i> <strong>{% trans "Phone" %}:</strong>
