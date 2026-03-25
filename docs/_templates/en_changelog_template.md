@@ -1,11 +1,11 @@
 # Title of the Change
 
-**Date:** YYYY-MM-DD
-**Author:** [Use `git config user.name` or MCP to get author name] (+ AI pair programmer if applicable)
-**Ticket:** t#### (if applicable)
-**Type:** Bug Fix | Feature | Enhancement | Refactor | Performance | UX Improvement
-**Component:** affected modules (e.g., Subscriptions, Invoicing, Core Models)
-**Impact:** what areas are affected (e.g., User Experience, Data Integrity, Performance)
+- **Date:** YYYY-MM-DD
+- **Author:** [Use `git config user.name` or MCP to get author name] (+ [AI model name, e.g. Claude Sonnet 4.6] if applicable)
+- **Ticket:** t#### (if applicable)
+- **Type:** Bug Fix | Feature | Enhancement | Refactor | Performance | UX Improvement
+- **Component:** affected modules (e.g., Subscriptions, Invoicing, Core Models)
+- **Impact:** what areas are affected (e.g., User Experience, Data Integrity, Performance)
 
 ## 🎯 Summary
 
@@ -86,8 +86,8 @@ Potential enhancements for future iterations:
 
 ---
 
-**Date:** YYYY-MM-DD
-**Author:** [Use `git config user.name` or MCP] (+ AI pair programmer if applicable)
-**Branch:** t#### (branch/ticket name)
-**Type:** Bug Fix | Feature | Enhancement | Refactor | Performance | UX Improvement
-**Modules affected:** Module1, Module2
+- **Date:** YYYY-MM-DD
+- **Author:** [Use `git config user.name` or MCP] (+ [AI model name, e.g. Claude Sonnet 4.6] if applicable)
+- **Branch:** t#### (branch/ticket name)
+- **Type:** Bug Fix | Feature | Enhancement | Refactor | Performance | UX Improvement
+- **Modules affected:** Module1, Module2
