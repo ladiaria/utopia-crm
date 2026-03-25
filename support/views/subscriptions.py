@@ -1,6 +1,6 @@
 import collections
 import json
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, time, timedelta
 
 import pandas as pd
 from dateutil.relativedelta import relativedelta
@@ -1540,7 +1540,7 @@ class SendPromoView(BreadcrumbsMixin, UserPassesTestMixin, FormView):
             contact=self.contact,
             campaign=self.campaign,
             direction="O",
-            datetime=end_date + timedelta(1),
+            datetime=datetime.combine(end_date + timedelta(1), time(9, 0)),
             activity_type="C",
             status="P",
             seller=self.seller,
