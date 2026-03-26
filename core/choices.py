@@ -111,6 +111,20 @@ class CAMPAIGN_STATUS(IntegerChoices):
     SWITCH_TO_AFTERNOON = 7, _("Switch to afternoon/evening")
 
 
+def get_contacted_statuses():
+    """
+    Returns the list of ContactCampaignStatus statuses that count as 'contacted'.
+    A contact is considered contacted if we actually spoke with them:
+    CONTACTED (2), ENDED_WITH_CONTACT (4), SWITCH_TO_MORNING (6), SWITCH_TO_AFTERNOON (7).
+    """
+    return [
+        CAMPAIGN_STATUS.CONTACTED,
+        CAMPAIGN_STATUS.ENDED_WITH_CONTACT,
+        CAMPAIGN_STATUS.SWITCH_TO_MORNING,
+        CAMPAIGN_STATUS.SWITCH_TO_AFTERNOON,
+    ]
+
+
 CAMPAIGN_RESOLUTION_CHOICES = (
     ("SP", _("Started promotion")),
     ("AS", _("Already a subscriber")),

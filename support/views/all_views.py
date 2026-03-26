@@ -2055,8 +2055,10 @@ def campaign_statistics_list(request):
         contacts = campaign.contactcampaignstatus_set.count() or 1
         campaign.called_count = campaign.contactcampaignstatus_set.filter(status__gte=2).count()
         campaign.called_pct = (campaign.called_count * 100) / contacts
-        campaign.contacted_count = campaign.contactcampaignstatus_set.filter(status__in=(2, 4)).count()
-        campaign.contacted_pct = (campaign.contacted_count * 100) / contacts
+        campaign.contacted_count = campaign.contactcampaignstatus_set.filter(
+            status__in=core_choices.get_contacted_statuses()
+        ).count()
+        campaign.contacted_pct = (campaign.contacted_count * 100) / (campaign.called_count or 1)
         campaign.success_count = campaign.contactcampaignstatus_set.filter(
             campaign_resolution__in=("S1", "S2")
         ).count()
@@ -2220,18 +2222,21 @@ class CampaignStatisticsDetailView(BreadcrumbsMixin, UserPassesTestMixin, Filter
         # Status counts from filtered queryset
         context['not_contacted_yet_count'] = filtered_qs.filter(status=1).count()
         context['tried_to_contact_count'] = filtered_qs.filter(status=3).count()
-        context['contacted_count'] = filtered_qs.filter(status__in=[2, 4]).count()
+        context['contacted_count'] = filtered_qs.filter(status__in=core_choices.get_contacted_statuses()).count()
         context['could_not_contact_count'] = filtered_qs.filter(status=5).count()
+        called_count = filtered_qs.filter(status__gte=2).count()
 
         # Percentages
         context['not_contacted_yet_pct'] = float((context['not_contacted_yet_count'] * 100) / (filtered_count or 1))
         context['tried_to_contact_pct'] = float((context['tried_to_contact_count'] * 100) / (filtered_count or 1))
-        context['contacted_pct'] = (context['contacted_count'] * 100) / (filtered_count or 1)
+        context['contacted_pct'] = (context['contacted_count'] * 100) / (called_count or 1)
         context['could_not_contact_pct'] = (context['could_not_contact_count'] * 100) / (filtered_count or 1)
 
         # Resolution statistics
         ccs_with_resolution = filtered_qs.filter(campaign_resolution__isnull=False)
-        ccs_with_resolution_contacted_count = ccs_with_resolution.filter(status__in=[2, 4]).count()
+        ccs_with_resolution_contacted_count = ccs_with_resolution.filter(
+            status__in=core_choices.get_contacted_statuses()
+        ).count()
         ccs_with_resolution_not_contacted_count = ccs_with_resolution.filter(status__in=[3, 5]).count()
 
         context['success_with_direct_sale_count'] = ccs_with_resolution.filter(campaign_resolution="S2").count()
@@ -2287,7 +2292,7 @@ class CampaignStatisticsDetailView(BreadcrumbsMixin, UserPassesTestMixin, Filter
         # Success rate
         success_rate_count = context['success_with_direct_sale_count']
         context['success_rate_count'] = success_rate_count
-        context['success_rate_pct'] = (success_rate_count * 100) / (filtered_count or 1)
+        context['success_rate_pct'] = (success_rate_count * 100) / (context['contacted_count'] or 1)
 
         # Seller-specific data
         if context['filter'].data.get("seller", None):
@@ -2347,12 +2352,14 @@ def campaign_statistics_per_seller(request, campaign_id):
         seller.not_contacted_yet_pct = (seller.not_contacted_yet_count * 100) / assigned
         seller.called_count = seller.contactcampaignstatus_set.filter(campaign=campaign, status__gte=2).count()
         seller.called_pct = (seller.called_count * 100) / assigned
-        seller.contacted_count = seller.contactcampaignstatus_set.filter(campaign=campaign, status__in=[2, 4]).count()
-        seller.contacted_pct = (seller.contacted_count * 100) / assigned
+        seller.contacted_count = seller.contactcampaignstatus_set.filter(
+            campaign=campaign, status__in=core_choices.get_contacted_statuses()
+        ).count()
+        seller.contacted_pct = (seller.contacted_count * 100) / (seller.called_count or 1)
         seller.success_count = seller.contactcampaignstatus_set.filter(
             campaign=campaign, campaign_resolution__in=("S1", "S2")
         ).count()
-        seller.success_pct = (seller.success_count * 100) / assigned
+        seller.success_pct = (seller.success_count * 100) / (seller.contacted_count or 1)
         seller.rejected_count = seller.contactcampaignstatus_set.filter(
             campaign=campaign, campaign_resolution__in=("AS", "DN", "LO", "NI")
         ).count()
@@ -2395,7 +2402,9 @@ def seller_performance_by_time(request):
     assigned_count = ccs_queryset.filter(seller__isnull=False).count() or 1
     called_count = ccs_queryset.filter(seller__isnull=False, status__gte=2).count()
     called_pct = (called_count * 100) / assigned_count
-    contacted_count = ccs_queryset.filter(seller__isnull=False, status__in=[2, 4]).count()
+    contacted_count = ccs_queryset.filter(
+        seller__isnull=False, status__in=core_choices.get_contacted_statuses()
+    ).count()
     contacted_pct = (contacted_count * 100) / assigned_count
     success_count = ccs_queryset.filter(seller__isnull=False, campaign_resolution__in=("S1", "S2")).count()
     success_pct = (success_count * 100) / assigned_count
@@ -2406,7 +2415,9 @@ def seller_performance_by_time(request):
         seller.not_contacted_yet_pct = (seller.not_contacted_yet_count * 100) / (seller.assigned_count or 1)
         seller.called_count = ccs_queryset.filter(seller=seller, status__gte=2).count()
         seller.called_pct = (seller.called_count * 100) / (seller.assigned_count or 1)
-        seller.contacted_count = ccs_queryset.filter(seller=seller, status__in=[2, 4]).count()
+        seller.contacted_count = ccs_queryset.filter(
+            seller=seller, status__in=core_choices.get_contacted_statuses()
+        ).count()
         seller.contacted_pct = (seller.contacted_count * 100) / (seller.assigned_count or 1)
         seller.success_count = ccs_queryset.filter(seller=seller, campaign_resolution__in=("S1", "S2")).count()
         seller.success_pct = (seller.success_count * 100) / (seller.assigned_count or 1)
