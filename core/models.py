@@ -2638,20 +2638,6 @@ class Campaign(models.Model):
     def __str__(self):
         return self.name
 
-    def get_activities_by_seller(self, seller, status=None, type=None, datetime=None):
-        """
-        Returns all the activities on this campaign, for a specific seller. Activities on a campaign imply that the
-        contact has been scheduled to be called in the future.
-        """
-        acts = Activity.objects.filter(campaign=self, seller=seller).order_by("datetime")
-        if status:
-            acts = acts.filter(status__in=status)
-        if type:
-            acts = acts.filter(activity_type__in=type)
-        if date:
-            acts = acts.filter(datetime__lte=datetime)
-        return acts
-
     def get_not_contacted(self, seller_id):
         """
         Returns the ContactCampaignStatus objects for all Contacts that have not been called yet (status=1)
@@ -2717,19 +2703,6 @@ class Campaign(models.Model):
         Returns the count of ContactCampaignStatus objects for all Contacts that have not been called yet (status=1)
         """
         return self.get_not_contacted(seller_id).count()
-
-    def get_already_contacted(self, seller_id):
-        """
-        Returns the ContactCampaignStatus objects for all Contacts that have already been called yet (status=2, 3)
-        """
-        return self.contactcampaignstatus_set.filter(seller_id=seller_id, status=2)
-
-    def get_already_contacted_count(self, seller_id):
-        """
-        Returns the count of ContactCampaignStatus objects for all Contacts that have already been called yet
-        (status=2, 3)
-        """
-        return self.get_already_contacted(seller_id).count()
 
     def get_successful_count(self, seller_id):
         return self.contactcampaignstatus_set.filter(seller_id=seller_id, campaign_resolution__in=["S1", "S2"]).count()
