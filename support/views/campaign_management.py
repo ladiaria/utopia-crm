@@ -31,8 +31,8 @@ class BulkDeleteCampaignStatusView(BreadcrumbsMixin, UserPassesTestMixin, FormVi
     success_url = reverse_lazy('bulk_delete_campaign_status')
 
     def test_func(self):
-        """Only users in the Managers group can access this view."""
-        return self.request.user.groups.filter(name='Managers').exists()
+        """Temporarily disabled. Only users in the Managers group can access this view."""
+        return False
 
     def breadcrumbs(self):
         return [

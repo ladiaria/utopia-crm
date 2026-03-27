@@ -135,6 +135,13 @@
                   <i class="fas fa-clock"></i> Llamar más tarde{% if last_action_datetime %} — {{ last_action_datetime|date:"d/m/Y H:i" }}{% endif %}
                 </span>
               {% endif %}
+              {% if open_issues_count > 0 %}
+                <span class="badge badge-danger ml-2" style="font-size: 0.6em; vertical-align: middle; padding: 5px 10px;"
+                      title="{% trans "This contact has open issues — check the right panel" %}">
+                  <i class="fas fa-exclamation-circle"></i>
+                  {% blocktrans with count=open_issues_count %}{{ count }} open issue(s) — check right panel{% endblocktrans %}
+                </span>
+              {% endif %}
             </h3>
             <span>{% trans "Contact " %}{{ offset }} {% trans "of" %} {{ count }}</span>
           </div>
@@ -220,12 +227,17 @@
                 </tr>
               {% endif %}
               {% if contact.email %}
-                <tr>
-                  <td>
-                    <i class="fas fa-at"></i> {% trans "Email" %}:
-                  </td>
-                  <td>{{ contact.email }}</td>
-                </tr>
+                {% with email_bounce=contact.get_email_bounce_action %}
+                  <tr {% if email_bounce %}class="table-danger"{% endif %}>
+                    <td>
+                      <i class="fas fa-at"></i> {% trans "Email" %}:
+                    </td>
+                    <td>
+                      {% if email_bounce %}<span>{{ email_bounce.get_action_display }}:</span> {% endif %}
+                      {{ contact.email }}
+                    </td>
+                  </tr>
+                {% endwith %}
               {% endif %}
               <tr>
                 <td>
@@ -516,6 +528,34 @@
         {% endif %}
       {% endif %}
       <div hx-get="{% url 'last_read_articles' contact.id %}" hx-trigger="load"></div>
+      {% if open_issues %}
+        <div class="card card-danger card-outline mt-2">
+          <div class="card-header">
+            <h3 class="card-title">
+              <i class="fas fa-exclamation-circle text-danger"></i> <b>{% trans "Contact's open issues" %}</b>
+            </h3>
+          </div>
+          <div class="card-body p-0">
+            <div class="list-group list-group-flush">
+              {% for issue in open_issues %}
+                <div class="list-group-item py-2 px-3">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <span class="font-weight-bold">{{ issue.get_category }}{% if issue.get_subcategory %} – {{ issue.get_subcategory }}{% endif %}</span>
+                    <div class="d-flex align-items-center ml-2 flex-shrink-0">
+                      <span class="badge badge-secondary mr-2">{{ issue.get_status|default_if_none:"" }}</span>
+                      <span class="text-muted mr-2">{{ issue.date_created|date:"d/m/Y" }}</span>
+                      <a href="{% url "view_issue" issue.id %}" class="btn btn-xs btn-outline-primary py-0 px-1" title="{% trans "View issue" %}" target="_blank"><i class="fas fa-eye"></i></a>
+                    </div>
+                  </div>
+                  {% if issue.notes %}
+                    <div class="text-muted mt-1"><small>{{ issue.notes }}</small></div>
+                  {% endif %}
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      {% endif %}
     </div>
   </div>
 {% endblock %}

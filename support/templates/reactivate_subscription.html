@@ -51,6 +51,21 @@
             <td>{{ subscription.end_date|date:"Y-m-d" }}</td>
           </tr>
           <tr>
+            <th>{% trans "Next billing" %}</th>
+            <td>
+              {{ subscription.next_billing|date:"Y-m-d"|default:"-" }}
+              {% if new_next_billing %}
+                <span class="text-muted">→</span>
+                <strong class="text-success">{{ new_next_billing|date:"Y-m-d" }}</strong>
+                <small class="text-muted ml-1">{% trans "(adjusted for inactive period)" %}</small>
+              {% endif %}
+            </td>
+          </tr>
+          <tr>
+            <th>{% trans "Payment method" %}</th>
+            <td>{{ subscription.get_payment_type_display|default:"-" }}</td>
+          </tr>
+          <tr>
             <th>{% trans "Unsubscription reason" %}</th>
             <td>{{ subscription.get_unsubscription_reason_display|default:"-" }}</td>
           </tr>
@@ -102,6 +117,22 @@
 
         <form method="post" class="mt-4">
           {% csrf_token %}
+          <h5>{% trans "Update payment method" %}</h5>
+          <div class="row">
+            <div class="col-6">
+              <div class="form-group">
+                <label for="id_payment_type">{% trans "Payment method" %}</label>
+                <select name="payment_type" id="id_payment_type" class="form-control">
+                  <option value="">---------</option>
+                  {% for value, label in payment_method_choices %}
+                    <option value="{{ value }}"{% if subscription.payment_type == value %} selected{% endif %}>
+                      {{ label }}
+                    </option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+          </div>
           <div class="form-group text-right">
             <a href="{% url 'contact_detail' subscription.contact.id %}" class="btn btn-default">
               <i class="fas fa-times"></i> {% trans "Cancel" %}

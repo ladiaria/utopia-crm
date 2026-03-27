@@ -592,6 +592,11 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
             if last_action_activity:
                 last_action_datetime = last_action_activity.datetime
 
+        terminal_statuses = getattr(settings, 'ISSUE_STATUS_FINISHED_LIST', [])
+        open_issues = Issue.objects.filter(contact=contact).exclude(status__slug__in=terminal_statuses).order_by(
+            "-date_created"
+        )
+
         context.update(
             {
                 'campaign': campaign,
@@ -618,6 +623,8 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
                 'phone_duplicates_count': phone_duplicates_info['count'],
                 'phone_duplicates': phone_duplicates_info['contacts'],
                 'last_action_datetime': last_action_datetime,
+                'open_issues': open_issues,
+                'open_issues_count': open_issues.count(),
             }
         )
         return context

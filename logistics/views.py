@@ -9,7 +9,7 @@ from django.shortcuts import render, reverse, get_object_or_404
 from django.http import HttpResponseRedirect, HttpResponse, HttpResponseNotFound
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
-from django.db.models import Sum
+from django.db.models import Sum, Exists, OuterRef
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required, permission_required
 from django.db.models import F, Q
@@ -25,7 +25,7 @@ from reportlab.pdfgen.canvas import Canvas
 from core.models import SubscriptionProduct, Subscription, Product, Address
 from core.choices import PRODUCT_WEEKDAYS
 from core.mixins import BreadcrumbsMixin
-from logistics.models import Route, Edition
+from logistics.models import Route, RouteChange, Edition
 from support.models import Issue
 
 from util.dates import next_business_day, format_date
@@ -945,7 +945,7 @@ def issues_labels(request):
 
 
 @login_required
-def route_details(request, route_list):
+def route_details(request, route_list, extra_context=None):
     """
     Shows details for a selected route.
     """
@@ -976,49 +976,109 @@ def route_details(request, route_list):
     issues_dict = {}
     routes_with_subscriptions = []
 
+    weekday_exists_subquery = Product.objects.filter(
+        subscriptionproduct__subscription=OuterRef("subscription"),
+        subscriptionproduct__subscription__active=True,
+        type="S",
+    )
+
+    base_sp_filter = dict(
+        active=True, subscription__active=True, product__weekday=isoweekday,
+    )
+    base_sp_exclude = dict(product__digital=True)
+
+    routes_with_copies = (
+        SubscriptionProduct.objects.filter(route__in=routes, **base_sp_filter)
+        .exclude(**base_sp_exclude)
+        .values("route__number")
+        .annotate(sum_copies=Sum("copies"))
+    )
+    copies_by_route = {str(row["route__number"]): row["sum_copies"] or 0 for row in routes_with_copies}
+
+    routes = routes.filter(number__in=[int(n) for n in copies_by_route.keys()])
+
+    all_subscription_products = (
+        SubscriptionProduct.objects.filter(route__in=routes, **base_sp_filter)
+        .exclude(**base_sp_exclude)
+        .order_by("route__number", "order", "address__address_1")
+        .select_related(
+            "subscription",
+            "subscription__contact",
+            "address",
+            "product",
+            "route",
+        )
+        .annotate(
+            sub_has_monday=Exists(weekday_exists_subquery.filter(weekday=1)),
+            sub_has_tuesday=Exists(weekday_exists_subquery.filter(weekday=2)),
+            sub_has_wednesday=Exists(weekday_exists_subquery.filter(weekday=3)),
+            sub_has_thursday=Exists(weekday_exists_subquery.filter(weekday=4)),
+            sub_has_friday=Exists(weekday_exists_subquery.filter(weekday=5)),
+            sub_has_weekend=Exists(weekday_exists_subquery.filter(weekday=10)),
+        )
+    )
+    for sp in all_subscription_products:
+        key = str(sp.route.number)
+        subscription_products_dict.setdefault(key, []).append(sp)
+
+    all_changes = (
+        RouteChange.objects.filter(old_route__in=routes, dt__gt=day - timedelta(4))
+        .order_by("-dt")
+        .select_related("contact", "old_route")
+    )
+    for rc in all_changes:
+        key = str(rc.old_route.number)
+        changes_dict.setdefault(key, []).append(rc)
+
+    all_closing = (
+        SubscriptionProduct.objects.filter(
+            active=True, route__in=routes, subscription__end_date__gte=date.today() - timedelta(3)
+        )
+        .exclude(product__digital=True)
+        .select_related(
+            "subscription",
+            "subscription__contact",
+            "address",
+            "route",
+        )
+        .distinct("subscription")
+    )
+    for sp in all_closing:
+        key = str(sp.route.number)
+        closing_subscriptions_dict.setdefault(key, []).append(sp)
+
+    all_issues = (
+        Issue.objects.filter(subscription_product__route__in=routes, category="L")
+        .exclude(status__slug__in=settings.ISSUE_STATUS_FINISHED_LIST)
+        .select_related(
+            "contact",
+            "product",
+            "sub_category",
+            "subscription_product",
+            "subscription_product__address",
+            "subscription_product__route",
+        )
+        .distinct()
+    )
+    for issue in all_issues:
+        key = str(issue.subscription_product.route.number)
+        issues_dict.setdefault(key, []).append(issue)
+
     for route in routes:
-        subscription_products = (
-            SubscriptionProduct.objects.filter(
-                route=route, active=True, subscription__active=True, product__weekday=isoweekday
-            )
-            .exclude(product__digital=True)
-            .order_by("order", "address__address_1")
-            .select_related("subscription")
-        )
-        if not subscription_products.exists():
+        key = str(route.number)
+        if key not in subscription_products_dict:
             continue
-        subscription_products_dict[str(route.number)] = subscription_products
 
-        routes_dict[str(route.number)] = route
-
-        routes_with_subscriptions.append(str(route.number))
-
-        copies = subscription_products.aggregate(sum_copies=Sum("copies"))["sum_copies"] or 0
-        copies_dict[str(route.number)] = copies
-
-        changes_list = route.routechange_set.filter(dt__gt=day - timedelta(4)).order_by("-dt")
-        changes_dict[str(route.number)] = changes_list
-
-        # new_subscriptions = SubscriptionProduct.objects.filter(
-        #     route=route, subscription__start_date__gte=date.today() - timedelta(2), product__weekday=isoweekday)
-        closing_subscriptions = (
-            SubscriptionProduct.objects.filter(
-                active=True, route=route, subscription__end_date__gte=date.today() - timedelta(3)
-            )
-            .exclude(product__digital=True)
-            .distinct("subscription")
-        )
-        closing_subscriptions_dict[str(route.number)] = closing_subscriptions
+        routes_dict[key] = route
+        routes_with_subscriptions.append(key)
+        copies_dict[key] = copies_by_route.get(key, 0)
 
         if route.directions:
-            directions_dict[str(route.number)] = route.directions
+            directions_dict[key] = route.directions
 
-        issues = (
-            Issue.objects.filter(subscription_product__route=route, category="L")
-            .exclude(status__slug__in=settings.ISSUE_STATUS_FINISHED_LIST)
-            .distinct()
-        )
-        issues_dict[str(route.number)] = issues
+    current_url = request.path
+    if not route_list:
+        current_url = request.get_full_path().split("?")[0]
 
     return render(
         request,
@@ -1036,6 +1096,8 @@ def route_details(request, route_list):
             "product": product,
             "subscription_products_dict": subscription_products_dict,
             "deactivated_list": [],  # lista_desactivados,
+            "current_url": current_url,
+            **(extra_context or {}),
         },
     )
 

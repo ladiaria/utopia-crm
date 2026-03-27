@@ -315,12 +315,12 @@ class ContactDetailView(BreadcrumbsMixin, DetailView):
 
     def get_all_querysets_and_lists(self):
         addresses = self.object.addresses.all().prefetch_related("state", "country")
-        activities = self.object.activity_set.all().order_by("-datetime", "id")[:3]
+        activities = self.object.activity_set.all().select_related("seller", "campaign").order_by("-datetime", "id")[:5]
         newsletters = self.object.get_newsletters()
         all_issues = self.object.issue_set.all().order_by("-date", "id").select_related("status", "sub_category")
-        last_issues = all_issues[:3]
+        last_issues = all_issues[:5]
         last_paid_invoice = self.object.get_last_paid_invoice()
-        all_activities = self.object.activity_set.all().order_by("-datetime", "id")
+        all_activities = self.object.activity_set.all().select_related("seller", "campaign").order_by("-datetime", "id")
         all_scheduled_tasks = self.object.scheduledtask_set.all().order_by("-creation_date", "id")
         all_campaigns = self.object.contactcampaignstatus_set.all().order_by("-date_created", "id")
         return {

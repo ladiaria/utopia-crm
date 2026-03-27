@@ -167,17 +167,43 @@
                 {{ form.last_name }}
               </div>
               <div class="form-group col-sm-4">
-                <label for="id_email">{{ form.email.label }}</label>
+                <label for="id_email">
+                  {% with email_bounce=contact.get_email_bounce_action %}
+                    {% if email_bounce %}
+                      <span class="text-danger">
+                        <i class="fas fa-times-circle"></i> {{ form.email.label }} — {{ email_bounce.get_action_display }}
+                      </span>
+                    {% else %}
+                      {{ form.email.label }}
+                    {% endif %}
+                  {% endwith %}
+                </label>
                 {{ form.email }}
               </div>
             </div>
             <div class="row">
               <div class="form-group col-sm-3">
-                <label for="id_phone">{{ form.phone.label }}</label>
+                <label for="id_phone">
+                  {% if dnc_phone %}
+                    <span class="text-danger">
+                      <i class="fas fa-times-circle"></i> {{ form.phone.label }} — {% trans "Number in do not call list" %}
+                    </span>
+                  {% else %}
+                    {{ form.phone.label }}
+                  {% endif %}
+                </label>
                 {{ form.phone }}
               </div>
               <div class="form-group col-sm-3">
-                <label for="id_mobile">{{ form.mobile.label }}</label>
+                <label for="id_mobile">
+                  {% if dnc_mobile %}
+                    <span class="text-danger">
+                      <i class="fas fa-times-circle"></i> {{ form.mobile.label }} — {% trans "Number in do not call list" %}
+                    </span>
+                  {% else %}
+                    {{ form.mobile.label }}
+                  {% endif %}
+                </label>
                 {{ form.mobile }}
               </div>
               <div class="form-group col-sm-3">

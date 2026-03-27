@@ -988,7 +988,11 @@ class Contact(models.Model):
         number = getattr(self, phone_att)
         if phone_att == "work_phone":
             return DoNotCallNumber.objects.filter(number__iexact=number).exists()
-        elif number is None or number.national_number is None:
+        elif not number:
+            return False
+        elif isinstance(number, str):
+            return DoNotCallNumber.objects.filter(number__contains=number).exists()
+        elif number.national_number is None:
             return False
         return DoNotCallNumber.objects.filter(number__contains=number.national_number).exists()
 
@@ -1000,6 +1004,11 @@ class Contact(models.Model):
 
     def do_not_call_mobile(self):
         return self.do_not_call("mobile")
+
+    def get_email_bounce_action(self):
+        if not self.email:
+            return None
+        return EmailBounceActionLog.objects.filter(email=self.email).order_by("-created").first()
 
     def date_of_first_invoice(self):
         if self.invoice_set.exists():
@@ -2141,9 +2150,14 @@ class Subscription(models.Model):
         # products = self.products.filter(type='S')  # TODO: explain the usage of this commented line or remove it
         from .utils import process_products
 
-        subscription_products = SubscriptionProduct.objects.filter(subscription=self)
-        if with_pauses:
-            subscription_products = subscription_products.filter(active=True)
+        if "subscriptionproduct_set" in getattr(self, "_prefetched_objects_cache", {}):
+            subscription_products = self._prefetched_objects_cache["subscriptionproduct_set"]
+            if with_pauses:
+                subscription_products = [sp for sp in subscription_products if sp.active]
+        else:
+            subscription_products = SubscriptionProduct.objects.filter(subscription=self)
+            if with_pauses:
+                subscription_products = subscription_products.filter(active=True)
 
         dict_all_products = {str(sp.product.id): str(sp.copies) for sp in subscription_products if sp.product}
         return process_products(dict_all_products)
@@ -2434,7 +2448,7 @@ class Subscription(models.Model):
     def get_subscriptionproducts(self, without_discounts=False):
         qs = (
             SubscriptionProduct.objects.filter(subscription=self)
-            .select_related("product")
+            .select_related("product", "address", "route")
             .order_by("product__billing_priority", "product_id")
         )
         if without_discounts:
@@ -2624,20 +2638,6 @@ class Campaign(models.Model):
     def __str__(self):
         return self.name
 
-    def get_activities_by_seller(self, seller, status=None, type=None, datetime=None):
-        """
-        Returns all the activities on this campaign, for a specific seller. Activities on a campaign imply that the
-        contact has been scheduled to be called in the future.
-        """
-        acts = Activity.objects.filter(campaign=self, seller=seller).order_by("datetime")
-        if status:
-            acts = acts.filter(status__in=status)
-        if type:
-            acts = acts.filter(activity_type__in=type)
-        if date:
-            acts = acts.filter(datetime__lte=datetime)
-        return acts
-
     def get_not_contacted(self, seller_id):
         """
         Returns the ContactCampaignStatus objects for all Contacts that have not been called yet (status=1)
@@ -2703,19 +2703,6 @@ class Campaign(models.Model):
         Returns the count of ContactCampaignStatus objects for all Contacts that have not been called yet (status=1)
         """
         return self.get_not_contacted(seller_id).count()
-
-    def get_already_contacted(self, seller_id):
-        """
-        Returns the ContactCampaignStatus objects for all Contacts that have already been called yet (status=2, 3)
-        """
-        return self.contactcampaignstatus_set.filter(seller_id=seller_id, status=2)
-
-    def get_already_contacted_count(self, seller_id):
-        """
-        Returns the count of ContactCampaignStatus objects for all Contacts that have already been called yet
-        (status=2, 3)
-        """
-        return self.get_already_contacted(seller_id).count()
 
     def get_successful_count(self, seller_id):
         return self.contactcampaignstatus_set.filter(seller_id=seller_id, campaign_resolution__in=["S1", "S2"]).count()
