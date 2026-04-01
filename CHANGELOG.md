@@ -2,6 +2,11 @@
 
 ## v0.5.0
 
+## 2026-04-01 - t1082 Bugfix
+
+- Reactivate subscription was not marking it as active
+- No migration required
+
 ## 2026-03-31 — t1081 Invoice detail view UX improvements
 
 - Improved layout and readability of the invoice detail view

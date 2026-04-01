@@ -711,6 +711,7 @@ def reactivate_subscription(request, subscription_id):
         subscription.payment_type = request.POST.get("payment_type") or None
 
         # Perform the reactivation
+        subscription.active = True
         subscription.end_date = None
         subscription.unsubscription_reason = None
         subscription.unsubscription_channel = None
