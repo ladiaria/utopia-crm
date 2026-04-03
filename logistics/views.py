@@ -848,7 +848,7 @@ def print_labels_from_csv(request):
                 label.address = "{}\n{}".format(row[1], row[2])
                 label.route = row[3] or ""
                 label.route_order = row[4] or ""
-                label.message = row[5] or ""
+                label.message_for_contact = row[5] or ""
                 label.route_suffix = row[6] or ""
                 label.draw()
             except IndexError:
