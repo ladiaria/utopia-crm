@@ -2,6 +2,13 @@
 
 ## v0.5.0
 
+## 2026-04-06 — t1088 Campaign statistics: count sold products only
+
+- Campaign statistics detail view now counts only products registered as sold via SalesRecord, not all products currently on the subscription linked to the campaign
+- CSV export of campaign statistics fixed with the same approach, accumulating products across multiple sale records per contact when present
+- No migrations required
+- **Author:** Tanya Tree + Claude Sonnet 4.6
+
 ## 2026-04-01 - t1082 Bugfix
 
 - Reactivate subscription was not marking it as active
