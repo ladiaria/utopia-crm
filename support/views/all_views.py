@@ -2127,27 +2127,27 @@ class CampaignStatisticsDetailView(BreadcrumbsMixin, UserPassesTestMixin, Filter
             )
         )
 
-        # Build a dict of contact_id -> subscription data for this campaign
-        # This avoids N+1 queries in the loop
-        campaign_subscriptions = Subscription.objects.filter(
+        # Build a dict of contact_id -> subscription data for this campaign.
+        # We use SalesRecord.products (M2M) to get only the products actually sold in
+        # this campaign, not all products currently on the subscription.
+        campaign_sales_records = SalesRecord.objects.filter(
             campaign=self.campaign,
-        ).select_related('contact').prefetch_related(
-            Prefetch(
-                'subscriptionproduct_set',
-                queryset=SubscriptionProduct.objects.select_related('product'),
-            )
-        )
+        ).select_related('subscription').prefetch_related('products').order_by('date_time')
 
-        # Map contact_id -> (start_date, products_str)
+        # Map contact_id -> (start_date, products accumulated across all SalesRecords)
         subscription_data = {}
-        for sub in campaign_subscriptions:
-            products = ", ".join(
-                sp.product.name for sp in sub.subscriptionproduct_set.all() if sp.product
-            )
-            subscription_data[sub.contact_id] = {
-                "start_date": sub.start_date,
-                "products": products,
-            }
+        for sr in campaign_sales_records:
+            contact_id = sr.subscription.contact_id
+            sold_products = [p.name for p in sr.products.all()]
+            if contact_id in subscription_data:
+                subscription_data[contact_id]["products_list"].extend(sold_products)
+            else:
+                subscription_data[contact_id] = {
+                    "start_date": sr.subscription.start_date,
+                    "products_list": sold_products,
+                }
+        for data in subscription_data.values():
+            data["products"] = ", ".join(data["products_list"])
 
         response = HttpResponse(content_type="text/csv")
         response["Content-Disposition"] = (
@@ -2308,19 +2308,18 @@ class CampaignStatisticsDetailView(BreadcrumbsMixin, UserPassesTestMixin, Filter
         # Get contact IDs from the filtered ContactCampaignStatus queryset
         filtered_contact_ids = filtered_qs.values_list('contact_id', flat=True)
 
-        # Filter subscription products by:
-        # 1. Campaign matches
-        # 2. Contact is in the filtered list
-        # 3. Optionally filter by seller if selected
-        subscription_products = SubscriptionProduct.objects.filter(
-            subscription__campaign=self.campaign,
-            subscription__contact_id__in=filtered_contact_ids
+        # Use SalesRecord.products (the M2M) instead of SubscriptionProduct so that
+        # pre-existing products on an updated subscription are not counted — only the
+        # products that were actually sold in this campaign action are included.
+        sales_records = SalesRecord.objects.filter(
+            campaign=self.campaign,
+            subscription__contact_id__in=filtered_contact_ids,
         )
         if context['seller']:
-            subscription_products = subscription_products.filter(seller=context['seller'])
+            sales_records = sales_records.filter(seller=context['seller'])
 
         for product in Product.objects.filter(offerable=True, type="S"):
-            subs_dict[product.name] = subscription_products.filter(product=product).count()
+            subs_dict[product.name] = sales_records.filter(products=product).count()
 
         try:
             most_sold = max(subs_dict, key=subs_dict.get)
