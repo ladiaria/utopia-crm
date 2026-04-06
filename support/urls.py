@@ -51,6 +51,7 @@ from support.views import (
     not_contacted_campaign,
     api_get_addresses,
 )
+from support.views.contacts import ContactCampaignStatusEditView
 from support.views.all_views import (
     CommunityConsoleView,
     CommunityManagerAssignView,
@@ -203,6 +204,11 @@ urlpatterns = [
     path("tag_contacts/", tag_contacts, name="tag_contacts"),
     path("bulk_delete_campaign_status/", bulk_delete_campaign_status, name="bulk_delete_campaign_status"),
     path("not_contacted_campaign/<int:campaign_id>/", not_contacted_campaign, name="not_contacted_campaign"),
+    path(
+        "campaign_status/<int:pk>/edit/",
+        ContactCampaignStatusEditView.as_view(),
+        name="edit_campaign_status",
+    ),
     path("contacts/<int:contact_id>/agregar_direccion/", location.agregar_direccion, name="agregar_direccion"),
     path(
         "contacts/<int:contact_id>/editar_direccion/<int:address_id>/",

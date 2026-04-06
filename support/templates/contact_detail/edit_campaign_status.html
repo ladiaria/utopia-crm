@@ -1,0 +1,91 @@
+{% extends "adminlte/base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Edit Campaign Status" %}{% endblock title %}
+{% block no_heading %}
+  <h1>{% trans "Edit Campaign Status" %}</h1>
+{% endblock %}
+{% block content %}
+  <div class="row">
+    <div class="col-md-8">
+      <!-- Read-only campaign info -->
+      <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-light">
+          <h4 class="mb-0">
+            <i class="fas fa-bullhorn mr-2 text-primary"></i>
+            <strong>{{ object.campaign.name }}</strong>
+          </h4>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <p class="mb-1">
+                <strong><i class="fas fa-user mr-1 text-primary"></i> {% trans "Contact" %}:</strong>
+                <span class="ml-2">{{ object.contact.get_full_name }}</span>
+              </p>
+              <p class="mb-1">
+                <strong><i class="fas fa-user-tie mr-1 text-primary"></i> {% trans "Seller" %}:</strong>
+                <span class="ml-2">
+                  {% if object.seller %}
+                    <span class="badge badge-info">{{ object.seller }}</span>
+                  {% else %}
+                    <span class="text-muted">{% trans "Not assigned" %}</span>
+                  {% endif %}
+                </span>
+              </p>
+            </div>
+            <div class="col-md-6">
+              <p class="mb-1">
+                <strong><i class="fas fa-plus-circle mr-1 text-success"></i> {% trans "Assigned to Campaign" %}:</strong>
+                <span class="ml-2">{{ object.date_created|default_if_none:"-" }}</span>
+              </p>
+              <p class="mb-1">
+                <strong><i class="fas fa-clock mr-1 text-primary"></i> {% trans "Date of last action" %}:</strong>
+                <span class="ml-2">{{ object.last_action_date|default_if_none:"-" }}</span>
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Edit form -->
+      <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+          <h4 class="card-title mb-0">
+            <i class="fas fa-edit mr-2"></i>{% trans "Edit Status" %}
+          </h4>
+        </div>
+        <div class="card-body">
+          <form method="post">
+            {% csrf_token %}
+            {% if form.errors %}
+              {% for field in form %}
+                {% for error in field.errors %}
+                  <div class="alert alert-danger"><strong>{{ error|escape }}</strong></div>
+                {% endfor %}
+              {% endfor %}
+            {% endif %}
+            <div class="form-group">
+              <label for="{{ form.status.id_for_label }}">{{ form.status.label }}</label>
+              {{ form.status }}
+            </div>
+            <div class="form-group">
+              <label for="{{ form.campaign_resolution.id_for_label }}">{{ form.campaign_resolution.label }}</label>
+              {{ form.campaign_resolution }}
+            </div>
+            <div class="form-group">
+              <label for="{{ form.resolution_reason.id_for_label }}">{{ form.resolution_reason.label }}</label>
+              {{ form.resolution_reason }}
+            </div>
+            <div class="form-group text-right">
+              <a href="{% url 'contact_detail' object.contact_id %}" class="btn btn-secondary mr-2">
+                <i class="fas fa-times mr-1"></i>{% trans "Cancel" %}
+              </a>
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save mr-1"></i>{% trans "Save" %}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

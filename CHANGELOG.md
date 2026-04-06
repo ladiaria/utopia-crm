@@ -2,6 +2,14 @@
 
 ## v0.5.0
 
+## 2026-04-06 — t1091 Campaign status edit for managers and admins
+
+- Managers, Admins, and superusers can now edit the campaign status (status, resolution, and resolution reason) of a contact directly from the contact detail page
+- A dedicated edit view shows the campaign info read-only alongside a small form restricted to the editable fields
+- Non-authorised staff see the campaigns tab as before — no change to their experience
+- No migrations required
+- **Author:** Tanya Tree + Claude Sonnet 4.6
+
 ## 2026-04-06 — t1088 Campaign statistics: count sold products only
 
 - Campaign statistics detail view now counts only products registered as sold via SalesRecord, not all products currently on the subscription linked to the campaign
