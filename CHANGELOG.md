@@ -2,6 +2,14 @@
 
 ## v0.5.0
 
+## 2026-04-07 — t1093 added_products field on Subscription
+
+- Added `added_products` M2M field to `Subscription` (mirrors `unsubscription_products` on the departing subscription)
+- Extended `add_product()` with an optional `track_as_added=False` parameter; when `True`, the product is also recorded in `added_products`
+- `book_additional_product()` and `product_change()` in `support/views/subscriptions.py` now pass `track_as_added=True` for genuinely new products (copied products are unaffected)
+- **Migration:** `0118_subscription_added_products`
+- **Author:** Tanya Tree + Claude Sonnet 4.6
+
 ## 2026-04-06 — t1091 Campaign status edit for managers and admins
 
 - Managers, Admins, and superusers can now edit the campaign status (status, resolution, and resolution reason) of a contact directly from the contact detail page

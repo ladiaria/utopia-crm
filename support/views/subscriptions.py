@@ -959,6 +959,7 @@ def product_change(request, subscription_id):
                     new_subscription.add_product(
                         product=product,
                         address=None,
+                        track_as_added=True,
                     )
             # After that, we'll set the unsubscription date to this new subscription
             success_text = format_lazy(
@@ -1072,6 +1073,7 @@ def book_additional_product(request, subscription_id):
                         product=product,
                         address=default_address,
                         seller_id=seller_id,
+                        track_as_added=True,
                     )
                     new_products_list.append(product)
             # If there was a seller we have to add a new SalesRecord.
