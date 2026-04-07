@@ -30,7 +30,7 @@ class Seller(models.Model):
 
     name = models.CharField(max_length=40, verbose_name=_("Name"))
     internal = models.BooleanField(default=False, verbose_name=_("Is internal?"))
-    user = models.ForeignKey(User, blank=True, null=True, on_delete=models.SET_NULL)
+    user = models.OneToOneField(User, blank=True, null=True, on_delete=models.SET_NULL)
     old_pk = models.PositiveIntegerField(blank=True, null=True, db_index=True)
 
     def __str__(self):
