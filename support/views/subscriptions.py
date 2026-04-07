@@ -244,8 +244,8 @@ class SubscriptionMixin(BreadcrumbsMixin):
             self.ccs = ContactCampaignStatus.objects.get(pk=self.request.GET["new"])
             self.campaign = self.ccs.campaign
             self.user_seller_id = self.ccs.seller.id
-        elif self.request.user.seller_set.exists():
-            self.user_seller_id = self.request.user.seller_set.first().id
+        elif self.request.user.seller is not None:
+            self.user_seller_id = self.request.user.seller.id
         else:
             self.user_seller_id = None
 
@@ -1013,7 +1013,7 @@ def book_additional_product(request, subscription_id):
     )
     new_products_ids_list = []
     if request.POST:
-        seller_id = request.user.seller_set.first().id if request.user.seller_set.exists() else None
+        seller_id = request.user.seller.id if request.user.seller is not None else None
         campaign = request.GET.get("campaign", None)
         campaign_obj = Campaign.objects.get(pk=campaign) if campaign else None
         form = AdditionalProductForm(request.POST, instance=old_subscription)
@@ -1309,7 +1309,7 @@ def add_retention_discount(request, subscription_id):
                     new_sp.save()
 
             # Get seller for new products
-            seller_id = request.user.seller_set.first().id if request.user.seller_set.exists() else None
+            seller_id = request.user.seller.id if request.user.seller is not None else None
 
             # Add retention discount products
             for product_id in selected_discount_ids:
