@@ -655,11 +655,11 @@ class Contact(models.Model):
         contact_campaign_status, created = ContactCampaignStatus.objects.get_or_create(contact=self, campaign=campaign)
 
         if created:
-            return _("Contact %(name)s (ID: %(id)s) added to campaign %(campaign)s") % {
-                "name": self.get_full_name(),
-                "id": self.id,
-                "campaign": campaign.name,
-            }
+            return _("Contact {name} (ID: {id}) added to campaign {campaign}").format(
+                name=self.get_full_name(),
+                id=self.id,
+                campaign=campaign.name,
+            )
         else:
             raise Exception(
                 _("Contact %(name)s (ID: %(id)s) is already in campaign %(campaign)s")
