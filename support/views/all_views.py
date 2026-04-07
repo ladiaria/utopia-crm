@@ -2635,7 +2635,7 @@ class SalesRecordFilterSellersView(BreadcrumbsMixin, FilterView):
 
     def get_queryset(self):
         queryset = super().get_queryset()
-        self.seller = self.request.user.seller
+        self.seller = getattr(self.request.user, 'seller', None)
         if self.seller:
             self.queryset = queryset.filter(seller=self.seller)
         filterset = self.filterset_class(self.request.GET, queryset=self.queryset)
