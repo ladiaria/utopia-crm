@@ -295,13 +295,15 @@ def print_unordered_subscriptions(request):
 def change_route(request, route_id=1):
     """
     Changes route to a contact on a particular route.
-    Automatically creates an Issue when a route is changed to a special route (50-55).
+    Automatically creates an Issue when a route is changed to a special route
+    (as defined by SPECIAL_ROUTES_FOR_SELLERS_LIST in settings).
 
     TODO: Do something to quickly change route form the template itself.
     """
     product_list = Product.objects.filter(type="S", offerable=True)
     product_id, product = "all", None
     route_object = get_object_or_404(Route, pk=route_id)
+    special_routes_list = getattr(settings, "SPECIAL_ROUTES_FOR_SELLERS_LIST", [])
     if request.POST:
         issues_created = []
         for name, value in list(request.POST.items()):
@@ -376,6 +378,7 @@ def change_route(request, route_id=1):
             "product_id": product_id,
             "product": product,
             "breadcrumbs": breadcrumbs,
+            "special_routes_list": special_routes_list,
         },
     )
 
@@ -1807,10 +1810,13 @@ class ProcessMergeAddressesView(View):
 def change_subscription_routes(request, subscription_id):
     """
     Changes routes for all subscription products in a single subscription.
-    Automatically creates an Issue when a route is changed to a special route (50-55).
+    Automatically creates an Issue when a route is changed to a special route
+    (as defined by SPECIAL_ROUTES_FOR_SELLERS_LIST in settings).
     """
     subscription = get_object_or_404(Subscription, pk=subscription_id)
     contact = subscription.contact
+
+    special_routes_list = getattr(settings, "SPECIAL_ROUTES_FOR_SELLERS_LIST", [])
 
     if request.POST:
         special_route_numbers = []
@@ -1834,7 +1840,7 @@ def change_subscription_routes(request, subscription_id):
                         sp.save()
 
                         # Track special route numbers for a single issue
-                        if new_route.number in range(50, 56):
+                        if new_route.number in special_routes_list:
                             special_route_numbers.append(new_route.number)
 
                 except Route.DoesNotExist:
@@ -1887,5 +1893,6 @@ def change_subscription_routes(request, subscription_id):
             "contact": contact,
             "subscription_products": subscription_products,
             "routes": routes,
+            "special_routes_list": special_routes_list,
         },
     )

@@ -71,7 +71,7 @@
       <div class="special-route-warning">
         <i class="fas fa-exclamation-triangle"></i>
         <strong>{% trans "Important:" %}</strong>
-        {% trans "Changing a route to a special route (50-55) will automatically create a logistics issue with subcategory 'not-delivered'." %}
+        {% trans "Changing a route to a special route" %} ({{ special_routes_list|join:", " }}) {% trans "will automatically create a logistics issue with subcategory 'not-delivered'." %}
       </div>
 
       <div class="alert alert-info">
@@ -139,11 +139,11 @@
                         {% for route in routes %}
                           <option value="{{ route.number }}"
                                   {% if sp.route and sp.route.number == route.number %}selected{% endif %}
-                                  {% if route.number >= 50 and route.number <= 55 %}
+                                  {% if route.number in special_routes_list %}
                                     class="text-warning font-weight-bold"
                                   {% endif %}>
                             {{ route.number }} - {{ route.name }}
-                            {% if route.number >= 50 and route.number <= 55 %}⚠️{% endif %}
+                            {% if route.number in special_routes_list %}⚠️{% endif %}
                           </option>
                         {% endfor %}
                       </select>
@@ -190,12 +190,12 @@
           <div class="row mt-3">
             <div class="col-md-12">
               <h5>{% trans "Issue Notes for Special Routes" %}</h5>
-              <p class="text-muted">{% trans "If changing to a special route (50-55), a single issue will be created. You can add custom notes below:" %}</p>
+              <p class="text-muted">{% trans "If changing to a special route" %} ({{ special_routes_list|join:", " }}), {% trans "a single issue will be created. You can add custom notes below:" %}</p>
               <textarea class="form-control"
                         name="issue-notes"
                         id="issue-notes"
                         rows="3"
-                        placeholder="{% trans 'Custom notes for the issue (only used when changing to routes 50-55)' %}"></textarea>
+                        placeholder="{% trans 'Custom notes for the issue (only used when changing to special routes)' %}"></textarea>
             </div>
           </div>
 
@@ -222,6 +222,12 @@
 {% block extra_js %}
 <script src="{% static 'admin-lte/plugins/select2/js/select2.full.min.js' %}"></script>
 <script>
+  var specialRoutes = {{ special_routes_list|safe }};
+
+  function isSpecialRoute(routeNumber) {
+    return specialRoutes.indexOf(routeNumber) !== -1;
+  }
+
   $(function() {
     // Initialize Select2 on all route select dropdowns
     $('select[name^="sp-"]').select2({
@@ -244,8 +250,7 @@
         '<span>' + route.text + '</span>'
       );
 
-      // Add warning icon for special routes (50-55)
-      if (routeNumber >= 50 && routeNumber <= 55) {
+      if (isSpecialRoute(routeNumber)) {
         $route.prepend('<i class="fas fa-exclamation-triangle text-warning mr-1"></i>');
         $route.addClass('font-weight-bold text-warning');
       }
@@ -262,20 +267,19 @@
       var routeNumber = parseInt($(route.element).val());
       var $selection = $('<span>' + route.text + '</span>');
 
-      // Add warning icon for special routes (50-55)
-      if (routeNumber >= 50 && routeNumber <= 55) {
+      if (isSpecialRoute(routeNumber)) {
         $selection.prepend('<i class="fas fa-exclamation-triangle text-warning mr-1"></i>');
       }
 
       return $selection;
     }
 
-    // Highlight special routes (50-55) when selected
+    // Highlight special routes when selected
     $('select[name^="sp-"]').on('change', function() {
       var selectedValue = parseInt($(this).val());
       var row = $(this).closest('tr');
 
-      if (selectedValue >= 50 && selectedValue <= 55) {
+      if (isSpecialRoute(selectedValue)) {
         row.addClass('table-warning');
         if (!row.find('.special-route-alert').length) {
           $(this).closest('td').append(

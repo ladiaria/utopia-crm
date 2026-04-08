@@ -66,7 +66,7 @@
               <th>{% trans "Complement" %}</th>
               <th>{% trans "Message" %}</th>
               <th>{% trans "Instructions" %}</th>
-              <th>{% trans "Issue notes" %}<br><small class="text-muted">{% trans "(for special routes 50-55)" %}</small></th>
+              <th>{% trans "Issue notes" %}<br><small class="text-muted">({% trans "for special routes" %} {{ special_routes_list|join:", " }})</small></th>
               <th>{% trans "Route" %}</th>
             </tr>
           </thead>
@@ -96,7 +96,7 @@
                   <textarea class="form-control"
                             name="issue-notes-{{ sp.id }}"
                             rows="2"
-                            placeholder="{% trans 'Custom notes for issue (only for routes 50-55)' %}"></textarea>
+                            placeholder="{% trans 'Custom notes for issue (only for special routes)' %}"></textarea>
                 </td>
                 <td>
                   <input class="form-control"
