@@ -12,9 +12,9 @@ from django.db.models import Q, Sum, Min, Max, Prefetch
 from django.shortcuts import get_object_or_404, render
 from django.http import HttpResponseRedirect, HttpResponse, StreamingHttpResponse
 from django.utils.translation import gettext_lazy as _
-from django.views.generic import CreateView, DetailView
+from django.views.generic import CreateView, DetailView, TemplateView
 from django.utils.decorators import method_decorator
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 
 from django_filters.views import FilterView
 
@@ -505,3 +505,74 @@ class InvoiceDetailView(BreadcrumbsMixin, LoginRequiredMixin, DetailView):
             },
             {"label": _("Invoice detail"), "url": ""},
         ]
+
+
+class CanceledInvoicesReportView(BreadcrumbsMixin, UserPassesTestMixin, TemplateView):
+    """
+    Report view for canceled invoices. Downloads a CSV with all canceled invoices
+    in a date range, including their credit notes.
+
+    Access: Admins group, Finances group, and superusers only.
+    """
+
+    template_name = "canceled_invoices_report.html"
+
+    def test_func(self):
+        user = self.request.user
+        if user.is_superuser:
+            return True
+        return user.groups.filter(name__in=["Admins", "Finances"]).exists()
+
+    def breadcrumbs(self):
+        return [
+            {"label": _("Home"), "url": reverse("home")},
+            {"label": _("Canceled invoices report"), "url": ""},
+        ]
+
+    def post(self, request, *args, **kwargs):
+        start = request.POST.get("start")
+        end = request.POST.get("end")
+        response = HttpResponse(content_type="text/csv")
+        response["Content-Disposition"] = "attachment; filename=facturas-anuladas-{}-{}.csv".format(start, end)
+        writer = csv.writer(response)
+        writer.writerow(
+            [
+                _("id"),
+                _("contact_id"),
+                _("cancelation_date"),
+                _("products"),
+                _("amount"),
+                _("uncollectible"),
+                _("creation_date"),
+                _("payment_type"),
+                _("serie"),
+                _("numero"),
+                _("creditnote_serie"),
+                _("creditnote_numero"),
+            ]
+        )
+        invoices = Invoice.objects.filter(
+            canceled=True, cancelation_date__gte=start, cancelation_date__lte=end
+        ).prefetch_related("invoiceitem_set", "creditnote_set")
+        for invoice in invoices:
+            items = invoice.invoiceitem_set.all()
+            description = ", ".join(str(item.description) for item in items)
+            creditnotes = invoice.creditnote_set.all()
+            creditnote = creditnotes[0] if creditnotes else None
+            writer.writerow(
+                [
+                    invoice.id,
+                    invoice.contact_id,
+                    invoice.cancelation_date,
+                    description,
+                    invoice.amount,
+                    invoice.uncollectible,
+                    invoice.creation_date,
+                    invoice.payment_type,
+                    invoice.serie,
+                    invoice.numero,
+                    creditnote.serie if creditnote else None,
+                    creditnote.numero if creditnote else None,
+                ]
+            )
+        return response

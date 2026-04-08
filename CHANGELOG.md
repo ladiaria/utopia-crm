@@ -2,6 +2,15 @@
 
 ## v0.5.0
 
+## 2026-04-08 — t0243 Canceled invoices report view in invoicing app
+
+- A new `CanceledInvoicesReportView` is available in the base CRM, replacing the function view that previously existed only in the ladiaria customisation layer
+- Access is restricted to the Admins group, the Finances group, and superusers
+- A date-range form renders a CSV download of canceled invoices with prefetched line items and credit notes to avoid slow queries on large datasets
+- All column headers are marked for translation
+- No migrations required
+- **Author:** Tanya Tree + Claude Sonnet 4.6
+
 ## 2026-04-07 — t1093 added_products field on Subscription
 
 - Added `added_products` M2M field to `Subscription` (mirrors `unsubscription_products` on the departing subscription)
