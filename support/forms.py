@@ -572,6 +572,7 @@ class IssueChangeForm(forms.ModelForm):
         from .models import IssueResolution
 
         self.fields['resolution'].queryset = IssueResolution.objects.all()
+        self.fields['copies'].required = False
 
     class Meta:
         model = Issue
