@@ -2566,12 +2566,19 @@ def upload_do_not_call_numbers(request):
 @staff_member_required
 def tag_contacts(request):
     if request.FILES:
-        decoded_file = request.FILES.get("file").read().decode("utf-8").splitlines()
+        raw = request.FILES.get("file").read()
+        try:
+            decoded_file = raw.decode("utf-8").splitlines()
+        except UnicodeDecodeError:
+            decoded_file = raw.decode("latin-1").splitlines()
         csvfile = csv.reader(decoded_file)
         count = 0
         errors = []
         if csvfile:
             for row in csvfile:
+                if not row or not row[0].strip().lstrip("-").isdigit():
+                    # Skip empty rows or header rows (non-numeric first column)
+                    continue
                 try:
                     contact = Contact.objects.get(pk=row[0])
                     contact.tags.add(row[1].lower())
