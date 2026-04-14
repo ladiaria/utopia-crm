@@ -17,7 +17,9 @@ import sys
 from datetime import date
 
 from django.db import models
+from django.db.models import Min
 from django.core.management.base import BaseCommand
+from tqdm import tqdm
 
 from core.models import Subscription
 
@@ -67,11 +69,25 @@ class Command(BaseCommand):
                 return
             qs = qs.filter(start_date__gte=since)
 
+        qs = qs.order_by("start_date", "id")
+        total = qs.count()
+
+        # Fetch creation dates for all matching subscriptions in one query to avoid N+1.
+        # simple-history stores the initial INSERT as history_type="+"; we grab the earliest
+        # history_date per subscription_id and build a lookup dict.
+        sub_ids = list(qs.values_list("id", flat=True))
+        HistoricalSubscription = Subscription.history.model
+        created_dates = dict(
+            HistoricalSubscription.objects.filter(id__in=sub_ids, history_type="+")
+            .values("id")
+            .annotate(first_created=Min("history_date"))
+            .values_list("id", "first_created")
+        )
+
         rows = []
-        for sub in qs.order_by("start_date", "id"):
-            # Try to find the creation date via simple-history
-            first_history = sub.history.filter(history_type="+").order_by("history_date").first()
-            created_date = first_history.history_date.date() if first_history else None
+        for sub in tqdm(qs.iterator(), total=total, desc="Checking subscriptions", file=sys.stderr):
+            created_dt = created_dates.get(sub.id)
+            created_date = created_dt.date() if created_dt else None
 
             rows.append(
                 {
