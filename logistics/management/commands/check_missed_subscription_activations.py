@@ -16,6 +16,7 @@ import csv
 import sys
 from datetime import date
 
+from django.db import models
 from django.core.management.base import BaseCommand
 
 from core.models import Subscription
@@ -54,6 +55,8 @@ class Command(BaseCommand):
             active=False,
             start_date__lt=today,
             status="OK",
+        ).filter(
+            models.Q(end_date__isnull=True) | models.Q(end_date__gte=today)
         ).select_related("contact")
 
         if options["since"]:
