@@ -11,7 +11,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import PermissionRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.models import User
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
-from django.db.models import Count, Min, Q, Sum, Case, When, Prefetch
+from django.db.models import Count, Exists, Min, OuterRef, Q, Sum, Case, When, Prefetch
 from django.http import (
     HttpResponse,
     HttpResponseNotFound,
@@ -51,6 +51,7 @@ from core.utils import (
     logistics_is_installed,
     process_products,
 )
+from invoicing.models import Invoice
 from support.choices import ISSUE_ANSWERS, get_issue_categories
 from support.filters import (
     CampaignFilter,
@@ -1973,15 +1974,31 @@ def debtor_contacts(request):
     """
     Shows a comprehensive list of contacts that are debtors.
     """
+    overdue_invoice_qs = Invoice.objects.filter(
+        contact=OuterRef("pk"),
+        paid=False,
+        debited=False,
+        canceled=False,
+        uncollectible=False,
+        payment_date__isnull=True,
+        expiration_date__lt=date.today(),
+    )
     debtor_queryset = (
-        Contact.objects.filter(
-            invoice__paid=False,
-            invoice__debited=False,
-            invoice__canceled=False,
-            invoice__uncollectible=False,
-            invoice__expiration_date__lt=date.today(),
+        Contact.objects.filter(Exists(overdue_invoice_qs))
+        .annotate(
+            owed_invoices=Count(
+                "invoice",
+                filter=Q(
+                    invoice__paid=False,
+                    invoice__debited=False,
+                    invoice__canceled=False,
+                    invoice__uncollectible=False,
+                    invoice__payment_date__isnull=True,
+                    invoice__expiration_date__lt=date.today(),
+                ),
+                distinct=True,
+            )
         )
-        .annotate(owed_invoices=Count("invoice", distinct=True))
         .annotate(debt=Sum("invoice__amount"))
         .annotate(oldest_invoice=Min("invoice__creation_date"))
     )

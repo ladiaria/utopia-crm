@@ -144,7 +144,7 @@ class Invoice(models.Model):
     def is_overdue(self):
         if self.canceled or self.uncollectible:
             return False
-        return self.expiration_date <= date.today() and not self.paid and not self.debited
+        return self.expiration_date < date.today() and not self.paid and not self.debited
 
     @property
     def is_pending(self):
