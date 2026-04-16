@@ -89,6 +89,9 @@
   <script src="{% static 'js/choices.min.js' %}"></script>
   <script type="text/javascript">
   $(function () {
+    // Initialize Bootstrap tooltips
+    $('[data-toggle="tooltip"]').tooltip();
+
     const sub_category = new Choices($('#id_sub_category')[0]);
     const assigned_to = new Choices($('#id_assigned_to')[0]);
 
@@ -318,13 +321,18 @@
                   {% endif %}
                 </div>
                 <div class="col-md-2">
-                  <span class="issue-label"
-                        title="{% trans 'Creation date: automatically set when the issue was opened. Issue date: editable field representing the date the issue refers to.' %}">
-                    {% trans "Creation date" %} <i class="fas fa-info-circle text-muted" style="font-size:0.75rem;"></i>
+                  <span class="issue-label">
+                    {% trans "Creation date" %}
+                    <i class="fas fa-info-circle text-muted"
+                       data-toggle="tooltip"
+                       title="{% trans 'Creation date: automatically set when the issue was opened. Issue date: editable field representing the date the issue refers to.' %}"
+                       style="font-size:0.75rem;"></i>
                   </span><br>
                   {{ issue.date_created|date:"SHORT_DATE_FORMAT" }}
                   {% if issue.date != issue.date_created %}
-                    <br><small class="text-muted" title="{% trans 'Issue date: editable field representing the date the issue refers to.' %}">
+                    <br><small class="text-muted"
+                               data-toggle="tooltip"
+                               title="{% trans 'Issue date: editable field representing the date the issue refers to.' %}">
                       {% trans "Issue date" %}: {{ issue.date|date:"SHORT_DATE_FORMAT" }}
                     </small>
                   {% endif %}
