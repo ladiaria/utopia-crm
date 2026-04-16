@@ -646,7 +646,8 @@ class IssueListView(BreadcrumbsMixin, FilterView):
 
             # Write header
             header = [
-                _("Start date"),
+                _("Creation date"),
+                _("Issue date"),
                 _("Contact ID"),
                 _("Contact name"),
                 _("Category"),
@@ -654,6 +655,7 @@ class IssueListView(BreadcrumbsMixin, FilterView):
                 _("Resolution"),
                 _("Activities count"),
                 _("Status"),
+                _("Next action date"),
                 _("Assigned to"),
             ]
             writer.writerow(header)
@@ -665,6 +667,7 @@ class IssueListView(BreadcrumbsMixin, FilterView):
             filterset = self.get_filterset(self.filterset_class)
             for issue in filterset.qs.select_related('resolution').iterator(chunk_size=1000):
                 writer.writerow([
+                    issue.date_created,
                     issue.date,
                     issue.contact.id,
                     issue.contact.get_full_name(),
@@ -673,6 +676,7 @@ class IssueListView(BreadcrumbsMixin, FilterView):
                     issue.resolution.name if issue.resolution else "",
                     issue.activity_count(),
                     issue.get_status(),
+                    issue.next_action_date or "",
                     issue.get_assigned_to(),
                 ])
                 yield buffer.getvalue()

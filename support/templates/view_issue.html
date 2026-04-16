@@ -318,8 +318,16 @@
                   {% endif %}
                 </div>
                 <div class="col-md-2">
-                  <span class="issue-label">{% trans "Start date" %}</span><br>
+                  <span class="issue-label"
+                        title="{% trans 'Creation date: automatically set when the issue was opened. Issue date: editable field representing the date the issue refers to.' %}">
+                    {% trans "Creation date" %} <i class="fas fa-info-circle text-muted" style="font-size:0.75rem;"></i>
+                  </span><br>
                   {{ issue.date_created|date:"SHORT_DATE_FORMAT" }}
+                  {% if issue.date != issue.date_created %}
+                    <br><small class="text-muted" title="{% trans 'Issue date: editable field representing the date the issue refers to.' %}">
+                      {% trans "Issue date" %}: {{ issue.date|date:"SHORT_DATE_FORMAT" }}
+                    </small>
+                  {% endif %}
                 </div>
                 <div class="col-md-3">
                   <span class="issue-label">{% trans "Phone" %}</span><br>
