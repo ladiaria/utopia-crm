@@ -204,6 +204,10 @@ ISSUE_STATUS_UNASSIGNED = "unassigned"
 ISSUE_STATUS_SOLVED = "solved"
 ISSUE_STATUS_FINISHED_LIST = [ISSUE_STATUS_SOLVED, "not-solved"]
 
+# Subcategory slugs whose resolutions auto-close the issue (set status to ISSUE_STATUS_SOLVED).
+# Override in local_settings to activate this behaviour for specific subcategories.
+ISSUE_RESOLUTION_SOLVED_SUBCATEGORIES = []
+
 # logistics
 LOGISTICS_LABEL_INVOICE_PAYMENT_TYPES = []
 ISSUE_SUBCATEGORY_NOT_DELIVERED = "not-delivered"

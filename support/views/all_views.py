@@ -1468,9 +1468,32 @@ class IssueDetailView(BreadcrumbsMixin, UpdateView):
         Override form_valid to automatically set next_action_date when status changes.
         If status has changed and next_action_date is missing or in the past, set it to tomorrow.
         Does not set next_action_date if the new status is a terminal status.
+
+        Also: if the chosen resolution belongs to a subcategory listed in
+        ISSUE_RESOLUTION_SOLVED_SUBCATEGORIES, the issue status is forced to
+        ISSUE_STATUS_SOLVED before saving regardless of what the user selected.
         """
         issue = self.get_object()
         old_status = issue.status
+
+        # Force status to solved when the resolution belongs to a configured subcategory.
+        resolution = form.cleaned_data.get('resolution')
+        solved_subcategories = getattr(settings, 'ISSUE_RESOLUTION_SOLVED_SUBCATEGORIES', [])
+        if (
+            solved_subcategories
+            and resolution
+            and resolution.subcategory
+            and resolution.subcategory.slug in solved_subcategories
+        ):
+            finished_slugs = getattr(settings, 'ISSUE_STATUS_FINISHED_LIST', [])
+            current_slug = form.instance.status.slug if form.instance.status else None
+            if current_slug not in finished_slugs:
+                try:
+                    form.instance.status = IssueStatus.objects.get(slug=settings.ISSUE_STATUS_SOLVED)
+                    if not form.instance.closing_date:
+                        form.instance.closing_date = date.today()
+                except IssueStatus.DoesNotExist:
+                    pass
 
         # Let the form save normally first
         response = super().form_valid(form)
