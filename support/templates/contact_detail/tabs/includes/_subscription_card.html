@@ -127,9 +127,11 @@
               <div class="mb-1">
                 <i class="fas fa-tag text-secondary"></i> <strong>{% trans "Type" %}:</strong> {{ subscription.get_unsubscription_type_display }}
               </div>
+              {% if subscription.unsubscription_reason %}
               <div class="mb-1">
                 <i class="fas fa-comment text-secondary"></i> <strong>{% trans "Reason" %}:</strong> {{ subscription.get_unsubscription_reason_display }}
               </div>
+              {% endif %}
               <div class="mb-1">
                 <i class="fas fa-phone text-secondary"></i> <strong>{% trans "Channel" %}:</strong> {{ subscription.get_unsubscription_channel_display }}
               </div>
