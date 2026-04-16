@@ -11,10 +11,14 @@ Usage:
     python manage.py check_missed_subscription_activations
     python manage.py check_missed_subscription_activations --output /tmp/missed.csv
     python manage.py check_missed_subscription_activations --since 2025-01-01
+    python manage.py check_missed_subscription_activations --months-threshold 6
+    python manage.py check_missed_subscription_activations --fix-invalid
+    python manage.py check_missed_subscription_activations --activate --months-threshold 3
 """
 import csv
 import sys
 from datetime import date
+from dateutil.relativedelta import relativedelta
 
 from django.db import models
 from django.db.models import Min
@@ -27,7 +31,9 @@ from core.models import Subscription
 class Command(BaseCommand):
     help = (
         "Finds inactive subscriptions whose start_date is in the past and status is OK "
-        "(i.e. missed by activate_subscriptions_by_start_date). Outputs a CSV report."
+        "(i.e. missed by activate_subscriptions_by_start_date). Outputs a CSV report.\n\n"
+        "Also detects subscriptions with status != OK that are still open (no end_date or "
+        "end_date in the future) and optionally closes them (--fix-invalid)."
     )
 
     def add_arguments(self, parser):
@@ -44,18 +50,43 @@ class Command(BaseCommand):
             help="Only include subscriptions with start_date on or after this date.",
         )
         parser.add_argument(
+            "--months-threshold",
+            type=int,
+            default=3,
+            metavar="N",
+            help=(
+                "Only consider subscriptions whose start_date is within the last N months "
+                "(default: 3). Prevents accidentally activating very old subscriptions."
+            ),
+        )
+        parser.add_argument(
             "--activate",
             action="store_true",
             default=False,
-            help="Also activate the found subscriptions (use with care on production).",
+            help="Also activate the found missed subscriptions (use with care on production).",
+        )
+        parser.add_argument(
+            "--fix-invalid",
+            action="store_true",
+            default=False,
+            help=(
+                "Find subscriptions with status != OK that are still open (active=False, "
+                "no end_date or end_date in the future) and set their end_date. "
+                "end_date is set to next_billing - 1 day if next_billing exists and is not in "
+                "the future; otherwise start_date + 1 month."
+            ),
         )
 
     def handle(self, *args, **options):
         today = date.today()
 
+        # --- Missed activations (status=OK, active=False, start_date in past) ---
+        threshold_date = today - relativedelta(months=options["months_threshold"])
+
         qs = Subscription.objects.filter(
             active=False,
             start_date__lt=today,
+            start_date__gte=threshold_date,
             status="OK",
         ).filter(
             models.Q(end_date__isnull=True) | models.Q(end_date__gte=today)
@@ -73,8 +104,6 @@ class Command(BaseCommand):
         total = qs.count()
 
         # Fetch creation dates for all matching subscriptions in one query to avoid N+1.
-        # simple-history stores the initial INSERT as history_type="+"; we grab the earliest
-        # history_date per subscription_id and build a lookup dict.
         sub_ids = list(qs.values_list("id", flat=True))
         HistoricalSubscription = Subscription.history.model
         created_dates = dict(
@@ -85,7 +114,7 @@ class Command(BaseCommand):
         )
 
         rows = []
-        for sub in tqdm(qs.iterator(), total=total, desc="Checking subscriptions", file=sys.stderr):
+        for sub in tqdm(qs.iterator(), total=total, desc="Checking missed activations", file=sys.stderr):
             created_dt = created_dates.get(sub.id)
             created_date = created_dt.date() if created_dt else None
 
@@ -105,38 +134,87 @@ class Command(BaseCommand):
                 }
             )
 
-        if not rows:
-            self.stdout.write("No missed subscription activations found.")
-            return
-
-        fieldnames = [
-            "subscription_id",
-            "contact_id",
-            "contact_name",
-            "contact_last_name",
-            "contact_email",
-            "start_date",
-            "end_date",
-            "status",
-            "payment_type",
-            "subscription_created_date",
-            "days_overdue",
-        ]
-
-        output_path = options["output"]
-        if output_path:
-            with open(output_path, "w", newline="", encoding="utf-8") as f:
-                writer = csv.DictWriter(f, fieldnames=fieldnames)
+        if rows:
+            fieldnames = [
+                "subscription_id",
+                "contact_id",
+                "contact_name",
+                "contact_last_name",
+                "contact_email",
+                "start_date",
+                "end_date",
+                "status",
+                "payment_type",
+                "subscription_created_date",
+                "days_overdue",
+            ]
+            output_path = options["output"]
+            if output_path:
+                with open(output_path, "w", newline="", encoding="utf-8") as f:
+                    writer = csv.DictWriter(f, fieldnames=fieldnames)
+                    writer.writeheader()
+                    writer.writerows(rows)
+                self.stdout.write(f"Wrote {len(rows)} missed activation(s) to {output_path}")
+            else:
+                writer = csv.DictWriter(sys.stdout, fieldnames=fieldnames)
                 writer.writeheader()
                 writer.writerows(rows)
-            self.stdout.write(f"Wrote {len(rows)} row(s) to {output_path}")
+                self.stderr.write(f"\n{len(rows)} missed activation(s) found.")
         else:
-            writer = csv.DictWriter(sys.stdout, fieldnames=fieldnames)
-            writer.writeheader()
-            writer.writerows(rows)
-            self.stderr.write(f"\n{len(rows)} subscription(s) found.")
+            self.stdout.write("No missed subscription activations found.")
 
-        if options["activate"]:
+        if options["activate"] and rows:
             ids = [r["subscription_id"] for r in rows]
             activated = Subscription.objects.filter(id__in=ids).update(active=True)
             self.stdout.write(f"Activated {activated} subscription(s).")
+
+        # --- Fix invalid: status != OK, still open, active=False ---
+        if options["fix_invalid"]:
+            self._fix_invalid_subscriptions(today)
+
+    def _fix_invalid_subscriptions(self, today):
+        """
+        Find subscriptions with status != OK that are still open (no end_date or
+        end_date in the future) and set their end_date to close them.
+
+        end_date logic:
+          - If next_billing exists AND next_billing - 1 day <= today: use next_billing - 1 day.
+          - Otherwise: use start_date + 1 month.
+        """
+        qs = Subscription.objects.filter(
+            active=False,
+        ).exclude(
+            status="OK",
+        ).filter(
+            models.Q(end_date__isnull=True) | models.Q(end_date__gt=today)
+        ).select_related("contact")
+
+        total = qs.count()
+        if not total:
+            self.stdout.write("No invalid open subscriptions found.")
+            return
+
+        self.stderr.write(f"Found {total} invalid open subscription(s) to close.")
+
+        fixed = 0
+        for sub in tqdm(qs.iterator(), total=total, desc="Fixing invalid subscriptions", file=sys.stderr):
+            end_date = self._compute_end_date_for_invalid(sub, today)
+            sub.end_date = end_date
+            sub.save(update_fields=["end_date"])
+            fixed += 1
+
+        self.stdout.write(f"Closed {fixed} invalid subscription(s).")
+
+    def _compute_end_date_for_invalid(self, sub, today):
+        """
+        Determine the end_date to assign to an invalid subscription:
+          - next_billing - 1 day, if that date is not in the future.
+          - Otherwise start_date + 1 month.
+        """
+        if sub.next_billing:
+            candidate = sub.next_billing - relativedelta(days=1)
+            if candidate <= today:
+                return candidate
+        if sub.start_date:
+            return sub.start_date + relativedelta(months=1)
+        return today
