@@ -814,7 +814,6 @@ class RetentionDiscountForm(forms.ModelForm):
     class Meta:
         model = Subscription
         fields = (
-            "start_date",
             "unsubscription_channel",
             "unsubscription_addendum",
         )
