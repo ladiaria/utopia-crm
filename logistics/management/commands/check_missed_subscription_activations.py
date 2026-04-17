@@ -47,7 +47,7 @@ class Command(BaseCommand):
         "Finds inactive subscriptions whose start_date is in the past and status is OK "
         "(i.e. missed by activate_subscriptions_by_start_date). Outputs a CSV report.\n\n"
         "Also detects and optionally closes:\n"
-        "  --fix-invalid: subscriptions with status != OK that are still open.\n"
+        "  --fix-invalid: subscriptions with status != OK and != PA that are still open.\n"
         "  --fix-orphan:  subscriptions with status=OK, active=False, no end_date, "
         "outside the months-threshold (historical open subs that were never activated).\n\n"
         "Use --dry-run with --fix-invalid or --fix-orphan to preview changes without applying them."
@@ -88,8 +88,9 @@ class Command(BaseCommand):
             action="store_true",
             default=False,
             help=(
-                "Find subscriptions with status != OK that are still open (active=False, "
+                "Find subscriptions with status != OK and != PA that are still open (active=False, "
                 "no end_date or end_date in the future) and set their end_date. "
+                "PA (paused) subscriptions are intentionally left open and are excluded. "
                 "end_date is set to next_billing - 1 day if next_billing exists and is not in "
                 "the future; otherwise start_date + 1 month. Use --dry-run to preview."
             ),
@@ -213,7 +214,7 @@ class Command(BaseCommand):
                 today=today,
                 dry_run=dry_run,
                 qs=Subscription.objects.filter(active=False)
-                .exclude(status="OK")
+                .exclude(status__in=["OK", "PA"])
                 .filter(models.Q(end_date__isnull=True) | models.Q(end_date__gt=today))
                 .select_related("contact"),
                 label="invalid (status != OK)",
