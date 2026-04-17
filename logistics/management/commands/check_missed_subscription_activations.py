@@ -8,12 +8,26 @@ on 2025-04-07 with start_date=2025-04-01): the nightly command only looks forwar
 up to one day ahead, so it never picks up past-due start dates.
 
 Usage:
+    # Report missed activations (dry run, no changes):
     python manage.py check_missed_subscription_activations
     python manage.py check_missed_subscription_activations --output /tmp/missed.csv
     python manage.py check_missed_subscription_activations --since 2025-01-01
     python manage.py check_missed_subscription_activations --months-threshold 6
-    python manage.py check_missed_subscription_activations --fix-invalid
+
+    # Actually activate them:
     python manage.py check_missed_subscription_activations --activate --months-threshold 3
+
+    # Dry run: show what --fix-invalid would close (status != OK, still open):
+    python manage.py check_missed_subscription_activations --fix-invalid --dry-run
+
+    # Actually close them:
+    python manage.py check_missed_subscription_activations --fix-invalid
+
+    # Dry run: show orphan subs (status=OK, active=False, no end_date, outside threshold):
+    python manage.py check_missed_subscription_activations --fix-orphan --dry-run
+
+    # Actually close orphan subs:
+    python manage.py check_missed_subscription_activations --fix-orphan
 """
 import csv
 import sys
@@ -32,8 +46,11 @@ class Command(BaseCommand):
     help = (
         "Finds inactive subscriptions whose start_date is in the past and status is OK "
         "(i.e. missed by activate_subscriptions_by_start_date). Outputs a CSV report.\n\n"
-        "Also detects subscriptions with status != OK that are still open (no end_date or "
-        "end_date in the future) and optionally closes them (--fix-invalid)."
+        "Also detects and optionally closes:\n"
+        "  --fix-invalid: subscriptions with status != OK that are still open.\n"
+        "  --fix-orphan:  subscriptions with status=OK, active=False, no end_date, "
+        "outside the months-threshold (historical open subs that were never activated).\n\n"
+        "Use --dry-run with --fix-invalid or --fix-orphan to preview changes without applying them."
     )
 
     def add_arguments(self, parser):
@@ -41,7 +58,7 @@ class Command(BaseCommand):
             "--output",
             metavar="FILE",
             default=None,
-            help="Path to write the CSV file. Defaults to stdout.",
+            help="Path to write the missed-activations CSV. Defaults to stdout.",
         )
         parser.add_argument(
             "--since",
@@ -56,7 +73,8 @@ class Command(BaseCommand):
             metavar="N",
             help=(
                 "Only consider subscriptions whose start_date is within the last N months "
-                "(default: 3). Prevents accidentally activating very old subscriptions."
+                "(default: 3). Prevents accidentally activating very old subscriptions. "
+                "Also used by --fix-orphan to define 'outside threshold'."
             ),
         )
         parser.add_argument(
@@ -73,14 +91,35 @@ class Command(BaseCommand):
                 "Find subscriptions with status != OK that are still open (active=False, "
                 "no end_date or end_date in the future) and set their end_date. "
                 "end_date is set to next_billing - 1 day if next_billing exists and is not in "
-                "the future; otherwise start_date + 1 month."
+                "the future; otherwise start_date + 1 month. Use --dry-run to preview."
+            ),
+        )
+        parser.add_argument(
+            "--fix-orphan",
+            action="store_true",
+            default=False,
+            help=(
+                "Find subscriptions with status=OK, active=False, no end_date, whose "
+                "start_date is older than --months-threshold months. These are historical "
+                "open subscriptions that were never activated and should be closed. "
+                "end_date logic is the same as --fix-invalid. Use --dry-run to preview."
+            ),
+        )
+        parser.add_argument(
+            "--dry-run",
+            action="store_true",
+            default=False,
+            help=(
+                "When used with --fix-invalid or --fix-orphan, print what would be changed "
+                "without actually saving anything to the database."
             ),
         )
 
     def handle(self, *args, **options):
         today = date.today()
+        dry_run = options["dry_run"]
 
-        # --- Missed activations (status=OK, active=False, start_date in past) ---
+        # --- Missed activations (status=OK, active=False, start_date in past, within threshold) ---
         threshold_date = today - relativedelta(months=options["months_threshold"])
 
         qs = Subscription.objects.filter(
@@ -170,46 +209,64 @@ class Command(BaseCommand):
 
         # --- Fix invalid: status != OK, still open, active=False ---
         if options["fix_invalid"]:
-            self._fix_invalid_subscriptions(today)
+            self._fix_subscriptions(
+                today=today,
+                dry_run=dry_run,
+                qs=Subscription.objects.filter(active=False)
+                .exclude(status="OK")
+                .filter(models.Q(end_date__isnull=True) | models.Q(end_date__gt=today))
+                .select_related("contact"),
+                label="invalid (status != OK)",
+            )
 
-    def _fix_invalid_subscriptions(self, today):
+        # --- Fix orphan: status=OK, active=False, no end_date, outside threshold ---
+        if options["fix_orphan"]:
+            self._fix_subscriptions(
+                today=today,
+                dry_run=dry_run,
+                qs=Subscription.objects.filter(
+                    active=False,
+                    status="OK",
+                    end_date__isnull=True,
+                    start_date__lt=threshold_date,
+                ).select_related("contact"),
+                label="orphan (status=OK, active=False, no end_date, outside threshold)",
+            )
+
+    def _fix_subscriptions(self, today, dry_run, qs, label):
         """
-        Find subscriptions with status != OK that are still open (no end_date or
-        end_date in the future) and set their end_date to close them.
-
-        end_date logic:
-          - If next_billing exists AND next_billing - 1 day <= today: use next_billing - 1 day.
-          - Otherwise: use start_date + 1 month.
+        Set end_date on all subscriptions in qs. If dry_run=True, only print what would change.
         """
-        qs = Subscription.objects.filter(
-            active=False,
-        ).exclude(
-            status="OK",
-        ).filter(
-            models.Q(end_date__isnull=True) | models.Q(end_date__gt=today)
-        ).select_related("contact")
-
         total = qs.count()
         if not total:
-            self.stdout.write("No invalid open subscriptions found.")
+            self.stdout.write(f"No {label} subscriptions found.")
             return
 
-        self.stderr.write(f"Found {total} invalid open subscription(s) to close.")
+        if dry_run:
+            self.stderr.write(f"[DRY RUN] Would close {total} {label} subscription(s):")
+            for sub in tqdm(qs.iterator(), total=total, desc=f"Previewing {label}", file=sys.stderr):
+                end_date = self._compute_end_date(sub, today)
+                self.stdout.write(
+                    f"  sub {sub.id} | contact {sub.contact_id} ({sub.contact.name}) | "
+                    f"start={sub.start_date} | status={sub.status} | "
+                    f"next_billing={sub.next_billing} → end_date={end_date}"
+                )
+            self.stdout.write(f"[DRY RUN] {total} {label} subscription(s) would be closed. No changes made.")
+        else:
+            self.stderr.write(f"Found {total} {label} subscription(s) to close.")
+            fixed = 0
+            for sub in tqdm(qs.iterator(), total=total, desc=f"Fixing {label}", file=sys.stderr):
+                sub.end_date = self._compute_end_date(sub, today)
+                sub.save(update_fields=["end_date"])
+                fixed += 1
+            self.stdout.write(f"Closed {fixed} {label} subscription(s).")
 
-        fixed = 0
-        for sub in tqdm(qs.iterator(), total=total, desc="Fixing invalid subscriptions", file=sys.stderr):
-            end_date = self._compute_end_date_for_invalid(sub, today)
-            sub.end_date = end_date
-            sub.save(update_fields=["end_date"])
-            fixed += 1
-
-        self.stdout.write(f"Closed {fixed} invalid subscription(s).")
-
-    def _compute_end_date_for_invalid(self, sub, today):
+    def _compute_end_date(self, sub, today):
         """
-        Determine the end_date to assign to an invalid subscription:
+        Determine the end_date to assign:
           - next_billing - 1 day, if that date is not in the future.
           - Otherwise start_date + 1 month.
+          - Fallback: today.
         """
         if sub.next_billing:
             candidate = sub.next_billing - relativedelta(days=1)
