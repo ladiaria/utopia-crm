@@ -22,7 +22,6 @@ mercadopago
 pandas
 postgis
 psycopg2
-py3dns
 pyIsEmail
 pymailcheck
 pymemcache
