@@ -261,6 +261,10 @@ class RouteChange(models.Model):
     old_address = models.CharField(max_length=255, null=True, blank=True, verbose_name=_('Old address'))
     old_city = models.CharField(max_length=64, null=True, blank=True, verbose_name=_('Old city'))
 
+    def __str__(self):
+        product_str = self.product.name if self.product else "sin producto"
+        return f"[{self.dt.strftime('%Y-%m-%d')}] {self.contact} – {product_str} – ruta {self.old_route.number}"
+
     class Meta:
         verbose_name = _('route change')
         verbose_name_plural = _('route changes')
