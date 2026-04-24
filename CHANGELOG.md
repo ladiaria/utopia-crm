@@ -2,6 +2,15 @@
 
 ## v0.5.0
 
+## 2026-04-24 — t1126 SalesRecord creation for product change, additional product, and retention flows
+
+- Product change, additional product, and retention discount views now always create a `SalesRecord` (type PARTIAL) so sales appear in the manager sales filter — they were previously invisible there
+- In the ladiaria `edit_subscription` view, multiple products added in one session now produce a single PARTIAL `SalesRecord` instead of one per product
+- The validate-sale form (`can_be_commissioned` checkbox) now defaults to checked for all sale types; an explanatory note was added so managers understand the commission implications
+- Fixed an `AttributeError` bug: `SalesRecord.TYPES.PARTIAL` corrected to `SalesRecord.SALE_TYPE.PARTIAL` in `book_additional_product`
+- No migrations required
+- **Author:** Tanya Tree + Claude Sonnet 4.6
+
 ## 2026-04-08 — t0243 Canceled invoices report view in invoicing app
 
 - A new `CanceledInvoicesReportView` is available in the base CRM, replacing the function view that previously existed only in the ladiaria customisation layer

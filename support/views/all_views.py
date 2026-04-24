@@ -2857,10 +2857,8 @@ class ValidateSubscriptionSalesRecord(BreadcrumbsMixin, UpdateView):
 
     def get_initial(self):
         initial = super().get_initial()
-        if self.object.sale_type != SalesRecord.SALE_TYPE.FULL:
-            initial["can_be_commissioned"] = False
-            initial["subscription"] = self.object.subscription
-            initial["seller"] = self.object.seller
+        initial["subscription"] = self.object.subscription
+        initial["seller"] = self.object.seller
         return initial
 
     def get_success_url(self):

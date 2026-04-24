@@ -290,6 +290,9 @@
                   {% render_field form.can_be_commissioned class="form-check-input" %}
                   <label for="can_be_commissioned_id" class="form-check-label">{% trans "Can be commissioned" %}</label>
                 </div>
+                <small class="text-muted">
+                  {% trans "If checked, the seller will receive commission for this sale. Uncheck to exclude it from commission calculations (e.g. retention discounts or non-commissionable changes)." %}
+                </small>
               </div>
             </div>
             <div class="text-right">
