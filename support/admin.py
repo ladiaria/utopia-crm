@@ -2,6 +2,7 @@
 
 
 from django.contrib import admin
+from django.utils.translation import gettext_lazy as _
 
 from simple_history.admin import SimpleHistoryAdmin
 
@@ -73,21 +74,42 @@ class IssueResolutionAdmin(admin.ModelAdmin):
 
 @admin.register(SalesRecord)
 class SalesRecordAdmin(admin.ModelAdmin):
-    list_display = ["date_time", "seller", "get_contact", "price", "show_products"]
-    list_filter = ["date_time"]
+    list_display = [
+        "date_time",
+        "seller",
+        "get_contact",
+        "sale_type",
+        "price",
+        "total_commission_value",
+        "can_be_commissioned",
+        "campaign",
+        "show_products",
+    ]
+    list_filter = ["sale_type", "can_be_commissioned", "seller", "campaign"]
     raw_id_fields = ["subscription"]
-    search_fields = ["subscription__contact__name"]
+    search_fields = ["subscription__contact__name", "subscription__contact__id", "seller__name"]
     date_hierarchy = "date_time"
     ordering = ["-date_time"]
     list_per_page = 50
-    list_max_show_all = 100
-    readonly_fields = ["date_time", "products", "price", "seller", "subscription"]
+    list_max_show_all = 200
+    readonly_fields = ["date_time", "products", "price", "seller", "subscription", "show_products_per_line"]
     fieldsets = [
-        (None, {"fields": ["seller", "subscription", "date_time", "products", "price"]}),
+        (None, {"fields": ["seller", "subscription", "date_time", "campaign", "sale_type"]}),
+        (_("Products & price"), {"fields": ["show_products_per_line", "price"]}),
+        (
+            _("Commissions"),
+            {
+                "fields": [
+                    "can_be_commissioned",
+                    "commission_for_payment_type",
+                    "commission_for_products_sold",
+                    "commission_for_subscription_frequency",
+                    "total_commission_value",
+                ]
+            },
+        ),
     ]
     save_on_top = True
-    save_as = True
-    save_as_continue = True
 
 
 @admin.register(SellerConsoleAction)
