@@ -412,6 +412,8 @@ class SalesRecord(models.Model):
     class SALE_TYPE(models.TextChoices):
         FULL = "F", _("Full")
         PARTIAL = "P", _("Partial")
+        PRODUCT_CHANGE = "C", _("Product Change")
+        RETENTION = "R", _("Retention")
 
     seller = models.ForeignKey(
         "support.Seller", on_delete=models.CASCADE, verbose_name=_("Seller"), null=True, blank=True

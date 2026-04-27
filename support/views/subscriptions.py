@@ -971,7 +971,7 @@ def product_change(request, subscription_id):
                 subscription=new_subscription,
                 seller_id=seller_id,
                 price=new_subscription.get_price_for_full_period() - old_subscription.get_price_for_full_period(),
-                sale_type=SalesRecord.SALE_TYPE.PARTIAL,
+                sale_type=SalesRecord.SALE_TYPE.PRODUCT_CHANGE,
             )
             sf.products.add(*new_products_list)
             if not seller_id:
@@ -1353,7 +1353,7 @@ def add_retention_discount(request, subscription_id):
                 subscription=new_subscription,
                 seller_id=seller_id,
                 price=new_subscription.get_price_for_full_period() - old_subscription.get_price_for_full_period(),
-                sale_type=SalesRecord.SALE_TYPE.PARTIAL,
+                sale_type=SalesRecord.SALE_TYPE.RETENTION,
             )
             sf.products.add(*new_products_list)
             if not seller_id:
