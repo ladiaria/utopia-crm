@@ -167,11 +167,11 @@
                       {% else %}
                         <td>{{ sr.calculate_total_commission }}</td>
                       {% endif %}
-                      <td>
+                      <td class="text-center">
                         {% if sr.subscription.validated %}
-                          <span class="text-success font-weight-bold">{% trans "OK" %}</span>
+                          <div><span class="text-success font-weight-bold">{% trans "OK" %}</span></div>
                           <a href='{% url "validate_sale" sr.pk %}?from=sales_record_filter'
-                             class="btn btn-sm btn-outline-secondary ml-1"
+                             class="btn btn-sm btn-outline-secondary"
                              title="{% trans "View details" %}"
                              data-toggle="tooltip">
                             <i class="fas fa-eye"></i>
