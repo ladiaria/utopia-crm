@@ -253,7 +253,13 @@
                     </dd>
                     <dt>{% trans "Price" %}</dt>
                     <dd>
-                      {{ object.price }}
+                      {% if object.price is not None and object.price < 0 %}
+                        <span class="text-danger font-weight-bold">{{ object.price }}</span>
+                        <br>
+                        <small class="text-danger">{% trans "Price reduction — the subscription's new price is lower than before (product change or retention)" %}</small>
+                      {% else %}
+                        {{ object.price }}
+                      {% endif %}
                     </dd>
                     <dt>{% trans "Sale Type" %}</dt>
                     <dd>

@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: django\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-04-27 16:10-0300\n"
-"PO-Revision-Date: 2026-04-27 16:11-0300\n"
+"POT-Creation-Date: 2026-04-28 16:37-0300\n"
+"PO-Revision-Date: 2026-04-28 16:38-0300\n"
 "Last-Translator: tanyatree\n"
 "Language-Team: \n"
 "Language: es\n"
@@ -61,7 +61,7 @@ msgstr "Anunciante"
 #: support/templates/sales_record_filter.html:139
 #: support/templates/seller_console.html:270
 #: support/templates/validate_subscription_sales_record.html:242
-#: support/templates/validate_subscription_sales_record.html:277
+#: support/templates/validate_subscription_sales_record.html:283
 #: support/views/all_views.py:2213 support/views/all_views.py:2803
 msgid "Seller"
 msgstr "Vendedor"
@@ -608,7 +608,7 @@ msgstr "Enviar"
 #: support/templates/contact_detail/tabs/includes/_subscription_card.html:183
 #: support/templates/dynamic_contact_filter_list.html:44
 #: support/templates/sales_record_create.html:245
-#: support/templates/validate_subscription_sales_record.html:303
+#: support/templates/validate_subscription_sales_record.html:309
 #: support/views/contacts.py:478
 msgid "Edit"
 msgstr "Editar"
@@ -2611,7 +2611,7 @@ msgstr "Baja parcial"
 #: support/templates/seller_console.html:267
 #: support/templates/seller_console_list_campaigns.html:162
 #: support/templates/validate_subscription_sales_record.html:117
-#: support/templates/validate_subscription_sales_record.html:281
+#: support/templates/validate_subscription_sales_record.html:287
 #: support/views/all_views.py:2806
 msgid "Campaign"
 msgstr "Campaña"
@@ -6175,7 +6175,7 @@ msgid "Total commission value"
 msgstr "Valor total de la comisión"
 
 #: support/models.py:440
-#: support/templates/validate_subscription_sales_record.html:291
+#: support/templates/validate_subscription_sales_record.html:297
 msgid "Can be commissioned"
 msgstr "Puede ser comisionado"
 
@@ -8120,7 +8120,7 @@ msgstr "Reactivar"
 
 #: support/templates/contact_detail/tabs/includes/_overview_subscription_list_item.html:189
 #: support/templates/sales_record_filter.html:175
-#: support/templates/validate_subscription_sales_record.html:300
+#: support/templates/validate_subscription_sales_record.html:306
 msgid "Validate"
 msgstr "Validar"
 
@@ -9355,7 +9355,7 @@ msgid "Add this sale manually"
 msgstr "Agregar esta venta manualmente"
 
 #: support/templates/sales_record_create.html:248
-#: support/templates/validate_subscription_sales_record.html:306
+#: support/templates/validate_subscription_sales_record.html:312
 msgid "View in admin"
 msgstr "Ver en panel de administración"
 
@@ -10016,20 +10016,28 @@ msgstr "Fecha y hora"
 msgid "Added Products"
 msgstr "Productos agregados"
 
-#: support/templates/validate_subscription_sales_record.html:258
+#: support/templates/validate_subscription_sales_record.html:259
+msgid ""
+"Price reduction — the subscription's new price is lower than before (product "
+"change or retention)"
+msgstr ""
+"Reducción de precio – el precio de la nueva suscripción es más bajo que el "
+"anterior (cambio de producto o retención)"
+
+#: support/templates/validate_subscription_sales_record.html:264
 #: support/views/all_views.py:2807
 msgid "Sale Type"
 msgstr "Tipo de venta"
 
-#: support/templates/validate_subscription_sales_record.html:262
+#: support/templates/validate_subscription_sales_record.html:268
 msgid "Calculated Commission"
 msgstr "Comisión calculada"
 
-#: support/templates/validate_subscription_sales_record.html:285
+#: support/templates/validate_subscription_sales_record.html:291
 msgid "Add Commission Value Manually"
 msgstr "Agregar valor de comisión de forma manual"
 
-#: support/templates/validate_subscription_sales_record.html:294
+#: support/templates/validate_subscription_sales_record.html:300
 msgid ""
 "If checked, the seller will receive commission for this sale. Uncheck to "
 "exclude it from commission calculations (e.g. retention discounts or non-"
