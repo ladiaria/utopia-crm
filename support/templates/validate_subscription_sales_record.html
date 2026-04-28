@@ -356,6 +356,10 @@
                     <dt>{% trans "Sale Type" %}</dt>
                     <dd>
                       {{ object.get_sale_type_display }}
+                      {% if object.sale_type != 'F' %}
+                        <br>
+                        <small class="text-muted">{% trans "Payment method is only relevant for full sales" %}</small>
+                      {% endif %}
                     </dd>
                     <dt>{% trans "Calculated Commission" %}</dt>
                     <dd>

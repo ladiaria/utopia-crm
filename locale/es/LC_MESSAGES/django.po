@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: django\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-04-28 16:52-0300\n"
+"POT-Creation-Date: 2026-04-28 17:03-0300\n"
 "PO-Revision-Date: 2026-04-28 16:38-0300\n"
 "Last-Translator: tanyatree\n"
 "Language-Team: \n"
@@ -61,7 +61,7 @@ msgstr "Anunciante"
 #: support/templates/sales_record_filter.html:139
 #: support/templates/seller_console.html:270
 #: support/templates/validate_subscription_sales_record.html:334
-#: support/templates/validate_subscription_sales_record.html:376
+#: support/templates/validate_subscription_sales_record.html:380
 #: support/views/all_views.py:2213 support/views/all_views.py:2803
 msgid "Seller"
 msgstr "Vendedor"
@@ -513,7 +513,7 @@ msgstr "Mensajería instantánea"
 #: invoicing/choices.py:17 invoicing/filters.py:30 invoicing/models.py:166
 #: invoicing/templates/invoice/invoice_detail.html:121
 #: invoicing/templates/invoice/invoice_detail.html:153
-#: invoicing/templates/invoice_filter.html:193 support/models.py:621
+#: invoicing/templates/invoice_filter.html:193 support/models.py:622
 #: support/templates/seller_console_list_campaigns.html:126
 msgid "Pending"
 msgstr "Pendiente"
@@ -608,7 +608,7 @@ msgstr "Enviar"
 #: support/templates/contact_detail/tabs/includes/_subscription_card.html:183
 #: support/templates/dynamic_contact_filter_list.html:44
 #: support/templates/sales_record_create.html:245
-#: support/templates/validate_subscription_sales_record.html:402
+#: support/templates/validate_subscription_sales_record.html:406
 #: support/views/contacts.py:478
 msgid "Edit"
 msgstr "Editar"
@@ -1483,15 +1483,15 @@ msgstr "Éxito con promoción"
 msgid "Success with direct sale"
 msgstr "Éxito con venta directa"
 
-#: core/choices.py:137 support/models.py:623
+#: core/choices.py:137 support/models.py:624
 msgid "Scheduled"
 msgstr "Programado"
 
-#: core/choices.py:138 support/models.py:624
+#: core/choices.py:138 support/models.py:625
 msgid "Call later"
 msgstr "Llamar nuevamente"
 
-#: core/choices.py:139 support/models.py:625
+#: core/choices.py:139 support/models.py:626
 msgid "Not found"
 msgstr "No encontrado"
 
@@ -1756,7 +1756,7 @@ msgstr "Sí"
 #: support/templates/import_contacts.html:193
 #: support/templates/import_contacts.html:198
 #: support/templates/import_contacts.html:203
-#: support/templates/sales_record_filter.html:183
+#: support/templates/sales_record_filter.html:190
 msgid "No"
 msgstr "No"
 
@@ -2101,7 +2101,7 @@ msgid "product"
 msgstr "producto"
 
 #: core/models.py:374 core/models.py:1826 invoicing/views.py:543
-#: logistics/templates/order_route.html:86
+#: logistics/templates/order_route.html:86 support/models.py:584
 msgid "products"
 msgstr "productos"
 
@@ -2612,7 +2612,7 @@ msgstr "Baja parcial"
 #: support/templates/seller_console.html:267
 #: support/templates/seller_console_list_campaigns.html:162
 #: support/templates/validate_subscription_sales_record.html:209
-#: support/templates/validate_subscription_sales_record.html:380
+#: support/templates/validate_subscription_sales_record.html:384
 #: support/views/all_views.py:2806
 msgid "Campaign"
 msgstr "Campaña"
@@ -2701,7 +2701,7 @@ msgstr "Adenda de baja"
 #: support/templates/sales_record_create.html:29
 #: support/templates/sales_record_filter.html:95
 #: support/templates/sales_record_filter.html:144
-#: support/templates/sales_record_filter.html:209
+#: support/templates/sales_record_filter.html:216
 #: support/templates/validate_subscription_sales_record.html:147
 #: support/views/all_views.py:2805
 msgid "Products"
@@ -2713,7 +2713,7 @@ msgstr "Productos"
 #: support/templates/contact_detail/tabs/includes/_overview_subscription_list_item.html:56
 #: support/templates/contact_detail/tabs/includes/_subscription_card.html:63
 #: support/templates/sales_record_create.html:74
-#: support/templates/sales_record_filter.html:255
+#: support/templates/sales_record_filter.html:262
 #: support/templates/validate_subscription_sales_record.html:192
 msgid "Frequency"
 msgstr "Periodicidad"
@@ -2722,7 +2722,7 @@ msgstr "Periodicidad"
 #: invoicing/models.py:69 invoicing/templates/invoice_filter.html:115
 #: invoicing/templates/invoice_filter.html:237 invoicing/views.py:304
 #: support/forms.py:292 support/templates/sales_record_create.html:151
-#: support/templates/sales_record_filter.html:232
+#: support/templates/sales_record_filter.html:239
 #: support/templates/seller_console.html:514
 #: support/templates/validate_subscription_sales_record.html:269
 msgid "Payment type"
@@ -6176,7 +6176,7 @@ msgid "Total commission value"
 msgstr "Valor total de la comisión"
 
 #: support/models.py:440
-#: support/templates/validate_subscription_sales_record.html:390
+#: support/templates/validate_subscription_sales_record.html:394
 msgid "Can be commissioned"
 msgstr "Puede ser comisionado"
 
@@ -6188,32 +6188,36 @@ msgstr "Registro de ventas"
 msgid "Sales records"
 msgstr "Registros de ventas"
 
-#: support/models.py:619
+#: support/models.py:590
+msgid "specific products"
+msgstr "productos específicos"
+
+#: support/models.py:620
 msgid "Success"
 msgstr "Éxito"
 
-#: support/models.py:620
+#: support/models.py:621
 msgid "Declined"
 msgstr "Rechazado"
 
-#: support/models.py:622
+#: support/models.py:623
 msgid "No contact"
 msgstr "Sin contacto"
 
-#: support/models.py:636
+#: support/models.py:637
 msgid "Campaign status to set when this action is performed"
 msgstr "El estado de campaña que será asignado cuando se realice esta acción"
 
-#: support/models.py:643
+#: support/models.py:644
 msgid "Campaign resolution to set when this action is performed"
 msgstr ""
 "La resolucion de campaña que será aplicada cuando se realice esta acción"
 
-#: support/models.py:650
+#: support/models.py:651
 msgid "Seller Console Action"
 msgstr "Acción de consola de ventas"
 
-#: support/models.py:651
+#: support/models.py:652
 msgid "Seller Console Actions"
 msgstr "Acciones de consola de ventas"
 
@@ -8121,8 +8125,8 @@ msgid "Reactivate"
 msgstr "Reactivar"
 
 #: support/templates/contact_detail/tabs/includes/_overview_subscription_list_item.html:189
-#: support/templates/sales_record_filter.html:181
-#: support/templates/validate_subscription_sales_record.html:399
+#: support/templates/sales_record_filter.html:188
+#: support/templates/validate_subscription_sales_record.html:403
 msgid "Validate"
 msgstr "Validar"
 
@@ -9358,7 +9362,7 @@ msgid "Add this sale manually"
 msgstr "Agregar esta venta manualmente"
 
 #: support/templates/sales_record_create.html:248
-#: support/templates/validate_subscription_sales_record.html:405
+#: support/templates/validate_subscription_sales_record.html:409
 msgid "View in admin"
 msgstr "Ver en panel de administración"
 
@@ -9401,33 +9405,38 @@ msgstr "Fecha de transacción"
 msgid "Valid"
 msgstr "Válido"
 
-#: support/templates/sales_record_filter.html:172
+#: support/templates/sales_record_filter.html:166
+#: support/templates/validate_subscription_sales_record.html:361
+msgid "Payment method is only relevant for full sales"
+msgstr "El método de pago solo aplica para ventas completas"
+
+#: support/templates/sales_record_filter.html:179
 msgid "OK"
 msgstr "OK"
 
-#: support/templates/sales_record_filter.html:175
+#: support/templates/sales_record_filter.html:182
 msgid "View details"
 msgstr "Ver detalle"
 
-#: support/templates/sales_record_filter.html:196
+#: support/templates/sales_record_filter.html:203
 msgid "My commissions"
 msgstr "Mis comisiones"
 
-#: support/templates/sales_record_filter.html:203
+#: support/templates/sales_record_filter.html:210
 msgid "Totals by product amount"
 msgstr "Totales por cantidad de productos"
 
-#: support/templates/sales_record_filter.html:210
-#: support/templates/sales_record_filter.html:233
-#: support/templates/sales_record_filter.html:256
+#: support/templates/sales_record_filter.html:217
+#: support/templates/sales_record_filter.html:240
+#: support/templates/sales_record_filter.html:263
 msgid "Quantity"
 msgstr "Cantidad"
 
-#: support/templates/sales_record_filter.html:226
+#: support/templates/sales_record_filter.html:233
 msgid "Totals by payment type"
 msgstr "Totales por formas de pago"
 
-#: support/templates/sales_record_filter.html:249
+#: support/templates/sales_record_filter.html:256
 msgid "Totals by subscription frequency"
 msgstr "Totales por periodicidad de la suscripción"
 
@@ -10075,15 +10084,15 @@ msgstr ""
 msgid "Sale Type"
 msgstr "Tipo de venta"
 
-#: support/templates/validate_subscription_sales_record.html:360
+#: support/templates/validate_subscription_sales_record.html:364
 msgid "Calculated Commission"
 msgstr "Comisión calculada"
 
-#: support/templates/validate_subscription_sales_record.html:384
+#: support/templates/validate_subscription_sales_record.html:388
 msgid "Add Commission Value Manually"
 msgstr "Agregar valor de comisión de forma manual"
 
-#: support/templates/validate_subscription_sales_record.html:393
+#: support/templates/validate_subscription_sales_record.html:397
 msgid ""
 "If checked, the seller will receive commission for this sale. Uncheck to "
 "exclude it from commission calculations (e.g. retention discounts or non-"
@@ -10092,7 +10101,7 @@ msgstr ""
 "Si se selecciona, el vendedor recibirá comisión por esta venta. "
 "Deseleccionar para excluirlo de los cálculos de comisiones."
 
-#: support/templates/validate_subscription_sales_record.html:416
+#: support/templates/validate_subscription_sales_record.html:420
 msgid "Back to Sales Records"
 msgstr "Volver a registros de ventas"
 

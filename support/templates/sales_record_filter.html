@@ -158,7 +158,14 @@
                       {% if not seller %}<td>{{ sr.seller.name }}</td>{% endif %}
                       <td>{{ sr.date_time|date:"d/m/Y H:m" }}</td>
                       <td>{{ sr.subscription.start_date|date:"d/m/Y" }}</td>
-                      <td>{{ sr.get_payment_type }}</td>
+                      <td>
+                        {{ sr.get_payment_type }}
+                        {% if sr.sale_type != 'F' %}
+                          <i class="fas fa-info-circle text-muted ml-1"
+                             data-toggle="tooltip"
+                             title="{% trans "Payment method is only relevant for full sales" %}"></i>
+                        {% endif %}
+                      </td>
                       <td>{{ sr.show_products_per_line }}</td>
                       <td>{{ sr.campaign|default_if_none:"" }}</td>
                       <td>{{ sr.get_sale_type_display }}</td>

@@ -580,13 +580,14 @@ class SalesRecord(models.Model):
             f"({self.subscription.get_payment_type_display()})"
         )
         products_count_commission = (
-            f"{self.calculate_products_count_commission(return_value=True)} " f"({self.max_products_count()} products)"
+            f"{self.calculate_products_count_commission(return_value=True)} "
+            f"({self.max_products_count()} {_('products')})"
         )
         frequency_commission = (
             f"{self.calculate_frequency_commission(return_value=True)} " f"({self.subscription.frequency})"
         )
         specific_products_commission = (
-            f"{self.calculate_specific_products_commission(return_value=True)} " f"(specific products)"
+            f"{self.calculate_specific_products_commission(return_value=True)} " f"({_('specific products')})"
         )
         # Error catching
         try:
