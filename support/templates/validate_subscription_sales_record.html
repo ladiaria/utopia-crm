@@ -39,6 +39,98 @@
 
 {% block content %}
   <section class="content">
+
+    {# --- Sale summary card --- #}
+    <div class="row mb-3">
+      <div class="col">
+        <div class="card card-outline
+          {% if object.sale_type == 'F' %}card-success
+          {% elif object.sale_type == 'P' %}card-info
+          {% elif object.sale_type == 'C' %}card-warning
+          {% elif object.sale_type == 'R' %}card-danger
+          {% endif %}">
+          <div class="card-header">
+            <h3 class="card-title">
+              {% if object.sale_type == 'F' %}
+                <i class="fas fa-star mr-1"></i> {% trans "New subscription" %}
+              {% elif object.sale_type == 'P' %}
+                <i class="fas fa-plus-circle mr-1"></i> {% trans "Partial sale — products added" %}
+              {% elif object.sale_type == 'C' %}
+                <i class="fas fa-exchange-alt mr-1"></i> {% trans "Product change" %}
+              {% elif object.sale_type == 'R' %}
+                <i class="fas fa-hand-holding-heart mr-1"></i> {% trans "Retention" %}
+              {% endif %}
+            </h3>
+          </div>
+          <div class="card-body">
+
+            {% if object.sale_type == 'F' %}
+              {# New subscription: just show what they have #}
+              <p class="text-muted mb-2">{% trans "New subscription created with the following products:" %}</p>
+              <ul class="list-unstyled mb-0">
+                {% for sp in new_products %}
+                  <li><i class="fas fa-check text-success mr-1"></i> {{ sp.product.name }}</li>
+                {% empty %}
+                  <li class="text-muted">{% trans "No products" %}</li>
+                {% endfor %}
+              </ul>
+
+            {% elif object.sale_type == 'P' %}
+              {# Partial: show which products were added #}
+              <p class="text-muted mb-2">{% trans "The following products were added to the existing subscription:" %}</p>
+              <ul class="list-unstyled mb-0">
+                {% for p in added_products %}
+                  <li><i class="fas fa-plus text-info mr-1"></i> {{ p.name }}</li>
+                {% empty %}
+                  <li class="text-muted">{% trans "No new products recorded" %}</li>
+                {% endfor %}
+              </ul>
+
+            {% elif object.sale_type == 'C' or object.sale_type == 'R' %}
+              {# Product change or retention: before → after #}
+              <div class="d-flex align-items-start flex-wrap">
+                <div class="flex-fill" style="min-width:200px">
+                  <h6 class="text-muted mb-2">{% trans "Before" %}</h6>
+                  {% if previous_subscription %}
+                    <ul class="list-unstyled mb-0">
+                      {% for sp in previous_products %}
+                        <li><i class="fas fa-times text-secondary mr-1"></i> {{ sp.product.name }}</li>
+                      {% empty %}
+                        <li class="text-muted">{% trans "No products" %}</li>
+                      {% endfor %}
+                    </ul>
+                  {% else %}
+                    <p class="text-muted">{% trans "Previous subscription not found" %}</p>
+                  {% endif %}
+                </div>
+                <div class="px-3 align-self-center">
+                  <i class="fas fa-arrow-right fa-2x text-muted"></i>
+                </div>
+                <div class="flex-fill" style="min-width:200px">
+                  <h6 class="text-muted mb-2">{% trans "After" %}</h6>
+                  <ul class="list-unstyled mb-0">
+                    {% for sp in new_products %}
+                      <li>
+                        {% if sp.product in added_products.all %}
+                          <i class="fas fa-plus text-success mr-1" title="{% trans "Newly added" %}" data-toggle="tooltip"></i>
+                        {% else %}
+                          <i class="fas fa-check text-success mr-1"></i>
+                        {% endif %}
+                        {{ sp.product.name }}
+                      </li>
+                    {% empty %}
+                      <li class="text-muted">{% trans "No products" %}</li>
+                    {% endfor %}
+                  </ul>
+                </div>
+              </div>
+            {% endif %}
+
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="row">
       <div class="col">
         <div class="card">
@@ -276,47 +368,55 @@
           </div>
         </div>
         <div class="card-footer">
-          <form method="post">
-            {% csrf_token %}
-            <div class="row mb-3">
-              <div class="col-md-3">
-                <label for="seller_id" class="form-label">{% trans "Seller" %}</label>
-                {% render_field form.seller class="form-control" %}
-              </div>
-              <div class="col-md-3">
-                <label for="campaign_id" class="form-label">{% trans "Campaign" %}</label>
-                {% render_field form.campaign class="form-control" %}
-              </div>
-              <div class="col-md-3">
-                <label for="override" class="form-label">{% trans "Add Commission Value Manually" %}</label>
-                {% render_field form.override_commission_value class="form-control" %}
-              </div>
-              <div class="col-md-3">
-                <div class="form-check mt-4 pt-2">
-                  {% render_field form.can_be_commissioned class="form-check-input" %}
-                  <label for="can_be_commissioned_id" class="form-check-label">{% trans "Can be commissioned" %}</label>
+          {% if not readonly %}
+            <form method="post">
+              {% csrf_token %}
+              <div class="row mb-3">
+                <div class="col-md-3">
+                  <label for="seller_id" class="form-label">{% trans "Seller" %}</label>
+                  {% render_field form.seller class="form-control" %}
                 </div>
-                <small class="text-muted">
-                  {% trans "If checked, the seller will receive commission for this sale. Uncheck to exclude it from commission calculations (e.g. retention discounts or non-commissionable changes)." %}
-                </small>
+                <div class="col-md-3">
+                  <label for="campaign_id" class="form-label">{% trans "Campaign" %}</label>
+                  {% render_field form.campaign class="form-control" %}
+                </div>
+                <div class="col-md-3">
+                  <label for="override" class="form-label">{% trans "Add Commission Value Manually" %}</label>
+                  {% render_field form.override_commission_value class="form-control" %}
+                </div>
+                <div class="col-md-3">
+                  <div class="form-check mt-4 pt-2">
+                    {% render_field form.can_be_commissioned class="form-check-input" %}
+                    <label for="can_be_commissioned_id" class="form-check-label">{% trans "Can be commissioned" %}</label>
+                  </div>
+                  <small class="text-muted">
+                    {% trans "If checked, the seller will receive commission for this sale. Uncheck to exclude it from commission calculations (e.g. retention discounts or non-commissionable changes)." %}
+                  </small>
+                </div>
               </div>
-            </div>
+              <div class="text-right">
+                <button type="submit" class="btn btn-success">
+                  <i class="fas fa-check"></i> {% trans "Validate" %}
+                </button>
+                <a href="{% url 'edit_subscription' subscription.contact.id subscription.id %}"
+                   class="btn btn-success">{% trans "Edit" %}</a>
+                <a href="{% url 'admin:core_subscription_change' subscription.id %}"
+                   class="btn btn-info"
+                   target="_blank">{% trans "View in admin" %}</a>
+                <a href="{% url 'edit_envelopes' subscription.id %}"
+                   class="btn btn-info"><i class="fas fa-envelope"></i></a>
+                <a href="{% url 'upload_payment_certificate' subscription.id %}"
+                   class="btn btn-info">
+                  <i class="fas fa-file-invoice-dollar"></i></a>
+              </div>
+            </form>
+          {% else %}
             <div class="text-right">
-              <button type="submit" class="btn btn-success">
-                <i class="fas fa-check"></i> {% trans "Validate" %}
-              </button>
-              <a href="{% url 'edit_subscription' subscription.contact.id subscription.id %}"
-                 class="btn btn-success">{% trans "Edit" %}</a>
-              <a href="{% url 'admin:core_subscription_change' subscription.id %}"
-                 class="btn btn-info"
-                 target="_blank">{% trans "View in admin" %}</a>
-              <a href="{% url 'edit_envelopes' subscription.id %}"
-                 class="btn btn-info"><i class="fas fa-envelope"></i></a>
-              <a href="{% url 'upload_payment_certificate' subscription.id %}"
-                 class="btn btn-info">
-                <i class="fas fa-file-invoice-dollar"></i></a>
+              <a href="{% url 'sales_record_filter' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left mr-1"></i> {% trans "Back to Sales Records" %}
+              </a>
             </div>
-          </form>
+          {% endif %}
         </div>
       </div>
     </div>

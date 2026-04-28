@@ -2840,6 +2840,11 @@ class ValidateSubscriptionSalesRecord(BreadcrumbsMixin, UpdateView):
     template_name = "validate_subscription_sales_record.html"
 
     def breadcrumbs(self):
+        if self.request.GET.get("from") == "sales_record_filter":
+            return [
+                {"url": reverse("sales_record_filter"), "label": _("Sales Records")},
+                {"label": _("Validate subscription")},
+            ]
         return [
             {"url": reverse("contact_list"), "label": _("Contacts")},
             {
@@ -2866,7 +2871,20 @@ class ValidateSubscriptionSalesRecord(BreadcrumbsMixin, UpdateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["subscription"] = self.object.subscription
+        sales_record = self.object
+        subscription = sales_record.subscription
+        context["subscription"] = subscription
+        context["readonly"] = subscription.validated
+        context["from_sales_record_filter"] = self.request.GET.get("from") == "sales_record_filter"
+
+        sale_type = sales_record.sale_type
+        if sale_type in (SalesRecord.SALE_TYPE.PRODUCT_CHANGE, SalesRecord.SALE_TYPE.RETENTION):
+            previous_subscription = subscription.updated_from
+            context["previous_subscription"] = previous_subscription
+            if previous_subscription:
+                context["previous_products"] = previous_subscription.get_subscriptionproducts()
+        context["new_products"] = subscription.get_subscriptionproducts()
+        context["added_products"] = sales_record.products.filter(type="S")
         return context
 
     def form_valid(self, form):

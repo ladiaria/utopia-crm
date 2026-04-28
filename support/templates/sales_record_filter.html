@@ -169,10 +169,16 @@
                       {% endif %}
                       <td>
                         {% if sr.subscription.validated %}
-                          {% trans "OK" %}
+                          <span class="text-success font-weight-bold">{% trans "OK" %}</span>
+                          <a href='{% url "validate_sale" sr.pk %}?from=sales_record_filter'
+                             class="btn btn-sm btn-outline-secondary ml-1"
+                             title="{% trans "View details" %}"
+                             data-toggle="tooltip">
+                            <i class="fas fa-eye"></i>
+                          </a>
                         {% else %}
                           {% if is_manager %}
-                            <a href='{% url "validate_sale" sr.pk %}' class="btn btn-sm btn-success">{% trans "Validate" %}</a>
+                            <a href='{% url "validate_sale" sr.pk %}?from=sales_record_filter' class="btn btn-sm btn-success">{% trans "Validate" %}</a>
                           {% else %}
                             {% trans "No" %}
                           {% endif %}
