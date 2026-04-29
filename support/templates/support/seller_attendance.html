@@ -1,0 +1,192 @@
+{% extends "adminlte/base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Seller Attendance" %}{% endblock %}
+
+{% block no_heading %}
+<h1>{% trans "Campaign Management" %}</h1>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h3 class="card-title">{% trans "Seller Attendance" %}</h3>
+  </div>
+  <div class="card-body">
+
+    <form method="get" class="form-inline mb-4">
+      <label class="mr-2" for="id_date"><strong>{% trans "Date" %}:</strong></label>
+      <input type="date" id="id_date" name="date" value="{{ selected_date|date:'Y-m-d' }}" class="form-control mr-2">
+      <button type="submit" class="btn btn-secondary btn-sm">{% trans "Load" %}</button>
+    </form>
+
+    {% if not absence_reasons %}
+      <div class="alert alert-danger">
+        {% trans "There are no active absence reasons configured. Please create at least one in the admin before recording attendance." %}
+      </div>
+    {% endif %}
+
+    {% if seller_rows %}
+      <form method="post" id="attendance-form">
+        {% csrf_token %}
+        <input type="hidden" name="date" value="{{ selected_date|date:'Y-m-d' }}">
+        <div class="table-responsive">
+          <table class="table table-bordered table-striped table-sm">
+            <thead>
+              <tr>
+                <th>{% trans "Seller" %}</th>
+                <th>{% trans "Status" %}</th>
+                <th>{% trans "Absence reason" %}</th>
+                <th>{% trans "Shift start" %}</th>
+                <th>{% trans "Shift end" %}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in seller_rows %}
+              <tr class="attendance-row" data-seller-id="{{ row.seller.pk }}">
+                <td>
+                  {{ row.seller.name }}
+                  {% if not row.has_shift %}
+                    <span class="badge badge-warning ml-1" title="{% trans 'No shift assigned' %}">
+                      <i class="fas fa-exclamation-triangle"></i> {% trans "No shift" %}
+                    </span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if can_edit and row.has_shift %}
+                    <select name="status-{{ row.seller.pk }}" class="form-control form-control-sm status-select" {% if not absence_reasons %}disabled{% endif %}>
+                      <option value="">---------</option>
+                      <option value="{{ status_present }}" {% if row.status == status_present %}selected{% endif %}>{% trans "Present" %}</option>
+                      <option value="{{ status_absent }}" {% if row.status == status_absent %}selected{% endif %}>{% trans "Absent" %}</option>
+                    </select>
+                  {% else %}
+                    {% if row.status == status_present %}{% trans "Present" %}
+                    {% elif row.status == status_absent %}{% trans "Absent" %}
+                    {% else %}—{% endif %}
+                  {% endif %}
+                </td>
+                <td class="reason-cell">
+                  {% if can_edit and row.has_shift %}
+                    <select name="reason-{{ row.seller.pk }}" class="form-control form-control-sm reason-select"
+                        {% if row.status != status_absent %}disabled{% endif %}>
+                      <option value="">---------</option>
+                      {% for reason in absence_reasons %}
+                        <option value="{{ reason.pk }}" {% if row.absence_reason_id == reason.pk %}selected{% endif %}>{{ reason }}</option>
+                      {% endfor %}
+                    </select>
+                  {% else %}
+                    {{ row.absence_reason_id|default:"—" }}
+                  {% endif %}
+                </td>
+                <td>
+                  {% if can_edit and row.has_shift %}
+                    <input type="time" name="shift_start-{{ row.seller.pk }}"
+                        class="form-control form-control-sm shift-input"
+                        value="{% if row.shift_start %}{{ row.shift_start|time:'H:i' }}{% endif %}"
+                        {% if not row.status %}style="display:none"{% endif %}>
+                  {% else %}
+                    {% if row.shift_start %}{{ row.shift_start|time:'H:i' }}{% else %}—{% endif %}
+                  {% endif %}
+                </td>
+                <td>
+                  {% if can_edit and row.has_shift %}
+                    <input type="time" name="shift_end-{{ row.seller.pk }}"
+                        class="form-control form-control-sm shift-input"
+                        value="{% if row.shift_end %}{{ row.shift_end|time:'H:i' }}{% endif %}"
+                        {% if not row.status %}style="display:none"{% endif %}>
+                  {% else %}
+                    {% if row.shift_end %}{{ row.shift_end|time:'H:i' }}{% else %}—{% endif %}
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        {% if can_edit %}
+          <div class="mt-3">
+            <button type="submit" class="btn btn-primary" {% if not absence_reasons %}disabled{% endif %} id="submit-btn">
+              <i class="fas fa-save"></i> {% trans "Save attendance" %}
+            </button>
+          </div>
+        {% endif %}
+      </form>
+    {% else %}
+      <p class="text-muted">{% trans "No call center sellers found. Mark sellers as 'Works in call center' in the admin to use this tool." %}</p>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  'use strict';
+
+  document.querySelectorAll('.status-select').forEach(function (select) {
+    select.addEventListener('change', handleStatusChange);
+    // initialize on load
+    handleStatusChange.call(select);
+  });
+
+  function handleStatusChange() {
+    var row = this.closest('.attendance-row');
+    var reasonSelect = row.querySelector('.reason-select');
+    var shiftInputs = row.querySelectorAll('.shift-input');
+    var status = this.value;
+
+    if (status === '') {
+      // No status: hide shift inputs, disable reason
+      shiftInputs.forEach(function (inp) { inp.style.display = 'none'; });
+      if (reasonSelect) {
+        reasonSelect.disabled = true;
+        reasonSelect.value = '';
+      }
+    } else {
+      // Has status: show shift inputs
+      shiftInputs.forEach(function (inp) { inp.style.display = ''; });
+      if (reasonSelect) {
+        if (status === '{{ status_absent }}') {
+          reasonSelect.disabled = false;
+        } else {
+          reasonSelect.disabled = true;
+          reasonSelect.value = '';
+        }
+      }
+    }
+  }
+
+  document.getElementById('attendance-form') && document.getElementById('attendance-form').addEventListener('submit', function (e) {
+    var errors = [];
+
+    document.querySelectorAll('.attendance-row').forEach(function (row) {
+      var statusSelect = row.querySelector('.status-select');
+      if (!statusSelect) return;
+
+      var status = statusSelect.value;
+      if (!status) return;
+
+      var sellerName = row.querySelector('td:first-child').textContent.trim();
+      var reasonSelect = row.querySelector('.reason-select');
+      var shiftStart = row.querySelector('input[name^="shift_start"]');
+      var shiftEnd = row.querySelector('input[name^="shift_end"]');
+
+      if (!shiftStart.value || !shiftEnd.value) {
+        errors.push(sellerName + ': {% trans "shift times are required." %}');
+      }
+
+      if (status === '{{ status_absent }}' && reasonSelect && !reasonSelect.value) {
+        errors.push(sellerName + ': {% trans "absence reason is required when marking as absent." %}');
+      }
+    });
+
+    if (errors.length > 0) {
+      e.preventDefault();
+      alert(errors.join('\n'));
+    }
+  });
+}());
+</script>
+{% endblock %}

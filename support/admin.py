@@ -16,13 +16,25 @@ from .models import (
     SalesRecord,
     SellerConsoleAction,
     IssueResolution,
+    Shift,
+    AbsenceReason,
+    AttendanceRecord,
+    SellerAttendance,
 )
+
+
+@admin.register(Shift)
+class ShiftAdmin(admin.ModelAdmin):
+    list_display = ["name", "start_time", "end_time"]
+    ordering = ["start_time"]
 
 
 @admin.register(Seller)
 class SellerAdmin(admin.ModelAdmin):
-    list_display = ["name", "internal", "user"]
+    list_display = ["name", "internal", "call_center", "shift", "user"]
     ordering = ["-internal", "name"]
+    list_filter = ["internal", "call_center", "shift"]
+    search_fields = ["name", "user__username"]
     raw_id_fields = ["user"]
     form = SellerForm
 
@@ -117,3 +129,23 @@ class SellerConsoleActionAdmin(admin.ModelAdmin):
     list_display = ["slug", "name", "action_type", "campaign_status", "campaign_resolution"]
     list_display_links = ["slug"]
     list_editable = ["name", "action_type", "campaign_status", "campaign_resolution"]
+
+
+@admin.register(AbsenceReason)
+class AbsenceReasonAdmin(admin.ModelAdmin):
+    list_display = ["name", "justified", "active"]
+    list_filter = ["justified", "active"]
+    search_fields = ["name"]
+
+
+@admin.register(AttendanceRecord)
+class AttendanceRecordAdmin(admin.ModelAdmin):
+    list_display = ["date"]
+    date_hierarchy = "date"
+
+
+@admin.register(SellerAttendance)
+class SellerAttendanceAdmin(admin.ModelAdmin):
+    list_display = ["record", "seller", "status", "absence_reason", "shift_start", "shift_end"]
+    list_filter = ["status", "seller"]
+    raw_id_fields = ["seller"]
