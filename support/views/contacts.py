@@ -550,10 +550,17 @@ class ContactCreateView(BreadcrumbsMixin, CreateView):
 
 
 @method_decorator(staff_member_required, name="dispatch")
-class ImportContactsView(FormView):
+class ImportContactsView(BreadcrumbsMixin, FormView):
     template_name = 'import_contacts.html'
     form_class = ImportContactsForm
     success_url = reverse_lazy('import_contacts')
+
+    def breadcrumbs(self):
+        return [
+            {"url": reverse("home"), "label": _("Home")},
+            {"url": reverse("campaign_management"), "label": _("Campaign Management")},
+            {"label": _("Import Contacts"), "url": reverse("import_contacts")},
+        ]
 
     def get(self, request, *args, **kwargs):
         # Handle template download
@@ -876,6 +883,7 @@ def contact_invoices_htmx(request, contact_id):
     )
 
 
+@method_decorator(staff_member_required, name="dispatch")
 class CheckForExistingContactsView(BreadcrumbsMixin, FormView):
     template_name = "check_for_existing_contacts.html"
     form_class = CheckForExistingContactsForm
@@ -883,8 +891,8 @@ class CheckForExistingContactsView(BreadcrumbsMixin, FormView):
     def breadcrumbs(self):
         return [
             {"url": reverse("home"), "label": _("Home")},
-            {"url": reverse("contact_list"), "label": _("Contacts")},
-            {"label": _("Check for existing contacts")},
+            {"url": reverse("campaign_management"), "label": _("Campaign Management")},
+            {"label": _("Check for existing contacts"), "url": reverse("check_for_existing_contacts")},
         ]
 
     def get_success_url(self):

@@ -60,7 +60,7 @@ from support.views.all_views import (
     IssueListView,
     SellerAttendanceView,
 )
-from support.views.campaign_management import bulk_delete_campaign_status
+from support.views.campaign_management import bulk_delete_campaign_status, campaign_management_menu
 
 from django.urls import path, re_path
 
@@ -291,4 +291,5 @@ urlpatterns = [
         name='update_free_subscription',
     ),
     path("seller_attendance/", SellerAttendanceView.as_view(), name="seller_attendance"),
+    path("campaign_management/", campaign_management_menu, name="campaign_management"),
 ]

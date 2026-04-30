@@ -2,18 +2,30 @@ import csv
 import io
 
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import UserPassesTestMixin
 from django.db import transaction
 from django.http import HttpResponse
 from django.shortcuts import redirect
 from django.urls import reverse, reverse_lazy
 from django.utils.translation import gettext_lazy as _
-from django.views.generic import FormView
+from django.views.generic import FormView, TemplateView
 
 from core.mixins import BreadcrumbsMixin
 from core.models import ContactCampaignStatus
 from core.utils import detect_csv_delimiter
 from support.forms import BulkDeleteCampaignStatusForm
+
+
+class CampaignManagementMenuView(UserPassesTestMixin, TemplateView):
+    template_name = "campaign_management_menu.html"
+
+    def test_func(self):
+        user = self.request.user
+        return user.is_superuser or user.groups.filter(name__in=["Managers", "Admins"]).exists()
+
+
+campaign_management_menu = login_required(CampaignManagementMenuView.as_view())
 
 
 class BulkDeleteCampaignStatusView(BreadcrumbsMixin, UserPassesTestMixin, FormView):
@@ -37,6 +49,7 @@ class BulkDeleteCampaignStatusView(BreadcrumbsMixin, UserPassesTestMixin, FormVi
     def breadcrumbs(self):
         return [
             {"url": reverse("home"), "label": _("Home")},
+            {"url": reverse("campaign_management"), "label": _("Campaign Management")},
             {"label": _("Bulk Delete Campaign Status"), "url": reverse("bulk_delete_campaign_status")},
         ]
 

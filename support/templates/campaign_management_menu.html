@@ -1,0 +1,325 @@
+{% extends "adminlte/base.html" %}
+{% load i18n core_tags %}
+
+{% block stylesheets %}
+{{ block.super }}
+<style>
+    .row-eq-height {
+        display: flex;
+        flex-wrap: wrap;
+    }
+    .row-eq-height > [class*='col-'] {
+        display: flex;
+        flex-direction: column;
+    }
+    .row-eq-height > [class*='col-'] > .card {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+    .row-eq-height > [class*='col-'] > .card > .card-body {
+        flex: 1;
+    }
+
+    .preparation-card .card-header {
+        background-color: #e3f2fd;
+        color: #0d47a1;
+    }
+    .preparation-card .card-header .card-title {
+        font-weight: 600;
+    }
+
+    .tracking-card .card-header {
+        background-color: #f3e5f5;
+        color: #4a148c;
+    }
+    .tracking-card .card-header .card-title {
+        font-weight: 600;
+    }
+
+    #search-no-results {
+        display: none;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script type="text/javascript">
+$(function() {
+    var $input = $('#campaign-search');
+    var $noResults = $('#search-no-results');
+
+    $input.on('input', function() {
+        var query = $.trim(this.value).toLowerCase();
+
+        $('.campaign-section, .campaign-card-col').show();
+
+        if (query !== '') {
+            $('.campaign-card-col').each(function() {
+                var text = $(this).find('.card-title').text().toLowerCase() +
+                           ' ' + $(this).find('.card-body p').text().toLowerCase();
+                if (text.indexOf(query) === -1) {
+                    $(this).hide();
+                }
+            });
+
+            $('.campaign-section').each(function() {
+                if ($(this).find('.campaign-card-col:visible').length === 0) {
+                    $(this).hide();
+                }
+            });
+        }
+
+        $noResults.toggle($('.campaign-section:visible').length === 0 && query !== '');
+    });
+
+    $('#campaign-search-clear').on('click', function() {
+        $input.val('').trigger('input').focus();
+    });
+});
+</script>
+{% endblock %}
+
+{% block no_heading %}
+<h1>{% trans "Campaign Management" %}</h1>
+<p>{% trans "Campaign tools and statistics" %}</p>
+{% endblock %}
+
+{% block title %}{% trans "Campaign Management" %}{% endblock %}
+
+{% block breadcrumbs %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{% url 'home' %}">{% trans "Home" %}</a></li>
+    <li class="breadcrumb-item active" aria-current="page">{% trans "Campaign Management" %}</li>
+  </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+    {# ===== Search bar ===== #}
+    <div class="row mb-3">
+        <div class="col-md-6 col-12">
+            <div class="input-group">
+                <div class="input-group-prepend">
+                    <span class="input-group-text"><i class="fas fa-search"></i></span>
+                </div>
+                <input type="text"
+                       id="campaign-search"
+                       class="form-control"
+                       placeholder="{% trans "Search…" %}"
+                       autocomplete="off" />
+                <div class="input-group-append">
+                    <button class="btn btn-outline-secondary" type="button" id="campaign-search-clear" title="{% trans "Clear" %}">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <p id="search-no-results" class="text-muted">{% trans "No results found matching the search." %}</p>
+
+    {# ===== Section 1: Campaign preparation ===== #}
+    <div class="row row-eq-height campaign-section">
+        <div class="col-lg-12 col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">{% trans "Campaign preparation" %}</h3>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted">{% trans "Import contacts, assign tags and sellers, and create new campaigns." %}</p>
+                    <div class="row row-eq-height preparation-card">
+                        <div class="col-lg-4 col-6 campaign-card-col">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3 class="card-title">{% trans "Import Contacts" %}</h3>
+                                </div>
+                                <div class="card-body">
+                                    <p>{% trans "Import contacts from a CSV file to add them to the database." %}</p>
+                                    <div class="text-right">
+                                        <a href="{% url 'import_contacts' %}" class="btn btn-default">{% trans "Go to import" %}</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-4 col-6 campaign-card-col">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3 class="card-title">{% trans "Check for existing contacts" %}</h3>
+                                </div>
+                                <div class="card-body">
+                                    <p>{% trans "Upload a CSV to check which contacts already exist in the database." %}</p>
+                                    <div class="text-right">
+                                        <a href="{% url 'check_for_existing_contacts' %}" class="btn btn-default">{% trans "Go to check" %}</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-4 col-6 campaign-card-col">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3 class="card-title">{% trans "Tag Contacts" %}</h3>
+                                </div>
+                                <div class="card-body">
+                                    <p>{% trans "Upload a CSV to add tags to a set of contacts." %}</p>
+                                    <div class="text-right">
+                                        <a href="{% url 'tag_contacts' %}" class="btn btn-default">{% trans "Go to tagging" %}</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-4 col-6 campaign-card-col">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3 class="card-title">{% trans "Assign contacts by tag" %}</h3>
+                                </div>
+                                <div class="card-body">
+                                    <p>{% trans "Assign contacts with a specific tag to a campaign." %}</p>
+                                    <div class="text-right">
+                                        <a href="{% url 'assign_campaigns' %}" class="btn btn-default">{% trans "Go to assignment" %}</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-4 col-6 campaign-card-col">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3 class="card-title">{% trans "Assign contacts to sellers" %}</h3>
+                                </div>
+                                <div class="card-body">
+                                    <p>{% trans "Distribute campaign contacts among sellers." %}</p>
+                                    <div class="text-right">
+                                        <a href="{% url 'assign_to_seller' %}" class="btn btn-default">{% trans "Go to assignment" %}</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-4 col-6 campaign-card-col">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3 class="card-title">{% trans "New campaign" %}</h3>
+                                </div>
+                                <div class="card-body">
+                                    <p>{% trans "Create a new campaign in the admin panel." %}</p>
+                                    <div class="text-right">
+                                        <a href="{% url 'admin:core_campaign_add' %}" target="_blank" class="btn btn-default">{% trans "Go to admin" %}</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# ===== Section 2: Tracking and reports ===== #}
+    <div class="row row-eq-height campaign-section mt-3">
+        <div class="col-lg-12 col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">{% trans "Tracking and reports" %}</h3>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted">{% trans "Monitor campaign progress, seller performance, and manage contacts." %}</p>
+                    <div class="row row-eq-height tracking-card">
+                        <div class="col-lg-4 col-6 campaign-card-col">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3 class="card-title">{% trans "Campaign statistics" %}</h3>
+                                </div>
+                                <div class="card-body">
+                                    <p>{% trans "View contact and call statistics per campaign." %}</p>
+                                    <div class="text-right">
+                                        <a href="{% url 'campaign_statistics_list' %}?active=true" class="btn btn-default">{% trans "Go to statistics" %}</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-4 col-6 campaign-card-col">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3 class="card-title">{% trans "Sellers performance" %}</h3>
+                                </div>
+                                <div class="card-body">
+                                    <p>{% trans "Review seller performance metrics by time period." %}</p>
+                                    <div class="text-right">
+                                        <a href="{% url 'seller_performance_by_time' %}" class="btn btn-default">{% trans "Go to performance" %}</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-4 col-6 campaign-card-col">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3 class="card-title">{% trans "Release seller contacts" %}</h3>
+                                </div>
+                                <div class="card-body">
+                                    <p>{% trans "Release unworked contacts from a seller so they can be reassigned." %}</p>
+                                    <div class="text-right">
+                                        <a href="{% url 'release_seller_contacts' %}" class="btn btn-default">{% trans "Go to release" %}</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-4 col-6 campaign-card-col">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3 class="card-title">{% trans "Upload do not call list" %}</h3>
+                                </div>
+                                <div class="card-body">
+                                    <p>{% trans "Upload a CSV of numbers that should not be called." %}</p>
+                                    <div class="text-right">
+                                        <a href="{% url 'upload_do_not_call_numbers' %}" class="btn btn-default">{% trans "Go to upload" %}</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-4 col-6 campaign-card-col">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3 class="card-title">{% trans "Sales Records" %}</h3>
+                                </div>
+                                <div class="card-body">
+                                    <p>{% trans "View and filter sales records across all sellers." %}</p>
+                                    <div class="text-right">
+                                        <a href="{% url 'sales_record_filter' %}" class="btn btn-default">{% trans "Go to records" %}</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-4 col-6 campaign-card-col">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3 class="card-title">{% trans "Bulk Delete Campaign Status" %}</h3>
+                                </div>
+                                <div class="card-body">
+                                    <p>{% trans "Delete campaign status records in bulk by uploading a CSV of contact IDs." %}</p>
+                                    <div class="text-right">
+                                        <a href="{% url 'bulk_delete_campaign_status' %}" class="btn btn-default">{% trans "Go to bulk delete" %}</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-4 col-6 campaign-card-col">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3 class="card-title">{% trans "Seller Attendance" %}</h3>
+                                </div>
+                                <div class="card-body">
+                                    <p>{% trans "Track and manage call center seller attendance records." %}</p>
+                                    <div class="text-right">
+                                        <a href="{% url 'seller_attendance' %}" class="btn btn-default">{% trans "Go to attendance" %}</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% block campaign_menu_extra %}{% endblock %}
+
+{% endblock %}

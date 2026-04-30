@@ -163,7 +163,8 @@ class AssignCampaignsView(LoginRequiredMixin, BreadcrumbsMixin, TemplateView):
     def breadcrumbs(self):
         return [
             {"label": _("Home"), "url": reverse("home")},
-            {"label": _("Assign campaigns"), "url": reverse("assign_campaigns")},
+            {"label": _("Campaign Management"), "url": reverse("campaign_management")},
+            {"label": _("Assign contacts by tag"), "url": reverse("assign_campaigns")},
         ]
 
     def get_context_data(self, **kwargs):
@@ -244,7 +245,14 @@ def list_campaigns_with_no_seller(request):
     return render(
         request,
         "distribute_campaigns.html",
-        {"campaign_list": campaign_list},
+        {
+            "campaign_list": campaign_list,
+            "breadcrumbs": [
+                {"url": reverse("home"), "label": _("Home")},
+                {"url": reverse("campaign_management"), "label": _("Campaign Management")},
+                {"label": _("Assign contacts to sellers"), "url": reverse("assign_to_seller")},
+            ],
+        },
     )
 
 
@@ -277,6 +285,8 @@ class AssignSellerView(LoginRequiredMixin, BreadcrumbsMixin, TemplateView):
     def breadcrumbs(self):
         return [
             {"label": _("Home"), "url": reverse("home")},
+            {"label": _("Campaign Management"), "url": reverse("campaign_management")},
+            {"label": _("Assign contacts to sellers"), "url": reverse("assign_to_seller")},
             {"label": _("Assign sellers"), "url": reverse("assign_sellers", args=[self.kwargs['campaign_id']])},
         ]
 
@@ -518,7 +528,18 @@ def release_seller_contacts(request, seller_id=None):
     else:
         for seller in seller_qs:
             seller.contacts_not_worked = seller.contactcampaignstatus_set.filter(status__lt=4).count()
-        return render(request, "release_seller_contacts.html", {"seller_list": seller_qs})
+        return render(
+            request,
+            "release_seller_contacts.html",
+            {
+                "seller_list": seller_qs,
+                "breadcrumbs": [
+                    {"url": reverse("home"), "label": _("Home")},
+                    {"url": reverse("campaign_management"), "label": _("Campaign Management")},
+                    {"label": _("Release seller contacts"), "url": reverse("release_seller_contacts")},
+                ],
+            },
+        )
 
 
 @staff_member_required
@@ -2161,6 +2182,11 @@ def campaign_statistics_list(request):
         {
             "campaigns": campaigns_filter.qs,
             "campaigns_filter": campaigns_filter,
+            "breadcrumbs": [
+                {"url": reverse("home"), "label": _("Home")},
+                {"url": reverse("campaign_management"), "label": _("Campaign Management")},
+                {"label": _("Campaign statistics"), "url": reverse("campaign_statistics_list")},
+            ],
         },
     )
 
@@ -2181,8 +2207,9 @@ class CampaignStatisticsDetailView(BreadcrumbsMixin, UserPassesTestMixin, Filter
     def breadcrumbs(self):
         return [
             {"label": _("Home"), "url": reverse("home")},
-            {"label": _("Campaigns"), "url": reverse("campaign_statistics_list")},
-            {"label": self.campaign.name, "url": "campaign_statistics_detail"},
+            {"label": _("Campaign Management"), "url": reverse("campaign_management")},
+            {"label": _("Campaign statistics"), "url": reverse("campaign_statistics_list")},
+            {"label": self.campaign.name, "url": ""},
         ]
 
     def test_func(self):
@@ -2533,6 +2560,11 @@ def seller_performance_by_time(request):
             "contacted_pct": contacted_pct,
             "success_count": success_count,
             "success_pct": success_pct,
+            "breadcrumbs": [
+                {"url": reverse("home"), "label": _("Home")},
+                {"url": reverse("campaign_management"), "label": _("Campaign Management")},
+                {"label": _("Sellers performance"), "url": reverse("seller_performance_by_time")},
+            ],
         },
     )
 
@@ -2652,6 +2684,13 @@ def upload_do_not_call_numbers(request):
     return render(
         request,
         "upload_do_not_call_numbers.html",
+        {
+            "breadcrumbs": [
+                {"url": reverse("home"), "label": _("Home")},
+                {"url": reverse("campaign_management"), "label": _("Campaign Management")},
+                {"label": _("Upload do not call list"), "url": reverse("upload_do_not_call_numbers")},
+            ],
+        },
     )
 
 
@@ -2685,6 +2724,13 @@ def tag_contacts(request):
     return render(
         request,
         "tag_contacts.html",
+        {
+            "breadcrumbs": [
+                {"url": reverse("home"), "label": _("Home")},
+                {"url": reverse("campaign_management"), "label": _("Campaign Management")},
+                {"label": _("Tag Contacts"), "url": reverse("tag_contacts")},
+            ],
+        },
     )
 
 
@@ -2821,8 +2867,8 @@ class SalesRecordFilterManagersView(SalesRecordFilterSellersView):
     def breadcrumbs(self):
         return [
             {"url": reverse("home"), "label": _("Home")},
-            {"label": _("Campaign Management")},
-            {"label": _("Sales Record")},
+            {"url": reverse("campaign_management"), "label": _("Campaign Management")},
+            {"label": _("Sales Records"), "url": reverse("sales_record_filter")},
         ]
 
     def dispatch(self, request, *args, **kwargs):
@@ -3027,6 +3073,7 @@ class SellerAttendanceView(LoginRequiredMixin, UserPassesTestMixin, BreadcrumbsM
     def breadcrumbs(self):
         return [
             {"label": _("Home"), "url": reverse("home")},
+            {"label": _("Campaign Management"), "url": reverse("campaign_management")},
             {"label": _("Seller Attendance"), "url": reverse("seller_attendance")},
         ]
 
