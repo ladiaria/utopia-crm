@@ -3090,7 +3090,7 @@ class SellerAttendanceView(LoginRequiredMixin, UserPassesTestMixin, BreadcrumbsM
             rows.append(
                 {
                     "seller": seller,
-                    "status": attendance.status if attendance else "",
+                    "status": attendance.status if attendance else (ATTENDANCE_STATUS_PRESENT if seller.shift else ""),
                     "absence_reason_id": attendance.absence_reason_id if attendance else None,
                     "shift_start": (
                         attendance.shift_start if attendance else (seller.shift.start_time if seller.shift else None)

@@ -27,6 +27,12 @@
     {% endif %}
 
     {% if seller_rows %}
+      {% if can_edit %}
+      <div class="alert alert-info">
+        <strong>{% trans "Attendance defaults to Present for all sellers with an assigned shift." %}</strong>
+        {% trans "Update any absences before saving. Note: if you save now, sellers who have not yet started their shift will also be recorded as present — remember to return and correct any absences after each shift ends." %}
+      </div>
+      {% endif %}
       <form method="post" id="attendance-form">
         {% csrf_token %}
         <input type="hidden" name="date" value="{{ selected_date|date:'Y-m-d' }}">

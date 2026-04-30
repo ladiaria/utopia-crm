@@ -11628,6 +11628,19 @@ msgstr "La contraseña debe contener al menos 1 letra minúscula, a-z."
 msgid "Your password must contain at least 1 lowercase letter, a-z."
 msgstr "Tu contraseña debe contener al menos 1 letra minúscula, a-z."
 
+msgid "Attendance defaults to Present for all sellers with an assigned shift."
+msgstr "Por defecto, todos los vendedores con turno asignado quedan marcados como Asistencia."
+
+msgid ""
+"Update any absences before saving. Note: if you save now, sellers who have "
+"not yet started their shift will also be recorded as present — remember to "
+"return and correct any absences after each shift ends."
+msgstr ""
+"Modificá las inasistencias antes de guardar. Tené en cuenta que si guardás "
+"ahora, los vendedores de turnos que aún no comenzaron también quedarán "
+"registrados como presentes; recordá volver a corregir las inasistencias al "
+"finalizar cada turno."
+
 #, python-format
 #~ msgid "Contact %(name)s (ID: %(id)s) added to campaign %(campaign)s"
 #~ msgstr ""
