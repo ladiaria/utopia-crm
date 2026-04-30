@@ -1,6 +1,17 @@
 # Changelog
 
-## v0.5.0
+## v0.5.1
+
+## 2026-04-29 — t1132 Seller attendance tracking for call center staff
+
+- New `Shift`, `AbsenceReason`, `AttendanceRecord`, and `SellerAttendance` models allow daily attendance and absence tracking for call center sellers
+- Two new boolean fields on `Seller`: `call_center` marks who is subject to attendance tracking; `shift` (FK) links to a configurable `Shift` with start and end times editable from the admin
+- A new "Seller Attendance" view under Campaign Management lets managers consult daily attendance and admins/superusers record it; statuses are Present or Absent, with a required justified/unjustified reason for absences
+- `BreadcrumbsMixin` in `core/mixins.py` now has full docstring explaining usage and the `@cached_property` / plain-method / `get_context_data` interaction
+- Migrations required; load `support/fixtures/shifts.json` after migrating to seed the two default shifts (Matutino 09:00–17:00, Vespertino 17:00–21:00)
+- **Author:** Tanya Tree + Claude Sonnet 4.6
+
+## v0.5.0 (2026-04-29)
 
 ## 2026-04-24 — t1126 SalesRecord creation for product change, additional product, and retention flows
 

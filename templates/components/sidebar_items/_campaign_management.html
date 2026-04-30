@@ -11,6 +11,7 @@
 {% url 'sales_record_filter' as sales_record_filter %}
 {% url "check_for_existing_contacts" as check_for_existing_contacts %}
 {% url 'bulk_delete_campaign_status' as bulk_delete_campaign_status %}
+{% url 'seller_attendance' as seller_attendance %}
 
 <li class="nav-item has-treeview">
   <a href="#" class="nav-link">
@@ -101,6 +102,13 @@
          class="nav-link {% if request.path == bulk_delete_campaign_status %}active{% endif %}">
         <i class="nav-icon fas fa-trash-alt"></i>
         <p>{% trans "Bulk Delete Campaign Status" %}</p>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a href="{{ seller_attendance }}"
+         class="nav-link {% if request.path == seller_attendance %}active{% endif %}">
+        <i class="nav-icon fas fa-calendar-check"></i>
+        <p>{% trans "Seller Attendance" %}</p>
       </a>
     </li>
     {% include_if_exists "campaign_management_sidebar_extra.html" %}
