@@ -1,3 +1,4 @@
+import calendar
 import csv
 import json
 from datetime import date, datetime, timedelta
@@ -24,7 +25,7 @@ from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
-from django.views.generic import CreateView, RedirectView, UpdateView, TemplateView
+from django.views.generic import CreateView, RedirectView, UpdateView, TemplateView, View
 from django_filters.views import FilterView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from taggit.models import Tag
@@ -3219,3 +3220,160 @@ class SellerAttendanceView(LoginRequiredMixin, UserPassesTestMixin, BreadcrumbsM
 
         messages.success(request, _("Attendance saved successfully."))
         return HttpResponseRedirect(f"{reverse('seller_attendance')}?date={selected_date}")
+
+
+MONTH_NAMES_ES = [
+    (1, "Enero"),
+    (2, "Febrero"),
+    (3, "Marzo"),
+    (4, "Abril"),
+    (5, "Mayo"),
+    (6, "Junio"),
+    (7, "Julio"),
+    (8, "Agosto"),
+    (9, "Septiembre"),
+    (10, "Octubre"),
+    (11, "Noviembre"),
+    (12, "Diciembre"),
+]
+
+DAY_ABBR_ES = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]
+
+
+class SellerAttendanceCalendarView(LoginRequiredMixin, UserPassesTestMixin, BreadcrumbsMixin, TemplateView):
+    template_name = "support/seller_attendance_calendar.html"
+
+    def test_func(self):
+        return self.request.user.is_staff
+
+    def breadcrumbs(self):
+        return [
+            {"label": _("Home"), "url": reverse("home")},
+            {"label": _("Campaign Management"), "url": reverse("campaign_management")},
+            {"label": _("Seller Attendance"), "url": reverse("seller_attendance")},
+            {"label": "Calendario de asistencias"},
+        ]
+
+    def _parse_month_year(self, request):
+        today = date.today()
+        try:
+            month = int(request.GET.get("month", today.month))
+            month = max(1, min(12, month))
+        except (ValueError, TypeError):
+            month = today.month
+        try:
+            year = int(request.GET.get("year", today.year))
+        except (ValueError, TypeError):
+            year = today.year
+        return month, year
+
+    def _build_days(self, year, month):
+        _, last_day = calendar.monthrange(year, month)
+        return [date(year, month, d) for d in range(1, last_day + 1)]
+
+    def _build_attendance_map(self, sellers, days):
+        seller_ids = [s.pk for s in sellers]
+        records = (
+            AttendanceRecord.objects.filter(date__in=days)
+            .prefetch_related(
+                Prefetch(
+                    "attendances",
+                    queryset=SellerAttendance.objects.filter(seller_id__in=seller_ids).select_related(
+                        "seller", "absence_reason"
+                    ),
+                )
+            )
+        )
+        record_map = {r.date: r for r in records}
+        # attendance_map[seller_id][day] = SellerAttendance or None
+        attendance_map = {s.pk: {} for s in sellers}
+        for day in days:
+            record = record_map.get(day)
+            if record:
+                for att in record.attendances.all():
+                    if att.seller_id in attendance_map:
+                        attendance_map[att.seller_id][day] = att
+        return attendance_map
+
+    def export_csv(self, sellers, days, attendance_map, year, month):
+        response = HttpResponse(content_type="text/csv; charset=utf-8")
+        response["Content-Disposition"] = f'attachment; filename="asistencias_{year}_{month:02d}.csv"'
+        response.write("﻿")
+        writer = csv.writer(response)
+
+        header = ["Vendedor"] + [f"{DAY_ABBR_ES[d.weekday()]} {d.day}" for d in days]
+        writer.writerow(header)
+
+        for seller in sellers:
+            row = [seller.name]
+            for day in days:
+                att = attendance_map[seller.pk].get(day)
+                if att is None:
+                    row.append("")
+                elif att.status == ATTENDANCE_STATUS_PRESENT:
+                    row.append("Presente")
+                else:
+                    row.append(str(att.absence_reason) if att.absence_reason else "Ausente")
+            writer.writerow(row)
+
+        return response
+
+    def get(self, request, *args, **kwargs):
+        month, year = self._parse_month_year(request)
+        days = self._build_days(year, month)
+        sellers = Seller.objects.filter(call_center=True).order_by("name")
+        attendance_map = self._build_attendance_map(sellers, days)
+        view_mode = "normal" if request.GET.get("view") == "normal" else "lite"
+
+        if request.GET.get("export"):
+            return self.export_csv(sellers, days, attendance_map, year, month)
+
+        # Enrich days with display info so templates don't need filter tricks
+        day_infos = [
+            {
+                "date": d,
+                "label": DAY_ABBR_ES[d.weekday()],
+                "num": d.day,
+                "is_weekend": d.weekday() >= 5,
+            }
+            for d in days
+        ]
+
+        # Pre-build rows so the template avoids nested dict lookups
+        seller_rows = []
+        for seller in sellers:
+            cells = []
+            for d in days:
+                att = attendance_map[seller.pk].get(d)
+                cells.append(
+                    {
+                        "att": att,
+                        "is_present": att is not None and att.status == ATTENDANCE_STATUS_PRESENT,
+                        "is_absent": att is not None and att.status == ATTENDANCE_STATUS_ABSENT,
+                        "justified": att is not None
+                        and att.status == ATTENDANCE_STATUS_ABSENT
+                        and att.absence_reason is not None
+                        and att.absence_reason.justified,
+                        "reason_str": str(att.absence_reason) if att and att.absence_reason else "",
+                        "shift_label": (
+                            f"{att.shift_start.strftime('%H:%M')}–{att.shift_end.strftime('%H:%M')}"
+                            if att and att.status == ATTENDANCE_STATUS_PRESENT
+                            else ""
+                        ),
+                        "is_weekend": d.weekday() >= 5,
+                    }
+                )
+            seller_rows.append({"seller": seller, "cells": cells})
+
+        today = date.today()
+        context = self.get_context_data(
+            seller_rows=seller_rows,
+            day_infos=day_infos,
+            selected_month=month,
+            selected_year=year,
+            months=MONTH_NAMES_ES,
+            years=range(today.year - 2, today.year + 2),
+            view_mode=view_mode,
+            can_edit=request.user.is_superuser or request.user.has_perm("support.change_sellerattendance"),
+        )
+        return render(request, self.template_name, context)
