@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: django\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-05-06 16:37-0300\n"
+"POT-Creation-Date: 2026-05-06 16:44-0300\n"
 "PO-Revision-Date: 2026-04-30 17:18-0300\n"
 "Last-Translator: tanyatree\n"
 "Language-Team: \n"
@@ -5822,8 +5822,8 @@ msgid "Absence reason"
 msgstr "Razón de inasistencia"
 
 #: support/filters.py:479
-msgid "Absences only"
-msgstr "Solo inasistencias"
+msgid "Include present"
+msgstr "Incluir asistencias"
 
 #: support/forms.py:47
 #, python-brace-format
@@ -11704,6 +11704,9 @@ msgstr "La contraseña debe contener al menos 1 letra minúscula, a-z."
 #: validators.py:45
 msgid "Your password must contain at least 1 lowercase letter, a-z."
 msgstr "Tu contraseña debe contener al menos 1 letra minúscula, a-z."
+
+#~ msgid "Absences only"
+#~ msgstr "Solo inasistencias"
 
 #, python-format
 #~ msgid "Contact %(name)s (ID: %(id)s) added to campaign %(campaign)s"

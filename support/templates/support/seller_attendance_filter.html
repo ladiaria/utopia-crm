@@ -77,9 +77,9 @@
             <div class="col-md-1 d-flex align-items-center">
               <div class="form-group mt-2">
                 <div class="form-check">
-                  {% render_field filter.form.absences_only class="form-check-input" %}
-                  <label class="form-check-label" for="{{ filter.form.absences_only.id_for_label }}">
-                    {{ filter.form.absences_only.label }}
+                  {% render_field filter.form.include_present class="form-check-input" %}
+                  <label class="form-check-label" for="{{ filter.form.include_present.id_for_label }}">
+                    {{ filter.form.include_present.label }}
                   </label>
                 </div>
               </div>

@@ -474,9 +474,9 @@ class SellerAttendanceFilter(django_filters.FilterSet):
         queryset=AbsenceReason.objects.filter(active=True).order_by("name"),
         label=_("Absence reason"),
     )
-    absences_only = django_filters.BooleanFilter(
-        method="filter_absences_only",
-        label=_("Absences only"),
+    include_present = django_filters.BooleanFilter(
+        method="filter_include_present",
+        label=_("Include present"),
         widget=forms.CheckboxInput(),
     )
     justified = django_filters.ChoiceFilter(
@@ -489,8 +489,8 @@ class SellerAttendanceFilter(django_filters.FilterSet):
         model = SellerAttendance
         fields = []
 
-    def filter_absences_only(self, queryset, name, value):
-        if value:
+    def filter_include_present(self, queryset, name, value):
+        if not value:
             return queryset.filter(status="A")
         return queryset
 
