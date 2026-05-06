@@ -3,6 +3,8 @@
 
 from django.contrib import admin
 
+from core.models import Product
+
 from .models import (
     Edition,
     EditionRoute,
@@ -53,9 +55,29 @@ class VacationAdmin(admin.ModelAdmin):
     pass
 
 
+class OfferableProductFilter(admin.SimpleListFilter):
+    title = 'producto'
+    parameter_name = 'product'
+
+    def lookups(self, request, model_admin):
+        return [
+            (p.pk, str(p))
+            for p in Product.objects.filter(offerable=True, type='S').order_by('name')
+        ]
+
+    def queryset(self, request, queryset):
+        if self.value():
+            return queryset.filter(product_id=self.value())
+        return queryset
+
+
 @admin.register(RouteChange)
 class RouteChangeAdmin(admin.ModelAdmin):
+    list_display = ('dt', 'contact', 'product', 'old_route', 'old_address', 'old_city')
+    list_filter = (OfferableProductFilter, 'old_route', ('dt', admin.DateFieldListFilter))
+    search_fields = ('contact__id', 'contact__name', 'contact__last_name')
     raw_id_fields = ['contact']
+    date_hierarchy = 'dt'
 
 
 @admin.register(Delivery)

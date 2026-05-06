@@ -6,8 +6,9 @@ from support.models import Issue, IssueSubcategory, IssueStatus
 
 def create_issue_for_special_route(subscription, route_number=None, user=None, custom_notes=None, route_numbers=None):
     """
-    Creates an Issue when a subscription product is changed to a special route (50-55).
+    Creates an Issue when a subscription product is changed to a special route.
 
+    The set of special routes is controlled by the SPECIAL_ROUTES_FOR_SELLERS_LIST setting.
     Can be called with a single route_number (original behavior) or with a list of
     route_numbers to create a single issue covering multiple route changes.
 
@@ -21,11 +22,13 @@ def create_issue_for_special_route(subscription, route_number=None, user=None, c
     Returns:
         Issue object if created, None otherwise
     """
+    special_routes_list = getattr(settings, "SPECIAL_ROUTES_FOR_SELLERS_LIST", [])
+
     # Build the list of special route numbers to include in the issue
     if route_numbers is not None:
-        special_routes = [r for r in route_numbers if r in range(50, 56)]
+        special_routes = [r for r in route_numbers if r in special_routes_list]
     elif route_number is not None:
-        if route_number not in range(50, 56):
+        if route_number not in special_routes_list:
             return None
         special_routes = [route_number]
     else:
@@ -65,7 +68,7 @@ def create_issue_for_special_route(subscription, route_number=None, user=None, c
     issue = Issue.objects.create(
         contact=subscription.contact,
         subscription=subscription,
-        category="L",  # Logistics category
+        category="S",  # Service category
         sub_category=subcategory,
         status=status,
         manager=user,

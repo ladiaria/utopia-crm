@@ -12,6 +12,7 @@ from phonenumber_field.widgets import RegionalPhoneNumberWidget
 
 from core.models import (
     Contact,
+    ContactCampaignStatus,
     Product,
     Subscription,
     Address,
@@ -571,6 +572,7 @@ class IssueChangeForm(forms.ModelForm):
         from .models import IssueResolution
 
         self.fields['resolution'].queryset = IssueResolution.objects.all()
+        self.fields['copies'].required = False
 
     class Meta:
         model = Issue
@@ -812,7 +814,6 @@ class RetentionDiscountForm(forms.ModelForm):
     class Meta:
         model = Subscription
         fields = (
-            "start_date",
             "unsubscription_channel",
             "unsubscription_addendum",
         )
@@ -834,6 +835,17 @@ class ContactCampaignStatusByDateForm(forms.Form):
         required=False,
         widget=forms.DateInput(format="%Y-%m-%d", attrs={"class": "datepicker form-control", "autocomplete": "off"}),
     )
+
+
+class ContactCampaignStatusEditForm(forms.ModelForm):
+    class Meta:
+        model = ContactCampaignStatus
+        fields = ("status", "campaign_resolution", "resolution_reason")
+        widgets = {
+            "status": forms.Select(attrs={"class": "form-control"}),
+            "campaign_resolution": forms.Select(attrs={"class": "form-control"}),
+            "resolution_reason": forms.Select(attrs={"class": "form-control"}),
+        }
 
 
 class SubscriptionPaymentCertificateForm(forms.ModelForm):

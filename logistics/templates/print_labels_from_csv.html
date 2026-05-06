@@ -1,5 +1,5 @@
 {% extends "adminlte/base.html" %}
-{% load i18n %}
+{% load i18n static %}
 
 {% block no_heading %}
 <h1>{% trans 'Logistics' %}</h1>
@@ -20,6 +20,7 @@
             <p>{% trans "Please upload a csv containing the following data" %}:</p>
             <p>{% trans "name" %}, {% trans "address 1" %}, {% trans "address 2" %}, {% trans "route" %}, {% trans "order" %}, {% trans "message" %}, {% trans "route suffix" %}</p>
             <p><b>{% trans "The header line will be ignored." %}</b> {% trans "Only name and address are mandatory" %}</p>
+            <p><a href="{% static 'logistics/plantilla_etiquetas.csv' %}" download>{% trans "Download CSV template" %}</a></p>
             <div class="form-group">
                 <label for="labels">{% trans 'Upload CSV with data' %}:</label>
                 <input id="labels" type="file" name="labels" class="form-control"/>

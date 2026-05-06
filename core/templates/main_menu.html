@@ -1,5 +1,5 @@
 {% extends "adminlte/base.html" %}
-{% load i18n %}
+{% load i18n core_tags %}
 
 {% block no_heading %}
   <h1>{% trans "Home" %}</h1>
@@ -29,6 +29,21 @@
               </div>
             </div>
           </div>
+          {% if request.user|in_group:"Managers" %}
+          <div class="col-lg-3 col-6">
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">{% trans "Campaign Management" %}</h3>
+              </div>
+              <div class="card-body">
+                <p>{% trans "Campaign tools, statistics and seller management." %}</p>
+                <div class="text-right">
+                  <a href="{% url 'campaign_management' %}" class="btn btn-default">{% trans "Go to campaigns" %}</a>
+                </div>
+              </div>
+            </div>
+          </div>
+          {% endif %}
         </div>
       {% endblock %}
     </div>

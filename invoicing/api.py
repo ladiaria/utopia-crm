@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, timedelta
 import json
 import traceback
 from time import sleep
@@ -171,6 +171,7 @@ def createinvoicefromweb(request):
         if subscription:
             subscription.status = "ER"  # Pausa
             subscription.active = False
+            subscription.end_date = subscription.next_billing - timedelta(1)
             subscription.save()
     if invoice:
         response_content = {

@@ -7,7 +7,7 @@ from django.conf import settings
 class ISSUE_CATEGORIES(models.TextChoices):
     """
     Issue categories using Django's TextChoices for better type safety and IDE support.
-    
+
     These categories represent the main types of issues that can be created in the system.
     Each category has specific subcategories and workflows associated with it.
     """
@@ -43,7 +43,7 @@ DEFAULT_ISSUE_CATEGORIES = (
 def get_issue_categories():
     """
     Get issue categories from settings or use default.
-    
+
     Returns tuple format for backward compatibility with existing code.
     For new code, prefer using ISSUE_CATEGORIES.choices directly.
     """

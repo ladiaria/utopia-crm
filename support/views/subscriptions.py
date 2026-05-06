@@ -244,8 +244,8 @@ class SubscriptionMixin(BreadcrumbsMixin):
             self.ccs = ContactCampaignStatus.objects.get(pk=self.request.GET["new"])
             self.campaign = self.ccs.campaign
             self.user_seller_id = self.ccs.seller.id
-        elif self.request.user.seller_set.exists():
-            self.user_seller_id = self.request.user.seller_set.first().id
+        elif getattr(self.request.user, 'seller', None) is not None:
+            self.user_seller_id = self.request.user.seller.id
         else:
             self.user_seller_id = None
 
@@ -711,6 +711,7 @@ def reactivate_subscription(request, subscription_id):
         subscription.payment_type = request.POST.get("payment_type") or None
 
         # Perform the reactivation
+        subscription.active = True
         subscription.end_date = None
         subscription.unsubscription_reason = None
         subscription.unsubscription_channel = None
@@ -952,13 +953,29 @@ def product_change(request, subscription_id):
                             new_sp.order = sp.order
                         new_sp.save()
             # after this, we need to add the new products, that will have to be reviewed by an agent
+            seller = getattr(request.user, 'seller', None)
+            seller_id = seller.id if seller else None
+            new_products_list = []
             for product_id in new_products_ids_list:
                 product = Product.objects.get(pk=product_id)
                 if product not in new_subscription.products.all():
                     new_subscription.add_product(
                         product=product,
                         address=None,
+                        seller_id=seller_id,
+                        track_as_added=True,
                     )
+                    if product.type == "S":
+                        new_products_list.append(product)
+            sf = SalesRecord.objects.create(
+                subscription=new_subscription,
+                seller_id=seller_id,
+                price=new_subscription.get_price_for_full_period() - old_subscription.get_price_for_full_period(),
+                sale_type=SalesRecord.SALE_TYPE.PRODUCT_CHANGE,
+            )
+            sf.products.add(*new_products_list)
+            if not seller_id:
+                sf.set_generic_seller()
             # After that, we'll set the unsubscription date to this new subscription
             success_text = format_lazy(
                 "Unsubscription for {name} booked for {end_date}",
@@ -1011,7 +1028,8 @@ def book_additional_product(request, subscription_id):
     )
     new_products_ids_list = []
     if request.POST:
-        seller_id = request.user.seller_set.first().id if request.user.seller_set.exists() else None
+        seller_id = getattr(request.user, 'seller', None)
+        seller_id = seller_id.id if seller_id else None
         campaign = request.GET.get("campaign", None)
         campaign_obj = Campaign.objects.get(pk=campaign) if campaign else None
         form = AdditionalProductForm(request.POST, instance=old_subscription)
@@ -1071,6 +1089,7 @@ def book_additional_product(request, subscription_id):
                         product=product,
                         address=default_address,
                         seller_id=seller_id,
+                        track_as_added=True,
                     )
                     new_products_list.append(product)
             # If there was a seller we have to add a new SalesRecord.
@@ -1079,7 +1098,7 @@ def book_additional_product(request, subscription_id):
                 subscription=new_subscription,
                 seller=seller_id,
                 price=new_subscription.get_price_for_full_period() - old_subscription.get_price_for_full_period(),
-                sale_type=SalesRecord.TYPES.PARTIAL,
+                sale_type=SalesRecord.SALE_TYPE.PARTIAL,
                 campaign=campaign_obj,
             )
             sf.products.add(*new_products_list)
@@ -1306,7 +1325,8 @@ def add_retention_discount(request, subscription_id):
                     new_sp.save()
 
             # Get seller for new products
-            seller_id = request.user.seller_set.first().id if request.user.seller_set.exists() else None
+            seller = getattr(request.user, 'seller', None)
+            seller_id = seller.id if seller else None
 
             # Add retention discount products
             for product_id in selected_discount_ids:
@@ -1318,6 +1338,7 @@ def add_retention_discount(request, subscription_id):
                     )
 
             # Add new subscription products
+            new_products_list = []
             for product_id in new_products_ids_list:
                 product = Product.objects.get(pk=product_id)
                 if product not in new_subscription.products.all():
@@ -1326,6 +1347,17 @@ def add_retention_discount(request, subscription_id):
                         seller_id=seller_id,
                         address=None,
                     )
+                    if product.type == "S":
+                        new_products_list.append(product)
+            sf = SalesRecord.objects.create(
+                subscription=new_subscription,
+                seller_id=seller_id,
+                price=new_subscription.get_price_for_full_period() - old_subscription.get_price_for_full_period(),
+                sale_type=SalesRecord.SALE_TYPE.RETENTION,
+            )
+            sf.products.add(*new_products_list)
+            if not seller_id:
+                sf.set_generic_seller()
 
             # Set old subscription's unsubscription type and reason to RETENTION
             old_subscription.inactivity_reason = Subscription.InactivityReasonChoices.RETENTION

@@ -1,4 +1,5 @@
 from .activities import ActivityCreateView, ActivityDetailView, scheduled_activities  # noqa
+from .campaign_management import campaign_management_menu  # noqa
 from .all_views import *  # noqa
 from .contacts import (  # noqa
     ContactCreateView,

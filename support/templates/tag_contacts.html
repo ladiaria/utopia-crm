@@ -1,19 +1,7 @@
 {% extends 'adminlte/base.html' %}
 {% load static i18n %}
 
-{% block title %}{% trans "Import contacts" %}{% endblock title %}
-
-{% block extra_js %}
-<script type="text/javascript">
-    $( function() {
-        $("#default_option").change(function(){
-            $(".contact_option").each(function(){
-                $(this).val($("#default_option").val());
-            });
-        });
-    });
-</script>
-{% endblock %}
+{% block title %}{% trans "Tag multiple contacts" %}{% endblock title %}
 
 {% block no_heading %}
 <h1>{% trans 'Support' %}</h1>
@@ -21,8 +9,8 @@
 {% endblock %}
 {% block breadcrumbs %}
 <ol class="breadcrumb">
-    <li class="breadcrumb-item"><a href="/support/">{% trans 'Support' %}</a></li>
-     <li class="breadcrumb-item active">{% trans 'Tag multiple contacts' %}</li>
+    <li class="breadcrumb-item"><a href="{% url 'home' %}">{% trans 'Home' %}</a></li>
+    <li class="breadcrumb-item active">{% trans 'Tag multiple contacts' %}</li>
 </ol>
 {% endblock %}
 
@@ -32,19 +20,44 @@
     <h3 class="card-title">{% trans 'Tag multiple contacts' %}</h3>
   </div>
   <div class="card-body">
-      <form action="" method="post" enctype="multipart/form-data">
+    <p>{% trans "Upload a CSV file with two columns: contact ID and tag. No header row is needed." %}</p>
+    <p>{% trans "For each row, the tag will be added to the corresponding contact. Multiple tags can be used in the same file but only one per row." %}</p>
+    <p>{% trans "Tag characters will be converted to lowercase. We recommend avoiding spaces and using hyphens or underscores instead." %}</p>
+
+    <div class="card card-secondary card-outline mb-3">
+      <div class="card-header">
+        <h3 class="card-title"><i class="fas fa-table mr-1"></i>{% trans "Expected CSV format" %}</h3>
+      </div>
+      <div class="card-body p-0">
+        <table class="table table-bordered table-sm mb-0">
+          <thead class="thead-light">
+            <tr>
+              <th>{% trans "Column 1: contact ID" %}</th>
+              <th>{% trans "Column 2: tag" %}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>1042</td><td>suscriptor-digital</td></tr>
+            <tr><td>2187</td><td>prensa</td></tr>
+            <tr><td>3305</td><td>suscriptor-digital</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card-footer text-muted small">
+        {% trans "The file must not have a header row. Accepts UTF-8 or Latin-1 encoding." %}
+      </div>
+    </div>
+
+    <form action="" method="post" enctype="multipart/form-data">
       {% csrf_token %}
       <div class="form-group">
-        <label for="file">{% trans "Choose file to send. It mustn't have a header" %}:</label>
-        <p>Los contenidos del CSV deben ser una columna de id de contacto, y otra columna con el tag.</p>
-        <p>Por cada fila se agregará el tag indicado al contacto correspondiente. Se pueden utilizar varios tags en el mismo archivo pero solo se admite uno por fila.</p>
-        <p>Los caracteres del tag serán convertidos a minúsculas, recomendamos no usar espacios y usar guiones o guiones bajos en su lugar.</p>
-        <input type="file" name="file" id="file" class="form-control">
+        <label for="file">{% trans "Choose file to upload" %}:</label>
+        <input type="file" name="file" id="file" class="form-control" accept=".csv,.txt">
       </div>
       <div class="form-group text-right">
-        <input type="submit" value="{% trans 'Import' %}" class="btn bg-gradient-primary" >
+        <input type="submit" value="{% trans 'Import' %}" class="btn bg-gradient-primary">
       </div>
-      </form>
+    </form>
   </div>
 </div>
 {% endblock %}

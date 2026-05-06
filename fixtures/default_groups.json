@@ -1,474 +1,375 @@
 [
-{
-  "model": "auth.group",
-  "fields": {
-    "name": "Admin",
-    "permissions": []
-  }
-},
-{
-  "model": "auth.group",
-  "fields": {
-    "name": "Managers",
-    "permissions": [
-      [
-        "add_activity",
-        "core",
-        "activity"
-      ],
-      [
-        "change_activity",
-        "core",
-        "activity"
-      ],
-      [
-        "add_address",
-        "core",
-        "address"
-      ],
-      [
-        "change_address",
-        "core",
-        "address"
-      ],
-      [
-        "delete_address",
-        "core",
-        "address"
-      ],
-      [
-        "add_campaign",
-        "core",
-        "campaign"
-      ],
-      [
-        "change_campaign",
-        "core",
-        "campaign"
-      ],
-      [
-        "add_contact",
-        "core",
-        "contact"
-      ],
-      [
-        "change_contact",
-        "core",
-        "contact"
-      ],
-      [
-        "change_contactcampaignstatus",
-        "core",
-        "contactcampaignstatus"
-      ],
-      [
-        "change_contactproducthistory",
-        "core",
-        "contactproducthistory"
-      ],
-      [
-        "add_pricerule",
-        "core",
-        "pricerule"
-      ],
-      [
-        "change_pricerule",
-        "core",
-        "pricerule"
-      ],
-      [
-        "add_product",
-        "core",
-        "product"
-      ],
-      [
-        "change_product",
-        "core",
-        "product"
-      ],
-      [
-        "add_subscription",
-        "core",
-        "subscription"
-      ],
-      [
-        "change_subscription",
-        "core",
-        "subscription"
-      ],
-      [
-        "add_subscriptionnewsletter",
-        "core",
-        "subscriptionnewsletter"
-      ],
-      [
-        "change_subscriptionnewsletter",
-        "core",
-        "subscriptionnewsletter"
-      ],
-      [
-        "add_subscriptionproduct",
-        "core",
-        "subscriptionproduct"
-      ],
-      [
-        "change_subscriptionproduct",
-        "core",
-        "subscriptionproduct"
-      ],
-      [
-        "add_issue",
-        "support",
-        "issue"
-      ],
-      [
-        "change_issue",
-        "support",
-        "issue"
-      ],
-      [
-        "add_scheduledtask",
-        "support",
-        "scheduledtask"
-      ],
-      [
-        "change_scheduledtask",
-        "support",
-        "scheduledtask"
-      ],
-      [
-        "add_seller",
-        "support",
-        "seller"
-      ],
-      [
-        "change_seller",
-        "support",
-        "seller"
+  {
+    "model": "auth.group",
+    "fields": {
+      "name": "Logistics",
+      "permissions": [
+        ["add_edition", "logistics", "edition"],
+        ["change_edition", "logistics", "edition"],
+        ["delete_edition", "logistics", "edition"],
+        ["add_pickupplace", "logistics", "pickupplace"],
+        ["change_pickupplace", "logistics", "pickupplace"],
+        ["delete_pickupplace", "logistics", "pickupplace"],
+        ["add_pickuppoint", "logistics", "pickuppoint"],
+        ["change_pickuppoint", "logistics", "pickuppoint"],
+        ["delete_pickuppoint", "logistics", "pickuppoint"],
+        ["add_resort", "logistics", "resort"],
+        ["change_resort", "logistics", "resort"],
+        ["delete_resort", "logistics", "resort"],
+        ["add_route", "logistics", "route"],
+        ["change_route", "logistics", "route"],
+        ["delete_route", "logistics", "route"]
       ]
-    ]
-  }
-},
-{
-  "model": "auth.group",
-  "fields": {
-    "name": "Sellers",
-    "permissions": [
-      [
-        "add_activity",
-        "core",
-        "activity"
-      ],
-      [
-        "change_activity",
-        "core",
-        "activity"
-      ],
-      [
-        "add_address",
-        "core",
-        "address"
-      ],
-      [
-        "change_address",
-        "core",
-        "address"
-      ],
-      [
-        "add_contact",
-        "core",
-        "contact"
-      ],
-      [
-        "change_contact",
-        "core",
-        "contact"
-      ],
-      [
-        "add_subscription",
-        "core",
-        "subscription"
-      ],
-      [
-        "change_subscription",
-        "core",
-        "subscription"
-      ],
-      [
-        "add_subscriptionnewsletter",
-        "core",
-        "subscriptionnewsletter"
-      ],
-      [
-        "change_subscriptionnewsletter",
-        "core",
-        "subscriptionnewsletter"
-      ],
-      [
-        "add_subscriptionproduct",
-        "core",
-        "subscriptionproduct"
-      ],
-      [
-        "change_subscriptionproduct",
-        "core",
-        "subscriptionproduct"
-      ],
-      [
-        "add_issue",
-        "support",
-        "issue"
-      ],
-      [
-        "change_issue",
-        "support",
-        "issue"
+    }
+  },
+  {
+    "model": "auth.group",
+    "fields": {
+      "name": "Finances",
+      "permissions": [
+        ["add_billing", "invoicing", "billing"],
+        ["change_billing", "invoicing", "billing"],
+        ["change_creditnote", "invoicing", "creditnote"],
+        ["delete_creditnote", "invoicing", "creditnote"],
+        ["change_creditnotecopy", "invoicing", "creditnotecopy"],
+        ["delete_creditnotecopy", "invoicing", "creditnotecopy"],
+        ["add_invoice", "invoicing", "invoice"],
+        ["can_cancel_invoice", "invoicing", "invoice"],
+        ["can_download_pdf", "invoicing", "invoice"],
+        ["can_generate_invoices", "invoicing", "invoice"],
+        ["can_send_duplicate_via_email", "invoicing", "invoice"],
+        ["can_send_to_mercadopago", "invoicing", "invoice"],
+        ["change_invoice", "invoicing", "invoice"],
+        ["add_invoicecopy", "invoicing", "invoicecopy"],
+        ["change_invoicecopy", "invoicing", "invoicecopy"],
+        ["add_invoiceitem", "invoicing", "invoiceitem"],
+        ["change_invoiceitem", "invoicing", "invoiceitem"],
+        ["delete_invoiceitem", "invoicing", "invoiceitem"],
+        ["add_invoiceitemcopy", "invoicing", "invoiceitemcopy"],
+        ["change_invoiceitemcopy", "invoicing", "invoiceitemcopy"],
+        ["delete_invoiceitemcopy", "invoicing", "invoiceitemcopy"],
+        ["change_scheduledtask", "support", "scheduledtask"]
       ]
-    ]
-  }
-},
-{
-  "model": "auth.group",
-  "fields": {
-    "name": "Support",
-    "permissions": [
-      [
-        "add_activity",
-        "core",
-        "activity"
-      ],
-      [
-        "change_activity",
-        "core",
-        "activity"
-      ],
-      [
-        "add_address",
-        "core",
-        "address"
-      ],
-      [
-        "change_address",
-        "core",
-        "address"
-      ],
-      [
-        "add_contact",
-        "core",
-        "contact"
-      ],
-      [
-        "change_contact",
-        "core",
-        "contact"
-      ],
-      [
-        "add_subscription",
-        "core",
-        "subscription"
-      ],
-      [
-        "change_subscription",
-        "core",
-        "subscription"
-      ],
-      [
-        "add_subscriptionnewsletter",
-        "core",
-        "subscriptionnewsletter"
-      ],
-      [
-        "change_subscriptionnewsletter",
-        "core",
-        "subscriptionnewsletter"
-      ],
-      [
-        "add_subscriptionproduct",
-        "core",
-        "subscriptionproduct"
-      ],
-      [
-        "change_subscriptionproduct",
-        "core",
-        "subscriptionproduct"
-      ],
-      [
-        "add_issue",
-        "support",
-        "issue"
-      ],
-      [
-        "change_issue",
-        "support",
-        "issue"
-      ],
-      [
-        "add_scheduledtask",
-        "support",
-        "scheduledtask"
-      ],
-      [
-        "change_scheduledtask",
-        "support",
-        "scheduledtask"
+    }
+  },
+  {
+    "model": "auth.group",
+    "fields": {
+      "name": "Managers",
+      "permissions": [
+        ["add_activity", "core", "activity"],
+        ["change_activity", "core", "activity"],
+        ["change_address", "core", "address"],
+        ["delete_address", "core", "address"],
+        ["add_campaign", "core", "campaign"],
+        ["change_campaign", "core", "campaign"],
+        ["delete_campaign", "core", "campaign"],
+        ["add_contact", "core", "contact"],
+        ["change_contact", "core", "contact"],
+        ["add_subscription", "core", "subscription"],
+        ["change_subscription", "core", "subscription"],
+        ["add_subscriptionnewsletter", "core", "subscriptionnewsletter"],
+        ["change_subscriptionnewsletter", "core", "subscriptionnewsletter"],
+        ["delete_subscriptionnewsletter", "core", "subscriptionnewsletter"],
+        ["add_subscriptionproduct", "core", "subscriptionproduct"],
+        ["change_subscriptionproduct", "core", "subscriptionproduct"],
+        ["delete_subscriptionproduct", "core", "subscriptionproduct"],
+        ["add_subtype", "core", "subtype"],
+        ["change_subtype", "core", "subtype"],
+        ["add_pickupplace", "logistics", "pickupplace"],
+        ["change_pickupplace", "logistics", "pickupplace"],
+        ["delete_pickupplace", "logistics", "pickupplace"],
+        ["add_resort", "logistics", "resort"],
+        ["change_resort", "logistics", "resort"],
+        ["delete_resort", "logistics", "resort"],
+        ["add_issue", "support", "issue"],
+        ["change_issue", "support", "issue"],
+        ["add_salesrecord", "support", "salesrecord"],
+        ["change_salesrecord", "support", "salesrecord"],
+        ["delete_salesrecord", "support", "salesrecord"],
+        ["view_salesrecord", "support", "salesrecord"],
+        ["add_scheduledtask", "support", "scheduledtask"],
+        ["change_scheduledtask", "support", "scheduledtask"],
+        ["add_seller", "support", "seller"],
+        ["change_seller", "support", "seller"]
       ]
-    ]
-  }
-},
-{
-  "model": "auth.group",
-  "fields": {
-    "name": "Finances",
-    "permissions": [
-      [
-        "add_activity",
-        "core",
-        "activity"
-      ],
-      [
-        "change_activity",
-        "core",
-        "activity"
-      ],
-      [
-        "change_contact",
-        "core",
-        "contact"
-      ],
-      [
-        "change_billing",
-        "invoicing",
-        "billing"
-      ],
-      [
-        "change_creditnote",
-        "invoicing",
-        "creditnote"
-      ],
-      [
-        "add_invoice",
-        "invoicing",
-        "invoice"
-      ],
-      [
-        "change_invoice",
-        "invoicing",
-        "invoice"
-      ],
-      [
-        "add_invoiceitem",
-        "invoicing",
-        "invoiceitem"
-      ],
-      [
-        "change_invoiceitem",
-        "invoicing",
-        "invoiceitem"
-      ],
-      [
-        "add_issue",
-        "support",
-        "issue"
-      ],
-      [
-        "change_issue",
-        "support",
-        "issue"
+    }
+  },
+  {
+    "model": "auth.group",
+    "fields": {
+      "name": "Support",
+      "permissions": [
+        ["add_activity", "core", "activity"],
+        ["change_activity", "core", "activity"],
+        ["add_address", "core", "address"],
+        ["change_address", "core", "address"],
+        ["delete_address", "core", "address"],
+        ["view_address", "core", "address"],
+        ["add_contact", "core", "contact"],
+        ["change_contact", "core", "contact"],
+        ["add_subscription", "core", "subscription"],
+        ["can_offer_retention", "core", "subscription"],
+        ["change_subscription", "core", "subscription"],
+        ["delete_subscription", "core", "subscription"],
+        ["change_subscriptionproduct", "core", "subscriptionproduct"],
+        ["view_subscriptionproduct", "core", "subscriptionproduct"],
+        ["add_subtype", "core", "subtype"],
+        ["change_subtype", "core", "subtype"],
+        ["add_pickupplace", "logistics", "pickupplace"],
+        ["change_pickupplace", "logistics", "pickupplace"],
+        ["delete_pickupplace", "logistics", "pickupplace"],
+        ["add_pickuppoint", "logistics", "pickuppoint"],
+        ["change_pickuppoint", "logistics", "pickuppoint"],
+        ["delete_pickuppoint", "logistics", "pickuppoint"],
+        ["add_resort", "logistics", "resort"],
+        ["change_resort", "logistics", "resort"],
+        ["delete_resort", "logistics", "resort"],
+        ["change_scheduledtask", "support", "scheduledtask"],
+        ["delete_scheduledtask", "support", "scheduledtask"]
       ]
-    ]
-  }
-},
-{
-  "model": "auth.group",
-  "fields": {
-    "name": "Logistics",
-    "permissions": [
-      [
-        "add_activity",
-        "core",
-        "activity"
-      ],
-      [
-        "change_activity",
-        "core",
-        "activity"
-      ],
-      [
-        "change_contact",
-        "core",
-        "contact"
-      ],
-      [
-        "add_city",
-        "logistics",
-        "city"
-      ],
-      [
-        "change_city",
-        "logistics",
-        "city"
-      ],
-      [
-        "add_message",
-        "logistics",
-        "message"
-      ],
-      [
-        "change_message",
-        "logistics",
-        "message"
-      ],
-      [
-        "add_pickupplace",
-        "logistics",
-        "pickupplace"
-      ],
-      [
-        "change_pickupplace",
-        "logistics",
-        "pickupplace"
-      ],
-      [
-        "add_pickuppoint",
-        "logistics",
-        "pickuppoint"
-      ],
-      [
-        "change_pickuppoint",
-        "logistics",
-        "pickuppoint"
-      ],
-      [
-        "add_resort",
-        "logistics",
-        "resort"
-      ],
-      [
-        "change_resort",
-        "logistics",
-        "resort"
-      ],
-      [
-        "change_route",
-        "logistics",
-        "route"
-      ],
-      [
-        "add_issue",
-        "support",
-        "issue"
-      ],
-      [
-        "change_issue",
-        "support",
-        "issue"
-      ],
-      [
-        "change_scheduledtask",
-        "support",
-        "scheduledtask"
+    }
+  },
+  {
+    "model": "auth.group",
+    "fields": {
+      "name": "Admins",
+      "permissions": [
+        ["add_logentry", "admin", "logentry"],
+        ["change_logentry", "admin", "logentry"],
+        ["delete_logentry", "admin", "logentry"],
+        ["add_group", "auth", "group"],
+        ["change_group", "auth", "group"],
+        ["delete_group", "auth", "group"],
+        ["add_permission", "auth", "permission"],
+        ["change_permission", "auth", "permission"],
+        ["delete_permission", "auth", "permission"],
+        ["add_user", "auth", "user"],
+        ["change_user", "auth", "user"],
+        ["delete_user", "auth", "user"],
+        ["add_token", "authtoken", "token"],
+        ["change_token", "authtoken", "token"],
+        ["delete_token", "authtoken", "token"],
+        ["add_activity", "core", "activity"],
+        ["change_activity", "core", "activity"],
+        ["delete_activity", "core", "activity"],
+        ["add_address", "core", "address"],
+        ["change_address", "core", "address"],
+        ["delete_address", "core", "address"],
+        ["add_campaign", "core", "campaign"],
+        ["change_campaign", "core", "campaign"],
+        ["delete_campaign", "core", "campaign"],
+        ["add_contact", "core", "contact"],
+        ["change_contact", "core", "contact"],
+        ["delete_contact", "core", "contact"],
+        ["add_contactcampaignstatus", "core", "contactcampaignstatus"],
+        ["change_contactcampaignstatus", "core", "contactcampaignstatus"],
+        ["delete_contactcampaignstatus", "core", "contactcampaignstatus"],
+        ["add_contactproducthistory", "core", "contactproducthistory"],
+        ["change_contactproducthistory", "core", "contactproducthistory"],
+        ["delete_contactproducthistory", "core", "contactproducthistory"],
+        ["add_dynamiccontactfilter", "core", "dynamiccontactfilter"],
+        ["change_dynamiccontactfilter", "core", "dynamiccontactfilter"],
+        ["delete_dynamiccontactfilter", "core", "dynamiccontactfilter"],
+        ["add_institution", "core", "institution"],
+        ["change_institution", "core", "institution"],
+        ["delete_institution", "core", "institution"],
+        ["add_ocupation", "core", "ocupation"],
+        ["change_ocupation", "core", "ocupation"],
+        ["delete_ocupation", "core", "ocupation"],
+        ["add_pricerule", "core", "pricerule"],
+        ["change_pricerule", "core", "pricerule"],
+        ["delete_pricerule", "core", "pricerule"],
+        ["add_product", "core", "product"],
+        ["change_product", "core", "product"],
+        ["delete_product", "core", "product"],
+        ["add_subscription", "core", "subscription"],
+        ["change_subscription", "core", "subscription"],
+        ["delete_subscription", "core", "subscription"],
+        ["add_subscriptionnewsletter", "core", "subscriptionnewsletter"],
+        ["change_subscriptionnewsletter", "core", "subscriptionnewsletter"],
+        ["delete_subscriptionnewsletter", "core", "subscriptionnewsletter"],
+        ["add_subscriptionproduct", "core", "subscriptionproduct"],
+        ["change_subscriptionproduct", "core", "subscriptionproduct"],
+        ["delete_subscriptionproduct", "core", "subscriptionproduct"],
+        ["add_subtype", "core", "subtype"],
+        ["change_subtype", "core", "subtype"],
+        ["delete_subtype", "core", "subtype"],
+        ["add_variable", "core", "variable"],
+        ["change_variable", "core", "variable"],
+        ["delete_variable", "core", "variable"],
+        ["add_billing", "invoicing", "billing"],
+        ["change_billing", "invoicing", "billing"],
+        ["change_creditnote", "invoicing", "creditnote"],
+        ["delete_creditnote", "invoicing", "creditnote"],
+        ["change_creditnotecopy", "invoicing", "creditnotecopy"],
+        ["delete_creditnotecopy", "invoicing", "creditnotecopy"],
+        ["add_invoice", "invoicing", "invoice"],
+        ["change_invoice", "invoicing", "invoice"],
+        ["add_invoicecopy", "invoicing", "invoicecopy"],
+        ["change_invoicecopy", "invoicing", "invoicecopy"],
+        ["add_invoiceitem", "invoicing", "invoiceitem"],
+        ["change_invoiceitem", "invoicing", "invoiceitem"],
+        ["delete_invoiceitem", "invoicing", "invoiceitem"],
+        ["add_invoiceitemcopy", "invoicing", "invoiceitemcopy"],
+        ["change_invoiceitemcopy", "invoicing", "invoiceitemcopy"],
+        ["delete_invoiceitemcopy", "invoicing", "invoiceitemcopy"],
+        ["add_city", "logistics", "city"],
+        ["change_city", "logistics", "city"],
+        ["delete_city", "logistics", "city"],
+        ["add_delivery", "logistics", "delivery"],
+        ["change_delivery", "logistics", "delivery"],
+        ["delete_delivery", "logistics", "delivery"],
+        ["add_edition", "logistics", "edition"],
+        ["change_edition", "logistics", "edition"],
+        ["delete_edition", "logistics", "edition"],
+        ["add_editionproduct", "logistics", "editionproduct"],
+        ["change_editionproduct", "logistics", "editionproduct"],
+        ["delete_editionproduct", "logistics", "editionproduct"],
+        ["add_editionroute", "logistics", "editionroute"],
+        ["change_editionroute", "logistics", "editionroute"],
+        ["delete_editionroute", "logistics", "editionroute"],
+        ["add_georefaddress", "logistics", "georefaddress"],
+        ["change_georefaddress", "logistics", "georefaddress"],
+        ["delete_georefaddress", "logistics", "georefaddress"],
+        ["add_message", "logistics", "message"],
+        ["change_message", "logistics", "message"],
+        ["delete_message", "logistics", "message"],
+        ["add_pickupplace", "logistics", "pickupplace"],
+        ["change_pickupplace", "logistics", "pickupplace"],
+        ["delete_pickupplace", "logistics", "pickupplace"],
+        ["add_pickuppoint", "logistics", "pickuppoint"],
+        ["change_pickuppoint", "logistics", "pickuppoint"],
+        ["delete_pickuppoint", "logistics", "pickuppoint"],
+        ["add_resort", "logistics", "resort"],
+        ["change_resort", "logistics", "resort"],
+        ["delete_resort", "logistics", "resort"],
+        ["add_route", "logistics", "route"],
+        ["change_route", "logistics", "route"],
+        ["delete_route", "logistics", "route"],
+        ["add_routechange", "logistics", "routechange"],
+        ["change_routechange", "logistics", "routechange"],
+        ["delete_routechange", "logistics", "routechange"],
+        ["add_issue", "support", "issue"],
+        ["change_issue", "support", "issue"],
+        ["delete_issue", "support", "issue"],
+        ["add_issuestatus", "support", "issuestatus"],
+        ["change_issuestatus", "support", "issuestatus"],
+        ["delete_issuestatus", "support", "issuestatus"],
+        ["add_issuesubcategory", "support", "issuesubcategory"],
+        ["change_issuesubcategory", "support", "issuesubcategory"],
+        ["delete_issuesubcategory", "support", "issuesubcategory"],
+        ["add_scheduledtask", "support", "scheduledtask"],
+        ["change_scheduledtask", "support", "scheduledtask"],
+        ["delete_scheduledtask", "support", "scheduledtask"],
+        ["add_seller", "support", "seller"],
+        ["change_seller", "support", "seller"],
+        ["delete_seller", "support", "seller"]
       ]
-    ]
+    }
+  },
+  {
+    "model": "auth.group",
+    "fields": {
+      "name": "Sellers",
+      "permissions": []
+    }
+  },
+  {
+    "model": "auth.group",
+    "fields": {
+      "name": "Community",
+      "permissions": []
+    }
+  },
+  {
+    "model": "auth.group",
+    "fields": {
+      "name": "AddIssues",
+      "permissions": [
+        ["add_issue", "support", "issue"]
+      ]
+    }
+  },
+  {
+    "model": "auth.group",
+    "fields": {
+      "name": "Advertisement",
+      "permissions": [
+        ["add_ad", "advertisement", "ad"],
+        ["change_ad", "advertisement", "ad"],
+        ["delete_ad", "advertisement", "ad"],
+        ["view_ad", "advertisement", "ad"],
+        ["add_adpurchaseorder", "advertisement", "adpurchaseorder"],
+        ["change_adpurchaseorder", "advertisement", "adpurchaseorder"],
+        ["delete_adpurchaseorder", "advertisement", "adpurchaseorder"],
+        ["view_adpurchaseorder", "advertisement", "adpurchaseorder"],
+        ["add_adtype", "advertisement", "adtype"],
+        ["change_adtype", "advertisement", "adtype"],
+        ["delete_adtype", "advertisement", "adtype"],
+        ["view_adtype", "advertisement", "adtype"],
+        ["add_advertisementactivity", "advertisement", "advertisementactivity"],
+        ["change_advertisementactivity", "advertisement", "advertisementactivity"],
+        ["delete_advertisementactivity", "advertisement", "advertisementactivity"],
+        ["view_advertisementactivity", "advertisement", "advertisementactivity"],
+        ["add_advertisementseller", "advertisement", "advertisementseller"],
+        ["change_advertisementseller", "advertisement", "advertisementseller"],
+        ["delete_advertisementseller", "advertisement", "advertisementseller"],
+        ["view_advertisementseller", "advertisement", "advertisementseller"],
+        ["add_advertiser", "advertisement", "advertiser"],
+        ["change_advertiser", "advertisement", "advertiser"],
+        ["delete_advertiser", "advertisement", "advertiser"],
+        ["view_advertiser", "advertisement", "advertiser"],
+        ["add_agency", "advertisement", "agency"],
+        ["change_agency", "advertisement", "agency"],
+        ["delete_agency", "advertisement", "agency"],
+        ["view_agency", "advertisement", "agency"],
+        ["add_agent", "advertisement", "agent"],
+        ["change_agent", "advertisement", "agent"],
+        ["delete_agent", "advertisement", "agent"],
+        ["view_agent", "advertisement", "agent"]
+      ]
+    }
+  },
+  {
+    "model": "auth.group",
+    "fields": {
+      "name": "Ver facturas",
+      "permissions": [
+        ["view_historicalinvoice", "invoicing", "historicalinvoice"],
+        ["view_invoice", "invoicing", "invoice"],
+        ["view_invoicecopy", "invoicing", "invoicecopy"],
+        ["view_invoiceitem", "invoicing", "invoiceitem"],
+        ["view_invoiceitemcopy", "invoicing", "invoiceitemcopy"]
+      ]
+    }
+  },
+  {
+    "model": "auth.group",
+    "fields": {
+      "name": "Cuentas Gratuitas",
+      "permissions": [
+        ["can_add_free_subscription", "core", "subscription"]
+      ]
+    }
+  },
+  {
+    "model": "auth.group",
+    "fields": {
+      "name": "GDC",
+      "permissions": [
+        ["can_access_community_console", "support", "issue"]
+      ]
+    }
+  },
+  {
+    "model": "auth.group",
+    "fields": {
+      "name": "Administradores GDC",
+      "permissions": [
+        ["can_access_community_console", "support", "issue"],
+        ["can_manage_community_console", "support", "issue"]
+      ]
+    }
   }
-}
 ]

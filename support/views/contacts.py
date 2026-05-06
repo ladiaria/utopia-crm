@@ -6,6 +6,7 @@ from datetime import date
 from django.conf import settings
 from django.db import transaction
 from django.db.models import Q, Prefetch, Case, When, Value, BooleanField, Count, Exists, OuterRef
+from django.contrib.auth.models import Group
 from django.views.generic import UpdateView, CreateView, DetailView, ListView, FormView
 from django.forms import ModelMultipleChoiceField, CheckboxSelectMultiple
 from django.utils.decorators import method_decorator
@@ -36,7 +37,7 @@ from core.forms import ContactAdminForm, ContactUpdateForm
 from core.mixins import BreadcrumbsMixin
 from core.utils import get_mailtrain_lists, detect_csv_delimiter
 
-from support.forms import ImportContactsForm, CheckForExistingContactsForm
+from support.forms import ContactCampaignStatusEditForm, ImportContactsForm, CheckForExistingContactsForm
 
 from invoicing.models import Invoice, CreditNote
 from taggit.models import Tag
@@ -273,6 +274,12 @@ class ContactDetailView(BreadcrumbsMixin, DetailView):
         context.update(self.get_overview_subscriptions())
         context.update(self.get_expensive_calculations())
         context["subscriptions_count"] = self.get_subscriptions().count()
+
+        # Campaign status edit permission: superusers and members of Managers or Admin groups
+        user = self.request.user
+        context["can_edit_campaign_status"] = user.is_superuser or user.groups.filter(
+            name__in=["Managers", "Admin"]
+        ).exists()
 
         # Add last read articles data from CMS API
         if settings.LDSOCIAL_URL and self.object.email:
@@ -543,10 +550,17 @@ class ContactCreateView(BreadcrumbsMixin, CreateView):
 
 
 @method_decorator(staff_member_required, name="dispatch")
-class ImportContactsView(FormView):
+class ImportContactsView(BreadcrumbsMixin, FormView):
     template_name = 'import_contacts.html'
     form_class = ImportContactsForm
     success_url = reverse_lazy('import_contacts')
+
+    def breadcrumbs(self):
+        return [
+            {"url": reverse("home"), "label": _("Home")},
+            {"url": reverse("campaign_management"), "label": _("Campaign Management")},
+            {"label": _("Import Contacts"), "url": reverse("import_contacts")},
+        ]
 
     def get(self, request, *args, **kwargs):
         # Handle template download
@@ -869,6 +883,7 @@ def contact_invoices_htmx(request, contact_id):
     )
 
 
+@method_decorator(staff_member_required, name="dispatch")
 class CheckForExistingContactsView(BreadcrumbsMixin, FormView):
     template_name = "check_for_existing_contacts.html"
     form_class = CheckForExistingContactsForm
@@ -876,8 +891,8 @@ class CheckForExistingContactsView(BreadcrumbsMixin, FormView):
     def breadcrumbs(self):
         return [
             {"url": reverse("home"), "label": _("Home")},
-            {"url": reverse("contact_list"), "label": _("Contacts")},
-            {"label": _("Check for existing contacts")},
+            {"url": reverse("campaign_management"), "label": _("Campaign Management")},
+            {"label": _("Check for existing contacts"), "url": reverse("check_for_existing_contacts")},
         ]
 
     def get_success_url(self):
@@ -1194,3 +1209,43 @@ class TagAnalysisView(BreadcrumbsMixin, ListView):
         )
 
         return context
+
+
+def user_can_edit_campaign_status(user):
+    return user.is_active and (
+        user.is_superuser or user.groups.filter(name__in=["Managers", "Admin"]).exists()
+    )
+
+
+@method_decorator(staff_member_required, name="dispatch")
+class ContactCampaignStatusEditView(BreadcrumbsMixin, UpdateView):
+    model = ContactCampaignStatus
+    form_class = ContactCampaignStatusEditForm
+    template_name = "contact_detail/edit_campaign_status.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        if not user_can_edit_campaign_status(request.user):
+            messages.error(request, _("You don't have permission to edit campaign statuses."))
+            ccs = get_object_or_404(ContactCampaignStatus, pk=kwargs["pk"])
+            from django.shortcuts import redirect
+
+            return redirect(reverse("contact_detail", args=[ccs.contact_id]))
+        return super().dispatch(request, *args, **kwargs)
+
+    def breadcrumbs(self):
+        return [
+            {"url": reverse("home"), "label": _("Home")},
+            {"label": _("Contact list"), "url": reverse("contact_list")},
+            {
+                "label": self.object.contact.get_full_name(),
+                "url": reverse("contact_detail", args=[self.object.contact_id]),
+            },
+            {"label": _("Edit campaign status"), "url": ""},
+        ]
+
+    def get_success_url(self):
+        return reverse("contact_detail", args=[self.object.contact_id])
+
+    def form_valid(self, form):
+        messages.success(self.request, _("Campaign status updated successfully."))
+        return super().form_valid(form)

@@ -16,12 +16,20 @@
                   <i class="fas fa-campaign mr-2 text-primary"></i>
                   <strong>{{ c.campaign.name }}</strong>
                 </h4>
-                {% if c.campaign.start_date %}
-                  <span class="text-muted">
-                    <i class="far fa-calendar-alt mr-1"></i>
-                    {{ c.campaign.start_date }} - {{ c.campaign.end_date|default_if_none:"-" }}
-                  </span>
-                {% endif %}
+                <div class="d-flex align-items-center">
+                  {% if c.campaign.start_date %}
+                    <span class="text-muted mr-3">
+                      <i class="far fa-calendar-alt mr-1"></i>
+                      {{ c.campaign.start_date }} - {{ c.campaign.end_date|default_if_none:"-" }}
+                    </span>
+                  {% endif %}
+                  {% if can_edit_campaign_status %}
+                    <a href="{% url 'edit_campaign_status' c.pk %}"
+                       class="btn btn-sm btn-outline-primary">
+                      <i class="fas fa-edit mr-1"></i>{% trans "Edit status" %}
+                    </a>
+                  {% endif %}
+                </div>
               </div>
             </div>
             <div class="card-body">

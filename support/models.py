@@ -22,6 +22,20 @@ from support.choices import (
 )
 
 
+class Shift(models.Model):
+    name = models.CharField(max_length=50, verbose_name=_("Name"))
+    start_time = models.TimeField(verbose_name=_("Start time"))
+    end_time = models.TimeField(verbose_name=_("End time"))
+
+    def __str__(self):
+        return f"{self.name} ({self.start_time}–{self.end_time})"
+
+    class Meta:
+        verbose_name = _("shift")
+        verbose_name_plural = _("shifts")
+        ordering = ["start_time"]
+
+
 class Seller(models.Model):
     """
     Stores information about the sellers. An user should be assigned to them so that user can access their own seller
@@ -30,7 +44,15 @@ class Seller(models.Model):
 
     name = models.CharField(max_length=40, verbose_name=_("Name"))
     internal = models.BooleanField(default=False, verbose_name=_("Is internal?"))
-    user = models.ForeignKey(User, blank=True, null=True, on_delete=models.SET_NULL)
+    call_center = models.BooleanField(default=False, verbose_name=_("Works in call center?"))
+    shift = models.ForeignKey(
+        "Shift",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        verbose_name=_("Shift"),
+    )
+    user = models.OneToOneField(User, blank=True, null=True, on_delete=models.SET_NULL)
     old_pk = models.PositiveIntegerField(blank=True, null=True, db_index=True)
 
     def __str__(self):
@@ -437,6 +459,8 @@ class SalesRecord(models.Model):
     class SALE_TYPE(models.TextChoices):
         FULL = "F", _("Full")
         PARTIAL = "P", _("Partial")
+        PRODUCT_CHANGE = "C", _("Product Change")
+        RETENTION = "R", _("Retention")
 
     seller = models.ForeignKey(
         "support.Seller", on_delete=models.CASCADE, verbose_name=_("Seller"), null=True, blank=True
@@ -603,13 +627,14 @@ class SalesRecord(models.Model):
             f"({self.subscription.get_payment_type_display()})"
         )
         products_count_commission = (
-            f"{self.calculate_products_count_commission(return_value=True)} " f"({self.max_products_count()} products)"
+            f"{self.calculate_products_count_commission(return_value=True)} "
+            f"({self.max_products_count()} {_('products')})"
         )
         frequency_commission = (
             f"{self.calculate_frequency_commission(return_value=True)} " f"({self.subscription.frequency})"
         )
         specific_products_commission = (
-            f"{self.calculate_specific_products_commission(return_value=True)} " f"(specific products)"
+            f"{self.calculate_specific_products_commission(return_value=True)} " f"({_('specific products')})"
         )
         # Error catching
         try:
@@ -673,3 +698,59 @@ class SellerConsoleAction(models.Model):
         verbose_name = _("Seller Console Action")
         verbose_name_plural = _("Seller Console Actions")
         ordering = ("name",)
+
+
+class AbsenceReason(models.Model):
+    name = models.CharField(max_length=100, verbose_name=_("Name"))
+    description = models.TextField(blank=True, verbose_name=_("Description"))
+    justified = models.BooleanField(verbose_name=_("Justified"))
+    active = models.BooleanField(default=True, verbose_name=_("Active"))
+
+    def __str__(self):
+        label = _("Justified") if self.justified else _("Unjustified")
+        return f"{self.name} ({label})"
+
+    class Meta:
+        verbose_name = _("absence reason")
+        verbose_name_plural = _("absence reasons")
+        ordering = ["name"]
+
+
+ATTENDANCE_STATUS_PRESENT = "P"
+ATTENDANCE_STATUS_ABSENT = "A"
+ATTENDANCE_STATUS_CHOICES = [
+    (ATTENDANCE_STATUS_PRESENT, _("Present")),
+    (ATTENDANCE_STATUS_ABSENT, _("Absent")),
+]
+
+
+class AttendanceRecord(models.Model):
+    date = models.DateField(unique=True, verbose_name=_("Date"))
+
+    def __str__(self):
+        return str(self.date)
+
+    class Meta:
+        verbose_name = _("attendance record")
+        verbose_name_plural = _("attendance records")
+        ordering = ["-date"]
+
+
+class SellerAttendance(models.Model):
+    record = models.ForeignKey(AttendanceRecord, on_delete=models.CASCADE, related_name="attendances")
+    seller = models.ForeignKey(Seller, on_delete=models.CASCADE, verbose_name=_("Seller"))
+    status = models.CharField(max_length=1, choices=ATTENDANCE_STATUS_CHOICES, verbose_name=_("Status"))
+    absence_reason = models.ForeignKey(
+        AbsenceReason,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        verbose_name=_("Absence reason"),
+    )
+    shift_start = models.TimeField(verbose_name=_("Shift start"))
+    shift_end = models.TimeField(verbose_name=_("Shift end"))
+
+    class Meta:
+        unique_together = [("record", "seller")]
+        verbose_name = _("seller attendance")
+        verbose_name_plural = _("seller attendances")

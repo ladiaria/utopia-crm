@@ -18,7 +18,7 @@
 </thead>
 <tbody>
   {% for invoice in invoices %}
-  <tr role="row" class="{% if invoice.canceled or invoice.uncollectible %}table-secondary{% elif invoice.paid or invoice.debited %}table-success{% elif invoice.is_overdue %}table-danger{% endif %}">
+  <tr role="row" class="{% if invoice.canceled %}table-secondary{% elif invoice.uncollectible %}table-warning{% elif invoice.paid or invoice.debited %}table-success{% elif invoice.is_overdue %}table-danger{% endif %}">
     <td>
       <a href="{% url 'invoice_detail' invoice.id %}">{{ invoice.id }}</a>
       {% if invoice.pdf %}

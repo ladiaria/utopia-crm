@@ -655,11 +655,11 @@ class Contact(models.Model):
         contact_campaign_status, created = ContactCampaignStatus.objects.get_or_create(contact=self, campaign=campaign)
 
         if created:
-            return _("Contact %(name)s (ID: %(id)s) added to campaign %(campaign)s") % {
-                "name": self.get_full_name(),
-                "id": self.id,
-                "campaign": campaign.name,
-            }
+            return _("Contact {name} (ID: {id}) added to campaign {campaign}").format(
+                name=self.get_full_name(),
+                id=self.id,
+                campaign=campaign.name,
+            )
         else:
             raise Exception(
                 _("Contact %(name)s (ID: %(id)s) is already in campaign %(campaign)s")
@@ -1701,6 +1701,11 @@ class Subscription(models.Model):
         Product,
         related_name="unsubscriptions",
     )
+    added_products = models.ManyToManyField(
+        Product,
+        related_name="subscriptions_added",
+        blank=True,
+    )
 
     # Product
     products = models.ManyToManyField(Product, through="SubscriptionProduct", verbose_name=_("Products"))
@@ -1873,11 +1878,15 @@ class Subscription(models.Model):
         override_date=None,
         label_contact=None,
         tag=False,
+        track_as_added=False,
     ):
         """
         Used to add products to the current subscription. It is encouraged to always use this method when you want
         to add a product to a subscription, so you always have control of what happens here. This also creates a
         product history with the current subscription, product, and date, with the type 'A' (Activation).
+
+        Pass track_as_added=True when the product is genuinely new (not copied from a prior subscription).
+        This populates the added_products M2M field used for altas analytics.
         """
         sp = SubscriptionProduct.objects.create(
             subscription=self,
@@ -1901,6 +1910,8 @@ class Subscription(models.Model):
         )
         if product.edition_frequency == 4 and tag:
             self.contact.tags.add(product.slug + "-added")
+        if track_as_added:
+            self.added_products.add(product)
         return sp
 
     def remove_product(self, product):

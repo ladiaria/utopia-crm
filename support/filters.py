@@ -8,7 +8,17 @@ from django.contrib.auth.models import User
 from django.db.models import Q
 
 from core.models import Activity, ContactCampaignStatus, Subscription, Campaign, Product
-from .models import Issue, IssueSubcategory, IssueResolution, Seller, ScheduledTask, SalesRecord, SellerConsoleAction
+from .models import (
+    AbsenceReason,
+    Issue,
+    IssueSubcategory,
+    IssueResolution,
+    Seller,
+    SellerAttendance,
+    ScheduledTask,
+    SalesRecord,
+    SellerConsoleAction,
+)
 
 
 CREATION_CHOICES = (
@@ -433,4 +443,62 @@ class SubscriptionEndDateFilter(django_filters.FilterSet):
     def filter_products(self, queryset, name, value):
         if value:
             return queryset.filter(products__in=value).distinct()
+        return queryset
+
+
+JUSTIFIED_CHOICES = (
+    ("", _("All")),
+    ("true", _("Justified")),
+    ("false", _("Unjustified")),
+)
+
+
+class SellerAttendanceFilter(django_filters.FilterSet):
+    date_from = django_filters.DateFilter(
+        field_name="record__date",
+        lookup_expr="gte",
+        label=_("Date from"),
+        widget=forms.DateInput(attrs={"type": "date", "class": "form-control"}),
+    )
+    date_to = django_filters.DateFilter(
+        field_name="record__date",
+        lookup_expr="lte",
+        label=_("Date to"),
+        widget=forms.DateInput(attrs={"type": "date", "class": "form-control"}),
+    )
+    seller = django_filters.ModelMultipleChoiceFilter(
+        queryset=Seller.objects.filter(call_center=True).order_by("name"),
+        label=_("Sellers"),
+    )
+    absence_reason = django_filters.ModelMultipleChoiceFilter(
+        queryset=AbsenceReason.objects.filter(active=True).order_by("name"),
+        label=_("Absence reason"),
+    )
+    include_present = django_filters.BooleanFilter(
+        method="filter_include_present",
+        label=_("Include present"),
+        widget=forms.CheckboxInput(),
+    )
+    justified = django_filters.ChoiceFilter(
+        choices=JUSTIFIED_CHOICES,
+        method="filter_by_justified",
+        label=_("Justified"),
+    )
+
+    class Meta:
+        model = SellerAttendance
+        fields = []
+
+    def filter_include_present(self, queryset, name, value):
+        if not value:
+            return queryset.filter(status="A")
+        return queryset
+
+    def filter_by_justified(self, queryset, name, value):
+        if value == "true":
+            return queryset.filter(absence_reason__justified=True)
+        elif value == "false":
+            return queryset.filter(status="A").filter(
+                Q(absence_reason__isnull=True) | Q(absence_reason__justified=False)
+            )
         return queryset

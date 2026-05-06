@@ -1,3 +1,4 @@
+import calendar
 import csv
 import json
 from datetime import date, datetime, timedelta
@@ -11,7 +12,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import PermissionRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.models import User
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
-from django.db.models import Count, Min, Q, Sum, Case, When, Prefetch
+from django.db.models import Count, Exists, Min, OuterRef, Q, Sum, Case, When, Prefetch
 from django.http import (
     HttpResponse,
     HttpResponseNotFound,
@@ -24,7 +25,7 @@ from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
-from django.views.generic import CreateView, RedirectView, UpdateView, TemplateView
+from django.views.generic import CreateView, RedirectView, UpdateView, TemplateView, View
 from django_filters.views import FilterView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from taggit.models import Tag
@@ -51,6 +52,7 @@ from core.utils import (
     logistics_is_installed,
     process_products,
 )
+from invoicing.models import Invoice
 from support.choices import ISSUE_ANSWERS, get_issue_categories
 from support.filters import (
     CampaignFilter,
@@ -59,6 +61,7 @@ from support.filters import (
     IssueFilter,
     SalesRecordFilter,
     SalesRecordFilterForSeller,
+    SellerAttendanceFilter,
 )
 from support.forms import (
     AddressComplementaryInformationForm,
@@ -73,7 +76,18 @@ from support.forms import (
     SugerenciaGeorefForm,
     ValidateSubscriptionForm,
 )
-from support.models import Issue, IssueStatus, IssueSubcategory, SalesRecord, Seller
+from support.models import (
+    AbsenceReason,
+    AttendanceRecord,
+    Issue,
+    IssueStatus,
+    IssueSubcategory,
+    SalesRecord,
+    Seller,
+    SellerAttendance,
+    ATTENDANCE_STATUS_ABSENT,
+    ATTENDANCE_STATUS_PRESENT,
+)
 
 now = datetime.now()
 
@@ -151,7 +165,8 @@ class AssignCampaignsView(LoginRequiredMixin, BreadcrumbsMixin, TemplateView):
     def breadcrumbs(self):
         return [
             {"label": _("Home"), "url": reverse("home")},
-            {"label": _("Assign campaigns"), "url": reverse("assign_campaigns")},
+            {"label": _("Campaign Management"), "url": reverse("campaign_management")},
+            {"label": _("Assign contacts by tag"), "url": reverse("assign_campaigns")},
         ]
 
     def get_context_data(self, **kwargs):
@@ -232,7 +247,14 @@ def list_campaigns_with_no_seller(request):
     return render(
         request,
         "distribute_campaigns.html",
-        {"campaign_list": campaign_list},
+        {
+            "campaign_list": campaign_list,
+            "breadcrumbs": [
+                {"url": reverse("home"), "label": _("Home")},
+                {"url": reverse("campaign_management"), "label": _("Campaign Management")},
+                {"label": _("Assign contacts to sellers"), "url": reverse("assign_to_seller")},
+            ],
+        },
     )
 
 
@@ -265,6 +287,8 @@ class AssignSellerView(LoginRequiredMixin, BreadcrumbsMixin, TemplateView):
     def breadcrumbs(self):
         return [
             {"label": _("Home"), "url": reverse("home")},
+            {"label": _("Campaign Management"), "url": reverse("campaign_management")},
+            {"label": _("Assign contacts to sellers"), "url": reverse("assign_to_seller")},
             {"label": _("Assign sellers"), "url": reverse("assign_sellers", args=[self.kwargs['campaign_id']])},
         ]
 
@@ -506,7 +530,18 @@ def release_seller_contacts(request, seller_id=None):
     else:
         for seller in seller_qs:
             seller.contacts_not_worked = seller.contactcampaignstatus_set.filter(status__lt=4).count()
-        return render(request, "release_seller_contacts.html", {"seller_list": seller_qs})
+        return render(
+            request,
+            "release_seller_contacts.html",
+            {
+                "seller_list": seller_qs,
+                "breadcrumbs": [
+                    {"url": reverse("home"), "label": _("Home")},
+                    {"url": reverse("campaign_management"), "label": _("Campaign Management")},
+                    {"label": _("Release seller contacts"), "url": reverse("release_seller_contacts")},
+                ],
+            },
+        )
 
 
 @staff_member_required
@@ -563,6 +598,7 @@ class IssueListView(BreadcrumbsMixin, FilterView):
     Shows a list of issues with filtering capabilities and dynamic subcategory filtering.
     Supports ordering by date and next_action_date fields.
     """
+
     model = Issue
     template_name = "list_issues.html"
     filterset_class = IssueFilter
@@ -585,10 +621,14 @@ class IssueListView(BreadcrumbsMixin, FilterView):
 
         # Validate ordering parameter to prevent SQL injection
         valid_orderings = [
-            'date', '-date',
-            'next_action_date', '-next_action_date',
-            'status', '-status',
-            'category', '-category'
+            'date',
+            '-date',
+            'next_action_date',
+            '-next_action_date',
+            'status',
+            '-status',
+            'category',
+            '-category',
         ]
 
         if order_by in valid_orderings:
@@ -597,8 +637,7 @@ class IssueListView(BreadcrumbsMixin, FilterView):
             # Default ordering
             if logistics_is_installed():
                 queryset = queryset.order_by(
-                    "-date", "subscription_product__product",
-                    "-subscription_product__route__number", "-id"
+                    "-date", "subscription_product__product", "-subscription_product__route__number", "-id"
                 )
             else:
                 queryset = queryset.order_by("-date", "subscription_product__product", "-id")
@@ -613,10 +652,7 @@ class IssueListView(BreadcrumbsMixin, FilterView):
         for subcategory in IssueSubcategory.objects.all().order_by('name'):
             if subcategory.category not in category_subcategories:
                 category_subcategories[subcategory.category] = []
-            category_subcategories[subcategory.category].append({
-                'id': subcategory.id,
-                'name': subcategory.name
-            })
+            category_subcategories[subcategory.category].append({'id': subcategory.id, 'name': subcategory.name})
 
         # Include subcategories without a category (also sorted alphabetically)
         subcategories_without_category = IssueSubcategory.objects.filter(category__isnull=True).order_by('name')
@@ -637,15 +673,18 @@ class IssueListView(BreadcrumbsMixin, FilterView):
 
     def export_csv(self):
         """Export filtered issues to CSV using streaming response for large datasets"""
+
         def generate_csv_rows():
             # Create a buffer for CSV writing
             import io
+
             buffer = io.StringIO()
             writer = csv.writer(buffer)
 
             # Write header
             header = [
-                _("Start date"),
+                _("Creation date"),
+                _("Issue date"),
                 _("Contact ID"),
                 _("Contact name"),
                 _("Category"),
@@ -653,6 +692,7 @@ class IssueListView(BreadcrumbsMixin, FilterView):
                 _("Resolution"),
                 _("Activities count"),
                 _("Status"),
+                _("Next action date"),
                 _("Assigned to"),
             ]
             writer.writerow(header)
@@ -663,25 +703,26 @@ class IssueListView(BreadcrumbsMixin, FilterView):
             # Write data rows in chunks
             filterset = self.get_filterset(self.filterset_class)
             for issue in filterset.qs.select_related('resolution').iterator(chunk_size=1000):
-                writer.writerow([
-                    issue.date,
-                    issue.contact.id,
-                    issue.contact.get_full_name(),
-                    issue.get_category(),
-                    issue.get_subcategory(),
-                    issue.resolution.name if issue.resolution else "",
-                    issue.activity_count(),
-                    issue.get_status(),
-                    issue.get_assigned_to(),
-                ])
+                writer.writerow(
+                    [
+                        issue.date_created,
+                        issue.date,
+                        issue.contact.id,
+                        issue.contact.get_full_name(),
+                        issue.get_category(),
+                        issue.get_subcategory(),
+                        issue.resolution.name if issue.resolution else "",
+                        issue.activity_count(),
+                        issue.get_status(),
+                        issue.next_action_date or "",
+                        issue.get_assigned_to(),
+                    ]
+                )
                 yield buffer.getvalue()
                 buffer.seek(0)
                 buffer.truncate(0)
 
-        response = StreamingHttpResponse(
-            generate_csv_rows(),
-            content_type="text/csv"
-        )
+        response = StreamingHttpResponse(generate_csv_rows(), content_type="text/csv")
         response["Content-Disposition"] = 'attachment; filename="issues_export.csv"'
         return response
 
@@ -700,6 +741,7 @@ class CommunityConsoleView(PermissionRequiredMixin, LoginRequiredMixin, Breadcru
 
     Each count is a clickable link that opens the IssueListView with the appropriate filters.
     """
+
     template_name = "community_console.html"
     permission_required = "support.can_access_community_console"
 
@@ -717,26 +759,32 @@ class CommunityConsoleView(PermissionRequiredMixin, LoginRequiredMixin, Breadcru
 
         # Get open issues assigned to the current user (not closed, not in terminal state)
         terminal_statuses = getattr(settings, 'ISSUE_STATUS_FINISHED_LIST', [])
-        issues = Issue.objects.filter(
-            assigned_to=self.request.user,
-            closing_date__isnull=True,
-        ).exclude(
-            status__slug__in=terminal_statuses,
-        ).select_related('sub_category', 'status')
+        issues = (
+            Issue.objects.filter(
+                assigned_to=self.request.user,
+                closing_date__isnull=True,
+            )
+            .exclude(
+                status__slug__in=terminal_statuses,
+            )
+            .select_related('sub_category', 'status')
+        )
 
         # Build category name lookup
         category_dict = dict(get_issue_categories())
 
         # Aggregate counts by category, subcategory, and temporal bucket
-        issue_data = issues.values(
-            'category', 'sub_category__id', 'sub_category__name'
-        ).annotate(
-            overdue=Count('id', filter=Q(next_action_date__lt=today)),
-            today_count=Count('id', filter=Q(next_action_date=today)),
-            future=Count('id', filter=Q(next_action_date__gt=today)),
-            no_date=Count('id', filter=Q(next_action_date__isnull=True)),
-            total=Count('id'),
-        ).order_by('category', 'sub_category__name')
+        issue_data = (
+            issues.values('category', 'sub_category__id', 'sub_category__name')
+            .annotate(
+                overdue=Count('id', filter=Q(next_action_date__lt=today)),
+                today_count=Count('id', filter=Q(next_action_date=today)),
+                future=Count('id', filter=Q(next_action_date__gt=today)),
+                no_date=Count('id', filter=Q(next_action_date__isnull=True)),
+                total=Count('id'),
+            )
+            .order_by('category', 'sub_category__name')
+        )
 
         # Structure data as: {category_key: {name, subcategories: [{...}], totals: {...}}}
         categories = {}
@@ -754,15 +802,17 @@ class CommunityConsoleView(PermissionRequiredMixin, LoginRequiredMixin, Breadcru
                     'total': 0,
                 }
             cat = categories[cat_key]
-            cat['subcategories'].append({
-                'id': row['sub_category__id'],
-                'name': row['sub_category__name'] or _("No subcategory"),
-                'overdue': row['overdue'],
-                'today_count': row['today_count'],
-                'future': row['future'],
-                'no_date': row['no_date'],
-                'total': row['total'],
-            })
+            cat['subcategories'].append(
+                {
+                    'id': row['sub_category__id'],
+                    'name': row['sub_category__name'] or _("No subcategory"),
+                    'overdue': row['overdue'],
+                    'today_count': row['today_count'],
+                    'future': row['future'],
+                    'no_date': row['no_date'],
+                    'total': row['total'],
+                }
+            )
             cat['overdue'] += row['overdue']
             cat['today_count'] += row['today_count']
             cat['future'] += row['future']
@@ -797,6 +847,7 @@ class CommunityManagerDashboardView(PermissionRequiredMixin, LoginRequiredMixin,
     Shows subcategories with unassigned open issues (assigned_to is NULL, not in terminal state).
     Managers can click a subcategory to go to the assignment screen, or view the team overview.
     """
+
     template_name = "community_manager_dashboard.html"
     permission_required = "support.can_manage_community_console"
 
@@ -824,15 +875,17 @@ class CommunityManagerDashboardView(PermissionRequiredMixin, LoginRequiredMixin,
         # Aggregate unassigned counts by category + subcategory
         category_dict = dict(get_issue_categories())
 
-        issue_data = issues_qs.values(
-            'category', 'sub_category__id', 'sub_category__name'
-        ).annotate(
-            overdue=Count('id', filter=Q(next_action_date__lt=today)),
-            today_count=Count('id', filter=Q(next_action_date=today)),
-            future=Count('id', filter=Q(next_action_date__gt=today)),
-            no_date=Count('id', filter=Q(next_action_date__isnull=True)),
-            total=Count('id'),
-        ).order_by('category', 'sub_category__name')
+        issue_data = (
+            issues_qs.values('category', 'sub_category__id', 'sub_category__name')
+            .annotate(
+                overdue=Count('id', filter=Q(next_action_date__lt=today)),
+                today_count=Count('id', filter=Q(next_action_date=today)),
+                future=Count('id', filter=Q(next_action_date__gt=today)),
+                no_date=Count('id', filter=Q(next_action_date__isnull=True)),
+                total=Count('id'),
+            )
+            .order_by('category', 'sub_category__name')
+        )
 
         categories = {}
         for row in issue_data:
@@ -849,15 +902,17 @@ class CommunityManagerDashboardView(PermissionRequiredMixin, LoginRequiredMixin,
                     'total': 0,
                 }
             cat = categories[cat_key]
-            cat['subcategories'].append({
-                'id': row['sub_category__id'],
-                'name': row['sub_category__name'] or _("No subcategory"),
-                'overdue': row['overdue'],
-                'today_count': row['today_count'],
-                'future': row['future'],
-                'no_date': row['no_date'],
-                'total': row['total'],
-            })
+            cat['subcategories'].append(
+                {
+                    'id': row['sub_category__id'],
+                    'name': row['sub_category__name'] or _("No subcategory"),
+                    'overdue': row['overdue'],
+                    'today_count': row['today_count'],
+                    'future': row['future'],
+                    'no_date': row['no_date'],
+                    'total': row['total'],
+                }
+            )
             cat['overdue'] += row['overdue']
             cat['today_count'] += row['today_count']
             cat['future'] += row['future']
@@ -893,6 +948,7 @@ class CommunityManagerAssignView(PermissionRequiredMixin, LoginRequiredMixin, Br
     - Round-robin assignment from oldest to newest issues
     - Updates next_action_date to tomorrow if null or in the past
     """
+
     template_name = "community_manager_assign.html"
     permission_required = "support.can_manage_community_console"
 
@@ -911,31 +967,42 @@ class CommunityManagerAssignView(PermissionRequiredMixin, LoginRequiredMixin, Br
 
     def _get_unassigned_issues_qs(self):
         terminal_statuses = getattr(settings, 'ISSUE_STATUS_FINISHED_LIST', [])
-        return Issue.objects.filter(
-            sub_category=self.sub_category,
-            assigned_to__isnull=True,
-            closing_date__isnull=True,
-        ).exclude(
-            status__slug__in=terminal_statuses,
-        ).order_by('date')  # oldest first
+        return (
+            Issue.objects.filter(
+                sub_category=self.sub_category,
+                assigned_to__isnull=True,
+                closing_date__isnull=True,
+            )
+            .exclude(
+                status__slug__in=terminal_statuses,
+            )
+            .order_by('date')
+        )  # oldest first
 
     def _get_gdc_users(self):
-        return User.objects.filter(
-            user_permissions__codename='can_access_community_console',
-            is_active=True,
-        ).distinct() | User.objects.filter(
-            groups__permissions__codename='can_access_community_console',
-            is_active=True,
-        ).distinct()
+        return (
+            User.objects.filter(
+                user_permissions__codename='can_access_community_console',
+                is_active=True,
+            ).distinct()
+            | User.objects.filter(
+                groups__permissions__codename='can_access_community_console',
+                is_active=True,
+            ).distinct()
+        )
 
     def _get_user_open_issue_count(self, user):
         terminal_statuses = getattr(settings, 'ISSUE_STATUS_FINISHED_LIST', [])
-        return Issue.objects.filter(
-            assigned_to=user,
-            closing_date__isnull=True,
-        ).exclude(
-            status__slug__in=terminal_statuses,
-        ).count()
+        return (
+            Issue.objects.filter(
+                assigned_to=user,
+                closing_date__isnull=True,
+            )
+            .exclude(
+                status__slug__in=terminal_statuses,
+            )
+            .count()
+        )
 
     def _create_round_robin_queue(self, user_assignments):
         """
@@ -981,12 +1048,16 @@ class CommunityManagerAssignView(PermissionRequiredMixin, LoginRequiredMixin, Br
         terminal_statuses = getattr(settings, 'ISSUE_STATUS_FINISHED_LIST', [])
         user_data = []
         for user in gdc_users.order_by('username'):
-            open_count = Issue.objects.filter(
-                assigned_to=user,
-                closing_date__isnull=True,
-            ).exclude(
-                status__slug__in=terminal_statuses,
-            ).count()
+            open_count = (
+                Issue.objects.filter(
+                    assigned_to=user,
+                    closing_date__isnull=True,
+                )
+                .exclude(
+                    status__slug__in=terminal_statuses,
+                )
+                .count()
+            )
             # Also get per-temporal-bucket counts for this user
             user_issues = Issue.objects.filter(
                 assigned_to=user,
@@ -994,13 +1065,15 @@ class CommunityManagerAssignView(PermissionRequiredMixin, LoginRequiredMixin, Br
             ).exclude(
                 status__slug__in=terminal_statuses,
             )
-            user_data.append({
-                'user': user,
-                'open_count': open_count,
-                'overdue': user_issues.filter(next_action_date__lt=today).count(),
-                'today_count': user_issues.filter(next_action_date=today).count(),
-                'future': user_issues.filter(next_action_date__gt=today).count(),
-            })
+            user_data.append(
+                {
+                    'user': user,
+                    'open_count': open_count,
+                    'overdue': user_issues.filter(next_action_date__lt=today).count(),
+                    'today_count': user_issues.filter(next_action_date=today).count(),
+                    'future': user_issues.filter(next_action_date__gt=today).count(),
+                }
+            )
 
         context['sub_category'] = self.sub_category
         context['unassigned_count'] = unassigned_count
@@ -1031,9 +1104,7 @@ class CommunityManagerAssignView(PermissionRequiredMixin, LoginRequiredMixin, Br
 
         if not user_assignments:
             messages.warning(request, _("No assignments specified."))
-            return HttpResponseRedirect(
-                reverse("community_manager_assign", args=[self.sub_category.pk])
-            )
+            return HttpResponseRedirect(reverse("community_manager_assign", args=[self.sub_category.pk]))
 
         total_requested = sum(amount for _, amount in user_assignments)
         unassigned_qs = self._get_unassigned_issues_qs()
@@ -1045,9 +1116,7 @@ class CommunityManagerAssignView(PermissionRequiredMixin, LoginRequiredMixin, Br
                 _("Requested %(requested)s assignments but only %(available)s issues are available.")
                 % {"requested": total_requested, "available": available_count},
             )
-            return HttpResponseRedirect(
-                reverse("community_manager_assign", args=[self.sub_category.pk])
-            )
+            return HttpResponseRedirect(reverse("community_manager_assign", args=[self.sub_category.pk]))
 
         # Build round-robin queue
         assignment_queue = self._create_round_robin_queue(user_assignments)
@@ -1084,9 +1153,7 @@ class CommunityManagerAssignView(PermissionRequiredMixin, LoginRequiredMixin, Br
             _("%(count)s issues were assigned successfully using round-robin distribution.")
             % {"count": assigned_count},
         )
-        return HttpResponseRedirect(
-            reverse("community_manager_assign", args=[self.sub_category.pk])
-        )
+        return HttpResponseRedirect(reverse("community_manager_assign", args=[self.sub_category.pk]))
 
 
 class CommunityManagerOverviewView(PermissionRequiredMixin, LoginRequiredMixin, BreadcrumbsMixin, TemplateView):
@@ -1098,6 +1165,7 @@ class CommunityManagerOverviewView(PermissionRequiredMixin, LoginRequiredMixin, 
     - Overdue / Today / Future breakdown
     - Similar to CommunityConsoleView but for managers to see ALL GDC users at once
     """
+
     template_name = "community_manager_overview.html"
     permission_required = "support.can_manage_community_console"
 
@@ -1109,13 +1177,16 @@ class CommunityManagerOverviewView(PermissionRequiredMixin, LoginRequiredMixin, 
         ]
 
     def _get_gdc_users(self):
-        return User.objects.filter(
-            user_permissions__codename='can_access_community_console',
-            is_active=True,
-        ).distinct() | User.objects.filter(
-            groups__permissions__codename='can_access_community_console',
-            is_active=True,
-        ).distinct()
+        return (
+            User.objects.filter(
+                user_permissions__codename='can_access_community_console',
+                is_active=True,
+            ).distinct()
+            | User.objects.filter(
+                groups__permissions__codename='can_access_community_console',
+                is_active=True,
+            ).distinct()
+        )
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -1132,12 +1203,16 @@ class CommunityManagerOverviewView(PermissionRequiredMixin, LoginRequiredMixin, 
         category_dict = dict(get_issue_categories())
 
         for user in gdc_users:
-            user_issues = Issue.objects.filter(
-                assigned_to=user,
-                closing_date__isnull=True,
-            ).exclude(
-                status__slug__in=terminal_statuses,
-            ).select_related('sub_category', 'status')
+            user_issues = (
+                Issue.objects.filter(
+                    assigned_to=user,
+                    closing_date__isnull=True,
+                )
+                .exclude(
+                    status__slug__in=terminal_statuses,
+                )
+                .select_related('sub_category', 'status')
+            )
 
             overdue = user_issues.filter(next_action_date__lt=today).count()
             today_count = user_issues.filter(next_action_date=today).count()
@@ -1146,15 +1221,17 @@ class CommunityManagerOverviewView(PermissionRequiredMixin, LoginRequiredMixin, 
             total = user_issues.count()
 
             # Per-category/subcategory breakdown for this user
-            breakdown_data = user_issues.values(
-                'category', 'sub_category__id', 'sub_category__name'
-            ).annotate(
-                overdue=Count('id', filter=Q(next_action_date__lt=today)),
-                today_count=Count('id', filter=Q(next_action_date=today)),
-                future=Count('id', filter=Q(next_action_date__gt=today)),
-                no_date=Count('id', filter=Q(next_action_date__isnull=True)),
-                total=Count('id'),
-            ).order_by('category', 'sub_category__name')
+            breakdown_data = (
+                user_issues.values('category', 'sub_category__id', 'sub_category__name')
+                .annotate(
+                    overdue=Count('id', filter=Q(next_action_date__lt=today)),
+                    today_count=Count('id', filter=Q(next_action_date=today)),
+                    future=Count('id', filter=Q(next_action_date__gt=today)),
+                    no_date=Count('id', filter=Q(next_action_date__isnull=True)),
+                    total=Count('id'),
+                )
+                .order_by('category', 'sub_category__name')
+            )
 
             user_categories = {}
             for row in breakdown_data:
@@ -1171,15 +1248,17 @@ class CommunityManagerOverviewView(PermissionRequiredMixin, LoginRequiredMixin, 
                         'total': 0,
                     }
                 cat = user_categories[cat_key]
-                cat['subcategories'].append({
-                    'id': row['sub_category__id'],
-                    'name': row['sub_category__name'] or _("No subcategory"),
-                    'overdue': row['overdue'],
-                    'today_count': row['today_count'],
-                    'future': row['future'],
-                    'no_date': row['no_date'],
-                    'total': row['total'],
-                })
+                cat['subcategories'].append(
+                    {
+                        'id': row['sub_category__id'],
+                        'name': row['sub_category__name'] or _("No subcategory"),
+                        'overdue': row['overdue'],
+                        'today_count': row['today_count'],
+                        'future': row['future'],
+                        'no_date': row['no_date'],
+                        'total': row['total'],
+                    }
+                )
                 cat['overdue'] += row['overdue']
                 cat['today_count'] += row['today_count']
                 cat['future'] += row['future']
@@ -1188,15 +1267,17 @@ class CommunityManagerOverviewView(PermissionRequiredMixin, LoginRequiredMixin, 
 
             sorted_user_categories = sorted(user_categories.values(), key=lambda c: c['name'])
 
-            team_data.append({
-                'user': user,
-                'overdue': overdue,
-                'today_count': today_count,
-                'future': future,
-                'no_date': no_date,
-                'total': total,
-                'categories': sorted_user_categories,
-            })
+            team_data.append(
+                {
+                    'user': user,
+                    'overdue': overdue,
+                    'today_count': today_count,
+                    'future': future,
+                    'no_date': no_date,
+                    'total': total,
+                    'categories': sorted_user_categories,
+                }
+            )
 
             grand_totals['overdue'] += overdue
             grand_totals['today_count'] += today_count
@@ -1217,6 +1298,7 @@ class NewIssueView(BreadcrumbsMixin, CreateView):
     """
     Creates an issue of a selected category and subcategory with related activity.
     """
+
     template_name = "new_issue.html"
     model = Issue
     form_class = IssueStartForm
@@ -1237,15 +1319,12 @@ class NewIssueView(BreadcrumbsMixin, CreateView):
                 Prefetch(
                     'subscriptions',
                     queryset=Subscription.objects.filter(active=True).prefetch_related(
-                        Prefetch(
-                            'products',
-                            queryset=SubscriptionProduct.objects.select_related('product')
-                        )
+                        Prefetch('products', queryset=SubscriptionProduct.objects.select_related('product'))
                     ),
-                    to_attr='active_subscriptions_list'
-                )
+                    to_attr='active_subscriptions_list',
+                ),
             ),
-            pk=contact_id
+            pk=contact_id,
         )
         return self.contact
 
@@ -1259,17 +1338,17 @@ class NewIssueView(BreadcrumbsMixin, CreateView):
 
         # Cache status lookup to avoid repeated queries
         if not hasattr(self, '_cached_new_status'):
-            self._cached_new_status = IssueStatus.objects.get(
-                slug=getattr(settings, "ISSUE_STATUS_NEW", "new")
-            )
+            self._cached_new_status = IssueStatus.objects.get(slug=getattr(settings, "ISSUE_STATUS_NEW", "new"))
 
-        initial.update({
-            'copies': 1,
-            'contact': self.contact,
-            'category': self.category,
-            'status': self._cached_new_status,
-            'assigned_to': self.request.user,
-        })
+        initial.update(
+            {
+                'copies': 1,
+                'contact': self.contact,
+                'category': self.category,
+                'status': self._cached_new_status,
+                'assigned_to': self.request.user,
+            }
+        )
         return initial
 
     def get_form(self, form_class=None):
@@ -1291,9 +1370,9 @@ class NewIssueView(BreadcrumbsMixin, CreateView):
 
             # Create querysets with select_related to prevent N+1 queries
             # Subscription.__str__ accesses contact.get_full_name(), so we need select_related
-            form.fields["subscription"].queryset = Subscription.objects.filter(
-                id__in=sub_ids
-            ).select_related('contact')
+            form.fields["subscription"].queryset = Subscription.objects.filter(id__in=sub_ids).select_related(
+                'contact'
+            )
 
             # SubscriptionProduct.__str__ accesses subscription.contact.get_full_name()
             # So we need select_related for both subscription and contact
@@ -1327,15 +1406,13 @@ class NewIssueView(BreadcrumbsMixin, CreateView):
         # Cache this data to avoid repeated queries
         if not hasattr(self.__class__, '_cached_subcategory_resolutions'):
             from support.models import IssueResolution
+
             subcategory_resolutions = {}
             for resolution in IssueResolution.objects.all().select_related('subcategory'):
                 subcategory_id = resolution.subcategory_id
                 if subcategory_id not in subcategory_resolutions:
                     subcategory_resolutions[subcategory_id] = []
-                subcategory_resolutions[subcategory_id].append({
-                    'id': resolution.id,
-                    'name': resolution.name
-                })
+                subcategory_resolutions[subcategory_id].append({'id': resolution.id, 'name': resolution.name})
             self.__class__._cached_subcategory_resolutions = json.dumps(subcategory_resolutions)
 
         context['subcategory_resolutions_json'] = self.__class__._cached_subcategory_resolutions
@@ -1384,9 +1461,7 @@ class NewIssueView(BreadcrumbsMixin, CreateView):
         # Add success message with link to the created issue
         issue_url = reverse('view_issue', args=[issue.id])
         message = _('Issue <a href="{url}">#{issue_id}</a> created for contact {contact_name}').format(
-            url=issue_url,
-            issue_id=issue.id,
-            contact_name=self.contact.get_full_name()
+            url=issue_url, issue_id=issue.id, contact_name=self.contact.get_full_name()
         )
         messages.success(self.request, message, extra_tags='safe')
 
@@ -1401,6 +1476,7 @@ class IssueDetailView(BreadcrumbsMixin, UpdateView):
     """
     Shows a detailed view of an issue with editing capabilities.
     """
+
     model = Issue
     template_name = "view_issue.html"
     context_object_name = 'issue'
@@ -1443,22 +1519,22 @@ class IssueDetailView(BreadcrumbsMixin, UpdateView):
 
         # Create mapping of subcategory_id -> list of resolution options for JavaScript filtering
         from support.models import IssueResolution
+
         subcategory_resolutions = {}
         for resolution in IssueResolution.objects.all().select_related('subcategory'):
             subcategory_id = resolution.subcategory_id
             if subcategory_id not in subcategory_resolutions:
                 subcategory_resolutions[subcategory_id] = []
-            subcategory_resolutions[subcategory_id].append({
-                'id': resolution.id,
-                'name': resolution.name
-            })
+            subcategory_resolutions[subcategory_id].append({'id': resolution.id, 'name': resolution.name})
 
         # Add additional context data
-        context.update({
-            "has_active_subscription": issue.contact.has_active_subscription(),
-            "invoicing": issue.category in ("I", "M"),
-            "subcategory_resolutions_json": json.dumps(subcategory_resolutions),
-        })
+        context.update(
+            {
+                "has_active_subscription": issue.contact.has_active_subscription(),
+                "invoicing": issue.category in ("I", "M"),
+                "subcategory_resolutions_json": json.dumps(subcategory_resolutions),
+            }
+        )
 
         return context
 
@@ -1467,9 +1543,32 @@ class IssueDetailView(BreadcrumbsMixin, UpdateView):
         Override form_valid to automatically set next_action_date when status changes.
         If status has changed and next_action_date is missing or in the past, set it to tomorrow.
         Does not set next_action_date if the new status is a terminal status.
+
+        Also: if the chosen resolution belongs to a subcategory listed in
+        ISSUE_RESOLUTION_SOLVED_SUBCATEGORIES, the issue status is forced to
+        ISSUE_STATUS_SOLVED before saving regardless of what the user selected.
         """
         issue = self.get_object()
         old_status = issue.status
+
+        # Force status to solved when the resolution belongs to a configured subcategory.
+        resolution = form.cleaned_data.get('resolution')
+        solved_subcategories = getattr(settings, 'ISSUE_RESOLUTION_SOLVED_SUBCATEGORIES', [])
+        if (
+            solved_subcategories
+            and resolution
+            and resolution.subcategory
+            and resolution.subcategory.slug in solved_subcategories
+        ):
+            finished_slugs = getattr(settings, 'ISSUE_STATUS_FINISHED_LIST', [])
+            current_slug = form.instance.status.slug if form.instance.status else None
+            if current_slug not in finished_slugs:
+                try:
+                    form.instance.status = IssueStatus.objects.get(slug=settings.ISSUE_STATUS_SOLVED)
+                    if not form.instance.closing_date:
+                        form.instance.closing_date = date.today()
+                except IssueStatus.DoesNotExist:
+                    pass
 
         # Let the form save normally first
         response = super().form_valid(form)
@@ -1489,8 +1588,7 @@ class IssueDetailView(BreadcrumbsMixin, UpdateView):
 
         # Add success message for issue update
         message = _('Issue #{issue_id} updated for contact {contact_name}').format(
-            issue_id=self.object.id,
-            contact_name=self.object.contact.get_full_name()
+            issue_id=self.object.id, contact_name=self.object.contact.get_full_name()
         )
         messages.success(self.request, message)
 
@@ -1973,15 +2071,31 @@ def debtor_contacts(request):
     """
     Shows a comprehensive list of contacts that are debtors.
     """
+    overdue_invoice_qs = Invoice.objects.filter(
+        contact=OuterRef("pk"),
+        paid=False,
+        debited=False,
+        canceled=False,
+        uncollectible=False,
+        payment_date__isnull=True,
+        expiration_date__lt=date.today(),
+    )
     debtor_queryset = (
-        Contact.objects.filter(
-            invoice__paid=False,
-            invoice__debited=False,
-            invoice__canceled=False,
-            invoice__uncollectible=False,
-            invoice__expiration_date__lt=date.today(),
+        Contact.objects.filter(Exists(overdue_invoice_qs))
+        .annotate(
+            owed_invoices=Count(
+                "invoice",
+                filter=Q(
+                    invoice__paid=False,
+                    invoice__debited=False,
+                    invoice__canceled=False,
+                    invoice__uncollectible=False,
+                    invoice__payment_date__isnull=True,
+                    invoice__expiration_date__lt=date.today(),
+                ),
+                distinct=True,
+            )
         )
-        .annotate(owed_invoices=Count("invoice", distinct=True))
         .annotate(debt=Sum("invoice__amount"))
         .annotate(oldest_invoice=Min("invoice__creation_date"))
     )
@@ -2070,6 +2184,11 @@ def campaign_statistics_list(request):
         {
             "campaigns": campaigns_filter.qs,
             "campaigns_filter": campaigns_filter,
+            "breadcrumbs": [
+                {"url": reverse("home"), "label": _("Home")},
+                {"url": reverse("campaign_management"), "label": _("Campaign Management")},
+                {"label": _("Campaign statistics"), "url": reverse("campaign_statistics_list")},
+            ],
         },
     )
 
@@ -2081,6 +2200,7 @@ class CampaignStatisticsDetailView(BreadcrumbsMixin, UserPassesTestMixin, Filter
     Uses FilterView to filter ContactCampaignStatus records for the campaign,
     allowing filtering by seller, status, date_assigned, and last_action_date.
     """
+
     model = ContactCampaignStatus
     filterset_class = ContactCampaignStatusFilter
     template_name = "campaign_statistics_detail.html"
@@ -2089,8 +2209,9 @@ class CampaignStatisticsDetailView(BreadcrumbsMixin, UserPassesTestMixin, Filter
     def breadcrumbs(self):
         return [
             {"label": _("Home"), "url": reverse("home")},
-            {"label": _("Campaigns"), "url": reverse("campaign_statistics_list")},
-            {"label": self.campaign.name, "url": "campaign_statistics_detail"},
+            {"label": _("Campaign Management"), "url": reverse("campaign_management")},
+            {"label": _("Campaign statistics"), "url": reverse("campaign_statistics_list")},
+            {"label": self.campaign.name, "url": ""},
         ]
 
     def test_func(self):
@@ -2118,88 +2239,93 @@ class CampaignStatisticsDetailView(BreadcrumbsMixin, UserPassesTestMixin, Filter
         filtered_qs = filterset.qs
 
         # Annotate activity count per contact-campaign
-        filtered_qs = filtered_qs.select_related(
-            'contact', 'seller', 'last_console_action'
-        ).annotate(
+        filtered_qs = filtered_qs.select_related('contact', 'seller', 'last_console_action').annotate(
             activity_count=Count(
                 'contact__activity',
                 filter=Q(contact__activity__campaign=self.campaign),
             )
         )
 
-        # Build a dict of contact_id -> subscription data for this campaign
-        # This avoids N+1 queries in the loop
-        campaign_subscriptions = Subscription.objects.filter(
-            campaign=self.campaign,
-        ).select_related('contact').prefetch_related(
-            Prefetch(
-                'subscriptionproduct_set',
-                queryset=SubscriptionProduct.objects.select_related('product'),
+        # Build a dict of contact_id -> subscription data for this campaign.
+        # We use SalesRecord.products (M2M) to get only the products actually sold in
+        # this campaign, not all products currently on the subscription.
+        campaign_sales_records = (
+            SalesRecord.objects.filter(
+                campaign=self.campaign,
             )
+            .select_related('subscription')
+            .prefetch_related('products')
+            .order_by('date_time')
         )
 
-        # Map contact_id -> (start_date, products_str)
+        # Map contact_id -> (start_date, products accumulated across all SalesRecords)
         subscription_data = {}
-        for sub in campaign_subscriptions:
-            products = ", ".join(
-                sp.product.name for sp in sub.subscriptionproduct_set.all() if sp.product
-            )
-            subscription_data[sub.contact_id] = {
-                "start_date": sub.start_date,
-                "products": products,
-            }
+        for sr in campaign_sales_records:
+            contact_id = sr.subscription.contact_id
+            sold_products = [p.name for p in sr.products.all()]
+            if contact_id in subscription_data:
+                subscription_data[contact_id]["products_list"].extend(sold_products)
+            else:
+                subscription_data[contact_id] = {
+                    "start_date": sr.subscription.start_date,
+                    "products_list": sold_products,
+                }
+        for data in subscription_data.values():
+            data["products"] = ", ".join(data["products_list"])
 
         response = HttpResponse(content_type="text/csv")
-        response["Content-Disposition"] = (
-            'attachment; filename="campaign_{}_{}.csv"'.format(
-                self.campaign.id, date.today().strftime("%Y%m%d")
-            )
+        response["Content-Disposition"] = 'attachment; filename="campaign_{}_{}.csv"'.format(
+            self.campaign.id, date.today().strftime("%Y%m%d")
         )
 
         writer = csv.writer(response)
-        writer.writerow([
-            _("Contact ID"),
-            _("Contact name"),
-            _("Email"),
-            _("Phone"),
-            _("Mobile"),
-            _("Status"),
-            _("Campaign resolution"),
-            _("Resolution reason"),
-            _("Seller"),
-            _("Date assigned"),
-            _("Last action date"),
-            _("Date created"),
-            _("Times contacted"),
-            _("Activity count"),
-            _("Last console action"),
-            _("Subscription start date"),
-            _("Products sold"),
-        ])
+        writer.writerow(
+            [
+                _("Contact ID"),
+                _("Contact name"),
+                _("Email"),
+                _("Phone"),
+                _("Mobile"),
+                _("Status"),
+                _("Campaign resolution"),
+                _("Resolution reason"),
+                _("Seller"),
+                _("Date assigned"),
+                _("Last action date"),
+                _("Date created"),
+                _("Times contacted"),
+                _("Activity count"),
+                _("Last console action"),
+                _("Subscription start date"),
+                _("Products sold"),
+            ]
+        )
 
         for ccs in filtered_qs.iterator(chunk_size=1000):
             contact = ccs.contact
             sub_data = subscription_data.get(contact.id, {})
 
-            writer.writerow([
-                contact.id,
-                contact.get_full_name(),
-                contact.email or "",
-                str(contact.phone) if contact.phone else "",
-                str(contact.mobile) if contact.mobile else "",
-                ccs.get_status(),
-                ccs.get_campaign_resolution(),
-                ccs.get_resolution_reason(),
-                ccs.seller.name if ccs.seller else "",
-                ccs.date_assigned or "",
-                ccs.last_action_date or "",
-                ccs.date_created or "",
-                ccs.times_contacted,
-                ccs.activity_count,
-                ccs.last_console_action.name if ccs.last_console_action else "",
-                sub_data.get("start_date", ""),
-                sub_data.get("products", ""),
-            ])
+            writer.writerow(
+                [
+                    contact.id,
+                    contact.get_full_name(),
+                    contact.email or "",
+                    str(contact.phone) if contact.phone else "",
+                    str(contact.mobile) if contact.mobile else "",
+                    ccs.get_status(),
+                    ccs.get_campaign_resolution(),
+                    ccs.get_resolution_reason(),
+                    ccs.seller.name if ccs.seller else "",
+                    ccs.date_assigned or "",
+                    ccs.last_action_date or "",
+                    ccs.date_created or "",
+                    ccs.times_contacted,
+                    ccs.activity_count,
+                    ccs.last_console_action.name if ccs.last_console_action else "",
+                    sub_data.get("start_date", ""),
+                    sub_data.get("products", ""),
+                ]
+            )
 
         return response
 
@@ -2247,31 +2373,26 @@ class CampaignStatisticsDetailView(BreadcrumbsMixin, UserPassesTestMixin, Filter
         context['started_promotion_count'] = ccs_with_resolution.filter(campaign_resolution="SP").count()
 
         # Resolution percentages
-        context['success_with_direct_sale_pct'] = (
-            (context['success_with_direct_sale_count'] * 100)
-            / (ccs_with_resolution_contacted_count or 1)
+        context['success_with_direct_sale_pct'] = (context['success_with_direct_sale_count'] * 100) / (
+            ccs_with_resolution_contacted_count or 1
         )
-        context['scheduled_pct'] = (
-            (context['scheduled_count'] * 100) / (ccs_with_resolution_contacted_count or 1)
+        context['scheduled_pct'] = (context['scheduled_count'] * 100) / (ccs_with_resolution_contacted_count or 1)
+        context['call_later_pct'] = (context['call_later_count'] * 100) / (ccs_with_resolution_contacted_count or 1)
+        context['started_promotion_pct'] = (context['started_promotion_count'] * 100) / (
+            ccs_with_resolution_contacted_count or 1
         )
-        context['call_later_pct'] = (
-            (context['call_later_count'] * 100) / (ccs_with_resolution_contacted_count or 1)
+        context['unreachable_pct'] = (context['unreachable_count'] * 100) / (
+            ccs_with_resolution_not_contacted_count or 1
         )
-        context['started_promotion_pct'] = (
-            (context['started_promotion_count'] * 100) / (ccs_with_resolution_contacted_count or 1)
-        )
-        context['unreachable_pct'] = (
-            (context['unreachable_count'] * 100) / (ccs_with_resolution_not_contacted_count or 1)
-        )
-        context['error_in_promotion_pct'] = (
-            (context['error_in_promotion_count'] * 100) / (ccs_with_resolution_not_contacted_count or 1)
+        context['error_in_promotion_pct'] = (context['error_in_promotion_count'] * 100) / (
+            ccs_with_resolution_not_contacted_count or 1
         )
 
         # Rejects section
         total_rejects = ccs_with_resolution.filter(campaign_resolution__in=("AS", "DN", "LO", "NI"))
         context['total_rejects_count'] = total_rejects.count()
-        context['total_rejects_pct'] = (
-            (context['total_rejects_count'] * 100) / (ccs_with_resolution_contacted_count or 1)
+        context['total_rejects_pct'] = (context['total_rejects_count'] * 100) / (
+            ccs_with_resolution_contacted_count or 1
         )
 
         rejects_with_reason = total_rejects.filter(resolution_reason__isnull=False)
@@ -2308,19 +2429,18 @@ class CampaignStatisticsDetailView(BreadcrumbsMixin, UserPassesTestMixin, Filter
         # Get contact IDs from the filtered ContactCampaignStatus queryset
         filtered_contact_ids = filtered_qs.values_list('contact_id', flat=True)
 
-        # Filter subscription products by:
-        # 1. Campaign matches
-        # 2. Contact is in the filtered list
-        # 3. Optionally filter by seller if selected
-        subscription_products = SubscriptionProduct.objects.filter(
-            subscription__campaign=self.campaign,
-            subscription__contact_id__in=filtered_contact_ids
+        # Use SalesRecord.products (the M2M) instead of SubscriptionProduct so that
+        # pre-existing products on an updated subscription are not counted — only the
+        # products that were actually sold in this campaign action are included.
+        sales_records = SalesRecord.objects.filter(
+            campaign=self.campaign,
+            subscription__contact_id__in=filtered_contact_ids,
         )
         if context['seller']:
-            subscription_products = subscription_products.filter(seller=context['seller'])
+            sales_records = sales_records.filter(seller=context['seller'])
 
         for product in Product.objects.filter(offerable=True, type="S"):
-            subs_dict[product.name] = subscription_products.filter(product=product).count()
+            subs_dict[product.name] = sales_records.filter(products=product).count()
 
         try:
             most_sold = max(subs_dict, key=subs_dict.get)
@@ -2442,6 +2562,11 @@ def seller_performance_by_time(request):
             "contacted_pct": contacted_pct,
             "success_count": success_count,
             "success_pct": success_pct,
+            "breadcrumbs": [
+                {"url": reverse("home"), "label": _("Home")},
+                {"url": reverse("campaign_management"), "label": _("Campaign Management")},
+                {"label": _("Sellers performance"), "url": reverse("seller_performance_by_time")},
+            ],
         },
     )
 
@@ -2561,18 +2686,32 @@ def upload_do_not_call_numbers(request):
     return render(
         request,
         "upload_do_not_call_numbers.html",
+        {
+            "breadcrumbs": [
+                {"url": reverse("home"), "label": _("Home")},
+                {"url": reverse("campaign_management"), "label": _("Campaign Management")},
+                {"label": _("Upload do not call list"), "url": reverse("upload_do_not_call_numbers")},
+            ],
+        },
     )
 
 
 @staff_member_required
 def tag_contacts(request):
     if request.FILES:
-        decoded_file = request.FILES.get("file").read().decode("utf-8").splitlines()
+        raw = request.FILES.get("file").read()
+        try:
+            decoded_file = raw.decode("utf-8").splitlines()
+        except UnicodeDecodeError:
+            decoded_file = raw.decode("latin-1").splitlines()
         csvfile = csv.reader(decoded_file)
         count = 0
         errors = []
         if csvfile:
             for row in csvfile:
+                if not row or not row[0].strip().lstrip("-").isdigit():
+                    # Skip empty rows or header rows (non-numeric first column)
+                    continue
                 try:
                     contact = Contact.objects.get(pk=row[0])
                     contact.tags.add(row[1].lower())
@@ -2587,6 +2726,13 @@ def tag_contacts(request):
     return render(
         request,
         "tag_contacts.html",
+        {
+            "breadcrumbs": [
+                {"url": reverse("home"), "label": _("Home")},
+                {"url": reverse("campaign_management"), "label": _("Campaign Management")},
+                {"label": _("Tag Contacts"), "url": reverse("tag_contacts")},
+            ],
+        },
     )
 
 
@@ -2636,7 +2782,7 @@ class SalesRecordFilterSellersView(BreadcrumbsMixin, FilterView):
 
     def get_queryset(self):
         queryset = super().get_queryset()
-        self.seller = self.request.user.seller_set.first()
+        self.seller = getattr(self.request.user, 'seller', None)
         if self.seller:
             self.queryset = queryset.filter(seller=self.seller)
         filterset = self.filterset_class(self.request.GET, queryset=self.queryset)
@@ -2723,8 +2869,8 @@ class SalesRecordFilterManagersView(SalesRecordFilterSellersView):
     def breadcrumbs(self):
         return [
             {"url": reverse("home"), "label": _("Home")},
-            {"label": _("Campaign Management")},
-            {"label": _("Sales Record")},
+            {"url": reverse("campaign_management"), "label": _("Campaign Management")},
+            {"label": _("Sales Records"), "url": reverse("sales_record_filter")},
         ]
 
     def dispatch(self, request, *args, **kwargs):
@@ -2790,6 +2936,11 @@ class ValidateSubscriptionSalesRecord(BreadcrumbsMixin, UpdateView):
     template_name = "validate_subscription_sales_record.html"
 
     def breadcrumbs(self):
+        if self.request.GET.get("from") == "sales_record_filter":
+            return [
+                {"url": reverse("sales_record_filter"), "label": _("Sales Records")},
+                {"label": _("Validate subscription")},
+            ]
         return [
             {"url": reverse("contact_list"), "label": _("Contacts")},
             {
@@ -2807,10 +2958,8 @@ class ValidateSubscriptionSalesRecord(BreadcrumbsMixin, UpdateView):
 
     def get_initial(self):
         initial = super().get_initial()
-        if self.object.sale_type != SalesRecord.SALE_TYPE.FULL:
-            initial["can_be_commissioned"] = False
-            initial["subscription"] = self.object.subscription
-            initial["seller"] = self.object.seller
+        initial["subscription"] = self.object.subscription
+        initial["seller"] = self.object.seller
         return initial
 
     def get_success_url(self):
@@ -2818,7 +2967,20 @@ class ValidateSubscriptionSalesRecord(BreadcrumbsMixin, UpdateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["subscription"] = self.object.subscription
+        sales_record = self.object
+        subscription = sales_record.subscription
+        context["subscription"] = subscription
+        context["readonly"] = subscription.validated
+        context["from_sales_record_filter"] = self.request.GET.get("from") == "sales_record_filter"
+
+        sale_type = sales_record.sale_type
+        if sale_type in (SalesRecord.SALE_TYPE.PRODUCT_CHANGE, SalesRecord.SALE_TYPE.RETENTION):
+            previous_subscription = subscription.updated_from
+            context["previous_subscription"] = previous_subscription
+            if previous_subscription:
+                context["previous_products"] = previous_subscription.get_subscriptionproducts()
+        context["new_products"] = subscription.get_subscriptionproducts()
+        context["added_products"] = sales_record.products.filter(type="S")
         return context
 
     def form_valid(self, form):
@@ -2902,3 +3064,381 @@ def last_read_articles(request, contact_id):
     # TODO: Move this from la diaria project to the main project. This is an htmx view.
     # contact = get_object_or_404(Contact, id=contact_id)
     return HttpResponse("")
+
+
+class SellerAttendanceView(LoginRequiredMixin, UserPassesTestMixin, BreadcrumbsMixin, TemplateView):
+    template_name = "support/seller_attendance.html"
+
+    def test_func(self):
+        return self.request.user.is_staff
+
+    def breadcrumbs(self):
+        return [
+            {"label": _("Home"), "url": reverse("home")},
+            {"label": _("Campaign Management"), "url": reverse("campaign_management")},
+            {"label": _("Seller Attendance"), "url": reverse("seller_attendance")},
+        ]
+
+    def _parse_date(self, date_str):
+        try:
+            return datetime.strptime(date_str, "%Y-%m-%d").date()
+        except (ValueError, TypeError):
+            return date.today()
+
+    def _build_seller_rows(self, sellers, existing_map):
+        rows = []
+        for seller in sellers:
+            attendance = existing_map.get(seller.pk)
+            rows.append(
+                {
+                    "seller": seller,
+                    "status": attendance.status if attendance else (ATTENDANCE_STATUS_PRESENT if seller.shift else ""),
+                    "absence_reason_id": attendance.absence_reason_id if attendance else None,
+                    "shift_start": (
+                        attendance.shift_start if attendance else (seller.shift.start_time if seller.shift else None)
+                    ),
+                    "shift_end": (
+                        attendance.shift_end if attendance else (seller.shift.end_time if seller.shift else None)
+                    ),
+                    "has_shift": seller.shift is not None,
+                }
+            )
+        return rows
+
+    def get_context_data(self, **kwargs):
+        return super().get_context_data(**kwargs)
+
+    def _build_context(self, request, selected_date, sellers, existing_map):
+        absence_reasons = AbsenceReason.objects.filter(active=True)
+        ctx = self.get_context_data()
+        ctx.update(
+            {
+                "selected_date": selected_date,
+                "seller_rows": self._build_seller_rows(sellers, existing_map),
+                "absence_reasons": absence_reasons,
+                "status_present": ATTENDANCE_STATUS_PRESENT,
+                "status_absent": ATTENDANCE_STATUS_ABSENT,
+                "can_edit": request.user.is_superuser or request.user.has_perm("support.change_sellerattendance"),
+            }
+        )
+        return ctx
+
+    def get(self, request, *args, **kwargs):
+        selected_date = self._parse_date(request.GET.get("date"))
+        sellers = Seller.objects.filter(call_center=True).select_related("shift").order_by("name")
+
+        existing_map = {}
+        try:
+            record = AttendanceRecord.objects.get(date=selected_date)
+            for att in record.attendances.select_related("absence_reason"):
+                existing_map[att.seller_id] = att
+        except AttendanceRecord.DoesNotExist:
+            pass
+
+        return render(request, self.template_name, self._build_context(request, selected_date, sellers, existing_map))
+
+    def post(self, request, *args, **kwargs):
+        if not (request.user.is_superuser or request.user.has_perm("support.change_sellerattendance")):
+            from django.http import HttpResponseForbidden
+
+            return HttpResponseForbidden()
+
+        selected_date = self._parse_date(request.POST.get("date"))
+        sellers = Seller.objects.filter(call_center=True).select_related("shift")
+        absence_reasons = AbsenceReason.objects.filter(active=True)
+
+        if not absence_reasons.exists():
+            messages.error(request, _("There are no active absence reasons. Please create one before saving."))
+            return HttpResponseRedirect(f"{reverse('seller_attendance')}?date={selected_date}")
+
+        errors = []
+        to_save = []
+
+        for seller in sellers:
+            status = request.POST.get(f"status-{seller.pk}", "").strip()
+            if not status:
+                continue
+
+            reason_id = request.POST.get(f"reason-{seller.pk}", "").strip() or None
+            shift_start_str = request.POST.get(f"shift_start-{seller.pk}", "").strip()
+            shift_end_str = request.POST.get(f"shift_end-{seller.pk}", "").strip()
+
+            if not shift_start_str or not shift_end_str:
+                errors.append(_("%(seller)s: shift times are required.") % {"seller": seller.name})
+                continue
+
+            if status == ATTENDANCE_STATUS_ABSENT and not reason_id:
+                errors.append(
+                    _("%(seller)s: an absence reason is required when marking as absent.") % {"seller": seller.name}
+                )
+                continue
+
+            try:
+                shift_start = datetime.strptime(shift_start_str, "%H:%M").time()
+                shift_end = datetime.strptime(shift_end_str, "%H:%M").time()
+            except ValueError:
+                errors.append(_("%(seller)s: invalid time format.") % {"seller": seller.name})
+                continue
+
+            reason = None
+            if reason_id:
+                try:
+                    reason = AbsenceReason.objects.get(pk=reason_id, active=True)
+                except AbsenceReason.DoesNotExist:
+                    errors.append(_("%(seller)s: selected absence reason is not valid.") % {"seller": seller.name})
+                    continue
+
+            to_save.append((seller, status, reason, shift_start, shift_end))
+
+        if errors:
+            existing_map = {}
+            try:
+                record = AttendanceRecord.objects.get(date=selected_date)
+                for att in record.attendances.select_related("absence_reason"):
+                    existing_map[att.seller_id] = att
+            except AttendanceRecord.DoesNotExist:
+                pass
+            sellers_all = Seller.objects.filter(call_center=True).select_related("shift").order_by("name")
+            for error in errors:
+                messages.error(request, error)
+            return render(
+                request, self.template_name, self._build_context(request, selected_date, sellers_all, existing_map)
+            )
+
+        if to_save:
+            record, _created = AttendanceRecord.objects.get_or_create(date=selected_date)
+            for seller, status, reason, shift_start, shift_end in to_save:
+                SellerAttendance.objects.update_or_create(
+                    record=record,
+                    seller=seller,
+                    defaults={
+                        "status": status,
+                        "absence_reason": reason,
+                        "shift_start": shift_start,
+                        "shift_end": shift_end,
+                    },
+                )
+
+        messages.success(request, _("Attendance saved successfully."))
+        return HttpResponseRedirect(f"{reverse('seller_attendance')}?date={selected_date}")
+
+
+MONTH_NAMES_ES = [
+    (1, "Enero"),
+    (2, "Febrero"),
+    (3, "Marzo"),
+    (4, "Abril"),
+    (5, "Mayo"),
+    (6, "Junio"),
+    (7, "Julio"),
+    (8, "Agosto"),
+    (9, "Septiembre"),
+    (10, "Octubre"),
+    (11, "Noviembre"),
+    (12, "Diciembre"),
+]
+
+DAY_ABBR_ES = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]
+
+
+class SellerAttendanceCalendarView(LoginRequiredMixin, UserPassesTestMixin, BreadcrumbsMixin, TemplateView):
+    template_name = "support/seller_attendance_calendar.html"
+
+    def test_func(self):
+        return self.request.user.is_staff
+
+    def breadcrumbs(self):
+        return [
+            {"label": _("Home"), "url": reverse("home")},
+            {"label": _("Campaign Management"), "url": reverse("campaign_management")},
+            {"label": _("Seller Attendance"), "url": reverse("seller_attendance")},
+            {"label": "Calendario de asistencias"},
+        ]
+
+    def _parse_month_year(self, request):
+        today = date.today()
+        try:
+            month = int(request.GET.get("month", today.month))
+            month = max(1, min(12, month))
+        except (ValueError, TypeError):
+            month = today.month
+        try:
+            year = int(request.GET.get("year", today.year))
+        except (ValueError, TypeError):
+            year = today.year
+        return month, year
+
+    def _build_days(self, year, month):
+        _, last_day = calendar.monthrange(year, month)
+        return [date(year, month, d) for d in range(1, last_day + 1)]
+
+    def _build_attendance_map(self, sellers, days):
+        seller_ids = [s.pk for s in sellers]
+        records = (
+            AttendanceRecord.objects.filter(date__in=days)
+            .prefetch_related(
+                Prefetch(
+                    "attendances",
+                    queryset=SellerAttendance.objects.filter(seller_id__in=seller_ids).select_related(
+                        "seller", "absence_reason"
+                    ),
+                )
+            )
+        )
+        record_map = {r.date: r for r in records}
+        # attendance_map[seller_id][day] = SellerAttendance or None
+        attendance_map = {s.pk: {} for s in sellers}
+        for day in days:
+            record = record_map.get(day)
+            if record:
+                for att in record.attendances.all():
+                    if att.seller_id in attendance_map:
+                        attendance_map[att.seller_id][day] = att
+        return attendance_map
+
+    def export_csv(self, sellers, days, attendance_map, year, month):
+        response = HttpResponse(content_type="text/csv; charset=utf-8")
+        response["Content-Disposition"] = f'attachment; filename="asistencias_{year}_{month:02d}.csv"'
+        response.write("﻿")
+        writer = csv.writer(response)
+
+        header = ["Vendedor"] + [f"{DAY_ABBR_ES[d.weekday()]} {d.day}" for d in days]
+        writer.writerow(header)
+
+        for seller in sellers:
+            row = [seller.name]
+            for day in days:
+                att = attendance_map[seller.pk].get(day)
+                if att is None:
+                    row.append("")
+                elif att.status == ATTENDANCE_STATUS_PRESENT:
+                    row.append("Presente")
+                else:
+                    row.append(str(att.absence_reason) if att.absence_reason else "Ausente")
+            writer.writerow(row)
+
+        return response
+
+    def get(self, request, *args, **kwargs):
+        month, year = self._parse_month_year(request)
+        days = self._build_days(year, month)
+        sellers = Seller.objects.filter(call_center=True).order_by("name")
+        attendance_map = self._build_attendance_map(sellers, days)
+        view_mode = "normal" if request.GET.get("view") == "normal" else "lite"
+
+        if request.GET.get("export"):
+            return self.export_csv(sellers, days, attendance_map, year, month)
+
+        # Enrich days with display info so templates don't need filter tricks
+        day_infos = [
+            {
+                "date": d,
+                "label": DAY_ABBR_ES[d.weekday()],
+                "num": d.day,
+                "is_weekend": d.weekday() >= 5,
+            }
+            for d in days
+        ]
+
+        # Pre-build rows so the template avoids nested dict lookups
+        seller_rows = []
+        for seller in sellers:
+            cells = []
+            for d in days:
+                att = attendance_map[seller.pk].get(d)
+                cells.append(
+                    {
+                        "att": att,
+                        "is_present": att is not None and att.status == ATTENDANCE_STATUS_PRESENT,
+                        "is_absent": att is not None and att.status == ATTENDANCE_STATUS_ABSENT,
+                        "justified": att is not None
+                        and att.status == ATTENDANCE_STATUS_ABSENT
+                        and att.absence_reason is not None
+                        and att.absence_reason.justified,
+                        "reason_str": str(att.absence_reason) if att and att.absence_reason else "",
+                        "shift_label": (
+                            f"{att.shift_start.strftime('%H:%M')}–{att.shift_end.strftime('%H:%M')}"
+                            if att and att.status == ATTENDANCE_STATUS_PRESENT
+                            else ""
+                        ),
+                        "is_weekend": d.weekday() >= 5,
+                    }
+                )
+            seller_rows.append({"seller": seller, "cells": cells})
+
+        today = date.today()
+        context = self.get_context_data(
+            seller_rows=seller_rows,
+            day_infos=day_infos,
+            selected_month=month,
+            selected_year=year,
+            months=MONTH_NAMES_ES,
+            years=range(today.year - 2, today.year + 2),
+            view_mode=view_mode,
+            can_edit=request.user.is_superuser or request.user.has_perm("support.change_sellerattendance"),
+        )
+        return render(request, self.template_name, context)
+
+
+class SellerAttendanceFilterView(LoginRequiredMixin, UserPassesTestMixin, BreadcrumbsMixin, FilterView):
+    model = SellerAttendance
+    filterset_class = SellerAttendanceFilter
+    template_name = "support/seller_attendance_filter.html"
+    paginate_by = 100
+    page_kwarg = "p"
+    context_object_name = "attendances"
+
+    def test_func(self):
+        return self.request.user.is_staff
+
+    def breadcrumbs(self):
+        return [
+            {"label": _("Home"), "url": reverse("home")},
+            {"label": _("Campaign Management"), "url": reverse("campaign_management")},
+            {"label": _("Seller Attendance Filter")},
+        ]
+
+    def get_queryset(self):
+        return (
+            SellerAttendance.objects.select_related("record", "seller", "absence_reason")
+            .order_by("record__date", "seller__name")
+        )
+
+    def get(self, request, *args, **kwargs):
+        if request.GET.get("export"):
+            return self.export_csv()
+        return super().get(request, *args, **kwargs)
+
+    def export_csv(self):
+        import io
+
+        def generate_rows():
+            yield "﻿"  # UTF-8 BOM para Excel
+            buffer = io.StringIO()
+            writer = csv.writer(buffer)
+            writer.writerow([
+                str(_("Date")),
+                str(_("Seller")),
+                str(_("Status")),
+                str(_("Absence reason")),
+            ])
+            yield buffer.getvalue()
+            buffer.seek(0)
+            buffer.truncate(0)
+
+            filterset = self.get_filterset(self.filterset_class)
+            qs = filterset.qs.select_related("record", "seller", "absence_reason")
+            for att in qs.iterator(chunk_size=500):
+                writer.writerow([
+                    att.record.date,
+                    att.seller.name,
+                    att.get_status_display(),
+                    att.absence_reason.name if att.absence_reason else "",
+                ])
+                yield buffer.getvalue()
+                buffer.seek(0)
+                buffer.truncate(0)
+
+        response = StreamingHttpResponse(generate_rows(), content_type="text/csv; charset=utf-8")
+        response["Content-Disposition"] = 'attachment; filename="seller_attendance_filter.csv"'
+        return response

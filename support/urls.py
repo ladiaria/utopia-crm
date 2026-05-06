@@ -52,15 +52,18 @@ from support.views import (
     api_get_addresses,
 )
 from . import apis
-from support.views.all_views import CommunityConsoleView, IssueListView
+from support.views.contacts import ContactCampaignStatusEditView
 from support.views.all_views import (
     CommunityConsoleView,
     CommunityManagerAssignView,
     CommunityManagerDashboardView,
     CommunityManagerOverviewView,
     IssueListView,
+    SellerAttendanceCalendarView,
+    SellerAttendanceFilterView,
+    SellerAttendanceView,
 )
-from support.views.campaign_management import bulk_delete_campaign_status
+from support.views.campaign_management import bulk_delete_campaign_status, campaign_management_menu
 
 from django.urls import path, re_path
 
@@ -205,6 +208,11 @@ urlpatterns = [
     path("tag_contacts/", tag_contacts, name="tag_contacts"),
     path("bulk_delete_campaign_status/", bulk_delete_campaign_status, name="bulk_delete_campaign_status"),
     path("not_contacted_campaign/<int:campaign_id>/", not_contacted_campaign, name="not_contacted_campaign"),
+    path(
+        "campaign_status/<int:pk>/edit/",
+        ContactCampaignStatusEditView.as_view(),
+        name="edit_campaign_status",
+    ),
     path("contacts/<int:contact_id>/agregar_direccion/", location.agregar_direccion, name="agregar_direccion"),
     path(
         "contacts/<int:contact_id>/editar_direccion/<int:address_id>/",
@@ -285,6 +293,10 @@ urlpatterns = [
         views.update_free_subscription,
         name='update_free_subscription',
     ),
+    path("seller_attendance/", SellerAttendanceView.as_view(), name="seller_attendance"),
+    path("seller_attendance/calendar/", SellerAttendanceCalendarView.as_view(), name="seller_attendance_calendar"),
+    path("seller_attendance/filter/", SellerAttendanceFilterView.as_view(), name="seller_attendance_filter"),
+    path("campaign_management/", campaign_management_menu, name="campaign_management"),
 ]
 
 # Api views
