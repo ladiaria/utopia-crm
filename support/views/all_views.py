@@ -61,6 +61,7 @@ from support.filters import (
     IssueFilter,
     SalesRecordFilter,
     SalesRecordFilterForSeller,
+    SellerAttendanceFilter,
 )
 from support.forms import (
     AddressComplementaryInformationForm,
@@ -3377,3 +3378,67 @@ class SellerAttendanceCalendarView(LoginRequiredMixin, UserPassesTestMixin, Brea
             can_edit=request.user.is_superuser or request.user.has_perm("support.change_sellerattendance"),
         )
         return render(request, self.template_name, context)
+
+
+class SellerAttendanceFilterView(LoginRequiredMixin, UserPassesTestMixin, BreadcrumbsMixin, FilterView):
+    model = SellerAttendance
+    filterset_class = SellerAttendanceFilter
+    template_name = "support/seller_attendance_filter.html"
+    paginate_by = 100
+    page_kwarg = "p"
+    context_object_name = "attendances"
+
+    def test_func(self):
+        return self.request.user.is_staff
+
+    def breadcrumbs(self):
+        return [
+            {"label": _("Home"), "url": reverse("home")},
+            {"label": _("Campaign Management"), "url": reverse("campaign_management")},
+            {"label": _("Seller Attendance Filter")},
+        ]
+
+    def get_queryset(self):
+        return (
+            SellerAttendance.objects.select_related("record", "seller", "absence_reason")
+            .order_by("record__date", "seller__name")
+        )
+
+    def get(self, request, *args, **kwargs):
+        if request.GET.get("export"):
+            return self.export_csv()
+        return super().get(request, *args, **kwargs)
+
+    def export_csv(self):
+        import io
+
+        def generate_rows():
+            yield "﻿"  # UTF-8 BOM para Excel
+            buffer = io.StringIO()
+            writer = csv.writer(buffer)
+            writer.writerow([
+                str(_("Date")),
+                str(_("Seller")),
+                str(_("Status")),
+                str(_("Absence reason")),
+            ])
+            yield buffer.getvalue()
+            buffer.seek(0)
+            buffer.truncate(0)
+
+            filterset = self.get_filterset(self.filterset_class)
+            qs = filterset.qs.select_related("record", "seller", "absence_reason")
+            for att in qs.iterator(chunk_size=500):
+                writer.writerow([
+                    att.record.date,
+                    att.seller.name,
+                    att.get_status_display(),
+                    att.absence_reason.name if att.absence_reason else "",
+                ])
+                yield buffer.getvalue()
+                buffer.seek(0)
+                buffer.truncate(0)
+
+        response = StreamingHttpResponse(generate_rows(), content_type="text/csv; charset=utf-8")
+        response["Content-Disposition"] = 'attachment; filename="seller_attendance_filter.csv"'
+        return response
