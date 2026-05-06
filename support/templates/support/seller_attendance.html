@@ -14,11 +14,17 @@
   </div>
   <div class="card-body">
 
-    <form method="get" class="form-inline mb-4">
-      <label class="mr-2" for="id_date"><strong>{% trans "Date" %}:</strong></label>
-      <input type="date" id="id_date" name="date" value="{{ selected_date|date:'Y-m-d' }}" class="form-control mr-2">
-      <button type="submit" class="btn btn-secondary btn-sm">{% trans "Load" %}</button>
-    </form>
+    <div class="d-flex align-items-center flex-wrap mb-4">
+      <form method="get" class="form-inline mr-3">
+        <label class="mr-2" for="id_date"><strong>{% trans "Date" %}:</strong></label>
+        <input type="date" id="id_date" name="date" value="{{ selected_date|date:'Y-m-d' }}" class="form-control mr-2">
+        <button type="submit" class="btn btn-secondary btn-sm">{% trans "Load" %}</button>
+      </form>
+      <a href="{% url 'seller_attendance_calendar' %}?month={{ selected_date|date:'n' }}&year={{ selected_date|date:'Y' }}"
+         class="btn btn-sm btn-outline-primary">
+        <i class="fas fa-calendar-alt mr-1"></i> {% trans "Monthly calendar" %}
+      </a>
+    </div>
 
     {% if not absence_reasons %}
       <div class="alert alert-danger">

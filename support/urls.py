@@ -58,6 +58,7 @@ from support.views.all_views import (
     CommunityManagerDashboardView,
     CommunityManagerOverviewView,
     IssueListView,
+    SellerAttendanceCalendarView,
     SellerAttendanceView,
 )
 from support.views.campaign_management import bulk_delete_campaign_status, campaign_management_menu
@@ -291,5 +292,6 @@ urlpatterns = [
         name='update_free_subscription',
     ),
     path("seller_attendance/", SellerAttendanceView.as_view(), name="seller_attendance"),
+    path("seller_attendance/calendar/", SellerAttendanceCalendarView.as_view(), name="seller_attendance_calendar"),
     path("campaign_management/", campaign_management_menu, name="campaign_management"),
 ]

@@ -12,6 +12,7 @@
 {% url "check_for_existing_contacts" as check_for_existing_contacts %}
 {% url 'bulk_delete_campaign_status' as bulk_delete_campaign_status %}
 {% url 'seller_attendance' as seller_attendance %}
+{% url 'seller_attendance_calendar' as seller_attendance_calendar %}
 
 <li class="nav-item has-treeview">
   <a href="#" class="nav-link">
@@ -109,6 +110,13 @@
          class="nav-link {% if request.path == seller_attendance %}active{% endif %}">
         <i class="nav-icon fas fa-calendar-check"></i>
         <p>{% trans "Seller Attendance" %}</p>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a href="{{ seller_attendance_calendar }}"
+         class="nav-link {% if request.path == seller_attendance_calendar %}active{% endif %}">
+        <i class="nav-icon fas fa-calendar-alt"></i>
+        <p>{% trans "Attendance Calendar" %}</p>
       </a>
     </li>
     {% include_if_exists "campaign_management_sidebar_extra.html" %}
