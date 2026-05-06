@@ -117,6 +117,7 @@
               <th>{% trans "Date" %}</th>
               <th>{% trans "Seller" %}</th>
               <th>{% trans "Status" %}</th>
+              <th>{% trans "Justified" %}</th>
               <th>{% trans "Absence reason" %}</th>
             </tr>
           </thead>
@@ -126,11 +127,16 @@
               <td>{{ att.record.date }}</td>
               <td>{{ att.seller.name }}</td>
               <td>{{ att.get_status_display }}</td>
+              <td>
+                {% if att.absence_reason %}
+                  {% if att.absence_reason.justified %}{% trans "Justified" %}{% else %}{% trans "Unjustified" %}{% endif %}
+                {% endif %}
+              </td>
               <td>{{ att.absence_reason.name|default:"" }}</td>
             </tr>
             {% empty %}
             <tr>
-              <td colspan="4" class="text-center text-muted py-3">{% trans "No records found." %}</td>
+              <td colspan="5" class="text-center text-muted py-3">{% trans "No records found." %}</td>
             </tr>
             {% endfor %}
           </tbody>
