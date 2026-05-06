@@ -475,9 +475,9 @@ class SellerAttendanceFilter(django_filters.FilterSet):
         label=_("Absence reason"),
     )
     include_present = django_filters.BooleanFilter(
-        method="filter_include_present",
         label=_("Include present"),
         widget=forms.CheckboxInput(),
+        method="filter_include_present",
     )
     justified = django_filters.ChoiceFilter(
         choices=JUSTIFIED_CHOICES,
@@ -490,8 +490,7 @@ class SellerAttendanceFilter(django_filters.FilterSet):
         fields = []
 
     def filter_include_present(self, queryset, name, value):
-        if not value:
-            return queryset.filter(status="A")
+        # Filtering handled in SellerAttendanceFilterView.get_queryset() via GET param
         return queryset
 
     def filter_by_justified(self, queryset, name, value):

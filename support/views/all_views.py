@@ -3399,10 +3399,12 @@ class SellerAttendanceFilterView(LoginRequiredMixin, UserPassesTestMixin, Breadc
         ]
 
     def get_queryset(self):
-        return (
-            SellerAttendance.objects.select_related("record", "seller", "absence_reason")
-            .order_by("record__date", "seller__name")
+        qs = SellerAttendance.objects.select_related("record", "seller", "absence_reason").order_by(
+            "record__date", "seller__name"
         )
+        if not self.request.GET.get("include_present"):
+            qs = qs.filter(status="A")
+        return qs
 
     def get(self, request, *args, **kwargs):
         if request.GET.get("export"):
@@ -3420,6 +3422,7 @@ class SellerAttendanceFilterView(LoginRequiredMixin, UserPassesTestMixin, Breadc
                 str(_("Date")),
                 str(_("Seller")),
                 str(_("Status")),
+                str(_("Justified")),
                 str(_("Absence reason")),
             ])
             yield buffer.getvalue()
@@ -3429,10 +3432,15 @@ class SellerAttendanceFilterView(LoginRequiredMixin, UserPassesTestMixin, Breadc
             filterset = self.get_filterset(self.filterset_class)
             qs = filterset.qs.select_related("record", "seller", "absence_reason")
             for att in qs.iterator(chunk_size=500):
+                if att.absence_reason:
+                    justified_str = str(_("Justified") if att.absence_reason.justified else _("Unjustified"))
+                else:
+                    justified_str = ""
                 writer.writerow([
                     att.record.date,
                     att.seller.name,
                     att.get_status_display(),
+                    justified_str,
                     att.absence_reason.name if att.absence_reason else "",
                 ])
                 yield buffer.getvalue()
