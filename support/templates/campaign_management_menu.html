@@ -317,6 +317,19 @@ $(function() {
                                 </div>
                             </div>
                         </div>
+                        <div class="col-lg-4 col-6 campaign-card-col">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3 class="card-title">{% trans "Seller Attendance Filter" %}</h3>
+                                </div>
+                                <div class="card-body">
+                                    <p>{% trans "Filter and export seller attendance records by date range, seller, and absence reason." %}</p>
+                                    <div class="text-right">
+                                        <a href="{% url 'seller_attendance_filter' %}" class="btn btn-default">{% trans "Go to filter" %}</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

@@ -1,0 +1,147 @@
+{% extends "adminlte/base.html" %}
+{% load static i18n widget_tweaks %}
+
+{% block title %}
+  {% trans "Seller Attendance Filter" %}
+{% endblock title %}
+
+{% block stylesheets %}
+  {{ block.super }}
+  <link rel="stylesheet" href="{% static 'css/chosen/chosen.min.css' %}" />
+{% endblock %}
+
+{% block no_heading %}
+  <h1>{% trans "Seller Attendance Filter" %}</h1>
+{% endblock no_heading %}
+
+{% block extra_js %}
+  <script src="{% static 'js/chosen.jquery.min.js' %}"></script>
+  <script>
+  $(function() {
+    $("select.form-control").chosen({
+      allow_single_deselect: true,
+      no_results_text: "{% trans 'No results match' %}",
+      placeholder_text_multiple: "{% trans 'Select...' %}",
+      placeholder_text_single: "{% trans 'Select an option' %}",
+      width: "100%"
+    });
+  });
+  </script>
+{% endblock extra_js %}
+
+{% block content %}
+<div class="row">
+  <div class="col-md-12">
+
+    {# Filter card #}
+    <div class="card">
+      <div class="card-body">
+        <form method="get" id="filter-form">
+          <div class="row">
+
+            <div class="col-md-2">
+              <div class="form-group">
+                <label for="{{ filter.form.date_from.id_for_label }}">{{ filter.form.date_from.label }}</label>
+                {% render_field filter.form.date_from class="form-control" %}
+              </div>
+            </div>
+
+            <div class="col-md-2">
+              <div class="form-group">
+                <label for="{{ filter.form.date_to.id_for_label }}">{{ filter.form.date_to.label }}</label>
+                {% render_field filter.form.date_to class="form-control" %}
+              </div>
+            </div>
+
+            <div class="col-md-3">
+              <div class="form-group">
+                <label for="{{ filter.form.seller.id_for_label }}">{{ filter.form.seller.label }}</label>
+                {% render_field filter.form.seller class="form-control" %}
+              </div>
+            </div>
+
+            <div class="col-md-3">
+              <div class="form-group">
+                <label for="{{ filter.form.absence_reason.id_for_label }}">{{ filter.form.absence_reason.label }}</label>
+                {% render_field filter.form.absence_reason class="form-control" %}
+              </div>
+            </div>
+
+            <div class="col-md-1">
+              <div class="form-group">
+                <label for="{{ filter.form.justified.id_for_label }}">{{ filter.form.justified.label }}</label>
+                {% render_field filter.form.justified class="form-control" %}
+              </div>
+            </div>
+
+            <div class="col-md-1 d-flex align-items-center">
+              <div class="form-group mt-2">
+                <div class="form-check">
+                  {% render_field filter.form.absences_only class="form-check-input" %}
+                  <label class="form-check-label" for="{{ filter.form.absences_only.id_for_label }}">
+                    {{ filter.form.absences_only.label }}
+                  </label>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <div class="row">
+            <div class="col-md-12 text-right">
+              <span class="mr-3 text-muted">
+                {{ paginator.count }} {% trans "records" %}
+              </span>
+              <a href="?{{ request.GET.urlencode }}&export=1" class="btn btn-secondary">
+                <i class="fas fa-file-csv"></i> {% trans "Export CSV" %}
+              </a>
+              <button type="submit" class="btn btn-primary ml-1">
+                <i class="fas fa-filter"></i> {% trans "Filter" %}
+              </button>
+              <a href="?" class="btn btn-default ml-1">
+                <i class="fas fa-times"></i> {% trans "Clear" %}
+              </a>
+            </div>
+          </div>
+
+        </form>
+      </div>
+    </div>
+
+    {# Results table card #}
+    <div class="card">
+      <div class="card-body p-0">
+        <table class="table table-bordered table-striped table-sm mb-0">
+          <thead>
+            <tr>
+              <th>{% trans "Date" %}</th>
+              <th>{% trans "Seller" %}</th>
+              <th>{% trans "Status" %}</th>
+              <th>{% trans "Absence reason" %}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for att in page_obj %}
+            <tr>
+              <td>{{ att.record.date }}</td>
+              <td>{{ att.seller.name }}</td>
+              <td>{{ att.get_status_display }}</td>
+              <td>{{ att.absence_reason.name|default:"" }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="4" class="text-center text-muted py-3">{% trans "No records found." %}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    {% if page_obj.has_other_pages %}
+      {% include "components/_pagination.html" %}
+    {% endif %}
+
+  </div>
+</div>
+{% endblock content %}
