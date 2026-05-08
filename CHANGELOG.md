@@ -2,6 +2,15 @@
 
 ## v0.5.1
 
+## 2026-05-08 — t1143 Fix seller takeover in ValidateSalesRecord and SalesRecordCreate
+
+- Validating a sale with "can be commissioned" no longer overwrites the seller of every type-S product on the subscription — the update now applies only to products explicitly listed in that specific SalesRecord
+- This prevented a silent data-integrity bug: after a product change or additional-product flow, validating the partial SalesRecord could reassign another seller's products to the validating seller
+- The fix applies to both `ValidateSubscriptionSalesRecord` and `SalesRecordCreateView`; both shared the same overly broad bulk-update
+- Two regression tests added to `tests/test_product_change_seller.py` to lock this behaviour
+- No migrations required
+- **Author:** Tanya Tree + Claude Sonnet 4.6
+
 ## 2026-04-29 — t1132 Seller attendance tracking for call center staff
 
 - New `Shift`, `AbsenceReason`, `AttendanceRecord`, and `SellerAttendance` models allow daily attendance and absence tracking for call center sellers
