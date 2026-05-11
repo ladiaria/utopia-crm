@@ -2,6 +2,25 @@
 
 ## v0.5.1
 
+## 2026-05-11 — t1144 Ranking de productos y métricas de conversión en estadísticas de campaña
+
+- La vista de estadísticas de campaña ahora muestra los productos vendidos ordenados de mayor a menor, filtrando los que no tienen ventas; la antigua tabla plana sin orden fue reemplazada
+- La tarjeta "Producto más vendido" fue expandida a un ranking con podio visual (trofeo dorado, medalla plateada, medalla bronce para los primeros tres) y lista simple para el resto
+- Se agregaron dos nuevas tarjetas en la columna lateral: total de productos vendidos y promedio de productos por suscriptor con éxito (resolución S2)
+- La tarjeta "Conversión de la base" ahora muestra un gráfico de dona (doughnut) junto al texto usando Chart.js, ya incluido en AdminLTE
+- Se corrigió un N+1: el conteo de ventas por producto pasó de N queries individuales a una sola query con GROUP BY
+- No se requieren migraciones
+- **Author:** Tanya Tree + Claude Sonnet 4.6
+
+## 2026-05-08 — t1143 Fix seller takeover in ValidateSalesRecord and SalesRecordCreate
+
+- Validating a sale with "can be commissioned" no longer overwrites the seller of every type-S product on the subscription — the update now applies only to products explicitly listed in that specific SalesRecord
+- This prevented a silent data-integrity bug: after a product change or additional-product flow, validating the partial SalesRecord could reassign another seller's products to the validating seller
+- The fix applies to both `ValidateSubscriptionSalesRecord` and `SalesRecordCreateView`; both shared the same overly broad bulk-update
+- Two regression tests added to `tests/test_product_change_seller.py` to lock this behaviour
+- No migrations required
+- **Author:** Tanya Tree + Claude Sonnet 4.6
+
 ## 2026-04-29 — t1132 Seller attendance tracking for call center staff
 
 - New `Shift`, `AbsenceReason`, `AttendanceRecord`, and `SellerAttendance` models allow daily attendance and absence tracking for call center sellers

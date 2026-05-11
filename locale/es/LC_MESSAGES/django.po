@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: django\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-05-06 16:44-0300\n"
+"POT-Creation-Date: 2026-05-06 17:07-0300\n"
 "PO-Revision-Date: 2026-04-30 17:18-0300\n"
 "Last-Translator: tanyatree\n"
 "Language-Team: \n"
@@ -65,7 +65,7 @@ msgstr "Anunciante"
 #: support/templates/validate_subscription_sales_record.html:334
 #: support/templates/validate_subscription_sales_record.html:380
 #: support/views/all_views.py:2292 support/views/all_views.py:2899
-#: support/views/all_views.py:3421
+#: support/views/all_views.py:3423
 msgid "Seller"
 msgstr "Vendedor"
 
@@ -101,7 +101,7 @@ msgstr "Facturar a"
 #: support/templates/support/seller_attendance.html:19
 #: support/templates/support/seller_attendance_filter.html:117
 #: support/templates/unsubscription_statistics.html:47
-#: support/views/all_views.py:2898 support/views/all_views.py:3420
+#: support/views/all_views.py:2898 support/views/all_views.py:3422
 msgid "Date"
 msgstr "Fecha"
 
@@ -802,7 +802,7 @@ msgstr "Dirección"
 #: support/templates/validate_subscription_sales_record.html:225
 #: support/templates/view_issue.html:189 support/views/all_views.py:694
 #: support/views/all_views.py:2024 support/views/all_views.py:2289
-#: support/views/all_views.py:3422
+#: support/views/all_views.py:3424
 msgid "Status"
 msgstr "Estado"
 
@@ -5795,10 +5795,15 @@ msgstr "Fecha de inicio de la suscripción (máxima)"
 
 #: support/filters.py:451 support/filters.py:485 support/models.py:681
 #: support/models.py:685
+#: support/templates/support/seller_attendance_filter.html:120
+#: support/templates/support/seller_attendance_filter.html:132
+#: support/views/all_views.py:3425 support/views/all_views.py:3436
 msgid "Justified"
 msgstr "Justificada"
 
 #: support/filters.py:452 support/models.py:685
+#: support/templates/support/seller_attendance_filter.html:132
+#: support/views/all_views.py:3436
 msgid "Unjustified"
 msgstr "Injustificada"
 
@@ -5816,12 +5821,12 @@ msgstr "Vendedores"
 
 #: support/filters.py:475 support/models.py:723
 #: support/templates/support/seller_attendance.html:51
-#: support/templates/support/seller_attendance_filter.html:120
-#: support/views/all_views.py:3423
+#: support/templates/support/seller_attendance_filter.html:121
+#: support/views/all_views.py:3426
 msgid "Absence reason"
 msgstr "Razón de inasistencia"
 
-#: support/filters.py:479
+#: support/filters.py:478
 msgid "Include present"
 msgstr "Incluir asistencias"
 
@@ -10220,7 +10225,7 @@ msgstr ""
 msgid "records"
 msgstr "registros"
 
-#: support/templates/support/seller_attendance_filter.html:133
+#: support/templates/support/seller_attendance_filter.html:139
 msgid "No records found."
 msgstr "No se encontraron registros."
 

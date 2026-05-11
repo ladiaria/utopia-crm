@@ -1,9 +1,33 @@
 {% extends "adminlte/base.html" %}
 {% load i18n static widget_tweaks %}
+{% block stylesheets %}
+  {{ block.super }}
+  <link rel="stylesheet" href="{% static 'admin-lte/plugins/chart.js/Chart.min.css' %}">
+{% endblock %}
 {% block extra_js %}
+  <script src="{% static 'admin-lte/plugins/chart.js/Chart.bundle.min.js' %}"></script>
   <script type="text/javascript">
 $( function() {
   $('[data-toggle="tooltip"]').tooltip();
+
+  var pct = parseFloat("{{ success_rate_pct|floatformat:2 }}".replace(",", "."));
+  var ctx = document.getElementById('conversionChart').getContext('2d');
+  new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      datasets: [{
+        data: [pct, Math.max(0, 100 - pct)],
+        backgroundColor: ['#007bff', '#e9ecef'],
+        borderWidth: 0,
+      }]
+    },
+    options: {
+      cutoutPercentage: 70,
+      legend: { display: false },
+      tooltips: { enabled: false },
+      animation: { animateRotate: true },
+    }
+  });
 });
   </script>
 {% endblock %}
@@ -268,10 +292,14 @@ $( function() {
               </tr>
             </thead>
             <tbody>
-              {% for product, amount in subs_dict.items %}
+              {% for product, amount in sorted_products %}
                 <tr>
                   <td>{{ product }}</td>
                   <td>{{ amount }}</td>
+                </tr>
+              {% empty %}
+                <tr>
+                  <td colspan="2">Sin ventas registradas</td>
                 </tr>
               {% endfor %}
             </tbody>
@@ -284,17 +312,73 @@ $( function() {
         <div class="card-header">
           <h4 class="card-title">Conversión de la base</h4>
         </div>
-        <div class="card-body">
-          <p class="h2">{{ success_rate_count }} suscriptores ({{ success_rate_pct|floatformat:2 }}% de contactados)</p>
+        <div class="card-body d-flex align-items-center">
+          <div style="width:90px;min-width:90px;">
+            <canvas id="conversionChart" width="90" height="90"></canvas>
+          </div>
+          <div class="ml-3">
+            <p class="h2 mb-1">{{ success_rate_count }} suscriptores</p>
+            <p class="h5 text-muted mb-0">{{ success_rate_pct|floatformat:2 }}% de contactados</p>
+          </div>
         </div>
       </div>
-      {% if most_sold_count %}
+      {% if sorted_products %}
         <div class="card">
           <div class="card-header">
-            <h4 class="card-title">Producto más vendido</h4>
+            <h4 class="card-title">Ranking de productos vendidos</h4>
           </div>
           <div class="card-body">
-            <p class="h2">{{ most_sold }} ({{ most_sold_count }})</p>
+            {% for product, amount in sorted_products %}
+              {% if forloop.counter == 1 %}
+                <div class="d-flex justify-content-between align-items-center h6 text-warning mb-2">
+                  <span><i class="fas fa-trophy"></i> {{ product }}</span>
+                  <span class="badge badge-warning">{{ amount }}</span>
+                </div>
+              {% elif forloop.counter == 2 %}
+                <div class="d-flex justify-content-between align-items-center h6 text-secondary mb-2">
+                  <span><i class="fas fa-medal"></i> {{ product }}</span>
+                  <span class="badge badge-secondary">{{ amount }}</span>
+                </div>
+              {% elif forloop.counter == 3 %}
+                <div class="d-flex justify-content-between align-items-center h6 mb-2" style="color:#cd7f32;">
+                  <span><i class="fas fa-medal"></i> {{ product }}</span>
+                  <span class="badge" style="background-color:#cd7f32;color:#fff;">{{ amount }}</span>
+                </div>
+              {% else %}
+                {% if forloop.counter == 4 %}
+                  <hr>
+                  <ul class="list-unstyled mb-0">
+                {% endif %}
+                    <li class="d-flex justify-content-between">
+                      <span>{{ product }}</span>
+                      <span class="text-muted">{{ amount }}</span>
+                    </li>
+                {% if forloop.last %}
+                  </ul>
+                {% endif %}
+              {% endif %}
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
+      {% if sorted_products %}
+        <div class="card">
+          <div class="card-header">
+            <h4 class="card-title">Total de productos vendidos</h4>
+          </div>
+          <div class="card-body">
+            <p class="h2 mb-0">{{ total_products_sold }}</p>
+          </div>
+        </div>
+      {% endif %}
+      {% if success_rate_count %}
+        <div class="card">
+          <div class="card-header">
+            <h4 class="card-title">Promedio de productos por suscriptor</h4>
+          </div>
+          <div class="card-body">
+            <p class="h2 mb-1">{{ avg_products_per_success|floatformat:2 }} productos</p>
+            <p class="h6 text-muted">sobre {{ success_rate_count }} suscriptores con éxito</p>
           </div>
         </div>
       {% endif %}

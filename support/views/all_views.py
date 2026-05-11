@@ -2439,8 +2439,14 @@ class CampaignStatisticsDetailView(BreadcrumbsMixin, UserPassesTestMixin, Filter
         if context['seller']:
             sales_records = sales_records.filter(seller=context['seller'])
 
-        for product in Product.objects.filter(offerable=True, type="S"):
-            subs_dict[product.name] = sales_records.filter(products=product).count()
+        product_counts = (
+            sales_records.filter(products__offerable=True, products__type="S")
+            .values("products__name")
+            .annotate(total=Count("products"))
+        )
+        counts_by_name = {row["products__name"]: row["total"] for row in product_counts}
+        for product in Product.objects.filter(offerable=True, type="S").values_list("name", flat=True):
+            subs_dict[product] = counts_by_name.get(product, 0)
 
         try:
             most_sold = max(subs_dict, key=subs_dict.get)
@@ -2451,6 +2457,21 @@ class CampaignStatisticsDetailView(BreadcrumbsMixin, UserPassesTestMixin, Filter
         context['subs_dict'] = subs_dict
         context['most_sold'] = most_sold
         context['most_sold_count'] = most_sold_count
+
+        # Sorted ranking (descending), exclude zero-count products
+        sorted_products = sorted(
+            [(name, count) for name, count in subs_dict.items() if count > 0],
+            key=lambda x: x[1],
+            reverse=True,
+        )
+        context['sorted_products'] = sorted_products
+
+        # Avg products per successful contact (S2 resolutions)
+        total_products_sold = sum(count for _, count in sorted_products)
+        context['total_products_sold'] = total_products_sold
+        context['avg_products_per_success'] = (
+            total_products_sold / success_rate_count if success_rate_count else 0
+        )
 
         return context
 
@@ -2990,9 +3011,9 @@ class ValidateSubscriptionSalesRecord(BreadcrumbsMixin, UpdateView):
         subscription.validate(user=self.request.user)
         if form.cleaned_data["can_be_commissioned"]:
             sales_record.can_be_commisioned = True
-            SubscriptionProduct.objects.filter(subscription=subscription, product__type="S").update(
-                seller=sales_record.seller
-            )
+            SubscriptionProduct.objects.filter(
+                subscription=subscription, product__in=sales_record.products.all()
+            ).update(seller=sales_record.seller)
             if form.cleaned_data["override_commission_value"]:
                 sales_record.total_commission_value = form.cleaned_data["override_commission_value"]
             else:
@@ -3053,9 +3074,9 @@ class SalesRecordCreateView(CreateView):
         sales_record_obj.products.set(self.subscription.products.filter(type="S"))
         sales_record_obj.price = self.subscription.get_price_for_full_period()
         subscription = sales_record_obj.subscription
-        SubscriptionProduct.objects.filter(subscription=subscription, product__type="S").update(
-            seller=sales_record_obj.seller
-        )
+        SubscriptionProduct.objects.filter(
+            subscription=subscription, product__in=sales_record_obj.products.all()
+        ).update(seller=sales_record_obj.seller)
         self.subscription.validate(user=self.request.user)
         return super().form_valid(form)
 
@@ -3399,10 +3420,12 @@ class SellerAttendanceFilterView(LoginRequiredMixin, UserPassesTestMixin, Breadc
         ]
 
     def get_queryset(self):
-        return (
-            SellerAttendance.objects.select_related("record", "seller", "absence_reason")
-            .order_by("record__date", "seller__name")
+        qs = SellerAttendance.objects.select_related("record", "seller", "absence_reason").order_by(
+            "record__date", "seller__name"
         )
+        if not self.request.GET.get("include_present"):
+            qs = qs.filter(status="A")
+        return qs
 
     def get(self, request, *args, **kwargs):
         if request.GET.get("export"):
@@ -3420,6 +3443,7 @@ class SellerAttendanceFilterView(LoginRequiredMixin, UserPassesTestMixin, Breadc
                 str(_("Date")),
                 str(_("Seller")),
                 str(_("Status")),
+                str(_("Justified")),
                 str(_("Absence reason")),
             ])
             yield buffer.getvalue()
@@ -3429,10 +3453,15 @@ class SellerAttendanceFilterView(LoginRequiredMixin, UserPassesTestMixin, Breadc
             filterset = self.get_filterset(self.filterset_class)
             qs = filterset.qs.select_related("record", "seller", "absence_reason")
             for att in qs.iterator(chunk_size=500):
+                if att.absence_reason:
+                    justified_str = str(_("Justified") if att.absence_reason.justified else _("Unjustified"))
+                else:
+                    justified_str = ""
                 writer.writerow([
                     att.record.date,
                     att.seller.name,
                     att.get_status_display(),
+                    justified_str,
                     att.absence_reason.name if att.absence_reason else "",
                 ])
                 yield buffer.getvalue()
