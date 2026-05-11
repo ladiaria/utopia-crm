@@ -2439,8 +2439,14 @@ class CampaignStatisticsDetailView(BreadcrumbsMixin, UserPassesTestMixin, Filter
         if context['seller']:
             sales_records = sales_records.filter(seller=context['seller'])
 
-        for product in Product.objects.filter(offerable=True, type="S"):
-            subs_dict[product.name] = sales_records.filter(products=product).count()
+        product_counts = (
+            sales_records.filter(products__offerable=True, products__type="S")
+            .values("products__name")
+            .annotate(total=Count("products"))
+        )
+        counts_by_name = {row["products__name"]: row["total"] for row in product_counts}
+        for product in Product.objects.filter(offerable=True, type="S").values_list("name", flat=True):
+            subs_dict[product] = counts_by_name.get(product, 0)
 
         try:
             most_sold = max(subs_dict, key=subs_dict.get)
@@ -2451,6 +2457,21 @@ class CampaignStatisticsDetailView(BreadcrumbsMixin, UserPassesTestMixin, Filter
         context['subs_dict'] = subs_dict
         context['most_sold'] = most_sold
         context['most_sold_count'] = most_sold_count
+
+        # Sorted ranking (descending), exclude zero-count products
+        sorted_products = sorted(
+            [(name, count) for name, count in subs_dict.items() if count > 0],
+            key=lambda x: x[1],
+            reverse=True,
+        )
+        context['sorted_products'] = sorted_products
+
+        # Avg products per successful contact (S2 resolutions)
+        total_products_sold = sum(count for _, count in sorted_products)
+        context['total_products_sold'] = total_products_sold
+        context['avg_products_per_success'] = (
+            total_products_sold / success_rate_count if success_rate_count else 0
+        )
 
         return context
 
