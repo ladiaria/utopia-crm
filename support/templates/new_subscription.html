@@ -1,7 +1,7 @@
 {% extends "adminlte/base.html" %}
 {% load i18n static core_tags %}
 {% block title %}
-  {% trans "New subscription" %}
+  {% if edit_subscription %}{% trans "Edit subscription" %}{% else %}{% trans "New subscription" %}{% endif %}
 {% endblock %}
 
 {% block extra_head %}
