@@ -25,7 +25,7 @@ from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
-from django.views.generic import CreateView, RedirectView, UpdateView, TemplateView, View
+from django.views.generic import CreateView, RedirectView, UpdateView, TemplateView
 from django_filters.views import FilterView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from taggit.models import Tag
