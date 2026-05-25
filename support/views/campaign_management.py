@@ -2,8 +2,10 @@ import csv
 import io
 
 from django.contrib import messages
+from django.contrib.admin.models import DELETION, LogEntry
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import UserPassesTestMixin
+from django.contrib.contenttypes.models import ContentType
 from django.db import transaction
 from django.http import HttpResponse
 from django.shortcuts import redirect
@@ -38,47 +40,50 @@ class BulkDeleteCampaignStatusView(BreadcrumbsMixin, UserPassesTestMixin, FormVi
     Access: Only users in the 'Managers' group can access this view.
     """
 
-    template_name = 'campaign_management/bulk_delete_campaign_status.html'
+    template_name = "campaign_management/bulk_delete_campaign_status.html"
     form_class = BulkDeleteCampaignStatusForm
-    success_url = reverse_lazy('bulk_delete_campaign_status')
+    success_url = reverse_lazy("bulk_delete_campaign_status")
 
     def test_func(self):
-        """Temporarily disabled. Only users in the Managers group can access this view."""
-        return False
+        user = self.request.user
+        return user.is_superuser or user.groups.filter(name="Admins").exists()
 
     def breadcrumbs(self):
         return [
             {"url": reverse("home"), "label": _("Home")},
             {"url": reverse("campaign_management"), "label": _("Campaign Management")},
-            {"label": _("Bulk Delete Campaign Status"), "url": reverse("bulk_delete_campaign_status")},
+            {
+                "label": _("Bulk Delete Campaign Status"),
+                "url": reverse("bulk_delete_campaign_status"),
+            },
         ]
 
     def get(self, request, *args, **kwargs):
         """Handle GET requests, including CSV template download."""
-        if request.GET.get('download_template'):
+        if request.GET.get("download_template"):
             return self.download_template()
         return super().get(request, *args, **kwargs)
 
     def download_template(self):
         """Generate and return a CSV template file."""
-        response = HttpResponse(content_type='text/csv')
-        response['Content-Disposition'] = 'attachment; filename="bulk_delete_campaign_status_template.csv"'
+        response = HttpResponse(content_type="text/csv")
+        response["Content-Disposition"] = 'attachment; filename="bulk_delete_campaign_status_template.csv"'
 
         writer = csv.writer(response)
-        writer.writerow(['contact_id'])
-        writer.writerow(['123'])
-        writer.writerow(['456'])
-        writer.writerow(['789'])
+        writer.writerow(["contact_id"])
+        writer.writerow(["123"])
+        writer.writerow(["456"])
+        writer.writerow(["789"])
 
         return response
 
     def form_valid(self, form):
         """Process the form and delete ContactCampaignStatus records."""
-        csv_file = form.cleaned_data['csv_file']
-        campaign = form.cleaned_data['campaign']
+        csv_file = form.cleaned_data["csv_file"]
+        campaign = form.cleaned_data["campaign"]
 
         # Read CSV file
-        file_content = io.StringIO(csv_file.read().decode('utf-8'))
+        file_content = io.StringIO(csv_file.read().decode("utf-8"))
 
         # Detect delimiter automatically
         delimiter = detect_csv_delimiter(file_content)
@@ -92,7 +97,12 @@ class BulkDeleteCampaignStatusView(BreadcrumbsMixin, UserPassesTestMixin, FormVi
             # Look for common column names
             contact_id = None
             for key in row.keys():
-                if key.lower().strip() in ['contact_id', 'id', 'contact id', 'contactid']:
+                if key.lower().strip() in [
+                    "contact_id",
+                    "id",
+                    "contact id",
+                    "contactid",
+                ]:
                     try:
                         contact_id = int(row[key].strip())
                         contact_ids.append(contact_id)
@@ -114,11 +124,38 @@ class BulkDeleteCampaignStatusView(BreadcrumbsMixin, UserPassesTestMixin, FormVi
             messages.warning(self.request, _("No valid contact IDs found in the CSV file."))
             return redirect(self.success_url)
 
+        # Fetch records before deletion so we can log which contacts were removed
+        ccs_to_delete = list(
+            ContactCampaignStatus.objects.filter(contact_id__in=contact_ids, campaign=campaign).select_related(
+                "contact"
+            )
+        )
+
         # Delete ContactCampaignStatus records
         with transaction.atomic():
             deleted_count, _unused = ContactCampaignStatus.objects.filter(
                 contact_id__in=contact_ids, campaign=campaign
             ).delete()
+
+        # Log each deletion via Django admin LogEntry (persisted in DB, visible in admin)
+        ccs_content_type = ContentType.objects.get_for_model(ContactCampaignStatus)
+        for ccs in ccs_to_delete:
+            LogEntry.objects.log_action(
+                user_id=self.request.user.pk,
+                content_type_id=ccs_content_type.pk,
+                object_id=ccs.pk,
+                object_repr=str(ccs.contact),
+                action_flag=DELETION,
+                change_message=_(
+                    "Bulk delete via CSV by {user} — campaign: {campaign} (ID {campaign_id}), "
+                    "contact ID: {contact_id}"
+                ).format(
+                    user=self.request.user.username,
+                    campaign=campaign.name,
+                    campaign_id=campaign.pk,
+                    contact_id=ccs.contact_id,
+                ),
+            )
 
         # Show success message
         messages.success(
