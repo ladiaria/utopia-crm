@@ -2,6 +2,14 @@
 
 ## v0.5.1
 
+## 2026-06-09 — t1151 La consola de vendedores siempre registra una actividad y agenda con la acción correcta
+
+- Al resolver un contacto nuevo desde la consola, ahora siempre se crea un registro de actividad — incluso para acciones como "No interesado", "No llamar" o "Logística", y aunque el campo de notas quede vacío. Antes estas acciones cerraban el estado de campaña sin dejar ningún registro de actividad
+- El único caso que no deja actividad es el botón "Omitir y pasar al siguiente contacto", que simplemente saltea el contacto sin registrar resolución
+- Al agendar, la actividad pendiente futura (la llamada agendada) ahora queda con la acción de consola "Agendar"; antes nacía sin acción. Cuando el vendedor atiende esa llamada, la acción se sobreescribe con la resolución real elegida
+- No se requieren migraciones
+- **Author:** Tanya Tree + Claude Opus 4.8
+
 ## 2026-05-11 — t1144 Ranking de productos y métricas de conversión en estadísticas de campaña
 
 - La vista de estadísticas de campaña ahora muestra los productos vendidos ordenados de mayor a menor, filtrando los que no tienen ventas; la antigua tabla plana sin orden fue reemplazada
