@@ -330,7 +330,7 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
             messages.error(self.request, str(e))
             return None
 
-    def create_scheduled_activity(self, contact, campaign, seller, call_datetime):
+    def create_scheduled_activity(self, contact, campaign, seller, call_datetime, seller_console_action=None):
         """Create a scheduled activity"""
         return Activity.objects.create(
             contact=contact,
@@ -338,6 +338,7 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
             datetime=call_datetime,
             campaign=campaign,
             seller=seller,
+            seller_console_action=seller_console_action,
             notes="{} {}".format(_("Scheduled for"), call_datetime),
         )
 
@@ -367,8 +368,7 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
 
         # Get action - not required, can continue with None if missing
         seller_console_action = self.get_seller_console_action(result, required=False)
-        # If the ACTION_TYPE was DECLINED, we won't create a new activity
-        if seller_console_action.action_type == SellerConsoleAction.ACTION_TYPES.DECLINED:
+        if not seller_console_action:
             return
 
         # For CALL_LATER and NOT_FOUND in "act" mode, always create a new pending activity so the contact
@@ -404,7 +404,9 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
                 notes="",
             )
         if category == "new":
-            # If this is the first time we're seeing this contact, we'll create an activity for it
+            # Always register a completed activity for the action taken on a not-yet-contacted contact,
+            # even for terminal actions like "not interested" and even when notes are empty. The only way
+            # to leave a contact without an activity is the "skip to next" link, which doesn't POST a result.
             Activity.objects.create(
                 contact=contact,
                 activity_type="C",  # Call
@@ -412,7 +414,7 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
                 campaign=campaign,
                 seller=seller,
                 status="C",  # Completed
-                notes=notes,
+                notes=notes or "",
                 seller_console_action=seller_console_action,
             )
 
@@ -477,7 +479,7 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
         # Handle scheduling if needed
         if seller_console_action.action_type == SellerConsoleAction.ACTION_TYPES.SCHEDULED:
             call_datetime = self.get_call_datetime(data)
-            self.create_scheduled_activity(contact, campaign, seller, call_datetime)
+            self.create_scheduled_activity(contact, campaign, seller, call_datetime, seller_console_action)
 
         # Save any resolution reason
         if reason:

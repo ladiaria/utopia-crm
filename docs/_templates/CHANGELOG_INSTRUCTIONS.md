@@ -177,7 +177,7 @@ Every devnote ends with a metadata footer separated by `---`:
 ---
 
 **Date:** 2026-03-06
-**Author:** Jane Smith + Claude Sonnet 4.6
+**Author:** Jane Smith + <AI model in use>
 **Branch:** t1047
 **Type:** Enhancement
 **Modules affected:** Support, Issues
@@ -189,7 +189,7 @@ Every devnote ends with a metadata footer separated by `---`:
 ---
 
 **Fecha:** 2026-03-06
-**Autor:** Jane Smith + Claude Sonnet 4.6
+**Autor:** Jane Smith + <modelo de IA en uso>
 **Branch:** t1047
 **Tipo de cambio:** Mejora
 **Módulos afectados:** Support, Issues
@@ -211,7 +211,7 @@ git config user.name
 ```
 
 - If working solo: `**Author:** John Doe`
-- If working with AI: `**Author:** John Doe + Claude Sonnet 4.6`
+- If working with AI: `**Author:** John Doe + <the actual AI model in use>` — use the model's own name (e.g. whichever Claude model is running this session), never a hardcoded example
 
 ## Git Branch as Issue Name
 
