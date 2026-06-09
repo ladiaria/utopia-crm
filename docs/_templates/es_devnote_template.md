@@ -1,7 +1,7 @@
 # Título del Cambio
 
 - **Fecha:** YYYY-MM-DD
-- **Autor:** [Usar `git config user.name` o MCP para obtener el nombre] (+ [nombre del modelo de IA, ej. Claude Sonnet 4.6] si aplica)
+- **Autor:** [Usar `git config user.name` o MCP para obtener el nombre] (+ el modelo de IA realmente en uso, si aplica — usar el nombre propio del modelo, no copiar el ejemplo)
 - **Ticket:** t#### (si aplica)
 - **Tipo:** Corrección | Funcionalidad | Mejora | Refactorización | Rendimiento | Mejora de UX
 - **Componente:** módulos afectados (ej., Suscripciones, Facturación, Modelos Core)
@@ -87,7 +87,7 @@ Posibles mejoras para futuras iteraciones:
 ---
 
 - **Fecha:** YYYY-MM-DD
-- **Autor:** [Usar `git config user.name` o MCP] (+ [nombre del modelo de IA, ej. Claude Sonnet 4.6] si aplica)
+- **Autor:** [Usar `git config user.name` o MCP] (+ el modelo de IA realmente en uso, si aplica — usar el nombre propio del modelo, no copiar el ejemplo)
 - **Branch:** t#### (nombre del branch/ticket)
 - **Tipo de cambio:** Corrección | Funcionalidad | Mejora | Refactorización | Rendimiento | Mejora de UX
 - **Módulos afectados:** Módulo1, Módulo2
