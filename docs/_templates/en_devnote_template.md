@@ -1,7 +1,7 @@
 # Title of the Change
 
 - **Date:** YYYY-MM-DD
-- **Author:** [Use `git config user.name` or MCP to get author name] (+ [AI model name, e.g. Claude Sonnet 4.6] if applicable)
+- **Author:** [Use `git config user.name` or MCP to get author name] (+ the actual AI model in use, if applicable — use the model's own name, do not copy the example)
 - **Ticket:** t#### (if applicable)
 - **Type:** Bug Fix | Feature | Enhancement | Refactor | Performance | UX Improvement
 - **Component:** affected modules (e.g., Subscriptions, Invoicing, Core Models)
@@ -87,7 +87,7 @@ Potential enhancements for future iterations:
 ---
 
 - **Date:** YYYY-MM-DD
-- **Author:** [Use `git config user.name` or MCP] (+ [AI model name, e.g. Claude Sonnet 4.6] if applicable)
+- **Author:** [Use `git config user.name` or MCP] (+ the actual AI model in use, if applicable — use the model's own name, do not copy the example)
 - **Branch:** t#### (branch/ticket name)
 - **Type:** Bug Fix | Feature | Enhancement | Refactor | Performance | UX Improvement
 - **Modules affected:** Module1, Module2
