@@ -86,8 +86,8 @@
             {% else %}
               <td></td>
             {% endif %}
-            {% if sp.subscription.start_date > one_month_ago %}
-              <td>*</td>
+            {% if sp.subscription.start_date > one_month_ago or sp.entered_by_route_change %}
+              <td>{% if sp.subscription.start_date > one_month_ago %}*{% endif %}{% if sp.entered_by_route_change %}+{% endif %}</td>
             {% else %}
               <td></td>
             {% endif %}
