@@ -1033,6 +1033,22 @@ def route_details(request, route_list, extra_context=None):
         key = str(rc.old_route.number)
         changes_dict.setdefault(key, []).append(rc)
 
+    # Marcamos con un signo + las suscripciones que entraron a su ruta actual por un cambio de ruta reciente. Usamos
+    # la misma ventana de tiempo que la columna "Nueva" (un mes) para que el + sea consistente con el asterisco.
+    recent_route_changes = RouteChange.objects.filter(
+        dt__date__gt=one_month_ago, product=product
+    ).values_list("contact_id", "old_route_id")
+    route_change_old_routes_by_contact = defaultdict(set)
+    for contact_id, old_route_id in recent_route_changes:
+        route_change_old_routes_by_contact[contact_id].add(old_route_id)
+
+    for sps_in_route in subscription_products_dict.values():
+        for sp in sps_in_route:
+            old_routes = route_change_old_routes_by_contact.get(sp.subscription.contact_id)
+            sp.entered_by_route_change = bool(
+                sp.route and old_routes and any(old_route != sp.route.number for old_route in old_routes)
+            )
+
     all_closing = (
         SubscriptionProduct.objects.filter(
             active=True, route__in=routes, subscription__end_date__gte=date.today() - timedelta(3)
