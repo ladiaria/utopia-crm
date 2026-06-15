@@ -26,8 +26,9 @@
     // Initialize Bootstrap tooltips
     $('[data-toggle="tooltip"]').tooltip();
 
-    // Initialize Chosen for select elements
-    $('select.form-control').chosen({
+    // Initialize Chosen for select elements (exclude the bulk-reassign select,
+    // which stays a native, auto-width select so its button sits beside it).
+    $('select.form-control').not('#bulk-new-status').chosen({
       allow_single_deselect: true,
       no_results_text: "{% trans 'No results match' %}",
       placeholder_text_single: "{% trans 'Select an option' %}",
@@ -136,6 +137,113 @@
 
     // Update subcategories when category changes (using Chosen event)
     $categorySelect.on('change', updateSubcategories);
+
+    // --- Bulk reassign status tool ---
+    var $bulkForm = $('#bulk-reassign-form');
+    if ($bulkForm.length) {
+      var totalFilterCount = {{ count|default:0 }};
+      // The whole-filter option is only offered when the filter is narrow enough
+      // (a status AND a subcategory selected), to avoid selecting every issue.
+      var filterIsNarrow = {{ filter_is_narrow|yesno:"true,false" }};
+      var $rowChecks = $('.bulk-issue-check');
+      var pageCount = $rowChecks.length;
+      var $checkAll = $('#bulk-check-all');
+      var $actionBar = $('#bulk-action-bar');
+      var $selectedCount = $('#bulk-selected-count');
+      var $filterBanner = $('#bulk-select-all-filter');
+      var $pageMsg = $('#bulk-page-msg');
+      var $selectFilterBtn = $('#bulk-select-filter-btn');
+      var $clearFilterBtn = $('#bulk-clear-filter-btn');
+      var $mode = $('#bulk-mode');
+
+      function selectedOnPage() {
+        return $rowChecks.filter(':checked').length;
+      }
+
+      function refreshBulkUI() {
+        var nSelected = selectedOnPage();
+        var wholeFilter = $mode.val() === 'filter';
+
+        if (wholeFilter) {
+          $selectedCount.text(totalFilterCount);
+          $actionBar.removeClass('d-none').addClass('d-flex');
+        } else if (nSelected > 0) {
+          $selectedCount.text(nSelected);
+          $actionBar.removeClass('d-none').addClass('d-flex');
+        } else {
+          $actionBar.addClass('d-none').removeClass('d-flex');
+        }
+
+        // Gmail-style "select the whole filter" banner: only when the page is
+        // fully selected, there are more results beyond this page, AND the
+        // filter is narrow enough (status + subcategory).
+        if (!wholeFilter && filterIsNarrow && nSelected === pageCount && pageCount > 0 && totalFilterCount > pageCount) {
+          $pageMsg.text(
+            "{% blocktrans %}All {{ page_obj.object_list|length }} issues on this page are selected.{% endblocktrans %}"
+          );
+          $filterBanner.removeClass('d-none');
+          $selectFilterBtn.removeClass('d-none');
+          $clearFilterBtn.addClass('d-none');
+        } else if (wholeFilter) {
+          $pageMsg.text(
+            "{% blocktrans %}All {{ count }} issues matching the filter are selected.{% endblocktrans %}"
+          );
+          $filterBanner.removeClass('d-none');
+          $selectFilterBtn.addClass('d-none');
+          $clearFilterBtn.removeClass('d-none');
+        } else {
+          $filterBanner.addClass('d-none');
+        }
+      }
+
+      function exitFilterMode() {
+        $mode.val('ids');
+        $rowChecks.prop('disabled', false);
+      }
+
+      $checkAll.on('change', function() {
+        if ($mode.val() === 'filter') { exitFilterMode(); }
+        $rowChecks.prop('checked', this.checked);
+        refreshBulkUI();
+      });
+
+      $rowChecks.on('change', function() {
+        if ($mode.val() === 'filter') { exitFilterMode(); }
+        $checkAll.prop('checked', selectedOnPage() === pageCount);
+        refreshBulkUI();
+      });
+
+      $selectFilterBtn.on('click', function() {
+        // Whole-filter mode: the server resolves the set from the filter
+        // querystring, so disable per-row checkboxes (they would be ignored).
+        $mode.val('filter');
+        $rowChecks.prop('checked', true).prop('disabled', true);
+        $checkAll.prop('checked', true);
+        refreshBulkUI();
+      });
+
+      $clearFilterBtn.on('click', function() {
+        exitFilterMode();
+        $rowChecks.prop('checked', false);
+        $checkAll.prop('checked', false);
+        refreshBulkUI();
+      });
+
+      $bulkForm.on('submit', function(e) {
+        if ($mode.val() !== 'filter' && selectedOnPage() === 0) {
+          e.preventDefault();
+          alert("{% trans 'Please select at least one issue.' %}");
+          return false;
+        }
+        if (!$('#bulk-new-status').val()) {
+          e.preventDefault();
+          alert("{% trans 'Please select a destination status.' %}");
+          return false;
+        }
+      });
+
+      refreshBulkUI();
+    }
   });
   </script>
 {% endblock %}
@@ -244,9 +352,46 @@
       </div>
       <div class="card">
         <div class="card-body">
+          {% if can_bulk_reassign %}
+            <form id="bulk-reassign-form" method="post" action="{% url 'bulk_reassign_issue_status' %}">
+              {% csrf_token %}
+              <input type="hidden" name="mode" id="bulk-mode" value="ids">
+              <input type="hidden" name="filter_querystring" value="{{ filter_querystring }}">
+              <div id="bulk-action-bar" class="alert alert-secondary d-none align-items-center" role="alert">
+                <span class="mr-3">
+                  <strong><span id="bulk-selected-count">0</span></strong> {% trans "selected" %}
+                </span>
+                <div class="form-inline">
+                  <label class="mr-2 mb-0" for="bulk-new-status">{% trans "Change status to" %}:</label>
+                  <select name="new_status" id="bulk-new-status" class="form-control mr-2 w-auto" required>
+                    <option value="">{% trans "Select a status" %}</option>
+                    {% for status in issue_statuses %}
+                      <option value="{{ status.id }}">{{ status.name }}</option>
+                    {% endfor %}
+                  </select>
+                  <button type="submit" class="btn btn-primary ml-2">
+                    <i class="fas fa-exchange-alt"></i> {% trans "Change status" %}
+                  </button>
+                </div>
+              </div>
+              <div id="bulk-select-all-filter" class="alert alert-primary d-none" role="alert">
+                <span id="bulk-page-msg" class="mr-2"></span>
+                <button type="button" id="bulk-select-filter-btn" class="btn btn-light btn-sm font-weight-bold">
+                  {% blocktrans %}Select all {{ count }} issues matching the filter{% endblocktrans %}
+                </button>
+                <button type="button" id="bulk-clear-filter-btn" class="btn btn-light btn-sm d-none">
+                  {% trans "Clear selection" %}
+                </button>
+              </div>
+          {% endif %}
           <table id="table1" class="table table-bordered table-striped">
             <thead>
               <tr role="row">
+                {% if can_bulk_reassign %}
+                  <th class="text-center">
+                    <input type="checkbox" id="bulk-check-all" title="{% trans 'Select visible issues' %}">
+                  </th>
+                {% endif %}
                 <th>{% trans "Id" %}</th>
                 <th>
                   <a href="?{% for key, value in request.GET.items %}{% if key != 'order_by' and key != 'p' %}{{ key }}={{ value }}&{% endif %}{% endfor %}order_by={% if request.GET.order_by == 'date' %}-date{% else %}date{% endif %}" class="text-dark">
@@ -276,6 +421,11 @@
             <tbody>
               {% for issue in page_obj %}
                 <tr role="row">
+                  {% if can_bulk_reassign %}
+                    <td>
+                      <input type="checkbox" class="bulk-issue-check" name="issue_ids" value="{{ issue.id }}">
+                    </td>
+                  {% endif %}
                   <td>
                     <a href='{% url "view_issue" issue.id %}'>{{ issue.id }}</a>
                   </td>
@@ -301,6 +451,9 @@
               {% endfor %}
             </tbody>
           </table>
+          {% if can_bulk_reassign %}
+            </form>
+          {% endif %}
         </div>
       </div>
     </div>

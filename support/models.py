@@ -1,5 +1,5 @@
 # coding=utf-8
-from datetime import date
+from datetime import date, timedelta
 
 from django.db import models
 from django.conf import settings
@@ -246,6 +246,39 @@ class Issue(models.Model):
             return None
         else:
             self.save()
+
+    def apply_status_change(self, new_status):
+        """
+        Change the issue's status applying the shared side-effect rules:
+
+        - If the new status is terminal (its slug is in ISSUE_STATUS_FINISHED_LIST)
+          and there is no closing_date yet, set closing_date to today.
+        - If the new status is NOT terminal and next_action_date is missing or in
+          the past, set next_action_date to tomorrow.
+
+        This does not save the instance; the caller is responsible for persisting
+        the changes (via save() or bulk_update). Returns the list of field names
+        that were modified, so callers using bulk_update know what to pass.
+        """
+        old_status = self.status
+        self.status = new_status
+
+        changed_fields = ["status"]
+        if old_status == new_status:
+            return changed_fields
+
+        terminal_statuses = getattr(settings, "ISSUE_STATUS_FINISHED_LIST", [])
+        today = date.today()
+        if new_status and new_status.slug in terminal_statuses:
+            if not self.closing_date:
+                self.closing_date = today
+                changed_fields.append("closing_date")
+        else:
+            if not self.next_action_date or self.next_action_date <= today:
+                self.next_action_date = today + timedelta(days=1)
+                changed_fields.append("next_action_date")
+
+        return changed_fields
 
     def activity_count(self):
         return self.activity_set.count()

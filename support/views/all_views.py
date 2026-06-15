@@ -663,6 +663,22 @@ class IssueListView(BreadcrumbsMixin, FilterView):
 
         context['category_subcategories_json'] = json.dumps(category_subcategories)
         context['count'] = self.get_filterset(self.filterset_class).qs.count()
+
+        # Bulk reassign tool: only managers/admins see and use it. The current
+        # filter querystring is forwarded so the "select the whole filter" mode
+        # can replay it server-side.
+        user = self.request.user
+        context['can_bulk_reassign'] = user.is_superuser or user.groups.filter(name="Admins").exists()
+        context['issue_statuses'] = IssueStatus.objects.all()
+        filter_params = self.request.GET.copy()
+        for key in ("p", "order_by", "export"):
+            filter_params.pop(key, None)
+        context['filter_querystring'] = filter_params.urlencode()
+        # Whole-filter selection is only offered when the filter is narrow enough
+        # (a status AND a subcategory), to avoid selecting every single issue.
+        context['filter_is_narrow'] = bool(self.request.GET.get("status")) and bool(
+            self.request.GET.get("sub_category")
+        )
         return context
 
     def get(self, request, *args, **kwargs):
@@ -1573,18 +1589,16 @@ class IssueDetailView(BreadcrumbsMixin, UpdateView):
         # Let the form save normally first
         response = super().form_valid(form)
 
-        # Check if status has changed
+        # Check if status has changed and apply the shared status-change side
+        # effects (next_action_date / closing_date). The instance is already
+        # saved with the new status, so we only persist the derived fields.
         new_status = self.object.status
         if old_status != new_status:
-            # Skip setting next_action_date if the new status is terminal
-            terminal_statuses = getattr(settings, 'ISSUE_STATUS_FINISHED_LIST', [])
-            if new_status.slug not in terminal_statuses:
-                # Check if next_action_date needs to be updated
-                today = date.today()
-                if not self.object.next_action_date or self.object.next_action_date <= today:
-                    # Set next_action_date to tomorrow
-                    self.object.next_action_date = today + timedelta(days=1)
-                    self.object.save(update_fields=['next_action_date'])
+            self.object.status = old_status  # apply_status_change re-applies it
+            changed_fields = self.object.apply_status_change(new_status)
+            extra_fields = [f for f in changed_fields if f != "status"]
+            if extra_fields:
+                self.object.save(update_fields=extra_fields)
 
         # Add success message for issue update
         message = _('Issue #{issue_id} updated for contact {contact_name}').format(

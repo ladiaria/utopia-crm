@@ -2,6 +2,15 @@
 
 ## v0.5.1
 
+## 2026-06-15 — t1154 Reasignación masiva de estado de incidencias
+
+- Desde el listado de incidencias ahora se puede cambiar el estado de varias incidencias a la vez: se seleccionan con casillas por fila y una casilla que marca todas las visibles de la página
+- Cuando la página está toda seleccionada, aparece la opción de extender la selección a todas las incidencias del filtro (estilo Gmail); esa opción solo se ofrece y solo se acepta cuando el filtro tiene un estado y una subcategoría elegidos, para evitar reasignar absolutamente todas las incidencias por accidente
+- Antes de aplicar, una pantalla de confirmación muestra cuántas incidencias se van a tocar, el desglose por estado actual y el rango de fechas (la más vieja y la más nueva)
+- La herramienta es solo para superusuarios y el grupo Admins; cada cambio queda registrado en el log de administración (estado anterior → nuevo)
+- No se requieren migraciones
+- **Author:** Tanya Tree + Claude Opus 4.8
+
 ## 2026-06-09 — t1151 La consola de vendedores siempre registra una actividad y agenda con la acción correcta
 
 - Al resolver un contacto nuevo desde la consola, ahora siempre se crea un registro de actividad — incluso para acciones como "No interesado", "No llamar" o "Logística", y aunque el campo de notas quede vacío. Antes estas acciones cerraban el estado de campaña sin dejar ningún registro de actividad
