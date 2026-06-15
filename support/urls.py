@@ -63,6 +63,7 @@ from support.views.all_views import (
     SellerAttendanceView,
 )
 from support.views.campaign_management import bulk_delete_campaign_status, campaign_management_menu
+from support.views.bulk_reassign_status import bulk_reassign_issue_status
 
 from django.urls import path, re_path
 
@@ -129,6 +130,7 @@ urlpatterns = [
     ),
     path("community_manager/overview/", CommunityManagerOverviewView.as_view(), name="community_manager_overview"),
     path("list_issues/", IssueListView.as_view(), name="list_issues"),
+    path("bulk_reassign_issue_status/", bulk_reassign_issue_status, name="bulk_reassign_issue_status"),
     path("invoicing_issues/", invoicing_issues, name="invoicing_issues"),
     path("debtor_contacts/", debtor_contacts, name="debtor_contacts"),
     path("new_issue/<int:contact_id>/<str:category>/", NewIssueView.as_view(), name="new_issue"),

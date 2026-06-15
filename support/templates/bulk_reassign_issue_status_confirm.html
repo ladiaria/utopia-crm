@@ -1,0 +1,81 @@
+{% extends "adminlte/base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Confirm bulk status reassign" %}{% endblock title %}
+
+{% block no_heading %}
+<h1>{% trans "Confirm bulk status reassign" %}</h1>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col-md-8">
+    <div class="card card-warning">
+      <div class="card-header">
+        <h3 class="card-title">
+          <i class="fas fa-exclamation-triangle"></i> {% trans "Please confirm this action" %}
+        </h3>
+      </div>
+      <div class="card-body">
+        <div class="alert alert-warning">
+          {% blocktrans %}
+            You are about to change the status of <strong>{{ count }}</strong> issue(s)
+            to <strong>{{ new_status }}</strong>.
+          {% endblocktrans %}
+          {% trans "This action cannot be undone automatically." %}
+        </div>
+
+        {% if oldest_date and newest_date %}
+          <p class="text-muted">
+            <i class="far fa-calendar-alt"></i>
+            {% blocktrans %}Issue dates range from <strong>{{ oldest_date }}</strong> (oldest) to <strong>{{ newest_date }}</strong> (newest).{% endblocktrans %}
+          </p>
+        {% endif %}
+
+        <h5>{% trans "Current status breakdown" %}</h5>
+        <table class="table table-bordered table-sm">
+          <thead>
+            <tr>
+              <th>{% trans "Current status" %}</th>
+              <th class="text-right">{% trans "Issues" %}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in origin_breakdown %}
+              <tr>
+                <td>{{ row.status__name|default:"—" }}</td>
+                <td class="text-right">{{ row.total }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot>
+            <tr>
+              <th>{% trans "Total" %} → {{ new_status }}</th>
+              <th class="text-right">{{ count }}</th>
+            </tr>
+          </tfoot>
+        </table>
+
+        <form method="post" action="{% url 'bulk_reassign_issue_status' %}">
+          {% csrf_token %}
+          <input type="hidden" name="confirmed" value="1">
+          <input type="hidden" name="mode" value="{{ mode }}">
+          <input type="hidden" name="new_status" value="{{ new_status_id }}">
+          <input type="hidden" name="filter_querystring" value="{{ filter_querystring }}">
+          {% if mode == "ids" %}
+            {% for issue_id in issue_ids %}
+              <input type="hidden" name="issue_ids" value="{{ issue_id }}">
+            {% endfor %}
+          {% endif %}
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-check"></i> {% trans "Confirm and apply" %}
+          </button>
+          <a href="{{ list_url }}" class="btn btn-default">
+            <i class="fas fa-times"></i> {% trans "Cancel" %}
+          </a>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
