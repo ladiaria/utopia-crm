@@ -6,6 +6,7 @@ from django.contrib import admin
 from core.models import Product
 
 from .models import (
+    Distributor,
     Edition,
     EditionRoute,
     EditionProduct,
@@ -18,6 +19,13 @@ from .models import (
     City,
     Message
 )
+
+
+@admin.register(Distributor)
+class DistributorAdmin(admin.ModelAdmin):
+    list_display = ('name', 'active', 'user')
+    list_filter = ('active',)
+    search_fields = ('name',)
 
 
 @admin.register(Edition)

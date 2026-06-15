@@ -14,6 +14,26 @@ from logistics.choices import RESORT_STATUS_CHOICES, MESSAGE_PLACES
 from core.models import SubscriptionProduct
 
 
+class Distributor(models.Model):
+    """
+    A distribuidor is a person who physically delivers products to subscribers on assigned routes.
+    """
+
+    name = models.CharField(max_length=80, verbose_name=_('Name'))
+    active = models.BooleanField(default=True, verbose_name=_('Active'))
+    user = models.OneToOneField(
+        'auth.User', blank=True, null=True, on_delete=models.SET_NULL, verbose_name=_('User')
+    )
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = _('distributor')
+        verbose_name_plural = _('distributors')
+        ordering = ('name',)
+
+
 class Route(models.Model):
     """
     A route is a territory which is used to deliver a product easily, allowing us to organize the delivery of the
@@ -23,7 +43,13 @@ class Route(models.Model):
     name = models.CharField(max_length=40, verbose_name=_('Name'), blank=True, null=True)
     state = models.CharField(max_length=20, verbose_name=_('State'), blank=True, null=True)
     description = models.TextField(blank=True, verbose_name=_('Description'))
-    distributor = models.CharField(max_length=40, blank=True, verbose_name=_('Distributor'))
+    distributor = models.ForeignKey(
+        Distributor,
+        blank=True,
+        null=True,
+        on_delete=models.SET_NULL,
+        verbose_name=_('Distributor'),
+    )
     phone = PhoneNumberField(blank=True, default="", verbose_name=_('Phone'))
     phone_extension = models.CharField(blank=True, default="", max_length=16, verbose_name=_('Phone extension'))
     mobile = PhoneNumberField(blank=True, default="", verbose_name=_('Mobile'))
