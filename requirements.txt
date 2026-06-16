@@ -29,6 +29,7 @@ PyPDF2
 python-dateutil
 reportlab
 requests
+sentry-sdk
 setuptools
 tqdm
 unidecode

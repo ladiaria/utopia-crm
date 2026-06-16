@@ -244,6 +244,9 @@ ALLOW_QUEUE_SUBSCRIPTIONS = False
 # MercadoPago integration (override this to True in your local_settings.py to enable)
 MERCADOPAGO_ENABLED = False
 
+# Recipients for MercadoPago new-subscription error reports (t1156). Set in local_settings.py.
+MERCADOPAGO_SUBSCRIPTION_ERRORS_RECIPIENTS = []
+
 # phonenumbers default region
 PHONENUMBER_DEFAULT_REGION = "UY"
 
@@ -255,6 +258,53 @@ WEB_CREATE_USER_ENABLED = None
 WEB_CREATE_USER_POST_WHITELIST = []
 
 GEOREF_SERVICES = False
+
+# Error reporting recipients. ADMINS receive uncaught-exception emails (Django default
+# behaviour via the mail_admins logging handler). Populate these in local_settings.py.
+ADMINS = []
+MANAGERS = ADMINS
+
+# Logging: keep Django's default behaviour (mail uncaught exceptions to ADMINS when not in
+# DEBUG) and additionally send everything to stderr/console so uWSGI captures it in its log.
+# No file handlers on purpose.
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "filters": {
+        "require_debug_false": {"()": "django.utils.log.RequireDebugFalse"},
+    },
+    "formatters": {
+        "verbose": {"format": "[%(asctime)s] %(levelname)s %(name)s: %(message)s"},
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "verbose",
+        },
+        "mail_admins": {
+            "level": "ERROR",
+            "filters": ["require_debug_false"],
+            "class": "django.utils.log.AdminEmailHandler",
+            "include_html": True,
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": "INFO",
+    },
+    "loggers": {
+        "django": {
+            "handlers": ["console", "mail_admins"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "django.request": {
+            "handlers": ["console", "mail_admins"],
+            "level": "ERROR",
+            "propagate": False,
+        },
+    },
+}
 
 # Import local settings if they exist
 # TODO: - improve hardcoded load of community settings (which are this community settings?)

@@ -2,6 +2,14 @@
 
 ## v0.5.1
 
+## 2026-06-16 — t1156 Infraestructura de reporte de errores: logging y soporte de Sentry
+
+- Se agregó configuración de logging que mantiene el comportamiento por defecto de Django: los errores no atrapados se mandan por email a los `ADMINS` y todo se escribe en la salida estándar para que el log de uWSGI lo capture. No se crean archivos de log en disco
+- Se incorporó `sentry-sdk` como dependencia y se documentó en el `local_settings_sample.py` cómo inicializar Sentry (solo en producción) para que los errores del CRM lleguen al panel de Sentry
+- Se documentaron las nuevas variables de configuración: `ADMINS`/`MANAGERS`, las de Sentry y la lista de destinatarios de errores de alta de suscripción por MercadoPago (la lógica que las usa vive en utopia-crm-ladiaria)
+- Deployment: requiere instalar la nueva dependencia (`pip install -r requirements.txt`); no se requieren migraciones. Sentry y los destinatarios se configuran en `local_settings.py` de cada ambiente
+- **Author:** Tanya Tree + Claude Opus 4.8
+
 ## 2026-06-15 — t1154 Reasignación masiva de estado de incidencias
 
 - Desde el listado de incidencias ahora se puede cambiar el estado de varias incidencias a la vez: se seleccionan con casillas por fila y una casilla que marca todas las visibles de la página
