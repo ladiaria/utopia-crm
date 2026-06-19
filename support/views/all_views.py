@@ -1,5 +1,6 @@
 import calendar
 import csv
+import io
 import json
 from datetime import date, datetime, timedelta
 
@@ -12,7 +13,20 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import PermissionRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.models import User
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
-from django.db.models import Count, Exists, Min, OuterRef, Q, Sum, Case, When, Prefetch
+from django.db.models import (
+    Count,
+    Exists,
+    IntegerField,
+    Min,
+    OuterRef,
+    Q,
+    Subquery,
+    Sum,
+    Case,
+    When,
+    Prefetch,
+)
+from django.db.models.functions import Coalesce
 from django.http import (
     HttpResponse,
     HttpResponseNotFound,
@@ -55,6 +69,7 @@ from core.utils import (
 from invoicing.models import Invoice
 from support.choices import ISSUE_ANSWERS, get_issue_categories
 from support.filters import (
+    AllCampaignsContactStatusFilter,
     CampaignFilter,
     ContactCampaignStatusFilter,
     InvoicingIssueFilter,
@@ -2252,12 +2267,23 @@ class CampaignStatisticsDetailView(BreadcrumbsMixin, UserPassesTestMixin, Filter
         filterset = self.filterset_class(self.request.GET, queryset=self.get_queryset())
         filtered_qs = filterset.qs
 
-        # Annotate activity count per contact-campaign
+        # Annotate activity count and real "times contacted" per contact-campaign.
+        # times_contacted_real counts completed calls (activity_type="C", status="C") for this
+        # campaign, mirroring the seller console calculation. The model field
+        # ContactCampaignStatus.times_contacted is never persisted, so we compute it on the fly.
         filtered_qs = filtered_qs.select_related('contact', 'seller', 'last_console_action').annotate(
             activity_count=Count(
                 'contact__activity',
                 filter=Q(contact__activity__campaign=self.campaign),
-            )
+            ),
+            times_contacted_real=Count(
+                'contact__activity',
+                filter=Q(
+                    contact__activity__campaign=self.campaign,
+                    contact__activity__activity_type="C",
+                    contact__activity__status="C",
+                ),
+            ),
         )
 
         # Build a dict of contact_id -> subscription data for this campaign.
@@ -2333,7 +2359,7 @@ class CampaignStatisticsDetailView(BreadcrumbsMixin, UserPassesTestMixin, Filter
                     ccs.date_assigned or "",
                     ccs.last_action_date or "",
                     ccs.date_created or "",
-                    ccs.times_contacted,
+                    ccs.times_contacted_real,
                     ccs.activity_count,
                     ccs.last_console_action.name if ccs.last_console_action else "",
                     sub_data.get("start_date", ""),
@@ -2492,6 +2518,188 @@ class CampaignStatisticsDetailView(BreadcrumbsMixin, UserPassesTestMixin, Filter
 
 # Backward compatibility
 campaign_statistics_detail = CampaignStatisticsDetailView.as_view()
+
+
+class AllCampaignsStatusExportView(BreadcrumbsMixin, UserPassesTestMixin, FilterView):
+    """
+    Export ContactCampaignStatus records across ALL campaigns to CSV, with the same filters as the
+    per-campaign statistics view.
+
+    By default nothing is returned: a date_assigned filter is required, otherwise the dataset would
+    span every campaign in history. Each row is a ContactCampaignStatus; contacts may repeat because
+    a contact can belong to several campaigns.
+    """
+
+    model = ContactCampaignStatus
+    filterset_class = AllCampaignsContactStatusFilter
+    template_name = "all_campaigns_status_export.html"
+    context_object_name = "contact_campaign_statuses"
+    paginate_by = 50
+
+    def breadcrumbs(self):
+        return [
+            {"label": _("Home"), "url": reverse("home")},
+            {"label": _("Campaign Management"), "url": reverse("campaign_management")},
+            {"label": _("Export all campaigns status"), "url": ""},
+        ]
+
+    def test_func(self):
+        """Only users in the Managers group or superusers can access this view."""
+        return self.request.user.groups.filter(name='Managers').exists() or self.request.user.is_superuser
+
+    @method_decorator(staff_member_required)
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
+
+    def has_date_filter(self):
+        """A date_assigned_min value is required before any data is shown or exported."""
+        return bool(self.request.GET.get("date_assigned_min"))
+
+    def get_queryset(self):
+        """Return all ContactCampaignStatus, but nothing until a date_assigned filter is set."""
+        if not self.has_date_filter():
+            return ContactCampaignStatus.objects.none()
+        return ContactCampaignStatus.objects.all()
+
+    def get(self, request, *args, **kwargs):
+        if request.GET.get("export") == "csv":
+            return self.export_csv()
+        return super().get(request, *args, **kwargs)
+
+    def export_csv(self):
+        """Stream the filtered ContactCampaignStatus records to CSV."""
+        filterset = self.filterset_class(self.request.GET, queryset=self.get_queryset())
+        filtered_qs = filterset.qs.select_related("contact", "seller", "last_console_action", "campaign")
+
+        # times_contacted_real: completed calls (activity_type="C", status="C") for this exact
+        # contact+campaign, mirroring the seller console. The model field times_contacted is never
+        # persisted, so we compute it on the fly. We use a correlated Subquery (not a Count with
+        # F('campaign')) so the campaign of each row is matched correctly across all campaigns.
+        times_contacted_sq = (
+            Activity.objects.filter(
+                contact=OuterRef("contact"),
+                campaign=OuterRef("campaign"),
+                activity_type="C",
+                status="C",
+            )
+            .order_by()
+            .values("contact")
+            .annotate(c=Count("id"))
+            .values("c")
+        )
+        # activity_count: every activity for this exact contact+campaign (no type/status filter),
+        # so the count belongs to this specific CCS and not to another campaign of the same contact.
+        activity_count_sq = (
+            Activity.objects.filter(
+                contact=OuterRef("contact"),
+                campaign=OuterRef("campaign"),
+            )
+            .order_by()
+            .values("contact")
+            .annotate(c=Count("id"))
+            .values("c")
+        )
+        filtered_qs = filtered_qs.annotate(
+            times_contacted_real=Coalesce(Subquery(times_contacted_sq, output_field=IntegerField()), 0),
+            activity_count=Coalesce(Subquery(activity_count_sq, output_field=IntegerField()), 0),
+        )
+
+        # Map (contact_id, campaign_id) -> {start_date, products} from SalesRecord.products (M2M),
+        # so we only count products actually sold in that campaign action. Built once before
+        # streaming, bounded by the contacts/campaigns of the filtered queryset.
+        pairs = list(filtered_qs.values_list("contact_id", "campaign_id"))
+        sales_records = (
+            SalesRecord.objects.filter(
+                subscription__contact_id__in=[c for c, _campaign in pairs],
+                campaign_id__in=[ca for _contact, ca in pairs],
+            )
+            .select_related("subscription")
+            .prefetch_related("products")
+            .order_by("date_time")
+        )
+        subscription_data = {}
+        for sr in sales_records:
+            key = (sr.subscription.contact_id, sr.campaign_id)
+            sold_products = [p.name for p in sr.products.all()]
+            if key in subscription_data:
+                subscription_data[key]["products_list"].extend(sold_products)
+            else:
+                subscription_data[key] = {
+                    "start_date": sr.subscription.start_date,
+                    "products_list": sold_products,
+                }
+        for data in subscription_data.values():
+            data["products"] = ", ".join(data["products_list"])
+
+        def generate_rows():
+            yield "﻿"  # UTF-8 BOM para Excel
+            buffer = io.StringIO()
+            writer = csv.writer(buffer)
+            writer.writerow(
+                [
+                    str(_("Contact ID")),
+                    str(_("Contact name")),
+                    str(_("Email")),
+                    str(_("Phone")),
+                    str(_("Mobile")),
+                    str(_("Campaign")),
+                    str(_("Status")),
+                    str(_("Campaign resolution")),
+                    str(_("Resolution reason")),
+                    str(_("Seller")),
+                    str(_("Date assigned")),
+                    str(_("Last action date")),
+                    str(_("Date created")),
+                    str(_("Times contacted")),
+                    str(_("Activity count")),
+                    str(_("Last console action")),
+                    str(_("Subscription start date")),
+                    str(_("Products sold")),
+                ]
+            )
+            yield buffer.getvalue()
+            buffer.seek(0)
+            buffer.truncate(0)
+
+            for ccs in filtered_qs.iterator(chunk_size=1000):
+                contact = ccs.contact
+                sub_data = subscription_data.get((ccs.contact_id, ccs.campaign_id), {})
+                writer.writerow(
+                    [
+                        contact.id,
+                        contact.get_full_name(),
+                        contact.email or "",
+                        str(contact.phone) if contact.phone else "",
+                        str(contact.mobile) if contact.mobile else "",
+                        ccs.campaign.name,
+                        ccs.get_status(),
+                        ccs.get_campaign_resolution(),
+                        ccs.get_resolution_reason(),
+                        ccs.seller.name if ccs.seller else "",
+                        ccs.date_assigned or "",
+                        ccs.last_action_date or "",
+                        ccs.date_created or "",
+                        ccs.times_contacted_real,
+                        ccs.activity_count,
+                        ccs.last_console_action.name if ccs.last_console_action else "",
+                        sub_data.get("start_date", ""),
+                        sub_data.get("products", ""),
+                    ]
+                )
+                yield buffer.getvalue()
+                buffer.seek(0)
+                buffer.truncate(0)
+
+        response = StreamingHttpResponse(generate_rows(), content_type="text/csv; charset=utf-8")
+        response["Content-Disposition"] = 'attachment; filename="all_campaigns_status_{}.csv"'.format(
+            date.today().strftime("%Y%m%d")
+        )
+        return response
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["has_date_filter"] = self.has_date_filter()
+        return context
 
 
 @staff_member_required

@@ -239,6 +239,19 @@ $(function() {
                         <div class="col-lg-4 col-6 campaign-card-col">
                             <div class="card">
                                 <div class="card-header">
+                                    <h3 class="card-title">{% trans "Export all campaigns status" %}</h3>
+                                </div>
+                                <div class="card-body">
+                                    <p>{% trans "Download a CSV of contact campaign statuses across all campaigns. Requires a date filter." %}</p>
+                                    <div class="text-right">
+                                        <a href="{% url 'all_campaigns_status_export' %}" class="btn btn-default">{% trans "Go to export" %}</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-4 col-6 campaign-card-col">
+                            <div class="card">
+                                <div class="card-header">
                                     <h3 class="card-title">{% trans "Sellers performance" %}</h3>
                                 </div>
                                 <div class="card-body">
