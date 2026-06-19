@@ -2,6 +2,14 @@
 
 ## v0.5.1
 
+## 2026-06-19 — feature/export-all-campaigns-status Exportación CSV de estado de contactos en todas las campañas
+
+- Se agregó una nueva herramienta en el menú de Gestión de Campañas para descargar por CSV el estado de los contactos (ContactCampaignStatus) de todas las campañas a la vez, con los mismos filtros que la vista de estadísticas por campaña. Cada fila es un estado de contacto, así que un mismo contacto puede aparecer varias veces si pertenece a más de una campaña
+- Por defecto la vista no devuelve nada: hay que elegir una "fecha de asignado (desde)" para que filtre y exporte, evitando descargar todo el histórico. El resto de los filtros (campaña, vendedor, estado) son opcionales y si no se elige campaña se incluyen todas
+- Se corrigió el cálculo de "Veces contactado", que venía mostrando 0 casi siempre porque leía un campo del modelo que nunca se persiste. Ahora se calcula contando las llamadas completadas registradas para ese contacto en esa campaña, tanto en la vista nueva como en la vista de estadísticas por campaña existente
+- Deployment: no se requieren migraciones
+- **Author:** Tanya Tree + Claude Opus 4.8
+
 ## 2026-06-16 — t1156 Infraestructura de reporte de errores: logging y soporte de Sentry
 
 - Se agregó configuración de logging que mantiene el comportamiento por defecto de Django: los errores no atrapados se mandan por email a los `ADMINS` y todo se escribe en la salida estándar para que el log de uWSGI lo capture. No se crean archivos de log en disco
