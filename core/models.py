@@ -1,5 +1,4 @@
 # coding=utf-8
-from importlib import import_module
 from pydoc import locate
 from datetime import date, datetime, timedelta
 from dateutil.relativedelta import relativedelta
@@ -956,33 +955,6 @@ class Contact(models.Model):
 
     def get_total_activities_count(self):
         return self.activity_set.count()
-
-    def offer_default_newsletters_condition(self):
-        result = settings.CORE_DEFAULT_NEWSLETTERS and self.email and not self.get_newsletters()
-        if result and getattr(settings, "CORE_DEFAULT_NEWSLETTERS_ACTIVE_SUBSCRIPTION_REQUIRED", False):
-            result = bool(self.get_active_subscriptions())
-        return result
-
-    def add_default_newsletters(self):
-        computed_slug_set, result = set(), []
-        for func_path, nl_slugs in list(settings.CORE_DEFAULT_NEWSLETTERS.items()):
-            add_nl_slugs = func_path is True
-            if not add_nl_slugs:
-                func_module, func_name = func_path.rsplit(".", 1)
-                func_def = getattr(import_module(func_module), func_name, None)
-                if func_def and func_def(self):
-                    add_nl_slugs = True
-            if add_nl_slugs:
-                computed_slug_set = computed_slug_set.union(set(nl_slugs))
-        for product_slug in computed_slug_set:
-            try:
-                self.add_newsletter_by_slug(product_slug)
-            except Exception as exc:
-                if settings.DEBUG:
-                    print(f"DEBUG: error in add_default_newsletters: {exc}")
-            else:
-                result.append(product_slug)
-        return result
 
     def do_not_call(self, phone_att="phone"):
         number = getattr(self, phone_att)

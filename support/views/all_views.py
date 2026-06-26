@@ -150,26 +150,6 @@ def edit_address(request, contact_id, address_id=None):
         )
 
 
-@login_required
-def default_newsletters_dialog(request, contact_id):
-    if request.method == "POST":
-        if request.POST.get("answer") == "yes":
-            try:
-                Contact.objects.get(id=contact_id).add_default_newsletters()
-            except Contact.DoesNotExist:
-                pass
-        return HttpResponseRedirect(request.POST.get("next_page"))
-    else:
-        try:
-            next_page = request.GET["next_page"]
-        except KeyError:
-            return HttpResponseNotFound()
-        else:
-            return render(
-                request, "default_newsletters_dialog.html", {"contact_id": contact_id, "next_page": next_page}
-            )
-
-
 class AssignCampaignsView(LoginRequiredMixin, BreadcrumbsMixin, TemplateView):
     """
     Allows a manager to add contacts to campaigns, using tags or a csv file.

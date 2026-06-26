@@ -183,8 +183,6 @@ def createinvoicefromweb(request):
             response_content["plan_id"] = [
                 (subscription.type, list(subscription.products.filter(type="S").values_list("slug", flat=True)))
             ]
-            if contact.offer_default_newsletters_condition():
-                response_content["nl_added"] = contact.add_default_newsletters()
         return HttpResponse(json.dumps(response_content), content_type="application/json")
     else:
         return error_handler("Could not bill", bill_exc)
