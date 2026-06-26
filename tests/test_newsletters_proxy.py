@@ -3,6 +3,7 @@
 Tests for the CRM proxy views that read/edit a contact's newsletters on demand against the CMS. The CMS
 call (cms_rest_api_request) is mocked, so these are pure unit tests of the proxy + partials.
 """
+import re
 from unittest.mock import patch
 
 from django.contrib.auth.models import User
@@ -12,6 +13,8 @@ from django.urls import reverse
 from tests.factories.core_factories import ContactFactory
 
 HX = {"HTTP_HX_REQUEST": "true"}
+# Matches the checkbox's standalone `checked` attribute, not the `this.checked` inside hx-vals.
+CHECKED_ATTR = re.compile(r"(?<![.\w])checked(?![.\w])")
 
 SAMPLE_READ = {
     "exists": True,
@@ -82,7 +85,7 @@ class NewslettersProxyTestCase(TestCase):
         url = reverse("contact_newsletter_toggle", args=[self.contact.id])
         resp = self.client.post(
             url,
-            {"nl_type": "publication", "slug": "tarde", "name": "La tarde", "subscribed": "on"},
+            {"nl_type": "publication", "nl_slug": "tarde", "nl_name": "La tarde", "nl_subscribed": "1"},
             **HX,
         )
         self.assertEqual(resp.status_code, 200)
@@ -92,7 +95,7 @@ class NewslettersProxyTestCase(TestCase):
         self.assertEqual(sent["action"], "subscribe")
         self.assertEqual(sent["nl_type"], "publication")
         self.assertEqual(sent["slug"], "tarde")
-        self.assertIn("checked", resp.content.decode())
+        self.assertTrue(CHECKED_ATTR.search(resp.content.decode()))
 
     @patch("support.views.newsletters.cms_rest_api_request")
     def test_toggle_unsubscribe_when_checkbox_absent(self, mock_req):
@@ -100,23 +103,23 @@ class NewslettersProxyTestCase(TestCase):
         url = reverse("contact_newsletter_toggle", args=[self.contact.id])
         resp = self.client.post(
             url,
-            {"nl_type": "category", "slug": "salto", "name": "Salto"},  # no "subscribed" -> unchecked
+            {"nl_type": "category", "nl_slug": "salto", "nl_name": "Salto"},  # no nl_subscribed -> unchecked
             **HX,
         )
         _args, _kwargs = mock_req.call_args
         self.assertEqual(_args[2]["action"], "unsubscribe")
-        self.assertNotIn("checked", resp.content.decode())
+        self.assertFalse(CHECKED_ATTR.search(resp.content.decode()))
 
     @patch("support.views.newsletters.cms_rest_api_request", return_value="ERROR")
     def test_toggle_cms_error_shows_error_and_reverts(self, _mock):
         url = reverse("contact_newsletter_toggle", args=[self.contact.id])
         resp = self.client.post(
             url,
-            {"nl_type": "publication", "slug": "tarde", "name": "La tarde", "subscribed": "on"},
+            {"nl_type": "publication", "nl_slug": "tarde", "nl_name": "La tarde", "nl_subscribed": "1"},
             **HX,
         )
         self.assertEqual(resp.status_code, 200)
         content = resp.content.decode()
         self.assertIn("No se guardó", content)
         # tried to subscribe but failed -> rendered unchecked (reverted)
-        self.assertNotIn("checked", content)
+        self.assertFalse(CHECKED_ATTR.search(content))

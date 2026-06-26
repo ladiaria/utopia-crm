@@ -74,11 +74,12 @@ def contact_newsletter_toggle(request, contact_id):
     if request.method != "POST" or request.headers.get("HX-Request") != "true":
         return HttpResponseNotFound()
     contact = get_object_or_404(Contact, pk=contact_id)
+    # Namespaced keys (nl_*) sent via hx-vals, so they never collide with the contact form fields (e.g.
+    # the contact's own "name") that may be serialized along with the request.
     nl_type = request.POST.get("nl_type")
-    slug = request.POST.get("slug")
-    name = request.POST.get("name", slug)
-    # An htmx checkbox only sends its value when checked, so presence means "subscribe".
-    action = "subscribe" if request.POST.get("subscribed") else "unsubscribe"
+    slug = request.POST.get("nl_slug")
+    name = request.POST.get("nl_name") or slug
+    action = "subscribe" if request.POST.get("nl_subscribed") else "unsubscribe"
 
     result = cms_rest_api_request(
         "newsletter_update",
