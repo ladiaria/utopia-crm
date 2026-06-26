@@ -3388,6 +3388,11 @@ def update_web_user_newsletters(contact):
     Update web user newsletters when they are edited
     @params contact: Contact instance
     """
+    # When the CMS is the source of truth (newsletters edited on demand against it), this destructive
+    # full-photo push must stay off: otherwise a Contact save would .set() the CMS to the local mirror and
+    # wipe newsletters the CRM doesn't know about. A single guard covers both signal callers.
+    if not getattr(settings, "WEB_UPDATE_USER_NEWSLETTERS_ENABLED", True):
+        return
     try:
         newsletters_slugs = list(contact.get_newsletter_products().values_list('slug', flat=True))
         update_web_user(contact, contact.email, json.dumps(newsletters_slugs))

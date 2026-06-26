@@ -1,0 +1,22 @@
+{% load i18n %}
+<div class="nl-item custom-control custom-checkbox mb-1" id="nl-{{ nl_type }}-{{ item.slug }}">
+  <input type="hidden" name="nl_type" value="{{ nl_type }}">
+  <input type="hidden" name="slug" value="{{ item.slug }}">
+  <input type="hidden" name="name" value="{{ item.name }}">
+  <input type="checkbox"
+         class="custom-control-input"
+         id="nlchk-{{ nl_type }}-{{ item.slug }}"
+         name="subscribed"
+         {% if item.subscribed %}checked{% endif %}
+         hx-post="{% url 'contact_newsletter_toggle' contact.id %}"
+         hx-trigger="change"
+         hx-target="#nl-{{ nl_type }}-{{ item.slug }}"
+         hx-swap="outerHTML"
+         hx-include="closest .nl-item">
+  <label class="custom-control-label" for="nlchk-{{ nl_type }}-{{ item.slug }}">{{ item.name }}</label>
+  {% if error %}
+    <span class="text-danger ml-2" title="{% trans "No se pudo guardar en el CMS" %}">
+      <i class="fas fa-exclamation-triangle"></i> {% trans "No se guardó" %}
+    </span>
+  {% endif %}
+</div>

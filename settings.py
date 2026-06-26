@@ -254,8 +254,14 @@ PHONENUMBER_DEFAULT_REGION = "UY"
 WEB_UPDATE_USER_URI = None
 WEB_DELETE_USER_URI = None
 WEB_EMAIL_CHECK_URI = None
+# Newsletter read/delta endpoints on the CMS (CRM reads/edits newsletters on demand from the CMS).
+WEB_NEWSLETTERS_READ_URI = None
+WEB_NEWSLETTERS_UPDATE_URI = None
 WEB_CREATE_USER_ENABLED = None
 WEB_CREATE_USER_POST_WHITELIST = []
+# When True (the new model), Contact saves no longer push the local newsletter mirror to the CMS with a
+# destructive .set(); the CMS is the source of truth and the CRM edits newsletters on demand by delta.
+WEB_UPDATE_USER_NEWSLETTERS_ENABLED = True
 
 GEOREF_SERVICES = False
 
@@ -326,6 +332,8 @@ if LDSOCIAL_URL:
     WEB_UPDATE_USER_URI = WEB_UPDATE_USER_URI or (LDSOCIAL_URL + 'usuarios/fromcrm')
     WEB_DELETE_USER_URI = WEB_DELETE_USER_URI or (LDSOCIAL_URL + 'usuarios/deletefromcrm')
     WEB_EMAIL_CHECK_URI = WEB_EMAIL_CHECK_URI or (LDSOCIAL_URL + 'usuarios/api/email_check/')
+    WEB_NEWSLETTERS_READ_URI = WEB_NEWSLETTERS_READ_URI or (LDSOCIAL_URL + 'usuarios/api/newsletters/')
+    WEB_NEWSLETTERS_UPDATE_URI = WEB_NEWSLETTERS_UPDATE_URI or (LDSOCIAL_URL + 'usuarios/api/newsletter_update/')
     LDSOCIAL_API_URI = f"{LDSOCIAL_URL}api/"
 
 if WEB_CREATE_USER_ENABLED is None:
@@ -333,6 +341,13 @@ if WEB_CREATE_USER_ENABLED is None:
 
 if not WEB_CREATE_USER_ENABLED and WEB_EMAIL_CHECK_URI not in WEB_CREATE_USER_POST_WHITELIST:
     WEB_CREATE_USER_POST_WHITELIST.append(WEB_EMAIL_CHECK_URI)
+
+# Newsletter read/delta are POSTs that must work regardless of WEB_CREATE_USER_ENABLED (they don't create
+# web users); whitelist them so cms_rest_api_request lets them through.
+if not WEB_CREATE_USER_ENABLED:
+    for _nl_uri in (WEB_NEWSLETTERS_READ_URI, WEB_NEWSLETTERS_UPDATE_URI):
+        if _nl_uri and _nl_uri not in WEB_CREATE_USER_POST_WHITELIST:
+            WEB_CREATE_USER_POST_WHITELIST.append(_nl_uri)
 
 if ENV_HTTP_BASIC_AUTH and not locals().get("API_KEY_CUSTOM_HEADER"):
     # by default, this variable is not defined, thats why we use locals() instead of set a "neutral" value
