@@ -80,6 +80,8 @@ def contact_newsletter_toggle(request, contact_id):
     slug = request.POST.get("nl_slug")
     name = request.POST.get("nl_name") or slug
     action = "subscribe" if request.POST.get("nl_subscribed") else "unsubscribe"
+    if settings.DEBUG:
+        print(f"DEBUG: newsletter_toggle contact={contact_id} {action} {nl_type}:{slug}")
 
     result = cms_rest_api_request(
         "newsletter_update",
@@ -94,6 +96,8 @@ def contact_newsletter_toggle(request, contact_id):
         method="POST",
     )
     ok = isinstance(result, dict) and result.get("exists")
+    if settings.DEBUG:
+        print(f"DEBUG: newsletter_toggle result ok={ok} cms={result}")
     subscribed = bool(result.get("subscribed")) if ok else (action != "subscribe")
     item = {"slug": slug, "name": name, "subscribed": subscribed}
     return render(

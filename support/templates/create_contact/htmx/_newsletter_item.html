@@ -1,23 +1,21 @@
 {% load i18n %}
 {% comment %}
-  This partial lives inside the contact edit <form>. It must NOT contain any submittable form fields
-  (no name="" inputs / no hidden inputs): otherwise they get serialized with the contact form and a
-  newsletter name would overwrite the contact's own "name". The newsletter data travels only with the
-  htmx toggle request via hx-vals (namespaced nl_* keys), read from data-* attributes.
+  This partial lives inside the contact edit <form>. It must NOT contain submittable form fields (no
+  name="" inputs / no hidden inputs): otherwise they get serialized with the contact form and a
+  newsletter name would overwrite the contact's own "name". The toggle data travels only with the htmx
+  request via hx-vals (namespaced nl_* keys). The checkbox state is read by element id at request time
+  (htmx evaluates hx-vals js without a usable `this`, so we reference the checkbox explicitly).
 {% endcomment %}
 <div class="nl-item custom-control custom-checkbox mb-1" id="nl-{{ nl_type }}-{{ item.slug }}">
   <input type="checkbox"
          class="custom-control-input"
          id="nlchk-{{ nl_type }}-{{ item.slug }}"
          {% if item.subscribed %}checked{% endif %}
-         data-nl-type="{{ nl_type }}"
-         data-nl-slug="{{ item.slug }}"
-         data-nl-name="{{ item.name }}"
          hx-post="{% url 'contact_newsletter_toggle' contact.id %}"
          hx-trigger="change"
          hx-target="#nl-{{ nl_type }}-{{ item.slug }}"
          hx-swap="outerHTML"
-         hx-vals='js:{nl_type: this.dataset.nlType, nl_slug: this.dataset.nlSlug, nl_name: this.dataset.nlName, nl_subscribed: this.checked ? "1" : ""}'>
+         hx-vals='js:{nl_type: "{{ nl_type }}", nl_slug: "{{ item.slug }}", nl_name: "{{ item.name|escapejs }}", nl_subscribed: document.getElementById("nlchk-{{ nl_type }}-{{ item.slug }}").checked ? "1" : ""}'>
   <label class="custom-control-label" for="nlchk-{{ nl_type }}-{{ item.slug }}">{{ item.name }}</label>
   {% if error %}
     <span class="text-danger ml-2" title="{% trans 'No se pudo guardar en el CMS' %}">
