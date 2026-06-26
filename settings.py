@@ -224,13 +224,6 @@ LDSOCIAL_URL = ""  # The SITE_URL setting of the "associated" utopia-cms deplyme
 LDSOCIAL_API_KEY = ""  # A key generated in the CMS using "rest_framework_api_key" app
 WEB_UPDATE_HTTP_BASIC_AUTH = None  # Override to tuple (user, pass) if the CMS is restricted using basic auth
 ENV_HTTP_BASIC_AUTH = False  # Override to True if this CRM deployment is restricted using basic auth
-# Subscriptions to publication and area newsletters sync (to find usage, do not grep literally, use "_MEWSLETTER_MAP")
-WEB_UPDATE_NEWSLETTER_MAP = {
-    # Override to sync CMS Publication newsletters subscriptions, format: key: CMS Publication.id, value: product.slug
-}
-WEB_UPDATE_AREA_NEWSLETTER_MAP = {
-    # Override to sync CMS Area newsletters subscriptions, format: key: CMS Category.id, value: product.slug
-}
 # If True, allows queuing subscriptions to start after the active one ends. This is useful for
 # example to queue a subscription to start after the current one ends, in the case the customer
 # wants to pay for a new subscription before the current one ends.

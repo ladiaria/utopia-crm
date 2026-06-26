@@ -186,8 +186,8 @@ class TestCoreContact(TestCase):
     def test9_update_contact(self):
         """
         - Email change will not raise any error.
-        - Adding or removing a newsletter whose pub_id is not defined in settings will not raise any error.
-        - TODO: Adding correct NL should impact in the associated CMS (use CMS's /api/subscribers/?contact_id=XX)
+        - The CMS->CRM newsletter push is no longer handled (CMS is the source of truth): update_customer
+          ignores newsletter fields and must not raise.
         """
         with override_settings(WEB_CREATE_USER_ENABLED=False):
             email = f"contact{rand_chars()}@google.com"
@@ -203,7 +203,7 @@ class TestCoreContact(TestCase):
         # change again, if not, next run of this test will fail
         contact.email = email
         contact.save()
-        non_existing_key = max(settings.WEB_UPDATE_NEWSLETTER_MAP.keys() or [0]) + 1
+        non_existing_key = 999999
         try:
             update_customer(contact, None, 'newsletters', json.dumps([non_existing_key]))
         except Exception:

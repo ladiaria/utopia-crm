@@ -3268,26 +3268,9 @@ def update_customer(cust, newmail, field, value):
         cust.updatefromweb = True
     if field:
         if field in ("newsletters", "area_newsletters", "newsletters_remove", "area_newsletters_remove"):
-            map_setting = getattr(
-                settings, "WEB_UPDATE_%sNEWSLETTER_MAP" % ("AREA_" if field.startswith("area_") else "")
-            )
-            if field in ("newsletters", "area_newsletters"):
-                if not value:
-                    # delete only those that are mapped (newsletters only)
-                    cust.subscriptionnewsletter_set.filter(product__slug__in=list(map_setting.values())).delete()
-                else:
-                    for obj_id in json.loads(value):
-                        try:
-                            cust.add_newsletter_by_slug(map_setting[obj_id])
-                        except KeyError:
-                            pass
-            else:
-                # special call for only remove one newsletter. TODO: recheck this assumption
-                obj_id = json.loads(value)[0]
-                try:
-                    cust.subscriptionnewsletter_set.filter(product__slug=map_setting[obj_id]).delete()
-                except (KeyError, SubscriptionNewsletter.DoesNotExist):
-                    pass
+            # Newsletters are no longer mirrored in the CRM: the CMS is the source of truth and its
+            # CMS->CRM newsletter push is disabled (CRM_UPDATE_NEWSLETTERS_ENABLED). These fields are ignored.
+            pass
         else:
             mfield = getattr(settings, "WEB_UPDATE_SUBSCRIBER_MAP", {}).get(field, None)
             if mfield:
