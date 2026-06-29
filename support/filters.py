@@ -271,6 +271,41 @@ class ContactCampaignStatusFilter(django_filters.FilterSet):
         fields = ["seller", "status"]
 
 
+class AllCampaignsContactStatusFilter(django_filters.FilterSet):
+    """
+    Same filters as ContactCampaignStatusFilter but across all campaigns, with an optional campaign
+    filter to narrow down a subset. The "empty by default" behaviour (requiring a date) is enforced
+    in the view, not here, so the filter stays reusable.
+    """
+
+    campaign = django_filters.ModelChoiceFilter(queryset=Campaign.objects.all().order_by('-id'))
+    seller = django_filters.ModelChoiceFilter(queryset=Seller.objects.filter(internal=True).order_by('name'))
+    date_assigned_min = django_filters.DateFilter(
+        field_name='date_assigned',
+        lookup_expr='gte',
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+    )
+    date_assigned_max = django_filters.DateFilter(
+        field_name='date_assigned',
+        lookup_expr='lte',
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+    )
+    last_action_date_min = django_filters.DateFilter(
+        field_name='last_action_date',
+        lookup_expr='gte',
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+    )
+    last_action_date_max = django_filters.DateFilter(
+        field_name='last_action_date',
+        lookup_expr='lte',
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+    )
+
+    class Meta:
+        model = ContactCampaignStatus
+        fields = ["campaign", "seller", "status"]
+
+
 class UnsubscribedSubscriptionsByEndDateFilter(django_filters.FilterSet):
     date = django_filters.ChoiceFilter(choices=CREATION_CHOICES, method='filter_by_date')
     date_gte = django_filters.DateFilter(

@@ -5,6 +5,7 @@
 {% url 'assign_to_seller' as assign_to_seller %}
 {% url 'core_campaign_add' as core_campaign_add %}
 {% url 'campaign_statistics_list' as campaign_statistics_list %}
+{% url 'all_campaigns_status_export' as all_campaigns_status_export %}
 {% url 'seller_performance_by_time' as seller_performance_by_time %}
 {% url 'release_seller_contacts' as release_seller_contacts %}
 {% url 'upload_do_not_call_numbers' as upload_do_not_call_numbers %}
@@ -68,6 +69,13 @@
          class="nav-link {% if request.path == campaign_statistics_list %}active{% endif %}">
         <i class="nav-icon fas fa-chart-bar"></i>
         <p>{% trans "Campaign statistics" %}</p>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a href="{{ all_campaigns_status_export }}"
+         class="nav-link {% if request.path == all_campaigns_status_export %}active{% endif %}">
+        <i class="nav-icon fas fa-file-csv"></i>
+        <p>{% trans "Export all campaigns status" %}</p>
       </a>
     </li>
     <li class="nav-item">

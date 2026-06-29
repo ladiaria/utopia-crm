@@ -1,5 +1,4 @@
 # coding=utf-8
-from importlib import import_module
 from pydoc import locate
 from datetime import date, datetime, timedelta
 from dateutil.relativedelta import relativedelta
@@ -956,33 +955,6 @@ class Contact(models.Model):
 
     def get_total_activities_count(self):
         return self.activity_set.count()
-
-    def offer_default_newsletters_condition(self):
-        result = settings.CORE_DEFAULT_NEWSLETTERS and self.email and not self.get_newsletters()
-        if result and getattr(settings, "CORE_DEFAULT_NEWSLETTERS_ACTIVE_SUBSCRIPTION_REQUIRED", False):
-            result = bool(self.get_active_subscriptions())
-        return result
-
-    def add_default_newsletters(self):
-        computed_slug_set, result = set(), []
-        for func_path, nl_slugs in list(settings.CORE_DEFAULT_NEWSLETTERS.items()):
-            add_nl_slugs = func_path is True
-            if not add_nl_slugs:
-                func_module, func_name = func_path.rsplit(".", 1)
-                func_def = getattr(import_module(func_module), func_name, None)
-                if func_def and func_def(self):
-                    add_nl_slugs = True
-            if add_nl_slugs:
-                computed_slug_set = computed_slug_set.union(set(nl_slugs))
-        for product_slug in computed_slug_set:
-            try:
-                self.add_newsletter_by_slug(product_slug)
-            except Exception as exc:
-                if settings.DEBUG:
-                    print(f"DEBUG: error in add_default_newsletters: {exc}")
-            else:
-                result.append(product_slug)
-        return result
 
     def do_not_call(self, phone_att="phone"):
         number = getattr(self, phone_att)
@@ -3295,26 +3267,9 @@ def update_customer(cust, newmail, field, value):
         cust.updatefromweb = True
     if field:
         if field in ("newsletters", "area_newsletters", "newsletters_remove", "area_newsletters_remove"):
-            map_setting = getattr(
-                settings, "WEB_UPDATE_%sNEWSLETTER_MAP" % ("AREA_" if field.startswith("area_") else "")
-            )
-            if field in ("newsletters", "area_newsletters"):
-                if not value:
-                    # delete only those that are mapped (newsletters only)
-                    cust.subscriptionnewsletter_set.filter(product__slug__in=list(map_setting.values())).delete()
-                else:
-                    for obj_id in json.loads(value):
-                        try:
-                            cust.add_newsletter_by_slug(map_setting[obj_id])
-                        except KeyError:
-                            pass
-            else:
-                # special call for only remove one newsletter. TODO: recheck this assumption
-                obj_id = json.loads(value)[0]
-                try:
-                    cust.subscriptionnewsletter_set.filter(product__slug=map_setting[obj_id]).delete()
-                except (KeyError, SubscriptionNewsletter.DoesNotExist):
-                    pass
+            # Newsletters are no longer mirrored in the CRM: the CMS is the source of truth and its
+            # CMS->CRM newsletter push is disabled (CRM_UPDATE_NEWSLETTERS_ENABLED). These fields are ignored.
+            pass
         else:
             mfield = getattr(settings, "WEB_UPDATE_SUBSCRIBER_MAP", {}).get(field, None)
             if mfield:
@@ -3387,6 +3342,11 @@ def update_web_user_newsletters(contact):
     Update web user newsletters when they are edited
     @params contact: Contact instance
     """
+    # When the CMS is the source of truth (newsletters edited on demand against it), this destructive
+    # full-photo push must stay off: otherwise a Contact save would .set() the CMS to the local mirror and
+    # wipe newsletters the CRM doesn't know about. A single guard covers both signal callers.
+    if not getattr(settings, "WEB_UPDATE_USER_NEWSLETTERS_ENABLED", True):
+        return
     try:
         newsletters_slugs = list(contact.get_newsletter_products().values_list('slug', flat=True))
         update_web_user(contact, contact.email, json.dumps(newsletters_slugs))

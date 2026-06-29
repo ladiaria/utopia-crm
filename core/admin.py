@@ -11,7 +11,7 @@ from django.contrib.admin import SimpleListFilter
 from django.utils.translation import gettext_lazy as _
 from django.contrib import admin
 from django.contrib.messages import constants as messages
-from django.urls import resolve, reverse
+from django.urls import resolve
 from django.forms import ValidationError
 
 from community.models import ProductParticipation, Supporter
@@ -149,26 +149,6 @@ class SubscriptionProductInline(admin.TabularInline):
         return field
 
 
-def response_add_or_change_next_url(request, obj):
-    """Returns the next_url to be used in the response_add and response_change method redefinitions"""
-    opts = obj._meta
-    reverse_begin = "admin:%s_%s_" % (opts.app_label, opts.model_name)
-    if "_continue" in request.POST:
-        return reverse(reverse_begin + "change", args=(obj.id,))
-    return reverse(reverse_begin + ("add" if "_addanother" in request.POST else "changelist"))
-
-
-def default_newsletters_dialog_redirect(request, obj, contact_id_attr_name):
-    """Returns the redirect to be used for the default newsletters dialog page"""
-    return HttpResponseRedirect(
-        "%s?next_page=%s"
-        % (
-            reverse("default_newsletters_dialog", kwargs={"contact_id": getattr(obj, contact_id_attr_name)}),
-            response_add_or_change_next_url(request, obj),
-        )
-    )
-
-
 def contact_is_safe_to_delete(contact, ignore_movable=False, print_unsafe=False):
     if contact.has_active_subscription():
         if print_unsafe:
@@ -286,16 +266,6 @@ class SubscriptionAdmin(SimpleHistoryAdmin):
             readonly_fields += ("contact",)
         return readonly_fields
 
-    def response_add(self, request, obj, post_url_continue=None):
-        if obj.contact.offer_default_newsletters_condition():
-            return default_newsletters_dialog_redirect(request, obj, "contact_id")
-        return super(SubscriptionAdmin, self).response_add(request, obj, post_url_continue)
-
-    def response_change(self, request, obj):
-        if obj.contact.offer_default_newsletters_condition():
-            return default_newsletters_dialog_redirect(request, obj, "contact_id")
-        return super(SubscriptionAdmin, self).response_change(request, obj)
-
     class Media:
         pass
 
@@ -373,16 +343,6 @@ class ContactAdmin(SimpleHistoryAdmin):
 
     def tag_list(self, obj):
         return ", ".join(o.name for o in obj.tags.all())
-
-    def response_add(self, request, obj, post_url_continue=None):
-        if obj.offer_default_newsletters_condition():
-            return default_newsletters_dialog_redirect(request, obj, "id")
-        return super(ContactAdmin, self).response_add(request, obj, post_url_continue)
-
-    def response_change(self, request, obj):
-        if obj.offer_default_newsletters_condition():
-            return default_newsletters_dialog_redirect(request, obj, "id")
-        return super(ContactAdmin, self).response_change(request, obj)
 
     def change_view(self, request, object_id, form_url='', extra_context=None):
         result = None
