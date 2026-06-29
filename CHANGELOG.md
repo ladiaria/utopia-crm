@@ -2,6 +2,15 @@
 
 ## v0.5.1
 
+## 2026-06-29 — desmapeo-newsletters (t1158) El CMS pasa a ser la fuente de verdad de las newsletters
+
+- El CRM dejó de mantener su espejo de newsletters como verdad: ahora las lee y edita a demanda contra el CMS. En la ficha de contacto, en el formulario de edición y en la consola de vendedores las newsletters se cargan por AJAX desde el CMS, y los cambios se guardan uno por uno (alta/baja puntual) directo en el CMS, sin pisar el resto
+- Se apagó el envío destructivo de newsletters del CRM al CMS (el que en cada guardado de contacto reemplazaba la lista completa). Queda detrás de una opción de configuración para poder prenderlo/apagarlo
+- Se eliminó el diálogo de "newsletters por defecto" al crear suscripciones: ahora las aplica el CMS al crear la cuenta. Se retiraron además los mapeos de newsletters que ya no se usan
+- El filtro de contactos por newsletter queda temporalmente sin datos nuevos (sigue leyendo el espejo viejo) hasta un proceso futuro de repoblado; el espejo no se borró
+- Deployment: no se requieren migraciones. Hay que desplegar en la misma ventana los cambios del CMS y poner `WEB_UPDATE_USER_NEWSLETTERS_ENABLED = False` en producción (ver el pre-deploy checklist del frente)
+- **Author:** Tanya Tree + Claude Opus 4.8
+
 ## 2026-06-19 — feature/export-all-campaigns-status Exportación CSV de estado de contactos en todas las campañas
 
 - Se agregó una nueva herramienta en el menú de Gestión de Campañas para descargar por CSV el estado de los contactos (ContactCampaignStatus) de todas las campañas a la vez, con los mismos filtros que la vista de estadísticas por campaña. Cada fila es un estado de contacto, así que un mismo contacto puede aparecer varias veces si pertenece a más de una campaña
