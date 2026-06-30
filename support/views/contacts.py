@@ -8,7 +8,6 @@ from django.db import transaction
 from django.db.models import Q, Prefetch, Case, When, Value, BooleanField, Count, Exists, OuterRef
 from django.contrib.auth.models import Group
 from django.views.generic import UpdateView, CreateView, DetailView, ListView, FormView
-from django.forms import ModelMultipleChoiceField, CheckboxSelectMultiple
 from django.utils.decorators import method_decorator
 from django.utils.translation import gettext_lazy as _
 from django.contrib.admin.views.decorators import staff_member_required
@@ -323,7 +322,6 @@ class ContactDetailView(BreadcrumbsMixin, DetailView):
     def get_all_querysets_and_lists(self):
         addresses = self.object.addresses.all().prefetch_related("state", "country")
         activities = self.object.activity_set.all().select_related("seller", "campaign").order_by("-datetime", "id")[:5]
-        newsletters = self.object.get_newsletters()
         all_issues = self.object.issue_set.all().order_by("-date", "id").select_related("status", "sub_category")
         last_issues = all_issues[:5]
         last_paid_invoice = self.object.get_last_paid_invoice()
@@ -333,7 +331,6 @@ class ContactDetailView(BreadcrumbsMixin, DetailView):
         return {
             "addresses": addresses,
             "activities": activities,
-            "newsletters": newsletters,
             "all_issues": all_issues,
             "last_issues": last_issues,
             "last_paid_invoice": last_paid_invoice,
@@ -429,39 +426,11 @@ class ContactDetailView(BreadcrumbsMixin, DetailView):
 
 
 class ContactAdminFormWithNewsletters(ContactUpdateForm):
-    newsletters = ModelMultipleChoiceField(
-        queryset=Product.objects.filter(type="N", active=True),
-        widget=CheckboxSelectMultiple(attrs={'class': 'form-check', 'style': 'float:left;margin-right:7px'}),
-        required=False,
-    )
-
-    def __init__(self, *args, request=None, **kwargs):
-        contact = kwargs.get('instance')
-        super().__init__(*args, **kwargs)
-        if contact:
-            self.fields['newsletters'].initial = contact.get_newsletter_products()
-
-    def save(self, commit=True):
-        contact = super().save(commit=False)
-        if commit:
-            contact.save()
-        # Handle newsletters explicitly
-        selected_newsletters = self.cleaned_data.get('newsletters')
-        if contact.pk:  # Ensure the contact is saved before modifying M2M
-
-            all_newsletters = self.fields['newsletters'].queryset
-            current_newsletters = self.fields['newsletters'].initial
-
-            # Add new subscriptions for newsletters
-            for newsletter in all_newsletters:
-                if newsletter not in current_newsletters and newsletter in selected_newsletters:
-                    contact.add_newsletter(newsletter.id)
-                elif newsletter in current_newsletters and newsletter not in selected_newsletters:
-                    contact.remove_newsletter(newsletter.id)
-        return contact
-
-    class Media:
-        css = {"all": ("css/contact_edit_newsletters.css",)}
+    """
+    Kept as the edit form for contacts. Newsletter editing no longer goes through this Django form: it is
+    handled on demand against the CMS via htmx (see the Newsletters tab and support.views.newsletters), so
+    this class is now just the plain contact update form.
+    """
 
 
 @method_decorator(staff_member_required, name="dispatch")
@@ -525,7 +494,6 @@ class ContactUpdateView(BreadcrumbsMixin, UpdateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["all_newsletters"] = Product.objects.filter(type="N", active=True)
         context["mailtrain_lists"] = MailtrainList.objects.filter(is_active=True)
         context["contact_mailtrain_lists"] = get_mailtrain_lists(self.object.email)
         return context

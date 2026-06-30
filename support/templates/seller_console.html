@@ -528,6 +528,28 @@
         {% endif %}
       {% endif %}
       <div hx-get="{% url 'last_read_articles' contact.id %}" hx-trigger="load"></div>
+      <div class="card card-info card-outline mt-2">
+        <div class="card-header">
+          <h3 class="card-title">
+            <i class="fas fa-envelope-open-text"></i> <b>{% trans "Newsletters" %}</b>
+          </h3>
+          <div class="card-tools">
+            <button type="button" class="btn btn-tool" data-card-widget="collapse">
+              <i class="fas fa-minus"></i>
+            </button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div id="newsletters-htmx"
+               hx-get="{% url 'contact_newsletters_overview' contact.id %}"
+               hx-trigger="load"
+               hx-target="#newsletters-htmx"
+               hx-swap="innerHTML">
+            <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+            {% trans "Loading" %}
+          </div>
+        </div>
+      </div>
       {% if open_issues %}
         <div class="card card-danger card-outline mt-2">
           <div class="card-header">

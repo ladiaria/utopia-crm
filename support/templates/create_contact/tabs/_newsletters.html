@@ -1,19 +1,20 @@
 {% load i18n widget_tweaks %}
 
-{{ form.media }}
-
 <div class="row">
   <div class="col-md-6">
     <div class="card">
       <div class="card-header">
         <h2 class="card-title">{% trans "Newsletters" %}</h2>
+        <div class="card-tools">
+          <small class="text-muted">{% trans "Se guardan en el momento en la web" %}</small>
+        </div>
       </div>
-      <div class="card-body contact-edit-newsletters">
-        {% if all_newsletters %}
-          {% render_field form.newsletters class="form-check" %}
-        {% else %}
-          <p>{% trans "No active newsletters available yet" %}</p>
-        {% endif %}
+      <div class="card-body contact-edit-newsletters"
+           hx-get="{% url 'contact_newsletters_form' contact.id %}"
+           hx-trigger="revealed"
+           hx-swap="innerHTML">
+        <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+        {% trans "Loading" %}
       </div>
     </div>
   </div>

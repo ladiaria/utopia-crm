@@ -11,7 +11,6 @@ from support.views import (
     edit_address,
     send_promo,
     update_promo,
-    default_newsletters_dialog,
     product_change,
     book_additional_product,
     add_retention_discount,
@@ -104,11 +103,6 @@ urlpatterns = [
         views.SubscriptionUpdateView.as_view(),
         name="edit_subscription",
     ),
-    path(
-        "default_newsletters_dialog/<int:contact_id>/",
-        default_newsletters_dialog,
-        name="default_newsletters_dialog",
-    ),
     path("product_change/<int:subscription_id>/", product_change, name="product_change"),
     path("additional_product/<int:subscription_id>/", book_additional_product, name="additional_product"),
     path("add_retention_discount/<int:subscription_id>/", add_retention_discount, name="add_retention_discount"),
@@ -173,6 +167,21 @@ urlpatterns = [
     path("contacts/<int:pk>/edit/", views.ContactUpdateView.as_view(), name="edit_contact"),
     path("contacts/new/", views.ContactCreateView.as_view(), name="create_contact"),
     path("contacts/<int:pk>/", views.ContactDetailView.as_view(), name="contact_detail"),
+    path(
+        "contacts/<int:contact_id>/newsletters/overview/",
+        views.contact_newsletters_overview,
+        name="contact_newsletters_overview",
+    ),
+    path(
+        "contacts/<int:contact_id>/newsletters/form/",
+        views.contact_newsletters_form,
+        name="contact_newsletters_form",
+    ),
+    path(
+        "contacts/<int:contact_id>/newsletters/toggle/",
+        views.contact_newsletter_toggle,
+        name="contact_newsletter_toggle",
+    ),
     re_path(r"^edit_envelopes/(\d+)/$", edit_envelopes, name="edit_envelopes"),
     re_path(r"^upload_payment_certificate/(\d+)/$", upload_payment_certificate, name="upload_payment_certificate"),
     path(
