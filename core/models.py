@@ -66,6 +66,7 @@ from .utils import (
     subscribe_email_to_mailtrain_list,
     get_emails_from_mailtrain_list,
     validateEmailOnWeb,
+    emailTakeoverOnWeb,
     updatewebuser,
 )
 from .orm_helpers import get_latest_from_prefetch
@@ -555,6 +556,19 @@ class Contact(models.Model):
             msg = resp.get("msg")
             if msg != "OK":
                 retval = resp.get("retval")
+                # Takeover automatico SOLO en MercadoPago (self-service): la vista de alta MP
+                # setea self._takeover_autoexec = True. En cualquier otro origen (call center,
+                # ediciones) el flag no esta y el flujo sigue exactamente como antes (dedupe/
+                # bloqueo), sin regresion.
+                if retval and retval > 0 and getattr(self, "_takeover_autoexec", False):
+                    run = emailTakeoverOnWeb(self.id, email, confirm=True)
+                    if run not in ("TIMEOUT", "ERROR") and run.get("retval") == 1:
+                        # takeover hecho: reconsultar, ahora el email ya no esta en conflicto.
+                        return self.custom_clean(email, debug)
+                    # no aplicable (staff / contenido no movible / suscripcion activa) o error:
+                    # mostrar el mensaje legible del CMS si lo hay, sin caer al dedupe generico.
+                    human_msg = run.get("msg") if isinstance(run, dict) else None
+                    raise ValidationError({"email": human_msg or msg})
                 # calling a "dedupe" custom api if available (not opensourced yet in utopia-cms)
                 custom_validation_module_name = getattr(settings, "WEB_UPDATE_USER_VALIDATION_MODULE", None)
                 if custom_validation_module_name and retval > 0:
