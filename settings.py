@@ -244,6 +244,10 @@ WEB_DELETE_USER_URI = None
 WEB_EMAIL_CHECK_URI = None
 # Takeover de email huerfano en el CMS (desduplicacion CRM<->CMS, tajada MercadoPago).
 WEB_EMAIL_TAKEOVER_URI = None
+# Kill switch del takeover automatico. Opt-in: apagado por defecto. Ponerlo en True en el
+# local_settings de produccion para activarlo; volverlo a False lo apaga sin tocar codigo
+# (el flujo cae al comportamiento de siempre: bloquea/dedupe, sin borrar ni mover nada).
+WEB_EMAIL_TAKEOVER_ENABLED = False
 # Newsletter read/delta endpoints on the CMS (CRM reads/edits newsletters on demand from the CMS).
 WEB_NEWSLETTERS_READ_URI = None
 WEB_NEWSLETTERS_UPDATE_URI = None

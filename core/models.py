@@ -560,7 +560,11 @@ class Contact(models.Model):
                 # setea self._takeover_autoexec = True. En cualquier otro origen (call center,
                 # ediciones) el flag no esta y el flujo sigue exactamente como antes (dedupe/
                 # bloqueo), sin regresion.
-                if retval and retval > 0 and getattr(self, "_takeover_autoexec", False):
+                if (
+                    retval and retval > 0
+                    and getattr(settings, "WEB_EMAIL_TAKEOVER_ENABLED", False)
+                    and getattr(self, "_takeover_autoexec", False)
+                ):
                     run = emailTakeoverOnWeb(self.id, email, confirm=True)
                     if run not in ("TIMEOUT", "ERROR") and run.get("retval") == 1:
                         # takeover hecho: reconsultar, ahora el email ya no esta en conflicto.

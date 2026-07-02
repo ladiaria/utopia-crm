@@ -20,7 +20,7 @@ OK = {"msg": "OK"}
 EMAIL = "nuevo@example.com"
 
 
-@override_settings(WEB_UPDATE_USER_ENABLED=True)
+@override_settings(WEB_UPDATE_USER_ENABLED=True, WEB_EMAIL_TAKEOVER_ENABLED=True)
 class TestEmailTakeoverHook(TestCase):
 
     def _contact(self):
@@ -68,6 +68,22 @@ class TestEmailTakeoverHook(TestCase):
         mock_validate.return_value = CONFLICT
 
         with override_settings(WEB_UPDATE_USER_VALIDATION_MODULE=None):
+            with self.assertRaises(ValidationError) as cm:
+                contact.custom_clean(EMAIL, debug=False)
+
+        self.assertIn("Ya existe", str(cm.exception))
+        mock_takeover.assert_not_called()
+
+    @mock.patch("core.models.emailTakeoverOnWeb")
+    @mock.patch("core.models.validateEmailOnWeb")
+    def test_kill_switch_disabled_no_takeover(self, mock_validate, mock_takeover):
+        """Kill switch: con WEB_EMAIL_TAKEOVER_ENABLED=False, aunque haya _takeover_autoexec,
+        NO se llama al takeover y el flujo cae al comportamiento de siempre (bloquea)."""
+        contact = self._contact()
+        mock_validate.return_value = CONFLICT
+        contact._takeover_autoexec = True
+
+        with override_settings(WEB_EMAIL_TAKEOVER_ENABLED=False, WEB_UPDATE_USER_VALIDATION_MODULE=None):
             with self.assertRaises(ValidationError) as cm:
                 contact.custom_clean(EMAIL, debug=False)
 
