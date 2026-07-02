@@ -242,6 +242,12 @@ PHONENUMBER_DEFAULT_REGION = "UY"
 WEB_UPDATE_USER_URI = None
 WEB_DELETE_USER_URI = None
 WEB_EMAIL_CHECK_URI = None
+# Takeover de email huerfano en el CMS (desduplicacion CRM<->CMS, tajada MercadoPago).
+WEB_EMAIL_TAKEOVER_URI = None
+# Kill switch del takeover automatico. Opt-in: apagado por defecto. Ponerlo en True en el
+# local_settings de produccion para activarlo; volverlo a False lo apaga sin tocar codigo
+# (el flujo cae al comportamiento de siempre: bloquea/dedupe, sin borrar ni mover nada).
+WEB_EMAIL_TAKEOVER_ENABLED = False
 # Newsletter read/delta endpoints on the CMS (CRM reads/edits newsletters on demand from the CMS).
 WEB_NEWSLETTERS_READ_URI = None
 WEB_NEWSLETTERS_UPDATE_URI = None
@@ -320,6 +326,8 @@ if LDSOCIAL_URL:
     WEB_UPDATE_USER_URI = WEB_UPDATE_USER_URI or (LDSOCIAL_URL + 'usuarios/fromcrm')
     WEB_DELETE_USER_URI = WEB_DELETE_USER_URI or (LDSOCIAL_URL + 'usuarios/deletefromcrm')
     WEB_EMAIL_CHECK_URI = WEB_EMAIL_CHECK_URI or (LDSOCIAL_URL + 'usuarios/api/email_check/')
+    # Nota: la URI del takeover apunta al modulo ladiaria del CMS, no a usuarios/api/ como email_check.
+    WEB_EMAIL_TAKEOVER_URI = WEB_EMAIL_TAKEOVER_URI or (LDSOCIAL_URL + 'utopia_cms_ladiaria/api/email_takeover/')
     WEB_NEWSLETTERS_READ_URI = WEB_NEWSLETTERS_READ_URI or (LDSOCIAL_URL + 'usuarios/api/newsletters/')
     WEB_NEWSLETTERS_UPDATE_URI = WEB_NEWSLETTERS_UPDATE_URI or (LDSOCIAL_URL + 'usuarios/api/newsletter_update/')
     LDSOCIAL_API_URI = f"{LDSOCIAL_URL}api/"
@@ -329,6 +337,13 @@ if WEB_CREATE_USER_ENABLED is None:
 
 if not WEB_CREATE_USER_ENABLED and WEB_EMAIL_CHECK_URI not in WEB_CREATE_USER_POST_WHITELIST:
     WEB_CREATE_USER_POST_WHITELIST.append(WEB_EMAIL_CHECK_URI)
+
+if (
+    not WEB_CREATE_USER_ENABLED
+    and WEB_EMAIL_TAKEOVER_URI
+    and WEB_EMAIL_TAKEOVER_URI not in WEB_CREATE_USER_POST_WHITELIST
+):
+    WEB_CREATE_USER_POST_WHITELIST.append(WEB_EMAIL_TAKEOVER_URI)
 
 # Newsletter read/delta are POSTs that must work regardless of WEB_CREATE_USER_ENABLED (they don't create
 # web users); whitelist them so cms_rest_api_request lets them through.
