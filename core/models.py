@@ -1342,6 +1342,7 @@ class Address(models.Model):
 
     def reset_georef(self):
         self.latitude, self.longitude, self.georef_point = None, None, None
+        self.state_georef_id, self.city_georef_id = None, None
         self.needs_georef = True
         self.verified = False
         self.save()
@@ -1354,6 +1355,7 @@ class Address(models.Model):
             self.longitude = self.georef_point.x
         if self.state_georef_id and self.city_georef_id and self.georef_point:
             self.verified = True
+            self.needs_georef = False
         super(Address, self).save(*args, **kwargs)
 
     def get_city(self):

@@ -2,6 +2,16 @@
 
 ## v0.5.1
 
+## 2026-07-03 — t1160 Mejoras al flujo de direcciones y georreferenciación
+
+- `address_1` y `address_2` pasan a ser obligatorios en el formulario de direcciones (agregar y editar), porque los operarios se estaban olvidando de cargarlos
+- Editar una dirección pasa a ser un flujo de un solo paso: buscador de sugerencias + checkbox de "cargar manualmente", igual que agregar dirección, sin depender de la pantalla de normalizar dirección para el caso común (esa pantalla se sigue usando para el georef masivo y como acceso directo desde la ficha del contacto)
+- Se corrigieron varios bugs donde una dirección quedaba marcada como verificada con coordenadas que ya no correspondían al texto cargado (al editar el texto sin rehacer la búsqueda, o al tildar "no encuentro la dirección"), y un error no manejado en normalizar dirección que expulsaba al usuario con un mensaje confuso cuando la sugerencia elegida no tenía departamento
+- En la ficha de contacto (pestaña resumen), una dirección con "necesita georreferenciación" ya no oculta el botón para normalizarla
+- El servicio de georreferenciación (Uruguay) ahora tiene timeout y manejo de errores de red para no colgarse cuando el servicio no responde, con un interruptor dinámico vía el admin (`Variable` "georef_services_enabled") que se puede apagar a mano o que se apaga solo tras 3 fallos consecutivos
+- Deployment: no se requieren migraciones
+- **Author:** Tanya Tree + Claude Sonnet 5
+
 ## 2026-06-29 — desmapeo-newsletters (t1158) El CMS pasa a ser la fuente de verdad de las newsletters
 
 - El CRM dejó de mantener su espejo de newsletters como verdad: ahora las lee y edita a demanda contra el CMS. En la ficha de contacto, en el formulario de edición y en la consola de vendedores las newsletters se cargan por AJAX desde el CMS, y los cambios se guardan uno por uno (alta/baja puntual) directo en el CMS, sin pisar el resto

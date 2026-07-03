@@ -35,6 +35,11 @@ $(window).on('beforeunload', function (e) {
     $("#sugerencia").change(function() {
       var optionValue = $(this).val();
       var url = window.location.href.split("?")[0];
+      // Navegación intencional dentro de la misma herramienta: no mostrar el aviso de
+      // "salir sin guardar" que dispara beforeunload.
+      if (typeof submitButtonPressed !== "undefined") {
+        submitButtonPressed = true;
+      }
       window.location = url + "?sugerencia=" + optionValue;
     });
   });
@@ -54,10 +59,11 @@ $(window).on('beforeunload', function (e) {
         <div class="col-6">
           <div class="card">
             <div class="card-header">
+              Dirección actual (guardada)
               {% if address.verified %}
-                Dirección ya normalizada
+                <span class="badge badge-success ml-2">Normalizada</span>
               {% else %}
-                Dirección sin normalizar
+                <span class="badge badge-danger ml-2">Sin normalizar</span>
               {% endif %}
             </div>
             <div class="card-body">
@@ -83,6 +89,7 @@ $(window).on('beforeunload', function (e) {
         {% if address.verified %}
           <div class="col-6">
             <div class="card">
+              <div class="card-header">Ubicación en el mapa</div>
               <div class="card-body">
                 <div class="m-2">{% leaflet_map "mapa" callback="window.map_init" %}</div>
               </div>
@@ -91,7 +98,7 @@ $(window).on('beforeunload', function (e) {
         {% else %}
           <div class="col-6">
             <div class="card">
-              <div class="card-header">Dirección normalizada</div>
+              <div class="card-header">Normalizar dirección</div>
               <div class="card-body">
                 <div class="form-group">
                   Seleccionar una sugerencia
@@ -109,7 +116,7 @@ $(window).on('beforeunload', function (e) {
                     {% csrf_token %}
                     <div class="row form-group">
                       <div class="col">
-                        {% render_field form_nuevo.address_1 class="form-control" placeholder=form_nuevo.address_1.label %}
+                        {% render_field form_nuevo.address_1 class="form-control" placeholder=form_nuevo.address_1.label readonly=True %}
                       </div>
                       <div class="col">
                         {% render_field form_nuevo.address_2 class="form-control" placeholder=form_nuevo.address_2.label %}
