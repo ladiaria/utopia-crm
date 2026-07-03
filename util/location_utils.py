@@ -9,6 +9,72 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+GEOREF_ENABLED_VARIABLE = "georef_services_enabled"
+GEOREF_FALLOS_VARIABLE = "georef_fallos_consecutivos"
+
+
+def georef_habilitado():
+    """
+    True si georef está prendido tanto en settings (GEOREF_SERVICES) como en la Variable
+    "georef_services_enabled" (valor "0" o ausente/None = desactivado, cualquier otro valor
+    activado). La Variable permite apagarlo desde el admin sin deploy, y además la apaga
+    automáticamente _registrar_fallo_georef tras GEOREF_MAX_FALLOS_CONSECUTIVOS seguidos.
+    """
+    if not getattr(settings, "GEOREF_SERVICES", False):
+        return False
+    from core.models import Variable
+
+    var, _created = Variable.objects.get_or_create(
+        name=GEOREF_ENABLED_VARIABLE, defaults={"value": "1"}
+    )
+    return var.value not in (None, "", "0")
+
+
+def _registrar_fallo_georef():
+    from core.models import Variable
+
+    var, _created = Variable.objects.get_or_create(name=GEOREF_FALLOS_VARIABLE, defaults={"value": "0"})
+    try:
+        fallos = int(var.value)
+    except (TypeError, ValueError):
+        fallos = 0
+    fallos += 1
+    var.value = str(fallos)
+    var.save(update_fields=["value"])
+    max_fallos = getattr(settings, "GEOREF_MAX_FALLOS_CONSECUTIVOS", 3)
+    if fallos >= max_fallos:
+        Variable.objects.update_or_create(name=GEOREF_ENABLED_VARIABLE, defaults={"value": "0"})
+        logger.error(
+            f"GEOREF: {fallos} fallos consecutivos, se desactivó la Variable '{GEOREF_ENABLED_VARIABLE}'"
+        )
+
+
+def _registrar_exito_georef():
+    from core.models import Variable
+
+    Variable.objects.filter(name=GEOREF_FALLOS_VARIABLE).update(value="0")
+
+
+def _georef_get(url, params):
+    """
+    Wrapper de requests.get para los servicios de georreferenciación (Uruguay), con timeout y
+    manejo de errores de red. Devuelve el JSON de la respuesta, o None si el servicio no
+    respondió o respondió con error, en vez de colgar el worker o tirar una excepción sin manejar.
+    """
+    timeout = getattr(settings, "GEOREF_TIMEOUT", 5)
+    try:
+        response = requests.get(url, params=params, timeout=timeout)
+    except requests.exceptions.RequestException:
+        logger.exception(f"Error al consultar servicio de georreferenciación: {url}")
+        _registrar_fallo_georef()
+        return None
+    if response.status_code != 200:
+        logger.warning(f"Servicio de georreferenciación respondió {response.status_code}: {url}")
+        _registrar_fallo_georef()
+        return None
+    _registrar_exito_georef()
+    return response.json()
+
 
 def buscar_localidades(state):
     """
@@ -16,11 +82,7 @@ def buscar_localidades(state):
     """
     url = settings.SERVICIO_LOCALIDADES
     params = {"departamento": state, "alias": True}
-    response = requests.get(url, params=params)
-    if response.status_code == 200:
-        return response.json()
-    else:
-        return None
+    return _georef_get(url, params)
 
 
 def autocompletar_direccion(texto, obs):
@@ -29,10 +91,9 @@ def autocompletar_direccion(texto, obs):
     """
     url = settings.SERVICIO_DIRECCION_AUTOCOMPLETADO
     params = {"q": texto, "soloLocalidad": False, "limit": 20}
-    response = requests.get(url, params=params)
+    sugerencias = _georef_get(url, params)
     result = []
-    if response.status_code == 200:
-        sugerencias = response.json()
+    if sugerencias:
         df_sug = pd.DataFrame(sugerencias)
         if df_sug.empty:
             return result
@@ -67,7 +128,9 @@ def buscar_direccion(sugerencias, sug_num_calle, sug_num_localidad, sug_num_port
     sug_num_portal = int(sug_num_portal)
 
     params = {"idcalle": sug_num_calle, "portal": sug_num_portal, "type": "CALLEyPORTAL"}
-    response = requests.get(url, params=params)
+    direcciones = _georef_get(url, params)
+    if not direcciones:
+        return None
 
     # Check structure of sugerencias
     try:
@@ -81,38 +144,10 @@ def buscar_direccion(sugerencias, sug_num_calle, sug_num_localidad, sug_num_port
             print("Available columns in sugerencias:", pd.DataFrame(sugerencias).columns)
         return "Error al crear el dataframe de sugerencias"
 
-    if response.status_code == 200:
-        direcciones = response.json()
-        if not direcciones:
-            return None
-
-        # Check if 'direcciones' has expected structure
-        try:
-            df_direcciones = pd.DataFrame(direcciones)[
-                [
-                    "type",
-                    "idCalle",
-                    "nomVia",
-                    "idLocalidad",
-                    "localidad",
-                    "idDepartamento",
-                    "departamento",
-                    "portalNumber",
-                    "geom",
-                    "lat",
-                    "lng",
-                ]
-            ]
-        except KeyError as e:
-            if settings.DEBUG:
-                print(f"KeyError in DataFrame creation for 'direcciones': {e}")
-                print("Available columns in direcciones:", pd.DataFrame(direcciones).columns)
-            return "Error al crear el dataframe de direcciones"
-
-        # Merging data to find exact match
-        df = df_sugerencias.merge(
-            df_direcciones,
-            on=[
+    # Check if 'direcciones' has expected structure
+    try:
+        df_direcciones = pd.DataFrame(direcciones)[
+            [
                 "type",
                 "idCalle",
                 "nomVia",
@@ -121,46 +156,69 @@ def buscar_direccion(sugerencias, sug_num_calle, sug_num_localidad, sug_num_port
                 "idDepartamento",
                 "departamento",
                 "portalNumber",
-            ],
-            how="left",
-        )
+                "geom",
+                "lat",
+                "lng",
+            ]
+        ]
+    except KeyError as e:
+        if settings.DEBUG:
+            print(f"KeyError in DataFrame creation for 'direcciones': {e}")
+            print("Available columns in direcciones:", pd.DataFrame(direcciones).columns)
+        return "Error al crear el dataframe de direcciones"
 
-        # Filter for exact match
-        df_exact = df.query(
-            "type == 'CALLEyPORTAL' and idCalle == @sug_num_calle and portalNumber == @sug_num_portal"
-            " and idLocalidad == @sug_num_localidad"
-        )
+    # Merging data to find exact match
+    df = df_sugerencias.merge(
+        df_direcciones,
+        on=[
+            "type",
+            "idCalle",
+            "nomVia",
+            "idLocalidad",
+            "localidad",
+            "idDepartamento",
+            "departamento",
+            "portalNumber",
+        ],
+        how="left",
+    )
 
-        # Choose address based on query result
-        direccion = None
-        if not df_exact.empty:
-            direccion = df_exact.to_dict("records")[0]
-        else:
-            df_exact_but_portal_number = df.query(
-                "type == 'CALLEyPORTAL' and idCalle == @sug_num_calle and idLocalidad == @sug_num_localidad"
+    # Filter for exact match
+    df_exact = df.query(
+        "type == 'CALLEyPORTAL' and idCalle == @sug_num_calle and portalNumber == @sug_num_portal"
+        " and idLocalidad == @sug_num_localidad"
+    )
+
+    # Choose address based on query result
+    direccion = None
+    if not df_exact.empty:
+        direccion = df_exact.to_dict("records")[0]
+    else:
+        df_exact_but_portal_number = df.query(
+            "type == 'CALLEyPORTAL' and idCalle == @sug_num_calle and idLocalidad == @sug_num_localidad"
+        )
+        if not df_exact_but_portal_number.empty:
+            direccion = df_exact_but_portal_number.to_dict("records")[0]
+        elif not df_direcciones.empty:
+            direccion = df_direcciones.to_dict("records")[0]
+
+    # Format final response if a valid address was found
+    if direccion:
+        direccion_str = f"{direccion['nomVia'].strip(' ,')} {direccion['portalNumber']}".title()
+        if obs:
+            direccion_str = (
+                f"{direccion['nomVia'].strip(' ,')} {direccion['portalNumber']}, {obs.strip(' ,')}".title()
             )
-            if not df_exact_but_portal_number.empty:
-                direccion = df_exact_but_portal_number.to_dict("records")[0]
-            elif not df_direcciones.empty:
-                direccion = df_direcciones.to_dict("records")[0]
-
-        # Format final response if a valid address was found
-        if direccion:
-            direccion_str = f"{direccion['nomVia'].strip(' ,')} {direccion['portalNumber']}".title()
-            if obs:
-                direccion_str = (
-                    f"{direccion['nomVia'].strip(' ,')} {direccion['portalNumber']}, {obs.strip(' ,')}".title()
-                )
-            return {
-                "pais": "URUGUAY".title(),
-                "direccion": direccion_str,
-                "localidad": direccion["localidad"].title(),
-                "localidad_id": direccion["idLocalidad"],
-                "latitud": direccion["lat"],
-                "longitud": direccion["lng"],
-                "departamento": direccion["departamento"].upper(),
-                "departamento_id": direccion["idDepartamento"],
-            }
+        return {
+            "pais": "URUGUAY".title(),
+            "direccion": direccion_str,
+            "localidad": direccion["localidad"].title(),
+            "localidad_id": direccion["idLocalidad"],
+            "latitud": direccion["lat"],
+            "longitud": direccion["lng"],
+            "departamento": direccion["departamento"].upper(),
+            "departamento_id": direccion["idDepartamento"],
+        }
     return None
 
 

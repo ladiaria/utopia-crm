@@ -258,6 +258,11 @@ WEB_CREATE_USER_POST_WHITELIST = []
 WEB_UPDATE_USER_NEWSLETTERS_ENABLED = True
 
 GEOREF_SERVICES = False
+# Timeout (segundos) para las llamadas HTTP a los servicios de georreferenciación (Uruguay).
+GEOREF_TIMEOUT = 5
+# Fallos consecutivos de los servicios de georref a partir de los cuales se apaga sola la
+# Variable "georef_services_enabled" (ver util/location_utils.py) hasta que alguien la reactive.
+GEOREF_MAX_FALLOS_CONSECUTIVOS = 3
 
 # Error reporting recipients. ADMINS receive uncaught-exception emails (Django default
 # behaviour via the mail_admins logging handler). Populate these in local_settings.py.

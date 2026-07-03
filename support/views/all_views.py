@@ -67,6 +67,7 @@ from core.utils import (
     process_products,
 )
 from invoicing.models import Invoice
+from util.location_utils import georef_habilitado
 from support.choices import ISSUE_ANSWERS, get_issue_categories
 from support.filters import (
     AllCampaignsContactStatusFilter,
@@ -1623,7 +1624,7 @@ def api_new_address(request, contact_id):
         form = SugerenciaGeorefForm(request.POST)
         if form.is_valid():
             address = form.save(commit=False)
-            if getattr(settings, "GEOREF_SERVICES", False):
+            if georef_habilitado():
                 if address.lat is None:
                     address.needs_georef = True
             address.contact = contact
