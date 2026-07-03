@@ -680,6 +680,21 @@ def validateEmailOnWeb(contact_id, email):
     )
 
 
+def emailTakeoverOnWeb(contact_id, email, confirm=False):
+    """
+    Pide al CMS el takeover de email huerfano para el contacto (desduplicacion CRM<->CMS).
+    confirm=False -> preview (el CMS solo evalua las guardas, no toca nada).
+    confirm=True  -> ejecuta el takeover (conserva la cuenta del email nuevo, le transfiere
+                     el contact_id de la vieja, le mueve los datos y borra la vieja).
+    Devuelve el dict de respuesta del CMS o "TIMEOUT"/"ERROR".
+    """
+    return cms_rest_api_request(
+        "emailTakeoverOnWeb",
+        getattr(settings, "WEB_EMAIL_TAKEOVER_URI", None),
+        {"contact_id": contact_id, "email": email, "confirm": "1" if confirm else "0"},
+    )
+
+
 def manage_mailtrain_subscription(email: str, list_id: str, action: Literal["subscribe", "unsubscribe"]) -> dict:
     """
     Service function to add or remove an email from a Mailtrain list.
