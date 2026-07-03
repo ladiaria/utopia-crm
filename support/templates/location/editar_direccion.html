@@ -14,6 +14,53 @@
   }
     </script>
   {% endif %}
+  <script>
+  function toggleManualMode(checked) {
+    document.getElementById('georef_search_row').classList.toggle('d-none', checked);
+    var georefButtonRow = document.getElementById('georef_button_row');
+    if (georefButtonRow) {
+      georefButtonRow.classList.toggle('d-none', checked);
+    }
+    document.getElementById('manual_save_row').classList.toggle('d-none', !checked);
+
+    var latlngRow = document.getElementById('georef_latlng_row');
+    if (latlngRow) {
+      latlngRow.classList.toggle('d-none', checked);
+    }
+    var mapCol = document.getElementById('georef_map_col');
+    if (mapCol) {
+      mapCol.classList.toggle('d-none', checked);
+    }
+    var formCol = document.getElementById('direccion_form_col');
+    if (formCol) {
+      formCol.classList.toggle('col-6', !checked);
+      formCol.classList.toggle('col-12', checked);
+    }
+
+    // Los campos de la sugerencia elegida quedan inertes: se vacían y se deshabilitan
+    // para que no viajen en el submit con datos de una dirección que no era.
+    ['id_latitude', 'id_longitude', 'id_city_georef_id', 'id_state_georef_id'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) {
+        el.value = '';
+        el.required = false;
+        el.disabled = checked;
+      }
+    });
+
+    // Los campos de dirección dejan de ser de solo lectura, conservando lo que ya
+    // estuviera cargado (sugerencia o texto tipeado) para que el operario solo corrija
+    // lo necesario en vez de tener que escribir todo de nuevo.
+    if (checked) {
+      ['id_address_1', 'id_city', 'id_state'].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) {
+          el.readOnly = false;
+        }
+      });
+    }
+  }
+  </script>
 {% endblock extra_js %}
 
 {% block title %}
@@ -30,24 +77,89 @@
   <div class="card">
     <div class="card-body">
       <div class="row">
-        <div class="col-6">
+        <div class="{% if lat and lng %}col-6{% else %}col-12{% endif %}" id="direccion_form_col">
           <div class="card">
             <div class="card-header">Datos actuales</div>
             <div class="card-body">
+              {% if georef_activated %}
+                <div class="row form-group">
+                  <div class="col">
+                    <div class="custom-control custom-checkbox">
+                      <input type="checkbox"
+                             class="custom-control-input"
+                             id="id_manual_mode"
+                             onchange="toggleManualMode(this.checked)">
+                      <label class="custom-control-label" for="id_manual_mode">
+                        No pude encontrar la dirección, cargar manualmente (sin georreferenciación)
+                      </label>
+                    </div>
+                  </div>
+                </div>
+                <div class="row form-group" id="georef_search_row">
+                  <div class="col">
+                    <input type="search"
+                           name="q_direccion"
+                           maxlength="100"
+                           list="sugerencias"
+                           autocomplete="false"
+                           class="form-control"
+                           placeholder="Calle y número"
+                           hx-get="{% url 'ajax_sugerir_direccion_autocompletar' %}"
+                           hx-trigger="keyup changed delay:800ms, load, search, changed"
+                           hx-target="#sugerencias_container"
+                           hx-indicator=".htmx-indicator"
+                           value="{{ q_sugerencia|default:address.address_1 }}">
+                  </div>
+                  <div class="col">
+                    <div id="sugerencias_container">{% include "location/sugerencias_htmx.html" %}</div>
+                    <span class="htmx-indicator">Buscando...</span>
+                  </div>
+                </div>
+              {% endif %}
               <div class="form_div">
                 <div id="form_div">
                   <form action="" method="post">
                     {% csrf_token %}
                     <div class="row form-group">
-                      <div class="col">{% render_field form.address_1 class="form-control" placeholder=form.address_1.label %}</div>
-                      <div class="col">{% render_field form.address_2 class="form-control" placeholder=form.address_2.label %}</div>
+                      <div class="col">
+                        <label for="{{ form.address_1.id_for_label }}">
+                          {{ form.address_1.label }}
+                          {% if form.address_1.field.required %}<span class="text-danger">*</span>{% endif %}
+                        </label>
+                        {% if georef_activated %}
+                          {% render_field form.address_1 class="form-control" readonly=True %}
+                        {% else %}
+                          {% render_field form.address_1 class="form-control" %}
+                        {% endif %}
+                      </div>
+                      <div class="col">
+                        <label for="{{ form.address_2.id_for_label }}">
+                          {{ form.address_2.label }}
+                          {% if form.address_2.field.required %}<span class="text-danger">*</span>{% endif %}
+                        </label>
+                        {% render_field form.address_2 class="form-control" %}
+                      </div>
                     </div>
                     <div class="row form-group">
-                      <div class="col">{% render_field form.city class="form-control" placeholder=form.city.label %}</div>
-                      <div class="col">{% render_field form.state class="form-control" placeholder=form.state.label %}</div>
+                      <div class="col">
+                        <label for="{{ form.city.id_for_label }}">{{ form.city.label }}</label>
+                        {% if georef_activated %}
+                          {% render_field form.city class="form-control" readonly=True %}
+                        {% else %}
+                          {% render_field form.city class="form-control" %}
+                        {% endif %}
+                      </div>
+                      <div class="col">
+                        <label for="{{ form.state.id_for_label }}">{{ form.state.label }}</label>
+                        {% if georef_activated %}
+                          {% render_field form.state class="form-control" readonly=True %}
+                        {% else %}
+                          {% render_field form.state class="form-control" %}
+                        {% endif %}
+                      </div>
                     </div>
                     {% if lat and lng %}
-                      <div class="row form-group">
+                      <div class="row form-group" id="georef_latlng_row">
                         <div class="col">
                           {% render_field form.latitude class="form-control" placeholder=form.latitude.label required=True readonly=True %}
                         </div>
@@ -57,27 +169,51 @@
                       </div>
                       {% render_field form.city_georef_id hidden=True %}
                       {% render_field form.state_georef_id hidden=True %}
-                      {% render_field form.id hidden=True %}
                     {% endif %}
                     {% render_field form.address_type hidden=True %}
                     <div class="row">
-                      {% if georef_activated %}
-                        <div class="col text-right">
+                      {% if lat and lng and georef_activated %}
+                        <div class="col text-right" id="georef_button_row">
+                          <input type="submit"
+                                 value="Guardar cambios"
+                                 name="save"
+                                 class="btn-large btn btn-primary">
+                        </div>
+                      {% elif georef_activated and q_sugerencia %}
+                        <div class="col text-right" id="georef_button_row">
                           <p>
-                            <span class="text-info">Editá lo que veas necesario y en la siguiente pantalla podrás georreferenciarlo</span>
+                            <span class="text-danger">No se encuentra georeferenciación para esta dirección</span>
                             <input type="submit"
-                                   value="Pasar a georreferenciar"
-                                   name="editar_direccion"
-                                   class="m-2 btn-large btn btn-info">
+                                   value="Guardar sin georeferenciación"
+                                   name="save_needs_georef"
+                                   class="m-2 btn-large btn btn-danger">
                           </p>
+                          {% if not request.user|in_group:"Sellers" %}
+                            <p>
+                              <span class="text-info">Podés seleccionar el departamento manualmente (y ciudad si aplica) y buscar en la siguiente opción</span>
+                              <input type="submit"
+                                     value="Buscar otras alternativas (completar formulario)"
+                                     name="no_encuentro_direccion"
+                                     class="m-2 btn-large btn btn-info">
+                            </p>
+                          {% endif %}
+                        </div>
+                      {% elif not georef_activated %}
+                        <div class="col text-right">
+                          <input type="submit"
+                                 value="Guardar cambios"
+                                 name="save"
+                                 class="btn-large btn btn-primary">
                         </div>
                       {% endif %}
-                      <div class="col text-right">
-                        <input type="submit"
-                               value="Guardar cambios"
-                               name="save_no_georef"
-                               class="btn-large btn btn-primary">
-                      </div>
+                      {% if georef_activated %}
+                        <div class="col text-right d-none" id="manual_save_row">
+                          <input type="submit"
+                                 value="Guardar sin georreferenciación"
+                                 name="save_needs_georef"
+                                 class="btn-large btn btn-primary">
+                        </div>
+                      {% endif %}
                     </div>
                   </form>
                 </div>
@@ -85,17 +221,17 @@
             </div>
           </div>
         </div>
-        <div class="col-6">
-          <div class="card">
-            <div class="card-body">
-              <div class="m-2">
-                {% if lat and lng %}
+        {% if lat and lng %}
+          <div class="col-6" id="georef_map_col">
+            <div class="card">
+              <div class="card-body">
+                <div class="m-2">
                   {% leaflet_map "mapa" callback="window.map_init" %}
-                {% endif %}
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        {% endif %}
       </div>
     </div>
   </div>

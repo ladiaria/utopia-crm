@@ -861,6 +861,9 @@ class AddressComplementaryInformationForm(forms.ModelForm):
 
 
 class SugerenciaGeorefForm(forms.ModelForm):
+    address_1 = forms.CharField(max_length=255, required=True, label=_("Address 1"))
+    address_2 = forms.CharField(max_length=255, required=True, label=_("Address 2"))
+
     class Meta:
         model = Address
         fields = [

@@ -17,12 +17,13 @@ from util.location_utils import (
     seleccionar_sugerencia,
     separar_direccion,
     autocompletar_direccion,
+    georef_habilitado,
 )
 
 
 @staff_member_required
 def normalizar_direccion(request, contact_id, address_id):
-    if not getattr(settings, 'GEOREF_SERVICES', False):
+    if not georef_habilitado():
         messages.error(request, "Servicio de georeferenciación no configurado.")
         return HttpResponseRedirect(reverse("contact_detail", args=[contact_id]))
     address_obj = get_object_or_404(Address, pk=address_id)
@@ -63,31 +64,34 @@ def normalizar_direccion(request, contact_id, address_id):
     direccion, id_calle = sugerencia['direccion'], sugerencia["idCalle"]
     id_localidad, id_portal = sugerencia["idLocalidad"], sugerencia["portalNumber"]
     j = seleccionar_sugerencia(direccion, id_calle, id_localidad, id_portal)
-    state_name_slug = slugify(j["departamento"].title())
-    try:
+    state_obj = address_obj.state
+    if j.get("departamento"):
+        state_name_slug = slugify(j["departamento"].title())
         state_obj = next(
-            state for state in State.objects.all()
-            if slugify(state.name) == state_name_slug
+            (state for state in State.objects.all() if slugify(state.name) == state_name_slug),
+            None,
         )
-    except StopIteration:
-        messages.error(request, f"No se encontró un departamento coincidente para '{j['departamento']}'.")
-        return HttpResponseRedirect(reverse("agregar_direccion", args=[contact_id]))
+        if state_obj is None:
+            messages.error(request, f"No se encontró un departamento coincidente para '{j['departamento']}'.")
+    lat = j["latitud"] if not pd.isna(j["latitud"]) else None
+    lng = j["longitud"] if not pd.isna(j["longitud"]) else None
+    if not lat or not lng or state_obj is None:
+        messages.warning(request, "Esta sugerencia no tiene valores de georreferenciación.")
+        lat, lng = None, None
     form_nuevo = SugerenciaGeorefForm(
         initial={
-            "address_1": j["direccion"],
+            "address_1": j["direccion"] or address_obj.address_1,
             "address_2": address_obj.address_2,
             "state": state_obj,
-            "city": j["localidad"],
-            "latitude": j["latitud"],
-            "longitude": j["longitud"],
-            "state_georef_id": j["departamento_id"],  # For debug reasons
-            "city_georef_id": j["localidad_id"],  # For debug reasons
+            "city": j["localidad"] or address_obj.city,
+            "latitude": lat,
+            "longitude": lng,
+            "state_georef_id": j["departamento_id"] or None,  # For debug reasons
+            "city_georef_id": j["localidad_id"] or None,  # For debug reasons
             "address_type": "physical",
         }
     )
     form_actual = SugerenciaGeorefForm(instance=address_obj)
-    lat = j["latitud"] if not pd.isna(j["latitud"]) else None
-    lng = j["longitud"] if not pd.isna(j["longitud"]) else None
 
     breadcrumbs = [
         {"label": _("Contact list"), "url": reverse("contact_list")},
@@ -114,7 +118,7 @@ def normalizar_direccion(request, contact_id, address_id):
 
 @staff_member_required
 def agregar_direccion(request, contact_id):
-    georef_activated = getattr(settings, "GEOREF_SERVICES", False)
+    georef_activated = georef_habilitado()
     contact_obj = get_object_or_404(Contact, pk=contact_id)
     form = SugerenciaGeorefForm(initial={"address_type": "physical"})
     stayhere = "?stayhere=True" if request.GET.get("stayhere", None) else ""
@@ -136,8 +140,7 @@ def agregar_direccion(request, contact_id):
             if form.is_valid():
                 address = form.save(commit=False)
                 address.contact = contact_obj
-                address.needs_georef = True
-                address.save()
+                address.reset_georef()  # Ya cuenta con save
                 messages.warning(request, "Dirección guardada con éxito sin georeferenciación")
                 if stayhere:
                     return HttpResponseRedirect(reverse("agregar_direccion", args=[contact_id]) + stayhere)
@@ -211,29 +214,72 @@ def agregar_direccion(request, contact_id):
 
 @staff_member_required
 def editar_direccion(request, contact_id, address_id):
-    georef_activated = getattr(settings, "GEOREF_SERVICES", False)
+    georef_activated = georef_habilitado()
     address_obj = get_object_or_404(Address, pk=address_id)
     contact_obj = get_object_or_404(Contact, pk=contact_id)
+    form = SugerenciaGeorefForm(instance=address_obj)
     lat, lng = address_obj.latitude or None, address_obj.longitude or None
-    if request.POST.get("editar_direccion", False):
-        form = SugerenciaGeorefForm(request.POST, instance=address_obj)
-        if form.is_valid():
-            address = form.save(commit=False)
-            address.contact = contact_obj
-            address.reset_georef()  # Ya cuenta con save
-            messages.info(request, "Dirección editada con éxito, seleccionar georreferenciación...")
-            messages.warning(
-                request, "Salir de esta página sin confirmar casuará que la dirección no tenga georreferenciación"
+    q_sugerencia = None
+    if request.POST:
+        if request.POST.get("save", False):
+            form = SugerenciaGeorefForm(request.POST, instance=address_obj)
+            if form.is_valid():
+                address = form.save(commit=False)
+                address.contact = contact_obj
+                address.save()
+                messages.success(request, "Dirección georreferenciada guardada con éxito")
+                return HttpResponseRedirect(reverse("contact_detail", args=[contact_id]))
+        elif request.POST.get("save_needs_georef", False):
+            form = SugerenciaGeorefForm(request.POST, instance=address_obj)
+            if form.is_valid():
+                address = form.save(commit=False)
+                address.contact = contact_obj
+                address.reset_georef()  # Ya cuenta con save
+                messages.warning(request, "Dirección guardada con éxito sin georeferenciación")
+                return HttpResponseRedirect(reverse("contact_detail", args=[contact_id]))
+        elif request.POST.get("no_encuentro_direccion", False):
+            form = SugerenciaGeorefForm(request.POST, instance=address_obj)
+            if form.is_valid():
+                address = form.save(commit=False)
+                address.contact = contact_obj
+                address.reset_georef()  # Ya cuenta con save
+                messages.info(request, "Dirección guardada con éxito, buscando otras alternativas...")
+                return HttpResponseRedirect(reverse("normalizar_direccion", args=[contact_id, address.id]))
+        elif request.POST.get("sugerencias"):
+            direccion, id_calle, id_localidad, id_portal = request.POST.get('sugerencias').split("|")
+            j = seleccionar_sugerencia(direccion, id_calle, id_localidad, id_portal)
+            if not j or "departamento" not in j or not j["departamento"]:
+                messages.error(request, "El departamento de la dirección sugerida no es válido o está vacío.")
+                return HttpResponseRedirect(reverse("editar_direccion", args=[contact_id, address_id]))
+            state_name_slug = slugify(j["departamento"].title())
+            try:
+                state_obj = next(
+                    state for state in State.objects.all()
+                    if slugify(state.name) == state_name_slug
+                )
+            except StopIteration:
+                messages.error(request, f"No se encontró un departamento coincidente para '{j['departamento']}'.")
+                return HttpResponseRedirect(reverse("editar_direccion", args=[contact_id, address_id]))
+            form = SugerenciaGeorefForm(
+                instance=address_obj,
+                initial={
+                    "address_1": j["direccion"],
+                    "state": state_obj,
+                    "city": j["localidad"],
+                    "latitude": j["latitud"],
+                    "longitude": j["longitud"],
+                    "state_georef_id": j["departamento_id"],  # For debug reasons
+                    "city_georef_id": j["localidad_id"],  # For debug reasons
+                    "address_type": "physical",
+                },
             )
-            return HttpResponseRedirect(reverse("normalizar_direccion", args=[contact_id, address.id]))
-    elif request.POST.get("save_no_georef", False):
-        form = SugerenciaGeorefForm(request.POST, instance=address_obj)
-        if form.is_valid():
-            address = form.save(commit=False)
-            address.contact = contact_obj
-            address.reset_georef()
-            messages.info(request, "Dirección editada con éxito sin georreferenciar")
-            return HttpResponseRedirect(reverse("contact_detail", args=[contact_id]))
+            if not pd.isna(j["latitud"]):
+                lat, lng = j["latitud"], j["longitud"]
+            else:
+                # La nueva búsqueda no encontró coordenadas: no seguir mostrando ni enviando
+                # las coordenadas viejas de la dirección como si siguieran siendo válidas.
+                lat, lng = None, None
+            q_sugerencia = j["direccion"]
 
     breadcrumbs = [
         {"label": _("Contact list"), "url": reverse("contact_list")},
@@ -241,16 +287,17 @@ def editar_direccion(request, contact_id, address_id):
         {"label": _("Edit address"), "url": ""},
     ]
 
-    form = SugerenciaGeorefForm(instance=address_obj, initial={"address_type": "physical"})
     return render(
         request,
         "location/editar_direccion.html",
         {
             "georef_activated": georef_activated,
             "contact": contact_obj,
+            "address": address_obj,
             "form": form,
             "lat": lat,
             "lng": lng,
+            "q_sugerencia": q_sugerencia,
             "breadcrumbs": breadcrumbs,
         },
     )

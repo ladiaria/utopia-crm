@@ -35,6 +35,7 @@ from core.filters import ContactFilter
 from core.forms import ContactAdminForm, ContactUpdateForm
 from core.mixins import BreadcrumbsMixin
 from core.utils import get_mailtrain_lists, detect_csv_delimiter
+from util.location_utils import georef_habilitado
 
 from support.forms import ContactCampaignStatusEditForm, ImportContactsForm, CheckForExistingContactsForm
 
@@ -264,7 +265,7 @@ class ContactDetailView(BreadcrumbsMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["georef_activated"] = getattr(settings, "GEOREF_SERVICES", False)
+        context["georef_activated"] = georef_habilitado()
         context["subscription_groups"] = self.get_subscription_groups()
         context["overview_subscriptions"] = self.get_overview_subscriptions()
         # Unpack all querysets
