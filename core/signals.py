@@ -7,7 +7,6 @@ from django.dispatch import receiver
 from django.forms import ValidationError
 
 from core.models import Contact, Subscription, regex_alphanumeric, regex_alphanumeric_msg, update_web_user
-from core.forms import no_email_validation_msg
 from core.utils import cms_rest_api_request, mail_managers_on_errors
 
 
@@ -17,9 +16,6 @@ alphanumeric = re.compile(regex_alphanumeric)
 @receiver(pre_save, sender=Contact)
 def contact_pre_save_signal(sender, instance, **kwargs):
     # TODO: These validations should be consistent with the ones defined in the model attrs.
-
-    if instance.no_email and instance.email:
-        raise ValidationError(no_email_validation_msg)
 
     if not alphanumeric.match(instance.name) and getattr(settings, "ENABLE_ALPHANUMERIC_VALIDATION_FOR_NAME", True):
         raise ValidationError(regex_alphanumeric_msg)
