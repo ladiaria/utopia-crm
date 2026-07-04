@@ -2,6 +2,7 @@
 from pymailcheck import split_email
 import json
 
+from django.conf import settings
 from django import forms
 from django.core.mail import mail_managers
 from django.utils.translation import gettext as _
@@ -51,13 +52,15 @@ class EmailValidationForm(forms.Form):
             return result
 
     def email_extra_clean(self, cleaned_data):
-        from django.conf import settings
 
-        # Skip validation if disabled in settings
+        email = cleaned_data.get('email')
+
+        # Skip "complex" validations if disabled in settings
+        # TODO: rename this setting to CORE_EMAIL[_(COMPLEX|DOMAIN|TYPOSQUASH)]_VALIDATION_ENABLED
         if not getattr(settings, 'EMAIL_VALIDATION_ENABLED', True):
-            return cleaned_data.get('email')
+            return email
 
-        email, was_valid = cleaned_data.get("email"), cleaned_data.get("email_was_valid")
+        was_valid = cleaned_data.get("email_was_valid")
         replacement, suggestion = cleaned_data.get("email_replacement"), cleaned_data.get("email_suggestion")
         if was_valid:
             if not replacement:
@@ -199,6 +202,66 @@ class ContactAdminForm(EmailValidationForm, forms.ModelForm):
                 )
                 raise forms.ValidationError(msg)
 
+
+class ContactUpdateForm(EmailValidationForm, forms.ModelForm):
+    class Meta:
+        model = Contact
+        fields = [
+            'name',
+            'last_name',
+            'email',
+            'phone',
+            'mobile',
+            'work_phone',
+            'id_document_type',
+            'id_document',
+            'birthdate',
+            'gender',
+            'education',
+            'tags',
+            'notes',
+            'allow_polls',
+            'allow_promotions',
+        ]
+        widgets = {
+            "birthdate": forms.TextInput(attrs={"class": "form-control datepicker"}),
+        }
+
+    def clean(self):
+        cleaned_data = super().clean()
+        email = cleaned_data.get("email")
+        if email:
+            email = self.email_extra_clean(cleaned_data)
+
+        raw_tags = self.data.get("tags")
+        if raw_tags:
+            try:
+                parsed_tags = json.loads(raw_tags)
+                if isinstance(parsed_tags, list) and all("value" in tag for tag in parsed_tags):
+                    cleaned_data["tags"] = [tag["value"] for tag in parsed_tags]
+            except json.JSONDecodeError:
+                pass
+        else:
+            cleaned_data["tags"] = []
+
+        return cleaned_data
+
+    def clean_id_document(self):
+        id_document = self.cleaned_data.get("id_document")
+
+        if id_document and self.instance:
+            s = Contact.objects.filter(id_document=id_document).exclude(pk=self.instance.pk)
+            if s.exists():
+                contact = s[0]
+                url = contact.get_absolute_url()
+                link_label = _("Open in a new tab")
+                url_str = f'<a href="{url}" target="_blank">{link_label}</a>'
+                msg = mark_safe(
+                    _("Contact %(contact_id)s already has this document. %(url_str)s")
+                    % {"contact_id": contact.id, "url_str": url_str}
+                )
+                raise forms.ValidationError(msg)
+
         return id_document
 
     def clean_email(self):
@@ -245,12 +308,18 @@ class SubscriptionAdminForm(forms.ModelForm):
             )
         if subscription_type in ("F", "S") and not end_date:
             self.add_error("end_date", _("Free subscriptions must have an end date"))
+        # t949 - If subscription is promotion it must not have a payment type and must have an end date
+        if subscription_type == "P" and cleaned_data.get('payment_type'):
+            self.add_error("payment_type", _("Promotion subscriptions must not have a payment type"))
+        if subscription_type == "P" and not end_date:
+            self.add_error("end_date", _("Promotion subscriptions must have an end date"))
         return cleaned_data
 
     def __init__(self, *args, **kwargs):
         super(SubscriptionAdminForm, self).__init__(*args, **kwargs)
-        if 'instance' in kwargs:
-            self.fields['billing_address'].queryset = Address.objects.filter(contact=kwargs['instance'].contact)
+        instance = kwargs.get("instance")
+        if instance:
+            self.fields['billing_address'].queryset = Address.objects.filter(contact=instance.contact)
 
 
 class AddressForm(forms.ModelForm):

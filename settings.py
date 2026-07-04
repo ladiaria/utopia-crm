@@ -157,11 +157,6 @@ MAX_RUN_TIME = 10800
 # django-select2
 SELECT2_CACHE_BACKEND = "default"  # it can use any other cache backend supported by Django like redis
 
-# default NLs map, format:
-# key=function to eval receiving contact as arg, value: default NLs product slugs to add if key function returns True
-# use special key True to add default NLs in the entry for all contacts, example: {True: ["default"]}
-CORE_DEFAULT_NEWSLETTERS = {}
-
 # Predefined states in Address model. If you don't want to use a choice for the states, override this to False
 USE_STATES_CHOICE = True
 # The values to use if the previous setting is True
@@ -194,12 +189,23 @@ INVOICE_PAYMENT_METHODS = (("M", "Mastercard"), ("V", "Visa"), ("C", "Cash"))
 # How many days into the future are we going to bill contacts
 BILLING_EXTRA_DAYS = 2
 
+# Issue statuses
+ISSUE_STATUS_NEW = "new"
+ISSUE_STATUS_PENDING = "pending"
+ISSUE_STATUS_ASSIGNED = "assigned"
+ISSUE_STATUS_UNASSIGNED = "unassigned"
+
 # list of statuses slugs that will be used to mark the issue as finished
 ISSUE_STATUS_SOLVED = "solved"
 ISSUE_STATUS_FINISHED_LIST = [ISSUE_STATUS_SOLVED, "not-solved"]
 
+# Subcategory slugs whose resolutions auto-close the issue (set status to ISSUE_STATUS_SOLVED).
+# Override in local_settings to activate this behaviour for specific subcategories.
+ISSUE_RESOLUTION_SOLVED_SUBCATEGORIES = []
+
 # logistics
 LOGISTICS_LABEL_INVOICE_PAYMENT_TYPES = []
+ISSUE_SUBCATEGORY_NOT_DELIVERED = "not-delivered"
 
 # Override to True if route for billing is required
 # Useful when you explicitly require to send the invoices via logistics
@@ -218,13 +224,6 @@ LDSOCIAL_URL = ""  # The SITE_URL setting of the "associated" utopia-cms deplyme
 LDSOCIAL_API_KEY = ""  # A key generated in the CMS using "rest_framework_api_key" app
 WEB_UPDATE_HTTP_BASIC_AUTH = None  # Override to tuple (user, pass) if the CMS is restricted using basic auth
 ENV_HTTP_BASIC_AUTH = False  # Override to True if this CRM deployment is restricted using basic auth
-# Subscriptions to publication and area newsletters sync (to find usage, do not grep literally, use "_MEWSLETTER_MAP")
-WEB_UPDATE_NEWSLETTER_MAP = {
-    # Override to sync CMS Publication newsletters subscriptions, format: key: CMS Publication.id, value: product.slug
-}
-WEB_UPDATE_AREA_NEWSLETTER_MAP = {
-    # Override to sync CMS Area newsletters subscriptions, format: key: CMS Category.id, value: product.slug
-}
 # If True, allows queuing subscriptions to start after the active one ends. This is useful for
 # example to queue a subscription to start after the current one ends, in the case the customer
 # wants to pay for a new subscription before the current one ends.
@@ -233,6 +232,9 @@ ALLOW_QUEUE_SUBSCRIPTIONS = False
 # MercadoPago integration (override this to True in your local_settings.py to enable)
 MERCADOPAGO_ENABLED = False
 
+# Recipients for MercadoPago new-subscription error reports (t1156). Set in local_settings.py.
+MERCADOPAGO_SUBSCRIPTION_ERRORS_RECIPIENTS = []
+
 # phonenumbers default region
 PHONENUMBER_DEFAULT_REGION = "UY"
 
@@ -240,10 +242,74 @@ PHONENUMBER_DEFAULT_REGION = "UY"
 WEB_UPDATE_USER_URI = None
 WEB_DELETE_USER_URI = None
 WEB_EMAIL_CHECK_URI = None
+# Takeover de email huerfano en el CMS (desduplicacion CRM<->CMS, tajada MercadoPago).
+WEB_EMAIL_TAKEOVER_URI = None
+# Kill switch del takeover automatico. Opt-in: apagado por defecto. Ponerlo en True en el
+# local_settings de produccion para activarlo; volverlo a False lo apaga sin tocar codigo
+# (el flujo cae al comportamiento de siempre: bloquea/dedupe, sin borrar ni mover nada).
+WEB_EMAIL_TAKEOVER_ENABLED = False
+# Newsletter read/delta endpoints on the CMS (CRM reads/edits newsletters on demand from the CMS).
+WEB_NEWSLETTERS_READ_URI = None
+WEB_NEWSLETTERS_UPDATE_URI = None
 WEB_CREATE_USER_ENABLED = None
 WEB_CREATE_USER_POST_WHITELIST = []
+# When True (the new model), Contact saves no longer push the local newsletter mirror to the CMS with a
+# destructive .set(); the CMS is the source of truth and the CRM edits newsletters on demand by delta.
+WEB_UPDATE_USER_NEWSLETTERS_ENABLED = True
 
 GEOREF_SERVICES = False
+# Timeout (segundos) para las llamadas HTTP a los servicios de georreferenciación (Uruguay).
+GEOREF_TIMEOUT = 5
+# Fallos consecutivos de los servicios de georref a partir de los cuales se apaga sola la
+# Variable "georef_services_enabled" (ver util/location_utils.py) hasta que alguien la reactive.
+GEOREF_MAX_FALLOS_CONSECUTIVOS = 3
+
+# Error reporting recipients. ADMINS receive uncaught-exception emails (Django default
+# behaviour via the mail_admins logging handler). Populate these in local_settings.py.
+ADMINS = []
+MANAGERS = ADMINS
+
+# Logging: keep Django's default behaviour (mail uncaught exceptions to ADMINS when not in
+# DEBUG) and additionally send everything to stderr/console so uWSGI captures it in its log.
+# No file handlers on purpose.
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "filters": {
+        "require_debug_false": {"()": "django.utils.log.RequireDebugFalse"},
+    },
+    "formatters": {
+        "verbose": {"format": "[%(asctime)s] %(levelname)s %(name)s: %(message)s"},
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "verbose",
+        },
+        "mail_admins": {
+            "level": "ERROR",
+            "filters": ["require_debug_false"],
+            "class": "django.utils.log.AdminEmailHandler",
+            "include_html": True,
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": "INFO",
+    },
+    "loggers": {
+        "django": {
+            "handlers": ["console", "mail_admins"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "django.request": {
+            "handlers": ["console", "mail_admins"],
+            "level": "ERROR",
+            "propagate": False,
+        },
+    },
+}
 
 # Import local settings if they exist
 # TODO: - improve hardcoded load of community settings (which are this community settings?)
@@ -265,6 +331,10 @@ if LDSOCIAL_URL:
     WEB_UPDATE_USER_URI = WEB_UPDATE_USER_URI or (LDSOCIAL_URL + 'usuarios/fromcrm')
     WEB_DELETE_USER_URI = WEB_DELETE_USER_URI or (LDSOCIAL_URL + 'usuarios/deletefromcrm')
     WEB_EMAIL_CHECK_URI = WEB_EMAIL_CHECK_URI or (LDSOCIAL_URL + 'usuarios/api/email_check/')
+    # Nota: la URI del takeover apunta al modulo ladiaria del CMS, no a usuarios/api/ como email_check.
+    WEB_EMAIL_TAKEOVER_URI = WEB_EMAIL_TAKEOVER_URI or (LDSOCIAL_URL + 'utopia_cms_ladiaria/api/email_takeover/')
+    WEB_NEWSLETTERS_READ_URI = WEB_NEWSLETTERS_READ_URI or (LDSOCIAL_URL + 'usuarios/api/newsletters/')
+    WEB_NEWSLETTERS_UPDATE_URI = WEB_NEWSLETTERS_UPDATE_URI or (LDSOCIAL_URL + 'usuarios/api/newsletter_update/')
     LDSOCIAL_API_URI = f"{LDSOCIAL_URL}api/"
 
 if WEB_CREATE_USER_ENABLED is None:
@@ -272,6 +342,20 @@ if WEB_CREATE_USER_ENABLED is None:
 
 if not WEB_CREATE_USER_ENABLED and WEB_EMAIL_CHECK_URI not in WEB_CREATE_USER_POST_WHITELIST:
     WEB_CREATE_USER_POST_WHITELIST.append(WEB_EMAIL_CHECK_URI)
+
+if (
+    not WEB_CREATE_USER_ENABLED
+    and WEB_EMAIL_TAKEOVER_URI
+    and WEB_EMAIL_TAKEOVER_URI not in WEB_CREATE_USER_POST_WHITELIST
+):
+    WEB_CREATE_USER_POST_WHITELIST.append(WEB_EMAIL_TAKEOVER_URI)
+
+# Newsletter read/delta are POSTs that must work regardless of WEB_CREATE_USER_ENABLED (they don't create
+# web users); whitelist them so cms_rest_api_request lets them through.
+if not WEB_CREATE_USER_ENABLED:
+    for _nl_uri in (WEB_NEWSLETTERS_READ_URI, WEB_NEWSLETTERS_UPDATE_URI):
+        if _nl_uri and _nl_uri not in WEB_CREATE_USER_POST_WHITELIST:
+            WEB_CREATE_USER_POST_WHITELIST.append(_nl_uri)
 
 if ENV_HTTP_BASIC_AUTH and not locals().get("API_KEY_CUSTOM_HEADER"):
     # by default, this variable is not defined, thats why we use locals() instead of set a "neutral" value

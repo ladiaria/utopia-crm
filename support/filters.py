@@ -8,36 +8,92 @@ from django.contrib.auth.models import User
 from django.db.models import Q
 
 from core.models import Activity, ContactCampaignStatus, Subscription, Campaign, Product
-from .models import Issue, IssueSubcategory, Seller, ScheduledTask, SalesRecord, SellerConsoleAction
+from .models import (
+    AbsenceReason,
+    Issue,
+    IssueSubcategory,
+    IssueResolution,
+    Seller,
+    SellerAttendance,
+    ScheduledTask,
+    SalesRecord,
+    SellerConsoleAction,
+)
 
 
 CREATION_CHOICES = (
     ('today', _('Today')),
     ('yesterday', _('Yesterday')),
     ('last_7_days', _('Last 7 days')),
+    ('next_7_days', _('Next 7 days')),
     ('last_30_days', _('Last 30 days')),
     ('this_month', _('This month')),
     ('last_month', _('Last month')),
+    ('no_date', _('No date set')),
     ('custom', _('Custom')),
 )
 
 
 class IssueFilter(django_filters.FilterSet):
-    date = django_filters.ChoiceFilter(choices=CREATION_CHOICES, method='filter_by_date')
+    date = django_filters.ChoiceFilter(
+        choices=CREATION_CHOICES,
+        method='filter_by_date',
+        label=_('Issue Date'),
+        help_text=_('When the issue was created')
+    )
     date_gte = django_filters.DateFilter(
-        field_name='date', lookup_expr='gte', widget=forms.TextInput(attrs={'autocomplete': 'off'})
+        field_name='date',
+        lookup_expr='gte',
+        widget=forms.TextInput(attrs={'autocomplete': 'off'}),
+        label=_('From')
     )
     date_lte = django_filters.DateFilter(
-        field_name='date', lookup_expr='lte', widget=forms.TextInput(attrs={'autocomplete': 'off'})
+        field_name='date',
+        lookup_expr='lte',
+        widget=forms.TextInput(attrs={'autocomplete': 'off'}),
+        label=_('To')
+    )
+    next_action_date = django_filters.ChoiceFilter(
+        choices=CREATION_CHOICES,
+        method='filter_by_next_action_date',
+        label=_('Next Action Date'),
+        help_text=_('When the next action is scheduled')
+    )
+    next_action_date_gte = django_filters.DateFilter(
+        field_name='next_action_date',
+        lookup_expr='gte',
+        widget=forms.TextInput(attrs={'autocomplete': 'off'}),
+        label=_('From')
+    )
+    next_action_date_lte = django_filters.DateFilter(
+        field_name='next_action_date',
+        lookup_expr='lte',
+        widget=forms.TextInput(attrs={'autocomplete': 'off'}),
+        label=_('To')
     )
     assigned_to = django_filters.ModelChoiceFilter(
         queryset=User.objects.filter(is_staff=True).order_by('username'),
         widget=forms.Select(attrs={"class": "form-control"}),
     )
+    resolution = django_filters.ModelChoiceFilter(
+        queryset=IssueResolution.objects.all(),
+        widget=forms.Select(attrs={"class": "form-control"}),
+        label=_('Resolution')
+    )
+    unassigned = django_filters.BooleanFilter(
+        method='filter_unassigned',
+        label=_('Unassigned only'),
+        widget=forms.CheckboxInput(attrs={"class": "form-check-input"}),
+    )
+    exclude_finished = django_filters.BooleanFilter(
+        method='filter_exclude_finished',
+        label=_('Exclude finished'),
+        widget=forms.CheckboxInput(attrs={"class": "form-check-input"}),
+    )
 
     class Meta:
         model = Issue
-        fields = ['category', 'sub_category', 'status', 'assigned_to']
+        fields = ['category', 'sub_category', 'status', 'assigned_to', 'resolution']
 
     def filter_by_date(self, queryset, name, value):
         if value == 'today':
@@ -46,6 +102,8 @@ class IssueFilter(django_filters.FilterSet):
             return queryset.filter(date=date.today() - timedelta(1))
         elif value == 'last_7_days':
             return queryset.filter(date__gte=date.today() - timedelta(7), date__lte=date.today())
+        elif value == 'next_7_days':
+            return queryset.filter(date__gte=date.today(), date__lte=date.today() + timedelta(7))
         elif value == 'last_30_days':
             return queryset.filter(date__gte=date.today() - timedelta(30), date__lte=date.today())
         elif value == 'this_month':
@@ -57,6 +115,52 @@ class IssueFilter(django_filters.FilterSet):
         else:
             return queryset
 
+    def filter_unassigned(self, queryset, name, value):
+        if value:
+            return queryset.filter(assigned_to__isnull=True)
+        return queryset
+
+    def filter_exclude_finished(self, queryset, name, value):
+        if value:
+            finished_list = getattr(settings, 'ISSUE_STATUS_FINISHED_LIST', [])
+            return queryset.exclude(status__slug__in=finished_list)
+        return queryset
+
+    def filter_by_next_action_date(self, queryset, name, value):
+        today = date.today()
+        if value == 'today':
+            return queryset.filter(next_action_date=today)
+        elif value == 'yesterday':
+            return queryset.filter(next_action_date=today - timedelta(1))
+        elif value == 'last_7_days':
+            return queryset.filter(
+                next_action_date__gte=today - timedelta(7),
+                next_action_date__lte=today
+            )
+        elif value == 'next_7_days':
+            return queryset.filter(
+                next_action_date__gte=today,
+                next_action_date__lte=today + timedelta(7)
+            )
+        elif value == 'last_30_days':
+            return queryset.filter(
+                next_action_date__gte=today - timedelta(30),
+                next_action_date__lte=today
+            )
+        elif value == 'this_month':
+            return queryset.filter(
+                next_action_date__month=today.month,
+                next_action_date__year=today.year
+            )
+        elif value == 'last_month':
+            month = today.month - 1 if today.month != 1 else 12
+            year = today.year if today.month != 1 else today.year - 1
+            return queryset.filter(next_action_date__month=month, next_action_date__year=year)
+        elif value == 'no_date':
+            return queryset.filter(next_action_date__isnull=True)
+        else:
+            return queryset
+
 
 class InvoicingIssueFilter(IssueFilter):
     sub_category = django_filters.ModelChoiceFilter(
@@ -64,9 +168,40 @@ class InvoicingIssueFilter(IssueFilter):
     )
 
 
+ACTIVITY_DATE_CHOICES = (
+    ('past', _('Past (overdue)')),
+    ('today', _('Today')),
+    ('future', _('Future')),
+    ('past_and_today', _('Past + Today')),
+    ('today_and_future', _('Today + Future')),
+    ('custom', _('Custom')),
+)
+
+
 class ScheduledActivityFilter(django_filters.FilterSet):
+    campaign = django_filters.ModelChoiceFilter(
+        queryset=Campaign.objects.filter(active=True).order_by('name'),
+    )
     seller_console_action = django_filters.ModelChoiceFilter(
         queryset=SellerConsoleAction.objects.filter(is_active=True)
+    )
+    date_range = django_filters.ChoiceFilter(
+        choices=ACTIVITY_DATE_CHOICES,
+        method='filter_by_date_range',
+        label=_('Activity Date'),
+        widget=forms.HiddenInput(),
+    )
+    date_from = django_filters.DateFilter(
+        field_name='datetime',
+        lookup_expr='gte',
+        label=_('Date From'),
+        widget=forms.DateInput(attrs={'type': 'date'}),
+    )
+    date_to = django_filters.DateTimeFilter(
+        field_name='datetime',
+        lookup_expr='lte',
+        label=_('Date To'),
+        widget=forms.DateInput(attrs={'type': 'date'}),
     )
     # Add date range filters for the subscription end date
     # These will be used in the view to filter activities after they've been annotated
@@ -80,6 +215,20 @@ class ScheduledActivityFilter(django_filters.FilterSet):
         widget=forms.DateInput(attrs={'type': 'date'}),
         method='filter_subscription_end_date_max',
     )
+
+    def filter_by_date_range(self, queryset, name, value):
+        today = date.today()
+        if value == 'past':
+            return queryset.filter(datetime__date__lt=today)
+        elif value == 'today':
+            return queryset.filter(datetime__date=today)
+        elif value == 'future':
+            return queryset.filter(datetime__date__gt=today)
+        elif value == 'past_and_today':
+            return queryset.filter(datetime__date__lte=today)
+        elif value == 'today_and_future':
+            return queryset.filter(datetime__date__gte=today)
+        return queryset
 
     def filter_subscription_end_date_min(self, queryset, name, value):
         # This is a placeholder method - actual filtering happens in the view
@@ -95,11 +244,66 @@ class ScheduledActivityFilter(django_filters.FilterSet):
 
 
 class ContactCampaignStatusFilter(django_filters.FilterSet):
-    seller = django_filters.ModelChoiceFilter(queryset=Seller.objects.filter(internal=True))
+    seller = django_filters.ModelChoiceFilter(queryset=Seller.objects.filter(internal=True).order_by('name'))
+    date_assigned_min = django_filters.DateFilter(
+        field_name='date_assigned',
+        lookup_expr='gte',
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+    )
+    date_assigned_max = django_filters.DateFilter(
+        field_name='date_assigned',
+        lookup_expr='lte',
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+    )
+    last_action_date_min = django_filters.DateFilter(
+        field_name='last_action_date',
+        lookup_expr='gte',
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+    )
+    last_action_date_max = django_filters.DateFilter(
+        field_name='last_action_date',
+        lookup_expr='lte',
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+    )
 
     class Meta:
         model = ContactCampaignStatus
         fields = ["seller", "status"]
+
+
+class AllCampaignsContactStatusFilter(django_filters.FilterSet):
+    """
+    Same filters as ContactCampaignStatusFilter but across all campaigns, with an optional campaign
+    filter to narrow down a subset. The "empty by default" behaviour (requiring a date) is enforced
+    in the view, not here, so the filter stays reusable.
+    """
+
+    campaign = django_filters.ModelChoiceFilter(queryset=Campaign.objects.all().order_by('-id'))
+    seller = django_filters.ModelChoiceFilter(queryset=Seller.objects.filter(internal=True).order_by('name'))
+    date_assigned_min = django_filters.DateFilter(
+        field_name='date_assigned',
+        lookup_expr='gte',
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+    )
+    date_assigned_max = django_filters.DateFilter(
+        field_name='date_assigned',
+        lookup_expr='lte',
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+    )
+    last_action_date_min = django_filters.DateFilter(
+        field_name='last_action_date',
+        lookup_expr='gte',
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+    )
+    last_action_date_max = django_filters.DateFilter(
+        field_name='last_action_date',
+        lookup_expr='lte',
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+    )
+
+    class Meta:
+        model = ContactCampaignStatus
+        fields = ["campaign", "seller", "status"]
 
 
 class UnsubscribedSubscriptionsByEndDateFilter(django_filters.FilterSet):
@@ -185,11 +389,29 @@ class SalesRecordFilter(django_filters.FilterSet):
     date_time__lte = django_filters.DateFilter(
         field_name='date_time__date', lookup_expr='lte', widget=forms.TextInput(attrs={'autocomplete': 'off'})
     )
+    start_date__gte = django_filters.DateFilter(
+        field_name='subscription__start_date',
+        lookup_expr='gte',
+        widget=forms.TextInput(attrs={'autocomplete': 'off'}),
+        label=_('Subscription start date (min)'),
+    )
+    start_date__lte = django_filters.DateFilter(
+        field_name='subscription__start_date',
+        lookup_expr='lte',
+        widget=forms.TextInput(attrs={'autocomplete': 'off'}),
+        label=_('Subscription start date (max)'),
+    )
     seller = django_filters.ModelMultipleChoiceFilter(
-        queryset=Seller.objects.filter(salesrecord__isnull=False).distinct(), field_name='seller'
+        queryset=Seller.objects.filter(salesrecord__isnull=False, internal=True).order_by('name').distinct(),
+        field_name='seller',
     )
     payment_method = django_filters.MultipleChoiceFilter(
         choices=payment_method_choices, field_name="subscription__payment_type"
+    )
+    products = django_filters.ModelMultipleChoiceFilter(
+        queryset=Product.objects.filter(type__in=['S', 'O'], active=True).order_by('name'),
+        field_name='products',
+        label=_('Products'),
     )
 
     class Meta:
@@ -205,8 +427,25 @@ class SalesRecordFilterForSeller(django_filters.FilterSet):
     date_time__lte = django_filters.DateFilter(
         field_name='date_time__date', lookup_expr='lte', widget=forms.TextInput(attrs={'autocomplete': 'off'})
     )
+    start_date__gte = django_filters.DateFilter(
+        field_name='subscription__start_date',
+        lookup_expr='gte',
+        widget=forms.TextInput(attrs={'autocomplete': 'off'}),
+        label=_('Subscription start date (min)'),
+    )
+    start_date__lte = django_filters.DateFilter(
+        field_name='subscription__start_date',
+        lookup_expr='lte',
+        widget=forms.TextInput(attrs={'autocomplete': 'off'}),
+        label=_('Subscription start date (max)'),
+    )
     payment_method = django_filters.MultipleChoiceFilter(
         choices=payment_method_choices, field_name="subscription__payment_type"
+    )
+    products = django_filters.ModelMultipleChoiceFilter(
+        queryset=Product.objects.filter(type__in=['S', 'O'], active=True).order_by('name'),
+        field_name='products',
+        label=_('Products'),
     )
 
     class Meta:
@@ -239,4 +478,61 @@ class SubscriptionEndDateFilter(django_filters.FilterSet):
     def filter_products(self, queryset, name, value):
         if value:
             return queryset.filter(products__in=value).distinct()
+        return queryset
+
+
+JUSTIFIED_CHOICES = (
+    ("", _("All")),
+    ("true", _("Justified")),
+    ("false", _("Unjustified")),
+)
+
+
+class SellerAttendanceFilter(django_filters.FilterSet):
+    date_from = django_filters.DateFilter(
+        field_name="record__date",
+        lookup_expr="gte",
+        label=_("Date from"),
+        widget=forms.DateInput(attrs={"type": "date", "class": "form-control"}),
+    )
+    date_to = django_filters.DateFilter(
+        field_name="record__date",
+        lookup_expr="lte",
+        label=_("Date to"),
+        widget=forms.DateInput(attrs={"type": "date", "class": "form-control"}),
+    )
+    seller = django_filters.ModelMultipleChoiceFilter(
+        queryset=Seller.objects.filter(call_center=True).order_by("name"),
+        label=_("Sellers"),
+    )
+    absence_reason = django_filters.ModelMultipleChoiceFilter(
+        queryset=AbsenceReason.objects.filter(active=True).order_by("name"),
+        label=_("Absence reason"),
+    )
+    include_present = django_filters.BooleanFilter(
+        label=_("Include present"),
+        widget=forms.CheckboxInput(),
+        method="filter_include_present",
+    )
+    justified = django_filters.ChoiceFilter(
+        choices=JUSTIFIED_CHOICES,
+        method="filter_by_justified",
+        label=_("Justified"),
+    )
+
+    class Meta:
+        model = SellerAttendance
+        fields = []
+
+    def filter_include_present(self, queryset, name, value):
+        # Filtering handled in SellerAttendanceFilterView.get_queryset() via GET param
+        return queryset
+
+    def filter_by_justified(self, queryset, name, value):
+        if value == "true":
+            return queryset.filter(absence_reason__justified=True)
+        elif value == "false":
+            return queryset.filter(status="A").filter(
+                Q(absence_reason__isnull=True) | Q(absence_reason__justified=False)
+            )
         return queryset

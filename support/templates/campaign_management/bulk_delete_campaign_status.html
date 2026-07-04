@@ -1,0 +1,156 @@
+{% extends "adminlte/base.html" %}
+{% load static i18n %}
+
+{% block title %}{% trans "Bulk Delete Campaign Status" %}{% endblock title %}
+
+{% block no_heading %}
+<h1>{% trans "Campaign Management" %}</h1>
+{% endblock %}
+
+{% block breadcrumbs %}
+{{ block.super }}
+{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col-md-12">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">{% trans "Bulk Delete Campaign Status Records" %}</h3>
+        <div class="card-tools">
+          <a href="?download_template=1" class="btn btn-sm btn-success">
+            <i class="fas fa-download"></i> {% trans "Download CSV Template" %}
+          </a>
+        </div>
+      </div>
+      <div class="card-body">
+        <!-- Instructions Alert -->
+        <div class="alert alert-warning">
+          <h5><i class="icon fas fa-exclamation-triangle"></i> {% trans "Warning" %}</h5>
+          <p><strong>{% trans "This action will permanently delete ContactCampaignStatus records." %}</strong></p>
+          <p>{% trans "Use this tool to remove contacts from a campaign by uploading a CSV file with contact IDs." %}</p>
+        </div>
+
+        <!-- Instructions -->
+        <div class="card card-outline card-info mb-3">
+          <div class="card-header">
+            <h3 class="card-title"><i class="fas fa-info-circle"></i> {% trans "Instructions" %}</h3>
+          </div>
+          <div class="card-body">
+            <ol>
+              <li>{% trans "Prepare a CSV file with contact IDs (one column named 'contact_id', 'id', or similar)" %}</li>
+              <li>{% trans "Select the campaign from which you want to remove these contacts" %}</li>
+              <li>{% trans "Upload the CSV file and click 'Delete Campaign Status Records'" %}</li>
+              <li>{% trans "The system will delete all ContactCampaignStatus records matching the contact IDs and selected campaign" %}</li>
+            </ol>
+
+            <div class="alert alert-info mt-3">
+              <strong><i class="fas fa-file-csv"></i> {% trans "CSV Format:" %}</strong>
+              <p class="mb-0">{% trans "Your CSV file should have a column with contact IDs. Accepted column names: contact_id, id, contact id, or contactid (case-insensitive)." %}</p>
+              <p class="mb-0 mt-2"><strong>{% trans "Example:" %}</strong></p>
+              <pre class="mb-0">contact_id
+123
+456
+789</pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- Form -->
+        <form method="post" enctype="multipart/form-data">
+          {% csrf_token %}
+
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="{{ form.csv_file.id_for_label }}">
+                  {{ form.csv_file.label }}
+                  {% if form.csv_file.field.required %}<span class="text-danger">*</span>{% endif %}
+                </label>
+                {{ form.csv_file }}
+                {% if form.csv_file.help_text %}
+                  <small class="form-text text-muted">{{ form.csv_file.help_text }}</small>
+                {% endif %}
+                {% if form.csv_file.errors %}
+                  <div class="text-danger">
+                    {% for error in form.csv_file.errors %}
+                      <small>{{ error }}</small>
+                    {% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="{{ form.campaign.id_for_label }}">
+                  {{ form.campaign.label }}
+                  {% if form.campaign.field.required %}<span class="text-danger">*</span>{% endif %}
+                </label>
+                {{ form.campaign }}
+                {% if form.campaign.help_text %}
+                  <small class="form-text text-muted">{{ form.campaign.help_text }}</small>
+                {% endif %}
+                {% if form.campaign.errors %}
+                  <div class="text-danger">
+                    {% for error in form.campaign.errors %}
+                      <small>{{ error }}</small>
+                    {% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+          {% if form.non_field_errors %}
+            <div class="alert alert-danger">
+              {% for error in form.non_field_errors %}
+                {{ error }}
+              {% endfor %}
+            </div>
+          {% endif %}
+
+          <div class="form-group text-right">
+            <button type="submit" class="btn btn-danger">
+              <i class="fas fa-trash"></i> {% trans "Delete Campaign Status Records" %}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_head %}
+<!-- Select2 CSS -->
+<link href="{% static 'admin-lte/plugins/select2/css/select2.min.css' %}" rel="stylesheet" />
+<link href="{% static 'admin-lte/plugins/select2-bootstrap4-theme/select2-bootstrap4.min.css' %}" rel="stylesheet" />
+<style>
+  .select2-container--bootstrap4 .select2-selection--single {
+    height: calc(2.25rem + 2px) !important;
+  }
+  .select2-container--bootstrap4 .select2-selection--single .select2-selection__rendered {
+    line-height: calc(2.25rem + 2px) !important;
+  }
+  .select2-container--bootstrap4 .select2-selection--single .select2-selection__arrow {
+    height: calc(2.25rem + 2px) !important;
+  }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Select2 JS -->
+<script src="{% static 'admin-lte/plugins/select2/js/select2.full.min.js' %}"></script>
+<script>
+  $(document).ready(function() {
+    // Initialize Select2 for campaign dropdown
+    $('.select2').select2({
+      theme: 'bootstrap4',
+      width: '100%',
+      placeholder: '{% trans "Select a campaign" %}',
+      allowClear: false
+    });
+  });
+</script>
+{% endblock %}

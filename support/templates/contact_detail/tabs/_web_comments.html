@@ -1,11 +1,23 @@
 {% load i18n %}
+
 <div class="row">
   <div class="card col-sm-12">
     <div class="card-header">
       <h3 class="card-title">{% trans "Web Comments" %}</h3>
     </div>
     <div class="card-body">
-      {% trans "This is not configured" %}
+      {% if web_comments %}
+        <ul class="list-group mb-3">
+          {% for comment in web_comments %}
+            <li class="list-group-item">
+              <a href="{{ comment.story.url }}">{{ comment.story.metadata.title|default:comment.story.url }}</a><br>
+              <blockquote>{{ comment.body|safe }}</blockquote>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="text-muted">{% trans "No web comments available for this contact" %}</p>
+      {% endif %}
     </div>
   </div>
 </div>

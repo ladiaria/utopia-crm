@@ -86,3 +86,50 @@ MERCADOPAGO_ENABLED = False  # Override to True to enable Mercado Pago
 # MERCADOPAGO_ACCESS_TOKEN = ""  # Override to your Mercado Pago access token in local_settings.py
 # MERCADOPAGO_API_MAX_ATTEMPTS = 10  # Override to the maximum number of attempts to get a successful payment
 # MERCADOPAGO_FORCE_FAIL_PAYMENT = False  # Override to True to make the payment fail
+
+# Recipients for MercadoPago debit errors (already used by mercadopago_debit)
+# MERCADOPAGO_ERRORS_RECIPIENTS = ["comercial@example.com"]
+# Recipients for MercadoPago new-subscription errors (t1156): full exception + traceback + MP data
+# MERCADOPAGO_SUBSCRIPTION_ERRORS_RECIPIENTS = ["soporte@example.com"]
+
+# =============================================================================
+# Error reporting: ADMINS + Sentry
+# =============================================================================
+# ADMINS receive emails on uncaught server errors (Django default behaviour). Each entry is
+# a (name, email) tuple. MANAGERS defaults to ADMINS in settings.py.
+# ADMINS = [("Nami", "tu-email@example.com")]
+
+# Sentry error tracking. The SDK is initialized here (not in the base settings) so only the
+# environments that need it (production) enable it. Only production should report, per t1156.
+# SENTRY_ENABLED = True
+# SENTRY_DSN = "https://YOUR_KEY@YOUR_SENTRY_INSTANCE.ingest.sentry.io/YOUR_PROJECT_ID"
+# SENTRY_ENVIRONMENT = "production"  # only production sends data to Sentry
+#
+# if locals().get("SENTRY_ENABLED") and locals().get("SENTRY_DSN") and SENTRY_ENVIRONMENT == "production":
+#     import sentry_sdk
+#     from sentry_sdk.integrations.django import DjangoIntegration
+#
+#     def before_send(event, hint):
+#         """Filter sensitive MercadoPago / auth data before sending to Sentry."""
+#         request = event.get("request", {})
+#         data = request.get("data")
+#         if isinstance(data, dict):
+#             sensitive_keys = [
+#                 "password", "token", "secret", "api_key", "security_code",
+#                 "mp_card_id", "card_number", "credit_card",
+#             ]
+#             for key in sensitive_keys:
+#                 if key in data:
+#                     data[key] = "[Filtered]"
+#         return event
+#
+#     sentry_sdk.init(
+#         dsn=SENTRY_DSN,
+#         integrations=[DjangoIntegration()],
+#         before_send=before_send,
+#         environment=SENTRY_ENVIRONMENT,
+#         traces_sample_rate=0.0,
+#         # CRM has no end-user web traffic; keep PII off by default.
+#         send_default_pii=False,
+#     )
+# =============================================================================

@@ -1,8 +1,6 @@
 # coding=utf-8
 from pydoc import locate
 
-import debug_toolbar
-
 from django.conf import settings
 from django.urls import include, path
 from django.views.generic import TemplateView
@@ -22,8 +20,9 @@ from core.views import (
     contact_by_emailprefix,
     TermsAndConditionsDetailView,
 )
-
+from core.serializers import router
 from invoicing import api as invoicing_api
+
 
 # Custom error handlers. These are used to override the default Django error handlers and are defined in the core app.
 handler404 = 'core.views.handler404'
@@ -43,8 +42,9 @@ urlpatterns += [
     path('', login_required(TemplateView.as_view(template_name='main_menu.html')), name='home'),
 ]
 
-# Core views
+# apis and views
 urlpatterns += [
+    path('api/', include(router.urls)),
     path("api/existsuserweb/", contact_exists),
     path("api/updateuserweb/", contact_api),
     path("api/contact_by_emailprefix/", contact_by_emailprefix),
@@ -91,10 +91,10 @@ if 'advertisement' in settings.INSTALLED_APPS:
 # test
 urlpatterns += [path('test/', TemplateView.as_view(template_name='tests/index.html'))]
 
-if settings.DEBUG:
-    urlpatterns = [
-        path('__debug__/', include(debug_toolbar.urls)),
-    ] + urlpatterns
+if 'debug_toolbar' in settings.INSTALLED_APPS:
+    # WARNING/TODO: more settings are needed to use django-debug-toolbar.
+    import debug_toolbar
+    urlpatterns.insert(0, path('__debug__/', include(debug_toolbar.urls)))
 
 if getattr(settings, 'SERVE_MEDIA', False):
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT) + static(

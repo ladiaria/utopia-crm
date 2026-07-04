@@ -23,15 +23,19 @@
   <script src="{% static 'js/chosen.jquery.min.js' %}"></script>
   <script>
   $(function() {
-    // Initialize Chosen for select elements
-    $('select.form-control').chosen({
+    // Initialize Bootstrap tooltips
+    $('[data-toggle="tooltip"]').tooltip();
+
+    // Initialize Chosen for select elements (exclude the bulk-reassign select,
+    // which stays a native, auto-width select so its button sits beside it).
+    $('select.form-control').not('#bulk-new-status').chosen({
       allow_single_deselect: true,
       no_results_text: "{% trans 'No results match' %}",
       placeholder_text_single: "{% trans 'Select an option' %}",
       width: "100%"
     });
 
-    // Date range functionality
+    // Date range functionality for Issue Date
     $('#id_date').change(function(){
       var option = $(this).val();
       if(option == "custom") {
@@ -45,6 +49,21 @@
     $('#id_date').change();
     $('#id_date_gte').datepicker({ dateFormat: 'yy-mm-dd' });
     $('#id_date_lte').datepicker({ dateFormat: 'yy-mm-dd' });
+
+    // Date range functionality for Next Action Date
+    $('#id_next_action_date').change(function(){
+      var option = $(this).val();
+      if(option == "custom") {
+        $('.next-action-range').removeClass('d-none');
+      }else {
+        $('.next-action-range').addClass('d-none');
+        $('#id_next_action_date_gte').attr('value', '');
+        $('#id_next_action_date_lte').attr('value', '');
+      }
+    });
+    $('#id_next_action_date').change();
+    $('#id_next_action_date_gte').datepicker({ dateFormat: 'yy-mm-dd' });
+    $('#id_next_action_date_lte').datepicker({ dateFormat: 'yy-mm-dd' });
 
     // Dynamic subcategory filtering
     var categorySubcategories = {{ category_subcategories_json|safe }};
@@ -118,6 +137,113 @@
 
     // Update subcategories when category changes (using Chosen event)
     $categorySelect.on('change', updateSubcategories);
+
+    // --- Bulk reassign status tool ---
+    var $bulkForm = $('#bulk-reassign-form');
+    if ($bulkForm.length) {
+      var totalFilterCount = {{ count|default:0 }};
+      // The whole-filter option is only offered when the filter is narrow enough
+      // (a status AND a subcategory selected), to avoid selecting every issue.
+      var filterIsNarrow = {{ filter_is_narrow|yesno:"true,false" }};
+      var $rowChecks = $('.bulk-issue-check');
+      var pageCount = $rowChecks.length;
+      var $checkAll = $('#bulk-check-all');
+      var $actionBar = $('#bulk-action-bar');
+      var $selectedCount = $('#bulk-selected-count');
+      var $filterBanner = $('#bulk-select-all-filter');
+      var $pageMsg = $('#bulk-page-msg');
+      var $selectFilterBtn = $('#bulk-select-filter-btn');
+      var $clearFilterBtn = $('#bulk-clear-filter-btn');
+      var $mode = $('#bulk-mode');
+
+      function selectedOnPage() {
+        return $rowChecks.filter(':checked').length;
+      }
+
+      function refreshBulkUI() {
+        var nSelected = selectedOnPage();
+        var wholeFilter = $mode.val() === 'filter';
+
+        if (wholeFilter) {
+          $selectedCount.text(totalFilterCount);
+          $actionBar.removeClass('d-none').addClass('d-flex');
+        } else if (nSelected > 0) {
+          $selectedCount.text(nSelected);
+          $actionBar.removeClass('d-none').addClass('d-flex');
+        } else {
+          $actionBar.addClass('d-none').removeClass('d-flex');
+        }
+
+        // Gmail-style "select the whole filter" banner: only when the page is
+        // fully selected, there are more results beyond this page, AND the
+        // filter is narrow enough (status + subcategory).
+        if (!wholeFilter && filterIsNarrow && nSelected === pageCount && pageCount > 0 && totalFilterCount > pageCount) {
+          $pageMsg.text(
+            "{% blocktrans %}All {{ page_obj.object_list|length }} issues on this page are selected.{% endblocktrans %}"
+          );
+          $filterBanner.removeClass('d-none');
+          $selectFilterBtn.removeClass('d-none');
+          $clearFilterBtn.addClass('d-none');
+        } else if (wholeFilter) {
+          $pageMsg.text(
+            "{% blocktrans %}All {{ count }} issues matching the filter are selected.{% endblocktrans %}"
+          );
+          $filterBanner.removeClass('d-none');
+          $selectFilterBtn.addClass('d-none');
+          $clearFilterBtn.removeClass('d-none');
+        } else {
+          $filterBanner.addClass('d-none');
+        }
+      }
+
+      function exitFilterMode() {
+        $mode.val('ids');
+        $rowChecks.prop('disabled', false);
+      }
+
+      $checkAll.on('change', function() {
+        if ($mode.val() === 'filter') { exitFilterMode(); }
+        $rowChecks.prop('checked', this.checked);
+        refreshBulkUI();
+      });
+
+      $rowChecks.on('change', function() {
+        if ($mode.val() === 'filter') { exitFilterMode(); }
+        $checkAll.prop('checked', selectedOnPage() === pageCount);
+        refreshBulkUI();
+      });
+
+      $selectFilterBtn.on('click', function() {
+        // Whole-filter mode: the server resolves the set from the filter
+        // querystring, so disable per-row checkboxes (they would be ignored).
+        $mode.val('filter');
+        $rowChecks.prop('checked', true).prop('disabled', true);
+        $checkAll.prop('checked', true);
+        refreshBulkUI();
+      });
+
+      $clearFilterBtn.on('click', function() {
+        exitFilterMode();
+        $rowChecks.prop('checked', false);
+        $checkAll.prop('checked', false);
+        refreshBulkUI();
+      });
+
+      $bulkForm.on('submit', function(e) {
+        if ($mode.val() !== 'filter' && selectedOnPage() === 0) {
+          e.preventDefault();
+          alert("{% trans 'Please select at least one issue.' %}");
+          return false;
+        }
+        if (!$('#bulk-new-status').val()) {
+          e.preventDefault();
+          alert("{% trans 'Please select a destination status.' %}");
+          return false;
+        }
+      });
+
+      refreshBulkUI();
+    }
   });
   </script>
 {% endblock %}
@@ -146,24 +272,66 @@
                 {% render_field filter.form.assigned_to class="form-control" %}
               </div>
               <div class="form-group col">
-                <label for="date">{% trans "Date" %}</label>
-                {% render_field filter.form.date class="form-control " %}
+                <label for="resolution">{% trans "Resolution" %}</label>
+                {% render_field filter.form.resolution class="form-control" %}
               </div>
-              <div class="creation-range hidden d-none col-4">
+            </div>
+            <div class="row">
+              <div class="form-group col-md-6">
+                <label for="date">
+                  {{ filter.form.date.label }}
+                  <small class="text-muted">{{ filter.form.date.help_text }}</small>
+                </label>
+                {% render_field filter.form.date class="form-control" %}
+              </div>
+              <div class="form-group col-md-6">
+                <label for="next_action_date">
+                  {{ filter.form.next_action_date.label }}
+                  <small class="text-muted">{{ filter.form.next_action_date.help_text }}</small>
+                </label>
+                {% render_field filter.form.next_action_date class="form-control" %}
+              </div>
+            </div>
+            <div class="row">
+              <div class="creation-range hidden d-none col-md-6">
                 <div class="row">
                   <div class="form-group col">
-                    <label for="creation_date_gte">{% trans "Creation date (from)" %}</label>
+                    <label for="date_gte">{{ filter.form.date_gte.label }}</label>
                     {% render_field filter.form.date_gte class="form-control" %}
                   </div>
                   <div class="form-group col">
-                    <label for="creation_date_lte">{% trans "Creation date (to)" %}</label>
+                    <label for="date_lte">{{ filter.form.date_lte.label }}</label>
                     {% render_field filter.form.date_lte class="form-control" %}
+                  </div>
+                </div>
+              </div>
+              <div class="next-action-range hidden d-none col-md-6">
+                <div class="row">
+                  <div class="form-group col">
+                    <label for="next_action_date_gte">{{ filter.form.next_action_date_gte.label }}</label>
+                    {% render_field filter.form.next_action_date_gte class="form-control" %}
+                  </div>
+                  <div class="form-group col">
+                    <label for="next_action_date_lte">{{ filter.form.next_action_date_lte.label }}</label>
+                    {% render_field filter.form.next_action_date_lte class="form-control" %}
                   </div>
                 </div>
               </div>
             </div>
             <div class="d-flex justify-content-between align-items-center">
-              <div>
+              <div class="d-flex align-items-center">
+                <div class="form-check mr-3">
+                  {{ filter.form.unassigned }}
+                  <label class="form-check-label" for="id_unassigned">
+                    {% trans "Unassigned only" %}
+                  </label>
+                </div>
+                <div class="form-check mr-3">
+                  {{ filter.form.exclude_finished }}
+                  <label class="form-check-label" for="id_exclude_finished">
+                    {% trans "Exclude finished" %}
+                  </label>
+                </div>
                 {% if count %}
                   <div class="callout callout-info py-2 px-3 mb-0">
                     <strong>{{ count }}</strong> {% trans "issues found" %}
@@ -184,38 +352,108 @@
       </div>
       <div class="card">
         <div class="card-body">
+          {% if can_bulk_reassign %}
+            <form id="bulk-reassign-form" method="post" action="{% url 'bulk_reassign_issue_status' %}">
+              {% csrf_token %}
+              <input type="hidden" name="mode" id="bulk-mode" value="ids">
+              <input type="hidden" name="filter_querystring" value="{{ filter_querystring }}">
+              <div id="bulk-action-bar" class="alert alert-secondary d-none align-items-center" role="alert">
+                <span class="mr-3">
+                  <strong><span id="bulk-selected-count">0</span></strong> {% trans "selected" %}
+                </span>
+                <div class="form-inline">
+                  <label class="mr-2 mb-0" for="bulk-new-status">{% trans "Change status to" %}:</label>
+                  <select name="new_status" id="bulk-new-status" class="form-control mr-2 w-auto" required>
+                    <option value="">{% trans "Select a status" %}</option>
+                    {% for status in issue_statuses %}
+                      <option value="{{ status.id }}">{{ status.name }}</option>
+                    {% endfor %}
+                  </select>
+                  <button type="submit" class="btn btn-primary ml-2">
+                    <i class="fas fa-exchange-alt"></i> {% trans "Change status" %}
+                  </button>
+                </div>
+              </div>
+              <div id="bulk-select-all-filter" class="alert alert-primary d-none" role="alert">
+                <span id="bulk-page-msg" class="mr-2"></span>
+                <button type="button" id="bulk-select-filter-btn" class="btn btn-light btn-sm font-weight-bold">
+                  {% blocktrans %}Select all {{ count }} issues matching the filter{% endblocktrans %}
+                </button>
+                <button type="button" id="bulk-clear-filter-btn" class="btn btn-light btn-sm d-none">
+                  {% trans "Clear selection" %}
+                </button>
+              </div>
+          {% endif %}
           <table id="table1" class="table table-bordered table-striped">
             <thead>
               <tr role="row">
+                {% if can_bulk_reassign %}
+                  <th class="text-center">
+                    <input type="checkbox" id="bulk-check-all" title="{% trans 'Select visible issues' %}">
+                  </th>
+                {% endif %}
                 <th>{% trans "Id" %}</th>
-                <th>{% trans "Start date" %}</th>
+                <th>
+                  <a href="?{% for key, value in request.GET.items %}{% if key != 'order_by' and key != 'p' %}{{ key }}={{ value }}&{% endif %}{% endfor %}order_by={% if request.GET.order_by == 'date' %}-date{% else %}date{% endif %}" class="text-dark">
+                    {% trans "Creation date" %}
+                    {% if request.GET.order_by == 'date' %}<i class="fas fa-sort-up"></i>{% elif request.GET.order_by == '-date' %}<i class="fas fa-sort-down"></i>{% else %}<i class="fas fa-sort"></i>{% endif %}
+                  </a>
+                  <i class="fas fa-info-circle text-muted"
+                     data-toggle="tooltip"
+                     title="{% trans 'Creation date: automatically set when the issue was opened. Issue date (shown below if different): editable field representing the date the issue refers to.' %}"
+                     style="font-size:0.75rem;"></i>
+                </th>
                 <th>{% trans "Contact" %}</th>
                 <th>{% trans "Category" %}</th>
                 <th>{% trans "Subcategory" %}</th>
+                <th>{% trans "Resolution" %}</th>
                 <th>{% trans "Status" %}</th>
                 <th>{% trans "Activities" %}</th>
-                <th>{% trans "Next action date" %}</th>
+                <th>
+                  <a href="?{% for key, value in request.GET.items %}{% if key != 'order_by' and key != 'p' %}{{ key }}={{ value }}&{% endif %}{% endfor %}order_by={% if request.GET.order_by == 'next_action_date' %}-next_action_date{% else %}next_action_date{% endif %}" class="text-dark">
+                    {% trans "Next action date" %}
+                    {% if request.GET.order_by == 'next_action_date' %}<i class="fas fa-sort-up"></i>{% elif request.GET.order_by == '-next_action_date' %}<i class="fas fa-sort-down"></i>{% else %}<i class="fas fa-sort"></i>{% endif %}
+                  </a>
+                </th>
                 <th>{% trans "Assigned to" %}</th>
               </tr>
             </thead>
             <tbody>
               {% for issue in page_obj %}
                 <tr role="row">
+                  {% if can_bulk_reassign %}
+                    <td>
+                      <input type="checkbox" class="bulk-issue-check" name="issue_ids" value="{{ issue.id }}">
+                    </td>
+                  {% endif %}
                   <td>
                     <a href='{% url "view_issue" issue.id %}'>{{ issue.id }}</a>
                   </td>
-                  <td>{{ issue.date }}</td>
+                  <td>
+                    {{ issue.date_created|date:"SHORT_DATE_FORMAT" }}
+                    {% if issue.date != issue.date_created %}
+                      <br><small class="text-muted"
+                                 data-toggle="tooltip"
+                                 title="{% trans 'Issue date: editable field representing the date the issue refers to.' %}">
+                        {% trans "Issue date" %}: {{ issue.date|date:"SHORT_DATE_FORMAT" }}
+                      </small>
+                    {% endif %}
+                  </td>
                   <td>{{ issue.contact }}</td>
                   <td>{{ issue.get_category }}</td>
                   <td>{{ issue.get_subcategory }}</td>
+                  <td>{{ issue.resolution|default_if_none:"-" }}</td>
                   <td>{{ issue.status }}</td>
                   <td>{{ issue.activity_count }}</td>
-                  <td>{{ issue.next_action_date|default_if_none:"-" }}</td>
+                  <td>{{ issue.next_action_date|date:"SHORT_DATE_FORMAT"|default:"-" }}</td>
                   <td>{{ issue.assigned_to|default_if_none:"-" }}</td>
                 </tr>
               {% endfor %}
             </tbody>
           </table>
+          {% if can_bulk_reassign %}
+            </form>
+          {% endif %}
         </div>
       </div>
     </div>

@@ -1,0 +1,293 @@
+{% extends "adminlte/base.html" %}
+{% load static i18n %}
+
+{% block title %}{% trans "Assign issues" %} — {{ sub_category.name }}{% endblock %}
+
+{% block stylesheets %}
+  {{ block.super }}
+  <style>
+    .badge-overdue { background-color: #dc3545; color: #fff; }
+    .badge-today { background-color: #ffc107; color: #212529; }
+    .badge-future { background-color: #28a745; color: #fff; }
+    .badge-nodate { background-color: #17a2b8; color: #fff; }
+    .badge-total { background-color: #6c757d; color: #fff; }
+
+    .user-row:hover { background-color: #f8f9fa; }
+
+    .assign-input {
+      width: 80px;
+      text-align: center;
+    }
+
+    .summary-number {
+      font-size: 2rem;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .user-stats {
+      font-size: 0.85em;
+    }
+    .user-stats .stat-overdue { color: #dc3545; font-weight: 600; }
+    .user-stats .stat-today { color: #856404; font-weight: 600; }
+    .user-stats .stat-future { color: #28a745; font-weight: 600; }
+
+    .total-display {
+      font-size: 1.3em;
+      font-weight: 700;
+    }
+  </style>
+{% endblock %}
+
+{% block no_heading %}
+  <div class="d-flex justify-content-between align-items-center">
+    <div>
+      <h1>{% trans "Assign issues" %}: {{ sub_category.name }}</h1>
+      <p class="text-muted">{% trans "Distribute unassigned issues to GDC team members" %}</p>
+    </div>
+    <div>
+      <a href="{% url 'community_manager_dashboard' %}" class="btn btn-outline-secondary mr-2">
+        <i class="fas fa-arrow-left mr-1"></i> {% trans "Back to dashboard" %}
+      </a>
+      <a href="{% url 'community_manager_overview' %}" class="btn btn-info">
+        <i class="fas fa-chart-bar mr-1"></i> {% trans "Team overview" %}
+      </a>
+    </div>
+  </div>
+{% endblock %}
+
+{% block content %}
+  {# Unassigned issues summary #}
+  <div class="row mb-3">
+    <div class="col-lg-3 col-6">
+      <div class="small-box bg-danger">
+        <div class="inner">
+          <h3>{{ unassigned_overdue }} </h3>
+          <p>{% trans "Overdue" %} {% trans "(Unassigned)" %}</p>
+        </div>
+        <div class="icon"><i class="fas fa-exclamation-circle"></i></div>
+      </div>
+    </div>
+    <div class="col-lg-3 col-6">
+      <div class="small-box bg-warning">
+        <div class="inner">
+          <h3>{{ unassigned_today }}</h3>
+          <p>{% trans "Today" %} {% trans "(Unassigned)" %}</p>
+        </div>
+        <div class="icon"><i class="fas fa-clock"></i></div>
+      </div>
+    </div>
+    <div class="col-lg-3 col-6">
+      <div class="small-box bg-success">
+        <div class="inner">
+          <h3>{{ unassigned_future }}</h3>
+          <p>{% trans "Future" %} {% trans "(Unassigned)" %}</p>
+        </div>
+        <div class="icon"><i class="fas fa-calendar-alt"></i></div>
+      </div>
+    </div>
+    <div class="col-lg-3 col-6">
+      <div class="small-box bg-secondary">
+        <div class="inner">
+          <h3>{{ unassigned_count }}</h3>
+          <p>{% trans "Total available" %} {% trans "(Unassigned)" %}<br><small>{% trans "(includes issues without next action date)" %}</small></p>
+        </div>
+        <div class="icon"><i class="fas fa-inbox"></i></div>
+      </div>
+    </div>
+  </div>
+
+  {% if unassigned_no_date %}
+    <div class="alert alert-info">
+      <i class="fas fa-info-circle mr-1"></i>
+      {% blocktrans with count=unassigned_no_date %}
+        {{ count }} issue(s) have no next action date set. Upon assignment, they will get tomorrow as their next action date.
+      {% endblocktrans %}
+    </div>
+  {% endif %}
+
+  {% if unassigned_count > 0 %}
+    {# Assignment form #}
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">
+          <i class="fas fa-user-plus mr-1"></i>
+          {% trans "Assign issues to team members" %}
+        </h3>
+        <div class="card-tools">
+          <span class="badge badge-total px-3 py-2">
+            {% blocktrans with count=unassigned_count %}{{ count }} issues available{% endblocktrans %}
+          </span>
+        </div>
+      </div>
+      <div class="card-body p-0">
+        <form method="post" id="assignForm">
+          {% csrf_token %}
+          <table class="table table-hover mb-0">
+            <thead>
+              <tr>
+                <th style="width: 25%">{% trans "Team member" %}</th>
+                <th class="text-center" style="width: 12%">{% trans "Current total open issues" %}<br><small class="text-muted font-weight-normal">{% trans "(includes without date)" %}</small></th>
+                <th class="text-center" style="width: 10%">
+                  <span class="text-danger"><i class="fas fa-exclamation-circle"></i> {% trans "Overdue" %}</span>
+                </th>
+                <th class="text-center" style="width: 10%">
+                  <span class="text-warning"><i class="fas fa-clock"></i> {% trans "Today" %}</span>
+                </th>
+                <th class="text-center" style="width: 10%">
+                  <span class="text-success"><i class="fas fa-calendar-alt"></i> {% trans "Future" %}</span>
+                </th>
+                <th class="text-center" style="width: 15%">{% trans "Assign" %}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for ud in user_data %}
+                <tr class="user-row">
+                  <td>
+                    <i class="fas fa-user text-muted mr-1"></i>
+                    <strong>{{ ud.user.get_full_name|default:ud.user.username }}</strong>
+                    <br><small class="text-muted">{{ ud.user.username }}</small>
+                  </td>
+                  <td class="text-center">
+                    <span class="badge badge-total px-2 py-1">{{ ud.open_count }}</span>
+                  </td>
+                  <td class="text-center user-stats">
+                    {% if ud.overdue %}
+                      <span class="stat-overdue">{{ ud.overdue }}</span>
+                    {% else %}
+                      <span class="text-muted">0</span>
+                    {% endif %}
+                  </td>
+                  <td class="text-center user-stats">
+                    {% if ud.today_count %}
+                      <span class="stat-today">{{ ud.today_count }}</span>
+                    {% else %}
+                      <span class="text-muted">0</span>
+                    {% endif %}
+                  </td>
+                  <td class="text-center user-stats">
+                    {% if ud.future %}
+                      <span class="stat-future">{{ ud.future }}</span>
+                    {% else %}
+                      <span class="text-muted">0</span>
+                    {% endif %}
+                  </td>
+                  <td class="text-center">
+                    <input type="number" name="user-{{ ud.user.id }}" class="form-control assign-input mx-auto"
+                           min="0" max="{{ unassigned_count }}" value="0"
+                           data-user-id="{{ ud.user.id }}">
+                  </td>
+                </tr>
+              {% empty %}
+                <tr>
+                  <td colspan="6" class="text-center py-4 text-muted">
+                    <i class="fas fa-users fa-2x mb-2"></i>
+                    <p>{% trans "No GDC team members found. Make sure users have the community console permission." %}</p>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+            {% if user_data %}
+              <tfoot>
+                <tr class="table-active">
+                  <td colspan="5" class="text-right">
+                    <strong>{% trans "Total to assign:" %}</strong>
+                    <span id="totalToAssign" class="total-display ml-2">0</span>
+                    <span class="text-muted ml-1">/ {{ unassigned_count }}</span>
+                  </td>
+                  <td class="text-center">
+                    <button type="submit" class="btn btn-primary" id="assignBtn" disabled>
+                      <i class="fas fa-check mr-1"></i> {% trans "Assign" %}
+                    </button>
+                  </td>
+                </tr>
+              </tfoot>
+            {% endif %}
+          </table>
+        </form>
+      </div>
+    </div>
+
+    {# Assignment info #}
+    <div class="card card-outline card-info">
+      <div class="card-header">
+        <h3 class="card-title"><i class="fas fa-info-circle mr-1"></i> {% trans "How assignment works" %}</h3>
+        <div class="card-tools">
+          <button type="button" class="btn btn-tool" data-card-widget="collapse">
+            <i class="fas fa-minus"></i>
+          </button>
+        </div>
+      </div>
+      <div class="card-body">
+        <ul>
+          <li>{% trans "Issues are assigned from oldest to newest (by issue date)." %}</li>
+          <li>{% trans "When assigning to multiple users, a round-robin algorithm distributes issues evenly. This ensures older/higher-priority issues are spread equally among all selected users." %}</li>
+          <li>{% trans "Upon assignment, if an issue has no next action date or its date is in the past, it will be set to tomorrow." %}</li>
+          <li>{% trans "If the issue already has a future next action date, it will remain unchanged." %}</li>
+          <li>{% trans "The issue status will not be changed upon assignment — it keeps its current status." %}</li>
+        </ul>
+      </div>
+    </div>
+
+  {% else %}
+    <div class="card">
+      <div class="card-body text-center py-5">
+        <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+        <h4>{% trans "No unassigned issues" %}</h4>
+        <p class="text-muted">{% trans "All issues in this subcategory have been assigned." %}</p>
+        <a href="{% url 'community_manager_dashboard' %}" class="btn btn-outline-secondary mt-2">
+          <i class="fas fa-arrow-left mr-1"></i> {% trans "Back to dashboard" %}
+        </a>
+      </div>
+    </div>
+  {% endif %}
+{% endblock %}
+
+{% block extra_js %}
+  <script>
+  $(function() {
+    var maxAvailable = {{ unassigned_count }};
+
+    function updateTotal() {
+      var total = 0;
+      $('.assign-input').each(function() {
+        var val = parseInt($(this).val()) || 0;
+        total += val;
+      });
+
+      $('#totalToAssign').text(total);
+
+      // Update button state and color
+      var $btn = $('#assignBtn');
+      var $totalDisplay = $('#totalToAssign');
+
+      if (total > 0 && total <= maxAvailable) {
+        $btn.prop('disabled', false).removeClass('btn-danger').addClass('btn-primary');
+        $totalDisplay.removeClass('text-danger');
+      } else if (total > maxAvailable) {
+        $btn.prop('disabled', true).removeClass('btn-primary').addClass('btn-danger');
+        $totalDisplay.addClass('text-danger');
+      } else {
+        $btn.prop('disabled', true).removeClass('btn-danger').addClass('btn-primary');
+        $totalDisplay.removeClass('text-danger');
+      }
+    }
+
+    $('.assign-input').on('input change', updateTotal);
+
+    // Confirm before submitting
+    $('#assignForm').on('submit', function(e) {
+      var total = parseInt($('#totalToAssign').text()) || 0;
+      if (total === 0) {
+        e.preventDefault();
+        return false;
+      }
+      var msg = '{% trans "Are you sure you want to assign" %} ' + total + ' {% trans "issues using round-robin distribution?" %}';
+      if (!confirm(msg)) {
+        e.preventDefault();
+        return false;
+      }
+    });
+  });
+  </script>
+{% endblock %}

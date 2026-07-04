@@ -3,125 +3,173 @@
   <div class="col-md-4">
     <div class="card">
       <div class="card-header">
-        <h3 class="card-title">{% trans "Contact information" %}</h3>
+        <h3 class="card-title"><i class="fas fa-user"></i> {% trans "Contact information" %}</h3>
       </div>
       <div class="card-body">
-        <dl>
-          <dt>{% trans "Name" %}</dt>
-          <dd>
-            {{ contact.get_full_name }}
-          </dd>
-          {% if contact.id_document %}
-            <dt>{% trans "ID document" %}</dt>
-            <dd>
-              <div class="mb-0">
-                <span class="font-weight-bold">{% trans "Type" %}:</span> {{ contact.id_document_type|default_if_none:"-" }}
-              </div>
-              <div>
-                <span class="font-weight-bold">{% trans "Indentifier" %}:</span> {{ contact.id_document|default_if_none:"-" }}
-              </div>
-            </dd>
-          {% endif %}
-          <dt>{% trans "Email" %}</dt>
-          <dd>
-            {{ contact.email|default_if_none:"-" }}
-          </dd>
-          <dt>{% trans "Phone" %}</dt>
-          <dd>
-            {{ contact.phone.as_national|default_if_none:"-" }}
-          </dd>
-          {% if contact.mobile %}
-            <dt>{% trans "Mobile" %}</dt>
-            <dd>
-              {{ contact.mobile.as_national|default_if_none:"-" }}
-            </dd>
-          {% endif %}
-          {% if contact.work_phone %}
-            <dt>{% trans "Institutional phone" %}</dt>
-            <dd>
-              {{ contact.work_phone|default_if_none:"-" }}
-            </dd>
-          {% endif %}
-          {% if addresses %}
-            <dt>{% trans "Addresses" %}</dt>
-            {% for address in addresses %}
-              {% if address.address_1 == None %}
+        <div class="mb-2">
+          <i class="fas fa-user text-primary"></i> <strong>{% trans "Name" %}:</strong> {{ contact.get_full_name }}
+        </div>
+        {% if contact.id_document %}
+          <div class="mb-2">
+            <i class="fas fa-id-card text-secondary"></i> <strong>{% trans "ID" %}:</strong>
+            {{ contact.id_document_type|default_if_none:"-" }} {{ contact.id_document }}
+          </div>
+        {% endif %}
+        <div class="mb-2">
+          <i class="fas fa-envelope text-info"></i> <strong>{% trans "Email" %}:</strong>
+          {% with email_bounce=contact.get_email_bounce_action %}
+            {% if contact.email %}
+              {% if email_bounce %}
+                <span class="text-danger">
+                  <a href="mailto:{{ contact.email }}" class="text-danger">{{ contact.email }}</a>
+                  <i class="fas fa-times-circle ml-1" title="{{ email_bounce.get_action_display }}"></i>
+                  <small>{{ email_bounce.get_action_display }}</small>
+                </span>
               {% else %}
-                <dd>
-                  - {{ address }}
+                <a href="mailto:{{ contact.email }}">{{ contact.email }}</a>
+              {% endif %}
+            {% else %}
+              -
+            {% endif %}
+          {% endwith %}
+        </div>
+        <div class="mb-2">
+          <i class="fas fa-phone text-success"></i> <strong>{% trans "Phone" %}:</strong>
+          {% if contact.phone %}
+            {% if contact.do_not_call_phone %}
+              <span class="text-danger">
+                <a href="tel:{{ contact.phone }}" class="text-danger">{{ contact.phone.as_national }}</a>
+                <i class="fas fa-times-circle ml-1" title="{% trans "Number in do not call list" %}"></i>
+                <small>{% trans "Number in do not call list" %}</small>
+              </span>
+            {% else %}
+              <a href="tel:{{ contact.phone }}">{{ contact.phone.as_national }}</a>
+            {% endif %}
+          {% else %}
+            -
+          {% endif %}
+        </div>
+        {% if contact.mobile %}
+          <div class="mb-2">
+            <i class="fas fa-mobile-alt text-success"></i> <strong>{% trans "Mobile" %}:</strong>
+            {% if contact.do_not_call_mobile %}
+              <span class="text-danger">
+                <a href="tel:{{ contact.mobile }}" class="text-danger">{{ contact.mobile.as_national }}</a>
+                <i class="fas fa-times-circle ml-1" title="{% trans "Number in do not call list" %}"></i>
+                <small>{% trans "Number in do not call list" %}</small>
+              </span>
+            {% else %}
+              <a href="tel:{{ contact.mobile }}">{{ contact.mobile.as_national }}</a>
+            {% endif %}
+          </div>
+        {% endif %}
+        {% if contact.work_phone %}
+          <div class="mb-2">
+            <i class="fas fa-building text-secondary"></i> <strong>{% trans "Work" %}:</strong>
+            {% if contact.do_not_call_work_phone %}
+              <span class="text-danger">
+                {{ contact.work_phone }}
+                <i class="fas fa-times-circle ml-1" title="{% trans "Number in do not call list" %}"></i>
+                <small>{% trans "Number in do not call list" %}</small>
+              </span>
+            {% else %}
+              {{ contact.work_phone }}
+            {% endif %}
+          </div>
+        {% endif %}
+        {% if addresses %}
+          <div class="mt-3">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <h6 class="text-muted mb-0"><i class="fas fa-map-marker-alt"></i> {% trans "Addresses" %}</h6>
+              {% if addresses|length > 1 and perms.core.can_merge_addresses %}
+                <a href="{% url 'merge_compare_addresses' %}?contact_id={{ contact.id }}" class="btn btn-xs btn-warning" title="{% trans "Merge duplicate addresses" %}">
+                  <i class="fas fa-compress-arrows-alt"></i> {% trans "Merge" %}
+                </a>
+              {% endif %}
+            </div>
+            {% for address in addresses %}
+              {% if address.address_1 %}
+                <div class="mb-2 pl-3">
+                  {{ address.address_1|default:"-" }}
                   {% if georef_activated %}
-                    {% if address.needs_georef %}<i class="fas fa-times-circle text-danger"></i>{% endif %}
-                    {% if not address.verified %}
-                      <a href="{% url "normalizar_direccion" contact.id address.id %}"
-                         class="btn-sm btn-info m-2">{% trans "Normalize" %}</a>
+                    {% if address.verified %}
+                      <i class="fas fa-check-circle text-success ml-1" title="{% trans "Verified" %}"></i>
                     {% else %}
-                      <i class="fas fa-check-circle text-success"></i>
+                      {% if address.needs_georef %}
+                        <i class="fas fa-times-circle text-danger ml-1" title="{% trans "Needs georeferencing" %}"></i>
+                      {% endif %}
+                      <a href="{% url "normalizar_direccion" contact.id address.id %}" class="btn btn-xs btn-info ml-1">
+                        <i class="fas fa-map-marked-alt"></i> {% trans "Normalize" %}
+                      </a>
                     {% endif %}
                   {% endif %}
-                </dd>
+                </div>
+              {% else %}
+                <div class="mb-2 pl-3">
+                  {% trans "No address specified" %}
+                </div>
               {% endif %}
             {% endfor %}
-          {% endif %}
-          {% if contact.tags.all %}
-            <dt>{% trans "Tags" %}</dt>
-            <dd>
+          </div>
+        {% endif %}
+        {% if contact.tags.all %}
+          <div class="mt-3">
+            <h6 class="text-muted mb-2"><i class="fas fa-tags"></i> {% trans "Tags" %}</h6>
+            <div class="d-flex flex-wrap">
               {% for tag in contact.tags.all %}
-                <a href="{% url "contact_list" %}?tags={{ tag.name }}">
-                  <span class="btn btn-default btn-sm">{{ tag }}</span>
-                </a>
+                <a href="{% url "contact_list" %}?tags={{ tag.name }}" class="badge badge-secondary mr-1 mb-1">{{ tag }}</a>
               {% endfor %}
-            </dd>
-          {% endif %}
-        </dl>
+            </div>
+          </div>
+        {% endif %}
       </div>
-      <div class="card-footer text-right">
-        <a href="{% url "agregar_direccion" contact.id %}"
-           class="btn btn-success mb-1">{% trans "Add address" %}</a>
-        <a href="{% url "edit_contact" contact.id %}"
-           class="btn btn-success mb-1">{% trans "Edit info and newsletters" %}</a>
+      <div class="card-footer bg-light">
+        <div class="d-flex flex-wrap justify-content-end">
+          <a href="{% url "agregar_direccion" contact.id %}" class="btn btn-sm btn-success mr-1 mb-1">
+            <i class="fas fa-plus"></i> {% trans "Add address" %}
+          </a>
+          <a href="{% url "edit_contact" contact.id %}" class="btn btn-sm btn-primary mb-1">
+            <i class="fas fa-edit"></i> {% trans "Edit info" %}
+          </a>
+        </div>
       </div>
     </div>
     <div class="card">
       <div class="card-header">
-        <h3 class="card-title">{% trans "Payments" %}</h3>
+        <h3 class="card-title"><i class="fas fa-dollar-sign"></i> {% trans "Payments" %}</h3>
       </div>
       <div class="card-body">
-        <dl>
-          {% block payment_requests %}
-          {% endblock payment_requests %}
+        {% block payment_requests %}
+        {% endblock payment_requests %}
 
-          {% if last_paid_invoice or debt %}
-            <dt>{% trans "Latest payment" %}</dt>
-            {% if last_paid_invoice %}
-              <dd>
-                {{ last_paid_invoice.payment_date }} (${{ last_paid_invoice.amount }})
-              </dd>
-              <dt>{% trans "Total invoices paid" %}</dt>
-              <dd>
-                {{ contact.get_paid_invoices_count }}
-              </dd>
-            {% else %}
-              <dd>
-                N/A
-              </dd>
-            {% endif %}
-            <dt>{% trans "Payment type of last invoice" %}</dt>
-            <dd>
-              {{ latest_invoice.payment_type }}
-            </dd>
-            {% if debt %}
-              <dt>{% trans "Debt" %}</dt>
-              <dd>
-                ${{ debt }} ({{ expired_invoices_count }}
-                {% trans "overdue invoices" %})<i class="fas fa-exclamation-triangle text-danger"></i>
-              </dd>
-            {% endif %}
-          {% else %}
-            <dd>
-              {% trans "This contact has no payment data" %}
-            </dd>
+        {% if last_paid_invoice or debt %}
+          {% if debt %}
+            <div class="alert alert-danger py-2 px-3 mb-3">
+              <i class="fas fa-exclamation-triangle"></i> <strong>{% trans "Debt" %}:</strong> ${{ debt }}
+              <small class="d-block mt-1">{{ expired_invoices_count }} {% trans "overdue invoices" %}</small>
+            </div>
           {% endif %}
-        </dl>
+
+          {% if last_paid_invoice %}
+            <div class="mb-2">
+              <i class="fas fa-calendar-check text-success"></i> <strong>{% trans "Latest payment" %}:</strong>
+              {{ last_paid_invoice.payment_date|date:"d/m/Y" }} <span class="text-success">${{ last_paid_invoice.amount }}</span>
+            </div>
+            <div class="mb-2">
+              <i class="fas fa-file-invoice-dollar text-info"></i> <strong>{% trans "Total paid" %}:</strong> {{ contact.get_paid_invoices_count }} {% trans "invoices" %}
+            </div>
+          {% endif %}
+
+          {% if latest_invoice %}
+            <div class="mb-2">
+              <i class="fas fa-credit-card text-secondary"></i> <strong>{% trans "Payment method" %}:</strong> {{ latest_invoice.get_payment_type_display|default:"-" }}
+            </div>
+          {% endif %}
+        {% else %}
+          <p class="text-muted mb-0">
+            <i class="fas fa-info-circle"></i> {% trans "This contact has no payment data" %}
+          </p>
+        {% endif %}
       </div>
     </div>
     {% if contact.notes %}
@@ -171,6 +219,10 @@
             <a href="{% url "create_corporate_subscription" contact.id %}"
                class="btn btn-primary"><i class="fas fa-plus-circle"></i> {% trans "Create corporate subscription" %}</a>
           {% endif %}
+          {% if perms.core.can_add_free_subscription %}
+            <a href="{% url "create_free_subscription" contact.id %}"
+               class="btn btn-primary"><i class="fas fa-plus-circle"></i> {% trans "Create free subscription" %}</a>
+          {% endif %}
           <a href="{% url "new_subscription" contact.id %}"
              class="btn btn-primary"><i class="fas fa-plus-circle"></i> {% trans "Add subscription" %}</a>
         </div>
@@ -182,35 +234,33 @@
       <div class="card-header">
         <h3 class="card-title">{% trans "Latest issues" %}</h3>
       </div>
-      <div class="card-body">
+      <div class="card-body p-0">
         {% if last_issues %}
-          <div class="list-group-flush">
+          <div class="list-group list-group-flush">
             {% for issue in last_issues %}
-              <div class="list-group-item">
-                <div class="d-flex justify-content-between">
-                  <p class="mb-1 font-weight-bold">{{ issue.get_category }} - {{ issue.get_subcategory }}</p>
-                  <p class="mb-1">
-                    <a href="{% url "view_issue" issue.id %}" class="btn btn-primary btn-sm"><i class="fas fa-eye"></i></a>
-                  </p>
+              <div class="list-group-item py-2 px-3">
+                <div class="d-flex justify-content-between align-items-center">
+                  <span class="font-weight-bold">{{ issue.get_category }}{% if issue.get_subcategory %} – {{ issue.get_subcategory }}{% endif %}</span>
+                  <div class="d-flex align-items-center ml-2 flex-shrink-0">
+                    <span class="badge badge-secondary mr-2">{{ issue.get_status|default_if_none:"" }}</span>
+                    <span class="text-muted mr-2">{{ issue.date_created|date:"d/m/Y" }}</span>
+                    <a href="{% url "view_issue" issue.id %}" class="btn btn-xs btn-outline-primary py-0 px-1" title="{% trans "View issue" %}"><i class="fas fa-eye"></i></a>
+                  </div>
                 </div>
-                <p class="mb-1">
-                  <span class="font-weight-bold">{% trans "Status" %}:</span> {{ issue.get_status|default_if_none:"" }}
-                </p>
-                <p class="mb-1">
-                  <span class="font-weight-bold">{% trans "Created" %}:</span> {{ issue.date_created }}
-                </p>
-                <p class="mb-1">
-                  <span class="font-weight-bold">{% trans "Notes" %}:</span> {{ issue.notes|default_if_none:""|linebreaks }}
-                </p>
+                {% if issue.notes %}
+                  <div class="text-muted mt-1">
+                    <span class="issue-notes-short-{{ issue.id }}">{{ issue.notes|truncatechars:60 }}</span>
+                    {% if issue.notes|length > 80 %}
+                      <span class="issue-notes-full-{{ issue.id }} d-none">{{ issue.notes }}</span>
+                      <a href="#" class="issue-notes-toggle ml-1" data-id="{{ issue.id }}" style="white-space:nowrap">{% trans "expand" %}</a>
+                    {% endif %}
+                  </div>
+                {% endif %}
               </div>
             {% endfor %}
           </div>
         {% else %}
-          <dl>
-            <dd>
-              {% trans "This contact has no issues" %}
-            </dd>
-          </dl>
+          <div class="p-3 text-muted">{% trans "This contact has no issues" %}</div>
         {% endif %}
       </div>
     </div>
@@ -218,83 +268,62 @@
       <div class="card-header">
         <h3 class="card-title">{% trans "Latest activities" %}</h3>
       </div>
-      <div class="card-body">
+      <div class="card-body p-0">
         {% if activities %}
-          <div class="list-group-flush">
+          <div class="list-group list-group-flush">
             {% for a in activities %}
-              <div class="list-group-item">
-                <p class="mb-1 font-weight-bold">
-                  {{ a.get_type_display }}
-                  {% if a.campaign %}<span class="font-italic">{{ a.campaign.name }}</span>{% endif %}
-                </p>
-                {% if a.created_by %}
-                  <p class="mb-1">
-                    <span class="font-weight-bold">{% trans "Created by" %}:</span>
-                    {{ a.created_by_name|default_if_none:"-" }}
-                  </p>
+              <div class="list-group-item py-2 px-3">
+                <div class="d-flex justify-content-between align-items-center">
+                  <span class="font-weight-bold">{{ a.get_activity_type_display }} ({{ a.get_direction }})</span>
+                  <div class="d-flex align-items-center ml-2 flex-shrink-0">
+                    <span class="badge badge-secondary mr-2">{{ a.get_status }}</span>
+                    {% if a.datetime %}<span class="text-muted mr-2">{{ a.datetime|date:"d/m/Y" }}</span>{% endif %}
+                    {% if a.seller %}<span class="text-muted mr-2">{{ a.seller.name }}</span>{% endif %}
+                  </div>
+                </div>
+                {% if a.campaign %}
+                  <div class="text-muted"><small>{% trans "Campaign" %}: <span class="font-italic">{{ a.campaign.name }}</span></small></div>
                 {% endif %}
-                <p class="mb-1">
-                  <span class="font-weight-bold">{% trans "Status" %}:</span> {{ a.get_status }}
-                </p>
-                {% if a.datetime %}
-                  <p class="mb-1">
-                    <span class="font-weight-bold">{% trans "Date" %}:</span> {{ a.datetime|date:"SHORT_DATETIME_FORMAT" }}
-                  </p>
+                {% if a.seller_console_action %}
+                  <div class="text-muted"><small>{% trans "Action" %}: {{ a.seller_console_action.name }}</small></div>
                 {% endif %}
-                {% if a.notes %}
-                  <p class="mb-1">
-                    <span class="font-weight-bold">{% trans "Notes" %}:</span> {{ a.notes|linebreaks|default_if_none:"" }}
-                  </p>
-                {% endif %}
-                {% if a.topic %}
-                  <p class="mb-1">
-                    <span class="font-weight-bold">{% trans "Topic" %}:</span> {{ a.topic }}
-                  </p>
-                {% endif %}
-                {% if a.response %}
-                  <p class="mb-1">
-                    <span class="font-weight-bold">{% trans "Response" %}:</span> {{ a.response|linebreaks|default_if_none:"" }}
-                  </p>
+                {% if a.notes or a.topic or a.response or a.created_by %}
+                  <div class="text-muted mt-1">
+                    {% if a.notes %}
+                      <small>{{ a.notes|truncatechars:60 }}</small>
+                    {% endif %}
+                    {% if a.notes|length > 60 or a.topic or a.response or a.created_by %}
+                      <span class="activity-extra-{{ a.id }} d-none">
+                        {% if a.notes|length > 60 %}<span class="d-block">{{ a.notes }}</span>{% endif %}
+                        {% if a.topic %}<span class="d-block"><strong>{% trans "Topic" %}:</strong> {{ a.topic }}</span>{% endif %}
+                        {% if a.response %}<span class="d-block"><strong>{% trans "Response" %}:</strong> {{ a.response }}</span>{% endif %}
+                        {% if a.created_by %}<span class="d-block"><strong>{% trans "Created by" %}:</strong> {{ a.created_by_name|default_if_none:"-" }}</span>{% endif %}
+                      </span>
+                      <a href="#" class="activity-extra-toggle ml-1" data-id="{{ a.id }}" style="white-space:nowrap">{% trans "expand" %}</a>
+                    {% endif %}
+                  </div>
                 {% endif %}
               </div>
             {% endfor %}
           </div>
         {% else %}
-          <dl>
-            <dd>
-              {% trans "This contact has no activities" %}
-            </dd>
-          </dl>
+          <div class="p-3 text-muted">{% trans "This contact has no activities" %}</div>
         {% endif %}
       </div>
     </div>
     <div class="card">
       <div class="card-header">
-        <h3 class="card-title">
-          {% trans "Newsletters" %}
-          {% if newsletters %}
-            {# show icon references #}
-            <span>
-              ( <i class="fas fa-check-circle"></i> = {% trans "active" %},
-              <i class="fas fa-times-circle"></i> = {% trans "inactive" %} )
-            </span>
-          {% endif %}
-        </h3>
+        <h3 class="card-title">{% trans "Newsletters" %}</h3>
       </div>
       <div class="card-body">
-        {% if newsletters %}
-          <ul class="pl-3">
-            {% for newsletter in newsletters %}
-              <li>
-                <i class="fas fa-{% if newsletter.active %}check{% else %}times{% endif %}-circle">
-                </i>
-                {{ newsletter.product.name }}
-              </li>
-            {% endfor %}
-          </ul>
-        {% else %}
-          {% trans "This contact has no newsletter subscriptions" %}
-        {% endif %}
+        <div id="newsletters-htmx"
+             hx-get="{% url 'contact_newsletters_overview' contact.id %}"
+             hx-trigger="revealed"
+             hx-target="#newsletters-htmx"
+             hx-swap="innerHTML">
+          <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+          {% trans "Loading" %}
+        </div>
       </div>
     </div>
   </div>

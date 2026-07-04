@@ -9,12 +9,13 @@ from django.urls import reverse
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.models import User
 from django.utils.translation import gettext_lazy as _
+from django.utils.html import format_html
 from datetime import date, timedelta, datetime
 
 from support.models import Seller, Issue, SellerConsoleAction
 from core.models import Address, SubscriptionProduct, Activity, ContactCampaignStatus, Campaign, Subscription, Contact
 from core.utils import logistics_is_installed
-from core.choices import CAMPAIGN_RESOLUTION_REASONS_CHOICES
+from core.choices import ACTIVITY_STATUS, CAMPAIGN_RESOLUTION_REASONS_CHOICES, CAMPAIGN_STATUS
 
 if logistics_is_installed():
     from logistics.models import Route
@@ -47,21 +48,99 @@ def seller_console_special_routes(request, route_id):
     # Only include products of subscriptions started in the last 45 days (today included).
     # i.e. start_date must be >= (today - 45 days), so anything older is excluded.
     subprods = SubscriptionProduct.objects.filter(
-            seller=seller,
-            route=route,
-            subscription__active=True,
-            subscription__start_date__gte=datetime.now() - timedelta(days=45)
-        ).order_by("subscription__contact__id")
+        seller=seller,
+        route=route,
+        subscription__active=True,
+        subscription__start_date__gte=datetime.now() - timedelta(days=45),
+    ).order_by("subscription__contact__id")
     if subprods.count() == 0:
         messages.error(request, _("There are no contacts in that route for this seller."))
         return HttpResponseRedirect(reverse("seller_console_list_campaigns"))
+    breadcrumbs = [
+        {"label": _("Home"), "url": reverse("home")},
+        {"label": _("Seller Console"), "url": reverse("seller_console_list_campaigns")},
+        {"label": _("Special Routes"), "url": ""},
+    ]
     return render(
         request,
         "seller_console_special_routes.html",
         {
+            "breadcrumbs": breadcrumbs,
             "seller": seller,
             "subprods": subprods,
             "route": route,
+        },
+    )
+
+
+@staff_member_required
+def seller_console_never_paid_issues(request):
+    """
+    Display a dedicated page for issues with the "never paid" subcategory.
+    Similar to special routes, this provides a focused view for sellers to manage
+    contacts who never paid their first invoice.
+    """
+    user = User.objects.get(username=request.user.username)
+    try:
+        seller = Seller.objects.get(user=user)
+    except Seller.DoesNotExist:
+        messages.error(request, _("User has no seller selected. Please contact your manager."))
+        return HttpResponseRedirect(reverse("home"))
+    except Seller.MultipleObjectsReturned:
+        messages.error(request, _("This seller is set in more than one user. Please contact your manager."))
+        return HttpResponseRedirect(reverse("home"))
+
+    # Check if the feature is configured
+    if not getattr(settings, "ISSUE_SUBCATEGORY_NEVER_PAID", None) or not getattr(
+        settings, "ISSUE_STATUS_FINISHED_LIST", None
+    ):
+        messages.error(request, _("This function is not available."))
+        return HttpResponseRedirect(reverse("seller_console_list_campaigns"))
+
+    # Get the never paid issues for this seller with additional data
+    from django.db.models import Count, Q
+
+    issues_never_paid = Issue.objects.filter(
+        sub_category__slug=getattr(settings, "ISSUE_SUBCATEGORY_NEVER_PAID", ""),
+        assigned_to=user,
+    ).exclude(
+        status__slug__in=getattr(settings, "ISSUE_STATUS_FINISHED_LIST", [])
+    ).select_related(
+        'contact', 'subscription', 'status'
+    ).annotate(
+        overdue_invoices_count=Count(
+            'contact__invoice',
+            filter=Q(
+                contact__invoice__expiration_date__lt=date.today(),
+                contact__invoice__paid=False,
+                contact__invoice__debited=False,
+                contact__invoice__canceled=False,
+                contact__invoice__uncollectible=False,
+            )
+        )
+    ).order_by(
+        '-overdue_invoices_count',  # Most overdue invoices first (most urgent)
+        'subscription__start_date',  # Oldest subscriptions first (never paid for longer)
+        'id'  # Consistent ordering
+    )
+
+    if issues_never_paid.count() == 0:
+        messages.error(request, _("There are no never paid issues for this seller."))
+        return HttpResponseRedirect(reverse("seller_console_list_campaigns"))
+
+    breadcrumbs = [
+        {"label": _("Home"), "url": reverse("home")},
+        {"label": _("Seller Console"), "url": reverse("seller_console_list_campaigns")},
+        {"label": _("Never Paid Issues"), "url": ""},
+    ]
+
+    return render(
+        request,
+        "seller_console_never_paid_issues.html",
+        {
+            "breadcrumbs": breadcrumbs,
+            "seller": seller,
+            "issues_never_paid": issues_never_paid,
         },
     )
 
@@ -97,7 +176,9 @@ def seller_console_list_campaigns(request, seller_id=None):
             # Only include subscriptions started in the last 45 days (today included).
             # i.e. start_date must be >= (today - 45 days), so anything older is excluded.
             counter = SubscriptionProduct.objects.filter(
-                seller=seller, route_id=route_id, subscription__active=True,
+                seller=seller,
+                route_id=route_id,
+                subscription__active=True,
                 subscription__start_date__gte=datetime.now() - timedelta(days=45),
             ).count()
             if counter:
@@ -105,15 +186,16 @@ def seller_console_list_campaigns(request, seller_id=None):
 
     # We'll make these lists so we can append the sub count to each campaign
     campaigns_with_not_contacted_list, campaigns_with_activities_list = [], []
+
+    # Get count of never paid issues for this seller
+    issues_never_paid_count = 0
     if getattr(settings, "ISSUE_SUBCATEGORY_NEVER_PAID", None) and getattr(
         settings, "ISSUE_STATUS_FINISHED_LIST", None
     ):
-        issues_never_paid = Issue.objects.filter(
+        issues_never_paid_count = Issue.objects.filter(
             sub_category__slug=getattr(settings, "ISSUE_SUBCATEGORY_NEVER_PAID", ""),
             assigned_to=user,
-        ).exclude(status__slug__in=getattr(settings, "ISSUE_STATUS_FINISHED_LIST", []))
-    else:
-        issues_never_paid = []
+        ).exclude(status__slug__in=getattr(settings, "ISSUE_STATUS_FINISHED_LIST", [])).count()
 
     not_contacted_campaigns = seller.get_campaigns_by_status([1, 3])
     campaigns_with_activities = seller.get_campaigns_with_activities()
@@ -140,7 +222,7 @@ def seller_console_list_campaigns(request, seller_id=None):
         "seller": seller,
         "total_pending_activities": total_pending_activities,
         "upcoming_activity": upcoming_activity,
-        "issues_never_paid": issues_never_paid,
+        "issues_never_paid_count": issues_never_paid_count,
     }
     if logistics_is_installed():
         context["special_routes"] = special_routes
@@ -197,7 +279,27 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
         """Get campaign from URL kwargs"""
         return get_object_or_404(Campaign, pk=self.kwargs['campaign_id'])
 
-    def process_activity_result(self, contact, campaign, seller, result, notes):
+    def get_seller_console_action(self, result_slug, required=True):
+        """Get SellerConsoleAction by slug with unified error handling
+
+        Args:
+            result_slug (str): The action slug to lookup
+            required (bool): If True, raises error and returns None. If False, shows warning and continues.
+
+        Returns:
+            SellerConsoleAction or None
+        """
+        try:
+            return SellerConsoleAction.objects.get(slug=result_slug, is_active=True)
+        except SellerConsoleAction.DoesNotExist:
+            if required:
+                messages.error(self.request, _("Invalid action: {action}").format(action=result_slug))
+                return None
+            else:
+                messages.warning(self.request, _("Invalid action slug: {action}").format(action=result_slug))
+                return None
+
+    def process_activity_result(self, contact, campaign, seller, seller_console_action, notes):
         """Process activity result and create/update related objects"""
         try:
             ccs = ContactCampaignStatus.objects.filter(campaign=campaign, contact=contact).first()
@@ -205,35 +307,30 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
                 messages.error(self.request, _("Contact is no longer in this campaign"))
                 return None
 
-            # Map results to status and campaign_resolution using action slugs
-            result_mapping = {
-                "schedule": (2, "SC"),
-                "call-later": (3, "CL"),
-                "not-interested": (4, "NI"),
-                "do-not-call": (4, "DN"),
-                "logistics": (4, "LO"),
-                "already-subscriber": (4, "AS"),
-                "uncontactable": (5, "UN"),
-                "error-promotion": (5, "EP"),
-                "close-without-contact": (5, "CW"),
-                "move-morning": (6, None),
-                "move-afternoon": (7, None),
-            }
+            # Update the last console action
+            ccs.last_console_action = seller_console_action
 
-            if result in result_mapping:
-                status, campaign_resolution = result_mapping[result]
-                ccs.status = status
-                if campaign_resolution:
-                    ccs.campaign_resolution = campaign_resolution
-                if status in (6, 7):  # Morning/Afternoon moves
+            # Use the campaign_status from the action if it's set
+            if seller_console_action.campaign_status:
+                ccs.status = seller_console_action.campaign_status
+
+                # Handle special cases for morning/afternoon moves
+                if seller_console_action.campaign_status in (
+                    CAMPAIGN_STATUS.SWITCH_TO_MORNING,
+                    CAMPAIGN_STATUS.SWITCH_TO_AFTERNOON,
+                ):
                     ccs.seller = None
+
+            # Use the campaign_resolution from the action if it's set
+            if seller_console_action.campaign_resolution:
+                ccs.campaign_resolution = seller_console_action.campaign_resolution
 
             return ccs
         except Exception as e:
             messages.error(self.request, str(e))
             return None
 
-    def create_scheduled_activity(self, contact, campaign, seller, call_datetime):
+    def create_scheduled_activity(self, contact, campaign, seller, call_datetime, seller_console_action=None):
         """Create a scheduled activity"""
         return Activity.objects.create(
             contact=contact,
@@ -241,21 +338,9 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
             datetime=call_datetime,
             campaign=campaign,
             seller=seller,
+            seller_console_action=seller_console_action,
             notes="{} {}".format(_("Scheduled for"), call_datetime),
         )
-
-    def get_status_action_message(self, status):
-        """Get appropriate action message for status"""
-        status_messages = {
-            2: _("scheduled"),
-            3: _("skipped to call later"),
-            4: _("marked as not interested"),
-            5: _("marked as uncontactable"),
-            6: _("moved to morning"),
-            7: _("moved to afternoon"),
-            8: _("closed without contact"),
-        }
-        return status_messages.get(status, _("updated"))
 
     def get_contact_from_instance_id(self, instance_id, category):
         if category == "act":
@@ -280,11 +365,30 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
         contact = self.get_contact_from_instance_id(instance_id, category)
         if not contact:
             return None
-        try:
-            seller_console_action_obj = SellerConsoleAction.objects.get(slug=result)
-        except SellerConsoleAction.DoesNotExist:
-            messages.warning(self.request, _("Invalid action slug"))
-            seller_console_action_obj = None
+
+        # Get action - not required, can continue with None if missing
+        seller_console_action = self.get_seller_console_action(result, required=False)
+        if not seller_console_action:
+            return
+
+        # For CALL_LATER and NOT_FOUND in "act" mode, always create a new pending activity so the contact
+        # stays in the "act" queue. For other cases, only create future activities if the setting is enabled.
+        if seller_console_action.action_type in (
+            SellerConsoleAction.ACTION_TYPES.CALL_LATER,
+            SellerConsoleAction.ACTION_TYPES.NOT_FOUND,
+        ) and category == "act":
+            Activity.objects.create(
+                contact=contact,
+                activity_type="C",  # Call
+                datetime=datetime.now() + timedelta(days=getattr(settings, "SELLER_CONSOLE_CALL_LATER_DAYS", 1)),
+                campaign=campaign,
+                seller=seller,
+                status="P",  # Pending
+                seller_console_action=seller_console_action,
+                notes="",
+            )
+            return
+
         # If we're using the setting to keep contacts in campaigns indefinitely, we'll need to set the datetime
         # to a future date, otherwise we'll use the current date and set this as closed. Anyways we'll mark the
         # current activity as closed and create a new one with the future datetime.
@@ -296,11 +400,13 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
                 campaign=campaign,
                 seller=seller,
                 status="P",  # Pending
-                seller_console_action=seller_console_action_obj,
+                seller_console_action=seller_console_action,
                 notes="",
             )
         if category == "new":
-            # If this is the first time we're seeing this contact, we'll create an activity for it
+            # Always register a completed activity for the action taken on a not-yet-contacted contact,
+            # even for terminal actions like "not interested" and even when notes are empty. The only way
+            # to leave a contact without an activity is the "skip to next" link, which doesn't POST a result.
             Activity.objects.create(
                 contact=contact,
                 activity_type="C",  # Call
@@ -308,8 +414,8 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
                 campaign=campaign,
                 seller=seller,
                 status="C",  # Completed
-                notes=notes,
-                seller_console_action=seller_console_action_obj,
+                notes=notes or "",
+                seller_console_action=seller_console_action,
             )
 
     def handle_post_request(self):
@@ -336,6 +442,10 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
             messages.error(self.request, _("Invalid seller ID"))
             return HttpResponseRedirect(reverse("seller_console", args=[category, campaign.id]))
 
+        seller_console_action = self.get_seller_console_action(result, required=True)
+        if not seller_console_action:
+            return HttpResponseRedirect(reverse("seller_console", args=[category, campaign.id]))
+
         # Process based on category
         if category == "act":
             try:
@@ -344,35 +454,68 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
                 messages.error(self.request, _("Activity not found"))
                 return HttpResponseRedirect(reverse("seller_console", args=[category, campaign.id]))
             activity.notes = data.get("notes")
-            activity.status = "C"
+            activity.status = ACTIVITY_STATUS.COMPLETED
             activity.datetime = datetime.now()  # Set the datetime to the current time
+            activity.seller_console_action = seller_console_action
             activity.save()
-            if getattr(settings, "KEEP_CONTACTS_IN_CAMPAIGNS_INDEFINITELY", False):
+            # For CALL_LATER and NOT_FOUND, always create a new pending activity so the contact
+            # stays in the "act" queue instead of falling back to "new".
+            if seller_console_action.action_type in (
+                SellerConsoleAction.ACTION_TYPES.CALL_LATER,
+                SellerConsoleAction.ACTION_TYPES.NOT_FOUND,
+            ):
+                self.register_new_activity(instance_id, category, campaign, seller, notes, result)
+            elif getattr(settings, "KEEP_CONTACTS_IN_CAMPAIGNS_INDEFINITELY", False):
                 # This is only here so that we can register a new activity if the setting is enabled
                 self.register_new_activity(instance_id, category, campaign, seller, notes, result)
         else:  # category == "new"
             self.register_new_activity(instance_id, category, campaign, seller, notes, result)
 
         # Process the result
-        ccs = self.process_activity_result(contact, campaign, seller, result, notes)
+        ccs = self.process_activity_result(contact, campaign, seller, seller_console_action, notes)
+        if not ccs:
+            return HttpResponseRedirect(reverse("seller_console", args=[category, campaign.id]))
 
         # Handle scheduling if needed
-        if result == "schedule":
+        if seller_console_action.action_type == SellerConsoleAction.ACTION_TYPES.SCHEDULED:
             call_datetime = self.get_call_datetime(data)
-            self.create_scheduled_activity(contact, campaign, seller, call_datetime)
+            self.create_scheduled_activity(contact, campaign, seller, call_datetime, seller_console_action)
 
         # Save any resolution reason
         if reason:
             ccs.resolution_reason = reason
         ccs.save()
 
-        # Show success message
-        action = self.get_status_action_message(ccs.status)
-        messages.success(self.request, _("Contact {id} {action}".format(id=contact.id, action=action)))
+        # Build success message with contact ID, name, and action
+        contact_name = contact.get_full_name() or _("No name")
+        contact_url = reverse("contact_detail", args=[contact.id])
 
-        # Convert offset to int and increment it only for "Call later" result
+        # Build the base message
+        success_msg = _("Contact {id} - {name} - Action: {action}").format(
+            id=contact.id, name=contact_name, action=seller_console_action.name
+        )
+
+        # Add scheduled date if this is a scheduled action
+        if seller_console_action.action_type == SellerConsoleAction.ACTION_TYPES.SCHEDULED:
+            call_datetime = self.get_call_datetime(data)
+            success_msg += _(" - Scheduled for: {date}").format(date=call_datetime.strftime("%Y-%m-%d %H:%M"))
+
+        # Add link to view contact in new tab
+        success_msg_html = format_html(
+            '{} <a href="{}" target="_blank" style="margin-left: 10px;">({} <i class="fas fa-external-link-alt"></i>)</a>',  # noqa: E501
+            success_msg,
+            contact_url,
+            _("view contact"),
+        )
+
+        messages.success(self.request, success_msg_html, extra_tags='safe')
+
+        # Convert offset to int and increment it for "Call later" and "Not found" results
         try:
-            if result == "call-later":
+            if seller_console_action.action_type in (
+                SellerConsoleAction.ACTION_TYPES.CALL_LATER,
+                SellerConsoleAction.ACTION_TYPES.NOT_FOUND,
+            ):
                 offset = int(offset) + 1
         except (TypeError, ValueError):
             offset = 2  # If offset is None or invalid, start at 2 (next item)
@@ -409,8 +552,19 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
         offset = int(offset) if offset else 1
         call_datetime = datetime.strftime(date.today() + timedelta(1), "%Y-%m-%d")
 
-        console_instances = self.get_console_instances(campaign, seller)
-        count = console_instances.count()
+        console_instances_qs = self.get_console_instances(campaign, seller)
+        count = console_instances_qs.count()
+
+        # Materialize and annotate each instance with a unified 'console_action' attribute so the
+        # template doesn't need to probe for model-specific fields. Accessing a non-existent
+        # attribute via |default crashes in production (DEBUG=False) with VariableDoesNotExist.
+        # In "new" mode instances are ContactCampaignStatus (has last_console_action).
+        # In "act" mode instances are Activity (has seller_console_action).
+        console_instances = list(console_instances_qs)
+        for inst in console_instances:
+            inst.console_action = getattr(inst, 'last_console_action', None) or getattr(
+                inst, 'seller_console_action', None
+            )
 
         # Get console instance based on activity_id or offset
         console_instance = self.get_console_instance(
@@ -426,6 +580,24 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
 
         # Get phone duplicate information
         phone_duplicates_info = self.get_phone_duplicates_info(contact)
+
+        # Get the datetime of the last console action (if any) for the badge display.
+        # console_action is already set on console_instance by the annotation loop above.
+        last_action_datetime = None
+        console_action = console_instance.console_action
+        if console_action:
+            last_action_activity = Activity.objects.filter(
+                contact=contact,
+                campaign=campaign,
+                seller_console_action=console_action,
+            ).order_by('-datetime').first()
+            if last_action_activity:
+                last_action_datetime = last_action_activity.datetime
+
+        terminal_statuses = getattr(settings, 'ISSUE_STATUS_FINISHED_LIST', [])
+        open_issues = Issue.objects.filter(contact=contact).exclude(status__slug__in=terminal_statuses).order_by(
+            "-date_created"
+        )
 
         context.update(
             {
@@ -452,6 +624,9 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
                 'other_campaigns': ContactCampaignStatus.objects.filter(contact=contact).exclude(campaign=campaign),
                 'phone_duplicates_count': phone_duplicates_info['count'],
                 'phone_duplicates': phone_duplicates_info['contacts'],
+                'last_action_datetime': last_action_datetime,
+                'open_issues': open_issues,
+                'open_issues_count': open_issues.count(),
             }
         )
         return context
@@ -484,16 +659,16 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
             return {'count': 0, 'contacts': Contact.objects.none()}
 
         # Find other contacts with matching phone numbers (exclude current contact)
-        duplicate_contacts = Contact.objects.filter(phone_query).exclude(id=contact.id).select_related(
-            'subtype', 'institution'
-        ).order_by('name', 'last_name')
+        duplicate_contacts = (
+            Contact.objects.filter(phone_query)
+            .exclude(id=contact.id)
+            .select_related('subtype', 'institution')
+            .order_by('name', 'last_name')
+        )
 
         count = duplicate_contacts.count()
 
-        return {
-            'count': count,
-            'contacts': duplicate_contacts
-        }
+        return {'count': count, 'contacts': duplicate_contacts}
 
     def get_activities(self, contact, console_instance, category):
         activities = Activity.objects.filter(contact=contact).order_by("-datetime", "id")
@@ -506,7 +681,7 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
         Retrieve a single console instance based on an activity ID or offset.
 
         Args:
-            console_instances (QuerySet): The queryset of available console instances.
+            console_instances (list): The list of available console instances.
             activity_id (int): Optional. The ID of a specific activity to retrieve.
             count (int): The total number of console instances.
             offset (int): The current offset (1-based index) for navigating instances.
@@ -521,21 +696,21 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
             - Used mainly to show the seller the current contact to call.
         """
         if activity_id:
-            try:
-                activity = console_instances.get(pk=activity_id)
-                # Check if the contact is still in the campaign
-                campaign = activity.campaign
-                if not ContactCampaignStatus.objects.filter(campaign=campaign, contact=activity.contact).exists():
-                    # Contact is not in campaign anymore, delete the orphaned activity
-                    activity.delete()
-                    messages.warning(
-                        self.request, _("Activity was removed because the contact is no longer in the campaign")
-                    )
-                    return None
-                return activity
-            except Activity.DoesNotExist:
+            activity_id = int(activity_id)
+            activity = next((inst for inst in console_instances if inst.pk == activity_id), None)
+            if activity is None:
                 messages.error(self.request, _("An error has occurred with activity number {}".format(activity_id)))
                 return None
+            # Check if the contact is still in the campaign
+            campaign = activity.campaign
+            if not ContactCampaignStatus.objects.filter(campaign=campaign, contact=activity.contact).exists():
+                # Contact is not in campaign anymore, delete the orphaned activity
+                activity.delete()
+                messages.warning(
+                    self.request, _("Activity was removed because the contact is no longer in the campaign")
+                )
+                return None
+            return activity
 
         # Get item by offset (offset is 1-based, but list indexing is 0-based)
         index = offset - 1
@@ -562,14 +737,14 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
         """
         category = self.kwargs['category']
         if category == "new":
-            return campaign.get_not_contacted(seller.id)
+            return campaign.get_not_contacted(seller.id).select_related('last_console_action')
         if getattr(settings, "ALLOW_ACCESSING_FUTURE_ACTIVITIES_IN_SELLER_CONSOLE", False):
             return campaign.activity_set.filter(
                 activity_type="C", seller=seller, status="P"
-            ).order_by("datetime", "id")
+            ).select_related('seller_console_action').order_by("datetime", "id")
         return campaign.activity_set.filter(
             activity_type="C", seller=seller, status="P", datetime__lte=datetime.now()
-        ).order_by("datetime", "id")
+        ).select_related('seller_console_action').order_by("datetime", "id")
 
     def post(self, request, *args, **kwargs):
         return self.handle_post_request()

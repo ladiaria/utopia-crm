@@ -3,15 +3,17 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 from django.db import transaction
 from core.models import Activity, ContactCampaignStatus
+from core.choices import ACTIVITY_STATUS
 from support.models import SellerConsoleAction
 
 
 class Command(BaseCommand):
     help = (
-        "Closes pending activities older than a specified date and their related campaign statuses. "
+        "Closes pending and expired activities older than a specified date and their related campaign statuses. "
         "The activities will be marked as completed and assigned the 'close-without-contact' action. "
         "If there's a related ContactCampaignStatus, it will be marked as 'Ended without contact' "
-        "with a campaign resolution of 'CW'."
+        "with a campaign resolution of 'CW'. This command handles both pending activities that need to be closed "
+        "and expired activities that were previously marked as expired but still need campaign status updates."
     )
 
     def add_arguments(self, parser):
@@ -48,14 +50,21 @@ class Command(BaseCommand):
                 )
                 return
 
-            # Find all pending activities older than or equal to the target date
+            # Find all pending and expired activities older than or equal to the target date
             activities = Activity.objects.filter(
-                status="P",
+                status__in=[ACTIVITY_STATUS.PENDING, ACTIVITY_STATUS.EXPIRED],
                 datetime__lte=target_date
             )
 
             total_activities = activities.count()
-            self.stdout.write(f"Found {total_activities} pending activities to close.")
+            
+            # Get breakdown by status
+            pending_count = activities.filter(status=ACTIVITY_STATUS.PENDING).count()
+            expired_count = activities.filter(status=ACTIVITY_STATUS.EXPIRED).count()
+            
+            self.stdout.write(f"Found {total_activities} activities to close:")
+            self.stdout.write(f"  - Pending activities: {pending_count}")
+            self.stdout.write(f"  - Expired activities: {expired_count}")
 
             if dry_run:
                 self.stdout.write(self.style.WARNING("DRY RUN MODE - No changes will be made."))
@@ -68,7 +77,7 @@ class Command(BaseCommand):
             with transaction.atomic():
                 for activity in activities:
                     # Update the activity
-                    activity.status = "C"  # Completed
+                    activity.status = ACTIVITY_STATUS.COMPLETED  # Completed
                     activity.seller_console_action = seller_action
                     activity.save()
 

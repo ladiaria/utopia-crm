@@ -1,0 +1,163 @@
+{% extends "adminlte/base.html" %}
+{% load i18n %}
+
+{% block title %}Calendario de Asistencias{% endblock %}
+
+{% block no_heading %}
+  <h1>Calendario de Asistencias</h1>
+{% endblock %}
+
+{% block content %}
+
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title"><i class="fas fa-filter mr-1"></i> Período y vista</h3>
+    </div>
+    <div class="card-body">
+      <form method="get" class="form-inline flex-wrap">
+        <div class="form-group mr-3 mb-2">
+          <label for="month" class="mr-2">Mes:</label>
+          <select name="month" id="month" class="form-control form-control-sm">
+            {% for num, name in months %}
+              <option value="{{ num }}" {% if num == selected_month %}selected{% endif %}>{{ name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group mr-3 mb-2">
+          <label for="year" class="mr-2">Año:</label>
+          <select name="year" id="year" class="form-control form-control-sm">
+            {% for y in years %}
+              <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <input type="hidden" name="view" value="{{ view_mode }}">
+        <button type="submit" class="btn btn-sm btn-primary mr-2 mb-2">
+          <i class="fas fa-search mr-1"></i> Filtrar
+        </button>
+      </form>
+
+      <div class="mt-2">
+        <span class="mr-2 font-weight-bold">Vista:</span>
+        <a href="?month={{ selected_month }}&year={{ selected_year }}&view=lite"
+           class="btn btn-sm {% if view_mode == 'lite' %}btn-info{% else %}btn-outline-info{% endif %} mr-1">
+          <i class="fas fa-th mr-1"></i> Lite
+        </a>
+        <a href="?month={{ selected_month }}&year={{ selected_year }}&view=normal"
+           class="btn btn-sm {% if view_mode == 'normal' %}btn-info{% else %}btn-outline-info{% endif %} mr-1">
+          <i class="fas fa-align-left mr-1"></i> Normal
+        </a>
+        <a href="?month={{ selected_month }}&year={{ selected_year }}&view={{ view_mode }}&export=1"
+           class="btn btn-sm btn-success">
+          <i class="fas fa-download mr-1"></i> Descargar CSV
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">
+        <i class="fas fa-calendar-alt mr-1"></i>
+        Asistencias —
+        {% for num, name in months %}{% if num == selected_month %}{{ name }}{% endif %}{% endfor %}
+        {{ selected_year }}
+      </h3>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-bordered table-sm mb-0" style="min-width: max-content;">
+          <thead class="thead-light">
+            <tr>
+              <th class="align-middle"
+                  style="min-width:140px; position:sticky; left:0; background:#f8f9fa; z-index:2;">
+                Vendedor
+              </th>
+              {% for di in day_infos %}
+                {% if di.is_weekend %}
+                  <th class="text-center text-white"
+                      style="min-width:{% if view_mode == 'normal' %}110px{% else %}52px{% endif %}; background:#c0392b;">
+                {% else %}
+                  <th class="text-center"
+                      style="min-width:{% if view_mode == 'normal' %}110px{% else %}52px{% endif %};">
+                {% endif %}
+                  {% if can_edit %}
+                    <a href="{% url 'seller_attendance' %}?date={{ di.date|date:'Y-m-d' }}"
+                       class="{% if di.is_weekend %}text-white{% endif %}"
+                       style="text-decoration:none;">
+                      <small>{{ di.label }}<br>{{ di.num }}</small>
+                    </a>
+                  {% else %}
+                    <small>{{ di.label }}<br>{{ di.num }}</small>
+                  {% endif %}
+                </th>
+              {% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in seller_rows %}
+              <tr>
+                <td style="position:sticky; left:0; background:#fff; z-index:1; font-weight:500;">
+                  {{ row.seller.name }}
+                </td>
+                {% for cell in row.cells %}
+                  {% if cell.is_weekend %}
+                    <td class="text-center" style="background:#ffe0e0;">
+                  {% else %}
+                    <td class="text-center">
+                  {% endif %}
+                    {% if cell.is_present %}
+                      {% if view_mode == 'lite' %}
+                        <span data-toggle="tooltip" title="Presente {{ cell.shift_label }}">✅</span>
+                      {% else %}
+                        <small class="text-success">✓ {{ cell.shift_label }}</small>
+                      {% endif %}
+                    {% elif cell.is_absent %}
+                      {% if view_mode == 'lite' %}
+                        {% if cell.justified %}
+                          <span data-toggle="tooltip" title="{{ cell.reason_str }}">🟡</span>
+                        {% else %}
+                          <span data-toggle="tooltip"
+                                title="{% if cell.reason_str %}{{ cell.reason_str }}{% else %}Ausente{% endif %}">❌</span>
+                        {% endif %}
+                      {% else %}
+                        <small class="{% if cell.justified %}text-warning{% else %}text-danger{% endif %}">
+                          {% if cell.reason_str %}{{ cell.reason_str }}{% else %}Ausente{% endif %}
+                        </small>
+                      {% endif %}
+                    {% endif %}
+                    </td>
+                {% endfor %}
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="{{ day_infos|length|add:1 }}" class="text-center text-muted py-4">
+                  <i class="fas fa-users fa-2x mb-2 d-block"></i>
+                  No hay vendedores de call center registrados.
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card-footer text-muted small">
+      {% if view_mode == 'lite' %}
+        <strong>Leyenda:</strong>
+        ✅ Presente &nbsp;|&nbsp;
+        🟡 Inasistencia justificada &nbsp;|&nbsp;
+        ❌ Inasistencia injustificada &nbsp;|&nbsp;
+        <span style="color:#aaa;">(vacío)</span> Sin datos &nbsp;|&nbsp;
+        <span style="background:#ffe0e0; padding:0 4px; border:1px solid #eee;">col</span> Sábado / Domingo
+      {% else %}
+        <strong>Leyenda:</strong>
+        <span class="text-success font-weight-bold">✓ HH:MM–HH:MM</span> = Presente &nbsp;|&nbsp;
+        <span class="text-warning font-weight-bold">Razón (Justified)</span> = Inasistencia justificada &nbsp;|&nbsp;
+        <span class="text-danger font-weight-bold">Razón (Unjustified)</span> = Inasistencia injustificada &nbsp;|&nbsp;
+        <span style="color:#aaa;">(vacío)</span> = Sin datos &nbsp;|&nbsp;
+        <span style="background:#ffe0e0; padding:0 4px; border:1px solid #eee;">col</span> = Sábado / Domingo
+      {% endif %}
+    </div>
+  </div>
+
+{% endblock %}

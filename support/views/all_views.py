@@ -1,4 +1,6 @@
+import calendar
 import csv
+import io
 import json
 from datetime import date, datetime, timedelta
 
@@ -8,8 +10,23 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import PermissionRequiredMixin, UserPassesTestMixin
+from django.contrib.auth.models import User
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
-from django.db.models import Count, Min, Sum, Case, When
+from django.db.models import (
+    Count,
+    Exists,
+    IntegerField,
+    Min,
+    OuterRef,
+    Q,
+    Subquery,
+    Sum,
+    Case,
+    When,
+    Prefetch,
+)
+from django.db.models.functions import Coalesce
 from django.http import (
     HttpResponse,
     HttpResponseNotFound,
@@ -49,14 +66,18 @@ from core.utils import (
     logistics_is_installed,
     process_products,
 )
+from invoicing.models import Invoice
+from util.location_utils import georef_habilitado
 from support.choices import ISSUE_ANSWERS, get_issue_categories
 from support.filters import (
+    AllCampaignsContactStatusFilter,
     CampaignFilter,
     ContactCampaignStatusFilter,
     InvoicingIssueFilter,
     IssueFilter,
     SalesRecordFilter,
     SalesRecordFilterForSeller,
+    SellerAttendanceFilter,
 )
 from support.forms import (
     AddressComplementaryInformationForm,
@@ -71,7 +92,18 @@ from support.forms import (
     SugerenciaGeorefForm,
     ValidateSubscriptionForm,
 )
-from support.models import Issue, IssueStatus, IssueSubcategory, SalesRecord, Seller
+from support.models import (
+    AbsenceReason,
+    AttendanceRecord,
+    Issue,
+    IssueStatus,
+    IssueSubcategory,
+    SalesRecord,
+    Seller,
+    SellerAttendance,
+    ATTENDANCE_STATUS_ABSENT,
+    ATTENDANCE_STATUS_PRESENT,
+)
 
 now = datetime.now()
 
@@ -119,26 +151,6 @@ def edit_address(request, contact_id, address_id=None):
         )
 
 
-@login_required
-def default_newsletters_dialog(request, contact_id):
-    if request.method == "POST":
-        if request.POST.get("answer") == "yes":
-            try:
-                Contact.objects.get(id=contact_id).add_default_newsletters()
-            except Contact.DoesNotExist:
-                pass
-        return HttpResponseRedirect(request.POST.get("next_page"))
-    else:
-        try:
-            next_page = request.GET["next_page"]
-        except KeyError:
-            return HttpResponseNotFound()
-        else:
-            return render(
-                request, "default_newsletters_dialog.html", {"contact_id": contact_id, "next_page": next_page}
-            )
-
-
 class AssignCampaignsView(LoginRequiredMixin, BreadcrumbsMixin, TemplateView):
     """
     Allows a manager to add contacts to campaigns, using tags or a csv file.
@@ -149,7 +161,8 @@ class AssignCampaignsView(LoginRequiredMixin, BreadcrumbsMixin, TemplateView):
     def breadcrumbs(self):
         return [
             {"label": _("Home"), "url": reverse("home")},
-            {"label": _("Assign campaigns"), "url": reverse("assign_campaigns")},
+            {"label": _("Campaign Management"), "url": reverse("campaign_management")},
+            {"label": _("Assign contacts by tag"), "url": reverse("assign_campaigns")},
         ]
 
     def get_context_data(self, **kwargs):
@@ -230,7 +243,14 @@ def list_campaigns_with_no_seller(request):
     return render(
         request,
         "distribute_campaigns.html",
-        {"campaign_list": campaign_list},
+        {
+            "campaign_list": campaign_list,
+            "breadcrumbs": [
+                {"url": reverse("home"), "label": _("Home")},
+                {"url": reverse("campaign_management"), "label": _("Campaign Management")},
+                {"label": _("Assign contacts to sellers"), "url": reverse("assign_to_seller")},
+            ],
+        },
     )
 
 
@@ -263,6 +283,8 @@ class AssignSellerView(LoginRequiredMixin, BreadcrumbsMixin, TemplateView):
     def breadcrumbs(self):
         return [
             {"label": _("Home"), "url": reverse("home")},
+            {"label": _("Campaign Management"), "url": reverse("campaign_management")},
+            {"label": _("Assign contacts to sellers"), "url": reverse("assign_to_seller")},
             {"label": _("Assign sellers"), "url": reverse("assign_sellers", args=[self.kwargs['campaign_id']])},
         ]
 
@@ -504,7 +526,18 @@ def release_seller_contacts(request, seller_id=None):
     else:
         for seller in seller_qs:
             seller.contacts_not_worked = seller.contactcampaignstatus_set.filter(status__lt=4).count()
-        return render(request, "release_seller_contacts.html", {"seller_list": seller_qs})
+        return render(
+            request,
+            "release_seller_contacts.html",
+            {
+                "seller_list": seller_qs,
+                "breadcrumbs": [
+                    {"url": reverse("home"), "label": _("Home")},
+                    {"url": reverse("campaign_management"), "label": _("Campaign Management")},
+                    {"label": _("Release seller contacts"), "url": reverse("release_seller_contacts")},
+                ],
+            },
+        )
 
 
 @staff_member_required
@@ -559,7 +592,9 @@ def edit_products(request, subscription_id):
 class IssueListView(BreadcrumbsMixin, FilterView):
     """
     Shows a list of issues with filtering capabilities and dynamic subcategory filtering.
+    Supports ordering by date and next_action_date fields.
     """
+
     model = Issue
     template_name = "list_issues.html"
     filterset_class = IssueFilter
@@ -574,12 +609,36 @@ class IssueListView(BreadcrumbsMixin, FilterView):
         ]
 
     def get_queryset(self):
-        if logistics_is_installed():
-            return Issue.objects.all().order_by(
-                "-date", "subscription_product__product", "-subscription_product__route__number", "-id"
-            )
+        """Get queryset with optional ordering by date or next_action_date"""
+        queryset = Issue.objects.all()
+
+        # Get ordering parameter from request
+        order_by = self.request.GET.get('order_by', '-date')
+
+        # Validate ordering parameter to prevent SQL injection
+        valid_orderings = [
+            'date',
+            '-date',
+            'next_action_date',
+            '-next_action_date',
+            'status',
+            '-status',
+            'category',
+            '-category',
+        ]
+
+        if order_by in valid_orderings:
+            queryset = queryset.order_by(order_by)
         else:
-            return Issue.objects.all().order_by("-date", "subscription_product__product", "-id")
+            # Default ordering
+            if logistics_is_installed():
+                queryset = queryset.order_by(
+                    "-date", "subscription_product__product", "-subscription_product__route__number", "-id"
+                )
+            else:
+                queryset = queryset.order_by("-date", "subscription_product__product", "-id")
+
+        return queryset
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -589,10 +648,7 @@ class IssueListView(BreadcrumbsMixin, FilterView):
         for subcategory in IssueSubcategory.objects.all().order_by('name'):
             if subcategory.category not in category_subcategories:
                 category_subcategories[subcategory.category] = []
-            category_subcategories[subcategory.category].append({
-                'id': subcategory.id,
-                'name': subcategory.name
-            })
+            category_subcategories[subcategory.category].append({'id': subcategory.id, 'name': subcategory.name})
 
         # Include subcategories without a category (also sorted alphabetically)
         subcategories_without_category = IssueSubcategory.objects.filter(category__isnull=True).order_by('name')
@@ -603,6 +659,22 @@ class IssueListView(BreadcrumbsMixin, FilterView):
 
         context['category_subcategories_json'] = json.dumps(category_subcategories)
         context['count'] = self.get_filterset(self.filterset_class).qs.count()
+
+        # Bulk reassign tool: only managers/admins see and use it. The current
+        # filter querystring is forwarded so the "select the whole filter" mode
+        # can replay it server-side.
+        user = self.request.user
+        context['can_bulk_reassign'] = user.is_superuser or user.groups.filter(name="Admins").exists()
+        context['issue_statuses'] = IssueStatus.objects.all()
+        filter_params = self.request.GET.copy()
+        for key in ("p", "order_by", "export"):
+            filter_params.pop(key, None)
+        context['filter_querystring'] = filter_params.urlencode()
+        # Whole-filter selection is only offered when the filter is narrow enough
+        # (a status AND a subcategory), to avoid selecting every single issue.
+        context['filter_is_narrow'] = bool(self.request.GET.get("status")) and bool(
+            self.request.GET.get("sub_category")
+        )
         return context
 
     def get(self, request, *args, **kwargs):
@@ -613,21 +685,26 @@ class IssueListView(BreadcrumbsMixin, FilterView):
 
     def export_csv(self):
         """Export filtered issues to CSV using streaming response for large datasets"""
+
         def generate_csv_rows():
             # Create a buffer for CSV writing
             import io
+
             buffer = io.StringIO()
             writer = csv.writer(buffer)
 
             # Write header
             header = [
-                _("Start date"),
+                _("Creation date"),
+                _("Issue date"),
                 _("Contact ID"),
                 _("Contact name"),
                 _("Category"),
                 _("Subcategory"),
+                _("Resolution"),
                 _("Activities count"),
                 _("Status"),
+                _("Next action date"),
                 _("Assigned to"),
             ]
             writer.writerow(header)
@@ -637,221 +714,903 @@ class IssueListView(BreadcrumbsMixin, FilterView):
 
             # Write data rows in chunks
             filterset = self.get_filterset(self.filterset_class)
-            for issue in filterset.qs.iterator(chunk_size=1000):
-                writer.writerow([
-                    issue.date,
-                    issue.contact.id,
-                    issue.contact.get_full_name(),
-                    issue.get_category(),
-                    issue.get_subcategory(),
-                    issue.activity_count(),
-                    issue.get_status(),
-                    issue.get_assigned_to(),
-                ])
+            for issue in filterset.qs.select_related('resolution').iterator(chunk_size=1000):
+                writer.writerow(
+                    [
+                        issue.date_created,
+                        issue.date,
+                        issue.contact.id,
+                        issue.contact.get_full_name(),
+                        issue.get_category(),
+                        issue.get_subcategory(),
+                        issue.resolution.name if issue.resolution else "",
+                        issue.activity_count(),
+                        issue.get_status(),
+                        issue.next_action_date or "",
+                        issue.get_assigned_to(),
+                    ]
+                )
                 yield buffer.getvalue()
                 buffer.seek(0)
                 buffer.truncate(0)
 
-        response = StreamingHttpResponse(
-            generate_csv_rows(),
-            content_type="text/csv"
-        )
+        response = StreamingHttpResponse(generate_csv_rows(), content_type="text/csv")
         response["Content-Disposition"] = 'attachment; filename="issues_export.csv"'
         return response
 
 
-# Maintain backward compatibility
-@login_required
-def list_issues(request):
+# Keep the function for backward compatibility
+list_issues = IssueListView.as_view()
+
+
+class CommunityConsoleView(PermissionRequiredMixin, LoginRequiredMixin, BreadcrumbsMixin, TemplateView):
     """
-    Shows a very basic list of issues.
+    Community Management Console (GDC - Gestión de Comunidad).
+
+    Displays a dashboard of open issues assigned to the current user, grouped by
+    Category → Subcategory, with counts split into three temporal columns:
+    Overdue (date < today), Today (date == today), and Future (date > today).
+
+    Each count is a clickable link that opens the IssueListView with the appropriate filters.
     """
-    if logistics_is_installed():
-        issues_queryset = Issue.objects.all().order_by(
-            "-date", "subscription_product__product", "-subscription_product__route__number", "-id"
-        )
-    else:
-        issues_queryset = Issue.objects.all().order_by("-date", "subscription_product__product", "-id")
-    issues_filter = IssueFilter(request.GET, queryset=issues_queryset)
-    page_number = request.GET.get("p")
-    paginator = Paginator(issues_filter.qs, 100)
-    if request.GET.get("export"):
-        response = HttpResponse(content_type="text/csv")
-        response["Content-Disposition"] = 'attachment; filename="issues_export.csv"'
-        writer = csv.writer(response)
-        header = [
-            _("Start date"),
-            _("Contact ID"),
-            _("Contact name"),
-            _("Category"),
-            _("Subcategory"),
-            _("Activities count"),
-            _("Status"),
-            _("Assigned to"),
+
+    template_name = "community_console.html"
+    permission_required = "support.can_access_community_console"
+
+    def breadcrumbs(self):
+        return [
+            {"url": reverse("home"), "label": _("Home")},
+            {"label": _("Community console")},
         ]
-        writer.writerow(header)
-        for issue in issues_filter.qs.all():
-            writer.writerow(
-                [
-                    issue.date,
-                    issue.contact.id,
-                    issue.contact.get_full_name(),
-                    issue.get_category(),
-                    issue.get_subcategory(),
-                    issue.activity_count(),
-                    issue.get_status(),
-                    issue.get_assigned_to(),
-                ]
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        today = date.today()
+        yesterday = today - timedelta(days=1)
+        tomorrow = today + timedelta(days=1)
+
+        # Get open issues assigned to the current user (not closed, not in terminal state)
+        terminal_statuses = getattr(settings, 'ISSUE_STATUS_FINISHED_LIST', [])
+        issues = (
+            Issue.objects.filter(
+                assigned_to=self.request.user,
+                closing_date__isnull=True,
             )
-        return response
-    try:
-        page = paginator.page(page_number)
-    except PageNotAnInteger:
-        # If page is not an integer, deliver first page.
-        page = paginator.page(1)
-    except EmptyPage:
-        # If page is out of range (e.g. 9999), deliver last page of results.
-        page = paginator.page(paginator.num_pages)
-    return render(
-        request,
-        "list_issues.html",
-        {"page": page, "paginator": paginator, "issues_filter": issues_filter, "count": issues_filter.qs.count()},
-    )
+            .exclude(
+                status__slug__in=terminal_statuses,
+            )
+            .select_related('sub_category', 'status')
+        )
+
+        # Build category name lookup
+        category_dict = dict(get_issue_categories())
+
+        # Aggregate counts by category, subcategory, and temporal bucket
+        issue_data = (
+            issues.values('category', 'sub_category__id', 'sub_category__name')
+            .annotate(
+                overdue=Count('id', filter=Q(next_action_date__lt=today)),
+                today_count=Count('id', filter=Q(next_action_date=today)),
+                future=Count('id', filter=Q(next_action_date__gt=today)),
+                no_date=Count('id', filter=Q(next_action_date__isnull=True)),
+                total=Count('id'),
+            )
+            .order_by('category', 'sub_category__name')
+        )
+
+        # Structure data as: {category_key: {name, subcategories: [{...}], totals: {...}}}
+        categories = {}
+        for row in issue_data:
+            cat_key = row['category'] or ''
+            if cat_key not in categories:
+                categories[cat_key] = {
+                    'name': category_dict.get(cat_key, _("Uncategorized")),
+                    'key': cat_key,
+                    'subcategories': [],
+                    'overdue': 0,
+                    'today_count': 0,
+                    'future': 0,
+                    'no_date': 0,
+                    'total': 0,
+                }
+            cat = categories[cat_key]
+            cat['subcategories'].append(
+                {
+                    'id': row['sub_category__id'],
+                    'name': row['sub_category__name'] or _("No subcategory"),
+                    'overdue': row['overdue'],
+                    'today_count': row['today_count'],
+                    'future': row['future'],
+                    'no_date': row['no_date'],
+                    'total': row['total'],
+                }
+            )
+            cat['overdue'] += row['overdue']
+            cat['today_count'] += row['today_count']
+            cat['future'] += row['future']
+            cat['no_date'] += row['no_date']
+            cat['total'] += row['total']
+
+        # Sort categories by name
+        sorted_categories = sorted(categories.values(), key=lambda c: c['name'])
+
+        # Grand totals
+        grand_totals = {
+            'overdue': sum(c['overdue'] for c in sorted_categories),
+            'today_count': sum(c['today_count'] for c in sorted_categories),
+            'future': sum(c['future'] for c in sorted_categories),
+            'no_date': sum(c['no_date'] for c in sorted_categories),
+            'total': sum(c['total'] for c in sorted_categories),
+        }
+
+        context['categories'] = sorted_categories
+        context['grand_totals'] = grand_totals
+        context['today'] = today
+        context['yesterday'] = yesterday
+        context['tomorrow'] = tomorrow
+        context['assigned_to_id'] = self.request.user.id
+        return context
 
 
-@login_required
-def new_issue(request, contact_id, category="L"):
+class CommunityManagerDashboardView(PermissionRequiredMixin, LoginRequiredMixin, BreadcrumbsMixin, TemplateView):
     """
-    Creates an issue of a selected category and subcategory.
+    GDC Manager Dashboard.
+
+    Shows subcategories with unassigned open issues (assigned_to is NULL, not in terminal state).
+    Managers can click a subcategory to go to the assignment screen, or view the team overview.
     """
-    contact = get_object_or_404(Contact, pk=contact_id)
-    if request.POST:
-        form = IssueStartForm(request.POST)
-        if form.is_valid():
-            if form.cleaned_data.get("new_address"):
-                address = Address.objects.create(
-                    contact=contact,
-                    address_1=form.cleaned_data.get("new_address_1"),
-                    address_2=form.cleaned_data.get("new_address_2"),
-                    city=form.cleaned_data.get("new_address_city"),
-                    state=form.cleaned_data.get("new_address_state"),
-                    notes=form.cleaned_data.get("new_address_notes"),
+
+    template_name = "community_manager_dashboard.html"
+    permission_required = "support.can_manage_community_console"
+
+    def breadcrumbs(self):
+        return [
+            {"url": reverse("home"), "label": _("Home")},
+            {"label": _("Community manager dashboard")},
+        ]
+
+    def _get_open_unassigned_issues_qs(self):
+        terminal_statuses = getattr(settings, 'ISSUE_STATUS_FINISHED_LIST', [])
+        return Issue.objects.filter(
+            assigned_to__isnull=True,
+            closing_date__isnull=True,
+        ).exclude(
+            status__slug__in=terminal_statuses,
+        )
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        today = date.today()
+
+        issues_qs = self._get_open_unassigned_issues_qs()
+
+        # Aggregate unassigned counts by category + subcategory
+        category_dict = dict(get_issue_categories())
+
+        issue_data = (
+            issues_qs.values('category', 'sub_category__id', 'sub_category__name')
+            .annotate(
+                overdue=Count('id', filter=Q(next_action_date__lt=today)),
+                today_count=Count('id', filter=Q(next_action_date=today)),
+                future=Count('id', filter=Q(next_action_date__gt=today)),
+                no_date=Count('id', filter=Q(next_action_date__isnull=True)),
+                total=Count('id'),
+            )
+            .order_by('category', 'sub_category__name')
+        )
+
+        categories = {}
+        for row in issue_data:
+            cat_key = row['category'] or ''
+            if cat_key not in categories:
+                categories[cat_key] = {
+                    'name': category_dict.get(cat_key, _("Uncategorized")),
+                    'key': cat_key,
+                    'subcategories': [],
+                    'overdue': 0,
+                    'today_count': 0,
+                    'future': 0,
+                    'no_date': 0,
+                    'total': 0,
+                }
+            cat = categories[cat_key]
+            cat['subcategories'].append(
+                {
+                    'id': row['sub_category__id'],
+                    'name': row['sub_category__name'] or _("No subcategory"),
+                    'overdue': row['overdue'],
+                    'today_count': row['today_count'],
+                    'future': row['future'],
+                    'no_date': row['no_date'],
+                    'total': row['total'],
+                }
+            )
+            cat['overdue'] += row['overdue']
+            cat['today_count'] += row['today_count']
+            cat['future'] += row['future']
+            cat['no_date'] += row['no_date']
+            cat['total'] += row['total']
+
+        sorted_categories = sorted(categories.values(), key=lambda c: c['name'])
+
+        grand_totals = {
+            'overdue': sum(c['overdue'] for c in sorted_categories),
+            'today_count': sum(c['today_count'] for c in sorted_categories),
+            'future': sum(c['future'] for c in sorted_categories),
+            'no_date': sum(c['no_date'] for c in sorted_categories),
+            'total': sum(c['total'] for c in sorted_categories),
+        }
+
+        context['categories'] = sorted_categories
+        context['grand_totals'] = grand_totals
+        context['today'] = today
+        context['yesterday'] = today - timedelta(days=1)
+        context['tomorrow'] = today + timedelta(days=1)
+        return context
+
+
+class CommunityManagerAssignView(PermissionRequiredMixin, LoginRequiredMixin, BreadcrumbsMixin, TemplateView):
+    """
+    GDC Manager Issue Assignment View.
+
+    For a given subcategory, shows:
+    - Number of unassigned open issues available
+    - List of GDC group users with their current unfinished issue count
+    - Text input per user to specify how many issues to assign
+    - Round-robin assignment from oldest to newest issues
+    - Updates next_action_date to tomorrow if null or in the past
+    """
+
+    template_name = "community_manager_assign.html"
+    permission_required = "support.can_manage_community_console"
+
+    def breadcrumbs(self):
+        sub_cat_name = self.sub_category.name if self.sub_category else _("All")
+        return [
+            {"url": reverse("home"), "label": _("Home")},
+            {"url": reverse("community_manager_dashboard"), "label": _("Community manager dashboard")},
+            {"label": _("Assign issues: %(subcategory)s") % {"subcategory": sub_cat_name}},
+        ]
+
+    def dispatch(self, request, *args, **kwargs):
+        sub_category_id = kwargs.get('sub_category_id')
+        self.sub_category = get_object_or_404(IssueSubcategory, pk=sub_category_id)
+        return super().dispatch(request, *args, **kwargs)
+
+    def _get_unassigned_issues_qs(self):
+        terminal_statuses = getattr(settings, 'ISSUE_STATUS_FINISHED_LIST', [])
+        return (
+            Issue.objects.filter(
+                sub_category=self.sub_category,
+                assigned_to__isnull=True,
+                closing_date__isnull=True,
+            )
+            .exclude(
+                status__slug__in=terminal_statuses,
+            )
+            .order_by('date')
+        )  # oldest first
+
+    def _get_gdc_users(self):
+        return (
+            User.objects.filter(
+                user_permissions__codename='can_access_community_console',
+                is_active=True,
+            ).distinct()
+            | User.objects.filter(
+                groups__permissions__codename='can_access_community_console',
+                is_active=True,
+            ).distinct()
+        )
+
+    def _get_user_open_issue_count(self, user):
+        terminal_statuses = getattr(settings, 'ISSUE_STATUS_FINISHED_LIST', [])
+        return (
+            Issue.objects.filter(
+                assigned_to=user,
+                closing_date__isnull=True,
+            )
+            .exclude(
+                status__slug__in=terminal_statuses,
+            )
+            .count()
+        )
+
+    def _create_round_robin_queue(self, user_assignments):
+        """
+        Creates a round-robin assignment queue from a list of (user, amount) tuples.
+        Returns a list of User objects in round-robin order.
+        """
+        queue = []
+        user_counters = {user: amount for user, amount in user_assignments}
+        user_list = [user for user, _ in user_assignments]
+        num_users = len(user_list)
+
+        if num_users == 0:
+            return queue
+
+        total = sum(user_counters.values())
+        current_index = 0
+        while len(queue) < total:
+            current_user = user_list[current_index]
+            if user_counters[current_user] > 0:
+                queue.append(current_user)
+                user_counters[current_user] -= 1
+            current_index = (current_index + 1) % num_users
+            if len(queue) >= total:
+                break
+
+        return queue
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        today = date.today()
+
+        unassigned_qs = self._get_unassigned_issues_qs()
+        unassigned_count = unassigned_qs.count()
+
+        # Temporal breakdown of unassigned issues
+        unassigned_overdue = unassigned_qs.filter(next_action_date__lt=today).count()
+        unassigned_today = unassigned_qs.filter(next_action_date=today).count()
+        unassigned_future = unassigned_qs.filter(next_action_date__gt=today).count()
+        unassigned_no_date = unassigned_qs.filter(next_action_date__isnull=True).count()
+
+        # Get GDC users with their open issue counts
+        gdc_users = self._get_gdc_users()
+        terminal_statuses = getattr(settings, 'ISSUE_STATUS_FINISHED_LIST', [])
+        user_data = []
+        for user in gdc_users.order_by('username'):
+            open_count = (
+                Issue.objects.filter(
+                    assigned_to=user,
+                    closing_date__isnull=True,
                 )
-            else:
-                address = form.cleaned_data.get("contact_address")
-            if form.cleaned_data["status"]:
-                status = form.cleaned_data["status"]
-            elif form.cleaned_data["assigned_to"]:
-                status = IssueStatus.objects.get(slug=settings.ISSUE_STATUS_ASSIGNED)
-            else:
-                status = IssueStatus.objects.get(slug=settings.ISSUE_STATUS_UNASSIGNED)
-            new_issue = Issue.objects.create(
-                contact=form.cleaned_data["contact"],
-                category=form.cleaned_data["category"],
-                sub_category=form.cleaned_data["sub_category"],
-                notes=form.cleaned_data["notes"],
-                copies=form.cleaned_data["copies"],
-                subscription=form.cleaned_data["subscription"],
-                subscription_product=form.cleaned_data["subscription_product"],
-                product=form.cleaned_data["product"],
-                inside=False,
-                manager=request.user,
-                assigned_to=form.cleaned_data["assigned_to"],
-                envelope=form.cleaned_data["envelope"],
-                address=address,
-                status=status,
+                .exclude(
+                    status__slug__in=terminal_statuses,
+                )
+                .count()
             )
+            # Also get per-temporal-bucket counts for this user
+            user_issues = Issue.objects.filter(
+                assigned_to=user,
+                closing_date__isnull=True,
+            ).exclude(
+                status__slug__in=terminal_statuses,
+            )
+            user_data.append(
+                {
+                    'user': user,
+                    'open_count': open_count,
+                    'overdue': user_issues.filter(next_action_date__lt=today).count(),
+                    'today_count': user_issues.filter(next_action_date=today).count(),
+                    'future': user_issues.filter(next_action_date__gt=today).count(),
+                }
+            )
+
+        context['sub_category'] = self.sub_category
+        context['unassigned_count'] = unassigned_count
+        context['unassigned_overdue'] = unassigned_overdue
+        context['unassigned_today'] = unassigned_today
+        context['unassigned_future'] = unassigned_future
+        context['unassigned_no_date'] = unassigned_no_date
+        context['user_data'] = user_data
+        context['today'] = today
+        return context
+
+    def post(self, request, *args, **kwargs):
+        today = date.today()
+        tomorrow = today + timedelta(days=1)
+
+        # Collect user assignments from POST data
+        user_assignments = []
+        for key, value in request.POST.items():
+            if key.startswith("user-") and value:
+                try:
+                    user_id = int(key.replace("user-", ""))
+                    amount = int(value)
+                    if amount > 0:
+                        user = User.objects.get(pk=user_id, is_active=True)
+                        user_assignments.append((user, amount))
+                except (ValueError, User.DoesNotExist):
+                    continue
+
+        if not user_assignments:
+            messages.warning(request, _("No assignments specified."))
+            return HttpResponseRedirect(reverse("community_manager_assign", args=[self.sub_category.pk]))
+
+        total_requested = sum(amount for _, amount in user_assignments)
+        unassigned_qs = self._get_unassigned_issues_qs()
+        available_count = unassigned_qs.count()
+
+        if total_requested > available_count:
+            messages.error(
+                request,
+                _("Requested %(requested)s assignments but only %(available)s issues are available.")
+                % {"requested": total_requested, "available": available_count},
+            )
+            return HttpResponseRedirect(reverse("community_manager_assign", args=[self.sub_category.pk]))
+
+        # Build round-robin queue
+        assignment_queue = self._create_round_robin_queue(user_assignments)
+
+        # Get issues to assign (oldest first)
+        issues_to_assign = list(unassigned_qs[:total_requested])
+
+        # Assign issues using round-robin
+        assigned_count = 0
+        for i, issue in enumerate(issues_to_assign):
+            if i < len(assignment_queue):
+                issue.assigned_to = assignment_queue[i]
+                fields_to_update = ['assigned_to']
+
+                # Set status to "new" if the issue has no status
+                if issue.status is None:
+                    new_status_slug = getattr(settings, 'ISSUE_STATUS_NEW', 'new')
+                    try:
+                        issue.status = IssueStatus.objects.get(slug=new_status_slug)
+                        fields_to_update.append('status')
+                    except IssueStatus.DoesNotExist:
+                        pass
+
+                # Update next_action_date: set to tomorrow if null or in the past
+                if issue.next_action_date is None or issue.next_action_date < today:
+                    issue.next_action_date = tomorrow
+                    fields_to_update.append('next_action_date')
+
+                issue.save(update_fields=fields_to_update)
+                assigned_count += 1
+
+        messages.success(
+            request,
+            _("%(count)s issues were assigned successfully using round-robin distribution.")
+            % {"count": assigned_count},
+        )
+        return HttpResponseRedirect(reverse("community_manager_assign", args=[self.sub_category.pk]))
+
+
+class CommunityManagerOverviewView(PermissionRequiredMixin, LoginRequiredMixin, BreadcrumbsMixin, TemplateView):
+    """
+    GDC Manager Team Overview.
+
+    Shows all GDC users with their issue statistics:
+    - Total open issues
+    - Overdue / Today / Future breakdown
+    - Similar to CommunityConsoleView but for managers to see ALL GDC users at once
+    """
+
+    template_name = "community_manager_overview.html"
+    permission_required = "support.can_manage_community_console"
+
+    def breadcrumbs(self):
+        return [
+            {"url": reverse("home"), "label": _("Home")},
+            {"url": reverse("community_manager_dashboard"), "label": _("Community manager dashboard")},
+            {"label": _("Team overview")},
+        ]
+
+    def _get_gdc_users(self):
+        return (
+            User.objects.filter(
+                user_permissions__codename='can_access_community_console',
+                is_active=True,
+            ).distinct()
+            | User.objects.filter(
+                groups__permissions__codename='can_access_community_console',
+                is_active=True,
+            ).distinct()
+        )
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        today = date.today()
+        yesterday = today - timedelta(days=1)
+        tomorrow = today + timedelta(days=1)
+
+        terminal_statuses = getattr(settings, 'ISSUE_STATUS_FINISHED_LIST', [])
+        gdc_users = self._get_gdc_users().order_by('username')
+
+        team_data = []
+        grand_totals = {'overdue': 0, 'today_count': 0, 'future': 0, 'no_date': 0, 'total': 0}
+
+        category_dict = dict(get_issue_categories())
+
+        for user in gdc_users:
+            user_issues = (
+                Issue.objects.filter(
+                    assigned_to=user,
+                    closing_date__isnull=True,
+                )
+                .exclude(
+                    status__slug__in=terminal_statuses,
+                )
+                .select_related('sub_category', 'status')
+            )
+
+            overdue = user_issues.filter(next_action_date__lt=today).count()
+            today_count = user_issues.filter(next_action_date=today).count()
+            future = user_issues.filter(next_action_date__gt=today).count()
+            no_date = user_issues.filter(next_action_date__isnull=True).count()
+            total = user_issues.count()
+
+            # Per-category/subcategory breakdown for this user
+            breakdown_data = (
+                user_issues.values('category', 'sub_category__id', 'sub_category__name')
+                .annotate(
+                    overdue=Count('id', filter=Q(next_action_date__lt=today)),
+                    today_count=Count('id', filter=Q(next_action_date=today)),
+                    future=Count('id', filter=Q(next_action_date__gt=today)),
+                    no_date=Count('id', filter=Q(next_action_date__isnull=True)),
+                    total=Count('id'),
+                )
+                .order_by('category', 'sub_category__name')
+            )
+
+            user_categories = {}
+            for row in breakdown_data:
+                cat_key = row['category'] or ''
+                if cat_key not in user_categories:
+                    user_categories[cat_key] = {
+                        'name': category_dict.get(cat_key, _("Uncategorized")),
+                        'key': cat_key,
+                        'subcategories': [],
+                        'overdue': 0,
+                        'today_count': 0,
+                        'future': 0,
+                        'no_date': 0,
+                        'total': 0,
+                    }
+                cat = user_categories[cat_key]
+                cat['subcategories'].append(
+                    {
+                        'id': row['sub_category__id'],
+                        'name': row['sub_category__name'] or _("No subcategory"),
+                        'overdue': row['overdue'],
+                        'today_count': row['today_count'],
+                        'future': row['future'],
+                        'no_date': row['no_date'],
+                        'total': row['total'],
+                    }
+                )
+                cat['overdue'] += row['overdue']
+                cat['today_count'] += row['today_count']
+                cat['future'] += row['future']
+                cat['no_date'] += row['no_date']
+                cat['total'] += row['total']
+
+            sorted_user_categories = sorted(user_categories.values(), key=lambda c: c['name'])
+
+            team_data.append(
+                {
+                    'user': user,
+                    'overdue': overdue,
+                    'today_count': today_count,
+                    'future': future,
+                    'no_date': no_date,
+                    'total': total,
+                    'categories': sorted_user_categories,
+                }
+            )
+
+            grand_totals['overdue'] += overdue
+            grand_totals['today_count'] += today_count
+            grand_totals['future'] += future
+            grand_totals['no_date'] += no_date
+            grand_totals['total'] += total
+
+        context['team_data'] = team_data
+        context['grand_totals'] = grand_totals
+        context['today'] = today
+        context['yesterday'] = yesterday
+        context['tomorrow'] = tomorrow
+        return context
+
+
+@method_decorator(login_required, name='dispatch')
+class NewIssueView(BreadcrumbsMixin, CreateView):
+    """
+    Creates an issue of a selected category and subcategory with related activity.
+    """
+
+    template_name = "new_issue.html"
+    model = Issue
+    form_class = IssueStartForm
+
+    def breadcrumbs(self):
+        return [
+            {"url": reverse("home"), "label": _("Home")},
+            {"url": reverse("contact_list"), "label": _("Contacts")},
+            {"url": reverse("contact_detail", args=[self.contact.id]), "label": self.contact.get_full_name()},
+            {"label": _("New issue")},
+        ]
+
+    def get_contact(self, contact_id):
+        """Fetch contact with prefetched relations to avoid N+1 queries"""
+        self.contact = get_object_or_404(
+            Contact.objects.prefetch_related(
+                'addresses',
+                Prefetch(
+                    'subscriptions',
+                    queryset=Subscription.objects.filter(active=True).prefetch_related(
+                        Prefetch('products', queryset=SubscriptionProduct.objects.select_related('product'))
+                    ),
+                    to_attr='active_subscriptions_list',
+                ),
+            ),
+            pk=contact_id,
+        )
+        return self.contact
+
+    def dispatch(self, request, *args, **kwargs):
+        self.contact = self.get_contact(kwargs['contact_id'])
+        self.category = kwargs.get('category', 'L')
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_initial(self):
+        initial = super().get_initial()
+
+        # Cache status lookup to avoid repeated queries
+        if not hasattr(self, '_cached_new_status'):
+            self._cached_new_status = IssueStatus.objects.get(slug=getattr(settings, "ISSUE_STATUS_NEW", "new"))
+
+        initial.update(
+            {
+                'copies': 1,
+                'contact': self.contact,
+                'category': self.category,
+                'status': self._cached_new_status,
+                'assigned_to': self.request.user,
+            }
+        )
+        return initial
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+
+        # Use prefetched data to avoid N+1 queries
+        # Addresses are already prefetched - use the prefetched queryset
+        form.fields["contact_address"].queryset = self.contact.addresses.all()
+
+        # Use prefetched active subscriptions with optimized queries
+        if hasattr(self.contact, 'active_subscriptions_list'):
+            active_subs = self.contact.active_subscriptions_list
+            # Build ID lists from prefetched data without triggering queries
+            sub_ids = [sub.id for sub in active_subs]
+            sub_product_ids = []
+            for sub in active_subs:
+                # Access prefetched products without triggering query
+                sub_product_ids.extend([sp.id for sp in sub.products.all()])
+
+            # Create querysets with select_related to prevent N+1 queries
+            # Subscription.__str__ accesses contact.get_full_name(), so we need select_related
+            form.fields["subscription"].queryset = Subscription.objects.filter(id__in=sub_ids).select_related(
+                'contact'
+            )
+
+            # SubscriptionProduct.__str__ accesses subscription.contact.get_full_name()
+            # So we need select_related for both subscription and contact
+            form.fields["subscription_product"].queryset = SubscriptionProduct.objects.filter(
+                id__in=sub_product_ids
+            ).select_related('product', 'subscription__contact', 'address')
+        else:
+            # Fallback to original methods if prefetch didn't work
+            form.fields["subscription_product"].queryset = self.contact.get_active_subscriptionproducts()
+            form.fields["subscription"].queryset = self.contact.get_active_subscriptions()
+
+        # Filter subcategories based on category (with special case for M/I)
+        if self.category == "M":
+            form.fields["sub_category"].queryset = IssueSubcategory.objects.filter(
+                category="I"
+            )  # Invoicing and collections share subcategories
+        else:
+            form.fields["sub_category"].queryset = IssueSubcategory.objects.filter(category=self.category)
+
+        return form
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['contact'] = self.contact
+
+        # Add category name to context
+        dict_categories = dict(get_issue_categories())
+        context['category_name'] = dict_categories[self.category]
+
+        # Create mapping of subcategory_id -> list of resolution options for JavaScript filtering
+        # Cache this data to avoid repeated queries
+        if not hasattr(self.__class__, '_cached_subcategory_resolutions'):
+            from support.models import IssueResolution
+
+            subcategory_resolutions = {}
+            for resolution in IssueResolution.objects.all().select_related('subcategory'):
+                subcategory_id = resolution.subcategory_id
+                if subcategory_id not in subcategory_resolutions:
+                    subcategory_resolutions[subcategory_id] = []
+                subcategory_resolutions[subcategory_id].append({'id': resolution.id, 'name': resolution.name})
+            self.__class__._cached_subcategory_resolutions = json.dumps(subcategory_resolutions)
+
+        context['subcategory_resolutions_json'] = self.__class__._cached_subcategory_resolutions
+
+        return context
+
+    def form_valid(self, form):
+        # Handle address creation/selection
+        if form.cleaned_data.get("new_address"):
+            address = Address.objects.create(
+                contact=self.contact,
+                address_1=form.cleaned_data.get("new_address_1"),
+                address_2=form.cleaned_data.get("new_address_2"),
+                city=form.cleaned_data.get("new_address_city"),
+                state=form.cleaned_data.get("new_address_state"),
+                notes=form.cleaned_data.get("new_address_notes"),
+            )
+        else:
+            address = form.cleaned_data.get("contact_address")
+
+        # Determine status based on form data
+        if form.cleaned_data["status"]:
+            status = form.cleaned_data["status"]
+
+        # Save the issue with all required fields
+        issue = form.save(commit=False)
+        issue.contact = self.contact
+        issue.inside = False
+        issue.manager = self.request.user
+        issue.address = address
+        issue.status = status
+        issue.save()
+
+        # Create related activity only if activity_type is provided
+        if form.cleaned_data.get("activity_type"):
             Activity.objects.create(
                 datetime=datetime.now(),
-                contact=contact,
-                issue=new_issue,
+                contact=self.contact,
+                issue=issue,
                 notes=_("See related issue"),
                 activity_type=form.cleaned_data["activity_type"],
                 status="C",  # completed
                 direction="I",
             )
-            return HttpResponseRedirect(reverse("contact_detail", args=[contact.id]))
-    else:
-        form = IssueStartForm(
-            initial={
-                "copies": 1,
-                "contact": contact,
-                "category": category,
-                "activity_type": "C",
-            }
+
+        # Add success message with link to the created issue
+        issue_url = reverse('view_issue', args=[issue.id])
+        message = _('Issue <a href="{url}">#{issue_id}</a> created for contact {contact_name}').format(
+            url=issue_url, issue_id=issue.id, contact_name=self.contact.get_full_name()
         )
-    form.fields["subscription_product"].queryset = contact.get_active_subscriptionproducts()
-    form.fields["subscription"].queryset = contact.get_active_subscriptions()
-    form.fields["contact_address"].queryset = contact.addresses.all()
-    if category == "M":
-        form.fields["sub_category"].queryset = IssueSubcategory.objects.filter(
-            category="I"
-        )  # Invoicing and collections share subcategories
-    else:
-        form.fields["sub_category"].queryset = IssueSubcategory.objects.filter(category=category)
-    dict_categories = dict(get_issue_categories())
-    category_name = dict_categories[category]
-    breadcrumbs = [
-        {"url": reverse("contact_list"), "label": _("Contacts")},
-        {"url": reverse("contact_detail", args=[contact.id]), "label": contact.get_full_name()},
-        {"label": _("New issue")},
-    ]
-    return render(
-        request,
-        "new_issue.html",
-        {"contact": contact, "form": form, "category_name": category_name, "breadcrumbs": breadcrumbs},
-    )
+        messages.success(self.request, message, extra_tags='safe')
+
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse('contact_detail', args=[self.contact.id])
 
 
-@login_required
-def view_issue(request, issue_id):
+@method_decorator(login_required, name='dispatch')
+class IssueDetailView(BreadcrumbsMixin, UpdateView):
     """
-    Shows a logistics type issue.
+    Shows a detailed view of an issue with editing capabilities.
     """
-    issue = get_object_or_404(Issue, pk=issue_id)
-    invoicing = False
-    has_active_subscription = issue.contact.has_active_subscription()
-    if request.POST:
+
+    model = Issue
+    template_name = "view_issue.html"
+    context_object_name = 'issue'
+    pk_url_kwarg = 'issue_id'
+
+    def breadcrumbs(self):
+        issue = self.get_object()
+        return [
+            {"url": reverse("home"), "label": _("Home")},
+            {"url": reverse("contact_list"), "label": _("Contacts")},
+            {"url": reverse("contact_detail", args=[issue.contact.id]), "label": issue.contact.get_full_name()},
+            {"label": _("Issue #{}").format(issue.id)},
+        ]
+
+    def get_form_class(self):
+        """Return the appropriate form class based on issue category"""
+        issue = self.get_object()
         if issue.category in ("I", "M"):
-            form = InvoicingIssueChangeForm(request.POST, instance=issue)
-            invoicing = True
+            return InvoicingIssueChangeForm
         else:
-            form = IssueChangeForm(request.POST, instance=issue)
-        if form.is_valid():
-            form.save()
-            return HttpResponseRedirect(reverse("view_issue", args=(issue_id,)))
-    else:
+            return IssueChangeForm
+
+    def get_form(self, form_class=None):
+        """Customize the form with filtered subcategories"""
+        form = super().get_form(form_class)
+        issue = self.get_object()
+
+        # Filter subcategories based on issue category
         if issue.category in ("I", "M"):
             subcategories = IssueSubcategory.objects.filter(category="I")
-            form = InvoicingIssueChangeForm(instance=issue)
-            invoicing = True
         else:
             subcategories = IssueSubcategory.objects.filter(category=issue.category)
-            form = IssueChangeForm(instance=issue)
-        form.fields["sub_category"].queryset = subcategories
 
-    activities = issue.activity_set.all().order_by("-datetime", "id")
-    activity_form = NewActivityForm(
-        initial={
-            "contact": issue.contact,
-            "direction": "O",
-            "activity_type": "C",
-        }
-    )
-    activity_form.fields["contact"].label = False
-    return render(
-        request,
-        "view_issue.html",
-        {
-            "has_active_subscription": has_active_subscription,
-            "invoicing": invoicing,
-            "form": form,
-            "issue": issue,
-            "activities": activities,
-            "activity_form": activity_form,
-            "invoice_list": issue.contact.invoice_set.all().order_by("-creation_date", "id"),
-        },
-    )
+        form.fields["sub_category"].queryset = subcategories
+        return form
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        issue = self.get_object()
+
+        # Create mapping of subcategory_id -> list of resolution options for JavaScript filtering
+        from support.models import IssueResolution
+
+        subcategory_resolutions = {}
+        for resolution in IssueResolution.objects.all().select_related('subcategory'):
+            subcategory_id = resolution.subcategory_id
+            if subcategory_id not in subcategory_resolutions:
+                subcategory_resolutions[subcategory_id] = []
+            subcategory_resolutions[subcategory_id].append({'id': resolution.id, 'name': resolution.name})
+
+        # Add additional context data
+        context.update(
+            {
+                "has_active_subscription": issue.contact.has_active_subscription(),
+                "invoicing": issue.category in ("I", "M"),
+                "subcategory_resolutions_json": json.dumps(subcategory_resolutions),
+            }
+        )
+
+        return context
+
+    def form_valid(self, form):
+        """
+        Override form_valid to automatically set next_action_date when status changes.
+        If status has changed and next_action_date is missing or in the past, set it to tomorrow.
+        Does not set next_action_date if the new status is a terminal status.
+
+        Also: if the chosen resolution belongs to a subcategory listed in
+        ISSUE_RESOLUTION_SOLVED_SUBCATEGORIES, the issue status is forced to
+        ISSUE_STATUS_SOLVED before saving regardless of what the user selected.
+        """
+        issue = self.get_object()
+        old_status = issue.status
+
+        # Force status to solved when the resolution belongs to a configured subcategory.
+        resolution = form.cleaned_data.get('resolution')
+        solved_subcategories = getattr(settings, 'ISSUE_RESOLUTION_SOLVED_SUBCATEGORIES', [])
+        if (
+            solved_subcategories
+            and resolution
+            and resolution.subcategory
+            and resolution.subcategory.slug in solved_subcategories
+        ):
+            finished_slugs = getattr(settings, 'ISSUE_STATUS_FINISHED_LIST', [])
+            current_slug = form.instance.status.slug if form.instance.status else None
+            if current_slug not in finished_slugs:
+                try:
+                    form.instance.status = IssueStatus.objects.get(slug=settings.ISSUE_STATUS_SOLVED)
+                    if not form.instance.closing_date:
+                        form.instance.closing_date = date.today()
+                except IssueStatus.DoesNotExist:
+                    pass
+
+        # Let the form save normally first
+        response = super().form_valid(form)
+
+        # Check if status has changed and apply the shared status-change side
+        # effects (next_action_date / closing_date). The instance is already
+        # saved with the new status, so we only persist the derived fields.
+        new_status = self.object.status
+        if old_status != new_status:
+            self.object.status = old_status  # apply_status_change re-applies it
+            changed_fields = self.object.apply_status_change(new_status)
+            extra_fields = [f for f in changed_fields if f != "status"]
+            if extra_fields:
+                self.object.save(update_fields=extra_fields)
+
+        # Add success message for issue update
+        message = _('Issue #{issue_id} updated for contact {contact_name}').format(
+            issue_id=self.object.id, contact_name=self.object.contact.get_full_name()
+        )
+        messages.success(self.request, message)
+
+        return response
+
+    def get_success_url(self):
+        """Redirect back to the same issue after successful update"""
+        return reverse("view_issue", args=(self.object.id,))
+
+
+# Keep the function for backward compatibility
+view_issue = IssueDetailView.as_view()
 
 
 def api_new_address(request, contact_id):
@@ -865,7 +1624,7 @@ def api_new_address(request, contact_id):
         form = SugerenciaGeorefForm(request.POST)
         if form.is_valid():
             address = form.save(commit=False)
-            if getattr(settings, "GEOREF_SERVICES", False):
+            if georef_habilitado():
                 if address.lat is None:
                     address.needs_georef = True
             address.contact = contact
@@ -963,7 +1722,7 @@ def dynamic_contact_filter_new(request):
                     subscriptions = subscriptions.filter(contact__allow_polls=True)
                 if debtor_contacts:
                     only_debtors = subscriptions.filter(
-                        contact__invoice__expiration_date__lte=date.today(),
+                        contact__invoice__expiration_date__lt=date.today(),
                         contact__invoice__paid=False,
                         contact__invoice__debited=False,
                         contact__invoice__canceled=False,
@@ -1060,7 +1819,7 @@ def dynamic_contact_filter_edit(request, dcf_id):
                     subscriptions = subscriptions.filter(contact__allow_polls=True)
                 if debtor_contacts:
                     only_debtors = subscriptions.filter(
-                        contact__invoice__expiration_date__lte=date.today(),
+                        contact__invoice__expiration_date__lt=date.today(),
                         contact__invoice__paid=False,
                         contact__invoice__debited=False,
                         contact__invoice__canceled=False,
@@ -1246,7 +2005,7 @@ def invoicing_issues(request):
             contact__invoice__debited=False,
             contact__invoice__canceled=False,
             contact__invoice__uncollectible=False,
-            contact__invoice__expiration_date__lte=date.today(),
+            contact__invoice__expiration_date__lt=date.today(),
         )
         .exclude(status__slug__in=settings.ISSUE_STATUS_FINISHED_LIST)
         .annotate(owed_invoices=Count("contact__invoice"))
@@ -1322,15 +2081,31 @@ def debtor_contacts(request):
     """
     Shows a comprehensive list of contacts that are debtors.
     """
+    overdue_invoice_qs = Invoice.objects.filter(
+        contact=OuterRef("pk"),
+        paid=False,
+        debited=False,
+        canceled=False,
+        uncollectible=False,
+        payment_date__isnull=True,
+        expiration_date__lt=date.today(),
+    )
     debtor_queryset = (
-        Contact.objects.filter(
-            invoice__paid=False,
-            invoice__debited=False,
-            invoice__canceled=False,
-            invoice__uncollectible=False,
-            invoice__expiration_date__lte=date.today(),
+        Contact.objects.filter(Exists(overdue_invoice_qs))
+        .annotate(
+            owed_invoices=Count(
+                "invoice",
+                filter=Q(
+                    invoice__paid=False,
+                    invoice__debited=False,
+                    invoice__canceled=False,
+                    invoice__uncollectible=False,
+                    invoice__payment_date__isnull=True,
+                    invoice__expiration_date__lt=date.today(),
+                ),
+                distinct=True,
+            )
         )
-        .annotate(owed_invoices=Count("invoice", distinct=True))
         .annotate(debt=Sum("invoice__amount"))
         .annotate(oldest_invoice=Min("invoice__creation_date"))
     )
@@ -1404,8 +2179,10 @@ def campaign_statistics_list(request):
         contacts = campaign.contactcampaignstatus_set.count() or 1
         campaign.called_count = campaign.contactcampaignstatus_set.filter(status__gte=2).count()
         campaign.called_pct = (campaign.called_count * 100) / contacts
-        campaign.contacted_count = campaign.contactcampaignstatus_set.filter(status__in=(2, 4)).count()
-        campaign.contacted_pct = (campaign.contacted_count * 100) / contacts
+        campaign.contacted_count = campaign.contactcampaignstatus_set.filter(
+            status__in=core_choices.get_contacted_statuses()
+        ).count()
+        campaign.contacted_pct = (campaign.contacted_count * 100) / (campaign.called_count or 1)
         campaign.success_count = campaign.contactcampaignstatus_set.filter(
             campaign_resolution__in=("S1", "S2")
         ).count()
@@ -1417,124 +2194,493 @@ def campaign_statistics_list(request):
         {
             "campaigns": campaigns_filter.qs,
             "campaigns_filter": campaigns_filter,
+            "breadcrumbs": [
+                {"url": reverse("home"), "label": _("Home")},
+                {"url": reverse("campaign_management"), "label": _("Campaign Management")},
+                {"label": _("Campaign statistics"), "url": reverse("campaign_statistics_list")},
+            ],
         },
     )
 
 
-@staff_member_required
-def campaign_statistics_detail(request, campaign_id):
-    campaign = get_object_or_404(Campaign, pk=campaign_id)
-    ccs_queryset = campaign.contactcampaignstatus_set.all()
-    ccs_filter = ContactCampaignStatusFilter(request.GET, queryset=ccs_queryset)
-    assigned_count = campaign.contactcampaignstatus_set.filter(seller__isnull=False).count()
-    not_assigned_count = campaign.contactcampaignstatus_set.filter(seller__isnull=True).count()
-    filtered_count = ccs_filter.qs.count()
-    total_count = campaign.contactcampaignstatus_set.count()
-    not_contacted_yet_count = ccs_filter.qs.filter(status=1).count()
-    tried_to_contact_count = ccs_filter.qs.filter(status=3).count()
-    contacted_count = ccs_filter.qs.filter(status__in=[2, 4]).count()
-    could_not_contact_count = ccs_filter.qs.filter(status=5).count()
+class CampaignStatisticsDetailView(BreadcrumbsMixin, UserPassesTestMixin, FilterView):
+    """
+    Display detailed statistics for a specific campaign with filtering capabilities.
 
-    ccs_with_resolution = ccs_filter.qs.filter(campaign_resolution__isnull=False)
-    ccs_with_resolution_contacted_count = ccs_with_resolution.filter(status__in=[2, 4]).count()
-    ccs_with_resolution_not_contacted_count = ccs_with_resolution.filter(status__in=[3, 5]).count()
-    # unused, see if we want to use this
-    # ccs_with_resolution_count = ccs_with_resolution.count()
+    Uses FilterView to filter ContactCampaignStatus records for the campaign,
+    allowing filtering by seller, status, date_assigned, and last_action_date.
+    """
 
-    success_with_direct_sale_count = ccs_with_resolution.filter(campaign_resolution="S2").count()
-    success_with_promotion_count = ccs_with_resolution.filter(campaign_resolution="S1").count()
-    scheduled_count = ccs_with_resolution.filter(campaign_resolution="SC").count()
-    call_later_count = ccs_with_resolution.filter(campaign_resolution="CL").count()
-    unreachable_count = ccs_with_resolution.filter(campaign_resolution="UN").count()
-    error_in_promotion_count = ccs_with_resolution.filter(campaign_resolution="EP").count()
-    started_promotion_count = ccs_with_resolution.filter(campaign_resolution="SP").count()
+    model = ContactCampaignStatus
+    filterset_class = ContactCampaignStatusFilter
+    template_name = "campaign_statistics_detail.html"
+    context_object_name = "contact_campaign_statuses"
 
-    # Rejects section
-    total_rejects = ccs_with_resolution.filter(campaign_resolution__in=("AS", "DN", "LO", "NI"))
-    total_rejects_count = total_rejects.count()
-    rejects_with_reason = total_rejects.filter(resolution_reason__isnull=False)
-    rejects_with_reason_count = rejects_with_reason.count()
-    rejects_without_reason_count = total_rejects.filter(resolution_reason__isnull=True).count()
-    rejects_by_reason = {}
-    for ccs in rejects_with_reason.iterator():
-        reason = ccs.get_resolution_reason_display()
-        item = rejects_by_reason.get(reason, 0)
-        item += 1
-        rejects_by_reason[reason] = item
-    for index, item in list(rejects_by_reason.items()):
-        pct = (item * 100) / (rejects_with_reason_count or 1)
-        rejects_by_reason[index] = (item, pct)
+    def breadcrumbs(self):
+        return [
+            {"label": _("Home"), "url": reverse("home")},
+            {"label": _("Campaign Management"), "url": reverse("campaign_management")},
+            {"label": _("Campaign statistics"), "url": reverse("campaign_statistics_list")},
+            {"label": self.campaign.name, "url": ""},
+        ]
 
-    success_rate_count = success_with_promotion_count + success_with_direct_sale_count
-    success_rate_pct = ((success_with_promotion_count + success_with_direct_sale_count) * 100) / (filtered_count or 1)
+    def test_func(self):
+        """Only users in the Managers group can access this view or superusers."""
+        return self.request.user.groups.filter(name='Managers').exists() or self.request.user.is_superuser
 
-    if ccs_filter.data.get("seller", None):
-        seller = Seller.objects.get(pk=ccs_filter.data["seller"])
-        seller_assigned_count = campaign.contactcampaignstatus_set.filter(seller=seller).count()
-    else:
-        seller, seller_assigned_count = None, None
+    @method_decorator(staff_member_required)
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
 
-    # Per product section
-    subs_dict = {}
-    subscription_products = SubscriptionProduct.objects.filter(subscription__campaign=campaign)
-    if seller:
-        subscription_products = subscription_products.filter(seller=seller)
-    for product in Product.objects.filter(offerable=True, type="S"):
-        subs_dict[product.name] = subscription_products.filter(product=product).count()
-    try:
-        most_sold = max(subs_dict, key=subs_dict.get)
-        most_sold_count = subs_dict[max(subs_dict, key=subs_dict.get)]
-    except Exception:
-        most_sold, most_sold_count = None, None
+    def get_queryset(self):
+        """Get ContactCampaignStatus records for this campaign."""
+        self.campaign = get_object_or_404(Campaign, pk=self.kwargs['campaign_id'])
+        return self.campaign.contactcampaignstatus_set.all()
 
-    return render(
-        request,
-        "campaign_statistics_detail.html",
-        {
-            "campaign": campaign,
-            "filter": ccs_filter,
-            "filtered_count": ccs_filter.qs.count(),
-            "total_count": total_count,
-            "assigned_count": assigned_count,
-            "not_assigned_count": not_assigned_count,
-            "not_contacted_yet_count": not_contacted_yet_count,
-            "not_contacted_yet_pct": float((not_contacted_yet_count * 100) / (filtered_count or 1)),
-            "tried_to_contact_count": tried_to_contact_count,
-            "tried_to_contact_pct": float((tried_to_contact_count * 100) / (filtered_count or 1)),
-            "contacted_count": contacted_count,
-            "contacted_pct": (contacted_count * 100) / (filtered_count or 1),
-            "could_not_contact_count": could_not_contact_count,
-            "could_not_contact_pct": (could_not_contact_count * 100) / (filtered_count or 1),
-            "total_rejects_count": total_rejects_count,
-            "total_rejects_pct": (total_rejects_count * 100) / (ccs_with_resolution_contacted_count or 1),
-            "rejects_by_reason": rejects_by_reason,
-            "rejects_without_reason_count": rejects_without_reason_count,
-            "success_with_promotion_count": success_with_promotion_count,
-            "success_with_promotion_pct": (success_with_promotion_count * 100)
-            / (ccs_with_resolution_contacted_count or 1),
-            "success_with_direct_sale_count": success_with_direct_sale_count,
-            "success_with_direct_sale_pct": (success_with_direct_sale_count * 100)
-            / (ccs_with_resolution_contacted_count or 1),
-            "scheduled_count": scheduled_count,
-            "scheduled_pct": (scheduled_count * 100) / (ccs_with_resolution_contacted_count or 1),
-            "call_later_count": call_later_count,
-            "call_later_pct": (call_later_count * 100) / (ccs_with_resolution_contacted_count or 1),
-            "started_promotion_count": started_promotion_count,
-            "started_promotion_pct": (started_promotion_count * 100) / (ccs_with_resolution_contacted_count or 1),
-            "unreachable_count": unreachable_count,
-            "unreachable_pct": (unreachable_count * 100) / (ccs_with_resolution_not_contacted_count or 1),
-            "error_in_promotion_count": error_in_promotion_count,
-            "error_in_promotion_pct": (error_in_promotion_count * 100)
-            / (ccs_with_resolution_not_contacted_count or 1),
-            "success_rate_count": success_rate_count,
-            "success_rate_pct": success_rate_pct,
-            "subs_dict": subs_dict,
-            "most_sold": most_sold,
-            "most_sold_count": most_sold_count,
-            "seller": seller,
-            "seller_assigned_count": seller_assigned_count,
-        },
-    )
+    def get(self, request, *args, **kwargs):
+        if request.GET.get("export") == "csv":
+            return self.export_csv()
+        return super().get(request, *args, **kwargs)
+
+    def export_csv(self):
+        """Export filtered campaign statistics to CSV with optimized queries."""
+        # Get filtered queryset (applies same filters as the page view)
+        filterset = self.filterset_class(self.request.GET, queryset=self.get_queryset())
+        filtered_qs = filterset.qs
+
+        # Annotate activity count and real "times contacted" per contact-campaign.
+        # times_contacted_real counts completed calls (activity_type="C", status="C") for this
+        # campaign, mirroring the seller console calculation. The model field
+        # ContactCampaignStatus.times_contacted is never persisted, so we compute it on the fly.
+        filtered_qs = filtered_qs.select_related('contact', 'seller', 'last_console_action').annotate(
+            activity_count=Count(
+                'contact__activity',
+                filter=Q(contact__activity__campaign=self.campaign),
+            ),
+            times_contacted_real=Count(
+                'contact__activity',
+                filter=Q(
+                    contact__activity__campaign=self.campaign,
+                    contact__activity__activity_type="C",
+                    contact__activity__status="C",
+                ),
+            ),
+        )
+
+        # Build a dict of contact_id -> subscription data for this campaign.
+        # We use SalesRecord.products (M2M) to get only the products actually sold in
+        # this campaign, not all products currently on the subscription.
+        campaign_sales_records = (
+            SalesRecord.objects.filter(
+                campaign=self.campaign,
+            )
+            .select_related('subscription')
+            .prefetch_related('products')
+            .order_by('date_time')
+        )
+
+        # Map contact_id -> (start_date, products accumulated across all SalesRecords)
+        subscription_data = {}
+        for sr in campaign_sales_records:
+            contact_id = sr.subscription.contact_id
+            sold_products = [p.name for p in sr.products.all()]
+            if contact_id in subscription_data:
+                subscription_data[contact_id]["products_list"].extend(sold_products)
+            else:
+                subscription_data[contact_id] = {
+                    "start_date": sr.subscription.start_date,
+                    "products_list": sold_products,
+                }
+        for data in subscription_data.values():
+            data["products"] = ", ".join(data["products_list"])
+
+        response = HttpResponse(content_type="text/csv")
+        response["Content-Disposition"] = 'attachment; filename="campaign_{}_{}.csv"'.format(
+            self.campaign.id, date.today().strftime("%Y%m%d")
+        )
+
+        writer = csv.writer(response)
+        writer.writerow(
+            [
+                _("Contact ID"),
+                _("Contact name"),
+                _("Email"),
+                _("Phone"),
+                _("Mobile"),
+                _("Status"),
+                _("Campaign resolution"),
+                _("Resolution reason"),
+                _("Seller"),
+                _("Date assigned"),
+                _("Last action date"),
+                _("Date created"),
+                _("Times contacted"),
+                _("Activity count"),
+                _("Last console action"),
+                _("Subscription start date"),
+                _("Products sold"),
+            ]
+        )
+
+        for ccs in filtered_qs.iterator(chunk_size=1000):
+            contact = ccs.contact
+            sub_data = subscription_data.get(contact.id, {})
+
+            writer.writerow(
+                [
+                    contact.id,
+                    contact.get_full_name(),
+                    contact.email or "",
+                    str(contact.phone) if contact.phone else "",
+                    str(contact.mobile) if contact.mobile else "",
+                    ccs.get_status(),
+                    ccs.get_campaign_resolution(),
+                    ccs.get_resolution_reason(),
+                    ccs.seller.name if ccs.seller else "",
+                    ccs.date_assigned or "",
+                    ccs.last_action_date or "",
+                    ccs.date_created or "",
+                    ccs.times_contacted_real,
+                    ccs.activity_count,
+                    ccs.last_console_action.name if ccs.last_console_action else "",
+                    sub_data.get("start_date", ""),
+                    sub_data.get("products", ""),
+                ]
+            )
+
+        return response
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        # Add campaign to context
+        context['campaign'] = self.campaign
+
+        # Get filtered queryset
+        filtered_qs = context['filter'].qs
+        filtered_count = filtered_qs.count()
+
+        # Basic counts
+        context['total_count'] = self.campaign.contactcampaignstatus_set.count()
+        context['assigned_count'] = self.campaign.contactcampaignstatus_set.filter(seller__isnull=False).count()
+        context['not_assigned_count'] = self.campaign.contactcampaignstatus_set.filter(seller__isnull=True).count()
+        context['filtered_count'] = filtered_count
+
+        # Status counts from filtered queryset
+        context['not_contacted_yet_count'] = filtered_qs.filter(status=1).count()
+        context['tried_to_contact_count'] = filtered_qs.filter(status=3).count()
+        context['contacted_count'] = filtered_qs.filter(status__in=core_choices.get_contacted_statuses()).count()
+        context['could_not_contact_count'] = filtered_qs.filter(status=5).count()
+        called_count = filtered_qs.filter(status__gte=2).count()
+
+        # Percentages
+        context['not_contacted_yet_pct'] = float((context['not_contacted_yet_count'] * 100) / (filtered_count or 1))
+        context['tried_to_contact_pct'] = float((context['tried_to_contact_count'] * 100) / (filtered_count or 1))
+        context['contacted_pct'] = (context['contacted_count'] * 100) / (called_count or 1)
+        context['could_not_contact_pct'] = (context['could_not_contact_count'] * 100) / (filtered_count or 1)
+
+        # Resolution statistics
+        ccs_with_resolution = filtered_qs.filter(campaign_resolution__isnull=False)
+        ccs_with_resolution_contacted_count = ccs_with_resolution.filter(
+            status__in=core_choices.get_contacted_statuses()
+        ).count()
+        ccs_with_resolution_not_contacted_count = ccs_with_resolution.filter(status__in=[3, 5]).count()
+
+        context['success_with_direct_sale_count'] = ccs_with_resolution.filter(campaign_resolution="S2").count()
+        context['scheduled_count'] = ccs_with_resolution.filter(campaign_resolution="SC").count()
+        context['call_later_count'] = ccs_with_resolution.filter(campaign_resolution="CL").count()
+        context['unreachable_count'] = ccs_with_resolution.filter(campaign_resolution="UN").count()
+        context['error_in_promotion_count'] = ccs_with_resolution.filter(campaign_resolution="EP").count()
+        context['started_promotion_count'] = ccs_with_resolution.filter(campaign_resolution="SP").count()
+
+        # Resolution percentages
+        context['success_with_direct_sale_pct'] = (context['success_with_direct_sale_count'] * 100) / (
+            ccs_with_resolution_contacted_count or 1
+        )
+        context['scheduled_pct'] = (context['scheduled_count'] * 100) / (ccs_with_resolution_contacted_count or 1)
+        context['call_later_pct'] = (context['call_later_count'] * 100) / (ccs_with_resolution_contacted_count or 1)
+        context['started_promotion_pct'] = (context['started_promotion_count'] * 100) / (
+            ccs_with_resolution_contacted_count or 1
+        )
+        context['unreachable_pct'] = (context['unreachable_count'] * 100) / (
+            ccs_with_resolution_not_contacted_count or 1
+        )
+        context['error_in_promotion_pct'] = (context['error_in_promotion_count'] * 100) / (
+            ccs_with_resolution_not_contacted_count or 1
+        )
+
+        # Rejects section
+        total_rejects = ccs_with_resolution.filter(campaign_resolution__in=("AS", "DN", "LO", "NI"))
+        context['total_rejects_count'] = total_rejects.count()
+        context['total_rejects_pct'] = (context['total_rejects_count'] * 100) / (
+            ccs_with_resolution_contacted_count or 1
+        )
+
+        rejects_with_reason = total_rejects.filter(resolution_reason__isnull=False)
+        rejects_with_reason_count = rejects_with_reason.count()
+        context['rejects_without_reason_count'] = total_rejects.filter(resolution_reason__isnull=True).count()
+
+        rejects_by_reason = {}
+        for ccs in rejects_with_reason.iterator():
+            reason = ccs.get_resolution_reason_display()
+            item = rejects_by_reason.get(reason, 0)
+            item += 1
+            rejects_by_reason[reason] = item
+        for index, item in list(rejects_by_reason.items()):
+            pct = (item * 100) / (rejects_with_reason_count or 1)
+            rejects_by_reason[index] = (item, pct)
+        context['rejects_by_reason'] = rejects_by_reason
+
+        # Success rate
+        success_rate_count = context['success_with_direct_sale_count']
+        context['success_rate_count'] = success_rate_count
+        context['success_rate_pct'] = (success_rate_count * 100) / (context['contacted_count'] or 1)
+
+        # Seller-specific data
+        if context['filter'].data.get("seller", None):
+            seller = Seller.objects.get(pk=context['filter'].data["seller"])
+            context['seller'] = seller
+            context['seller_assigned_count'] = self.campaign.contactcampaignstatus_set.filter(seller=seller).count()
+        else:
+            context['seller'] = None
+            context['seller_assigned_count'] = None
+
+        # Per product section - filtered by the contacts in the filtered queryset
+        subs_dict = {}
+        # Get contact IDs from the filtered ContactCampaignStatus queryset
+        filtered_contact_ids = filtered_qs.values_list('contact_id', flat=True)
+
+        # Use SalesRecord.products (the M2M) instead of SubscriptionProduct so that
+        # pre-existing products on an updated subscription are not counted — only the
+        # products that were actually sold in this campaign action are included.
+        sales_records = SalesRecord.objects.filter(
+            campaign=self.campaign,
+            subscription__contact_id__in=filtered_contact_ids,
+        )
+        if context['seller']:
+            sales_records = sales_records.filter(seller=context['seller'])
+
+        product_counts = (
+            sales_records.filter(products__offerable=True, products__type="S")
+            .values("products__name")
+            .annotate(total=Count("products"))
+        )
+        counts_by_name = {row["products__name"]: row["total"] for row in product_counts}
+        for product in Product.objects.filter(offerable=True, type="S").values_list("name", flat=True):
+            subs_dict[product] = counts_by_name.get(product, 0)
+
+        try:
+            most_sold = max(subs_dict, key=subs_dict.get)
+            most_sold_count = subs_dict[max(subs_dict, key=subs_dict.get)]
+        except Exception:
+            most_sold, most_sold_count = None, None
+
+        context['subs_dict'] = subs_dict
+        context['most_sold'] = most_sold
+        context['most_sold_count'] = most_sold_count
+
+        # Sorted ranking (descending), exclude zero-count products
+        sorted_products = sorted(
+            [(name, count) for name, count in subs_dict.items() if count > 0],
+            key=lambda x: x[1],
+            reverse=True,
+        )
+        context['sorted_products'] = sorted_products
+
+        # Avg products per successful contact (S2 resolutions)
+        total_products_sold = sum(count for _, count in sorted_products)
+        context['total_products_sold'] = total_products_sold
+        context['avg_products_per_success'] = (
+            total_products_sold / success_rate_count if success_rate_count else 0
+        )
+
+        return context
+
+
+# Backward compatibility
+campaign_statistics_detail = CampaignStatisticsDetailView.as_view()
+
+
+class AllCampaignsStatusExportView(BreadcrumbsMixin, UserPassesTestMixin, FilterView):
+    """
+    Export ContactCampaignStatus records across ALL campaigns to CSV, with the same filters as the
+    per-campaign statistics view.
+
+    By default nothing is returned: a date_assigned filter is required, otherwise the dataset would
+    span every campaign in history. Each row is a ContactCampaignStatus; contacts may repeat because
+    a contact can belong to several campaigns.
+    """
+
+    model = ContactCampaignStatus
+    filterset_class = AllCampaignsContactStatusFilter
+    template_name = "all_campaigns_status_export.html"
+    context_object_name = "contact_campaign_statuses"
+    paginate_by = 50
+
+    def breadcrumbs(self):
+        return [
+            {"label": _("Home"), "url": reverse("home")},
+            {"label": _("Campaign Management"), "url": reverse("campaign_management")},
+            {"label": _("Export all campaigns status"), "url": ""},
+        ]
+
+    def test_func(self):
+        """Only users in the Managers group or superusers can access this view."""
+        return self.request.user.groups.filter(name='Managers').exists() or self.request.user.is_superuser
+
+    @method_decorator(staff_member_required)
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
+
+    def has_date_filter(self):
+        """A date_assigned_min value is required before any data is shown or exported."""
+        return bool(self.request.GET.get("date_assigned_min"))
+
+    def get_queryset(self):
+        """Return all ContactCampaignStatus, but nothing until a date_assigned filter is set."""
+        if not self.has_date_filter():
+            return ContactCampaignStatus.objects.none()
+        return ContactCampaignStatus.objects.all()
+
+    def get(self, request, *args, **kwargs):
+        if request.GET.get("export") == "csv":
+            return self.export_csv()
+        return super().get(request, *args, **kwargs)
+
+    def export_csv(self):
+        """Stream the filtered ContactCampaignStatus records to CSV."""
+        filterset = self.filterset_class(self.request.GET, queryset=self.get_queryset())
+        filtered_qs = filterset.qs.select_related("contact", "seller", "last_console_action", "campaign")
+
+        # times_contacted_real: completed calls (activity_type="C", status="C") for this exact
+        # contact+campaign, mirroring the seller console. The model field times_contacted is never
+        # persisted, so we compute it on the fly. We use a correlated Subquery (not a Count with
+        # F('campaign')) so the campaign of each row is matched correctly across all campaigns.
+        times_contacted_sq = (
+            Activity.objects.filter(
+                contact=OuterRef("contact"),
+                campaign=OuterRef("campaign"),
+                activity_type="C",
+                status="C",
+            )
+            .order_by()
+            .values("contact")
+            .annotate(c=Count("id"))
+            .values("c")
+        )
+        # activity_count: every activity for this exact contact+campaign (no type/status filter),
+        # so the count belongs to this specific CCS and not to another campaign of the same contact.
+        activity_count_sq = (
+            Activity.objects.filter(
+                contact=OuterRef("contact"),
+                campaign=OuterRef("campaign"),
+            )
+            .order_by()
+            .values("contact")
+            .annotate(c=Count("id"))
+            .values("c")
+        )
+        filtered_qs = filtered_qs.annotate(
+            times_contacted_real=Coalesce(Subquery(times_contacted_sq, output_field=IntegerField()), 0),
+            activity_count=Coalesce(Subquery(activity_count_sq, output_field=IntegerField()), 0),
+        )
+
+        # Map (contact_id, campaign_id) -> {start_date, products} from SalesRecord.products (M2M),
+        # so we only count products actually sold in that campaign action. Built once before
+        # streaming, bounded by the contacts/campaigns of the filtered queryset.
+        pairs = list(filtered_qs.values_list("contact_id", "campaign_id"))
+        sales_records = (
+            SalesRecord.objects.filter(
+                subscription__contact_id__in=[c for c, _campaign in pairs],
+                campaign_id__in=[ca for _contact, ca in pairs],
+            )
+            .select_related("subscription")
+            .prefetch_related("products")
+            .order_by("date_time")
+        )
+        subscription_data = {}
+        for sr in sales_records:
+            key = (sr.subscription.contact_id, sr.campaign_id)
+            sold_products = [p.name for p in sr.products.all()]
+            if key in subscription_data:
+                subscription_data[key]["products_list"].extend(sold_products)
+            else:
+                subscription_data[key] = {
+                    "start_date": sr.subscription.start_date,
+                    "products_list": sold_products,
+                }
+        for data in subscription_data.values():
+            data["products"] = ", ".join(data["products_list"])
+
+        def generate_rows():
+            yield "﻿"  # UTF-8 BOM para Excel
+            buffer = io.StringIO()
+            writer = csv.writer(buffer)
+            writer.writerow(
+                [
+                    str(_("Contact ID")),
+                    str(_("Contact name")),
+                    str(_("Email")),
+                    str(_("Phone")),
+                    str(_("Mobile")),
+                    str(_("Campaign")),
+                    str(_("Status")),
+                    str(_("Campaign resolution")),
+                    str(_("Resolution reason")),
+                    str(_("Seller")),
+                    str(_("Date assigned")),
+                    str(_("Last action date")),
+                    str(_("Date created")),
+                    str(_("Times contacted")),
+                    str(_("Activity count")),
+                    str(_("Last console action")),
+                    str(_("Subscription start date")),
+                    str(_("Products sold")),
+                ]
+            )
+            yield buffer.getvalue()
+            buffer.seek(0)
+            buffer.truncate(0)
+
+            for ccs in filtered_qs.iterator(chunk_size=1000):
+                contact = ccs.contact
+                sub_data = subscription_data.get((ccs.contact_id, ccs.campaign_id), {})
+                writer.writerow(
+                    [
+                        contact.id,
+                        contact.get_full_name(),
+                        contact.email or "",
+                        str(contact.phone) if contact.phone else "",
+                        str(contact.mobile) if contact.mobile else "",
+                        ccs.campaign.name,
+                        ccs.get_status(),
+                        ccs.get_campaign_resolution(),
+                        ccs.get_resolution_reason(),
+                        ccs.seller.name if ccs.seller else "",
+                        ccs.date_assigned or "",
+                        ccs.last_action_date or "",
+                        ccs.date_created or "",
+                        ccs.times_contacted_real,
+                        ccs.activity_count,
+                        ccs.last_console_action.name if ccs.last_console_action else "",
+                        sub_data.get("start_date", ""),
+                        sub_data.get("products", ""),
+                    ]
+                )
+                yield buffer.getvalue()
+                buffer.seek(0)
+                buffer.truncate(0)
+
+        response = StreamingHttpResponse(generate_rows(), content_type="text/csv; charset=utf-8")
+        response["Content-Disposition"] = 'attachment; filename="all_campaigns_status_{}.csv"'.format(
+            date.today().strftime("%Y%m%d")
+        )
+        return response
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["has_date_filter"] = self.has_date_filter()
+        return context
 
 
 @staff_member_required
@@ -1550,12 +2696,14 @@ def campaign_statistics_per_seller(request, campaign_id):
         seller.not_contacted_yet_pct = (seller.not_contacted_yet_count * 100) / assigned
         seller.called_count = seller.contactcampaignstatus_set.filter(campaign=campaign, status__gte=2).count()
         seller.called_pct = (seller.called_count * 100) / assigned
-        seller.contacted_count = seller.contactcampaignstatus_set.filter(campaign=campaign, status__in=[2, 4]).count()
-        seller.contacted_pct = (seller.contacted_count * 100) / assigned
+        seller.contacted_count = seller.contactcampaignstatus_set.filter(
+            campaign=campaign, status__in=core_choices.get_contacted_statuses()
+        ).count()
+        seller.contacted_pct = (seller.contacted_count * 100) / (seller.called_count or 1)
         seller.success_count = seller.contactcampaignstatus_set.filter(
             campaign=campaign, campaign_resolution__in=("S1", "S2")
         ).count()
-        seller.success_pct = (seller.success_count * 100) / assigned
+        seller.success_pct = (seller.success_count * 100) / (seller.contacted_count or 1)
         seller.rejected_count = seller.contactcampaignstatus_set.filter(
             campaign=campaign, campaign_resolution__in=("AS", "DN", "LO", "NI")
         ).count()
@@ -1598,7 +2746,9 @@ def seller_performance_by_time(request):
     assigned_count = ccs_queryset.filter(seller__isnull=False).count() or 1
     called_count = ccs_queryset.filter(seller__isnull=False, status__gte=2).count()
     called_pct = (called_count * 100) / assigned_count
-    contacted_count = ccs_queryset.filter(seller__isnull=False, status__in=[2, 4]).count()
+    contacted_count = ccs_queryset.filter(
+        seller__isnull=False, status__in=core_choices.get_contacted_statuses()
+    ).count()
     contacted_pct = (contacted_count * 100) / assigned_count
     success_count = ccs_queryset.filter(seller__isnull=False, campaign_resolution__in=("S1", "S2")).count()
     success_pct = (success_count * 100) / assigned_count
@@ -1609,7 +2759,9 @@ def seller_performance_by_time(request):
         seller.not_contacted_yet_pct = (seller.not_contacted_yet_count * 100) / (seller.assigned_count or 1)
         seller.called_count = ccs_queryset.filter(seller=seller, status__gte=2).count()
         seller.called_pct = (seller.called_count * 100) / (seller.assigned_count or 1)
-        seller.contacted_count = ccs_queryset.filter(seller=seller, status__in=[2, 4]).count()
+        seller.contacted_count = ccs_queryset.filter(
+            seller=seller, status__in=core_choices.get_contacted_statuses()
+        ).count()
         seller.contacted_pct = (seller.contacted_count * 100) / (seller.assigned_count or 1)
         seller.success_count = ccs_queryset.filter(seller=seller, campaign_resolution__in=("S1", "S2")).count()
         seller.success_pct = (seller.success_count * 100) / (seller.assigned_count or 1)
@@ -1634,6 +2786,11 @@ def seller_performance_by_time(request):
             "contacted_pct": contacted_pct,
             "success_count": success_count,
             "success_pct": success_pct,
+            "breadcrumbs": [
+                {"url": reverse("home"), "label": _("Home")},
+                {"url": reverse("campaign_management"), "label": _("Campaign Management")},
+                {"label": _("Sellers performance"), "url": reverse("seller_performance_by_time")},
+            ],
         },
     )
 
@@ -1753,18 +2910,32 @@ def upload_do_not_call_numbers(request):
     return render(
         request,
         "upload_do_not_call_numbers.html",
+        {
+            "breadcrumbs": [
+                {"url": reverse("home"), "label": _("Home")},
+                {"url": reverse("campaign_management"), "label": _("Campaign Management")},
+                {"label": _("Upload do not call list"), "url": reverse("upload_do_not_call_numbers")},
+            ],
+        },
     )
 
 
 @staff_member_required
 def tag_contacts(request):
     if request.FILES:
-        decoded_file = request.FILES.get("file").read().decode("utf-8").splitlines()
+        raw = request.FILES.get("file").read()
+        try:
+            decoded_file = raw.decode("utf-8").splitlines()
+        except UnicodeDecodeError:
+            decoded_file = raw.decode("latin-1").splitlines()
         csvfile = csv.reader(decoded_file)
         count = 0
         errors = []
         if csvfile:
             for row in csvfile:
+                if not row or not row[0].strip().lstrip("-").isdigit():
+                    # Skip empty rows or header rows (non-numeric first column)
+                    continue
                 try:
                     contact = Contact.objects.get(pk=row[0])
                     contact.tags.add(row[1].lower())
@@ -1779,6 +2950,13 @@ def tag_contacts(request):
     return render(
         request,
         "tag_contacts.html",
+        {
+            "breadcrumbs": [
+                {"url": reverse("home"), "label": _("Home")},
+                {"url": reverse("campaign_management"), "label": _("Campaign Management")},
+                {"label": _("Tag Contacts"), "url": reverse("tag_contacts")},
+            ],
+        },
     )
 
 
@@ -1804,7 +2982,7 @@ def not_contacted_campaign(request, campaign_id):
 
 
 @method_decorator(staff_member_required, name="dispatch")
-class SalesRecordFilterSellersView(FilterView):
+class SalesRecordFilterSellersView(BreadcrumbsMixin, FilterView):
     # This view is similar to the previous one but for the seller to see what sales they have made.
     filterset_class = SalesRecordFilterForSeller
     template_name = "sales_record_filter.html"
@@ -1818,9 +2996,17 @@ class SalesRecordFilterSellersView(FilterView):
     seller = None
     page_kwarg = 'p'
 
+    @property
+    def breadcrumbs(self):
+        return [
+            {"url": reverse("home"), "label": _("Home")},
+            {"url": reverse("seller_console_list_campaigns"), "label": _("Seller console")},
+            {"label": _("My Sales")},
+        ]
+
     def get_queryset(self):
         queryset = super().get_queryset()
-        self.seller = self.request.user.seller_set.first()
+        self.seller = getattr(self.request.user, 'seller', None)
         if self.seller:
             self.queryset = queryset.filter(seller=self.seller)
         filterset = self.filterset_class(self.request.GET, queryset=self.queryset)
@@ -1831,6 +3017,8 @@ class SalesRecordFilterSellersView(FilterView):
         # This queryset fetches all sales records with their product counts
         sales_records = queryset.annotate(total_products=Count('products')).values('id', 'total_products')
         df = pd.DataFrame(sales_records)
+        if df.empty:
+            return {}
         special_product_sales_ids = list(
             queryset.filter(products__slug='la-diaria-5-dias').values_list('id', flat=True)
         )
@@ -1847,9 +3035,13 @@ class SalesRecordFilterSellersView(FilterView):
     def get_sales_distribution_by_payment_type(self, queryset) -> dict:
         sales_records = queryset.values('subscription__payment_type')
         df = pd.DataFrame(sales_records)
+        if df.empty:
+            return {}
         # Only show values whose keys are in settings.SELLER_COMMISSION_PAYMENT_METHODS keys, if the setting exists
         if hasattr(settings, 'SELLER_COMMISSION_PAYMENT_METHODS'):
             df = df[df['subscription__payment_type'].isin(settings.SELLER_COMMISSION_PAYMENT_METHODS.keys())]
+        if df.empty:
+            return {}
         if hasattr(settings, 'SUBSCRIPTION_PAYMENT_METHODS'):
             # Convert choices to a dictionary
             payment_type_dict = dict(settings.SUBSCRIPTION_PAYMENT_METHODS)
@@ -1863,6 +3055,8 @@ class SalesRecordFilterSellersView(FilterView):
     def get_sales_distribution_by_subscription_frequency(self, queryset) -> dict:
         sales_records = queryset.values('subscription__frequency')
         df = pd.DataFrame(sales_records)
+        if df.empty:
+            return {}
         frequencies_dict = dict(core_choices.FREQUENCY_CHOICES)
         df['frequency_display'] = df['subscription__frequency'].map(frequencies_dict)
         distribution = df['frequency_display'].value_counts().sort_index().to_dict()
@@ -1894,6 +3088,14 @@ class SalesRecordFilterManagersView(SalesRecordFilterSellersView):
     # This view is only for managers to see the sales records of all sellers.
     filterset_class = SalesRecordFilter
     is_manager = False
+
+    @property
+    def breadcrumbs(self):
+        return [
+            {"url": reverse("home"), "label": _("Home")},
+            {"url": reverse("campaign_management"), "label": _("Campaign Management")},
+            {"label": _("Sales Records"), "url": reverse("sales_record_filter")},
+        ]
 
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_staff and not request.user.groups.filter(name="Managers").exists():
@@ -1958,6 +3160,11 @@ class ValidateSubscriptionSalesRecord(BreadcrumbsMixin, UpdateView):
     template_name = "validate_subscription_sales_record.html"
 
     def breadcrumbs(self):
+        if self.request.GET.get("from") == "sales_record_filter":
+            return [
+                {"url": reverse("sales_record_filter"), "label": _("Sales Records")},
+                {"label": _("Validate subscription")},
+            ]
         return [
             {"url": reverse("contact_list"), "label": _("Contacts")},
             {
@@ -1975,10 +3182,8 @@ class ValidateSubscriptionSalesRecord(BreadcrumbsMixin, UpdateView):
 
     def get_initial(self):
         initial = super().get_initial()
-        if self.object.sale_type != SalesRecord.SALE_TYPE.FULL:
-            initial["can_be_commissioned"] = False
-            initial["subscription"] = self.object.subscription
-            initial["seller"] = self.object.seller
+        initial["subscription"] = self.object.subscription
+        initial["seller"] = self.object.seller
         return initial
 
     def get_success_url(self):
@@ -1986,7 +3191,20 @@ class ValidateSubscriptionSalesRecord(BreadcrumbsMixin, UpdateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["subscription"] = self.object.subscription
+        sales_record = self.object
+        subscription = sales_record.subscription
+        context["subscription"] = subscription
+        context["readonly"] = subscription.validated
+        context["from_sales_record_filter"] = self.request.GET.get("from") == "sales_record_filter"
+
+        sale_type = sales_record.sale_type
+        if sale_type in (SalesRecord.SALE_TYPE.PRODUCT_CHANGE, SalesRecord.SALE_TYPE.RETENTION):
+            previous_subscription = subscription.updated_from
+            context["previous_subscription"] = previous_subscription
+            if previous_subscription:
+                context["previous_products"] = previous_subscription.get_subscriptionproducts()
+        context["new_products"] = subscription.get_subscriptionproducts()
+        context["added_products"] = sales_record.products.filter(type="S")
         return context
 
     def form_valid(self, form):
@@ -1996,9 +3214,9 @@ class ValidateSubscriptionSalesRecord(BreadcrumbsMixin, UpdateView):
         subscription.validate(user=self.request.user)
         if form.cleaned_data["can_be_commissioned"]:
             sales_record.can_be_commisioned = True
-            SubscriptionProduct.objects.filter(subscription=subscription, product__type="S").update(
-                seller=sales_record.seller
-            )
+            SubscriptionProduct.objects.filter(
+                subscription=subscription, product__in=sales_record.products.all()
+            ).update(seller=sales_record.seller)
             if form.cleaned_data["override_commission_value"]:
                 sales_record.total_commission_value = form.cleaned_data["override_commission_value"]
             else:
@@ -2059,9 +3277,9 @@ class SalesRecordCreateView(CreateView):
         sales_record_obj.products.set(self.subscription.products.filter(type="S"))
         sales_record_obj.price = self.subscription.get_price_for_full_period()
         subscription = sales_record_obj.subscription
-        SubscriptionProduct.objects.filter(subscription=subscription, product__type="S").update(
-            seller=sales_record_obj.seller
-        )
+        SubscriptionProduct.objects.filter(
+            subscription=subscription, product__in=sales_record_obj.products.all()
+        ).update(seller=sales_record_obj.seller)
         self.subscription.validate(user=self.request.user)
         return super().form_valid(form)
 
@@ -2070,3 +3288,389 @@ def last_read_articles(request, contact_id):
     # TODO: Move this from la diaria project to the main project. This is an htmx view.
     # contact = get_object_or_404(Contact, id=contact_id)
     return HttpResponse("")
+
+
+class SellerAttendanceView(LoginRequiredMixin, UserPassesTestMixin, BreadcrumbsMixin, TemplateView):
+    template_name = "support/seller_attendance.html"
+
+    def test_func(self):
+        return self.request.user.is_staff
+
+    def breadcrumbs(self):
+        return [
+            {"label": _("Home"), "url": reverse("home")},
+            {"label": _("Campaign Management"), "url": reverse("campaign_management")},
+            {"label": _("Seller Attendance"), "url": reverse("seller_attendance")},
+        ]
+
+    def _parse_date(self, date_str):
+        try:
+            return datetime.strptime(date_str, "%Y-%m-%d").date()
+        except (ValueError, TypeError):
+            return date.today()
+
+    def _build_seller_rows(self, sellers, existing_map):
+        rows = []
+        for seller in sellers:
+            attendance = existing_map.get(seller.pk)
+            rows.append(
+                {
+                    "seller": seller,
+                    "status": attendance.status if attendance else (ATTENDANCE_STATUS_PRESENT if seller.shift else ""),
+                    "absence_reason_id": attendance.absence_reason_id if attendance else None,
+                    "shift_start": (
+                        attendance.shift_start if attendance else (seller.shift.start_time if seller.shift else None)
+                    ),
+                    "shift_end": (
+                        attendance.shift_end if attendance else (seller.shift.end_time if seller.shift else None)
+                    ),
+                    "has_shift": seller.shift is not None,
+                }
+            )
+        return rows
+
+    def get_context_data(self, **kwargs):
+        return super().get_context_data(**kwargs)
+
+    def _build_context(self, request, selected_date, sellers, existing_map):
+        absence_reasons = AbsenceReason.objects.filter(active=True)
+        ctx = self.get_context_data()
+        ctx.update(
+            {
+                "selected_date": selected_date,
+                "seller_rows": self._build_seller_rows(sellers, existing_map),
+                "absence_reasons": absence_reasons,
+                "status_present": ATTENDANCE_STATUS_PRESENT,
+                "status_absent": ATTENDANCE_STATUS_ABSENT,
+                "can_edit": request.user.is_superuser or request.user.has_perm("support.change_sellerattendance"),
+            }
+        )
+        return ctx
+
+    def get(self, request, *args, **kwargs):
+        selected_date = self._parse_date(request.GET.get("date"))
+        sellers = Seller.objects.filter(call_center=True).select_related("shift").order_by("name")
+
+        existing_map = {}
+        try:
+            record = AttendanceRecord.objects.get(date=selected_date)
+            for att in record.attendances.select_related("absence_reason"):
+                existing_map[att.seller_id] = att
+        except AttendanceRecord.DoesNotExist:
+            pass
+
+        return render(request, self.template_name, self._build_context(request, selected_date, sellers, existing_map))
+
+    def post(self, request, *args, **kwargs):
+        if not (request.user.is_superuser or request.user.has_perm("support.change_sellerattendance")):
+            from django.http import HttpResponseForbidden
+
+            return HttpResponseForbidden()
+
+        selected_date = self._parse_date(request.POST.get("date"))
+        sellers = Seller.objects.filter(call_center=True).select_related("shift")
+        absence_reasons = AbsenceReason.objects.filter(active=True)
+
+        if not absence_reasons.exists():
+            messages.error(request, _("There are no active absence reasons. Please create one before saving."))
+            return HttpResponseRedirect(f"{reverse('seller_attendance')}?date={selected_date}")
+
+        errors = []
+        to_save = []
+
+        for seller in sellers:
+            status = request.POST.get(f"status-{seller.pk}", "").strip()
+            if not status:
+                continue
+
+            reason_id = request.POST.get(f"reason-{seller.pk}", "").strip() or None
+            shift_start_str = request.POST.get(f"shift_start-{seller.pk}", "").strip()
+            shift_end_str = request.POST.get(f"shift_end-{seller.pk}", "").strip()
+
+            if not shift_start_str or not shift_end_str:
+                errors.append(_("%(seller)s: shift times are required.") % {"seller": seller.name})
+                continue
+
+            if status == ATTENDANCE_STATUS_ABSENT and not reason_id:
+                errors.append(
+                    _("%(seller)s: an absence reason is required when marking as absent.") % {"seller": seller.name}
+                )
+                continue
+
+            try:
+                shift_start = datetime.strptime(shift_start_str, "%H:%M").time()
+                shift_end = datetime.strptime(shift_end_str, "%H:%M").time()
+            except ValueError:
+                errors.append(_("%(seller)s: invalid time format.") % {"seller": seller.name})
+                continue
+
+            reason = None
+            if reason_id:
+                try:
+                    reason = AbsenceReason.objects.get(pk=reason_id, active=True)
+                except AbsenceReason.DoesNotExist:
+                    errors.append(_("%(seller)s: selected absence reason is not valid.") % {"seller": seller.name})
+                    continue
+
+            to_save.append((seller, status, reason, shift_start, shift_end))
+
+        if errors:
+            existing_map = {}
+            try:
+                record = AttendanceRecord.objects.get(date=selected_date)
+                for att in record.attendances.select_related("absence_reason"):
+                    existing_map[att.seller_id] = att
+            except AttendanceRecord.DoesNotExist:
+                pass
+            sellers_all = Seller.objects.filter(call_center=True).select_related("shift").order_by("name")
+            for error in errors:
+                messages.error(request, error)
+            return render(
+                request, self.template_name, self._build_context(request, selected_date, sellers_all, existing_map)
+            )
+
+        if to_save:
+            record, _created = AttendanceRecord.objects.get_or_create(date=selected_date)
+            for seller, status, reason, shift_start, shift_end in to_save:
+                SellerAttendance.objects.update_or_create(
+                    record=record,
+                    seller=seller,
+                    defaults={
+                        "status": status,
+                        "absence_reason": reason,
+                        "shift_start": shift_start,
+                        "shift_end": shift_end,
+                    },
+                )
+
+        messages.success(request, _("Attendance saved successfully."))
+        return HttpResponseRedirect(f"{reverse('seller_attendance')}?date={selected_date}")
+
+
+MONTH_NAMES_ES = [
+    (1, "Enero"),
+    (2, "Febrero"),
+    (3, "Marzo"),
+    (4, "Abril"),
+    (5, "Mayo"),
+    (6, "Junio"),
+    (7, "Julio"),
+    (8, "Agosto"),
+    (9, "Septiembre"),
+    (10, "Octubre"),
+    (11, "Noviembre"),
+    (12, "Diciembre"),
+]
+
+DAY_ABBR_ES = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]
+
+
+class SellerAttendanceCalendarView(LoginRequiredMixin, UserPassesTestMixin, BreadcrumbsMixin, TemplateView):
+    template_name = "support/seller_attendance_calendar.html"
+
+    def test_func(self):
+        return self.request.user.is_staff
+
+    def breadcrumbs(self):
+        return [
+            {"label": _("Home"), "url": reverse("home")},
+            {"label": _("Campaign Management"), "url": reverse("campaign_management")},
+            {"label": _("Seller Attendance"), "url": reverse("seller_attendance")},
+            {"label": "Calendario de asistencias"},
+        ]
+
+    def _parse_month_year(self, request):
+        today = date.today()
+        try:
+            month = int(request.GET.get("month", today.month))
+            month = max(1, min(12, month))
+        except (ValueError, TypeError):
+            month = today.month
+        try:
+            year = int(request.GET.get("year", today.year))
+        except (ValueError, TypeError):
+            year = today.year
+        return month, year
+
+    def _build_days(self, year, month):
+        _, last_day = calendar.monthrange(year, month)
+        return [date(year, month, d) for d in range(1, last_day + 1)]
+
+    def _build_attendance_map(self, sellers, days):
+        seller_ids = [s.pk for s in sellers]
+        records = (
+            AttendanceRecord.objects.filter(date__in=days)
+            .prefetch_related(
+                Prefetch(
+                    "attendances",
+                    queryset=SellerAttendance.objects.filter(seller_id__in=seller_ids).select_related(
+                        "seller", "absence_reason"
+                    ),
+                )
+            )
+        )
+        record_map = {r.date: r for r in records}
+        # attendance_map[seller_id][day] = SellerAttendance or None
+        attendance_map = {s.pk: {} for s in sellers}
+        for day in days:
+            record = record_map.get(day)
+            if record:
+                for att in record.attendances.all():
+                    if att.seller_id in attendance_map:
+                        attendance_map[att.seller_id][day] = att
+        return attendance_map
+
+    def export_csv(self, sellers, days, attendance_map, year, month):
+        response = HttpResponse(content_type="text/csv; charset=utf-8")
+        response["Content-Disposition"] = f'attachment; filename="asistencias_{year}_{month:02d}.csv"'
+        response.write("﻿")
+        writer = csv.writer(response)
+
+        header = ["Vendedor"] + [f"{DAY_ABBR_ES[d.weekday()]} {d.day}" for d in days]
+        writer.writerow(header)
+
+        for seller in sellers:
+            row = [seller.name]
+            for day in days:
+                att = attendance_map[seller.pk].get(day)
+                if att is None:
+                    row.append("")
+                elif att.status == ATTENDANCE_STATUS_PRESENT:
+                    row.append("Presente")
+                else:
+                    row.append(str(att.absence_reason) if att.absence_reason else "Ausente")
+            writer.writerow(row)
+
+        return response
+
+    def get(self, request, *args, **kwargs):
+        month, year = self._parse_month_year(request)
+        days = self._build_days(year, month)
+        sellers = Seller.objects.filter(call_center=True).order_by("name")
+        attendance_map = self._build_attendance_map(sellers, days)
+        view_mode = "normal" if request.GET.get("view") == "normal" else "lite"
+
+        if request.GET.get("export"):
+            return self.export_csv(sellers, days, attendance_map, year, month)
+
+        # Enrich days with display info so templates don't need filter tricks
+        day_infos = [
+            {
+                "date": d,
+                "label": DAY_ABBR_ES[d.weekday()],
+                "num": d.day,
+                "is_weekend": d.weekday() >= 5,
+            }
+            for d in days
+        ]
+
+        # Pre-build rows so the template avoids nested dict lookups
+        seller_rows = []
+        for seller in sellers:
+            cells = []
+            for d in days:
+                att = attendance_map[seller.pk].get(d)
+                cells.append(
+                    {
+                        "att": att,
+                        "is_present": att is not None and att.status == ATTENDANCE_STATUS_PRESENT,
+                        "is_absent": att is not None and att.status == ATTENDANCE_STATUS_ABSENT,
+                        "justified": att is not None
+                        and att.status == ATTENDANCE_STATUS_ABSENT
+                        and att.absence_reason is not None
+                        and att.absence_reason.justified,
+                        "reason_str": str(att.absence_reason) if att and att.absence_reason else "",
+                        "shift_label": (
+                            f"{att.shift_start.strftime('%H:%M')}–{att.shift_end.strftime('%H:%M')}"
+                            if att and att.status == ATTENDANCE_STATUS_PRESENT
+                            else ""
+                        ),
+                        "is_weekend": d.weekday() >= 5,
+                    }
+                )
+            seller_rows.append({"seller": seller, "cells": cells})
+
+        today = date.today()
+        context = self.get_context_data(
+            seller_rows=seller_rows,
+            day_infos=day_infos,
+            selected_month=month,
+            selected_year=year,
+            months=MONTH_NAMES_ES,
+            years=range(today.year - 2, today.year + 2),
+            view_mode=view_mode,
+            can_edit=request.user.is_superuser or request.user.has_perm("support.change_sellerattendance"),
+        )
+        return render(request, self.template_name, context)
+
+
+class SellerAttendanceFilterView(LoginRequiredMixin, UserPassesTestMixin, BreadcrumbsMixin, FilterView):
+    model = SellerAttendance
+    filterset_class = SellerAttendanceFilter
+    template_name = "support/seller_attendance_filter.html"
+    paginate_by = 100
+    page_kwarg = "p"
+    context_object_name = "attendances"
+
+    def test_func(self):
+        return self.request.user.is_staff
+
+    def breadcrumbs(self):
+        return [
+            {"label": _("Home"), "url": reverse("home")},
+            {"label": _("Campaign Management"), "url": reverse("campaign_management")},
+            {"label": _("Seller Attendance Filter")},
+        ]
+
+    def get_queryset(self):
+        qs = SellerAttendance.objects.select_related("record", "seller", "absence_reason").order_by(
+            "record__date", "seller__name"
+        )
+        if not self.request.GET.get("include_present"):
+            qs = qs.filter(status="A")
+        return qs
+
+    def get(self, request, *args, **kwargs):
+        if request.GET.get("export"):
+            return self.export_csv()
+        return super().get(request, *args, **kwargs)
+
+    def export_csv(self):
+        import io
+
+        def generate_rows():
+            yield "﻿"  # UTF-8 BOM para Excel
+            buffer = io.StringIO()
+            writer = csv.writer(buffer)
+            writer.writerow([
+                str(_("Date")),
+                str(_("Seller")),
+                str(_("Status")),
+                str(_("Justified")),
+                str(_("Absence reason")),
+            ])
+            yield buffer.getvalue()
+            buffer.seek(0)
+            buffer.truncate(0)
+
+            filterset = self.get_filterset(self.filterset_class)
+            qs = filterset.qs.select_related("record", "seller", "absence_reason")
+            for att in qs.iterator(chunk_size=500):
+                if att.absence_reason:
+                    justified_str = str(_("Justified") if att.absence_reason.justified else _("Unjustified"))
+                else:
+                    justified_str = ""
+                writer.writerow([
+                    att.record.date,
+                    att.seller.name,
+                    att.get_status_display(),
+                    justified_str,
+                    att.absence_reason.name if att.absence_reason else "",
+                ])
+                yield buffer.getvalue()
+                buffer.seek(0)
+                buffer.truncate(0)
+
+        response = StreamingHttpResponse(generate_rows(), content_type="text/csv; charset=utf-8")
+        response["Content-Disposition"] = 'attachment; filename="seller_attendance_filter.csv"'
+        return response

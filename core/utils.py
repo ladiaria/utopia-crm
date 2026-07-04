@@ -1,4 +1,5 @@
-from datetime import date, timedelta
+from datetime import date, timedelta  # TODO: use django timezone objects instead
+import urllib3
 import collections
 from functools import wraps
 import json
@@ -9,12 +10,14 @@ from requests.exceptions import ReadTimeout, RequestException
 from typing import Literal
 import csv
 import logging
+import mercadopago
 from html2text import html2text
 
 from django.conf import settings
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
 from django.core.mail import mail_managers
+from django.utils.timezone import now
 from django.utils.translation import gettext as _
 from django.utils.text import format_lazy
 from rest_framework.decorators import authentication_classes
@@ -127,7 +130,9 @@ def calc_price_from_products(products_with_copies, frequency, debug_id="", creat
         - Affectable: products that are affected by discounts
         - Non-affectable: products that are not affected by discounts
         - Frequency discount: discount applied to the total price based on the frequency
-        - One-shot products: products that are not affected by discounts and are not part of a subscription
+        - One-shot products: products that are not affected by discounts and are not part of a subscription. They're
+        usually represented by products of the type "Other" and have an edition frequency of 4 (one-shot products).
+        They're affected by copies but not by frequency.
     """
     from core.models import Product
     from invoicing.models import InvoiceItem
@@ -373,17 +378,19 @@ def calc_price_from_products(products_with_copies, frequency, debug_id="", creat
                 + f"After frequency discount total_price={total_price} (Discount: {discount_pct}% - {discount_amount})"
             )
 
-    # Finally we add the price of the one-shot products
+    # Finally we add the price of the one-shot products. O stands for "Other". They can be affected by copies but
+    # they are not billed per frequency.
     for product in other_product_list:
-        product_price = float(product.price)
+        copies = int(products_with_copies[product.id])
+        product_price = float(product.price) * copies
         total_price += product_price
 
         if create_items:
             item = InvoiceItem(
                 subscription=subscription,
                 invoice=None,
-                copies=1,
-                price=product_price,
+                copies=copies,
+                price=product.price,
                 product=product,
                 description=product.name,
                 type='I',
@@ -459,7 +466,6 @@ def process_products(input_product_dict: dict) -> dict:
     Each of the products must be a tuple with product and copies.
     """
     from core.models import Product, PriceRule
-
     input_product_ids = list(input_product_dict.keys())
     input_products_list = list(Product.objects.filter(id__in=input_product_ids))
     input_products_count, output_dict, non_discount_added = len(input_products_list), {}, 0
@@ -589,6 +595,7 @@ def cms_rest_api_kwargs(api_key, data=None, send_as_json=False):
     }
     if not getattr(settings, "WEB_UPDATE_USER_VERIFY_SSL", True):
         result["verify"] = False
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
     if data:
         # TODO: Check out if this is needed or a better logic needs to be implemented. This had to be added because
         # some API endpoints expect the data to be sent as JSON, but others still expect it to be sent as form data.
@@ -624,12 +631,13 @@ def cms_rest_api_request(api_name, api_uri, post_data, method="POST"):
             else (settings.WEB_CREATE_USER_ENABLED or api_uri in settings.WEB_CREATE_USER_POST_WHITELIST)
         ):
             r = getattr(requests, method.lower())(api_uri, **cms_rest_api_kwargs(api_key, post_data))
+            r.raise_for_status()
             if settings.DEBUG:
                 html2text_content = html2text(r.content.decode()).strip()
                 # TODO: can be improved splitting and stripping more unuseful info
                 print("DEBUG: CMS api response content: " + html2text_content.split("## Traceback")[0].strip())
             r.raise_for_status()
-            result = r.json()
+            result = r.json() if r.text else r.text
             if settings.DEBUG:
                 print(f"DEBUG: {api_name} {method} result: {result}")
             return result
@@ -669,6 +677,21 @@ def updatewebuser(cid, email, newemail, name="", last_name="", fields_values={},
 def validateEmailOnWeb(contact_id, email):
     return cms_rest_api_request(
         "validateEmailOnWeb", settings.WEB_EMAIL_CHECK_URI, {"contact_id": contact_id, "email": email}
+    )
+
+
+def emailTakeoverOnWeb(contact_id, email, confirm=False):
+    """
+    Pide al CMS el takeover de email huerfano para el contacto (desduplicacion CRM<->CMS).
+    confirm=False -> preview (el CMS solo evalua las guardas, no toca nada).
+    confirm=True  -> ejecuta el takeover (conserva la cuenta del email nuevo, le transfiere
+                     el contact_id de la vieja, le mueve los datos y borra la vieja).
+    Devuelve el dict de respuesta del CMS o "TIMEOUT"/"ERROR".
+    """
+    return cms_rest_api_request(
+        "emailTakeoverOnWeb",
+        getattr(settings, "WEB_EMAIL_TAKEOVER_URI", None),
+        {"contact_id": contact_id, "email": email, "confirm": "1" if confirm else "0"},
     )
 
 
@@ -846,3 +869,48 @@ def mail_managers_on_errors(process_name, error_msg, traceback_info=""):
     if traceback_info:
         msg += traceback_info  # Add the stack trace
     mail_managers(subject=subject, message=msg)
+
+
+def mercadopago_access_token():
+    """
+    Returns the MercadoPago access token from settings if defined, otherwise returns an empty string.
+    """
+    return getattr(settings, "MERCADOPAGO_ACCESS_TOKEN", "") or ""
+
+
+def mercadopago_sdk(subscriptions_integration=True):
+    mp_access_token, app_id = mercadopago_access_token(), None
+    if mp_access_token:
+        if subscriptions_integration:
+            if mp_access_token.startswith("APP_USR-"):
+                app_id = mp_access_token.split("-")[1]
+                app_id = app_id if app_id.isdigit() else None
+    sdk = mercadopago.SDK(mp_access_token) if mp_access_token else None
+    return (sdk, app_id) if subscriptions_integration else (sdk, mp_access_token)
+
+
+def api_log_entry(api_id, service_id, operation_id, request_data, response_data, caller_id=None, caller_detail=None):
+    """
+    Generic logger to register API transactions.
+    We'll use a logger where each line will be a json object with the given information plus the timestamp.
+    """
+    # create the log entry as a JSON object
+    log_entry = {
+        'timestamp': now().isoformat(),
+        'api_id': api_id,
+        'service_id': service_id,
+        'operation_id': operation_id,
+        'request_data': request_data,
+        'response_data': response_data,
+        'caller_id': caller_id,
+        'caller_detail': caller_detail,
+    }
+    logger = logging.getLogger('utopia_crm.api_log')
+
+    # call the logger only if it has handlers
+    if logger.handlers:
+
+        # Log the JSON object as a single line
+        logger.info(json.dumps(log_entry, ensure_ascii=False))
+
+    return log_entry

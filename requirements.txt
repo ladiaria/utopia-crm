@@ -22,7 +22,6 @@ mercadopago
 pandas
 postgis
 psycopg2
-py3dns
 pyIsEmail
 pymailcheck
 pymemcache
@@ -30,6 +29,7 @@ PyPDF2
 python-dateutil
 reportlab
 requests
+sentry-sdk
 setuptools
 tqdm
 unidecode

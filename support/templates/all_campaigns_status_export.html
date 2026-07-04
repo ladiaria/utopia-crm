@@ -1,0 +1,148 @@
+{% extends "adminlte/base.html" %}
+{% load i18n static widget_tweaks url_replace %}
+
+{% block no_heading %}
+  <h1>{% trans "Export all campaigns status" %}</h1>
+{% endblock %}
+
+{% block title %}
+  {% trans "Export all campaigns status" %}
+{% endblock title %}
+
+{% block content %}
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">{% trans "Filters" %}</h3>
+        </div>
+        <div class="card-body">
+          <p class="text-muted">
+            {% trans "Download a CSV of contact campaign statuses across all campaigns. A contact may appear more than once because it can belong to several campaigns." %}
+          </p>
+          <p class="text-muted">
+            <i class="fas fa-lightbulb"></i>
+            {% trans "Only the 'assigned date (from)' is required. All other filters (campaign, seller, status) are optional: if you leave the campaign empty, the export includes every campaign." %}
+          </p>
+          {% if not has_date_filter %}
+            <div class="alert alert-info">
+              <i class="fas fa-info-circle"></i>
+              {% trans "Select an 'assigned date (from)' to filter and export. Without a date nothing is returned." %}
+            </div>
+          {% endif %}
+          <form method="get" id="filter-form">
+            <div class="row">
+              <div class="form-group col-md-4">
+                <label>{% trans "Campaign" %}</label>
+                {% render_field filter.form.campaign class="form-control" %}
+              </div>
+              <div class="form-group col-md-4">
+                <label>{% trans "Filter by seller" %}</label>
+                {% render_field filter.form.seller class="form-control" %}
+              </div>
+              <div class="form-group col-md-4">
+                <label>{% trans "Filter by status" %}</label>
+                {% render_field filter.form.status class="form-control" %}
+              </div>
+            </div>
+            <div class="row">
+              <div class="form-group col-md-6">
+                <label>{% trans "Date assigned (from)" %} <span class="text-danger">*</span></label>
+                {% render_field filter.form.date_assigned_min class="form-control" %}
+              </div>
+              <div class="form-group col-md-6">
+                <label>{% trans "Date assigned (to)" %}</label>
+                {% render_field filter.form.date_assigned_max class="form-control" %}
+              </div>
+            </div>
+            <div class="row">
+              <div class="form-group col-md-6">
+                <label>{% trans "Last action date (from)" %}</label>
+                {% render_field filter.form.last_action_date_min class="form-control" %}
+              </div>
+              <div class="form-group col-md-6">
+                <label>{% trans "Last action date (to)" %}</label>
+                {% render_field filter.form.last_action_date_max class="form-control" %}
+              </div>
+            </div>
+            <div class="text-right">
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-filter"></i> {% trans "Filter" %}
+              </button>
+              {% if has_date_filter %}
+                <button type="submit" name="export" value="csv" class="btn btn-success">
+                  <i class="fas fa-file-csv"></i> {% trans "Download CSV" %}
+                </button>
+              {% endif %}
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if has_date_filter %}
+    <div class="row">
+      <div class="col-12">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">{% trans "Preview" %} ({{ paginator.count }})</h3>
+          </div>
+          <div class="card-body table-responsive p-0">
+            <table class="table table-hover text-nowrap">
+              <thead>
+                <tr>
+                  <th>{% trans "Contact" %}</th>
+                  <th>{% trans "Campaign" %}</th>
+                  <th>{% trans "Status" %}</th>
+                  <th>{% trans "Seller" %}</th>
+                  <th>{% trans "Date assigned" %}</th>
+                  <th>{% trans "Last action date" %}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for ccs in contact_campaign_statuses %}
+                  <tr>
+                    <td>{{ ccs.contact.get_full_name }}</td>
+                    <td>{{ ccs.campaign.name }}</td>
+                    <td>{{ ccs.get_status }}</td>
+                    <td>{{ ccs.seller.name|default:"" }}</td>
+                    <td>{{ ccs.date_assigned|default:"" }}</td>
+                    <td>{{ ccs.last_action_date|default:"" }}</td>
+                  </tr>
+                {% empty %}
+                  <tr>
+                    <td colspan="6" class="text-center text-muted">{% trans "No records found." %}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% if is_paginated %}
+            <div class="card-footer clearfix">
+              <ul class="pagination pagination-sm m-0 float-right">
+                {% if page_obj.has_previous %}
+                  <li class="page-item">
+                    <a class="page-link" href="?{% url_replace request 'page' page_obj.previous_page_number %}">
+                      <i class="fas fa-angle-left"></i>
+                    </a>
+                  </li>
+                {% endif %}
+                <li class="page-item disabled">
+                  <span class="page-link">{{ page_obj.number }} / {{ paginator.num_pages }}</span>
+                </li>
+                {% if page_obj.has_next %}
+                  <li class="page-item">
+                    <a class="page-link" href="?{% url_replace request 'page' page_obj.next_page_number %}">
+                      <i class="fas fa-angle-right"></i>
+                    </a>
+                  </li>
+                {% endif %}
+              </ul>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  {% endif %}
+{% endblock %}

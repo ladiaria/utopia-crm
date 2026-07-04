@@ -1,0 +1,334 @@
+{% extends "adminlte/base.html" %}
+{% load i18n static core_tags %}
+
+{% block title %}{% if is_update %}{% trans "Update free subscription" %}{% else %}{% trans "Create free subscription" %}{% endif %}{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" type="text/css" href="{% static 'css/email_suggestion_dialog.css' %}">
+{% endblock %}
+
+{% block no_heading %}
+<h1>{% if is_update %}{% trans "Update free subscription" %}{% else %}{% trans "Create free subscription" %}{% endif %}</h1>
+{% endblock no_heading %}
+
+{% block extra_js %}
+<script type="text/javascript" src="{% static 'js/datepicker-es.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/product_dynamic_prices.js' %}"></script>
+<script type="text/javascript">
+  $(function () {
+    $(".datepicker").datepicker({
+      dateFormat: 'yy-mm-dd'
+    });
+
+    function handleFormError() {
+      console.log("error");
+    };
+
+    $('#fetch-button').click(function () {
+      // Send an AJAX request to the Django view
+      $.ajax({
+        url: '{% url "api_get_addresses" contact.id %}',
+        method: 'POST',
+        dataType: 'json',
+        success: function (data) {
+          // Clear previous options and populate the HTML selects
+          $('.address_selector').each(function () {
+            var addressSelect = $(this);
+            var selectedValue = addressSelect.val();
+            addressSelect.empty();
+            $.each(data, function (index, item) {
+              var option = $('<option>').text(item.text).val(item.value);
+              if (item.value == selectedValue) {
+                option.prop('selected', true);
+              }
+              addressSelect.append(option);
+            });
+          });
+        }
+      });
+    });
+
+    function activateSend() {
+      var disable = false;
+      if ($("#subscription_form input:checkbox:checked").length == 0) {
+        disable = true; // Can't submit without a product
+      }
+
+      if ($(".address_selector").has('option').length == 0) {
+        disable = true; // Can't submit without addresses
+      }
+
+      if (disable == false) {
+        $("#send_form").removeAttr("disabled"); // Enable the send button
+      } else {
+        $("#send_form").attr("disabled", "disabled"); // Disable the send button
+      }
+    };
+
+    activateSend();
+
+    $("input:checkbox, select").change(function () {
+      activateSend();
+    });
+
+    // Toggle product card background color when checkbox is checked/unchecked
+    $(".product_checkbox").change(function () {
+      var productCard = $(this).closest('.border');
+      if ($(this).is(':checked')) {
+        productCard.removeClass('bg-light').addClass('bg-success-light');
+      } else {
+        productCard.removeClass('bg-success-light').addClass('bg-light');
+      }
+    });
+
+    // Initialize card colors on page load
+    $(".product_checkbox").each(function () {
+      var productCard = $(this).closest('.border');
+      if ($(this).is(':checked')) {
+        productCard.removeClass('bg-light').addClass('bg-success-light');
+      }
+    });
+
+    {% include 'email_suggestion_dialog_js.html' %}
+  });
+</script>
+<style>
+  .bg-success-light {
+    background-color: #d4edda !important;
+    border-color: #28a745 !important;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h2 class="card-title">{% if is_update %}{% trans "Update free subscription" %}{% else %}{% trans "Create free subscription" %}{% endif %}</h2>
+  </div>
+  <div class="card-body">
+    <form method="post" id="subscription_form">
+      {% csrf_token %}
+      {% include "email_suggestion_dialog.html" %}
+      {% if form.errors %}
+      {{ form.email_was_valid }}{{ form.email_replaced }}
+      {{ form.email_replacement }}{{ form.email_suggestion }}
+      {% for field in form %}
+      {% for error in field.errors %}
+      <div class="alert alert-danger"><strong>{{ error|escape }}</strong></div>
+      {% endfor %}
+      {% endfor %}
+      {% for error in form.non_field_errors %}
+      <div class="alert alert-danger"><strong>{{ error|escape }}</strong></div>
+      {% endfor %}
+      {% endif %}
+      <div class="row">
+        <div class="form-group col-md-6">
+          <label for="id_name">{{ form.name.label }}</label>
+          {{ form.name }}
+        </div>
+        <div class="form-group col-md-6">
+          <label for="id_last_name">{{ form.last_name.label }}</label>
+          {{ form.last_name }}
+        </div>
+      </div>
+      <div class="row">
+        <div class="form-group col-md-4">
+          <label for="id_email">{{ form.email.label }}</label>
+          {{ form.email }}
+        </div>
+        <div class="form-group col-md-4">
+          <label for="id_phone">{{ form.phone.label }}</label>
+          {{ form.phone }}
+        </div>
+        <div class="form-group col-md-4">
+          <label for="id_mobile">{{ form.mobile.label }}</label>
+          {{ form.mobile }}
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="id_notes">{{ form.notes.label }}</label>
+        {{ form.notes }}
+      </div>
+      <div class="row">
+        <div class="form-group col-md-4">
+          <label for="id_start_date">{{ form.start_date.label }}</label>
+          {{ form.start_date }}
+        </div>
+        <div class="form-group col-md-4">
+          <label for="id_end_date">{{ form.end_date.label }} <span class="text-danger">*</span></label>
+          {{ form.end_date }}
+        </div>
+        <div class="form-group col-md-4">
+          <label for="id_free_subscription_requested_by">{{ form.free_subscription_requested_by.label }} <span class="text-danger">*</span></label>
+          {{ form.free_subscription_requested_by }}
+        </div>
+      </div>
+
+      <hr class="my-4">
+
+      <h5 class="mb-3">{% trans "Products and Addresses" %}</h5>
+
+      <div class="form-group mb-3">
+        <a href="{% url 'agregar_direccion' contact.id %}?stayhere=True" id="add_address" class="btn btn-success btn-sm"
+          target="_blank"><i class="fas fa-plus"></i> {% trans "New address" %}</a>
+        <button type="button" class="btn btn-success btn-sm" id="fetch-button">
+          <i class="fas fa-sync-alt"></i> {% trans "Reload addresses" %}
+        </button>
+      </div>
+
+      <div class="mt-3">
+        {% for product in offerable_products %}
+          {% if is_update %}
+            {# Check if this product is already in the subscription #}
+            {% with existing_sp=None %}
+              {% for sp in existing_products %}
+                {% if sp.product.id == product.id %}
+                  {% with existing_sp=sp %}
+        <div class="border rounded p-2 mb-2 bg-success-light">
+          <div class="row align-items-center">
+            <div class="col-md-3">
+              <div class="form-check">
+                <input value="{{ product.id }}" checked="checked"
+                  type="checkbox" name="check-{{ product.id }}" class="form-check-input product_checkbox"
+                  id="check-{{ product.id }}">
+                <label class="form-check-label font-weight-bold" for="check-{{ product.id }}">
+                  {{ product.name }}
+                </label>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <label for="address-{{ product.id }}" class="small text-muted mb-1">{% trans "Address" %}</label>
+              <select name="address-{{ product.id }}" id="address-{{ product.id }}" class="address_selector form-control form-control-sm">
+                {% for address in contact_addresses %}
+                <option value="{{ address.id }}" {% if existing_sp.address.id == address.id %}selected="selected"{% endif %}>
+                  {{ address.address_1 }} {{ address.city }} {{ address.state_name }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-1">
+              <label for="copies-{{ product.id }}" class="small text-muted mb-1">{% trans "Copies" %}</label>
+              <input type="number" min="1" id="copies-{{ product.id }}" name="copies-{{ product.id }}"
+                value="{{ existing_sp.copies|default:1 }}" class="form-control form-control-sm"
+                title="{% trans "Copies" %}">
+            </div>
+            <div class="col-md-2">
+              <label for="message-{{ product.id }}" class="small text-muted mb-1">{% trans "Message" %}</label>
+              <input maxlength="40" type="text" id="message-{{ product.id }}" name="message-{{ product.id }}"
+                class="form-control form-control-sm" value="{{ existing_sp.label_message }}"
+                placeholder="{% trans "Optional" %}">
+            </div>
+            <div class="col-md-2">
+              <label for="instructions-{{ product.id }}" class="small text-muted mb-1">{% trans "Instructions" %}</label>
+              <input type="text" id="instructions-{{ product.id }}" name="instructions-{{ product.id }}"
+                class="form-control form-control-sm" value="{{ existing_sp.special_instructions }}"
+                placeholder="{% trans "Optional" %}">
+            </div>
+          </div>
+        </div>
+                  {% endwith %}
+                {% endif %}
+              {% endfor %}
+              {# If product not in existing_products, show unchecked #}
+              {% if not existing_sp %}
+        <div class="border rounded p-2 mb-2 bg-light">
+          <div class="row align-items-center">
+            <div class="col-md-3">
+              <div class="form-check">
+                <input value="{{ product.id }}"
+                  type="checkbox" name="check-{{ product.id }}" class="form-check-input product_checkbox"
+                  id="check-{{ product.id }}">
+                <label class="form-check-label font-weight-bold" for="check-{{ product.id }}">
+                  {{ product.name }}
+                </label>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <label for="address-{{ product.id }}" class="small text-muted mb-1">{% trans "Address" %}</label>
+              <select name="address-{{ product.id }}" id="address-{{ product.id }}" class="address_selector form-control form-control-sm">
+                {% for address in contact_addresses %}
+                <option value="{{ address.id }}">
+                  {{ address.address_1 }} {{ address.city }} {{ address.state_name }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-1">
+              <label for="copies-{{ product.id }}" class="small text-muted mb-1">{% trans "Copies" %}</label>
+              <input type="number" min="1" id="copies-{{ product.id }}" name="copies-{{ product.id }}"
+                value="1" class="form-control form-control-sm"
+                title="{% trans "Copies" %}">
+            </div>
+            <div class="col-md-2">
+              <label for="message-{{ product.id }}" class="small text-muted mb-1">{% trans "Message" %}</label>
+              <input maxlength="40" type="text" id="message-{{ product.id }}" name="message-{{ product.id }}"
+                class="form-control form-control-sm"
+                placeholder="{% trans "Optional" %}">
+            </div>
+            <div class="col-md-2">
+              <label for="instructions-{{ product.id }}" class="small text-muted mb-1">{% trans "Instructions" %}</label>
+              <input type="text" id="instructions-{{ product.id }}" name="instructions-{{ product.id }}"
+                class="form-control form-control-sm"
+                placeholder="{% trans "Optional" %}">
+            </div>
+          </div>
+        </div>
+              {% endif %}
+            {% endwith %}
+          {% else %}
+            {# Create mode - show all products unchecked #}
+        <div class="border rounded p-2 mb-2 bg-light">
+          <div class="row align-items-center">
+            <div class="col-md-3">
+              <div class="form-check">
+                <input value="{{ product.id }}"
+                  type="checkbox" name="check-{{ product.id }}" class="form-check-input product_checkbox"
+                  id="check-{{ product.id }}">
+                <label class="form-check-label font-weight-bold" for="check-{{ product.id }}">
+                  {{ product.name }}
+                </label>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <label for="address-{{ product.id }}" class="small text-muted mb-1">{% trans "Address" %}</label>
+              <select name="address-{{ product.id }}" id="address-{{ product.id }}" class="address_selector form-control form-control-sm">
+                {% for address in contact_addresses %}
+                <option value="{{ address.id }}">
+                  {{ address.address_1 }} {{ address.city }} {{ address.state_name }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-1">
+              <label for="copies-{{ product.id }}" class="small text-muted mb-1">{% trans "Copies" %}</label>
+              <input type="number" min="1" id="copies-{{ product.id }}" name="copies-{{ product.id }}"
+                value="1" class="form-control form-control-sm"
+                title="{% trans "Copies" %}">
+            </div>
+            <div class="col-md-2">
+              <label for="message-{{ product.id }}" class="small text-muted mb-1">{% trans "Message" %}</label>
+              <input maxlength="40" type="text" id="message-{{ product.id }}" name="message-{{ product.id }}"
+                class="form-control form-control-sm"
+                placeholder="{% trans "Optional" %}">
+            </div>
+            <div class="col-md-2">
+              <label for="instructions-{{ product.id }}" class="small text-muted mb-1">{% trans "Instructions" %}</label>
+              <input type="text" id="instructions-{{ product.id }}" name="instructions-{{ product.id }}"
+                class="form-control form-control-sm"
+                placeholder="{% trans "Optional" %}">
+            </div>
+          </div>
+        </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+      <hr class="my-4">
+
+      <div class="form-group d-flex justify-content-end">
+        <a href="{% url 'contact_detail' contact.id %}" class="btn btn-secondary mr-2">{% trans "Cancel" %}</a>
+        <input type="submit" name="result" id="send_form" value="{% if is_update %}{% trans "Update" %}{% else %}{% trans "Create" %}{% endif %}" class="btn btn-primary">
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock content %}

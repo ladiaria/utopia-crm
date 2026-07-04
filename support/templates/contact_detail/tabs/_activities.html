@@ -20,6 +20,8 @@
                 <th>{% trans "Topic" %}</th>
                 <th>{% trans "Response" %}</th>
                 <th>{% trans "Created by" %}</th>
+                <th>{% trans "Seller" %}</th>
+                <th>{% trans "Seller console action" %}</th>
                 <th></th>
               </tr>
             </thead>
@@ -44,6 +46,8 @@
                   <td>{{ activity.topic|default_if_none:"-" }}</td>
                   <td>{{ activity.response|default_if_none:"-" }}</td>
                   <td>{{ activity.created_by_name|default_if_none:"-" }}</td>
+                  <td>{{ activity.seller.name }}</td>
+                  <td>{{ activity.seller_console_action.name }}</td>
                   <td>
                     <a href="#"
                        class="btn btn-primary btn-sm"

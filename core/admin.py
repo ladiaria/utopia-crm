@@ -1,4 +1,9 @@
 # coding=utf-8
+from leaflet.admin import LeafletGeoAdmin
+from taggit.models import TaggedItem, Tag
+from taggit.admin import TagAdmin, TaggedItemInline
+from simple_history.admin import SimpleHistoryAdmin
+
 from django.conf import settings
 from django.db.models.deletion import Collector
 from django.http import HttpResponseRedirect
@@ -6,18 +11,13 @@ from django.contrib.admin import SimpleListFilter
 from django.utils.translation import gettext_lazy as _
 from django.contrib import admin
 from django.contrib.messages import constants as messages
-from django.urls import resolve, reverse
+from django.urls import resolve
 from django.forms import ValidationError
-
-from leaflet.admin import LeafletGeoAdmin
-from taggit.models import TaggedItem, Tag
-from taggit.admin import TagAdmin, TaggedItemInline
-from simple_history.admin import SimpleHistoryAdmin
 
 from community.models import ProductParticipation, Supporter
 from invoicing.models import Invoice
 from support.models import Issue
-from core.utils import logistics_is_installed
+from .utils import logistics_is_installed, mercadopago_sdk, api_log_entry
 from .models import (
     Subscription,
     IdDocumentType,
@@ -56,6 +56,7 @@ from .models import (
     City,
 )
 from .forms import SubscriptionAdminForm, ContactAdminForm
+
 
 # unregister default TagAdmin to remove inlines (avoid timeout when many taggetitems), register it again changed
 if Tag in admin.site._registry:
@@ -113,6 +114,7 @@ class SubscriptionProductInline(admin.TabularInline):
         ("product", "copies", "address"),
         ("order", "label_contact", "seller"),
         ("has_envelope", "active"),
+        ("original_datetime")
     )
     raw_id_fields = ["label_contact", "seller"]
 
@@ -145,26 +147,6 @@ class SubscriptionProductInline(admin.TabularInline):
             else:
                 field.queryset = field.queryset.none()
         return field
-
-
-def response_add_or_change_next_url(request, obj):
-    """Returns the next_url to be used in the response_add and response_change method redefinitions"""
-    opts = obj._meta
-    reverse_begin = "admin:%s_%s_" % (opts.app_label, opts.model_name)
-    if "_continue" in request.POST:
-        return reverse(reverse_begin + "change", args=(obj.id,))
-    return reverse(reverse_begin + ("add" if "_addanother" in request.POST else "changelist"))
-
-
-def default_newsletters_dialog_redirect(request, obj, contact_id_attr_name):
-    """Returns the redirect to be used for the default newsletters dialog page"""
-    return HttpResponseRedirect(
-        "%s?next_page=%s"
-        % (
-            reverse("default_newsletters_dialog", kwargs={"contact_id": getattr(obj, contact_id_attr_name)}),
-            response_add_or_change_next_url(request, obj),
-        )
-    )
 
 
 def contact_is_safe_to_delete(contact, ignore_movable=False, print_unsafe=False):
@@ -272,21 +254,17 @@ class SubscriptionAdmin(SimpleHistoryAdmin):
         "validated_by",
     )
 
+    def save_model(self, request, obj, form, change):
+        try:
+            super().save_model(request, obj, form, change)
+        except Exception as e:
+            self.message_user(request, str(e), level=messages.WARNING)
+
     def get_readonly_fields(self, request, obj):
         readonly_fields = super().get_readonly_fields(request, obj)
         if obj:
             readonly_fields += ("contact",)
         return readonly_fields
-
-    def response_add(self, request, obj, post_url_continue=None):
-        if obj.contact.offer_default_newsletters_condition():
-            return default_newsletters_dialog_redirect(request, obj, "contact_id")
-        return super(SubscriptionAdmin, self).response_add(request, obj, post_url_continue)
-
-    def response_change(self, request, obj):
-        if obj.contact.offer_default_newsletters_condition():
-            return default_newsletters_dialog_redirect(request, obj, "contact_id")
-        return super(SubscriptionAdmin, self).response_change(request, obj)
 
     class Media:
         pass
@@ -332,7 +310,7 @@ class ContactAdmin(SimpleHistoryAdmin):
                     ("id_document_type", "id_document"),
                     ("phone", "mobile"),
                     "work_phone",
-                    ("gender", "education", "ranking"),
+                    ("gender", "education", "cms_date_joined"),
                     # TODO: include "occupation" right here after its name got fixed from single "c" to "cc"
                     ("birthdate", "private_birthdate"),
                     "notes",
@@ -366,16 +344,6 @@ class ContactAdmin(SimpleHistoryAdmin):
     def tag_list(self, obj):
         return ", ".join(o.name for o in obj.tags.all())
 
-    def response_add(self, request, obj, post_url_continue=None):
-        if obj.offer_default_newsletters_condition():
-            return default_newsletters_dialog_redirect(request, obj, "id")
-        return super(ContactAdmin, self).response_add(request, obj, post_url_continue)
-
-    def response_change(self, request, obj):
-        if obj.offer_default_newsletters_condition():
-            return default_newsletters_dialog_redirect(request, obj, "id")
-        return super(ContactAdmin, self).response_change(request, obj)
-
     def change_view(self, request, object_id, form_url='', extra_context=None):
         result = None
         try:
@@ -400,6 +368,12 @@ class ContactAdmin(SimpleHistoryAdmin):
             if skip_clean_set:
                 del obj._skip_clean
 
+    def delete_model(self, request, obj):
+        try:
+            return super().delete_model(request, obj)
+        except Exception as e:
+            self.message_user(request, "CMS sync: " + str(e), level=messages.WARNING)
+
 
 class TermsAndConditionsProductInline(admin.TabularInline):
     model = TermsAndConditionsProduct
@@ -407,9 +381,110 @@ class TermsAndConditionsProductInline(admin.TabularInline):
     extra = 1
 
 
+def build_mp_plan_data(obj, application_id):
+    back_url = getattr(settings, "MERCADOPAGO_PLAN_BACK_URL", None)
+    currency_id = getattr(settings, "MERCADOPAGO_PLAN_DEFAULT_CURRENCY", None)
+    assert back_url and currency_id, (
+        _("Settings variables MERCADOPAGO_PLAN_BACK_URL and MERCADOPAGO_PLAN_DEFAULT_CURRENCY must be set")
+    )
+    return {
+        "reason": obj.name,
+        "auto_recurring": {
+            "frequency": obj.duration_months,
+            "currency_id": currency_id,
+            "frequency_type": "months",
+            "transaction_amount": "%.2f" % obj.price,
+        },
+        "application_id": application_id,
+        "payment_methods_allowed": getattr(
+            settings,
+            "MERCADOPAGO_PAYMENT_METHODS_ALLOWED",
+            {
+                'payment_types': [{'id': 'credit_card'}, {'id': 'debit_card'}],
+                'payment_methods': [{'id': 'master'}, {'id': 'visa'}, {'id': 'debvisa'}, {'id': 'debmaster'}],
+            },
+        ),
+        "back_url": back_url,
+    }
+
+
+def mp_product_sync(obj, disable_mp_plan=False):
+    """
+    Syncs the product with a MercadoPago Plan object for "app integration" mercadopago mode.
+    The sync is performed only if:
+    - MERCADOPAGO_PRODUCT_SYNC_ENABLED is True (default: False)
+    - obj.mercadopago_skip_sync is False
+    - mercadopago_access_token() is not empty
+    - The "app integration" mode in MercadoPago is used, the app id will be obtained from the access token
+    - if MERCADOPAGO_PRODUCT_SYNC_CMS_SYNC_REQUIRED is True (default: False), obj.cms_subscription_type must be set
+    """
+    if getattr(settings, "MERCADOPAGO_PRODUCT_SYNC_ENABLED", False) and not obj.mercadopago_skip_sync:
+        if getattr(settings, "MERCADOPAGO_PRODUCT_SYNC_CMS_SYNC_REQUIRED", False) and not obj.cms_subscription_type:
+            return
+        sdk, app_id = mercadopago_sdk()
+        if disable_mp_plan:
+            if not obj.mercadopago_id:
+                # we only can disable plans already linked to a product in CRM
+                # NOTE: MP has 2 status values for a plan: "active" and "inactive"
+                return
+            update_data = {"status": "inactive"}
+            try:
+                mp_response = sdk.plan().update(obj.mercadopago_id, update_data)
+            except Exception as e:
+                # TODO: spanish translation = "No se pudo deshabilitar el producto en MercadoPago"
+                raise Exception(_("Failed to disable product in MercadoPago") + f": {e}")
+            else:
+                api_log_entry(
+                    "mercadopago",
+                    "plan",
+                    "update",
+                    [obj.mercadopago_id, update_data],
+                    mp_response,
+                    "utopia-crm.core.admin.mp_product_sync",
+                    "disable plan",
+                )
+        else:
+            try:
+                mp_data, mp_response = build_mp_plan_data(obj, app_id), ""
+                if not obj.mercadopago_id:
+                    # TODO: consider search by some field before creating the plan, for example the name but this can
+                    #       be handled in "v2", a modal dialog to show mp's values and ask for confirmation
+                    mp_response = sdk.plan().create(mp_data)
+                    obj.mercadopago_id = mp_response["response"]["id"]
+                    obj.save()
+                    api_log_entry(
+                        "mercadopago",
+                        "plan",
+                        "create",
+                        mp_data,
+                        mp_response,
+                        "utopia-crm.core.admin.mp_product_sync",
+                        "create plan",
+                    )
+                else:
+                    mp_response = sdk.plan().update(obj.mercadopago_id, mp_data)
+                    api_log_entry(
+                        "mercadopago",
+                        "plan",
+                        "update",
+                        [obj.mercadopago_id, mp_data],
+                        mp_response,
+                        "utopia-crm.core.admin.mp_product_sync",
+                        "update plan",
+                    )
+            except Exception as e:
+                if settings.DEBUG:
+                    print(f"mp_product_sync error: {e}")
+                    if mp_response:
+                        print(f"MP response: {mp_response}")
+                # TODO: spanish translation = "No se pudo sincronizar el producto en MercadoPago"
+                raise Exception(_("Failed to sync product in MercadoPago") + f": {e}")
+
+
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    # TODO: validations, for example target_product only makes sense on discount products
+    # Note: target_product is limited to active subscription products (type='S')
+    # and is primarily used for discount products to specify which product they discount
     list_display = (
         "id",
         "name",
@@ -419,6 +494,7 @@ class ProductAdmin(admin.ModelAdmin):
         "weekday",
         "slug",
         "offerable",
+        "target_product",
     )
     list_editable = [
         "name",
@@ -426,15 +502,13 @@ class ProductAdmin(admin.ModelAdmin):
         "price",
         "weekday",
         "offerable",
+        "target_product",
     ]
     list_filter = ("active", "type", "renewal_type", "offerable", "subscription_period", "duration_months")
+    readonly_fields = ("mercadopago_id",)
+    raw_id_fields = ("target_product",)  # Makes it easier to see and set the value
     fieldsets = (
-        (
-            _("Information"),
-            {
-                "fields": ("name", "slug", "type"),
-            },
-        ),
+        (_("Information"), {"fields": ("name", "slug", "type")}),
         (
             _("Pricing & Discounts"),
             {
@@ -445,30 +519,44 @@ class ProductAdmin(admin.ModelAdmin):
                     "renewal_type",
                     "has_implicit_discount",
                     "target_product",
+                    "discount_category",
                 ),
             },
         ),
-        (
-            _("Scheduling & Frequency"),
-            {
-                "fields": ("weekday", "subscription_period", "duration_months"),
-            },
-        ),
-        (
-            _("Billing & Priority"),
-            {
-                "fields": ("billing_priority", "active", "edition_frequency"),
-            },
-        ),
+        (_("Scheduling & Frequency"), {"fields": ("weekday", "subscription_period", "duration_months")}),
+        (_("Billing & Priority"), {"fields": ("billing_priority", "active", "edition_frequency")}),
         (
             _("MercadoPago and others"),
-            {
-                "fields": ("mercadopago_id", "internal_code", "cms_subscription_type"),
-            },
+            {"fields": ("mercadopago_skip_sync", "mercadopago_id", "cms_subscription_type")}
         ),
     )
     inlines = (TermsAndConditionsProductInline,)
     search_fields = ("name", "slug", "internal_code")
+    # TODO: spanish translation = "No se pudo actualizar el producto en MercadoPago"
+    no_mp_sync_msg_prefix = _("The product could not be updated in MercadoPago") + ": "
+    actions = None
+    list_display_links = ("id",)
+
+    def get_form(self, request, obj=None, **kwargs):
+        form = super().get_form(request, obj, **kwargs)
+        if getattr(obj, "mercadopago_id", None):
+            form.base_fields["mercadopago_skip_sync"].disabled = True
+        return form
+
+    def delete_model(self, request, obj):
+        print("delete_model", obj)
+        try:
+            mp_product_sync(obj, disable_mp_plan=True)
+        except Exception as e:
+            self.message_user(request, self.no_mp_sync_msg_prefix + str(e), level=messages.WARNING)
+        super().delete_model(request, obj)
+
+    def save_model(self, request, obj, form, change):
+        try:
+            mp_product_sync(obj)
+        except Exception as e:
+            self.message_user(request, self.no_mp_sync_msg_prefix + str(e), level=messages.WARNING)
+        super().save_model(request, obj, form, change)
 
     class Media:
         css = {"all": ("css/product_admin.css",)}
@@ -479,7 +567,7 @@ class PlanAdmin(admin.ModelAdmin):
 
 
 @admin.register(Address)
-class AddressAdmin(SimpleHistoryAdmin, LeafletGeoAdmin):
+class AddressAdmin(LeafletGeoAdmin):
     list_display = ("contact", "address_1", "city", "state", "country")
     raw_id_fields = ("contact",)
 
@@ -623,6 +711,22 @@ class StateAdmin(admin.ModelAdmin):
     raw_id_fields = ("country",)
 
 
+@admin.register(TermsAndConditions)
+class TermsAndConditionsAdmin(admin.ModelAdmin):
+    list_display = ("code", "date")
+    search_fields = ("code", )
+    fields = ("date", "code", "text", "pdf_file")
+    date_hierarchy = "date"
+
+
+@admin.register(ActivityResponse)
+class ActivityResponseAdmin(admin.ModelAdmin):
+    list_display = ("name", "topic")
+    list_filter = ("topic",)
+    list_editable = ("topic",)
+    search_fields = ("name", "topic__name")
+
+
 admin.site.register(DynamicContactFilter)
 admin.site.register(ProductBundle)
 admin.site.register(AdvancedDiscount)
@@ -630,9 +734,7 @@ admin.site.register(DoNotCallNumber)
 admin.site.register(MailtrainList)
 admin.site.register(IdDocumentType)
 admin.site.register(ActivityTopic)
-admin.site.register(ActivityResponse)
 admin.site.register(ProductSubscriptionPeriod)
-admin.site.register(TermsAndConditions)
 admin.site.register(PersonType)
 admin.site.register(BusinessEntityType)
 admin.site.register(PaymentMethod)

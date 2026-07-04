@@ -16,7 +16,7 @@ from tests.factory import (
     create_subtype,
 )
 
-from util import space_join, rand_chars
+from util import rand_chars
 from core.models import Contact, Product, Campaign, ContactCampaignStatus, update_customer
 from invoicing.models import Invoice
 
@@ -160,13 +160,18 @@ class TestCoreContact(TestCase):
         with override_settings(WEB_CREATE_USER_ENABLED=False):
             contact = create_contact(name='Contact 9', phone='12412455')
         address = create_address('Araucho 1390', contact, address_type='physical')
-        self.assertIn(
-            space_join(
-                'Araucho 1390',
-                space_join(getattr(settings, 'DEFAULT_CITY', None), getattr(settings, 'DEFAULT_STATE', None)),
-            ),
-            str(address),
-        )
+
+        # Address.__str__ now uses comma-separated format: "address_1, city, state, country"
+        address_str = str(address)
+        self.assertIn('Araucho 1390', address_str)
+
+        # Check that default city and state are included if they exist
+        default_city = getattr(settings, 'DEFAULT_CITY', None)
+        default_state = getattr(settings, 'DEFAULT_STATE', None)
+        if default_city:
+            self.assertIn(default_city, address_str)
+        if default_state:
+            self.assertIn(default_state, address_str)
 
         address_type = address.get_address_type_display()
         self.assertEqual(address_type, _('Physical'))
@@ -181,8 +186,8 @@ class TestCoreContact(TestCase):
     def test9_update_contact(self):
         """
         - Email change will not raise any error.
-        - Adding or removing a newsletter whose pub_id is not defined in settings will not raise any error.
-        - TODO: Adding correct NL should impact in the associated CMS (use CMS's /api/subscribers/?contact_id=XX)
+        - The CMS->CRM newsletter push is no longer handled (CMS is the source of truth): update_customer
+          ignores newsletter fields and must not raise.
         """
         with override_settings(WEB_CREATE_USER_ENABLED=False):
             email = f"contact{rand_chars()}@google.com"
@@ -198,7 +203,7 @@ class TestCoreContact(TestCase):
         # change again, if not, next run of this test will fail
         contact.email = email
         contact.save()
-        non_existing_key = max(settings.WEB_UPDATE_NEWSLETTER_MAP.keys() or [0]) + 1
+        non_existing_key = 999999
         try:
             update_customer(contact, None, 'newsletters', json.dumps([non_existing_key]))
         except Exception:

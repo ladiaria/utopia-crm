@@ -1,5 +1,5 @@
 # coding=utf-8
-from django.db.models import TextChoices
+from django.db.models import TextChoices, IntegerChoices
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 
@@ -14,15 +14,6 @@ EDUCATION_CHOICES = (
     (5, _("Complete university")),
     (6, _("Postgraduate")),
     (100, _("Doesn't want to inform")),
-)
-
-INACTIVITY_REASONS = (
-    (1, _("Normal end")),
-    (2, _("Paused")),
-    (3, _("Upgraded")),
-    (13, _("Debtor")),
-    (16, _("Debtor, automatic unsubscription")),
-    (99, _("N/A")),
 )
 
 FREQUENCY_CHOICES = ((1, _("Monthly")), (3, _("Quarterly")), (6, _("Biannual")), (12, _("Annual")))
@@ -86,10 +77,20 @@ PRODUCTHISTORY_CHOICES = (
     ("R", _("Resumed")),
 )
 
+
+class ACTIVITY_STATUS(TextChoices):
+    PENDING = "P", _("Pending")
+    COMPLETED = "C", _("Completed")
+    DELAYED = "D", _("Delayed")
+    EXPIRED = "E", _("Expired")
+
+
+# Legacy tuple for backward compatibility - will be removed eventually
 ACTIVITY_STATUS_CHOICES = (
     ("P", _("Pending")),
     ("C", _("Completed")),
     ("D", _("Delayed")),
+    ("E", _("Expired")),
 )
 
 ACTIVITY_DIRECTION_CHOICES = (
@@ -99,15 +100,30 @@ ACTIVITY_DIRECTION_CHOICES = (
     ("R", _("Renewal")),
 )
 
-CAMPAIGN_STATUS_CHOICES = (
-    (1, _("Not yet contacted")),
-    (2, _("Contacted")),
-    (3, _("Called, could not contact")),
-    (4, _("Ended with contact")),
-    (5, _("Ended without contact")),
-    (6, _("Switch to morning")),
-    (7, _("Switch to afternoon/evening")),
-)
+
+class CAMPAIGN_STATUS(IntegerChoices):
+    NOT_YET_CONTACTED = 1, _("Not yet contacted")
+    CONTACTED = 2, _("Contacted")
+    CALLED_COULD_NOT_CONTACT = 3, _("Called, could not contact")
+    ENDED_WITH_CONTACT = 4, _("Ended with contact")
+    ENDED_WITHOUT_CONTACT = 5, _("Ended without contact")
+    SWITCH_TO_MORNING = 6, _("Switch to morning")
+    SWITCH_TO_AFTERNOON = 7, _("Switch to afternoon/evening")
+
+
+def get_contacted_statuses():
+    """
+    Returns the list of ContactCampaignStatus statuses that count as 'contacted'.
+    A contact is considered contacted if we actually spoke with them:
+    CONTACTED (2), ENDED_WITH_CONTACT (4), SWITCH_TO_MORNING (6), SWITCH_TO_AFTERNOON (7).
+    """
+    return [
+        CAMPAIGN_STATUS.CONTACTED,
+        CAMPAIGN_STATUS.ENDED_WITH_CONTACT,
+        CAMPAIGN_STATUS.SWITCH_TO_MORNING,
+        CAMPAIGN_STATUS.SWITCH_TO_AFTERNOON,
+    ]
+
 
 CAMPAIGN_RESOLUTION_CHOICES = (
     ("SP", _("Started promotion")),
@@ -120,13 +136,14 @@ CAMPAIGN_RESOLUTION_CHOICES = (
     ("S2", _("Success with direct sale")),
     ("SC", _("Scheduled")),
     ("CL", _("Call later")),
+    ("NF", _("Not found")),
     ("UN", _("Cannot find contact")),
     ("CW", _("Close without contact")),
 )
 
 CAMPAIGN_RESOLUTION_REASONS_CHOICES = getattr(settings, "CAMPAIGN_RESOLUTION_REASONS_CHOICES", ())
 
-ACTIVITY_TYPES = (
+DEFAULT_ACTIVITY_TYPES = (
     ("S", _("Campaign start")),
     ("C", _("Call")),
     ("M", _("E-mail")),
@@ -134,8 +151,27 @@ ACTIVITY_TYPES = (
     ("W", _("WhatsApp message or other apps")),
     ("E", _("Event participation")),
     ("I", _("In-place visit")),
-    ("N", _("Internal")),
 )
+
+
+def get_activity_types():
+    """
+    Returns activity types with 'Internal' (N) always included as a required system type.
+
+    The 'Internal' type is used for system-generated activities (unsubscriptions,
+    reactivations, etc.) and must always be available regardless of custom activity types.
+    """
+    # Internal activity type - required by the system for automated activities
+    internal_type = ("N", _("Internal"))
+
+    # Get custom types or use defaults
+    custom_types = getattr(settings, "CUSTOM_ACTIVITY_TYPES", DEFAULT_ACTIVITY_TYPES)
+
+    # Always ensure Internal type is included
+    if internal_type not in custom_types:
+        return custom_types + (internal_type,)
+    return custom_types
+
 
 PRODUCT_WEEKDAYS = (
     (1, _("Monday")),
@@ -179,13 +215,6 @@ ENVELOPE_CHOICES = (
     (2, _("Free envelope")),
 )
 
-UNSUBSCRIPTION_TYPE_CHOICES = (
-    (1, _("Complete unsubscription")),
-    (2, _("Partial unsubscription")),
-    (3, _("Product change")),
-    (4, _("Upgrade")),
-)
-
 DEBTOR_CONCACTS_CHOICES = (
     (1, _("Exclude debtors")),
     (2, _("Only debtors")),
@@ -220,5 +249,5 @@ class FreeSubscriptionRequestedBy(TextChoices):
     HR = "HR", _("Human resources")
     ADVERTISEMENT = "AD", _("Advertisement")
     MANAGEMENT = "MA", _("Management")
-    JOURNALISM_DIRECTOR = "JD", _("Journalism direction")
+    NEWSROOM = "JD", _("Newsroom")
     PROMOTION = "PR", _("Promotion")

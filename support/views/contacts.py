@@ -6,13 +6,13 @@ from datetime import date
 from django.conf import settings
 from django.db import transaction
 from django.db.models import Q, Prefetch, Case, When, Value, BooleanField, Count, Exists, OuterRef
+from django.contrib.auth.models import Group
 from django.views.generic import UpdateView, CreateView, DetailView, ListView, FormView
-from django.forms import ModelMultipleChoiceField, CheckboxSelectMultiple
 from django.utils.decorators import method_decorator
 from django.utils.translation import gettext_lazy as _
 from django.contrib.admin.views.decorators import staff_member_required
 from django.shortcuts import get_object_or_404
-from django.http import HttpResponse, HttpResponseNotFound
+from django.http import HttpResponse, HttpResponseNotFound, StreamingHttpResponse
 from django.urls import reverse, reverse_lazy
 from django.contrib import messages
 from django.shortcuts import render
@@ -29,26 +29,34 @@ from core.models import (
     Address,
     Subscription,
     ContactCampaignStatus,
+    IdDocumentType,
 )
 from core.filters import ContactFilter
-from core.forms import ContactAdminForm
+from core.forms import ContactAdminForm, ContactUpdateForm
 from core.mixins import BreadcrumbsMixin
 from core.utils import get_mailtrain_lists, detect_csv_delimiter
+from util.location_utils import georef_habilitado
 
-from support.forms import ImportContactsForm, CheckForExistingContactsForm
+from support.forms import ContactCampaignStatusEditForm, ImportContactsForm, CheckForExistingContactsForm
 
 from invoicing.models import Invoice, CreditNote
 from taggit.models import Tag
 
 
 @method_decorator(staff_member_required, name="dispatch")
-class ContactListView(ListView):
+class ContactListView(BreadcrumbsMixin, ListView):
     # Implementation of ListView to work without the need of a FilterView. It still uses django-filter for the filter.
     model = Contact
     template_name = "contact_list.html"
     filterset_class = ContactFilter
     paginate_by = 50
     page_kwarg = "p"
+
+    def breadcrumbs(self):
+        return [
+            {"url": reverse("home"), "label": _("Home")},
+            {"label": _("Contact list"), "url": reverse("contact_list")},
+        ]
 
     def get(self, request, *args, **kwargs):
         if request.GET.get("export"):
@@ -75,52 +83,155 @@ class ContactListView(ListView):
         context["filter"] = self.filterset
         return context
 
+    def get_optimized_queryset_for_csv(self):
+        """
+        Optimized queryset for CSV export with all necessary prefetches.
+        Eliminates N+1 queries by prefetching tags, subscriptions, addresses, and activities.
+        """
+        from django.db.models import Prefetch, Exists, OuterRef
+        from core.models import Activity, SubscriptionProduct
+
+        # Prefetch active subscriptions with their products
+        active_subscriptions_prefetch = Prefetch(
+            'subscriptions',
+            queryset=Subscription.objects.filter(active=True).prefetch_related(
+                Prefetch(
+                    'subscriptionproduct_set',
+                    queryset=SubscriptionProduct.objects.select_related('product', 'address', 'address__state')
+                ),
+            ),
+            to_attr='active_subscriptions',
+        )
+
+        # Prefetch recent activities for last_incoming/outgoing_activity
+        recent_activities_prefetch = Prefetch(
+            'activity_set', queryset=Activity.objects.order_by('-datetime')[:10], to_attr='recent_activities'
+        )
+
+        # Get the base queryset and apply filters
+        base_queryset = Contact.objects.all()
+
+        # Apply the filterset to get filtered contacts
+        self.filterset = self.filterset_class(self.request.GET, queryset=base_queryset)
+        queryset = self.filterset.qs
+
+        # Add optimized prefetches for CSV export
+        return queryset.prefetch_related(
+            'tags',  # Prefetch tags to avoid N+1 queries
+            active_subscriptions_prefetch,
+            recent_activities_prefetch,
+            'addresses__state',
+        ).annotate(
+            # Annotate has_active_subs to avoid method calls
+            has_active_subs=Exists(Subscription.objects.filter(contact=OuterRef('pk'), active=True)),
+        )
+
     def export_csv(self):
-        response = HttpResponse(content_type="text/csv")
-        response["Content-Disposition"] = 'attachment; filename="contacts_export.csv"'
-        writer = csv.writer(response)
-        header = [
-            _("Id"),
-            _("Full name"),
-            _("Email"),
-            _("Phone"),
-            _("Mobile"),
-            _("Has active subscriptions"),
-            _("Active products"),
-            _("Last activity"),
-            _("Overdue invoices"),
-            _("Address"),
-            _("State"),
-            _("City"),
-        ]
-        writer.writerow(header)
-        for contact in self.get_queryset().all():
-            active_products, address_1, state, city = "", "", "", ""
-            for index, sp in enumerate(contact.get_active_subscriptionproducts()):
-                if index > 0:
-                    active_products += ", "
-                active_products += sp.product.name
-            first_subscription = contact.get_first_active_subscription()
-            if first_subscription:
-                address = first_subscription.get_full_address_by_priority()
-                if address:
-                    address_1, state, city = address.address_1, address.state_name, address.city
-            writer.writerow(
-                [
-                    contact.id,
-                    contact.get_full_name(),
-                    contact.email,
-                    contact.phone,
-                    contact.mobile,
-                    contact.has_active_subscription(),
-                    active_products,
-                    contact.last_activity().datetime if contact.last_activity() else None,
-                    contact.expired_invoices_count(),
-                    address_1,
-                    state,
-                    city,
-                ]
-            )
+        """
+        Streaming CSV export with optimized queryset.
+        Uses StreamingHttpResponse to handle large datasets efficiently.
+        Prefetches tags and related data to eliminate N+1 queries.
+        """
+
+        # Pseudo buffer for streaming
+        class Echo:
+            """An object that implements just the write method of the file-like interface."""
+
+            def write(self, value):
+                return value
+
+        def generate_rows():
+            """Generator function that yields CSV rows."""
+            import csv
+
+            writer = csv.writer(Echo())
+
+            # Yield header
+            header = [
+                _("Id"),
+                _("Full name"),
+                _("Email"),
+                _("Phone"),
+                _("Mobile"),
+                _("Has active subscriptions"),
+                _("Active products"),
+                _("Tags"),
+                _("Last incoming activity"),
+                _("Last outgoing activity"),
+                _("Overdue invoices"),
+                _("Address"),
+                _("State"),
+                _("City"),
+            ]
+            yield writer.writerow(header)
+
+            # Get optimized queryset with prefetched tags and related data
+            contacts = self.get_optimized_queryset_for_csv()
+
+            # Process contacts in chunks to avoid loading all into memory
+            for contact in contacts.iterator(chunk_size=1000):
+                active_products, address_1, state, city = "", "", "", ""
+
+                # Use prefetched active_subscriptions
+                if hasattr(contact, 'active_subscriptions'):
+                    products_list = []
+                    for subscription in contact.active_subscriptions:
+                        for sp in subscription.subscriptionproduct_set.all():
+                            products_list.append(sp.product.name)
+                    active_products = ", ".join(products_list)
+
+                    # Get address from first active subscription
+                    if contact.active_subscriptions:
+                        first_subscription = contact.active_subscriptions[0]
+                        address = first_subscription.get_full_address_by_priority()
+                        if address:
+                            address_1, state, city = address.address_1, address.state_name, address.city
+
+                # Get tags using prefetched data (no additional query)
+                tags = ", ".join([tag.name for tag in contact.tags.all()])
+
+                # Get last incoming and outgoing activities from prefetched data
+                last_in_datetime = None
+                last_out_datetime = None
+                if hasattr(contact, 'recent_activities'):
+                    for activity in contact.recent_activities:
+                        if activity.direction == 'I' and not last_in_datetime:
+                            last_in_datetime = activity.datetime
+                        if activity.direction == 'O' and not last_out_datetime:
+                            last_out_datetime = activity.datetime
+                        if last_in_datetime and last_out_datetime:
+                            break
+
+                yield writer.writerow(
+                    [
+                        contact.id,
+                        contact.get_full_name(),
+                        contact.email,
+                        contact.phone,
+                        contact.mobile,
+                        (
+                            contact.has_active_subs
+                            if hasattr(contact, 'has_active_subs')
+                            else contact.has_active_subscription()
+                        ),
+                        active_products,
+                        tags,
+                        last_in_datetime,
+                        last_out_datetime,
+                        contact.expired_invoices_count(),
+                        address_1,
+                        state,
+                        city,
+                    ]
+                )
+
+        # Create streaming response with timestamp in filename
+        from datetime import datetime
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        filename = f'contacts_export_{timestamp}.csv'
+
+        response = StreamingHttpResponse(generate_rows(), content_type="text/csv")
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
         return response
 
 
@@ -131,6 +242,7 @@ class ContactDetailView(BreadcrumbsMixin, DetailView):
 
     def breadcrumbs(self):
         return [
+            {"url": reverse("home"), "label": _("Home")},
             {"label": _("Contact list"), "url": reverse("contact_list")},
             {"label": self.object.get_full_name(), "url": reverse("contact_detail", args=[self.object.id])},
         ]
@@ -153,7 +265,7 @@ class ContactDetailView(BreadcrumbsMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["georef_activated"] = getattr(settings, "GEOREF_SERVICES", False)
+        context["georef_activated"] = georef_habilitado()
         context["subscription_groups"] = self.get_subscription_groups()
         context["overview_subscriptions"] = self.get_overview_subscriptions()
         # Unpack all querysets
@@ -162,22 +274,64 @@ class ContactDetailView(BreadcrumbsMixin, DetailView):
         context.update(self.get_overview_subscriptions())
         context.update(self.get_expensive_calculations())
         context["subscriptions_count"] = self.get_subscriptions().count()
+
+        # Campaign status edit permission: superusers and members of Managers or Admin groups
+        user = self.request.user
+        context["can_edit_campaign_status"] = user.is_superuser or user.groups.filter(
+            name__in=["Managers", "Admin"]
+        ).exists()
+
+        # Add last read articles data from CMS API
+        if settings.LDSOCIAL_URL and self.object.email:
+            from core.utils import cms_rest_api_request
+
+            last_read = cms_rest_api_request(
+                "lastread",
+                f"{settings.LDSOCIAL_URL}usuarios/api/last_read/",
+                {"email": self.object.email},
+                method="POST",
+            )
+            if last_read != "ERROR":
+                context["last_read"] = last_read
+            most_read = cms_rest_api_request(
+                "mostread",
+                f"{settings.LDSOCIAL_URL}usuarios/api/most_read/",
+                {"email": self.object.email},
+                method="POST",
+            )
+            if most_read != "ERROR":
+                context["most_read"] = most_read
+            read_percentage = cms_rest_api_request(
+                "percentage",
+                f"{settings.LDSOCIAL_URL}usuarios/api/read_articles_percentage/",
+                {"email": self.object.email},
+                method="POST",
+            )
+            if read_percentage != "ERROR":
+                context["read_percentage"] = read_percentage
+            web_comments = cms_rest_api_request(
+                "webcomments",
+                f"{settings.LDSOCIAL_URL}usuarios/api/comments/",
+                {"email": self.object.email},
+                method="POST",
+            )
+            if isinstance(web_comments, dict) and 'nodes' in web_comments:
+                context["web_comments"] = web_comments['nodes']
+
         return context
 
     def get_all_querysets_and_lists(self):
         addresses = self.object.addresses.all().prefetch_related("state", "country")
-        activities = self.object.activity_set.all().order_by("-datetime", "id")[:3]
-        newsletters = self.object.get_newsletters()
+        activities = self.object.activity_set.all().select_related("seller", "campaign").order_by("-datetime", "id")[:5]
         all_issues = self.object.issue_set.all().order_by("-date", "id").select_related("status", "sub_category")
-        last_issues = all_issues[:3]
+        last_issues = all_issues[:5]
         last_paid_invoice = self.object.get_last_paid_invoice()
-        all_activities = self.object.activity_set.all().order_by("-datetime", "id")
+        all_activities = self.object.activity_set.all().select_related("seller", "campaign").order_by("-datetime", "id")
         all_scheduled_tasks = self.object.scheduledtask_set.all().order_by("-creation_date", "id")
         all_campaigns = self.object.contactcampaignstatus_set.all().order_by("-date_created", "id")
         return {
             "addresses": addresses,
             "activities": activities,
-            "newsletters": newsletters,
             "all_issues": all_issues,
             "last_issues": last_issues,
             "last_paid_invoice": last_paid_invoice,
@@ -272,40 +426,12 @@ class ContactDetailView(BreadcrumbsMixin, DetailView):
         }
 
 
-class ContactAdminFormWithNewsletters(ContactAdminForm):
-    newsletters = ModelMultipleChoiceField(
-        queryset=Product.objects.filter(type="N", active=True),
-        widget=CheckboxSelectMultiple,
-        required=False,
-    )
-
-    def __init__(self, *args, request=None, **kwargs):
-        contact = kwargs.get('instance')
-        super().__init__(*args, request=request, **kwargs)
-        if contact:
-            self.fields['newsletters'].initial = contact.get_newsletter_products()
-
-    def save(self, commit=True):
-        contact = super().save(commit=False)
-        if commit:
-            contact.save()
-        # Handle newsletters explicitly
-        selected_newsletters = self.cleaned_data.get('newsletters')
-        if contact.pk:  # Ensure the contact is saved before modifying M2M
-
-            all_newsletters = self.fields['newsletters'].queryset
-            current_newsletters = self.fields['newsletters'].initial
-
-            # Add new subscriptions for newsletters
-            for newsletter in all_newsletters:
-                if newsletter not in current_newsletters and newsletter in selected_newsletters:
-                    contact.add_newsletter(newsletter.id)
-                elif newsletter in current_newsletters and newsletter not in selected_newsletters:
-                    contact.remove_newsletter(newsletter.id)
-        return contact
-
-    class Media:
-        css = {"all": ("css/contact_edit_newsletters.css",)}
+class ContactAdminFormWithNewsletters(ContactUpdateForm):
+    """
+    Kept as the edit form for contacts. Newsletter editing no longer goes through this Django form: it is
+    handled on demand against the CMS via htmx (see the Newsletters tab and support.views.newsletters), so
+    this class is now just the plain contact update form.
+    """
 
 
 @method_decorator(staff_member_required, name="dispatch")
@@ -316,6 +442,7 @@ class ContactUpdateView(BreadcrumbsMixin, UpdateView):
 
     def breadcrumbs(self):
         return [
+            {"url": reverse("home"), "label": _("Home")},
             {"label": _("Contact list"), "url": reverse("contact_list")},
             {"label": self.object.get_full_name(), "url": reverse("contact_detail", args=[self.object.id])},
             {"label": _("Edit"), "url": ""},
@@ -373,7 +500,6 @@ class ContactUpdateView(BreadcrumbsMixin, UpdateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["all_newsletters"] = Product.objects.filter(type="N", active=True)
         context["mailtrain_lists"] = MailtrainList.objects.filter(is_active=True)
         context["contact_mailtrain_lists"] = get_mailtrain_lists(self.object.email)
         return context
@@ -388,6 +514,7 @@ class ContactCreateView(BreadcrumbsMixin, CreateView):
 
     def breadcrumbs(self):
         return [
+            {"url": reverse("home"), "label": _("Home")},
             {"label": _("Contact list"), "url": reverse("contact_list")},
             {"label": _("Create"), "url": ""},
         ]
@@ -397,19 +524,114 @@ class ContactCreateView(BreadcrumbsMixin, CreateView):
 
 
 @method_decorator(staff_member_required, name="dispatch")
-class ImportContactsView(FormView):
+class ImportContactsView(BreadcrumbsMixin, FormView):
     template_name = 'import_contacts.html'
     form_class = ImportContactsForm
     success_url = reverse_lazy('import_contacts')
 
+    def breadcrumbs(self):
+        return [
+            {"url": reverse("home"), "label": _("Home")},
+            {"url": reverse("campaign_management"), "label": _("Campaign Management")},
+            {"label": _("Import Contacts"), "url": reverse("import_contacts")},
+        ]
+
+    def get(self, request, *args, **kwargs):
+        # Handle template download
+        if 'download_template' in request.GET:
+            return self.download_template()
+        return super().get(request, *args, **kwargs)
+
+    def download_template(self):
+        """
+        Generate and return a CSV template file for contact imports.
+
+        Returns:
+            HttpResponse: CSV file with proper headers and example data
+        """
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="import_contacts_template.csv"'
+
+        writer = csv.writer(response)
+
+        # Write header row with exact column names expected by the view
+        writer.writerow(
+            [
+                'name',
+                'last_name',
+                'email',
+                'phone',
+                'mobile',
+                'notes',
+                'address_1',
+                'address_2',
+                'city',
+                'state',
+                'country',
+                'id_document_type',
+                'id_document',
+            ]
+        )
+
+        # Write example rows
+        writer.writerow(
+            [
+                'Juan',
+                'Perez',
+                'juan.perez@example.com',
+                '24000000',
+                '092123456',
+                'Example contact',
+                '18 de Julio 1234',
+                'Apt 8',
+                'Montevideo',
+                'Montevideo',
+                'Uruguay',
+                'CI',
+                '12345678',
+            ]
+        )
+
+        return response
+
     def get_address_column_names(self):
         return ['address_1', 'address_2', 'city', 'state', 'country']
 
+    def resolve_id_document_type(self, id_doc_type_str, row_number=None):
+        """
+        Resolve ID document type string to IdDocumentType object.
+        Returns None if not found and logs a warning.
+
+        Args:
+            id_doc_type_str: String identifier for document type (e.g., 'CI', 'CC', 'RUT')
+            row_number: Optional row number for warning messages
+
+        Returns:
+            IdDocumentType object or None
+        """
+        if not id_doc_type_str:
+            return None
+
+        # Try to find by name (case-insensitive)
+        doc_type = IdDocumentType.objects.filter(name__iexact=id_doc_type_str).first()
+
+        if not doc_type:
+            # Log warning for invalid document type
+            row_info = f" (Row {row_number})" if row_number else ""
+            messages.warning(
+                self.request,
+                _(f"Invalid ID document type '{id_doc_type_str}'{row_info}. Contact created without document type."),
+            )
+            return None
+
+        return doc_type
+
     def form_valid(self, form):
         csvfile = form.cleaned_data['file']
+        use_headers = form.cleaned_data.get('use_headers', True)
         tags = self.parse_tags(form.cleaned_data)
 
-        results = self.process_csv(csvfile, tags)
+        results = self.process_csv(csvfile, tags, use_headers)
 
         self.display_messages(results)
 
@@ -419,7 +641,7 @@ class ImportContactsView(FormView):
         tag_types = ['tags', 'tags_existing', 'tags_active', 'tags_in_campaign']
         return {tag_type: [tag.strip() for tag in cleaned_data.get(tag_type, '').split(',')] for tag_type in tag_types}
 
-    def process_csv(self, csv_file, tags):
+    def process_csv(self, csv_file, tags, use_headers=True):
         results = {
             'new_contacts': [],
             'in_active_campaign': [],
@@ -432,62 +654,88 @@ class ImportContactsView(FormView):
         }
 
         try:
-            df = pd.read_csv(csv_file)
+            if use_headers:
+                df = pd.read_csv(csv_file, dtype=str, keep_default_na=False)
+            else:
+                # Read without headers and assign column names manually
+                df = pd.read_csv(csv_file, header=None, dtype=str, keep_default_na=False)
+                df.columns = [
+                    'name',
+                    'last_name',
+                    'email',
+                    'phone',
+                    'mobile',
+                    'notes',
+                    'address_1',
+                    'address_2',
+                    'city',
+                    'state',
+                    'country',
+                    'id_document_type',
+                    'id_document',
+                ]
         except Exception as e:
             results['errors'].append(str(e))
             return results
 
         for index, row in df.iterrows():
             try:
-                contact_data = self.parse_row(row)
+                # Calculate row number for error messages
+                row_number = index + 2 if use_headers else index + 1
+                # Always use use_headers=True for parse_row since we assign column names
+                contact_data = self.parse_row(row, use_headers=True, row_number=row_number)
                 self.process_contact(contact_data, tags, results)
             except Exception as e:
                 results['errors'].append(
-                    f"CSV Row {index + 2}: {e}"
-                )  # +2 because pandas index starts at 0 and we want to account for header
+                    f"CSV Row {index + 2 if use_headers else index + 1}: {e}"
+                )  # +2 for headers (pandas index + header row), +1 for no headers
 
         return results
 
-    def parse_row(self, row, use_headers=False):
-        # TODO: Allow this to be configured through the settings or the UI
-        if use_headers:
-            return {
-                'name': row['name'],
-                'last_name': row['last_name'] if pd.notna(row['last_name']) else "",
-                'email': row['email'].lower() if pd.notna(row['email']) else None,
-                'phone': str(row['phone']) if pd.notna(row['phone']) else "",
-                'mobile': str(row['mobile']) if pd.notna(row['mobile']) else "",
-                'notes': row['notes'].strip() if pd.notna(row['notes']) else None,
-                'address_1': row['address_1'] if pd.notna(row['address_1']) else None,
-                'address_2': row['address_2'] if pd.notna(row['address_2']) else None,
-                'city': row['city'] if pd.notna(row['city']) else None,
-                'state': row['state'].strip() if pd.notna(row['state']) else None,
-                'country': row['country'] if pd.notna(row['country']) else None,
-                'id_document_type': row['id_document_type'] if pd.notna(row['id_document_type']) else None,
-                'id_document': row['id_document'] if pd.notna(row['id_document']) else None,
-                'ranking': row['ranking'] if pd.notna(row['ranking']) else None,
-            }
-        else:
-            return {
-                'name': row.iloc[0],
-                'last_name': row.iloc[1] if pd.notna(row.iloc[1]) else "",
-                'email': row.iloc[2].lower() if pd.notna(row.iloc[2]) else None,
-                'phone': str(row.iloc[3]) if pd.notna(row.iloc[3]) else "",
-                'mobile': str(row.iloc[4]) if pd.notna(row.iloc[4]) else "",
-                'notes': row.iloc[5].strip() if pd.notna(row.iloc[5]) else None,
-                'address_1': row.iloc[6] if pd.notna(row.iloc[6]) else None,
-                'address_2': row.iloc[7] if pd.notna(row.iloc[7]) else None,
-                'city': row.iloc[8] if pd.notna(row.iloc[8]) else None,
-                'state': row.iloc[9].strip() if pd.notna(row.iloc[9]) else None,
-                'country': row.iloc[10] if pd.notna(row.iloc[10]) else None,
-                'id_document_type': row.iloc[11] if pd.notna(row.iloc[11]) else None,
-                'id_document': row.iloc[12] if pd.notna(row.iloc[12]) else None,
-                'ranking': row.iloc[13] if pd.notna(row.iloc[13]) else None,
-            }
+    def parse_row(self, row, use_headers=True, row_number=None):
+        """
+        Parse a row from the CSV file into contact data dictionary.
+        Since we read CSV with dtype=str, all values are strings and empty strings are preserved.
+
+        Args:
+            row: DataFrame row to parse
+            use_headers: Whether the CSV had headers (kept for compatibility)
+            row_number: Row number for warning messages
+        """
+        # Resolve ID document type, returns None if invalid
+        id_doc_type_obj = self.resolve_id_document_type(row['id_document_type'], row_number)
+
+        return {
+            'name': row['name'] if row['name'] else None,
+            'last_name': row['last_name'] if row['last_name'] else "",
+            'email': row['email'].lower() if row['email'] else None,
+            'phone': row['phone'] if row['phone'] else "",
+            'mobile': row['mobile'] if row['mobile'] else "",
+            'notes': row['notes'].strip() if row['notes'] else None,
+            'address_1': row['address_1'] if row['address_1'] else None,
+            'address_2': row['address_2'] if row['address_2'] else None,
+            'city': row['city'] if row['city'] else None,
+            'state': row['state'].strip() if row['state'] else None,
+            'country': row['country'] if row['country'] else None,
+            'id_document_type': id_doc_type_obj,
+            'id_document': row['id_document'] if row['id_document'] else None,
+        }
 
     @transaction.atomic
     def process_contact(self, contact_data, tags, results):
-        matches = self.find_matching_contacts_by_email(contact_data['email'])
+        email = contact_data.get('email')
+        phone = contact_data.get('phone')
+
+        # Try to match by email first
+        matches = self.find_matching_contacts_by_email(email) if email else Contact.objects.none()
+
+        # If no email match, try to match by phone
+        if not matches.exists() and phone:
+            matches = self.find_matching_contacts_by_phone(phone)
+            if matches.exists():
+                # Matched by phone - update email if contact doesn't have one
+                self.update_existing_contacts(matches, contact_data, tags, results, matched_by_phone=True)
+                return
 
         if matches.exists():
             self.update_existing_contacts(matches, contact_data, tags, results)
@@ -497,11 +745,23 @@ class ImportContactsView(FormView):
     def find_matching_contacts_by_email(self, email):
         return Contact.objects.filter(email=email)
 
-    def update_existing_contacts(self, matches, contact_data, tags, results):
+    def find_matching_contacts_by_phone(self, phone):
+        return Contact.objects.filter(phone=phone) | Contact.objects.filter(mobile=phone)
+
+    def update_existing_contacts(self, matches, contact_data, tags, results, matched_by_phone=False):
         for contact in matches:
             self.categorize_contact(contact, tags, results)
             if matches.count() == 1:
-                self.update_contact_phone(contact, contact_data, results)
+                # Update email if matched by phone and contact doesn't have an email
+                # IMPORTANT: Never overwrite existing emails to prevent data loss
+                if matched_by_phone and not contact.email:
+                    email_from_csv = contact_data.get('email')
+                    if email_from_csv:
+                        contact.email = email_from_csv
+                        contact.save()
+                        results['added_emails'] += 1
+                else:
+                    self.update_contact_phone(contact, contact_data, results)
 
     def categorize_contact(self, contact, tags, results):
         if contact.contactcampaignstatus_set.filter(campaign__active=True).exists():
@@ -515,18 +775,20 @@ class ImportContactsView(FormView):
             self.add_tags(contact, tags['tags_existing'])
 
     def update_contact_phone(self, contact, contact_data, results):
+        phone_from_csv = contact_data.get('phone', '')
+        if not phone_from_csv:
+            return  # No phone to update
+
         try:
-            # If phone already exists, update the mobile field, else update the phone field
-            if contact.phone is not None:
-                setattr(contact, 'mobile', contact_data['phone'])
+            # If phone already exists and is not empty, update the mobile field, else update the phone field
+            if contact.phone:
+                setattr(contact, 'mobile', phone_from_csv)
             else:
-                setattr(contact, 'phone', contact_data['phone'])
+                setattr(contact, 'phone', phone_from_csv)
             contact.save()
             results['added_phones'] += 1
         except Exception as e:
-            results['errors'].append(
-                f"Could not add phone {contact_data['phone']} to contact {contact.id}: {e}"
-            )
+            results['errors'].append(f"Could not add phone {phone_from_csv} to contact {contact.id}: {e}")
 
     def create_new_contact(self, contact_data, tags, results):
         new_contact = Contact.objects.create(
@@ -555,9 +817,9 @@ class ImportContactsView(FormView):
 
     def add_tags(self, contact, tag_list):
         tag_list = [tag for tag in tag_list if isinstance(tag, str) and tag.strip()]
-        if not tag_list and not contact.tags.exists():
+        if not tag_list:
             return
-        contact.tags.set(tag_list)
+        contact.tags.add(*tag_list)
 
     def display_messages(self, results):
         messages.success(self.request, f"{len(results['new_contacts'])} contacts imported successfully")
@@ -595,15 +857,16 @@ def contact_invoices_htmx(request, contact_id):
     )
 
 
+@method_decorator(staff_member_required, name="dispatch")
 class CheckForExistingContactsView(BreadcrumbsMixin, FormView):
     template_name = "check_for_existing_contacts.html"
     form_class = CheckForExistingContactsForm
 
     def breadcrumbs(self):
         return [
-            {"url": reverse("home"), "label": "Home"},
-            {"url": reverse("contact_list"), "label": "Contacts"},
-            {"label": "Check for existing contacts"},
+            {"url": reverse("home"), "label": _("Home")},
+            {"url": reverse("campaign_management"), "label": _("Campaign Management")},
+            {"label": _("Check for existing contacts"), "url": reverse("check_for_existing_contacts")},
         ]
 
     def get_success_url(self):
@@ -627,20 +890,81 @@ class CheckForExistingContactsView(BreadcrumbsMixin, FormView):
                     output_field=BooleanField(),
                 ),
                 active_campaign_count=Count(
-                    'contactcampaignstatus',
-                    filter=Q(contactcampaignstatus__campaign__active=True),
-                    distinct=True
-                )
+                    'contactcampaignstatus', filter=Q(contactcampaignstatus__campaign__active=True), distinct=True
+                ),
             )
             .distinct()
         )
 
         return contacts
 
-    def process_file(self, file):
+    def find_matching_contacts_by_phone(self, phone_number):
+        """
+        Find matching contacts based on phone or mobile number.
+        Returns a list of contacts that match the given phone number.
+        Normalizes phone numbers to work with or without the '+' symbol.
+        """
+        import re
+        from phonenumber_field.phonenumber import PhoneNumber
+
+        # Normalize the input phone number by removing non-digit characters except +
+        # This helps match numbers with or without the + symbol
+        normalized_input = re.sub(r'[^\d+]', '', phone_number)
+
+        # Create two versions: with and without the + symbol
+        phone_with_plus = normalized_input if normalized_input.startswith('+') else f'+{normalized_input}'
+        phone_without_plus = normalized_input.lstrip('+')
+
+        # Try to parse the phone number with + symbol for proper matching
+        try:
+            parsed_phone = PhoneNumber.from_string(phone_with_plus)
+        except Exception:
+            parsed_phone = None
+
+        # Build query to match phone numbers with or without + symbol
+        # Use icontains to match the digits regardless of formatting
+        query = Q(phone__icontains=phone_without_plus) | Q(mobile__icontains=phone_without_plus)
+
+        # If we successfully parsed the phone, also try exact matching
+        if parsed_phone:
+            query |= Q(phone=parsed_phone) | Q(mobile=parsed_phone)
+
+        contacts = (
+            Contact.objects.filter(query)
+            .prefetch_related(
+                Prefetch(
+                    'subscriptions', queryset=Subscription.objects.filter(active=True, status__in=['OK', 'G'])
+                )
+            )
+            .prefetch_related('contactcampaignstatus_set')
+            .annotate(
+                is_phone_match=Case(
+                    When(phone__icontains=phone_without_plus, then=Value(True)),
+                    default=Value(False),
+                    output_field=BooleanField(),
+                ),
+                is_mobile_match=Case(
+                    When(mobile__icontains=phone_without_plus, then=Value(True)),
+                    default=Value(False),
+                    output_field=BooleanField(),
+                ),
+                active_campaign_count=Count(
+                    'contactcampaignstatus', filter=Q(contactcampaignstatus__campaign__active=True), distinct=True
+                ),
+            )
+            .distinct()
+        )
+
+        return contacts
+
+    def process_file(self, file, check_type='email'):
         """
         Process CSV file with automatic delimiter detection.
-        Only processes email column for contact matching.
+        Processes email or phone column for contact matching based on check_type.
+
+        Args:
+            file: CSV file to process
+            check_type: 'email' or 'phone' - determines which column to check
         """
         results = []
         non_matches = []
@@ -649,29 +973,54 @@ class CheckForExistingContactsView(BreadcrumbsMixin, FormView):
         delimiter = detect_csv_delimiter(file)
 
         for row_number, row in enumerate(csv.DictReader(file, delimiter=delimiter, quotechar='"')):
-            email = row.get('email', '').strip()
+            if check_type == 'email':
+                value = row.get('email', '').strip()
+                if not value:
+                    non_matches.append({'value': value or 'N/A', 'row_number': row_number + 1})
+                    continue
+                contacts = self.find_matching_contacts_by_email(value)
 
-            if not email:
-                non_matches.append({'email': email or 'N/A', 'row_number': row_number + 1})
-                continue
+                if contacts:
+                    for contact in contacts:
+                        results.append(
+                            {
+                                'contact': contact,
+                                'count': contacts.count(),
+                                'email_matches': contact.is_email_match,
+                                'has_active_subscription': bool(contact.subscriptions.all()),
+                                'is_in_active_campaign': contact.active_campaign_count > 0,
+                                'csv_value': value,
+                                'csv_row': row_number + 1,
+                                'check_type': 'email',
+                            }
+                        )
+                else:
+                    non_matches.append({'value': value, 'row_number': row_number + 1})
 
-            contacts = self.find_matching_contacts_by_email(email)
+            elif check_type == 'phone':
+                value = row.get('phone', '').strip()
+                if not value:
+                    non_matches.append({'value': value or 'N/A', 'row_number': row_number + 1})
+                    continue
+                contacts = self.find_matching_contacts_by_phone(value)
 
-            if contacts:
-                for contact in contacts:
-                    results.append(
-                        {
-                            'contact': contact,
-                            'count': contacts.count(),
-                            'email_matches': contact.is_email_match,
-                            'has_active_subscription': bool(contact.subscriptions.all()),
-                            'is_in_active_campaign': contact.active_campaign_count > 0,
-                            'csv_email': email,
-                            'csv_row': row_number + 1,
-                        }
-                    )
-            else:
-                non_matches.append({'email': email, 'row_number': row_number + 1})
+                if contacts:
+                    for contact in contacts:
+                        results.append(
+                            {
+                                'contact': contact,
+                                'count': contacts.count(),
+                                'phone_matches': getattr(contact, 'is_phone_match', False),
+                                'mobile_matches': getattr(contact, 'is_mobile_match', False),
+                                'has_active_subscription': bool(contact.subscriptions.all()),
+                                'is_in_active_campaign': contact.active_campaign_count > 0,
+                                'csv_value': value,
+                                'csv_row': row_number + 1,
+                                'check_type': 'phone',
+                            }
+                        )
+                else:
+                    non_matches.append({'value': value, 'row_number': row_number + 1})
 
             if (row_number + 1) % 100 == 0 and settings.DEBUG:
                 print(f"processed {row_number + 1} rows")
@@ -679,17 +1028,19 @@ class CheckForExistingContactsView(BreadcrumbsMixin, FormView):
         return results, non_matches, delimiter
 
     def get(self, request, *args, **kwargs):
-        """Handle GET requests, including CSV template download."""
-        if 'download_template' in request.GET:
-            return self.download_template()
+        """Handle GET requests, including CSV template downloads."""
+        if 'download_email_template' in request.GET:
+            return self.download_email_template()
+        elif 'download_phone_template' in request.GET:
+            return self.download_phone_template()
         return super().get(request, *args, **kwargs)
 
-    def download_template(self):
+    def download_email_template(self):
         """
-        Generate and return a CSV template file for users to download.
+        Generate and return an email CSV template file for users to download.
         """
         response = HttpResponse(content_type='text/csv')
-        response['Content-Disposition'] = 'attachment; filename="contact_check_template.csv"'
+        response['Content-Disposition'] = 'attachment; filename="contact_check_email_template.csv"'
 
         writer = csv.writer(response)
         # Header row
@@ -701,15 +1052,37 @@ class CheckForExistingContactsView(BreadcrumbsMixin, FormView):
 
         return response
 
+    def download_phone_template(self):
+        """
+        Generate and return a phone CSV template file for users to download.
+        """
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="contact_check_phone_template.csv"'
+
+        writer = csv.writer(response)
+        # Header row
+        writer.writerow(['phone'])
+        # Sample data rows with instructions
+        writer.writerow(['+59899123456'])
+        writer.writerow(['+59898765432'])
+        writer.writerow(['+1234567890'])
+
+        return response
+
     def form_valid(self, form):
         csvfile = form.cleaned_data['file']
         decoded_file = io.StringIO(csvfile.read().decode('utf-8'))
-        results, non_matches, delimiter = self.process_file(decoded_file)
+
+        # Determine check type based on which button was pressed
+        check_type = 'phone' if 'check_phone' in self.request.POST else 'email'
+
+        results, non_matches, delimiter = self.process_file(decoded_file, check_type=check_type)
 
         context = self.get_context_data(form=form)
         context['results'] = results
         context['non_matches'] = non_matches
         context['detected_delimiter'] = 'semicolon (;)' if delimiter == ';' else 'comma (,)'
+        context['check_type'] = check_type
 
         active_subscriptions = sum(1 for result in results if result['has_active_subscription'])
         context['active_subscriptions'] = active_subscriptions
@@ -728,6 +1101,7 @@ class TagAnalysisView(BreadcrumbsMixin, ListView):
     - Contacts in campaigns (any campaign)
     - Contacts in active campaigns
     """
+
     model = Tag
     template_name = "tag_analysis.html"
     context_object_name = "tags"
@@ -736,6 +1110,7 @@ class TagAnalysisView(BreadcrumbsMixin, ListView):
 
     def breadcrumbs(self):
         return [
+            {"url": reverse("home"), "label": _("Home")},
             {"label": _("Contact list"), "url": reverse("contact_list")},
             {"label": _("Tag Analysis"), "url": ""},
         ]
@@ -745,47 +1120,45 @@ class TagAnalysisView(BreadcrumbsMixin, ListView):
         Get all tags used by contacts with statistics annotations.
         """
         # Get tags that are used by contacts with statistics
-        queryset = Tag.objects.filter(
-            taggit_taggeditem_items__content_type__model='contact'
-        ).annotate(
-            # Total contacts with this tag
-            total_contacts=Count(
-                'taggit_taggeditem_items__object_id',
-                filter=Q(taggit_taggeditem_items__content_type__model='contact'),
-                distinct=True
-            ),
-            # Contacts in any campaign - using EXISTS subquery
-            contacts_in_campaigns=Count(
-                'taggit_taggeditem_items__object_id',
-                filter=Q(
-                    taggit_taggeditem_items__content_type__model='contact'
-                ) & Q(
-                    Exists(
-                        ContactCampaignStatus.objects.filter(
-                            contact_id=OuterRef('taggit_taggeditem_items__object_id')
-                        )
-                    )
+        queryset = (
+            Tag.objects.filter(taggit_taggeditem_items__content_type__model='contact')
+            .annotate(
+                # Total contacts with this tag
+                total_contacts=Count(
+                    'taggit_taggeditem_items__object_id',
+                    filter=Q(taggit_taggeditem_items__content_type__model='contact'),
+                    distinct=True,
                 ),
-                distinct=True
-            ),
-            # Contacts in active campaigns - using EXISTS subquery
-            contacts_in_active_campaigns=Count(
-                'taggit_taggeditem_items__object_id',
-                filter=Q(
-                    taggit_taggeditem_items__content_type__model='contact'
-                ) & Q(
-                    Exists(
-                        ContactCampaignStatus.objects.filter(
-                            contact_id=OuterRef('taggit_taggeditem_items__object_id'),
-                            campaign__active=True
+                # Contacts in any campaign - using EXISTS subquery
+                contacts_in_campaigns=Count(
+                    'taggit_taggeditem_items__object_id',
+                    filter=Q(taggit_taggeditem_items__content_type__model='contact')
+                    & Q(
+                        Exists(
+                            ContactCampaignStatus.objects.filter(
+                                contact_id=OuterRef('taggit_taggeditem_items__object_id')
+                            )
                         )
-                    )
+                    ),
+                    distinct=True,
                 ),
-                distinct=True
+                # Contacts in active campaigns - using EXISTS subquery
+                contacts_in_active_campaigns=Count(
+                    'taggit_taggeditem_items__object_id',
+                    filter=Q(taggit_taggeditem_items__content_type__model='contact')
+                    & Q(
+                        Exists(
+                            ContactCampaignStatus.objects.filter(
+                                contact_id=OuterRef('taggit_taggeditem_items__object_id'), campaign__active=True
+                            )
+                        )
+                    ),
+                    distinct=True,
+                ),
             )
-        ).filter(
-            total_contacts__gt=0  # Only show tags that have contacts
-        ).order_by('-total_contacts', 'name')
+            .filter(total_contacts__gt=0)  # Only show tags that have contacts
+            .order_by('-total_contacts', 'name')
+        )
 
         # Apply name filter if provided
         name_filter = self.request.GET.get('name')
@@ -802,9 +1175,51 @@ class TagAnalysisView(BreadcrumbsMixin, ListView):
         total_tags = self.get_queryset().count()
         total_contacts_with_tags = Contact.objects.filter(tags__isnull=False).distinct().count()
 
-        context.update({
-            'total_tags': total_tags,
-            'total_contacts_with_tags': total_contacts_with_tags,
-        })
+        context.update(
+            {
+                'total_tags': total_tags,
+                'total_contacts_with_tags': total_contacts_with_tags,
+            }
+        )
 
         return context
+
+
+def user_can_edit_campaign_status(user):
+    return user.is_active and (
+        user.is_superuser or user.groups.filter(name__in=["Managers", "Admin"]).exists()
+    )
+
+
+@method_decorator(staff_member_required, name="dispatch")
+class ContactCampaignStatusEditView(BreadcrumbsMixin, UpdateView):
+    model = ContactCampaignStatus
+    form_class = ContactCampaignStatusEditForm
+    template_name = "contact_detail/edit_campaign_status.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        if not user_can_edit_campaign_status(request.user):
+            messages.error(request, _("You don't have permission to edit campaign statuses."))
+            ccs = get_object_or_404(ContactCampaignStatus, pk=kwargs["pk"])
+            from django.shortcuts import redirect
+
+            return redirect(reverse("contact_detail", args=[ccs.contact_id]))
+        return super().dispatch(request, *args, **kwargs)
+
+    def breadcrumbs(self):
+        return [
+            {"url": reverse("home"), "label": _("Home")},
+            {"label": _("Contact list"), "url": reverse("contact_list")},
+            {
+                "label": self.object.contact.get_full_name(),
+                "url": reverse("contact_detail", args=[self.object.contact_id]),
+            },
+            {"label": _("Edit campaign status"), "url": ""},
+        ]
+
+    def get_success_url(self):
+        return reverse("contact_detail", args=[self.object.contact_id])
+
+    def form_valid(self, form):
+        messages.success(self.request, _("Campaign status updated successfully."))
+        return super().form_valid(form)

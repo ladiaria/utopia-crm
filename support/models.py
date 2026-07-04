@@ -1,15 +1,16 @@
 # coding=utf-8
-from datetime import date
+from datetime import date, timedelta
 
 from django.db import models
 from django.conf import settings
 from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django.utils.safestring import mark_safe
 from autoslug import AutoSlugField
 
-
+from core.choices import ACTIVITY_STATUS, CAMPAIGN_RESOLUTION_CHOICES, CAMPAIGN_STATUS
 from core.models import Campaign
 
 from simple_history.models import HistoricalRecords
@@ -22,6 +23,20 @@ from support.choices import (
 )
 
 
+class Shift(models.Model):
+    name = models.CharField(max_length=50, verbose_name=_("Name"))
+    start_time = models.TimeField(verbose_name=_("Start time"))
+    end_time = models.TimeField(verbose_name=_("End time"))
+
+    def __str__(self):
+        return f"{self.name} ({self.start_time}–{self.end_time})"
+
+    class Meta:
+        verbose_name = _("shift")
+        verbose_name_plural = _("shifts")
+        ordering = ["start_time"]
+
+
 class Seller(models.Model):
     """
     Stores information about the sellers. An user should be assigned to them so that user can access their own seller
@@ -30,7 +45,15 @@ class Seller(models.Model):
 
     name = models.CharField(max_length=40, verbose_name=_("Name"))
     internal = models.BooleanField(default=False, verbose_name=_("Is internal?"))
-    user = models.ForeignKey(User, blank=True, null=True, on_delete=models.SET_NULL)
+    call_center = models.BooleanField(default=False, verbose_name=_("Works in call center?"))
+    shift = models.ForeignKey(
+        "Shift",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        verbose_name=_("Shift"),
+    )
+    user = models.OneToOneField(User, blank=True, null=True, on_delete=models.SET_NULL)
     old_pk = models.PositiveIntegerField(blank=True, null=True, db_index=True)
 
     def __str__(self):
@@ -90,13 +113,13 @@ class Seller(models.Model):
 
     def total_pending_activities(self):
         return self.activity_set.filter(
-            status="P",
+            status__in=(ACTIVITY_STATUS.PENDING, ACTIVITY_STATUS.EXPIRED),
             activity_type="C",
         ).order_by("datetime")
 
     def total_pending_activities_count(self):
         activity_qs = self.activity_set.filter(
-            status="P",
+            status__in=(ACTIVITY_STATUS.PENDING, ACTIVITY_STATUS.EXPIRED),
             activity_type="C",
             datetime__lte=timezone.now(),
         )
@@ -115,14 +138,20 @@ class Issue(models.Model):
     """
 
     date_created = models.DateField(auto_now_add=True)
+    date_modified = models.DateTimeField(auto_now=True, null=True, blank=True, verbose_name=_("Date modified"))
     contact = models.ForeignKey("core.Contact", on_delete=models.CASCADE, verbose_name=_("Contact"))
-    date = models.DateField(default=date.today, verbose_name=_("Date"))
-    category = models.CharField(max_length=1, blank=True, null=True, choices=get_issue_categories())
-    subcategory = models.CharField(max_length=3, blank=True, null=True, choices=ISSUE_SUBCATEGORIES)
-    inside = models.BooleanField(default=True)
-    notes = models.TextField(blank=True, null=True)
+    date = models.DateField(default=date.today, verbose_name=_("Date"), help_text=_("Date of the issue"))
+    category = models.CharField(
+        verbose_name=_("Category"), max_length=1, blank=True, null=True, choices=get_issue_categories()
+    )
+    subcategory = models.CharField(
+        verbose_name=_("Subcategory"), max_length=3, blank=True, null=True, choices=ISSUE_SUBCATEGORIES
+    )
+    inside = models.BooleanField(verbose_name=_("Inside"), default=True)
+    notes = models.TextField(verbose_name=_("Notes"), blank=True, null=True)
     manager = models.ForeignKey(
         "auth.User",
+        verbose_name=_("Manager"),
         blank=True,
         null=True,
         related_name="issue_manager",
@@ -130,32 +159,55 @@ class Issue(models.Model):
     )  # User who created the issue. Non-editable
     assigned_to = models.ForeignKey(
         "auth.User",
+        verbose_name=_("Assigned to"),
         blank=True,
         null=True,
         related_name="issue_assigned",
         on_delete=models.SET_NULL,
     )  # Editable, assigned to which user
-    progress = models.TextField(blank=True, null=True)
-    answer_1 = models.CharField(max_length=2, blank=True, null=True, choices=ISSUE_ANSWERS)
-    answer_2 = models.TextField(blank=True, null=True)
-    status = models.ForeignKey("support.IssueStatus", blank=True, null=True, on_delete=models.SET_NULL)
-    sub_category = models.ForeignKey("support.IssueSubcategory", blank=True, null=True, on_delete=models.SET_NULL)
-    end_date = models.DateField(blank=True, null=True)
-    next_action_date = models.DateField(blank=True, null=True)
-    closing_date = models.DateField(blank=True, null=True)
-    copies = models.PositiveSmallIntegerField(default=0)
+    progress = models.TextField(verbose_name=_("Progress"), blank=True, null=True)
+    answer_1 = models.CharField(verbose_name=_("Answer 1"), max_length=2, blank=True, null=True, choices=ISSUE_ANSWERS)
+    answer_2 = models.TextField(verbose_name=_("Answer 2"), blank=True, null=True)
+    status = models.ForeignKey(
+        "support.IssueStatus", verbose_name=_("Status"), blank=True, null=True, on_delete=models.SET_NULL
+    )
+    sub_category = models.ForeignKey(
+        "support.IssueSubcategory", verbose_name=_("Subcategory"), blank=True, null=True, on_delete=models.SET_NULL
+    )
+    end_date = models.DateField(verbose_name=_("End date"), blank=True, null=True)
+    next_action_date = models.DateField(verbose_name=_("Next action date"), blank=True, null=True)
+    closing_date = models.DateField(verbose_name=_("Closing date"), blank=True, null=True)
+    copies = models.PositiveSmallIntegerField(verbose_name=_("Copies"), default=0)
     # Optional attributes
     subscription_product = models.ForeignKey(
-        "core.SubscriptionProduct", null=True, blank=True, on_delete=models.SET_NULL
+        "core.SubscriptionProduct",
+        verbose_name=_("Subscription product"),
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
     )
-    subscription = models.ForeignKey("core.Subscription", on_delete=models.CASCADE, null=True, blank=True)
-    product = models.ForeignKey("core.Product", on_delete=models.CASCADE, null=True, blank=True)
-    address = models.ForeignKey("core.Address", on_delete=models.CASCADE, null=True, blank=True)
+    subscription = models.ForeignKey(
+        "core.Subscription", verbose_name=_("Subscription"), on_delete=models.CASCADE, null=True, blank=True
+    )
+    product = models.ForeignKey(
+        "core.Product", verbose_name=_("Product"), on_delete=models.CASCADE, null=True, blank=True
+    )
+    address = models.ForeignKey(
+        "core.Address", verbose_name=_("Address"), on_delete=models.CASCADE, null=True, blank=True
+    )
     envelope = models.BooleanField(default=False, verbose_name=_("Envelope"), null=True)
+    resolution = models.ForeignKey(
+        "support.IssueResolution", verbose_name=_("Resolution"), blank=True, null=True, on_delete=models.SET_NULL
+    )
     history = HistoricalRecords()
 
     class Meta:
-        pass
+        verbose_name = _("Issue")
+        verbose_name_plural = _("Issues")
+        permissions = [
+            ("can_access_community_console", _("Can access community management console")),
+            ("can_manage_community_console", _("Can manage community console (assign issues)")),
+        ]
 
     def get_category(self):
         categories = dict(get_issue_categories())
@@ -195,6 +247,39 @@ class Issue(models.Model):
             return None
         else:
             self.save()
+
+    def apply_status_change(self, new_status):
+        """
+        Change the issue's status applying the shared side-effect rules:
+
+        - If the new status is terminal (its slug is in ISSUE_STATUS_FINISHED_LIST)
+          and there is no closing_date yet, set closing_date to today.
+        - If the new status is NOT terminal and next_action_date is missing or in
+          the past, set next_action_date to tomorrow.
+
+        This does not save the instance; the caller is responsible for persisting
+        the changes (via save() or bulk_update). Returns the list of field names
+        that were modified, so callers using bulk_update know what to pass.
+        """
+        old_status = self.status
+        self.status = new_status
+
+        changed_fields = ["status"]
+        if old_status == new_status:
+            return changed_fields
+
+        terminal_statuses = getattr(settings, "ISSUE_STATUS_FINISHED_LIST", [])
+        today = date.today()
+        if new_status and new_status.slug in terminal_statuses:
+            if not self.closing_date:
+                self.closing_date = today
+                changed_fields.append("closing_date")
+        else:
+            if not self.next_action_date or self.next_action_date <= today:
+                self.next_action_date = today + timedelta(days=1)
+                changed_fields.append("next_action_date")
+
+        return changed_fields
 
     def activity_count(self):
         return self.activity_set.count()
@@ -245,6 +330,19 @@ class ScheduledTask(models.Model):
     def get_category(self):
         categories = dict(SCHEDULED_TASK_CATEGORIES)
         return categories.get(self.category, "N/A")
+
+    def clean(self):
+        errors = {}
+        if self.category in ('PD', 'PA') and not self.subscription_id:
+            errors['subscription'] = _("A subscription is required for this category.")
+        if self.category == 'AC' and not self.address_id:
+            errors['address'] = _("An address is required for this category.")
+        if errors:
+            raise ValidationError(errors)
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
 
     def execute(self, debug=False, verbose=False):
         """Execute the scheduled task based on its category"""
@@ -307,9 +405,11 @@ class ScheduledTask(models.Model):
         if debug:
             print(f"DEBUG: Task {self.id} completed successfully.")
         if verbose:
-            return _("Task {id} of type {category} for contact {contact} completed successfully.".format(
-                id=self.id, category=self.get_category(), contact=self.contact.get_full_name()
-            ))
+            return _(
+                "Task {id} of type {category} for contact {contact} completed successfully.".format(
+                    id=self.id, category=self.get_category(), contact=self.contact.get_full_name()
+                )
+            )
         else:
             return None
 
@@ -332,6 +432,8 @@ class IssueStatus(models.Model):
 
     class Meta:
         ordering = ["category", "name"]
+        verbose_name = _("Issue Status")
+        verbose_name_plural = _("Issue Statuses")
 
 
 class IssueSubcategory(models.Model):
@@ -347,6 +449,26 @@ class IssueSubcategory(models.Model):
 
     class Meta:
         ordering = ["category", "name"]
+        verbose_name = _("Issue Subcategory")
+        verbose_name_plural = _("Issue Subcategories")
+
+
+class IssueResolution(models.Model):
+    subcategory = models.ForeignKey("support.IssueSubcategory", on_delete=models.CASCADE, verbose_name=_("Subcategory"))
+    name = models.CharField(verbose_name=_("Name"), max_length=100)
+    slug = models.SlugField(verbose_name=_("Slug"), max_length=100)
+    description = models.TextField(verbose_name=_("Description"), blank=True, null=True)
+
+    class Meta:
+        verbose_name = _("Issue Resolution")
+        verbose_name_plural = _("Issue Resolutions")
+        ordering = ["subcategory", "name"]
+
+    def __str__(self):
+        return self.name
+
+    def natural_key(self):
+        return (self.name, self.slug)
 
 
 class SalesRecord(models.Model):
@@ -359,6 +481,8 @@ class SalesRecord(models.Model):
     class SALE_TYPE(models.TextChoices):
         FULL = "F", _("Full")
         PARTIAL = "P", _("Partial")
+        PRODUCT_CHANGE = "C", _("Product Change")
+        RETENTION = "R", _("Retention")
 
     seller = models.ForeignKey(
         "support.Seller", on_delete=models.CASCADE, verbose_name=_("Seller"), null=True, blank=True
@@ -526,15 +650,13 @@ class SalesRecord(models.Model):
         )
         products_count_commission = (
             f"{self.calculate_products_count_commission(return_value=True)} "
-            f"({self.max_products_count()} products)"
+            f"({self.max_products_count()} {_('products')})"
         )
         frequency_commission = (
-            f"{self.calculate_frequency_commission(return_value=True)} "
-            f"({self.subscription.frequency})"
+            f"{self.calculate_frequency_commission(return_value=True)} " f"({self.subscription.frequency})"
         )
         specific_products_commission = (
-            f"{self.calculate_specific_products_commission(return_value=True)} "
-            f"(specific products)"
+            f"{self.calculate_specific_products_commission(return_value=True)} " f"({_('specific products')})"
         )
         # Error catching
         try:
@@ -562,10 +684,34 @@ class SellerConsoleAction(models.Model):
     """
     Model to store which actions the seller has done in the console. It is stored in the activity.
     """
+
+    class ACTION_TYPES(models.TextChoices):
+        SUCCESS = "S", _("Success")
+        DECLINED = "D", _("Declined")
+        PENDING = "P", _("Pending")
+        NO_CONTACT = "N", _("No contact")
+        SCHEDULED = "C", _("Scheduled")
+        CALL_LATER = "L", _("Call later")
+        NOT_FOUND = "F", _("Not found")
+
     slug = models.SlugField(max_length=100, primary_key=True)
     name = models.CharField(max_length=100, blank=True, null=True)
     description = models.TextField(blank=True, null=True)
     is_active = models.BooleanField(default=True)
+    action_type = models.CharField(max_length=1, choices=ACTION_TYPES.choices, blank=True, null=True)
+    campaign_status = models.PositiveSmallIntegerField(
+        choices=CAMPAIGN_STATUS.choices,
+        null=True,
+        blank=True,
+        help_text=_("Campaign status to set when this action is performed"),
+    )
+    campaign_resolution = models.CharField(
+        max_length=2,
+        choices=CAMPAIGN_RESOLUTION_CHOICES,
+        null=True,
+        blank=True,
+        help_text=_("Campaign resolution to set when this action is performed"),
+    )
 
     def __str__(self):
         return self.name
@@ -574,3 +720,59 @@ class SellerConsoleAction(models.Model):
         verbose_name = _("Seller Console Action")
         verbose_name_plural = _("Seller Console Actions")
         ordering = ("name",)
+
+
+class AbsenceReason(models.Model):
+    name = models.CharField(max_length=100, verbose_name=_("Name"))
+    description = models.TextField(blank=True, verbose_name=_("Description"))
+    justified = models.BooleanField(verbose_name=_("Justified"))
+    active = models.BooleanField(default=True, verbose_name=_("Active"))
+
+    def __str__(self):
+        label = _("Justified") if self.justified else _("Unjustified")
+        return f"{self.name} ({label})"
+
+    class Meta:
+        verbose_name = _("absence reason")
+        verbose_name_plural = _("absence reasons")
+        ordering = ["name"]
+
+
+ATTENDANCE_STATUS_PRESENT = "P"
+ATTENDANCE_STATUS_ABSENT = "A"
+ATTENDANCE_STATUS_CHOICES = [
+    (ATTENDANCE_STATUS_PRESENT, _("Present")),
+    (ATTENDANCE_STATUS_ABSENT, _("Absent")),
+]
+
+
+class AttendanceRecord(models.Model):
+    date = models.DateField(unique=True, verbose_name=_("Date"))
+
+    def __str__(self):
+        return str(self.date)
+
+    class Meta:
+        verbose_name = _("attendance record")
+        verbose_name_plural = _("attendance records")
+        ordering = ["-date"]
+
+
+class SellerAttendance(models.Model):
+    record = models.ForeignKey(AttendanceRecord, on_delete=models.CASCADE, related_name="attendances")
+    seller = models.ForeignKey(Seller, on_delete=models.CASCADE, verbose_name=_("Seller"))
+    status = models.CharField(max_length=1, choices=ATTENDANCE_STATUS_CHOICES, verbose_name=_("Status"))
+    absence_reason = models.ForeignKey(
+        AbsenceReason,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        verbose_name=_("Absence reason"),
+    )
+    shift_start = models.TimeField(verbose_name=_("Shift start"))
+    shift_end = models.TimeField(verbose_name=_("Shift end"))
+
+    class Meta:
+        unique_together = [("record", "seller")]
+        verbose_name = _("seller attendance")
+        verbose_name_plural = _("seller attendances")

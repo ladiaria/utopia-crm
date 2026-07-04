@@ -128,10 +128,16 @@ def create_address(address_1, contact, address_type='physical'):
     return Address.objects.get(pk=address.id)
 
 
-def create_scheduled_task(contact, category, execution_date):
+def create_scheduled_task(contact, category, execution_date, address=None, subscription=None):
     from support.models import ScheduledTask
 
-    scheduled_task = ScheduledTask.objects.create(contact=contact, category=category, execution_date=execution_date)
+    scheduled_task = ScheduledTask.objects.create(
+        contact=contact,
+        category=category,
+        execution_date=execution_date,
+        address=address,
+        subscription=subscription,
+    )
 
     return ScheduledTask.objects.get(pk=scheduled_task.id)
 

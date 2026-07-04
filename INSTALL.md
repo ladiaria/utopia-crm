@@ -1,206 +1,260 @@
 # Utopia CRM installation guide
 
-## Install requirements
+## Requirements
 
-- Python:
-
-  The Python version supported is any version starting from 3.10.6 to 3.12.8 (the highest version suported by the Django version we have as dependency, Django 4.2.19). But of course this will depend on the extra modules you plan to integrate in your project, since it's a Django project, you can install any Django app you want.
-
-  If your system has a native Python installation in version 3.10.6 - 3.12.8 you can use it, without installing another Python version. If not, or even if you want to keep this project isolated from the rest of your system, you may consider installing version 3.12.8 (or any other supported version) using [pyenv](https://github.com/pyenv/pyenv)
-
-- System packages:
-
-  NOTES: package names can vary by OS/distribution.
-
-  - `postgresql` (Version 11+ is required)
+- **Python**: 3.10.6 – 3.12.8 (constrained by Django 4.2). If your system Python is outside this range, use [pyenv](https://github.com/pyenv/pyenv) to install a supported version.
+- **System packages** (names may vary by OS/distribution):
+  - `postgresql` (version 11+)
   - `postgis`
+  - `gdal` / `libgdal-dev`
+  - `geos` / `libgeos-dev`
 
-## Local installation for development in Linux or Mac (Devs / DevOps)
+---
 
-### Clone the source code
+## Local installation for development (Linux or macOS)
 
-Open a terminal and go to the directory where you want to save the project source code, then clone the repository from GitHub with:
-
-`git clone -b main https://github.com/ladiaria/utopia-crm.git`
-
-and change to that folder
-
-`cd utopia-crm`
-
-### Create a virtual environment and install CRM dependencies
-
-Create a virtualenv (venv) for Python3 (the subdirectory `~/.virtualenvs` is not needed, we use it in this guide because is the default virtualenv directory in the tool [virtualenvwrapper](https://virtualenvwrapper.readthedocs.io/), also the virtual environment name can be any other, "utopiacrm" is chosen in this guide):
-
-  NOTE: if using pyenv, this venv creation is done a bit different, consult the pyenv documentation for that.
-
-  `user@host:~/utopia-crm $ mkdir -p ~/.virtualenvs && virtualenv ~/.virtualenvs/utopiacrm`
-
-- Activate the new virtual environment and install the required Python modules:
-
-  ```bash
-  user@host:~/utopia-crm $ source ~/.virtualenvs/utopiacrm/bin/activate
-  (utopiacrm) user@host:~/utopia-crm $ pip install --upgrade pip && pip install -r requirements.txt
-  ```
-
-### Database setup
-
-Create a database user and the database, this can be done in many different ways, the simplest way, when you have access to the database superuser (`postgres`) "via sudo" is the one we choose for this guide:
-
-Note: the default password we use in the sample settings file in the next step is "utopiadev_django", the same as the username.
+### 1. Clone the repository
 
 ```bash
-# Execute these commands, entering a new password for the new user being created, this password will be used in next
-# step, don't forget it.
+git clone -b main https://github.com/ladiaria/utopia-crm.git
+cd utopia-crm
+```
+
+### 2. Create a virtual environment and install dependencies
+
+```bash
+mkdir -p ~/.virtualenvs && virtualenv ~/.virtualenvs/utopiacrm
+source ~/.virtualenvs/utopiacrm/bin/activate
+pip install --upgrade pip && pip install -r requirements.txt
+```
+
+> If you are using pyenv, virtual environment creation works differently — consult the pyenv documentation.
+
+### 3. Database setup
+
+The simplest approach when you have `sudo` access to the `postgres` superuser:
+
+```bash
 sudo -u postgres createuser -DPS utopiadev_django
 sudo -u postgres createdb -O utopiadev_django utopiadev
 sudo -u postgres psql -c "CREATE EXTENSION postgis;" utopiadev
 sudo -u postgres psql -c "CREATE EXTENSION unaccent;" utopiadev
 ```
 
-### Local configuration
+The default password used in the sample settings file is `utopiadev_django`.
 
-Copy `local_settings_sample.py` to `local_settings.py` and configure the database in the new file by modifying the `DATABASE` variable with the values created in the previous step. And also fill the `SECRET_KEY` variable using any string or a more secure one generated for example with [this web tool](https://djecrety.ir/).
+### 4. Local configuration
 
-### Extra configuration for macOS
+Copy the sample settings file and edit it:
 
-In the case that you're using macOS, it is necessary that you specify where "gdal" and "geos" are located. You'll have to install them through brew and then locate where the files are stored to add the following settings. Please note that these settings are for the last version of ARM MacOS computers. Your homebrew folder can differ for intel based MacOS computers. These settings will be commented in local_settings_sample.py.
+```bash
+cp local_settings_sample.py local_settings.py
+```
+
+- Set `SECRET_KEY` to any non-empty string (or generate one with [djecrety.ir](https://djecrety.ir/)).
+- Verify the `DATABASES` block matches the user and database name you created above.
+
+#### Extra step for macOS
+
+On macOS, GDAL and GEOS are installed by Homebrew to non-standard paths. Install them first:
+
+```bash
+brew install gdal geos
+```
+
+Then add the following to your `local_settings.py` (adjust paths if on Intel Mac):
 
 ```python
 GDAL_LIBRARY_PATH = "/opt/homebrew/opt/gdal/lib/libgdal.dylib"
 GEOS_LIBRARY_PATH = "/opt/homebrew/opt/geos/lib/libgeos_c.dylib"
 ```
 
-To install these packages refer to the following websites.
-[geos homebrew](https://formulae.brew.sh/formula/geos)
-[gdal homebrew](https://formulae.brew.sh/formula/gdal)
+If the server fails to start with a GDAL-related error even after setting these paths, see [GDAL troubleshooting](#gdal-troubleshooting-macos) below.
 
-### Create the database structure
-
-Run "migrate":
-
-`(utopiacrm) user@host:~/utopia-crm$ python manage.py migrate`
-
-An output like this will appear:
-
-```console
-Operations to perform:
-  Apply all migrations: admin, admin_honeypot, auth, authtoken, community, contenttypes, core, invoicing, logistics, sessions, support, taggit
-Running migrations:
-  Applying contenttypes.0001_initial... OK
-  Applying auth.0001_initial... OK
-  Applying admin.0001_initial... OK
-  Applying admin.0002_logentry_remove_auto_add... OK
-  Applying admin_honeypot.0001_initial... OK
-...
-```
-
-### Create a Django superuser to login into the CRM's web interface
-
-Run the following command:
+### 5. Create the database structure
 
 ```bash
-(utopiacrm) user@host:~/utopia-crm$ python manage.py createsuperuser
+python manage.py migrate
 ```
 
-And follow the prompts to create your super user.
+### 6. Load default groups and permissions
 
-WARNING: This user has ALL permissions on the application database. It is recommended that you only give superuser permissions to people you trust. It can be deleted if it's not necessary.
-
-### Create the default groups and populate them with their permissions
-
-Run the following command, which will create the default groups for the application with some basic permissions.
+This creates the default user groups for the base application:
 
 ```bash
-(utopiacrm) user@host:~/utopia-crm$ python manage.py loaddata fixtures/default_groups.json
+python manage.py loaddata default_groups
 ```
 
-### Running the application
+> If you are installing with a customization package (see [Extending utopia-crm](#extending-utopia-crm) below), skip this step and run the richer fixture from your package instead — it includes the base groups plus any extension-specific permissions.
 
-Start the development server by running:
+### 7. Populate required lookup data
 
 ```bash
-(utopiacrm) user@host:~/utopia-crm$ python manage.py runserver
+python manage.py populate_seller_console_actions
 ```
 
-and go to the following URL in your browser: [http://127.0.0.1:8000/](http://127.0.0.1:8000/)
+### 8. Create a superuser
 
-### Known issues for MacOS
+```bash
+python manage.py createsuperuser
+```
 
-It is possible that you encounter this error when running the server for the first time:
+Follow the prompts. This user has all permissions — only grant it to people you trust.
 
-`ModuleNotFoundError: No module named 'dns'`
+### 9. Start the development server
 
-To solve this issue, navigate to where your virtualenv is located and find the site-packages folder under the folder lib/pythonX.XX/ where X.XX is your python version. There you might find an uppercase DNS folder that you can safely rename to lowercase "dns". In the case your error shows that the module not found is an uppercase DNS, you can do the opposite.
+```bash
+python manage.py runserver 0:8001
+```
 
-### Enabling Mercado Pago Integration
+Go to [http://127.0.0.1:8001/](http://127.0.0.1:8001/) in your browser.
 
-To enable Mercado Pago integration:
+---
 
-1. Enable and configure Mercado Pago settings in your `local_settings.py` using your Mercado Pago credentials:
+## Known issues
 
-   ```python
-   # Mercado Pago settings
-   MERCADOPAGO_ENABLED = True
-   MERCADOPAGO_PUBLIC_KEY = 'your_public_key'
-   MERCADOPAGO_ACCESS_TOKEN = 'your_access_token'
-   ```
+### GDAL troubleshooting (macOS)
 
-2. Ensure that your server has HTTPS enabled, as Mercado Pago requires secure connections for callbacks and redirects.
+Django's GeoDjango bindings need to load `libgdal` as a shared library. If the Homebrew GDAL version doesn't match what Django expects, you may see errors like:
 
-### Optional: Set a different cache for django-select2
+```
+OSError: cannot load library 'gdal': ...
+django.core.exceptions.ImproperlyConfigured: Could not find the GDAL library
+```
 
-Django-select2 is used to enhance select fields in forms, especially when dealing with large datasets like contacts. It provides a searchable dropdown interface that improves user experience and performance when selecting from a large number of options. The main benefits include:
+**Option 1: verify the Homebrew path**
 
-1. Efficient searching and filtering of options
-2. Lazy loading of data, which is crucial for large datasets
-3. Better user interface with autocomplete functionality
+The path varies between Apple Silicon and Intel Macs, and between GDAL versions. Check what you actually have:
 
-By default, django-select2 uses Django's default cache. However, for better performance, especially in production environments, it's recommended to use a more robust caching solution. Here's how you can configure a different cache for django-select2:
+```bash
+find /opt/homebrew -name "libgdal*.dylib" 2>/dev/null   # Apple Silicon
+find /usr/local -name "libgdal*.dylib" 2>/dev/null       # Intel
+```
 
-1. First, ensure you have a caching backend installed. For example, to use Redis:
+Use the exact path you find in `local_settings.py`.
 
-   ```bash
-   pip install django-redis
-   ```
+**Option 2: use the GDAL bundled with Postgres.app**
 
-2. Configure the cache in your `local_settings.py`:
+If you use [Postgres.app](https://postgresapp.com/), it ships its own GDAL build that is already version-matched to PostGIS. This is often the most reliable option on macOS:
 
-   ```python
-   CACHES = {
-       "default": {
-           "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
-       },
-       "select2": {
-           "BACKEND": "django_redis.cache.RedisCache",
-           "LOCATION": "redis://127.0.0.1:6379/2",
-           "OPTIONS": {
-               "CLIENT_CLASS": "django_redis.client.DefaultClient",
-           }
-       }
-   }
+```python
+GDAL_LIBRARY_PATH = "/Applications/Postgres.app/Contents/Versions/latest/lib/libgdal.dylib"
+GEOS_LIBRARY_PATH = "/opt/homebrew/opt/geos/lib/libgeos_c.dylib"
+```
 
-   # Tell select2 which cache to use
-   SELECT2_CACHE_BACKEND = "select2"
-   ```
+Note: GEOS still comes from Homebrew in this setup — only GDAL is taken from Postgres.app. If GEOS also fails, check its path the same way:
 
-   This configuration sets up a separate Redis cache for select2, while keeping the default cache as LocMemCache.
+```bash
+find /opt/homebrew -name "libgeos_c*.dylib" 2>/dev/null
+```
 
-3. Adjust the `LOCATION` in the above configuration to match your Redis server's address and port.
 
-4. If you're using Memcached instead of Redis, you can use this configuration:
+### macOS: `ModuleNotFoundError: No module named 'dns'`
 
-   ```python
-   CACHES = {
-       "default": {
-           "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
-       },
-       "select2": {
-           "BACKEND": "django.core.cache.backends.memcached.PyMemcacheCache",
-           "LOCATION": "127.0.0.1:11211",
-       }
-   }
+`py3dns` was removed from `requirements.txt` — DNS support now comes from `dnspython` (pulled in automatically by `pyIsEmail`), which always installs as `dns/` (lowercase) and doesn't have this problem.
 
-   SELECT2_CACHE_BACKEND = "select2"
-   ```
+If you see this error anyway — e.g. because you installed `py3dns` manually or have an old virtualenv — it's a case-sensitivity mismatch. When pip installs py3DNS, the folder in `site-packages` may be `DNS/` (uppercase) or `dns/` (lowercase) depending on the version. On macOS the filesystem is case-insensitive so it installs without complaint, but Python's import system can still fail depending on which case it expects.
 
-By setting up a separate cache for django-select2, you can optimize its performance without affecting the caching of other parts of your application. This is particularly beneficial when dealing with large datasets like contacts in a CRM system.
+Fix: find the folder and rename it to match what the error expects:
+
+```bash
+ls ~/.virtualenvs/utopiacrm/lib/pythonX.XX/site-packages/ | grep -i dns
+mv ~/.virtualenvs/utopiacrm/lib/pythonX.XX/site-packages/DNS \
+   ~/.virtualenvs/utopiacrm/lib/pythonX.XX/site-packages/dns
+```
+
+---
+
+## Optional configuration
+
+### Mercado Pago integration
+
+Add the following to `local_settings.py`:
+
+```python
+MERCADOPAGO_ENABLED = True
+MERCADOPAGO_PUBLIC_KEY = "your_public_key"
+MERCADOPAGO_ACCESS_TOKEN = "your_access_token"
+```
+
+Mercado Pago requires HTTPS for callbacks and redirects — make sure your server has it enabled.
+
+### Separate cache for django-select2
+
+By default, django-select2 uses Django's default cache. For better performance with large contact datasets, configure a dedicated cache backend in `local_settings.py`.
+
+With Redis:
+
+```bash
+pip install django-redis
+```
+
+```python
+CACHES = {
+    "default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"},
+    "select2": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://127.0.0.1:6379/2",
+        "OPTIONS": {"CLIENT_CLASS": "django_redis.client.DefaultClient"},
+    },
+}
+SELECT2_CACHE_BACKEND = "select2"
+```
+
+With Memcached:
+
+```python
+CACHES = {
+    "default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"},
+    "select2": {
+        "BACKEND": "django.core.cache.backends.memcached.PyMemcacheCache",
+        "LOCATION": "127.0.0.1:11211",
+    },
+}
+SELECT2_CACHE_BACKEND = "select2"
+```
+
+---
+
+## Extending utopia-crm
+
+utopia-crm is designed to be extended without modifying the base source code. If you are building or installing a customization package (like `utopia-crm-ladiaria`), follow these additional steps after completing the base installation above.
+
+### Install your package in development mode
+
+From your package's root directory:
+
+```bash
+pip install -e /path/to/your-customization-package
+```
+
+This makes the package importable and lets you edit its source without reinstalling.
+
+### Register the package in `local_settings.py`
+
+Add your app to `INSTALLED_APPS` and point the URL router at your custom URL module:
+
+```python
+INSTALLED_APPS += ["your_package_name"]
+URLS_CUSTOM_MODULE = "your_package_name.urls"
+```
+
+This causes `urls.py` to prepend your URL patterns before the base ones, allowing overrides.
+
+### Run your package's migrations
+
+```bash
+python manage.py migrate
+```
+
+### Load your package's groups fixture
+
+Replace the base `default_groups` loaddata step with your package's full groups fixture, which includes both the base permissions and any extension-specific ones:
+
+```bash
+python manage.py loaddata your_groups_fixture_name
+```
+
+### Load any additional bootstrap fixtures your package requires
+
+Consult your package's `COMMANDS.md` or `INSTALL.md` for the full list of fixtures and management commands that need to run on a fresh database.

@@ -20,27 +20,65 @@
             {% render_field form.last_name class="form-control" %}
           </div>
           <div class="form-group col-4">
-            <label for="">{% trans "Email" %}</label>
+            <label for="">
+              {% if contact %}
+                {% with email_bounce=contact.get_email_bounce_action %}
+                  {% if email_bounce %}
+                    <span class="text-danger">
+                      <i class="fas fa-times-circle"></i> {% trans "Email" %} — {{ email_bounce.get_action_display }}
+                    </span>
+                  {% else %}
+                    {% trans "Email" %}
+                  {% endif %}
+                {% endwith %}
+              {% else %}
+                {% trans "Email" %}
+              {% endif %}
+            </label>
             {% render_field form.email class="form-control" %}
           </div>
         </div>
         <div class="row">
           <div class="form-group col-4">
-            <label for="">{% trans "Phone" %}</label>
+            <label for="">
+              {% if contact and contact.do_not_call_phone %}
+                <span class="text-danger">
+                  <i class="fas fa-times-circle"></i> {% trans "Phone" %} — {% trans "Number in do not call list" %}
+                </span>
+              {% else %}
+                {% trans "Phone" %}
+              {% endif %}
+            </label>
             {% render_field form.phone class="form-control" %}
             <small class="form-text text-muted">
               {% trans "Enter a valid local or international phone number" %}
             </small>
           </div>
           <div class="form-group col-4">
-            <label for="">{% trans "Mobile" %}</label>
+            <label for="">
+              {% if contact and contact.do_not_call_mobile %}
+                <span class="text-danger">
+                  <i class="fas fa-times-circle"></i> {% trans "Mobile" %} — {% trans "Number in do not call list" %}
+                </span>
+              {% else %}
+                {% trans "Mobile" %}
+              {% endif %}
+            </label>
             {% render_field form.mobile class="form-control" %}
             <small class="form-text text-muted">
               {% trans "Enter a valid local or international mobile number" %}
             </small>
           </div>
           <div class="form-group col-4">
-            <label for="">{% trans "Institutional phone" %}</label>
+            <label for="">
+              {% if contact and contact.do_not_call_work_phone %}
+                <span class="text-danger">
+                  <i class="fas fa-times-circle"></i> {% trans "Institutional phone" %} — {% trans "Number in do not call list" %}
+                </span>
+              {% else %}
+                {% trans "Institutional phone" %}
+              {% endif %}
+            </label>
             {% render_field form.work_phone class="form-control" %}
             <small class="form-text text-muted">
               {% trans "Use this field for non-standard numbers such as internal extensions, government hotlines, or institutional contact numbers like 1950." %}

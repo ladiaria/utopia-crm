@@ -1,0 +1,52 @@
+{% extends "adminlte/base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Canceled invoices report" %}{% endblock %}
+
+{% block no_heading %}
+<h1>{% trans "Canceled invoices report" %}</h1>
+{% endblock %}
+
+{% block content %}
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">{% trans "Download canceled invoices CSV" %}</h3>
+    </div>
+    <div class="card-body">
+      <p class="text-muted">
+        {% trans "Download a CSV report with all canceled invoices in the selected date range, including their credit notes." %}
+      </p>
+      <form method="post">
+        {% csrf_token %}
+        <fieldset>
+          <legend>{% trans "Cancelation date range" %}</legend>
+          <div class="form-group row">
+            <div class="col-sm-6">
+              <label for="id_start">{% trans "From" %}</label>
+              <input type="date"
+                     class="form-control"
+                     name="start"
+                     id="id_start"
+                     required>
+            </div>
+            <div class="col-sm-6">
+              <label for="id_end">
+                {% trans "Up to" %} <small class="text-muted">{% trans "(inclusively)" %}</small>
+              </label>
+              <input type="date"
+                     class="form-control"
+                     name="end"
+                     id="id_end"
+                     required>
+            </div>
+          </div>
+        </fieldset>
+        <div class="form-group text-right mt-3">
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-download mr-1"></i>{% trans "Download CSV" %}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+{% endblock %}
