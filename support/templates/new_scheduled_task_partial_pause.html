@@ -20,7 +20,7 @@ $(function(){
 
   $('.pause-product').click(function(){
     var parent_card = $(this).parent('div').parent('div').parent('div')
-    $(this).parent('div').parent('div').parent('div').siblings().hide()
+    parent_card.siblings('.subscription-card').hide()
   });
 });
 </script>
