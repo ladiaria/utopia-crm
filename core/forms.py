@@ -13,9 +13,6 @@ from util.email_typosquash import clean_email as email_typosquash_clean, replace
 from .models import Contact, Subscription, Address, EmailBounceActionLog
 
 
-no_email_validation_msg = _('email must be left blank if the contact has no email')
-
-
 class EmailValidationError(forms.ValidationError):
     def __init__(self, *args, **kwargs):
         valid = kwargs.pop("valid", False)
@@ -122,12 +119,24 @@ class EmailValidationForm(forms.Form):
 
 
 class ContactAdminForm(EmailValidationForm, forms.ModelForm):
+
+    ROLES_ALLOWED_TO_REMOVE_EMAIL = [
+        'Managers',
+        'Admins',
+    ]
+    # Allowed roles to remove email from a contact that already has one
+    # Add more roles here as needed (e.g., 'Support', 'Finances', etc.)
+
     class Meta:
         model = Contact
         fields = "__all__"
         widgets = {
             "birthdate": forms.TextInput(attrs={"class": "form-control datepicker"}),
         }
+
+    def __init__(self, *args, request=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.request = request
 
     def clean(self):
         cleaned_data = super().clean()
@@ -139,6 +148,28 @@ class ContactAdminForm(EmailValidationForm, forms.ModelForm):
             self.add_error("protection_reason", forms.ValidationError(msg))
         else:
             email = cleaned_data.get("email")
+
+            # Check if the user had an email before
+            if self.instance and self.instance.pk:
+                old_email = self.instance.email  # Original email from DB
+
+                # If had email before and now it's blank
+                if old_email and not email:
+                    # Check user permissions
+                    user = getattr(self, 'request', None) and getattr(self.request, 'user', None)
+
+                    # Check if user is admin or has allowed roles
+                    user_is_allowed = False
+                    if user and (
+                        user.is_superuser
+                        or user.groups.filter(name__in=self.ROLES_ALLOWED_TO_REMOVE_EMAIL).exists()
+                    ):
+                        user_is_allowed = True
+
+                    if not user_is_allowed:
+                        msg = _("Only admins and managers can remove the email from a contact that already has one.")
+                        self.add_error("email", forms.ValidationError(msg))
+
             if email:
                 email = self.email_extra_clean(cleaned_data)
 
