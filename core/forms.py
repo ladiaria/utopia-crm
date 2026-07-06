@@ -227,6 +227,10 @@ class ContactUpdateForm(EmailValidationForm, forms.ModelForm):
             "birthdate": forms.TextInput(attrs={"class": "form-control datepicker"}),
         }
 
+    def __init__(self, *args, request=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.request = request
+
     def clean(self):
         cleaned_data = super().clean()
         email = cleaned_data.get("email")
