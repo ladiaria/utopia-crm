@@ -448,6 +448,11 @@ class ContactUpdateView(BreadcrumbsMixin, UpdateView):
             {"label": _("Edit"), "url": ""},
         ]
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['request'] = self.request
+        return kwargs
+
     def form_valid(self, form):
         skip_clean_set = False
         if not getattr(self.object, "_skip_clean", False):

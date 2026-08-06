@@ -2878,6 +2878,14 @@ class Activity(models.Model):
         verbose_name = _("activity")
         verbose_name_plural = _("activities")
         get_latest_by = "id"
+        indexes = [
+            # Date range lookups on activities were doing a sequential scan over the whole table.
+            models.Index(fields=["datetime"], name="core_activity_datetime_idx"),
+            # Matches "the latest activity of a (contact, campaign) pair", i.e. an
+            # ORDER BY -datetime, -id LIMIT 1 correlated subquery. Also usable as a prefix index for
+            # plain (contact, campaign) lookups.
+            models.Index(fields=["contact", "campaign", "-datetime", "-id"], name="core_act_cont_camp_dt_idx"),
+        ]
 
 
 class ContactProductHistory(models.Model):

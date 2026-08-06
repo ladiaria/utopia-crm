@@ -17,7 +17,6 @@ from .models import (
     update_web_user,
     update_web_user_newsletters,
 )
-from .forms import no_email_validation_msg
 from .utils import cms_rest_api_request, mail_managers_on_errors
 
 
@@ -27,9 +26,6 @@ alphanumeric = re.compile(regex_alphanumeric)
 @receiver(pre_save, sender=Contact)
 def contact_pre_save_signal(sender, instance, **kwargs):
     # TODO: These validations should be consistent with the ones defined in the model attrs.
-
-    if instance.no_email and instance.email:
-        raise ValidationError(no_email_validation_msg)
 
     if not alphanumeric.match(instance.name) and getattr(settings, "ENABLE_ALPHANUMERIC_VALIDATION_FOR_NAME", True):
         raise ValidationError(regex_alphanumeric_msg)

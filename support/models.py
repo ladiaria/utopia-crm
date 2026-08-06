@@ -4,6 +4,7 @@ from datetime import date, timedelta
 from django.db import models
 from django.conf import settings
 from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django.utils.safestring import mark_safe
@@ -354,6 +355,19 @@ class ScheduledTask(models.Model):
     def get_category(self):
         categories = dict(SCHEDULED_TASK_CATEGORIES)
         return categories.get(self.category, "N/A")
+
+    def clean(self):
+        errors = {}
+        if self.category in ('PD', 'PA') and not self.subscription_id:
+            errors['subscription'] = _("A subscription is required for this category.")
+        if self.category == 'AC' and not self.address_id:
+            errors['address'] = _("An address is required for this category.")
+        if errors:
+            raise ValidationError(errors)
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
 
     def execute(self, debug=False, verbose=False):
         """Execute the scheduled task based on its category"""
