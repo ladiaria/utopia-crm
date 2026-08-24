@@ -92,6 +92,7 @@
         <p>{% trans "Release seller contacts" %}</p>
       </a>
     </li>
+    {% if request.user|in_group_exclusive:"Admins" %}
     <li class="nav-item">
       <a href="{{ upload_do_not_call_numbers }}"
          class="nav-link {% if request.path == upload_do_not_call_numbers %}active{% endif %}">
@@ -99,6 +100,7 @@
         <p>{% trans "Upload do not call list" %}</p>
       </a>
     </li>
+    {% endif %}
     <li class="nav-item">
       <a href="{{ sales_record_filter }}"
          class="nav-link {% if request.path == sales_record_filter %}active{% endif %}">

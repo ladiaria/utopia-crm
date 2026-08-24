@@ -10,7 +10,7 @@ from django.contrib.gis.db import models as gismodels
 from django.contrib.gis.geos import Point
 from django.conf import settings
 from django.core.validators import RegexValidator, MinValueValidator, MaxValueValidator
-from django.db import models
+from django.db import connection, models, transaction
 from django.db.models import F, Q, Sum, Count, Max, Prefetch
 from django.db.utils import IntegrityError
 from django.forms import ValidationError
@@ -3248,14 +3248,79 @@ class DoNotCallNumber(models.Model):
 
     @staticmethod
     def delete_all_numbers():
-        DoNotCallNumber.objects.all().delete()
+        """
+        Empties the table.
+
+        On PostgreSQL it uses TRUNCATE instead of a DELETE: the list holds hundreds of thousands of
+        rows and TRUNCATE is orders of magnitude faster. It also takes an ACCESS EXCLUSIVE lock on
+        the table, which means two simultaneous uploads are serialized instead of interleaving (an
+        interleaving is what produced duplicate key errors right after a delete that had worked).
+        """
+        if connection.vendor == "postgresql":
+            with connection.cursor() as cursor:
+                cursor.execute('TRUNCATE TABLE "{}"'.format(DoNotCallNumber._meta.db_table))
+        else:
+            DoNotCallNumber.objects.all().delete()
 
     @staticmethod
-    def upload_new_numbers(numbers_list):
-        objs = []
-        for number in numbers_list:
-            objs.append(DoNotCallNumber(number=number[0]))
-        DoNotCallNumber.objects.bulk_create(objs)
+    def clean_numbers(rows):
+        """
+        Turn the rows of an uploaded CSV into a list of unique numbers, ready to be inserted.
+
+        The number is expected in the first column of each row. Empty rows, blank values, repeated
+        values and values that do not fit in the column are dropped, since any of them would abort
+        the whole insert.
+
+        Returns a ``(numbers, discarded)`` tuple.
+        """
+        max_length = DoNotCallNumber._meta.get_field("number").max_length
+        numbers, discarded = {}, 0
+        for row in rows:
+            value = row[0].strip() if row else ""
+            if not value or len(value) > max_length:
+                discarded += 1
+                continue
+            # A dict keeps insertion order and removes duplicates in a single pass.
+            numbers[value] = None
+        return list(numbers), discarded
+
+    @staticmethod
+    def _bulk_create_numbers(numbers, batch_size=5000):
+        DoNotCallNumber.objects.bulk_create(
+            [DoNotCallNumber(number=number) for number in numbers], batch_size=batch_size
+        )
+
+    @staticmethod
+    def upload_new_numbers(numbers_list, batch_size=5000):
+        """
+        Inserts the given rows. Does *not* remove what is already stored: use replace_all_numbers
+        for that. Returns a ``(loaded, discarded)`` tuple.
+        """
+        numbers, discarded = DoNotCallNumber.clean_numbers(numbers_list)
+        DoNotCallNumber._bulk_create_numbers(numbers, batch_size=batch_size)
+        return len(numbers), discarded
+
+    @staticmethod
+    def replace_all_numbers(numbers_list, batch_size=5000):
+        """
+        Replaces the whole do not call list with the given rows.
+
+        The delete and the insert run inside a single transaction, so the list is never left empty
+        or half loaded: either the new list is completely in place, or the previous one survives
+        untouched.
+
+        A file that yields no valid number is treated as a broken file and nothing is touched:
+        emptying the list would silently make everybody callable again.
+
+        Returns a ``(loaded, discarded)`` tuple.
+        """
+        numbers, discarded = DoNotCallNumber.clean_numbers(numbers_list)
+        if not numbers:
+            return 0, discarded
+        with transaction.atomic():
+            DoNotCallNumber.delete_all_numbers()
+            DoNotCallNumber._bulk_create_numbers(numbers, batch_size=batch_size)
+        return len(numbers), discarded
 
     def __str__(self):
         return self.number
