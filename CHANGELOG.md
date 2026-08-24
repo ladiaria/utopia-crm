@@ -2,6 +2,15 @@
 
 ## v0.5.1
 
+## 2026-08-24 — fix/upload_do_not_call_numbers Reemplazo atómico de la lista de "no llame"
+
+- La subida de la lista de "no llame" borraba los números en una transacción e insertaba los nuevos en otra. Si dos subidas se pisaban (un doble clic en el botón, un reenvío del formulario) la segunda podía chocar con lo que la primera estaba insertando y fallar con un error de clave duplicada; y si el insert fallaba por cualquier motivo, la lista quedaba **vacía**, con lo que el call center pasaba a poder llamar a todo el mundo. Ahora el borrado y la inserción ocurren en una sola transacción: o entra la lista nueva completa, o queda la anterior intacta
+- Un archivo con números repetidos, filas vacías o valores demasiado largos abortaba la carga entera. Ahora esas filas se descartan y la pantalla informa cuántos números se cargaron y cuántas filas se ignoraron. Un archivo del que no sale ningún número válido no borra nada
+- Mejoró el tiempo de carga (de 7,0 s a 4,7 s con un archivo de 512.734 números) y el consumo de memoria, y dos subidas simultáneas ahora se serializan en vez de pisarse
+- La herramienta pasa a estar restringida a superusuarios y al grupo Admins, porque destruye la lista completa; los accesos del menú de Gestión de Campañas y del sidebar se ocultan al resto. La pantalla se reescribió: tenía textos de "información complementaria de direcciones" por un copy-paste y no explicaba que reemplaza la lista entera. Además ahora permite elegir cuántas filas de encabezado saltear y acepta archivos en latin-1
+- Deployment: no se requieren migraciones
+- **Author:** Tanya Tree + Claude Opus 5
+
 ## 2026-07-03 — t1160 Mejoras al flujo de direcciones y georreferenciación
 
 - `address_1` y `address_2` pasan a ser obligatorios en el formulario de direcciones (agregar y editar), porque los operarios se estaban olvidando de cargarlos
