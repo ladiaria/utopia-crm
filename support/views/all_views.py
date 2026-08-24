@@ -1,6 +1,7 @@
 import calendar
 import csv
 import io
+from itertools import islice
 import json
 from datetime import date, datetime, timedelta
 
@@ -9,7 +10,7 @@ from django import forms
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.mixins import PermissionRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.models import User
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
@@ -2891,31 +2892,78 @@ def history_extended(request, contact_id):
     )
 
 
-@staff_member_required
+def user_is_admin(user):
+    return user.is_superuser or user.groups.filter(name="Admins").exists()
+
+
+@user_passes_test(user_is_admin)
 def upload_do_not_call_numbers(request):
-    if request.FILES:
-        decoded_file = request.FILES.get("do_not_call_numbers").read().decode("utf-8").splitlines()
-        numbers = csv.reader(decoded_file)
-        if numbers:
-            # Remove both headers
-            next(numbers)
-            next(numbers)
+    """
+    Replaces the whole do not call list with the contents of an uploaded CSV.
 
-            DoNotCallNumber.delete_all_numbers()
-            DoNotCallNumber.upload_new_numbers(numbers)
+    The file is expected to hold one number per row, in its first column, after a fixed amount of
+    header rows (two, in the file the regulator publishes). The replacement is done in a single
+    transaction by DoNotCallNumber.replace_all_numbers, so a failure halfway through leaves the
+    previous list in place instead of wiping it.
 
-            messages.success(request, _("Numbers have been uploaded successfully."))
-            return HttpResponseRedirect("/")
+    Restricted to superusers and members of the ``Admins`` group: it destroys the current list.
+    """
+    default_header_rows = 2
+    breadcrumbs = [
+        {"url": reverse("home"), "label": _("Home")},
+        {"url": reverse("campaign_management"), "label": _("Campaign Management")},
+        {"label": _("Upload do not call list"), "url": reverse("upload_do_not_call_numbers")},
+    ]
+
+    if request.method == "POST":
+        try:
+            header_rows = int(request.POST.get("header_rows", default_header_rows))
+        except (TypeError, ValueError):
+            header_rows = default_header_rows
+        header_rows = max(header_rows, 0)
+
+        uploaded_file = request.FILES.get("do_not_call_numbers")
+        if not uploaded_file:
+            messages.error(request, _("Please select a CSV file to upload."))
+        else:
+            raw = uploaded_file.read()
+            try:
+                decoded_file = raw.decode("utf-8")
+            except UnicodeDecodeError:
+                decoded_file = raw.decode("latin-1")
+            rows = islice(csv.reader(io.StringIO(decoded_file)), header_rows, None)
+            try:
+                loaded, discarded = DoNotCallNumber.replace_all_numbers(rows)
+            except Exception as e:
+                messages.error(
+                    request,
+                    _("The list could not be replaced, the previous one was kept. Error: %s") % e,
+                )
+            else:
+                if loaded:
+                    messages.success(
+                        request,
+                        _("The do not call list was replaced with %(loaded)s numbers.") % {"loaded": loaded},
+                    )
+                    if discarded:
+                        messages.warning(
+                            request,
+                            _("%(discarded)s rows were ignored (empty, repeated or too long).")
+                            % {"discarded": discarded},
+                        )
+                    return HttpResponseRedirect(reverse("campaign_management"))
+                messages.error(
+                    request,
+                    _("No valid numbers were found in the file, the previous list was kept."),
+                )
 
     return render(
         request,
         "upload_do_not_call_numbers.html",
         {
-            "breadcrumbs": [
-                {"url": reverse("home"), "label": _("Home")},
-                {"url": reverse("campaign_management"), "label": _("Campaign Management")},
-                {"label": _("Upload do not call list"), "url": reverse("upload_do_not_call_numbers")},
-            ],
+            "breadcrumbs": breadcrumbs,
+            "header_rows": default_header_rows,
+            "current_count": DoNotCallNumber.objects.count(),
         },
     )
 
