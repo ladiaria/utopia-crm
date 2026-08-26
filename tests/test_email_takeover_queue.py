@@ -23,6 +23,7 @@ from core.email_takeover_queue import (
     RESOLVED,
     UNREACHABLE,
     approve_takeover,
+    queue_takeover_after_create,
     reject_takeover,
 )
 from core.models import EmailTakeoverRequest
@@ -271,4 +272,82 @@ class TestTakeoverResolution(TestCase):
         outcome, _msg = approve_takeover(self.request, user=self.reviewer)
 
         self.assertEqual(outcome, FAILED)
+        mock_cms.assert_not_called()
+
+
+@override_settings(
+    WEB_UPDATE_USER_ENABLED=True,
+    WEB_EMAIL_TAKEOVER_ENABLED=True,
+    WEB_EMAIL_TAKEOVER_URI="http://cms.local/api/email_takeover/",
+    WEB_UPDATE_USER_VALIDATION_MODULE=None,
+)
+class TestTakeoverAfterCreate(TestCase):
+    """
+    Crear un contacto es el unico camino donde el CRM nunca le pregunta al CMS: Contact.clean()
+    solo consulta `if ... and self.id`, y en una creacion todavia no hay id. El contacto se crea
+    igual --es la entidad comercial-- pero el conflicto tiene que quedar archivado en vez de pasar
+    en silencio.
+    """
+
+    def _contacto_nuevo(self, email=EMAIL):
+        with override_settings(WEB_UPDATE_USER_ENABLED=False, WEB_CREATE_USER_ENABLED=False):
+            return create_contact(name="Alta Test", phone="099333444", email=email)
+
+    @mock.patch("core.email_takeover_queue.emailTakeoverOnWeb")
+    def test_le_pregunta_al_takeover_no_al_email_check(self, mock_cms):
+        """
+        Preguntarle a validateEmailOnWeb aca no sirve: contesta OK sin mirar el email cuando el
+        contacto no tiene cuenta web propia, y un contacto recien creado nunca la tiene. Por eso
+        se consulta el preview del takeover, que es el que conoce esta forma y contesta
+        attach_only.
+        """
+        contact = self._contacto_nuevo()
+        mock_cms.return_value = PREVIEW_ATTACH
+
+        queued = queue_takeover_after_create(contact)
+
+        self.assertIsNotNone(queued)
+        mock_cms.assert_called_once_with(contact.id, EMAIL, confirm=False)  # preview, no ejecucion
+        self.assertEqual(queued.origin, EmailTakeoverRequest.ORIGIN_CREATE_CONTACT)
+        self.assertEqual(queued.takeover_mode, "attach_only")
+        self.assertFalse(queued.deletes_an_account)
+
+    @mock.patch("core.email_takeover_queue.emailTakeoverOnWeb")
+    def test_el_email_queda_en_el_contacto(self, mock_cms):
+        """A diferencia de una edicion, aca no se descarta nada: no hay nada en disputa del lado
+        del CRM."""
+        contact = self._contacto_nuevo()
+        mock_cms.return_value = PREVIEW_ATTACH
+
+        queue_takeover_after_create(contact)
+
+        contact.refresh_from_db()
+        self.assertEqual(contact.email, EMAIL)
+
+    @mock.patch("core.email_takeover_queue.emailTakeoverOnWeb")
+    def test_email_libre_no_archiva_nada(self, mock_cms):
+        """Sin cuenta huerfana que reclamar, el CMS contesta NO_ORPHAN y no hay pedido que hacer."""
+        contact = self._contacto_nuevo()
+        mock_cms.return_value = {"msg": "No hay cuenta web con ese email", "retval": 0, "reason": "no_orphan"}
+
+        self.assertIsNone(queue_takeover_after_create(contact))
+        self.assertFalse(EmailTakeoverRequest.objects.exists())
+
+    @mock.patch("core.email_takeover_queue.emailTakeoverOnWeb")
+    def test_nunca_revienta_un_alta(self, mock_cms):
+        """Un contacto que se creo se queda creado, pase lo que pase con el CMS."""
+        contact = self._contacto_nuevo()
+        mock_cms.side_effect = Exception("boom")
+
+        self.assertIsNone(queue_takeover_after_create(contact))
+        contact.refresh_from_db()
+        self.assertEqual(contact.email, EMAIL)
+
+    @mock.patch("core.email_takeover_queue.emailTakeoverOnWeb")
+    def test_kill_switch_apagado_no_consulta(self, mock_cms):
+        contact = self._contacto_nuevo()
+
+        with override_settings(WEB_EMAIL_TAKEOVER_ENABLED=False):
+            self.assertIsNone(queue_takeover_after_create(contact))
+
         mock_cms.assert_not_called()
