@@ -32,7 +32,7 @@ from django.utils import timezone
 from django.utils.translation import gettext as _
 
 from .models import EmailTakeoverRequest
-from .utils import emailTakeoverOnWeb, validateEmailOnWeb
+from .utils import emailTakeoverOnWeb
 
 
 logger = logging.getLogger(__name__)
@@ -244,14 +244,12 @@ def queue_takeover_after_create(contact, user=None):
             return None
         if not getattr(settings, "WEB_UPDATE_USER_ENABLED", False):
             return None
-        resp = validateEmailOnWeb(contact.id, contact.email)
-        if resp in ("TIMEOUT", "ERROR") or not isinstance(resp, dict):
-            return None
-        if resp.get("msg") == "OK":
-            return None
-        retval = resp.get("retval")
-        if not (retval and retval > 0):
-            return None
+        # Asking validateEmailOnWeb first would be useless here: it answers OK without looking at
+        # the email whenever the contact has no web account of its own, and a contact that was just
+        # created never has one. So the takeover preview is asked directly -- it is the one that
+        # knows this shape (no account for the contact + an orphan holding the address) and answers
+        # `attach_only`. It is also stricter than the check: with no orphan it returns NO_ORPHAN, so
+        # nothing is filed for an address that is simply free.
         preview = preview_takeover(contact.id, contact.email)
         if not isinstance(preview, dict) or preview.get("retval") != 1:
             # Either the web is down or a takeover cannot fix this one. Nothing is filed: an
