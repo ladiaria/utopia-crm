@@ -7,7 +7,6 @@
 {% url "scheduled_task_filter" as scheduled_task_filter %}
 {% url "subscription_end_date_list" as subscription_end_date_list %}
 {% url "tag_analysis" as tag_analysis %}
-{% url "email_takeover_queue" as email_takeover_queue %}
 <li class="nav-item has-treeview">
   <a href="#" class="nav-link">
     <i class="nav-icon fas fa-headset"></i>
@@ -65,18 +64,6 @@
         <p>{% trans "Tag analysis" %}</p>
       </a>
     </li>
-    {% if perms.core.can_takeover_email %}
-      <li class="nav-item">
-        <a href="{{ email_takeover_queue }}"
-           class="nav-link {% if request.path == email_takeover_queue %}active{% endif %}">
-          <i class="nav-icon fas fa-user-shield"></i>
-          <p>
-            {% trans "Email takeovers" %}
-            {% pending_email_takeovers %}
-          </p>
-        </a>
-      </li>
-    {% endif %}
     {% include_if_exists "support_sidebar_extra.html" %}
   </ul>
 </li>

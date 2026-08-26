@@ -146,6 +146,26 @@ class TestEmailTakeoverViews(TestCase):
         self.assertEqual(created.requested_by, self.reviewer)
         self.assertEqual(created.resolved_by, self.reviewer)
 
+    def test_el_item_esta_en_el_primer_nivel_del_sidebar(self):
+        """
+        Fuera de "Atencion al cliente": es una bandeja de trabajo pendiente y tiene que verse al
+        entrar. Ademas, adentro de esa seccion no lo veia quien no estuviera en el grupo Support,
+        aunque tuviera el permiso.
+        """
+        self.client.force_login(self.reviewer)
+
+        response = self.client.get(reverse("contact_list"))
+
+        self.assertContains(response, reverse("email_takeover_queue"))
+        self.assertContains(response, "badge badge-warning right")  # el conteo de pendientes
+
+    def test_sin_el_permiso_el_item_no_aparece(self):
+        self.client.force_login(self.operator)
+
+        response = self.client.get(reverse("contact_list"))
+
+        self.assertNotContains(response, reverse("email_takeover_queue"))
+
     def test_a_demanda_sin_permiso_no_entra(self):
         self.client.force_login(self.operator)
         response = self.client.get(reverse("email_takeover_on_demand"))
