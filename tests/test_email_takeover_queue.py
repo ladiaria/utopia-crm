@@ -177,8 +177,9 @@ class TestTakeoverQueueHook(TestCase):
         self.assertEqual(len(mail.outbox), 1)
         self.assertIn(EMAIL, mail.outbox[0].subject)
         self.assertEqual(mail.outbox[0].to, ["supervisor@example.com"])
-        # El aviso dice lo unico que de verdad importa antes de aprobar.
-        self.assertIn("DELETE", mail.outbox[0].body)
+        # El aviso dice lo unico que de verdad importa antes de aprobar, en el idioma en que lo va
+        # a leer el revisor.
+        self.assertIn("BORRAR", mail.outbox[0].body.upper())
 
     @mock.patch("core.email_takeover_queue.emailTakeoverOnWeb")
     @mock.patch("core.models.validateEmailOnWeb")
