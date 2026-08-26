@@ -314,6 +314,13 @@ urlpatterns = [
     path("seller_attendance/calendar/", SellerAttendanceCalendarView.as_view(), name="seller_attendance_calendar"),
     path("seller_attendance/filter/", SellerAttendanceFilterView.as_view(), name="seller_attendance_filter"),
     path("campaign_management/", campaign_management_menu, name="campaign_management"),
+    path("email_takeovers/", views.EmailTakeoverQueueView.as_view(), name="email_takeover_queue"),
+    path(
+        "email_takeovers/<int:pk>/resolve/",
+        views.EmailTakeoverResolveView.as_view(),
+        name="email_takeover_resolve",
+    ),
+    path("email_takeovers/on_demand/", views.EmailTakeoverOnDemandView.as_view(), name="email_takeover_on_demand"),
 ]
 
 # Api views

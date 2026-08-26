@@ -27,12 +27,14 @@ from django_filters.views import FilterView
 from requests.exceptions import RequestException
 
 from core.mixins import BreadcrumbsMixin
+from core.email_takeover_queue import notify_takeover_queued, queue_takeover_on_conflict
 from core.models import (
     Activity,
     Address,
     Campaign,
     Contact,
     ContactCampaignStatus,
+    EmailTakeoverRequest,
     Product,
     Subscription,
     SubscriptionProduct,
@@ -114,10 +116,15 @@ class SubscriptionMixin(BreadcrumbsMixin):
                 changed = True
                 setattr(contact, attr, val)
         if changed:
+            # An email the web says belongs to another account does not block the subscription: it
+            # is filed for a supervisor to review and the rest of the contact is saved.
+            queue_takeover_on_conflict(contact, self.request.user, EmailTakeoverRequest.ORIGIN_NEW_SUBSCRIPTION)
             try:
                 contact.save()
             except (ValidationError, RequestException) as vre:
                 form.add_error(None, vre if isinstance(vre, ValidationError) else _("CMS sync error"))
+            else:
+                notify_takeover_queued(self.request, contact)
         return changed
 
     def process_subscription_products(self, request, subscription):
@@ -1519,11 +1526,13 @@ class SendPromoView(BreadcrumbsMixin, UserPassesTestMixin, FormView):
                 setattr(self.contact, attr, val)
 
         if changed:
+            queue_takeover_on_conflict(self.contact, self.request.user, EmailTakeoverRequest.ORIGIN_NEW_SUBSCRIPTION)
             try:
                 self.contact.save()
             except forms.ValidationError as ve:
                 form.add_error(None, ve)
                 return self.form_invalid(form)
+            notify_takeover_queued(self.request, self.contact)
 
         # Create the subscription
         start_date = form.cleaned_data["start_date"]
@@ -1713,11 +1722,13 @@ class UpdatePromoView(BreadcrumbsMixin, UserPassesTestMixin, FormView):
                 setattr(self.contact, attr, val)
 
         if changed:
+            queue_takeover_on_conflict(self.contact, self.request.user, EmailTakeoverRequest.ORIGIN_NEW_SUBSCRIPTION)
             try:
                 self.contact.save()
             except forms.ValidationError as ve:
                 form.add_error(None, ve)
                 return self.form_invalid(form)
+            notify_takeover_queued(self.request, self.contact)
 
         # Update subscription dates
         self.subscription.start_date = form.cleaned_data["start_date"]
@@ -1968,11 +1979,13 @@ class FreeSubscriptionMixin:
                 setattr(self.contact, attr, val)
 
         if changed:
+            queue_takeover_on_conflict(self.contact, self.request.user, EmailTakeoverRequest.ORIGIN_NEW_SUBSCRIPTION)
             try:
                 self.contact.save()
             except forms.ValidationError as ve:
                 form.add_error(None, ve)
                 return False
+            notify_takeover_queued(self.request, self.contact)
         return True
 
     def add_products_to_subscription(self, subscription):

@@ -10,7 +10,7 @@ from django.contrib.gis.db import models as gismodels
 from django.contrib.gis.geos import Point
 from django.conf import settings
 from django.core.validators import RegexValidator, MinValueValidator, MaxValueValidator
-from django.db import models
+from django.db import connection, models, transaction
 from django.db.models import F, Q, Sum, Count, Max, Prefetch
 from django.db.utils import IntegrityError
 from django.forms import ValidationError
@@ -573,6 +573,25 @@ class Contact(models.Model):
                     # mostrar el mensaje legible del CMS si lo hay, sin caer al dedupe generico.
                     human_msg = run.get("msg") if isinstance(run, dict) else None
                     raise ValidationError({"email": human_msg or msg})
+                # Call center: the operator does NOT execute a takeover (it can delete a web
+                # account). The view opts in by setting self._takeover_enqueue = True, and then a
+                # resolvable conflict is filed as a request for someone with can_takeover_email to
+                # review. Without the flag -- batch jobs, management commands, any other save --
+                # nothing changes: the block below is the same as it has always been.
+                if (
+                    retval and retval > 0
+                    and getattr(settings, "WEB_EMAIL_TAKEOVER_ENABLED", False)
+                    and getattr(self, "_takeover_enqueue", False)
+                ):
+                    queued = self.enqueue_email_takeover(email, msg)
+                    if queued:
+                        # Filed. Drop the email change and let the rest of the contact be saved:
+                        # raising here would lose every other edit the operator just made. The
+                        # view reads self.takeover_queued afterwards to show it (same pattern as
+                        # self.sync_error).
+                        self.email = self.get_old_email()
+                        self.takeover_queued = email
+                        return
                 # calling a "dedupe" custom api if available (not opensourced yet in utopia-cms)
                 custom_validation_module_name = getattr(settings, "WEB_UPDATE_USER_VALIDATION_MODULE", None)
                 if custom_validation_module_name and retval > 0:
@@ -589,6 +608,31 @@ class Contact(models.Model):
                         self.custom_clean(email, debug)
                 else:
                     raise ValidationError({"email": msg})
+
+    def enqueue_email_takeover(self, email, cms_msg):
+        """
+        Ask the CMS what a takeover of `email` would do (preview, nothing is touched) and, if it
+        would fix the conflict, file a request for a reviewer holding `can_takeover_email`.
+
+        Returns the queued request, or None when the conflict is not something a takeover can fix
+        and the caller should fall through to the usual dedupe/block path. Raises ValidationError
+        carrying the CMS's own readable reason (staff account, active subscription, unmovable
+        content) when it has one, because that is far more useful to the operator than the
+        generic "this email is taken".
+        """
+        from .email_takeover_queue import enqueue_takeover, preview_takeover
+
+        preview = preview_takeover(self.id, email)
+        if preview in ("TIMEOUT", "ERROR") or not isinstance(preview, dict):
+            # The web did not answer. Nothing is known, so nothing is queued: fall through and let
+            # the contact be blocked as usual rather than filing a request on a guess.
+            return None
+        if preview.get("retval") != 1:
+            human_msg = preview.get("msg")
+            if human_msg and human_msg != "OK":
+                raise ValidationError({"email": human_msg})
+            return None
+        return enqueue_takeover(self, email, preview.get("detail"))
 
     def save(self, *args, **kwargs):
         skip_clean = getattr(self, "_skip_clean", False)
@@ -3247,14 +3291,79 @@ class DoNotCallNumber(models.Model):
 
     @staticmethod
     def delete_all_numbers():
-        DoNotCallNumber.objects.all().delete()
+        """
+        Empties the table.
+
+        On PostgreSQL it uses TRUNCATE instead of a DELETE: the list holds hundreds of thousands of
+        rows and TRUNCATE is orders of magnitude faster. It also takes an ACCESS EXCLUSIVE lock on
+        the table, which means two simultaneous uploads are serialized instead of interleaving (an
+        interleaving is what produced duplicate key errors right after a delete that had worked).
+        """
+        if connection.vendor == "postgresql":
+            with connection.cursor() as cursor:
+                cursor.execute('TRUNCATE TABLE "{}"'.format(DoNotCallNumber._meta.db_table))
+        else:
+            DoNotCallNumber.objects.all().delete()
 
     @staticmethod
-    def upload_new_numbers(numbers_list):
-        objs = []
-        for number in numbers_list:
-            objs.append(DoNotCallNumber(number=number[0]))
-        DoNotCallNumber.objects.bulk_create(objs)
+    def clean_numbers(rows):
+        """
+        Turn the rows of an uploaded CSV into a list of unique numbers, ready to be inserted.
+
+        The number is expected in the first column of each row. Empty rows, blank values, repeated
+        values and values that do not fit in the column are dropped, since any of them would abort
+        the whole insert.
+
+        Returns a ``(numbers, discarded)`` tuple.
+        """
+        max_length = DoNotCallNumber._meta.get_field("number").max_length
+        numbers, discarded = {}, 0
+        for row in rows:
+            value = row[0].strip() if row else ""
+            if not value or len(value) > max_length:
+                discarded += 1
+                continue
+            # A dict keeps insertion order and removes duplicates in a single pass.
+            numbers[value] = None
+        return list(numbers), discarded
+
+    @staticmethod
+    def _bulk_create_numbers(numbers, batch_size=5000):
+        DoNotCallNumber.objects.bulk_create(
+            [DoNotCallNumber(number=number) for number in numbers], batch_size=batch_size
+        )
+
+    @staticmethod
+    def upload_new_numbers(numbers_list, batch_size=5000):
+        """
+        Inserts the given rows. Does *not* remove what is already stored: use replace_all_numbers
+        for that. Returns a ``(loaded, discarded)`` tuple.
+        """
+        numbers, discarded = DoNotCallNumber.clean_numbers(numbers_list)
+        DoNotCallNumber._bulk_create_numbers(numbers, batch_size=batch_size)
+        return len(numbers), discarded
+
+    @staticmethod
+    def replace_all_numbers(numbers_list, batch_size=5000):
+        """
+        Replaces the whole do not call list with the given rows.
+
+        The delete and the insert run inside a single transaction, so the list is never left empty
+        or half loaded: either the new list is completely in place, or the previous one survives
+        untouched.
+
+        A file that yields no valid number is treated as a broken file and nothing is touched:
+        emptying the list would silently make everybody callable again.
+
+        Returns a ``(loaded, discarded)`` tuple.
+        """
+        numbers, discarded = DoNotCallNumber.clean_numbers(numbers_list)
+        if not numbers:
+            return 0, discarded
+        with transaction.atomic():
+            DoNotCallNumber.delete_all_numbers()
+            DoNotCallNumber._bulk_create_numbers(numbers, batch_size=batch_size)
+        return len(numbers), discarded
 
     def __str__(self):
         return self.number
@@ -3512,3 +3621,111 @@ class PaymentType(models.Model):
 
     def __str__(self) -> str:
         return self.name
+
+
+class EmailTakeoverRequest(models.Model):
+    """
+    A queued request to hand a contact's email over to it on the web (CMS), when the CMS says
+    that email currently belongs to a different web account.
+
+    Why a queue instead of doing it on the spot: a takeover can *delete* a web account (it moves
+    the old account's data into the one being kept and drops the old one), and the CRM cannot tell
+    whether two email addresses belong to the same person. So the operator who edits the contact
+    never executes it: saving the contact enqueues a request here, leaving the email untouched, and
+    someone holding ``can_takeover_email`` reviews the preview and approves or rejects it.
+
+    ``preview_detail`` stores the CMS preview (``confirm=0``) taken at enqueue time: which account
+    would be kept, which would be dropped, its newsletters and readings, and what the cascade would
+    delete. It is a snapshot for the reviewer, not the source of truth -- the CMS is re-asked when
+    the request is approved, because the accounts may have changed in the meantime.
+    """
+
+    PENDING, APPROVED, REJECTED = "pending", "approved", "rejected"
+    STATUS_CHOICES = (
+        (PENDING, _("Pending")),
+        (APPROVED, _("Approved")),
+        (REJECTED, _("Rejected")),
+    )
+
+    # Where the request came from. Not every origin is resolved the same way, and the reviewer
+    # needs to know whether an operator typed the email or it came from a self-service flow.
+    ORIGIN_EDIT_CONTACT = "edit_contact"
+    ORIGIN_NEW_SUBSCRIPTION = "new_subscription"
+    ORIGIN_CREATE_CONTACT = "create_contact"
+    ORIGIN_OTHER = "other"
+    ORIGIN_CHOICES = (
+        (ORIGIN_EDIT_CONTACT, _("Contact edit")),
+        (ORIGIN_NEW_SUBSCRIPTION, _("New subscription")),
+        (ORIGIN_CREATE_CONTACT, _("Contact creation")),
+        (ORIGIN_OTHER, _("Other")),
+    )
+
+    contact = models.ForeignKey(
+        "core.Contact", on_delete=models.CASCADE, related_name="takeover_requests", verbose_name=_("Contact")
+    )
+    requested_email = LowercaseEmailField(verbose_name=_("Requested email"))
+    status = models.CharField(
+        max_length=10, choices=STATUS_CHOICES, default=PENDING, db_index=True, verbose_name=_("Status")
+    )
+    origin = models.CharField(max_length=20, choices=ORIGIN_CHOICES, default=ORIGIN_OTHER, verbose_name=_("Origin"))
+    preview_detail = models.JSONField(default=dict, blank=True, verbose_name=_("Preview detail"))
+    requested_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="+",
+        verbose_name=_("Requested by"),
+    )
+    resolved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="+",
+        verbose_name=_("Resolved by"),
+    )
+    resolution_note = models.TextField(blank=True, verbose_name=_("Resolution note"))
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created at"))
+    resolved_at = models.DateTimeField(null=True, blank=True, verbose_name=_("Resolved at"))
+
+    class Meta:
+        verbose_name = _("email takeover request")
+        verbose_name_plural = _("email takeover requests")
+        ordering = ["-created_at"]
+        permissions = [
+            ("can_takeover_email", _("Can approve and execute email takeovers")),
+        ]
+        constraints = [
+            # One open request per (contact, email). The literal matches PENDING: a Meta inner
+            # class cannot see the outer class attributes.
+            models.UniqueConstraint(
+                fields=["contact", "requested_email"],
+                condition=Q(status="pending"),
+                name="unique_pending_email_takeover_request",
+            ),
+        ]
+
+    def __str__(self):
+        return "%s -> %s (%s)" % (self.contact_id, self.requested_email, self.get_status_display())
+
+    @property
+    def is_pending(self):
+        return self.status == self.PENDING
+
+    @property
+    def takeover_mode(self):
+        """
+        What the CMS said it would do, from the stored preview. Two very different decisions:
+
+        - ``attach_only``: the contact has no web account of its own, so the orphan account is
+          simply linked to it. Nothing is merged and nothing is deleted.
+        - ``merge``: the old account's data is moved into the kept one and the old one is deleted.
+        - ``fix_email_only``: the email already lives on the contact's own account, only normalized.
+        """
+        return (self.preview_detail or {}).get("mode")
+
+    @property
+    def deletes_an_account(self):
+        """True when approving this request would delete a web account."""
+        return self.takeover_mode == "merge"

@@ -275,19 +275,21 @@ $(function() {
                                 </div>
                             </div>
                         </div>
+                        {% if request.user|in_group_exclusive:"Admins" %}
                         <div class="col-lg-4 col-6 campaign-card-col">
                             <div class="card">
                                 <div class="card-header">
                                     <h3 class="card-title">{% trans "Upload do not call list" %}</h3>
                                 </div>
                                 <div class="card-body">
-                                    <p>{% trans "Upload a CSV of numbers that should not be called." %}</p>
+                                    <p>{% trans "Replace the whole do not call list with a CSV of numbers that should not be called." %}</p>
                                     <div class="text-right">
                                         <a href="{% url 'upload_do_not_call_numbers' %}" class="btn btn-default">{% trans "Go to upload" %}</a>
                                     </div>
                                 </div>
                             </div>
                         </div>
+                        {% endif %}
                         <div class="col-lg-4 col-6 campaign-card-col">
                             <div class="card">
                                 <div class="card-header">

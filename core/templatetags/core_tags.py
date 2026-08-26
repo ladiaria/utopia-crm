@@ -132,3 +132,19 @@ def days_until(target_date):
 
     msg = _('{days} days remaining').format(days=delta.days)
     return msg
+
+
+@register.simple_tag
+def pending_email_takeovers():
+    """
+    How many email takeover requests are waiting for a decision, for the sidebar badge.
+
+    Defensive on purpose: a badge is never a reason for a page not to render.
+    """
+    try:
+        from core.models import EmailTakeoverRequest
+
+        count = EmailTakeoverRequest.objects.filter(status=EmailTakeoverRequest.PENDING).count()
+        return "({})".format(count) if count else ""
+    except Exception:
+        return ""
