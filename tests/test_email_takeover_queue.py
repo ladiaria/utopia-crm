@@ -345,6 +345,19 @@ class TestTakeoverAfterCreate(TestCase):
         self.assertFalse(EmailTakeoverRequest.objects.exists())
 
     @mock.patch("core.email_takeover_queue.emailTakeoverOnWeb")
+    def test_no_archiva_lo_que_no_tiene_nada_que_decidir(self, mock_cms):
+        """
+        fix_email_only = la cuenta que tiene la direccion YA es la del contacto, porque el push
+        normal del CRM al CMS la vinculo entre el guardado y este chequeo. Aprobar eso no vincula
+        ni borra nada. Un pedido que no cambia nada le enseña al revisor a aprobar sin leer.
+        """
+        contact = self._contacto_nuevo()
+        mock_cms.return_value = {"msg": "OK", "retval": 1, "detail": {"mode": "fix_email_only"}}
+
+        self.assertIsNone(queue_takeover_after_create(contact))
+        self.assertFalse(EmailTakeoverRequest.objects.exists())
+
+    @mock.patch("core.email_takeover_queue.emailTakeoverOnWeb")
     def test_nunca_revienta_un_alta(self, mock_cms):
         """Un contacto que se creo se queda creado, pase lo que pase con el CMS."""
         contact = self._contacto_nuevo()
