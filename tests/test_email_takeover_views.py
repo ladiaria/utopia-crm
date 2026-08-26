@@ -146,7 +146,93 @@ class TestEmailTakeoverViews(TestCase):
         self.assertEqual(created.requested_by, self.reviewer)
         self.assertEqual(created.resolved_by, self.reviewer)
 
+    def test_el_item_esta_en_el_primer_nivel_del_sidebar(self):
+        """
+        Fuera de "Atencion al cliente": es una bandeja de trabajo pendiente y tiene que verse al
+        entrar. Ademas, adentro de esa seccion no lo veia quien no estuviera en el grupo Support,
+        aunque tuviera el permiso.
+        """
+        self.client.force_login(self.reviewer)
+
+        response = self.client.get(reverse("contact_list"))
+
+        self.assertContains(response, reverse("email_takeover_queue"))
+        self.assertContains(response, "badge badge-warning right")  # el conteo de pendientes
+
+    def test_sin_el_permiso_el_item_no_aparece(self):
+        self.client.force_login(self.operator)
+
+        response = self.client.get(reverse("contact_list"))
+
+        self.assertNotContains(response, reverse("email_takeover_queue"))
+
     def test_a_demanda_sin_permiso_no_entra(self):
         self.client.force_login(self.operator)
         response = self.client.get(reverse("email_takeover_on_demand"))
         self.assertEqual(response.status_code, 403)
+
+
+@override_settings(
+    WEB_UPDATE_USER_ENABLED=True,
+    WEB_EMAIL_TAKEOVER_ENABLED=True,
+    WEB_EMAIL_TAKEOVER_URI="http://cms.local/api/email_takeover/",
+    WEB_UPDATE_USER_VALIDATION_MODULE=None,
+    EMAIL_VALIDATION_ENABLED=False,
+)
+class TestEditContactQueues(TestCase):
+    """
+    La pantalla de editar contacto, por el camino real: POST al formulario.
+
+    Los tests del enganche llaman a custom_clean directo, con el flag ya puesto. Eso no reproduce
+    lo que pasa de verdad: un ModelForm corre Contact.clean() dentro de su _post_clean(), o sea
+    ANTES de form_valid(), asi que lo que la vista prepare en form_valid llega tarde.
+    """
+
+    def setUp(self):
+        with override_settings(WEB_UPDATE_USER_ENABLED=False, WEB_CREATE_USER_ENABLED=False):
+            self.contact = create_contact(name="Contacto C", phone="099111222", email=OLD_EMAIL)
+        self.operator = User.objects.create_user("operador2", "op2@example.com", "x", is_staff=True)
+        self.client.force_login(self.operator)
+
+    def _post(self, email, phone="092301380"):
+        return self.client.post(
+            reverse("edit_contact", args=[self.contact.id]),
+            {"name": "Contacto C", "email": email, "phone": phone, "id_document_type": "", "tags": "[]"},
+        )
+
+    @mock.patch("core.email_takeover_queue.emailTakeoverOnWeb")
+    @mock.patch("core.models.validateEmailOnWeb")
+    def test_el_conflicto_se_archiva_y_el_resto_se_guarda(self, mock_validate, mock_cms):
+        mock_validate.return_value = {"msg": "Ya existe otro usuario en la web utilizando ese email", "retval": 5}
+        mock_cms.return_value = {"msg": "OK", "retval": 1, "detail": PREVIEW}
+
+        self._post(EMAIL)
+
+        self.contact.refresh_from_db()
+        # El email no se aplica...
+        self.assertEqual(self.contact.email, OLD_EMAIL)
+        # ...pero lo demas que el operador edito SI se guarda.
+        self.assertIn("92301380", str(self.contact.phone))
+        # ...y queda el pedido para el revisor.
+        self.assertTrue(
+            EmailTakeoverRequest.objects.filter(contact=self.contact, requested_email=EMAIL).exists()
+        )
+
+    @mock.patch("core.email_takeover_queue.emailTakeoverOnWeb")
+    @mock.patch("core.models.validateEmailOnWeb")
+    def test_conflicto_no_resoluble_muestra_el_motivo_del_cms(self, mock_validate, mock_cms):
+        """Cuenta staff: el operador tiene que ver el motivo real, no el mensaje generico."""
+        mock_validate.return_value = {"msg": "Ya existe otro usuario en la web utilizando ese email", "retval": 5}
+        mock_cms.return_value = {
+            "msg": "La cuenta web que tiene ese email es de un usuario STAFF de la diaria.",
+            "retval": 0,
+            "reason": "is_staff",
+            "detail": {},
+        }
+
+        response = self._post(EMAIL)
+
+        self.assertContains(response, "STAFF")
+        self.assertFalse(EmailTakeoverRequest.objects.exists())
+        self.contact.refresh_from_db()
+        self.assertEqual(self.contact.email, OLD_EMAIL)

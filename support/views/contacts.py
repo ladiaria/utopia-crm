@@ -461,6 +461,16 @@ class ContactUpdateView(BreadcrumbsMixin, UpdateView):
         kwargs['request'] = self.request
         return kwargs
 
+    def get_object(self, queryset=None):
+        contact = super().get_object(queryset)
+        # The opt-in has to be on the instance BEFORE the form validates: a ModelForm runs
+        # Contact.clean() -- and with it the CMS check -- inside its own _post_clean(), which
+        # happens before form_valid() is ever called. Setting it there would arrive after the
+        # decision was already made, and the edit would be rejected whole, losing every other
+        # change the operator made along with the email.
+        queue_takeover_on_conflict(contact, self.request.user, EmailTakeoverRequest.ORIGIN_EDIT_CONTACT)
+        return contact
+
     def form_valid(self, form):
         skip_clean_set = False
         if not getattr(self.object, "_skip_clean", False):
@@ -475,9 +485,6 @@ class ContactUpdateView(BreadcrumbsMixin, UpdateView):
             if skip_clean_set:
                 del self.object._skip_clean
             messages.success(self.request, self.get_success_message())
-        # An email the web says belongs to another account is filed for a supervisor instead of
-        # blocking the edit: the operator does not execute a takeover, it can delete a web account.
-        queue_takeover_on_conflict(self.object, self.request.user, EmailTakeoverRequest.ORIGIN_EDIT_CONTACT)
         # At this point, the CMS api was already called, to avoid call it again we use the 'updatefromweb' flag
         # TODO: Only apply the prev. line indication (commented) if fields marked to be synced are unchanged
         # self.object.updatefromweb = True

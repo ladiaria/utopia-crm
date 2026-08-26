@@ -139,12 +139,12 @@ def pending_email_takeovers():
     """
     How many email takeover requests are waiting for a decision, for the sidebar badge.
 
-    Defensive on purpose: a badge is never a reason for a page not to render.
+    Returns the number so the template can render a real badge (and skip it at zero). Defensive on
+    purpose: a badge is never a reason for a page not to render.
     """
     try:
         from core.models import EmailTakeoverRequest
 
-        count = EmailTakeoverRequest.objects.filter(status=EmailTakeoverRequest.PENDING).count()
-        return "({})".format(count) if count else ""
+        return EmailTakeoverRequest.objects.filter(status=EmailTakeoverRequest.PENDING).count()
     except Exception:
-        return ""
+        return 0
