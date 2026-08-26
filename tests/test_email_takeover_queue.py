@@ -12,6 +12,7 @@ Regresion importante: sin el flag, todo sigue exactamente como antes (bloqueo).
 from unittest import mock
 
 from django.contrib.auth.models import User
+from django.core import mail
 from django.core.exceptions import ValidationError
 from django.test import TestCase
 from django.test.utils import override_settings
@@ -159,6 +160,24 @@ class TestTakeoverQueueHook(TestCase):
 
         mock_cms.assert_not_called()
         self.assertFalse(EmailTakeoverRequest.objects.exists())
+
+    @override_settings(EMAIL_TAKEOVER_NOTIFY_RECIPIENTS=["supervisor@example.com"])
+    @mock.patch("core.email_takeover_queue.emailTakeoverOnWeb")
+    @mock.patch("core.models.validateEmailOnWeb")
+    def test_avisa_a_los_revisores_al_archivar(self, mock_validate, mock_cms):
+        """Nadie tiene que estar mirando el sidebar para enterarse."""
+        contact = self._contact()
+        mock_validate.return_value = CONFLICT
+        mock_cms.return_value = PREVIEW_MERGE
+        contact._takeover_enqueue = True
+
+        contact.custom_clean(EMAIL, debug=False)
+
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn(EMAIL, mail.outbox[0].subject)
+        self.assertEqual(mail.outbox[0].to, ["supervisor@example.com"])
+        # El aviso dice lo unico que de verdad importa antes de aprobar.
+        self.assertIn("DELETE", mail.outbox[0].body)
 
     @mock.patch("core.email_takeover_queue.emailTakeoverOnWeb")
     @mock.patch("core.models.validateEmailOnWeb")

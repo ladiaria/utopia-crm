@@ -81,13 +81,15 @@ def enqueue_takeover(contact, email, preview_detail=None, origin=None, requested
                 existing.preview_detail = preview_detail
                 existing.save(update_fields=["preview_detail"])
             return existing
-        return EmailTakeoverRequest.objects.create(
+        takeover_request = EmailTakeoverRequest.objects.create(
             contact=contact,
             requested_email=email,
             preview_detail=preview_detail or {},
             origin=origin,
             requested_by=requested_by,
         )
+        _notify_reviewers(takeover_request)
+        return takeover_request
     except IntegrityError:
         # Lost a race against a concurrent save of the same contact: the other one queued it.
         return EmailTakeoverRequest.objects.filter(
@@ -281,3 +283,45 @@ def notify_takeover_after_create(request, takeover_request):
             % {"email": takeover_request.requested_email},
         )
     return takeover_request
+
+
+def _notify_reviewers(takeover_request):
+    """
+    Let the people who can resolve requests know one arrived, so nobody has to watch the sidebar.
+
+    Defensive by design: a mail server problem must never take down the contact save that filed the
+    request.
+    """
+    try:
+        from django.core.mail import mail_managers, send_mail
+        from django.urls import reverse
+
+        contact = takeover_request.contact
+        base_url = getattr(settings, "EMAIL_TAKEOVER_NOTIFY_BASE_URL", "") or ""
+        queue_url = base_url + reverse("email_takeover_queue")
+        what_it_does = (
+            _("Approving would DELETE a web account.")
+            if takeover_request.deletes_an_account
+            else _("Approving would only link the web account, nothing is deleted.")
+        )
+        subject = _("Email takeover request: %(email)s") % {"email": takeover_request.requested_email}
+        body = "\n".join(
+            [
+                _("Contact: %(name)s (%(id)s)") % {"name": contact.get_full_name(), "id": contact.id},
+                _("Current email: %(email)s") % {"email": contact.email or "-"},
+                _("Requested email: %(email)s") % {"email": takeover_request.requested_email},
+                _("Origin: %(origin)s") % {"origin": takeover_request.get_origin_display()},
+                _("Requested by: %(user)s") % {"user": takeover_request.requested_by or "-"},
+                "",
+                str(what_it_does),
+                "",
+                _("Resolve it here: %(url)s") % {"url": queue_url},
+            ]
+        )
+        recipients = getattr(settings, "EMAIL_TAKEOVER_NOTIFY_RECIPIENTS", None)
+        if recipients:
+            send_mail(subject, body, settings.DEFAULT_FROM_EMAIL, recipients, fail_silently=True)
+        else:
+            mail_managers(subject, body, fail_silently=True)
+    except Exception:
+        logger.exception("Could not notify reviewers about takeover request %s", takeover_request.id)
