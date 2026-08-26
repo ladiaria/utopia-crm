@@ -295,6 +295,11 @@ def _notify_reviewers(takeover_request):
         from django.urls import reverse
 
         contact = takeover_request.contact
+        # The email the contact HAS, read from the database, not from the instance in memory: on an
+        # edit that instance is still carrying the address being requested (custom_clean discards it
+        # right after filing this), and printing it as "current" leaves the reviewer comparing an
+        # address against itself. On a create it reads the saved one, which is the right answer too.
+        current_email = contact.get_old_email() or "-"
         base_url = getattr(settings, "EMAIL_TAKEOVER_NOTIFY_BASE_URL", "") or ""
         queue_url = base_url + reverse("email_takeover_queue")
         what_it_does = (
@@ -306,7 +311,7 @@ def _notify_reviewers(takeover_request):
         body = "\n".join(
             [
                 _("Contact: %(name)s (%(id)s)") % {"name": contact.get_full_name(), "id": contact.id},
-                _("Current email: %(email)s") % {"email": contact.email or "-"},
+                _("Current email: %(email)s") % {"email": current_email},
                 _("Requested email: %(email)s") % {"email": takeover_request.requested_email},
                 _("Origin: %(origin)s") % {"origin": takeover_request.get_origin_display()},
                 _("Requested by: %(user)s") % {"user": takeover_request.requested_by or "-"},

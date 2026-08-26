@@ -177,6 +177,14 @@ class TestTakeoverQueueHook(TestCase):
         self.assertEqual(len(mail.outbox), 1)
         self.assertIn(EMAIL, mail.outbox[0].subject)
         self.assertEqual(mail.outbox[0].to, ["supervisor@example.com"])
+        # El revisor tiene que poder COMPARAR: el que tiene contra el que le piden. Si los dos
+        # campos dicen lo mismo, el correo no sirve para decidir nada.
+        cuerpo = mail.outbox[0].body
+        self.assertIn(OLD_EMAIL, cuerpo)
+        self.assertIn(EMAIL, cuerpo)
+        actual = [ln for ln in cuerpo.splitlines() if ln.startswith(("Email actual", "Current email"))][0]
+        self.assertIn(OLD_EMAIL, actual)
+        self.assertNotIn(EMAIL, actual)
         # El aviso dice lo unico que de verdad importa antes de aprobar, en el idioma en que lo va
         # a leer el revisor.
         self.assertIn("BORRAR", mail.outbox[0].body.upper())
