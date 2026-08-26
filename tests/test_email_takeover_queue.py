@@ -185,9 +185,11 @@ class TestTakeoverQueueHook(TestCase):
         actual = [ln for ln in cuerpo.splitlines() if ln.startswith(("Email actual", "Current email"))][0]
         self.assertIn(OLD_EMAIL, actual)
         self.assertNotIn(EMAIL, actual)
-        # El aviso dice lo unico que de verdad importa antes de aprobar, en el idioma en que lo va
-        # a leer el revisor.
-        self.assertIn("BORRAR", mail.outbox[0].body.upper())
+        # El aviso tiene que decir que los datos SE MUDAN, no solo que se borra una cuenta: a secas
+        # asusta y hace dudar de lo que mas importa, que son las newsletters.
+        cuerpo = mail.outbox[0].body.lower()
+        self.assertIn("newsletter", cuerpo)
+        self.assertTrue("mud" in cuerpo or "move" in cuerpo, cuerpo)
 
     @mock.patch("core.email_takeover_queue.emailTakeoverOnWeb")
     @mock.patch("core.models.validateEmailOnWeb")
@@ -360,3 +362,35 @@ class TestTakeoverAfterCreate(TestCase):
             self.assertIsNone(queue_takeover_after_create(contact))
 
         mock_cms.assert_not_called()
+
+
+class TestCascadaSeparada(TestCase):
+    """
+    El inventario de cascada del CMS es la respuesta de Collector a "que destruiria borrar esta
+    cuenta", y se calcula ANTES de mover los datos. Mostrarlo tal cual, bajo un titulo que dice
+    borrar, le hace creer al revisor que la persona pierde las newsletters. No las pierde: se unen
+    con las de la cuenta que queda.
+    """
+
+    def _pedido(self, cascade):
+        return EmailTakeoverRequest(preview_detail={"mode": "merge", "cascade_would_delete": cascade})
+
+    def test_las_newsletters_van_del_lado_que_se_muda(self):
+        req = self._pedido({"Subscriber_category_newsletters": 2, "Subscriber_newsletters": 3})
+
+        self.assertEqual(req.cascade_moved, {"Subscriber_category_newsletters": 2, "Subscriber_newsletters": 3})
+        self.assertEqual(req.cascade_lost, {})
+
+    def test_la_cuenta_en_si_no_cuenta_como_perdida(self):
+        """User y Subscriber son las filas de la cuenta: son lo que el takeover borra a proposito,
+        no algo que se pierda de paso."""
+        req = self._pedido({"User": 1, "Subscriber": 1, "Subscriber_category_newsletters": 2})
+
+        self.assertEqual(req.cascade_lost, {})
+        self.assertNotIn("User", req.cascade_moved)
+
+    def test_lo_que_no_se_mueve_si_se_reporta_como_perdida(self):
+        req = self._pedido({"User": 1, "Contribution": 2, "Follow": 5})
+
+        self.assertEqual(req.cascade_lost, {"Contribution": 2})
+        self.assertEqual(req.cascade_moved, {"Follow": 5})

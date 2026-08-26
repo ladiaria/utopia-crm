@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: django\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-26 19:35-0300\n"
+"POT-Creation-Date: 2026-08-26 19:57-0300\n"
 "PO-Revision-Date: 2026-04-30 17:18-0300\n"
 "Last-Translator: tanyatree\n"
 "Language-Team: \n"
@@ -94,7 +94,7 @@ msgstr "Facturar a"
 #: support/templates/contact_detail/tabs/_issues.html:13
 #: support/templates/contact_detail/tabs/includes/_activity_modal.html:26
 #: support/templates/contact_detail/tabs/includes/_subscription_card.html:125
-#: support/templates/email_takeovers/queue.html:147
+#: support/templates/email_takeovers/queue.html:167
 #: support/templates/history_extended.html:30
 #: support/templates/history_extended.html:87
 #: support/templates/history_extended.html:148
@@ -238,7 +238,7 @@ msgstr "Otros contactos"
 #: support/templates/create_contact/tabs/_data.html:31
 #: support/templates/create_contact/tabs/_data.html:35
 #: support/templates/email_takeovers/on_demand.html:27
-#: support/templates/email_takeovers/queue.html:144
+#: support/templates/email_takeovers/queue.html:164
 #: support/templates/seller_console.html:233
 #: support/templates/seller_console_never_paid_issues.html:29
 #: support/templates/seller_console_special_routes.html:25
@@ -799,7 +799,7 @@ msgstr "Dirección"
 #: support/templates/contact_detail/tabs/_issues.html:17
 #: support/templates/contact_detail/tabs/includes/_activity_modal.html:44
 #: support/templates/contact_detail/tabs/includes/_subscription_card.html:93
-#: support/templates/email_takeovers/queue.html:145
+#: support/templates/email_takeovers/queue.html:165
 #: support/templates/invoicing_issues.html:45
 #: support/templates/invoicing_issues.html:105
 #: support/templates/list_issues.html:259
@@ -1755,7 +1755,6 @@ msgid "Home"
 msgstr "Inicio"
 
 #: core/email_takeover_queue.py:112 core/email_takeover_queue.py:155
-#| msgid "This subscription has already been validated."
 msgid "This request was already resolved."
 msgstr "Este pedido ya estaba resuelto."
 
@@ -1786,7 +1785,6 @@ msgstr ""
 "contacto: %s"
 
 #: core/email_takeover_queue.py:149
-#| msgid "These tags will be applied to newly created contacts"
 msgid "Takeover done and email applied to the contact."
 msgstr "Takeover realizado y email aplicado al contacto."
 
@@ -1814,48 +1812,55 @@ msgstr ""
 "El contacto fue creado. En la web, %(email)s pertenece a otra cuenta, así "
 "que la vinculación quedó pendiente de aprobación de un supervisor."
 
-#: core/email_takeover_queue.py:301
-msgid "Approving would DELETE a web account."
-msgstr "Aprobarlo BORRARÍA una cuenta web."
+#: core/email_takeover_queue.py:307
+msgid ""
+"Approving merges the two web accounts: everything useful from the old one "
+"(newsletters included) moves to the one that stays, and only then is the old"
+" one deleted. Newsletters are merged, never replaced."
+msgstr ""
+"Aprobarlo fusiona las dos cuentas web: todo lo útil de la vieja (newsletters"
+" incluidas) se muda a la que queda, y recién ahí se borra la vieja. Las "
+"newsletters se unen, nunca se reemplazan."
 
-#: core/email_takeover_queue.py:303
-msgid "Approving would only link the web account, nothing is deleted."
-msgstr "Aprobarlo sólo vincularía la cuenta web, no se borra nada."
+#: core/email_takeover_queue.py:312
+#| msgid ""
+#| "Approving would only link the web account, nothing is deleted."
+msgid ""
+"Approving only links the web account. Nothing is deleted and nothing moves."
+msgstr ""
+"Aprobarlo sólo vincula la cuenta web. No se borra nada y no se mueve nada."
 
-#: core/email_takeover_queue.py:305
+#: core/email_takeover_queue.py:314
 #, python-format
 msgid "Email takeover request: %(email)s"
 msgstr "Pedido de takeover de email: %(email)s"
 
-#: core/email_takeover_queue.py:308
+#: core/email_takeover_queue.py:317
 #, python-format
-#| msgid "Contact name"
 msgid "Contact: %(name)s (%(id)s)"
 msgstr "Contacto: %(name)s (%(id)s)"
 
-#: core/email_takeover_queue.py:309
+#: core/email_takeover_queue.py:318
 #, python-format
-#| msgid "Invalid email: %(email)s"
 msgid "Current email: %(email)s"
 msgstr "Email actual: %(email)s"
 
-#: core/email_takeover_queue.py:310
+#: core/email_takeover_queue.py:319
 #, python-format
-#| msgid "Invalid email: %(email)s"
 msgid "Requested email: %(email)s"
 msgstr "Email solicitado: %(email)s"
 
-#: core/email_takeover_queue.py:311
+#: core/email_takeover_queue.py:320
 #, python-format
 msgid "Origin: %(origin)s"
 msgstr "Origen: %(origin)s"
 
-#: core/email_takeover_queue.py:312
+#: core/email_takeover_queue.py:321
 #, python-format
 msgid "Requested by: %(user)s"
 msgstr "Solicitado por: %(user)s"
 
-#: core/email_takeover_queue.py:316
+#: core/email_takeover_queue.py:325
 #, python-format
 msgid "Resolve it here: %(url)s"
 msgstr "Resolvelo acá: %(url)s"
@@ -2459,7 +2464,7 @@ msgstr "ciudades"
 #: support/templates/check_for_existing_contacts.html:179
 #: support/templates/contact_detail/edit_campaign_status.html:22
 #: support/templates/email_takeovers/on_demand.html:21
-#: support/templates/email_takeovers/queue.html:143
+#: support/templates/email_takeovers/queue.html:163
 #: support/templates/invoicing_issues.html:104
 #: support/templates/list_issues.html:406
 #: support/templates/reactivate_subscription.html:34
@@ -3304,12 +3309,10 @@ msgid "Preview detail"
 msgstr "Ver detalle"
 
 #: core/models.py:3679 support/templates/email_takeovers/queue.html:64
-#| msgid "Requested"
 msgid "Requested by"
 msgstr "Solicitado por"
 
-#: core/models.py:3687 support/templates/email_takeovers/queue.html:146
-#| msgid "Reactivated by"
+#: core/models.py:3687 support/templates/email_takeovers/queue.html:166
 msgid "Resolved by"
 msgstr "Resuelto por"
 
@@ -3760,7 +3763,7 @@ msgstr "Descargar factura"
 #: logistics/templates/merge_compare_addresses.html:512
 #: support/templates/bulk_reassign_issue_status_confirm.html:74
 #: support/templates/contact_detail/edit_campaign_status.html:80
-#: support/templates/email_takeovers/on_demand.html:65
+#: support/templates/email_takeovers/on_demand.html:68
 #: support/templates/free_subscription_form.html:328
 #: support/templates/new_issue.html:465
 #: support/templates/new_subscription.html:408
@@ -6663,7 +6666,7 @@ msgid "Addendum"
 msgstr "Adenda"
 
 #: support/templates/activities/activity_detail.html:128
-#: support/templates/email_takeovers/queue.html:148
+#: support/templates/email_takeovers/queue.html:168
 msgid "Note"
 msgstr "Observación"
 
@@ -9306,30 +9309,35 @@ msgstr "Cuenta web que se conserva"
 
 #: support/templates/email_takeovers/on_demand.html:36
 #: support/templates/email_takeovers/queue.html:78
-#| msgid "We don't deliver there"
 msgid "Web account deleted"
 msgstr "Cuenta web que se borra"
 
 #: support/templates/email_takeovers/on_demand.html:41
 #: support/templates/email_takeovers/queue.html:86
-#| msgid "Newsletters"
 msgid "Newsletters moved over"
 msgstr "Newsletters que se mudan"
 
 #: support/templates/email_takeovers/on_demand.html:46
-#: support/templates/email_takeovers/queue.html:91
-msgid "Deleted along with it"
-msgstr "Se borra junto con ella"
+msgid "Hangs off the old account"
+msgstr "Cuelga de la cuenta vieja"
 
-#: support/templates/email_takeovers/on_demand.html:63
+#: support/templates/email_takeovers/on_demand.html:54
+msgid ""
+"Everything movable -- newsletters included -- is copied to the account that "
+"stays before the old one is deleted."
+msgstr ""
+"Todo lo que se puede mover —newsletters incluidas— se copia a la cuenta que "
+"queda antes de borrar la vieja."
+
+#: support/templates/email_takeovers/on_demand.html:66
 msgid "Run the takeover"
 msgstr "Ejecutar el takeover"
 
-#: support/templates/email_takeovers/on_demand.html:72
+#: support/templates/email_takeovers/on_demand.html:75
 msgid "Which contact and which email"
 msgstr "Qué contacto y qué email"
 
-#: support/templates/email_takeovers/on_demand.html:80
+#: support/templates/email_takeovers/on_demand.html:83
 msgid ""
 "Nothing is touched yet: the web is asked what it would do and you decide "
 "afterwards."
@@ -9337,12 +9345,11 @@ msgstr ""
 "Todavía no se toca nada: se le pregunta a la web qué haría y después decidís"
 " vos."
 
-#: support/templates/email_takeovers/on_demand.html:85
+#: support/templates/email_takeovers/on_demand.html:88
 msgid "See what would happen"
 msgstr "Ver qué pasaría"
 
-#: support/templates/email_takeovers/on_demand.html:86
-#| msgid "Back to list"
+#: support/templates/email_takeovers/on_demand.html:89
 msgid "Back to the queue"
 msgstr "Volver a la cola"
 
@@ -9350,7 +9357,6 @@ msgstr "Volver a la cola"
 #: support/templates/email_takeovers/queue.html:7
 #: support/views/email_takeovers.py:55 support/views/email_takeovers.py:123
 #: templates/components/_sidebar.html:59
-#| msgid "Email address"
 msgid "Email takeovers"
 msgstr "Takeovers de email"
 
@@ -9389,16 +9395,36 @@ msgid "Only links the account"
 msgstr "Sólo vincula la cuenta"
 
 #: support/templates/email_takeovers/queue.html:55
-#| msgid "Normalize address"
 msgid "Only normalizes the address"
 msgstr "Sólo normaliza la dirección"
 
 #: support/templates/email_takeovers/queue.html:61
-#| msgid "Contact data"
 msgid "Contact's email today"
 msgstr "Email actual del contacto"
 
-#: support/templates/email_takeovers/queue.html:103
+#: support/templates/email_takeovers/queue.html:91
+msgid "Moves to the account that stays"
+msgstr "Se muda a la cuenta que queda"
+
+#: support/templates/email_takeovers/queue.html:99
+msgid ""
+"Newsletters are merged, never replaced: the person keeps the ones from both "
+"accounts."
+msgstr ""
+"Las newsletters se unen, nunca se reemplazan: la persona conserva las de las"
+" dos cuentas."
+
+#: support/templates/email_takeovers/queue.html:105
+#: support/templates/email_takeovers/queue.html:114
+#| msgid "Web account deleted"
+msgid "Lost when the account is deleted"
+msgstr "Se pierde al borrar la cuenta"
+
+#: support/templates/email_takeovers/queue.html:116
+msgid "Nothing: everything hanging off the old account moves over."
+msgstr "Nada: todo lo que cuelga de la cuenta vieja se muda."
+
+#: support/templates/email_takeovers/queue.html:122
 msgid ""
 "This is what the web answered when the request was filed. It is asked again "
 "on approval, so anything that changed since then is caught."
@@ -9406,26 +9432,31 @@ msgstr ""
 "Esto es lo que contestó la web cuando se registró el pedido. Al aprobar se "
 "le vuelve a preguntar, así que si algo cambió desde entonces se detecta."
 
-#: support/templates/email_takeovers/queue.html:111
-#| msgid "optional"
+#: support/templates/email_takeovers/queue.html:123
+msgid ""
+"Everything movable is copied to the account that stays before the old one is"
+" deleted."
+msgstr ""
+"Todo lo que se puede mover se copia a la cuenta que queda antes de borrar la"
+" vieja."
+
+#: support/templates/email_takeovers/queue.html:131
 msgid "Note (optional)"
 msgstr "Nota (opcional)"
 
-#: support/templates/email_takeovers/queue.html:115
-#| msgid "Approved"
+#: support/templates/email_takeovers/queue.html:135
 msgid "Approve"
 msgstr "Aprobar"
 
-#: support/templates/email_takeovers/queue.html:118
-#| msgid "Rejected"
+#: support/templates/email_takeovers/queue.html:138
 msgid "Reject"
 msgstr "Rechazar"
 
-#: support/templates/email_takeovers/queue.html:125
+#: support/templates/email_takeovers/queue.html:145
 msgid "Nothing pending."
 msgstr "No hay nada pendiente."
 
-#: support/templates/email_takeovers/queue.html:132
+#: support/templates/email_takeovers/queue.html:152
 msgid "Recently resolved"
 msgstr "Resueltos recientemente"
 
@@ -11541,7 +11572,6 @@ msgstr "Email a tomar"
 
 #: support/views/email_takeovers.py:41
 #, python-format
-#| msgid "This contact has no issues"
 msgid "There is no contact with id %(id)s"
 msgstr "No existe ningún contacto con el id %(id)s"
 
@@ -11554,7 +11584,6 @@ msgid "The web did not answer. Try again."
 msgstr "La web no contestó. Probá de nuevo."
 
 #: support/views/email_takeovers.py:163
-#| msgid "This subscription should not be billed yet."
 msgid "The request could not be filed."
 msgstr "No se pudo registrar el pedido."
 

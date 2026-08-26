@@ -303,9 +303,13 @@ def _notify_reviewers(takeover_request):
         base_url = getattr(settings, "EMAIL_TAKEOVER_NOTIFY_BASE_URL", "") or ""
         queue_url = base_url + reverse("email_takeover_queue")
         what_it_does = (
-            _("Approving would DELETE a web account.")
+            _(
+                "Approving merges the two web accounts: everything useful from the old one "
+                "(newsletters included) moves to the one that stays, and only then is the old one "
+                "deleted. Newsletters are merged, never replaced."
+            )
             if takeover_request.deletes_an_account
-            else _("Approving would only link the web account, nothing is deleted.")
+            else _("Approving only links the web account. Nothing is deleted and nothing moves.")
         )
         subject = _("Email takeover request: %(email)s") % {"email": takeover_request.requested_email}
         body = "\n".join(

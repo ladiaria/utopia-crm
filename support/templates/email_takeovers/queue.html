@@ -87,20 +87,40 @@
                         <dd class="col-sm-9">{{ req.preview_detail.newsletters_drop|join:", " }}</dd>
                     {% endif %}
 
-                    {% if req.preview_detail.cascade_would_delete %}
-                        <dt class="col-sm-3">{% trans "Deleted along with it" %}</dt>
+                    {% if req.cascade_moved %}
+                        <dt class="col-sm-3 text-success">{% trans "Moves to the account that stays" %}</dt>
                         <dd class="col-sm-9">
                             <ul class="list-unstyled mb-0">
-                                {% for model, amount in req.preview_detail.cascade_would_delete.items %}
+                                {% for model, amount in req.cascade_moved.items %}
                                     <li>{{ model }}: {{ amount }}</li>
                                 {% endfor %}
                             </ul>
+                            <small class="text-muted">
+                                {% blocktrans %}Newsletters are merged, never replaced: the person keeps the ones from both accounts.{% endblocktrans %}
+                            </small>
+                        </dd>
+                    {% endif %}
+
+                    {% if req.cascade_lost %}
+                        <dt class="col-sm-3 text-danger">{% trans "Lost when the account is deleted" %}</dt>
+                        <dd class="col-sm-9 text-danger">
+                            <ul class="list-unstyled mb-0">
+                                {% for model, amount in req.cascade_lost.items %}
+                                    <li>{{ model }}: {{ amount }}</li>
+                                {% endfor %}
+                            </ul>
+                        </dd>
+                    {% elif req.deletes_an_account %}
+                        <dt class="col-sm-3">{% trans "Lost when the account is deleted" %}</dt>
+                        <dd class="col-sm-9 text-success">
+                            {% trans "Nothing: everything hanging off the old account moves over." %}
                         </dd>
                     {% endif %}
                 </dl>
                 <p class="text-muted mt-3 mb-0">
                     <small>
                         {% blocktrans %}This is what the web answered when the request was filed. It is asked again on approval, so anything that changed since then is caught.{% endblocktrans %}
+                        {% blocktrans %}Everything movable is copied to the account that stays before the old one is deleted.{% endblocktrans %}
                     </small>
                 </p>
             </div>
