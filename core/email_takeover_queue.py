@@ -32,7 +32,7 @@ from django.utils import timezone
 from django.utils.translation import gettext as _
 
 from .models import EmailTakeoverRequest
-from .utils import emailTakeoverOnWeb
+from .utils import emailTakeoverOnWeb, validateEmailOnWeb
 
 
 logger = logging.getLogger(__name__)
@@ -170,3 +170,114 @@ def pending_takeover_for(contact, email):
     return EmailTakeoverRequest.objects.filter(
         contact=contact, requested_email=email, status=EmailTakeoverRequest.PENDING
     ).first()
+
+
+def queue_takeover_on_conflict(contact, user=None, origin=None):
+    """
+    Opt this contact save in to the queue.
+
+    Without this the save behaves exactly as it always has (the CMS veto blocks it), which is what
+    every batch job and management command should keep doing -- an import must not file hundreds of
+    requests. Views that have a human in front of them call this before ``contact.save()`` and
+    ``notify_takeover_queued()`` after it.
+    """
+    contact._takeover_enqueue = True
+    contact._takeover_requested_by = user if (user is not None and user.is_authenticated) else None
+    contact._takeover_origin = origin or EmailTakeoverRequest.ORIGIN_OTHER
+    return contact
+
+
+def takeover_queued_email(contact):
+    """The email that went to the queue on the last save, if any. Consumes the mark."""
+    queued = getattr(contact, "takeover_queued", None)
+    if queued:
+        del contact.takeover_queued
+    return queued
+
+
+def notify_takeover_queued(request, contact):
+    """
+    Tell the operator what happened to the email change: it was not applied, it was not lost, and
+    it is not their call. Everything else they edited was saved.
+    """
+    from django.contrib import messages
+
+    queued = takeover_queued_email(contact)
+    if queued:
+        messages.info(
+            request,
+            _(
+                "The email could not be changed to %(email)s: another web account is using that address. "
+                "The change was filed for a supervisor to review. Everything else was saved."
+            )
+            % {"email": queued},
+        )
+    return queued
+
+
+def queue_takeover_after_create(contact, user=None):
+    """
+    File a request for a contact that was just created with an email the web says is taken.
+
+    Creation is the one path where the CRM never asks the CMS: ``Contact.clean()`` only calls it
+    ``if ... and self.id``, and during a create there is no id yet. So the contact is created no
+    matter what the web says -- and that is the right outcome, the contact is the commercial entity
+    and a web account holding its address is no reason for the person not to exist in the CRM. What
+    is wrong today is that the conflict is *silent*: two identities for one person, and nobody finds
+    out until something tries to create the web account.
+
+    This runs the check right after the create, id in hand, and files a request if a takeover would
+    fix it. Note the difference with an edit: here the email STAYS on the contact. Nothing is
+    discarded, because nothing is in dispute on the CRM side.
+
+    Usually the CMS answers ``attach_only`` for these -- the fresh contact has no web account of
+    its own, so approving only links the orphan account to it, with nothing merged and nothing
+    deleted. It still goes through the queue: the operator typed that address, and the guards
+    cannot tell a typo, or somebody else's account, from the person's own.
+
+    Never raises: a contact that was created stays created.
+    """
+    try:
+        if not (takeover_queue_enabled() and contact.id and contact.email):
+            return None
+        if not getattr(settings, "WEB_UPDATE_USER_ENABLED", False):
+            return None
+        resp = validateEmailOnWeb(contact.id, contact.email)
+        if resp in ("TIMEOUT", "ERROR") or not isinstance(resp, dict):
+            return None
+        if resp.get("msg") == "OK":
+            return None
+        retval = resp.get("retval")
+        if not (retval and retval > 0):
+            return None
+        preview = preview_takeover(contact.id, contact.email)
+        if not isinstance(preview, dict) or preview.get("retval") != 1:
+            # Either the web is down or a takeover cannot fix this one. Nothing is filed: an
+            # unresolvable request would sit in the queue with no action a reviewer could take.
+            return None
+        return enqueue_takeover(
+            contact,
+            contact.email,
+            preview.get("detail"),
+            origin=EmailTakeoverRequest.ORIGIN_CREATE_CONTACT,
+            requested_by=user if (user is not None and user.is_authenticated) else None,
+        )
+    except Exception:
+        logger.exception("Could not check the web for a conflict after creating contact %s", contact.id)
+        return None
+
+
+def notify_takeover_after_create(request, takeover_request):
+    """Tell the operator the contact was created and the web link is waiting for review."""
+    from django.contrib import messages
+
+    if takeover_request:
+        messages.info(
+            request,
+            _(
+                "The contact was created. On the web, %(email)s belongs to another account, so linking "
+                "them was filed for a supervisor to review."
+            )
+            % {"email": takeover_request.requested_email},
+        )
+    return takeover_request

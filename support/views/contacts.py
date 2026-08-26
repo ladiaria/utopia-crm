@@ -4,6 +4,7 @@ import pandas as pd
 from datetime import date
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import Q, Prefetch, Case, When, Value, BooleanField, Count, Exists, OuterRef
 from django.contrib.auth.models import Group
@@ -20,6 +21,12 @@ from django.views.decorators.csrf import csrf_protect
 from django.utils.functional import cached_property
 import io
 
+from core.email_takeover_queue import (
+    notify_takeover_after_create,
+    notify_takeover_queued,
+    queue_takeover_after_create,
+    queue_takeover_on_conflict,
+)
 from core.models import (
     Contact,
     Product,
@@ -29,6 +36,7 @@ from core.models import (
     Address,
     Subscription,
     ContactCampaignStatus,
+    EmailTakeoverRequest,
     IdDocumentType,
 )
 from core.filters import ContactFilter
@@ -467,10 +475,21 @@ class ContactUpdateView(BreadcrumbsMixin, UpdateView):
             if skip_clean_set:
                 del self.object._skip_clean
             messages.success(self.request, self.get_success_message())
+        # An email the web says belongs to another account is filed for a supervisor instead of
+        # blocking the edit: the operator does not execute a takeover, it can delete a web account.
+        queue_takeover_on_conflict(self.object, self.request.user, EmailTakeoverRequest.ORIGIN_EDIT_CONTACT)
         # At this point, the CMS api was already called, to avoid call it again we use the 'updatefromweb' flag
         # TODO: Only apply the prev. line indication (commented) if fields marked to be synced are unchanged
         # self.object.updatefromweb = True
-        result = super().form_valid(form)
+        try:
+            result = super().form_valid(form)
+        except ValidationError as ve:
+            # The conflict is not one a takeover can fix (staff account, active subscription,
+            # unmovable content). Show the CMS's own reason on the form instead of letting the
+            # error escape the view, which is what used to happen.
+            form.add_error(None, ve)
+            return self.form_invalid(form)
+        notify_takeover_queued(self.request, self.object)
         self.save_tags()
         # del self.object.updatefromweb
         return result
@@ -518,6 +537,14 @@ class ContactCreateView(BreadcrumbsMixin, CreateView):
             {"label": _("Contact list"), "url": reverse("contact_list")},
             {"label": _("Create"), "url": ""},
         ]
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        # Creating a contact never asks the CMS (there is no id yet when clean runs), so a web
+        # account already holding this address goes unnoticed. The contact is created either way
+        # -- it is the commercial entity -- but the conflict is filed instead of staying silent.
+        notify_takeover_after_create(self.request, queue_takeover_after_create(self.object, self.request.user))
+        return response
 
     def get_success_url(self) -> str:
         return reverse("contact_detail", args=[self.object.id])
