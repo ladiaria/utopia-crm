@@ -41,6 +41,13 @@ logger = logging.getLogger(__name__)
 # answer": the first is a decision, the second is an outage and the request must stay pending.
 RESOLVED, REFUSED, UNREACHABLE, FAILED = "resolved", "refused", "unreachable", "failed"
 
+# The CMS answers this when the account holding the address is ALREADY the contact's own one, so a
+# takeover would do nothing but normalize the address. There is no decision in it: the automatic
+# paths skip it rather than put it in front of a reviewer. A queue full of requests that change
+# nothing teaches people to approve without reading, which is the one habit this queue cannot
+# afford. The on-demand view still allows it, because there somebody asked for it on purpose.
+NOTHING_TO_DECIDE = "fix_email_only"
+
 
 def takeover_queue_enabled():
     """
@@ -254,6 +261,9 @@ def queue_takeover_after_create(contact, user=None):
         if not isinstance(preview, dict) or preview.get("retval") != 1:
             # Either the web is down or a takeover cannot fix this one. Nothing is filed: an
             # unresolvable request would sit in the queue with no action a reviewer could take.
+            return None
+        if (preview.get("detail") or {}).get("mode") == NOTHING_TO_DECIDE:
+            # The regular CRM->CMS push already linked the account between the save and this check.
             return None
         return enqueue_takeover(
             contact,

@@ -632,6 +632,10 @@ class Contact(models.Model):
             if human_msg and human_msg != "OK":
                 raise ValidationError({"email": human_msg})
             return None
+        # Note: the CMS's "fix_email_only" (the address already belongs to this contact's own web
+        # account) cannot reach this point -- email_check_api would have answered OK and there
+        # would be no conflict to resolve. It is filtered where it does happen, right after a
+        # contact is created (see queue_takeover_after_create).
         return enqueue_takeover(self, email, preview.get("detail"))
 
     def save(self, *args, **kwargs):
