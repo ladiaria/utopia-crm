@@ -3729,3 +3729,42 @@ class EmailTakeoverRequest(models.Model):
     def deletes_an_account(self):
         """True when approving this request would delete a web account."""
         return self.takeover_mode == "merge"
+
+    # What the CMS's move_data() carries over to the surviving account before deleting the old one
+    # (thedaily/utils.py). The cascade inventory in the preview is Django's Collector answering
+    # "what would deleting this account destroy", and it is computed BEFORE the move -- so without
+    # this split the reviewer reads "newsletters: 2" under a heading that says deleted, and
+    # concludes the person loses them. They do not: they are merged into the kept account.
+    MOVED_ON_TAKEOVER = (
+        "subscriber_newsletters",
+        "subscriber_category_newsletters",
+        "articleviewedby",
+        "follow",
+        "favorite",
+        "subscriberevent",
+        "audiostatistics",
+        "user_user_permissions",
+        "user_groups",
+    )
+
+    def _split_cascade(self):
+        """(moved, gone) from the stored cascade inventory. `User` and `Subscriber` are the account
+        rows themselves, so they are neither: they are what the takeover deletes on purpose."""
+        cascade = (self.preview_detail or {}).get("cascade_would_delete") or {}
+        moved, gone = {}, {}
+        for model, amount in cascade.items():
+            key = model.lower()
+            if key in ("user", "subscriber"):
+                continue
+            (moved if key in self.MOVED_ON_TAKEOVER else gone)[model] = amount
+        return moved, gone
+
+    @property
+    def cascade_moved(self):
+        """What travels to the account that survives. Newsletters live here."""
+        return self._split_cascade()[0]
+
+    @property
+    def cascade_lost(self):
+        """What the deletion actually takes with it. This is the part worth hesitating over."""
+        return self._split_cascade()[1]

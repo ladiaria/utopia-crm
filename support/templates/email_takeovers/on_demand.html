@@ -43,13 +43,16 @@
                             {% endif %}
 
                             {% if preview.cascade_would_delete %}
-                                <dt class="col-sm-4">{% trans "Deleted along with it" %}</dt>
+                                <dt class="col-sm-4">{% trans "Hangs off the old account" %}</dt>
                                 <dd class="col-sm-8">
                                     <ul class="list-unstyled mb-0">
                                         {% for model, amount in preview.cascade_would_delete.items %}
                                             <li>{{ model }}: {{ amount }}</li>
                                         {% endfor %}
                                     </ul>
+                                    <small class="text-muted">
+                                        {% blocktrans %}Everything movable -- newsletters included -- is copied to the account that stays before the old one is deleted.{% endblocktrans %}
+                                    </small>
                                 </dd>
                             {% endif %}
                         </dl>

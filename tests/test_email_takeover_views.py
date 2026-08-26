@@ -9,6 +9,7 @@ web, y eso tiene que valer tambien si escribe la URL a mano.
 from unittest import mock
 
 from django.contrib.auth.models import Permission, User
+from django.core import mail
 from django.test import TestCase
 from django.test.utils import override_settings
 from django.urls import reverse
@@ -200,10 +201,17 @@ class TestEditContactQueues(TestCase):
             {"name": "Contacto C", "email": email, "phone": phone, "id_document_type": "", "tags": "[]"},
         )
 
+    @staticmethod
+    def _cms_veta_solo_el_nuevo(contact_id, email):
+        """El CMS veta la direccion nueva; la que el contacto ya tiene esta sincronizada y da OK."""
+        if email == EMAIL:
+            return {"msg": "Ya existe otro usuario en la web utilizando ese email", "retval": 5}
+        return {"msg": "OK", "retval": 0}
+
     @mock.patch("core.email_takeover_queue.emailTakeoverOnWeb")
     @mock.patch("core.models.validateEmailOnWeb")
     def test_el_conflicto_se_archiva_y_el_resto_se_guarda(self, mock_validate, mock_cms):
-        mock_validate.return_value = {"msg": "Ya existe otro usuario en la web utilizando ese email", "retval": 5}
+        mock_validate.side_effect = self._cms_veta_solo_el_nuevo
         mock_cms.return_value = {"msg": "OK", "retval": 1, "detail": PREVIEW}
 
         self._post(EMAIL)
@@ -218,11 +226,32 @@ class TestEditContactQueues(TestCase):
             EmailTakeoverRequest.objects.filter(contact=self.contact, requested_email=EMAIL).exists()
         )
 
+    @override_settings(EMAIL_TAKEOVER_NOTIFY_RECIPIENTS=["supervisor@example.com"])
+    @mock.patch("core.email_takeover_queue.emailTakeoverOnWeb")
+    @mock.patch("core.models.validateEmailOnWeb")
+    def test_el_correo_deja_comparar_las_dos_direcciones(self, mock_validate, mock_cms):
+        """
+        Por el camino real, la instancia llega a custom_clean con el email NUEVO ya asignado (lo
+        pone el ModelForm), y recien despues del archivado se descarta. Si el correo lee de ahi,
+        "Email actual" y "Email solicitado" salen iguales y el revisor no tiene que comparar.
+        """
+        mock_validate.side_effect = self._cms_veta_solo_el_nuevo
+        mock_cms.return_value = {"msg": "OK", "retval": 1, "detail": PREVIEW}
+
+        self._post(EMAIL)
+
+        self.assertEqual(len(mail.outbox), 1)
+        linea_actual = [
+            ln for ln in mail.outbox[0].body.splitlines() if ln.startswith(("Email actual", "Current email"))
+        ][0]
+        self.assertIn(OLD_EMAIL, linea_actual)
+        self.assertNotIn(EMAIL, linea_actual)
+
     @mock.patch("core.email_takeover_queue.emailTakeoverOnWeb")
     @mock.patch("core.models.validateEmailOnWeb")
     def test_conflicto_no_resoluble_muestra_el_motivo_del_cms(self, mock_validate, mock_cms):
         """Cuenta staff: el operador tiene que ver el motivo real, no el mensaje generico."""
-        mock_validate.return_value = {"msg": "Ya existe otro usuario en la web utilizando ese email", "retval": 5}
+        mock_validate.side_effect = self._cms_veta_solo_el_nuevo
         mock_cms.return_value = {
             "msg": "La cuenta web que tiene ese email es de un usuario STAFF de la diaria.",
             "retval": 0,
