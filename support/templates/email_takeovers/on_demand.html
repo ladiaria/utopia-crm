@@ -1,0 +1,93 @@
+{% extends "adminlte/base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Takeover on demand" %}{% endblock %}
+
+{% block no_heading %}
+    <h1>{% trans "Takeover on demand" %}</h1>
+    <p>{% trans "Hand a web email address over to a contact without waiting for a request" %}</p>
+{% endblock %}
+
+{% block content %}
+    <div class="row">
+        <div class="col-md-8 col-12">
+            {% if preview %}
+                <div class="card card-outline {% if preview.mode == "merge" %}card-danger{% else %}card-primary{% endif %}">
+                    <div class="card-header">
+                        <h3 class="card-title">{% trans "This is what would happen" %}</h3>
+                    </div>
+                    <div class="card-body">
+                        <dl class="row mb-0">
+                            <dt class="col-sm-4">{% trans "Contact" %}</dt>
+                            <dd class="col-sm-8">
+                                <a href="{% url 'contact_detail' contact.id %}">{{ contact.get_full_name }}</a>
+                                <small class="text-muted">({{ contact.id }})</small>
+                            </dd>
+
+                            <dt class="col-sm-4">{% trans "Email" %}</dt>
+                            <dd class="col-sm-8">{{ email }}</dd>
+
+                            {% if preview.keep_email_before %}
+                                <dt class="col-sm-4">{% trans "Web account kept" %}</dt>
+                                <dd class="col-sm-8">{{ preview.keep_email_before }}</dd>
+                            {% endif %}
+
+                            {% if preview.drop_email %}
+                                <dt class="col-sm-4 text-danger">{% trans "Web account deleted" %}</dt>
+                                <dd class="col-sm-8 text-danger">{{ preview.drop_email }}</dd>
+                            {% endif %}
+
+                            {% if preview.newsletters_drop %}
+                                <dt class="col-sm-4">{% trans "Newsletters moved over" %}</dt>
+                                <dd class="col-sm-8">{{ preview.newsletters_drop|join:", " }}</dd>
+                            {% endif %}
+
+                            {% if preview.cascade_would_delete %}
+                                <dt class="col-sm-4">{% trans "Deleted along with it" %}</dt>
+                                <dd class="col-sm-8">
+                                    <ul class="list-unstyled mb-0">
+                                        {% for model, amount in preview.cascade_would_delete.items %}
+                                            <li>{{ model }}: {{ amount }}</li>
+                                        {% endfor %}
+                                    </ul>
+                                </dd>
+                            {% endif %}
+                        </dl>
+                    </div>
+                    <div class="card-footer">
+                        <form method="post">
+                            {% csrf_token %}
+                            <input type="hidden" name="contact" value="{{ contact.id }}">
+                            <input type="hidden" name="email" value="{{ email }}">
+                            <button type="submit" name="action" value="execute" class="btn btn-danger">
+                                <i class="fas fa-exchange-alt"></i> {% trans "Run the takeover" %}
+                            </button>
+                            <a href="{% url 'email_takeover_queue' %}" class="btn btn-default">{% trans "Cancel" %}</a>
+                        </form>
+                    </div>
+                </div>
+            {% else %}
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">{% trans "Which contact and which email" %}</h3>
+                    </div>
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="card-body">
+                            {{ form.as_p }}
+                            <p class="text-muted mb-0">
+                                <small>
+                                    {% blocktrans %}Nothing is touched yet: the web is asked what it would do and you decide afterwards.{% endblocktrans %}
+                                </small>
+                            </p>
+                        </div>
+                        <div class="card-footer">
+                            <button type="submit" class="btn btn-primary">{% trans "See what would happen" %}</button>
+                            <a href="{% url 'email_takeover_queue' %}" class="btn btn-default">{% trans "Back to the queue" %}</a>
+                        </div>
+                    </form>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}
