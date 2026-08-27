@@ -3274,10 +3274,8 @@ msgid "Payment Types"
 msgstr "Tipos de Pago"
 
 #: core/models.py:3658
-#, fuzzy
-#| msgid "Contacted"
 msgid "Contact edit"
-msgstr "Contactado"
+msgstr "Edición de contacto"
 
 #: core/models.py:3659 support/templates/new_subscription.html:4
 #: support/templates/new_subscription.html:18
@@ -3287,26 +3285,20 @@ msgid "New subscription"
 msgstr "Nueva suscripción"
 
 #: core/models.py:3660
-#, fuzzy
-#| msgid "Contact information"
 msgid "Contact creation"
-msgstr "Información de contacto"
+msgstr "Creación de contacto"
 
 #: core/models.py:3667
-#, fuzzy
-#| msgid "Requested"
 msgid "Requested email"
-msgstr "Pedidos"
+msgstr "Email solicitado"
 
 #: core/models.py:3671
 msgid "Origin"
 msgstr "Origen"
 
 #: core/models.py:3672
-#, fuzzy
-#| msgid "View details"
 msgid "Preview detail"
-msgstr "Ver detalle"
+msgstr "Detalle de la vista previa"
 
 #: core/models.py:3679 support/templates/email_takeovers/queue.html:64
 msgid "Requested by"
@@ -3317,10 +3309,8 @@ msgid "Resolved by"
 msgstr "Resuelto por"
 
 #: core/models.py:3689
-#, fuzzy
-#| msgid "Resolution"
 msgid "Resolution note"
-msgstr "Resolución"
+msgstr "Nota de resolución"
 
 #: core/models.py:3690 invoicing/models.py:112 invoicing/models.py:407
 msgid "Created at"
