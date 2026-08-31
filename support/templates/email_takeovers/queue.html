@@ -87,6 +87,18 @@
                         <dd class="col-sm-9">{{ req.preview_detail.newsletters_drop|join:", " }}</dd>
                     {% endif %}
 
+                    {% if req.released_contact_id %}
+                        <dt class="col-sm-3 text-warning">{% trans "Duplicate contact in the CRM" %}</dt>
+                        <dd class="col-sm-9">
+                            <a href="{% url 'contact_detail' req.released_contact_id %}">
+                                {{ req.released_contact_id }}
+                            </a>
+                            <small class="text-muted d-block">
+                                {% blocktrans %}The web account being absorbed belongs to this contact, which will be left with no web account. Check whether it should be merged into this one or dropped.{% endblocktrans %}
+                            </small>
+                        </dd>
+                    {% endif %}
+
                     {% if req.cascade_moved %}
                         <dt class="col-sm-3 text-success">{% trans "Moves to the account that stays" %}</dt>
                         <dd class="col-sm-9">
