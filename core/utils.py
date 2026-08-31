@@ -680,18 +680,29 @@ def validateEmailOnWeb(contact_id, email):
     )
 
 
-def emailTakeoverOnWeb(contact_id, email, confirm=False):
+def emailTakeoverOnWeb(contact_id, email, confirm=False, keep_subscription=False):
     """
     Pide al CMS el takeover de email huerfano para el contacto (desduplicacion CRM<->CMS).
     confirm=False -> preview (el CMS solo evalua las guardas, no toca nada).
-    confirm=True  -> ejecuta el takeover (conserva la cuenta del email nuevo, le transfiere
-                     el contact_id de la vieja, le mueve los datos y borra la vieja).
+    confirm=True  -> ejecuta el takeover.
+    keep_subscription=False -> politica MercadoPago: conserva la cuenta del email nuevo, le
+                     transfiere el contact_id de la vieja, le mueve los datos y borra la vieja.
+    keep_subscription=True  -> politica call center: conserva la cuenta CON SUSCRIPCION ACTIVA
+                     (que suele ser la del contacto, no la del email nuevo), le pone el email
+                     nuevo y absorbe la otra, que puede ser un duplicado del mismo humano con
+                     contact_id propio. Ese contact_id queda sin cuenta web y vuelve en el
+                     detalle como "released_contact_id".
     Devuelve el dict de respuesta del CMS o "TIMEOUT"/"ERROR".
     """
     return cms_rest_api_request(
         "emailTakeoverOnWeb",
         getattr(settings, "WEB_EMAIL_TAKEOVER_URI", None),
-        {"contact_id": contact_id, "email": email, "confirm": "1" if confirm else "0"},
+        {
+            "contact_id": contact_id,
+            "email": email,
+            "confirm": "1" if confirm else "0",
+            "keep_subscription": "1" if keep_subscription else "0",
+        },
     )
 
 

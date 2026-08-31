@@ -3740,6 +3740,24 @@ class EmailTakeoverRequest(models.Model):
         """True when approving this request would delete a web account."""
         return self.takeover_mode == "merge"
 
+    @property
+    def released_contact_id(self):
+        """The CRM contact left WITHOUT a web account by this takeover, when there is one.
+
+        It appears in the everyday call center case: the same person entered twice in the CRM, one
+        web account per contact. The account that survives is the one holding the subscription --
+        the contact's own -- and the duplicate's account is absorbed, so the duplicate contact ends
+        up with no web account at all. That contact is almost certainly the one to merge or drop in
+        the CRM, and the reviewer has no way of guessing its id: this is where they read it.
+        """
+        return (self.preview_detail or {}).get("released_contact_id")
+
+    @property
+    def orphan_contact_id(self):
+        """Which contact owns the web account holding the requested address, when the CMS knows.
+        Present on refusals too, where it is the only handle the reviewer has to act on."""
+        return (self.preview_detail or {}).get("orphan_contact_id")
+
     # What the CMS's move_data() carries over to the surviving account before deleting the old one
     # (thedaily/utils.py). The cascade inventory in the preview is Django's Collector answering
     # "what would deleting this account destroy", and it is computed BEFORE the move -- so without
@@ -3761,12 +3779,18 @@ class EmailTakeoverRequest(models.Model):
         """(moved, gone) from the stored cascade inventory. `User` and `Subscriber` are the account
         rows themselves, so they are neither: they are what the takeover deletes on purpose."""
         cascade = (self.preview_detail or {}).get("cascade_would_delete") or {}
+        # When the surviving account is the contact's own (the call center case, the one that
+        # leaves a contact without a web account), the CMS moves over the Google login of the
+        # claimed address: that account ends up carrying exactly that email, so the binding stays
+        # consistent and the person keeps signing in with Google. Listing it as lost there would
+        # tell the reviewer the opposite of what happens.
+        moved_models = self.MOVED_ON_TAKEOVER + (("usersocialauth",) if self.released_contact_id else ())
         moved, gone = {}, {}
         for model, amount in cascade.items():
             key = model.lower()
             if key in ("user", "subscriber"):
                 continue
-            (moved if key in self.MOVED_ON_TAKEOVER else gone)[model] = amount
+            (moved if key in moved_models else gone)[model] = amount
         return moved, gone
 
     @property
