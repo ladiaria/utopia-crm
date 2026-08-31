@@ -48,6 +48,27 @@ RESOLVED, REFUSED, UNREACHABLE, FAILED = "resolved", "refused", "unreachable", "
 # afford. The on-demand view still allows it, because there somebody asked for it on purpose.
 NOTHING_TO_DECIDE = "fix_email_only"
 
+# Reasons a takeover preview can come back refused that a HUMAN has to see: no automatic path can
+# resolve them, and neither can the dedupe. Everything else must NOT stop at the takeover -- most
+# of all ``not_safe``, the CMS's answer when the address belongs to a web account that already
+# carries another ``contact_id``. That is the everyday call center case (the same person entered
+# twice in the CRM, one contact per web account), and the dedupe configured in
+# ``WEB_UPDATE_USER_VALIDATION_MODULE`` does know how to merge two web accounts that each have a
+# ``contact_id`` -- it resolved this long before the takeover existed. So on those reasons the
+# preview returns None and the conflict carries on down the path it always took.
+#
+# Codes mirror ``utopia_cms_ladiaria.email_takeover.TakeoverResult``; a CMS that does not send
+# ``reason`` at all falls through to the dedupe, which is exactly the pre-takeover behaviour.
+BLOCKING_PREVIEW_REASONS = (
+    "is_staff",
+    "has_subscription",
+    "has_unmovable_data",
+    "social_auth_conflict",
+    # el duplicado que tendría que absorberse tiene suscripción activa: hay un contacto vivo
+    # detrás de ese contact_id, y con una suscripción de por medio decide una persona.
+    "orphan_has_subscription",
+)
+
 
 def takeover_queue_enabled():
     """
@@ -64,8 +85,14 @@ def preview_takeover(contact_id, email):
     """
     Ask the CMS what a takeover of ``email`` for ``contact_id`` would do, without touching
     anything. Returns the CMS response dict, or "TIMEOUT"/"ERROR".
+
+    Always with the call center policy (``keep_subscription``), because this queue IS the call
+    center channel: keep the account that holds the subscription, and accept that the account
+    holding the address may carry a ``contact_id`` of its own -- the same person entered twice in
+    the CRM. The preview and the approval must ask for the same policy or the reviewer would be
+    approving something different from what they were shown.
     """
-    return emailTakeoverOnWeb(contact_id, email, confirm=False)
+    return emailTakeoverOnWeb(contact_id, email, confirm=False, keep_subscription=True)
 
 
 def enqueue_takeover(contact, email, preview_detail=None, origin=None, requested_by=None):
@@ -121,7 +148,7 @@ def approve_takeover(takeover_request, user=None, note=""):
         return FAILED, _("Email takeovers are disabled.")
 
     contact, email = takeover_request.contact, takeover_request.requested_email
-    run = emailTakeoverOnWeb(contact.id, email, confirm=True)
+    run = emailTakeoverOnWeb(contact.id, email, confirm=True, keep_subscription=True)  # ver preview_takeover
 
     if run in ("TIMEOUT", "ERROR") or not isinstance(run, dict):
         logger.warning("Takeover approval could not reach the CMS for request %s (%s)", takeover_request.id, run)

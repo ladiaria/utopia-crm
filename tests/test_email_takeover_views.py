@@ -123,7 +123,8 @@ class TestEmailTakeoverViews(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, OLD_EMAIL)  # que se borraria
-        mock_cms.assert_called_once_with(self.contact.id, EMAIL, confirm=False)  # solo preview
+        # solo preview, y con la politica del call center (ver preview_takeover)
+        mock_cms.assert_called_once_with(self.contact.id, EMAIL, confirm=False, keep_subscription=True)
 
     @mock.patch("core.models.validateEmailOnWeb")
     @mock.patch("core.email_takeover_queue.emailTakeoverOnWeb")

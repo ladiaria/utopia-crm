@@ -51,6 +51,15 @@ PREVIEW_STAFF = {
     "reason": "is_staff",
     "detail": {},
 }
+# El CMS dice que no porque la cuenta del email ya tiene OTRO contact_id: la misma persona
+# cargada dos veces en el CRM, una cuenta web por contacto. El takeover no lo cubre a proposito
+# (no puede saber si son la misma persona), pero el dedupe si: este preview NO debe cortar.
+PREVIEW_NOT_SAFE = {
+    "msg": "Ese email pertenece a otro contacto en la web. Requiere revisión manual.",
+    "retval": 0,
+    "reason": "not_safe",
+    "detail": {},
+}
 
 
 @override_settings(
@@ -78,7 +87,7 @@ class TestTakeoverQueueHook(TestCase):
         contact.custom_clean(EMAIL, debug=False)  # no debe lanzar
 
         # El CMS fue consultado en modo preview: NO se ejecuto nada.
-        mock_cms.assert_called_once_with(contact.id, EMAIL, confirm=False)
+        mock_cms.assert_called_once_with(contact.id, EMAIL, confirm=False, keep_subscription=True)
         # El cambio de email se descarto y quedo la marca para que la vista avise.
         self.assertEqual(contact.email, OLD_EMAIL)
         self.assertEqual(contact.takeover_queued, EMAIL)
@@ -116,6 +125,111 @@ class TestTakeoverQueueHook(TestCase):
             contact.custom_clean(EMAIL, debug=False)
 
         self.assertIn("STAFF", str(cm.exception))
+        self.assertFalse(EmailTakeoverRequest.objects.exists())
+
+    @mock.patch("core.email_takeover_queue.emailTakeoverOnWeb")
+    @mock.patch("core.models.validateEmailOnWeb")
+    def test_pide_la_politica_del_call_center(self, mock_validate, mock_cms):
+        """La cola siempre pide keep_subscription: conservar la cuenta con la suscripcion y
+        aceptar que la del email nuevo traiga contact_id propio (el duplicado del CRM)."""
+        contact = self._contact()
+        mock_validate.return_value = CONFLICT
+        mock_cms.return_value = PREVIEW_MERGE
+        contact._takeover_enqueue = True
+
+        contact.custom_clean(EMAIL, debug=False)
+
+        mock_cms.assert_called_once_with(contact.id, EMAIL, confirm=False, keep_subscription=True)
+
+    @mock.patch("core.email_takeover_queue.emailTakeoverOnWeb")
+    @mock.patch("core.models.validateEmailOnWeb")
+    def test_duplicado_con_suscripcion_muestra_el_motivo_y_no_encola(self, mock_validate, mock_cms):
+        """El duplicado que habria que absorber tiene suscripcion activa: decide una persona,
+        no la cola. El operador ve el motivo, con el contacto duenio del email."""
+        contact = self._contact()
+        mock_validate.return_value = CONFLICT
+        mock_cms.return_value = {
+            "msg": (
+                "La cuenta web que tiene ese email pertenece a otro contacto CON suscripción activa. "
+                "Ese email lo tiene la cuenta web del contacto 694270."
+            ),
+            "retval": 0,
+            "reason": "orphan_has_subscription",
+            "detail": {"orphan_contact_id": 694270},
+        }
+        contact._takeover_enqueue = True
+
+        with self.assertRaises(ValidationError) as cm:
+            contact.custom_clean(EMAIL, debug=False)
+
+        self.assertIn("694270", str(cm.exception))
+        self.assertFalse(EmailTakeoverRequest.objects.exists())
+
+    @mock.patch("core.email_takeover_queue.emailTakeoverOnWeb")
+    @mock.patch("core.models.validateEmailOnWeb")
+    def test_el_pedido_expone_el_contacto_duplicado(self, mock_validate, mock_cms):
+        """Cuando el takeover deja un contacto del CRM sin cuenta web, el revisor tiene que poder
+        verlo en la cola: es el que hay que fusionar o dar de baja despues."""
+        contact = self._contact()
+        mock_validate.return_value = CONFLICT
+        mock_cms.return_value = {
+            "msg": "OK",
+            "retval": 1,
+            "reason": "ok",
+            "detail": {
+                "mode": "merge",
+                "drop_email": EMAIL,
+                "keep_subscriber_id": 23895,
+                "released_contact_id": 694270,
+                "cascade_would_delete": {"User": 1, "Subscriber": 1, "UserSocialAuth": 1},
+            },
+        }
+        contact._takeover_enqueue = True
+
+        contact.custom_clean(EMAIL, debug=False)
+
+        request = EmailTakeoverRequest.objects.get(contact=contact, requested_email=EMAIL)
+        self.assertEqual(request.released_contact_id, 694270)
+        # el login de Google viaja a la cuenta que queda: no se muestra como perdido
+        self.assertIn("UserSocialAuth", request.cascade_moved)
+        self.assertNotIn("UserSocialAuth", request.cascade_lost)
+
+    @mock.patch("core.models.locate")
+    @mock.patch("core.email_takeover_queue.emailTakeoverOnWeb")
+    @mock.patch("core.models.validateEmailOnWeb")
+    def test_not_safe_sigue_al_dedupe_y_no_encola(self, mock_validate, mock_cms, mock_locate):
+        """El caso mas comun del call center: el email lo tiene una cuenta con otro contact_id.
+
+        El takeover no lo resuelve, pero el dedupe si. El preview NO debe cortar el guardado:
+        tiene que devolver el conflicto al camino de siempre. Regresion: cuando esto cortaba,
+        el operador veia "Requiere revision manual" y no habia nada que hacer.
+        """
+        contact = self._contact()
+        mock_validate.side_effect = [CONFLICT, OK]  # conflicto, y tras el dedupe la reconsulta da OK
+        mock_cms.return_value = PREVIEW_NOT_SAFE
+        mock_locate.return_value.dedupeOnWeb.return_value = {"retval": 1}
+        contact._takeover_enqueue = True
+
+        with override_settings(WEB_UPDATE_USER_VALIDATION_MODULE="fake.dedupe.module"):
+            contact.custom_clean(EMAIL, debug=False)  # no debe lanzar
+
+        mock_locate.return_value.dedupeOnWeb.assert_called_once_with(contact.id, CONFLICT["retval"], EMAIL)
+        self.assertFalse(EmailTakeoverRequest.objects.exists())
+
+    @mock.patch("core.email_takeover_queue.emailTakeoverOnWeb")
+    @mock.patch("core.models.validateEmailOnWeb")
+    def test_not_safe_sin_dedupe_bloquea_con_el_mensaje_de_siempre(self, mock_validate, mock_cms):
+        """Sin modulo de dedupe configurado, not_safe bloquea con el mensaje generico de siempre
+        (no con el del takeover) y tampoco encola: no hay nada que un revisor pueda aprobar."""
+        contact = self._contact()
+        mock_validate.return_value = CONFLICT
+        mock_cms.return_value = PREVIEW_NOT_SAFE
+        contact._takeover_enqueue = True
+
+        with self.assertRaises(ValidationError) as cm:
+            contact.custom_clean(EMAIL, debug=False)
+
+        self.assertIn("Ya existe", str(cm.exception))
         self.assertFalse(EmailTakeoverRequest.objects.exists())
 
     @mock.patch("core.email_takeover_queue.emailTakeoverOnWeb")
@@ -232,7 +346,7 @@ class TestTakeoverResolution(TestCase):
         outcome, _msg = approve_takeover(self.request, user=self.reviewer)
 
         self.assertEqual(outcome, RESOLVED)
-        mock_cms.assert_called_once_with(self.contact.id, EMAIL, confirm=True)
+        mock_cms.assert_called_once_with(self.contact.id, EMAIL, confirm=True, keep_subscription=True)
         self.request.refresh_from_db()
         self.contact.refresh_from_db()
         self.assertEqual(self.request.status, EmailTakeoverRequest.APPROVED)
@@ -318,7 +432,8 @@ class TestTakeoverAfterCreate(TestCase):
         queued = queue_takeover_after_create(contact)
 
         self.assertIsNotNone(queued)
-        mock_cms.assert_called_once_with(contact.id, EMAIL, confirm=False)  # preview, no ejecucion
+        # preview, no ejecucion
+        mock_cms.assert_called_once_with(contact.id, EMAIL, confirm=False, keep_subscription=True)
         self.assertEqual(queued.origin, EmailTakeoverRequest.ORIGIN_CREATE_CONTACT)
         self.assertEqual(queued.takeover_mode, "attach_only")
         self.assertFalse(queued.deletes_an_account)

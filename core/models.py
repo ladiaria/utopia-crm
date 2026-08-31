@@ -616,11 +616,12 @@ class Contact(models.Model):
 
         Returns the queued request, or None when the conflict is not something a takeover can fix
         and the caller should fall through to the usual dedupe/block path. Raises ValidationError
-        carrying the CMS's own readable reason (staff account, active subscription, unmovable
-        content) when it has one, because that is far more useful to the operator than the
-        generic "this email is taken".
+        carrying the CMS's own readable reason only for the reasons a human has to see
+        (BLOCKING_PREVIEW_REASONS: staff account, active subscription, unmovable content, social
+        auth conflict), because there that is far more useful to the operator than the generic
+        "this email is taken".
         """
-        from .email_takeover_queue import enqueue_takeover, preview_takeover
+        from .email_takeover_queue import BLOCKING_PREVIEW_REASONS, enqueue_takeover, preview_takeover
 
         preview = preview_takeover(self.id, email)
         if preview in ("TIMEOUT", "ERROR") or not isinstance(preview, dict):
@@ -628,9 +629,13 @@ class Contact(models.Model):
             # the contact be blocked as usual rather than filing a request on a guess.
             return None
         if preview.get("retval") != 1:
-            human_msg = preview.get("msg")
-            if human_msg and human_msg != "OK":
-                raise ValidationError({"email": human_msg})
+            # Only the reasons a human has to decide on stop here. Anything else -- above all
+            # "not_safe", the address belonging to a web account with another contact_id -- goes
+            # back to the caller as None so the conflict reaches the dedupe, which handles exactly
+            # that case and did so before this queue existed. Raising on every refusal turned the
+            # most common call center conflict into a dead end. See BLOCKING_PREVIEW_REASONS.
+            if preview.get("reason") in BLOCKING_PREVIEW_REASONS:
+                raise ValidationError({"email": preview.get("msg")})
             return None
         # Note: the CMS's "fix_email_only" (the address already belongs to this contact's own web
         # account) cannot reach this point -- email_check_api would have answered OK and there
@@ -3734,6 +3739,24 @@ class EmailTakeoverRequest(models.Model):
         """True when approving this request would delete a web account."""
         return self.takeover_mode == "merge"
 
+    @property
+    def released_contact_id(self):
+        """The CRM contact left WITHOUT a web account by this takeover, when there is one.
+
+        It appears in the everyday call center case: the same person entered twice in the CRM, one
+        web account per contact. The account that survives is the one holding the subscription --
+        the contact's own -- and the duplicate's account is absorbed, so the duplicate contact ends
+        up with no web account at all. That contact is almost certainly the one to merge or drop in
+        the CRM, and the reviewer has no way of guessing its id: this is where they read it.
+        """
+        return (self.preview_detail or {}).get("released_contact_id")
+
+    @property
+    def orphan_contact_id(self):
+        """Which contact owns the web account holding the requested address, when the CMS knows.
+        Present on refusals too, where it is the only handle the reviewer has to act on."""
+        return (self.preview_detail or {}).get("orphan_contact_id")
+
     # What the CMS's move_data() carries over to the surviving account before deleting the old one
     # (thedaily/utils.py). The cascade inventory in the preview is Django's Collector answering
     # "what would deleting this account destroy", and it is computed BEFORE the move -- so without
@@ -3755,12 +3778,18 @@ class EmailTakeoverRequest(models.Model):
         """(moved, gone) from the stored cascade inventory. `User` and `Subscriber` are the account
         rows themselves, so they are neither: they are what the takeover deletes on purpose."""
         cascade = (self.preview_detail or {}).get("cascade_would_delete") or {}
+        # When the surviving account is the contact's own (the call center case, the one that
+        # leaves a contact without a web account), the CMS moves over the Google login of the
+        # claimed address: that account ends up carrying exactly that email, so the binding stays
+        # consistent and the person keeps signing in with Google. Listing it as lost there would
+        # tell the reviewer the opposite of what happens.
+        moved_models = self.MOVED_ON_TAKEOVER + (("usersocialauth",) if self.released_contact_id else ())
         moved, gone = {}, {}
         for model, amount in cascade.items():
             key = model.lower()
             if key in ("user", "subscriber"):
                 continue
-            (moved if key in self.MOVED_ON_TAKEOVER else gone)[model] = amount
+            (moved if key in moved_models else gone)[model] = amount
         return moved, gone
 
     @property
