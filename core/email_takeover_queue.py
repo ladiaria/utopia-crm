@@ -48,6 +48,19 @@ RESOLVED, REFUSED, UNREACHABLE, FAILED = "resolved", "refused", "unreachable", "
 # afford. The on-demand view still allows it, because there somebody asked for it on purpose.
 NOTHING_TO_DECIDE = "fix_email_only"
 
+# Reasons a takeover preview can come back refused that a HUMAN has to see: no automatic path can
+# resolve them, and neither can the dedupe. Everything else must NOT stop at the takeover -- most
+# of all ``not_safe``, the CMS's answer when the address belongs to a web account that already
+# carries another ``contact_id``. That is the everyday call center case (the same person entered
+# twice in the CRM, one contact per web account), and the dedupe configured in
+# ``WEB_UPDATE_USER_VALIDATION_MODULE`` does know how to merge two web accounts that each have a
+# ``contact_id`` -- it resolved this long before the takeover existed. So on those reasons the
+# preview returns None and the conflict carries on down the path it always took.
+#
+# Codes mirror ``utopia_cms_ladiaria.email_takeover.TakeoverResult``; a CMS that does not send
+# ``reason`` at all falls through to the dedupe, which is exactly the pre-takeover behaviour.
+BLOCKING_PREVIEW_REASONS = ("is_staff", "has_subscription", "has_unmovable_data", "social_auth_conflict")
+
 
 def takeover_queue_enabled():
     """

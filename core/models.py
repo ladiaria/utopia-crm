@@ -616,11 +616,12 @@ class Contact(models.Model):
 
         Returns the queued request, or None when the conflict is not something a takeover can fix
         and the caller should fall through to the usual dedupe/block path. Raises ValidationError
-        carrying the CMS's own readable reason (staff account, active subscription, unmovable
-        content) when it has one, because that is far more useful to the operator than the
-        generic "this email is taken".
+        carrying the CMS's own readable reason only for the reasons a human has to see
+        (BLOCKING_PREVIEW_REASONS: staff account, active subscription, unmovable content, social
+        auth conflict), because there that is far more useful to the operator than the generic
+        "this email is taken".
         """
-        from .email_takeover_queue import enqueue_takeover, preview_takeover
+        from .email_takeover_queue import BLOCKING_PREVIEW_REASONS, enqueue_takeover, preview_takeover
 
         preview = preview_takeover(self.id, email)
         if preview in ("TIMEOUT", "ERROR") or not isinstance(preview, dict):
@@ -628,9 +629,13 @@ class Contact(models.Model):
             # the contact be blocked as usual rather than filing a request on a guess.
             return None
         if preview.get("retval") != 1:
-            human_msg = preview.get("msg")
-            if human_msg and human_msg != "OK":
-                raise ValidationError({"email": human_msg})
+            # Only the reasons a human has to decide on stop here. Anything else -- above all
+            # "not_safe", the address belonging to a web account with another contact_id -- goes
+            # back to the caller as None so the conflict reaches the dedupe, which handles exactly
+            # that case and did so before this queue existed. Raising on every refusal turned the
+            # most common call center conflict into a dead end. See BLOCKING_PREVIEW_REASONS.
+            if preview.get("reason") in BLOCKING_PREVIEW_REASONS:
+                raise ValidationError({"email": preview.get("msg")})
             return None
         # Note: the CMS's "fix_email_only" (the address already belongs to this contact's own web
         # account) cannot reach this point -- email_check_api would have answered OK and there
