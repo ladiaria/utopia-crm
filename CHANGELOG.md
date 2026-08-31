@@ -2,6 +2,16 @@
 
 ## v0.5.1
 
+## 2026-08-27 — t1157-cola-takeover Cola de takeovers de email para el call center
+
+- Cuando alguien quiere usar un email que en la web pertenece a otra cuenta suya sin vincular, el call center se trababa y **no se podía guardar nada** de la ficha: ni el teléfono, ni la dirección, ni lo que el operador acabara de corregir. Ahora el email es lo único que no se aplica —el resto del contacto se guarda— y queda anotado un pedido para resolverlo aparte. Sin el pedido, el conflicto no dejaba ningún rastro: nadie sabía que había existido
+- El pedido lo resuelve alguien con el permiso `core.can_takeover_email` desde una pantalla nueva, que muestra las dos cuentas web y qué pasaría al aprobar antes de decidir. **El operador que archiva el pedido no puede aprobarlo, y es a propósito:** aprobar puede borrar una cuenta web. Escribir la URL de la pantalla a mano da 403
+- Encolar es **opt-in por vista**: cada pantalla que quiere archivar pedidos lo declara. Todo lo demás —tareas nocturnas, comandos, importaciones— se comporta exactamente como antes, así que una carga masiva no llena la cola
+- Al aprobar, las newsletters de las dos cuentas se unen en la que queda —nunca se pierden— y recién después se borra la vieja. Rechazar no toca nada. Un takeover hecho a mano deja el mismo rastro auditable que uno venido de la cola
+- Se corrigieron cinco cadenas de traducción al español que habían quedado marcadas `fuzzy` con la traducción de otra cadena parecida, y por eso salían sin traducir
+- Deployment: **se requiere migración** (`core.0121`), y hay que correr `compilemessages` o la pantalla se ve en inglés. El aviso a los revisores se configura con `EMAIL_TAKEOVER_NOTIFY_RECIPIENTS` y `EMAIL_TAKEOVER_NOTIFY_BASE_URL`; sin destinatarios cae en `mail_managers`
+- **Author:** Tanya Tree + Claude Opus 5
+
 ## 2026-08-24 — fix/upload_do_not_call_numbers Reemplazo atómico de la lista de "no llame"
 
 - La subida de la lista de "no llame" borraba los números en una transacción e insertaba los nuevos en otra. Si dos subidas se pisaban (un doble clic en el botón, un reenvío del formulario) la segunda podía chocar con lo que la primera estaba insertando y fallar con un error de clave duplicada; y si el insert fallaba por cualquier motivo, la lista quedaba **vacía**, con lo que el call center pasaba a poder llamar a todo el mundo. Ahora el borrado y la inserción ocurren en una sola transacción: o entra la lista nueva completa, o queda la anterior intacta

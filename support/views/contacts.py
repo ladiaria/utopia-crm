@@ -4,6 +4,7 @@ import pandas as pd
 from datetime import date
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import Q, Prefetch, Case, When, Value, BooleanField, Count, Exists, OuterRef
 from django.contrib.auth.models import Group
@@ -20,6 +21,12 @@ from django.views.decorators.csrf import csrf_protect
 from django.utils.functional import cached_property
 import io
 
+from core.email_takeover_queue import (
+    notify_takeover_after_create,
+    notify_takeover_queued,
+    queue_takeover_after_create,
+    queue_takeover_on_conflict,
+)
 from core.models import (
     Contact,
     Product,
@@ -29,6 +36,7 @@ from core.models import (
     Address,
     Subscription,
     ContactCampaignStatus,
+    EmailTakeoverRequest,
     IdDocumentType,
 )
 from core.filters import ContactFilter
@@ -453,6 +461,16 @@ class ContactUpdateView(BreadcrumbsMixin, UpdateView):
         kwargs['request'] = self.request
         return kwargs
 
+    def get_object(self, queryset=None):
+        contact = super().get_object(queryset)
+        # The opt-in has to be on the instance BEFORE the form validates: a ModelForm runs
+        # Contact.clean() -- and with it the CMS check -- inside its own _post_clean(), which
+        # happens before form_valid() is ever called. Setting it there would arrive after the
+        # decision was already made, and the edit would be rejected whole, losing every other
+        # change the operator made along with the email.
+        queue_takeover_on_conflict(contact, self.request.user, EmailTakeoverRequest.ORIGIN_EDIT_CONTACT)
+        return contact
+
     def form_valid(self, form):
         skip_clean_set = False
         if not getattr(self.object, "_skip_clean", False):
@@ -470,7 +488,15 @@ class ContactUpdateView(BreadcrumbsMixin, UpdateView):
         # At this point, the CMS api was already called, to avoid call it again we use the 'updatefromweb' flag
         # TODO: Only apply the prev. line indication (commented) if fields marked to be synced are unchanged
         # self.object.updatefromweb = True
-        result = super().form_valid(form)
+        try:
+            result = super().form_valid(form)
+        except ValidationError as ve:
+            # The conflict is not one a takeover can fix (staff account, active subscription,
+            # unmovable content). Show the CMS's own reason on the form instead of letting the
+            # error escape the view, which is what used to happen.
+            form.add_error(None, ve)
+            return self.form_invalid(form)
+        notify_takeover_queued(self.request, self.object)
         self.save_tags()
         # del self.object.updatefromweb
         return result
@@ -518,6 +544,14 @@ class ContactCreateView(BreadcrumbsMixin, CreateView):
             {"label": _("Contact list"), "url": reverse("contact_list")},
             {"label": _("Create"), "url": ""},
         ]
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        # Creating a contact never asks the CMS (there is no id yet when clean runs), so a web
+        # account already holding this address goes unnoticed. The contact is created either way
+        # -- it is the commercial entity -- but the conflict is filed instead of staying silent.
+        notify_takeover_after_create(self.request, queue_takeover_after_create(self.object, self.request.user))
+        return response
 
     def get_success_url(self) -> str:
         return reverse("contact_detail", args=[self.object.id])

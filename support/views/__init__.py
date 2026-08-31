@@ -47,3 +47,8 @@ from .subscriptions import (  # noqa
     add_retention_discount,
     reactivate_subscription,
 )
+from .email_takeovers import (  # noqa
+    EmailTakeoverQueueView,
+    EmailTakeoverResolveView,
+    EmailTakeoverOnDemandView,
+)

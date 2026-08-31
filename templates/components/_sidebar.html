@@ -48,6 +48,20 @@
                     <p>{% trans "Contacts" %}</p>
                   </a>
                 </li>
+                {% if request.user|has_perm:"core.can_takeover_email" %}
+                  {% url 'email_takeover_queue' as email_takeover_queue %}
+                  {% pending_email_takeovers as pending_takeovers %}
+                  <li class="nav-item">
+                    <a href="{{ email_takeover_queue }}"
+                       class="nav-link {% if request.path == email_takeover_queue %}active{% endif %}">
+                      <i class="nav-icon fas fa-exchange-alt"></i>
+                      <p>
+                        {% trans "Email takeovers" %}
+                        {% if pending_takeovers %}<span class="badge badge-warning right">{{ pending_takeovers }}</span>{% endif %}
+                      </p>
+                    </a>
+                  </li>
+                {% endif %}
                 {% if request.user|in_group:"Support" %}
                   {% include "components/sidebar_items/_support.html" %}
                 {% endif %}

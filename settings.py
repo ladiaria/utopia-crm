@@ -248,6 +248,12 @@ WEB_EMAIL_TAKEOVER_URI = None
 # local_settings de produccion para activarlo; volverlo a False lo apaga sin tocar codigo
 # (el flujo cae al comportamiento de siempre: bloquea/dedupe, sin borrar ni mover nada).
 WEB_EMAIL_TAKEOVER_ENABLED = False
+# Destinatarios del aviso cuando el call center archiva un pedido de takeover. Vacio =
+# mail_managers. Solo avisa: quien decide es alguien con el permiso core.can_takeover_email.
+EMAIL_TAKEOVER_NOTIFY_RECIPIENTS = []
+# Prefijo para armar el link a la cola en ese aviso (ej. "https://crm.example.com"). Sin esto el
+# correo lleva la ruta relativa, que igual sirve para quien ya esta adentro del CRM.
+EMAIL_TAKEOVER_NOTIFY_BASE_URL = ""
 # Newsletter read/delta endpoints on the CMS (CRM reads/edits newsletters on demand from the CMS).
 WEB_NEWSLETTERS_READ_URI = None
 WEB_NEWSLETTERS_UPDATE_URI = None
