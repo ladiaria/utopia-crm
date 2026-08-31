@@ -51,6 +51,15 @@ PREVIEW_STAFF = {
     "reason": "is_staff",
     "detail": {},
 }
+# El CMS dice que no porque la cuenta del email ya tiene OTRO contact_id: la misma persona
+# cargada dos veces en el CRM, una cuenta web por contacto. El takeover no lo cubre a proposito
+# (no puede saber si son la misma persona), pero el dedupe si: este preview NO debe cortar.
+PREVIEW_NOT_SAFE = {
+    "msg": "Ese email pertenece a otro contacto en la web. Requiere revisión manual.",
+    "retval": 0,
+    "reason": "not_safe",
+    "detail": {},
+}
 
 
 @override_settings(
@@ -116,6 +125,44 @@ class TestTakeoverQueueHook(TestCase):
             contact.custom_clean(EMAIL, debug=False)
 
         self.assertIn("STAFF", str(cm.exception))
+        self.assertFalse(EmailTakeoverRequest.objects.exists())
+
+    @mock.patch("core.models.locate")
+    @mock.patch("core.email_takeover_queue.emailTakeoverOnWeb")
+    @mock.patch("core.models.validateEmailOnWeb")
+    def test_not_safe_sigue_al_dedupe_y_no_encola(self, mock_validate, mock_cms, mock_locate):
+        """El caso mas comun del call center: el email lo tiene una cuenta con otro contact_id.
+
+        El takeover no lo resuelve, pero el dedupe si. El preview NO debe cortar el guardado:
+        tiene que devolver el conflicto al camino de siempre. Regresion: cuando esto cortaba,
+        el operador veia "Requiere revision manual" y no habia nada que hacer.
+        """
+        contact = self._contact()
+        mock_validate.side_effect = [CONFLICT, OK]  # conflicto, y tras el dedupe la reconsulta da OK
+        mock_cms.return_value = PREVIEW_NOT_SAFE
+        mock_locate.return_value.dedupeOnWeb.return_value = {"retval": 1}
+        contact._takeover_enqueue = True
+
+        with override_settings(WEB_UPDATE_USER_VALIDATION_MODULE="fake.dedupe.module"):
+            contact.custom_clean(EMAIL, debug=False)  # no debe lanzar
+
+        mock_locate.return_value.dedupeOnWeb.assert_called_once_with(contact.id, CONFLICT["retval"], EMAIL)
+        self.assertFalse(EmailTakeoverRequest.objects.exists())
+
+    @mock.patch("core.email_takeover_queue.emailTakeoverOnWeb")
+    @mock.patch("core.models.validateEmailOnWeb")
+    def test_not_safe_sin_dedupe_bloquea_con_el_mensaje_de_siempre(self, mock_validate, mock_cms):
+        """Sin modulo de dedupe configurado, not_safe bloquea con el mensaje generico de siempre
+        (no con el del takeover) y tampoco encola: no hay nada que un revisor pueda aprobar."""
+        contact = self._contact()
+        mock_validate.return_value = CONFLICT
+        mock_cms.return_value = PREVIEW_NOT_SAFE
+        contact._takeover_enqueue = True
+
+        with self.assertRaises(ValidationError) as cm:
+            contact.custom_clean(EMAIL, debug=False)
+
+        self.assertIn("Ya existe", str(cm.exception))
         self.assertFalse(EmailTakeoverRequest.objects.exists())
 
     @mock.patch("core.email_takeover_queue.emailTakeoverOnWeb")
