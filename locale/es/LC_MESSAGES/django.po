@@ -9393,6 +9393,19 @@ msgid "Contact's email today"
 msgstr "Email actual del contacto"
 
 #: support/templates/email_takeovers/queue.html:91
+msgid "Duplicate contact in the CRM"
+msgstr "Contacto duplicado en el CRM"
+
+#: support/templates/email_takeovers/queue.html:97
+msgid ""
+"The web account being absorbed belongs to this contact, which will be left "
+"with no web account. Check whether it should be merged into this one or "
+"dropped."
+msgstr ""
+"La cuenta web que se absorbe pertenece a este contacto, que queda sin cuenta "
+"web. Verificar si conviene unificarlo con este o darlo de baja."
+
+#: support/templates/email_takeovers/queue.html:103
 msgid "Moves to the account that stays"
 msgstr "Se muda a la cuenta que queda"
 
