@@ -139,6 +139,7 @@ CAMPAIGN_RESOLUTION_CHOICES = (
     ("NF", _("Not found")),
     ("UN", _("Cannot find contact")),
     ("CW", _("Close without contact")),
+    ("LS", _("Closed due to lost schedule")),
 )
 
 CAMPAIGN_RESOLUTION_REASONS_CHOICES = getattr(settings, "CAMPAIGN_RESOLUTION_REASONS_CHOICES", ())

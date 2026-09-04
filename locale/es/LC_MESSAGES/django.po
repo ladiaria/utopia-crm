@@ -1527,6 +1527,14 @@ msgstr "No se puede encontrar al contacto"
 msgid "Close without contact"
 msgstr "Cerrar sin contacto"
 
+#: core/choices.py:142
+msgid "Closed due to lost schedule"
+msgstr "Finalizado por agenda perdida"
+
+#: core/management/commands/close_lost_schedule_activities.py:121
+msgid "Automatically closed due to lost schedule (t1175, {})."
+msgstr "Cerrado automáticamente por agenda perdida (t1175, {})."
+
 #: core/choices.py:147
 msgid "Campaign start"
 msgstr "Comienzo de campaña"
