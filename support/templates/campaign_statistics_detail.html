@@ -99,6 +99,12 @@ $( function() {
             </div>
             <div class="row">
               <div class="form-group col-md-6">
+                <label for="campaign_resolution">{% trans "Filter by resolution" %}</label>
+                {% render_field filter.form.campaign_resolution class="form-control" %}
+              </div>
+            </div>
+            <div class="row">
+              <div class="form-group col-md-6">
                 <label>{% trans "Date assigned (from)" %}</label>
                 {% render_field filter.form.date_assigned_min class="form-control" placeholder="YYYY-MM-DD" %}
                 <small class="form-text text-muted">{% trans "Filter contacts assigned from this date onwards" %}</small>
@@ -193,26 +199,13 @@ $( function() {
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <td>Éxito</td>
-                <td>{{ success_with_direct_sale_count }}</td>
-                <td>{{ success_with_direct_sale_pct|floatformat:2 }}%</td>
-              </tr>
-              <tr>
-                <td>Rechazo</td>
-                <td>{{ total_rejects_count }}</td>
-                <td>{{ total_rejects_pct|floatformat:2 }}%</td>
-              </tr>
-              <tr>
-                <td>Agendado</td>
-                <td>{{ scheduled_count }}</td>
-                <td>{{ scheduled_pct|floatformat:2 }}%</td>
-              </tr>
-              <tr>
-                <td>Promoción en curso</td>
-                <td>{{ started_promotion_count }}</td>
-                <td>{{ started_promotion_pct|floatformat:2 }}%</td>
-              </tr>
+              {% for row in contacted_resolutions %}
+                <tr>
+                  <td>{{ row.label }}</td>
+                  <td>{{ row.count }}</td>
+                  <td>{{ row.pct|floatformat:2 }}%</td>
+                </tr>
+              {% endfor %}
             </tbody>
           </table>
         </div>
@@ -231,21 +224,13 @@ $( function() {
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <td>No se encuentra contacto, llamar después</td>
-                <td>{{ call_later_count }}</td>
-                <td>{{ call_later_pct|floatformat:2 }}%</td>
-              </tr>
-              <tr>
-                <td>Inubicable</td>
-                <td>{{ unreachable_count }}</td>
-                <td>{{ unreachable_pct|floatformat:2 }}%</td>
-              </tr>
-              <tr>
-                <td>Error en datos</td>
-                <td>{{ error_in_promotion_count }}</td>
-                <td>{{ error_in_promotion_pct|floatformat:2 }}%</td>
-              </tr>
+              {% for row in not_contacted_resolutions %}
+                <tr>
+                  <td>{{ row.label }}</td>
+                  <td>{{ row.count }}</td>
+                  <td>{{ row.pct|floatformat:2 }}%</td>
+                </tr>
+              {% endfor %}
             </tbody>
           </table>
         </div>
