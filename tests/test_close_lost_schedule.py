@@ -3,9 +3,11 @@ from datetime import date, datetime
 from io import StringIO
 
 from django.conf import settings
+from django.contrib.auth.models import User
 from django.core.management import call_command
 from django.core.management.base import CommandError
-from django.test import TestCase
+from django.test import Client, TestCase
+from django.urls import reverse
 from django.utils import timezone
 
 from core.choices import CAMPAIGN_STATUS, get_contacted_statuses
@@ -305,3 +307,70 @@ class PopulateSellerConsoleActionsTest(TestCase):
         self.assertIsNone(action.campaign_status)
         # Las acciones que sí son botones siguen activas.
         self.assertTrue(SellerConsoleAction.objects.get(slug="close-without-contact").is_active)
+
+
+class CampaignStatisticsResolutionBreakdownTest(CloseLostScheduleTestMixin, TestCase):
+    """
+    El panel de estadísticas de campaña arma sus filas desde los breakdowns declarados en
+    core.choices, así que una resolución nueva aparece sin tocar la vista ni el template.
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        cls.user = User.objects.create_superuser(username="manager", password="testpass")
+
+    def setUp(self):
+        self.client = Client()
+        self.client.login(username="manager", password="testpass")
+
+    def get_panel(self, **params):
+        return self.client.get(reverse("campaign_statistics_detail", args=[self.campaign.id]), params)
+
+    def test_el_panel_muestra_la_fila_de_agenda_perdida(self):
+        contact = ContactFactory()
+        self.make_activity(contact)
+        self.make_ccs(contact, CAMPAIGN_STATUS.CONTACTED, "SC")
+        self.run_command()
+
+        response = self.get_panel()
+
+        self.assertEqual(response.status_code, 200)
+        rows = {row["key"]: row for row in response.context["contacted_resolutions"]}
+        self.assertEqual(rows["lost_schedule"]["count"], 1)
+        self.assertEqual(rows["scheduled"]["count"], 0)
+        self.assertContains(response, "Closed due to lost schedule")
+
+    def test_las_claves_viejas_del_contexto_siguen_estando(self):
+        """Se conservan para no romper templates que las usen en instalaciones custom."""
+        contact = ContactFactory()
+        self.make_activity(contact)
+        self.make_ccs(contact, CAMPAIGN_STATUS.CONTACTED, "SC")
+        self.run_command()
+
+        response = self.get_panel()
+
+        self.assertEqual(response.context["lost_schedule_count"], 1)
+        self.assertEqual(response.context["scheduled_count"], 0)
+        self.assertIn("total_rejects_pct", response.context)
+
+    def test_los_baldes_agrupan_varios_codigos(self):
+        """La fila de rechazo suma las cuatro resoluciones de rechazo."""
+        for resolution in ("AS", "DN", "LO", "NI"):
+            self.make_ccs(ContactFactory(), CAMPAIGN_STATUS.ENDED_WITH_CONTACT, resolution)
+
+        response = self.get_panel()
+
+        rows = {row["key"]: row for row in response.context["contacted_resolutions"]}
+        self.assertEqual(rows["total_rejects"]["count"], 4)
+
+    def test_se_puede_filtrar_por_resolucion(self):
+        contact = ContactFactory()
+        self.make_activity(contact)
+        self.make_ccs(contact, CAMPAIGN_STATUS.CONTACTED, "SC")
+        self.make_ccs(ContactFactory(), CAMPAIGN_STATUS.ENDED_WITH_CONTACT, "S2")
+        self.run_command()
+
+        response = self.get_panel(campaign_resolution="LS")
+
+        self.assertEqual(response.context["filtered_count"], 1)

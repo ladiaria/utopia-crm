@@ -158,6 +158,62 @@ raise CommandError(
 It is a stub rather than a silent rewiring: anyone who still has it in a personal runbook gets a
 clear message instead of different semantics without noticing.
 
+### 6. Where the number shows up: the statistics panel stops being hardcoded
+
+**Files:** `core/choices.py`, `support/views/all_views.py`,
+`support/templates/campaign_statistics_detail.html`
+
+A resolution that falls into no statistics bucket is exactly what protects the historical
+percentages — but it also means nobody can see how many contacts were closed this way. The campaign
+statistics panel counted resolutions one by one, hardcoded in the view **and** labelled by hand in
+the template, so every new resolution needed edits in two places or it stayed invisible.
+
+The breakdown is now declared in `core/choices.py` as rows of `(context_key, label, codes)`:
+
+```python
+CONTACTED_RESOLUTION_BREAKDOWN = (
+    ("success_with_direct_sale", _("Success"), ("S2",)),
+    ("total_rejects", _("Rejection"), REJECT_RESOLUTIONS),
+    ("scheduled", _("Scheduled appointment"), ("SC",)),
+    ("started_promotion", _("Promotion in progress"), ("SP",)),
+    ("lost_schedule", _("Closed due to lost schedule"), ("LS",)),
+)
+```
+
+The two tuples (contacted / not contacted) differ in their denominator, which is what the two cards
+of the panel already did implicitly. The view turns them into rows with `build_resolution_rows()`
+and the template renders them with a `{% for %}`. Adding a resolution to the panel is now one line
+in `choices.py`.
+
+Two things came along with it:
+
+- The seven `.count()` queries became **one grouped query**
+  (`values("campaign_resolution").annotate(Count("id"))`).
+- The old per-resolution context keys (`scheduled_count`, `scheduled_pct`, ...) are still written,
+  so a custom installation overriding this template keeps working.
+
+The Spanish labels are unchanged: the new `msgid`s were added to the `.po` with exactly the text the
+template used to hardcode.
+
+Two more constants replace literals scattered across the view — `SALE_RESOLUTIONS = ("S1", "S2")`
+and `REJECT_RESOLUTIONS = ("AS", "DN", "LO", "NI")`, which appeared six times between
+`CampaignStatisticsDetailView`, `campaign_statistics_per_seller` and the campaign list. The command
+of change 4 imports `SALE_RESOLUTIONS` from there too, instead of defining its own copy.
+
+### 7. Filtering by resolution, in the panel and in the admin
+
+**Files:** `support/filters.py`, `core/admin.py`,
+`support/templates/campaign_statistics_detail.html`,
+`support/templates/all_campaigns_status_export.html`
+
+`ContactCampaignStatusFilter` and `AllCampaignsContactStatusFilter` declared
+`fields = ["seller", "status"]`, so there was no way to list the contacts closed with a given
+resolution from the web. Both now include `campaign_resolution`, and both templates render the new
+select. Filtering by "Finalizado por agenda perdida" gives the count in `filtered_count` and the
+list in the CSV export, which already carried the resolution column.
+
+`ContactCampaignStatusAdmin` gets `campaign_resolution` in `list_filter` and in `list_display`.
+
 ## 📁 Files Created
 
 - **`core/management/commands/close_lost_schedule_activities.py`** — The command
@@ -165,7 +221,7 @@ clear message instead of different semantics without noticing.
   `ContactCampaignStatus.campaign_resolution`
 - **`support/migrations/0041_add_lost_schedule_campaign_resolution.py`** — `AlterField` on
   `SellerConsoleAction.campaign_resolution`
-- **`tests/test_close_lost_schedule.py`** — 19 tests
+- **`tests/test_close_lost_schedule.py`** — 23 tests
 
 ## 📁 Files Modified
 
@@ -175,7 +231,17 @@ clear message instead of different semantics without noticing.
 - **`core/management/commands/close_old_pending_activities_and_campaign_status.py`** — Reduced to a
   stub that aborts
 - **`COMMANDS.md`** — New row for the command; the old one marked `deprecated`
-- **`locale/es/LC_MESSAGES/django.po`** — Two new strings: the resolution label and the activity note
+- **`locale/es/LC_MESSAGES/django.po`** — The resolution label, the activity note, the panel row
+  labels (with the exact text the template used to hardcode) and "Filter by resolution"
+- **`core/choices.py`** — `SALE_RESOLUTIONS`, `REJECT_RESOLUTIONS` and the two panel breakdowns
+- **`support/views/all_views.py`** — `build_resolution_rows()`, one grouped query instead of seven
+  counts, and the constants replacing the scattered literals
+- **`support/filters.py`** — `campaign_resolution` in both filter sets
+- **`core/admin.py`** — `campaign_resolution` in `list_filter` and `list_display` of
+  `ContactCampaignStatusAdmin`
+- **`support/templates/campaign_statistics_detail.html`** — Resolution rows rendered in a loop; new
+  filter field
+- **`support/templates/all_campaigns_status_export.html`** — New filter field
 
 ## 📚 Technical Details
 
@@ -249,17 +315,25 @@ only when `settings.USE_TZ` is on, so it keeps working in base-app installations
    - Run the command twice with the same date.
    - **Verify:** the second run reports "No schedules to close with the given parameters."
 
+6. **The number is visible afterwards:**
+   - Open the campaign statistics of a campaign that had dangling schedules.
+   - **Verify:** the "Contactados" card shows a "Finalizado por agenda perdida" row with the count,
+     "Agendado" dropped by the same amount, and `contacted_pct` did not move. Filtering by that
+     resolution and exporting the CSV gives the list of affected contacts.
+
 ### Automated tests
 
 ```bash
 python -W ignore manage.py test --settings=test_settings --keepdb tests.test_close_lost_schedule
 ```
 
-19 tests covering the mapping of every status, sales protection, the inclusive cutoff, activities
+23 tests covering the mapping of every status, sales protection, the inclusive cutoff, activities
 without a campaign, non-call activities, pairs with two schedules, orphan schedules, `--dry-run`,
 `--campaign`, idempotency, `last_action_date`, the `get_contacted_statuses()` guard rail, the missing
 console action, the deprecated command, and the fact that `close-lost-schedule` survives the populate
-while staying inactive.
+while staying inactive. Four of them cover the panel: the `LS` row appearing with its count, the
+old context keys still being written, a bucket adding up several codes, and filtering by
+resolution.
 
 ## 📝 Deployment Notes
 
@@ -284,7 +358,11 @@ while staying inactive.
   1,167 pairs; 1,124 pairs going to status 4, 40 to status 5, 1 already terminal, 2 without a
   campaign status. Only 57 pairs belong to active campaigns, so the impact on live queues is small.
 - **Post-deploy check:** open `CampaignStatisticsDetailView` for an active campaign before and after
-  and confirm `contacted_pct` did not move — that is the whole point of the conditional mapping.
+  and confirm `contacted_pct` did not move — that is the whole point of the conditional mapping. The
+  panel now also shows the "Finalizado por agenda perdida" row, and both the panel and the
+  all-campaigns export can be filtered by resolution.
+- The panel and filter changes need no migration and are independent of the run: they are useful
+  from the moment they are deployed.
 
 ## 🚀 Future Improvements
 

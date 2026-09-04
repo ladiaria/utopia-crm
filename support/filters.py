@@ -268,7 +268,7 @@ class ContactCampaignStatusFilter(django_filters.FilterSet):
 
     class Meta:
         model = ContactCampaignStatus
-        fields = ["seller", "status"]
+        fields = ["seller", "status", "campaign_resolution"]
 
 
 class AllCampaignsContactStatusFilter(django_filters.FilterSet):
@@ -303,7 +303,7 @@ class AllCampaignsContactStatusFilter(django_filters.FilterSet):
 
     class Meta:
         model = ContactCampaignStatus
-        fields = ["campaign", "seller", "status"]
+        fields = ["campaign", "seller", "status", "campaign_resolution"]
 
 
 class UnsubscribedSubscriptionsByEndDateFilter(django_filters.FilterSet):

@@ -7,7 +7,7 @@ from django.db import transaction
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
-from core.choices import ACTIVITY_STATUS, CAMPAIGN_STATUS
+from core.choices import ACTIVITY_STATUS, CAMPAIGN_STATUS, SALE_RESOLUTIONS
 from core.models import Activity, ContactCampaignStatus
 from support.models import SellerConsoleAction
 
@@ -28,9 +28,6 @@ STATUS_MAP = {
     CAMPAIGN_STATUS.SWITCH_TO_MORNING: CAMPAIGN_STATUS.ENDED_WITH_CONTACT,
     CAMPAIGN_STATUS.SWITCH_TO_AFTERNOON: CAMPAIGN_STATUS.ENDED_WITH_CONTACT,
 }
-
-# Resolutions that mean the campaign ended in a sale. They are never overwritten.
-SALE_RESOLUTIONS = ("S1", "S2")
 
 CSV_HEADER = (
     "activity_id",

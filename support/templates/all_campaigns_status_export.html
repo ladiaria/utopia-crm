@@ -46,6 +46,12 @@
               </div>
             </div>
             <div class="row">
+              <div class="form-group col-md-4">
+                <label>{% trans "Filter by resolution" %}</label>
+                {% render_field filter.form.campaign_resolution class="form-control" %}
+              </div>
+            </div>
+            <div class="row">
               <div class="form-group col-md-6">
                 <label>{% trans "Date assigned (from)" %} <span class="text-danger">*</span></label>
                 {% render_field filter.form.date_assigned_min class="form-control" %}
