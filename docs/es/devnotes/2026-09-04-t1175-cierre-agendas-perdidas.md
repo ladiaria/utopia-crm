@@ -121,9 +121,18 @@ python manage.py close_lost_schedule_activities --date 2026-05-31
 | --- | --- | --- |
 | `--date YYYY-MM-DD` | sí | Cierra agendas de esa fecha o anteriores. Sin default a propósito: nadie debe cerrar agendas por accidente |
 | `--dry-run` | no | No escribe nada; imprime el desglose completo de transiciones |
-| `--csv RUTA` | no | Vuelca las filas afectadas (contacto, campaña, vendedor, fecha de la agenda, status y resolución antes/después) para auditar antes de ejecutar |
+| `--csv RUTA` | no | Vuelca las filas afectadas (contacto, campaña, vendedor, fecha de la agenda, status y resolución antes/después) para auditar antes de ejecutar. **Es independiente de `--dry-run`**: en una corrida real sirve además como constancia de qué se cerró |
 | `--campaign ID` | no | Acota a una campaña, para hacerlo por tandas |
 | `--limit N` | no | Corta el universo, para una primera pasada chica |
+
+Como `--csv` por sí solo igual cierra todo —se lee como una prueba para quien se olvide del otro
+flag—, una corrida sin `--dry-run` avisa antes de escribir:
+
+```text
+The CSV was written, but this is NOT a dry run.
+Closing 1173 schedules and updating 1164 campaign statuses now. Re-run with --dry-run to only
+preview the changes.
+```
 
 La selección es deliberadamente angosta: `status` en `P`/`E`, `activity_type="C"`,
 `campaign__isnull=False`. Las actividades pendientes sin campaña quedan fuera del alcance del ticket,
@@ -225,7 +234,7 @@ lista en la exportación CSV, que ya traía la columna de resolución.
   `ContactCampaignStatus.campaign_resolution`
 - **`support/migrations/0041_add_lost_schedule_campaign_resolution.py`** — `AlterField` sobre
   `SellerConsoleAction.campaign_resolution`
-- **`tests/test_close_lost_schedule.py`** — 23 tests
+- **`tests/test_close_lost_schedule.py`** — 26 tests
 
 ## 📁 Archivos Modificados
 
@@ -305,22 +314,27 @@ tengan activo.
    - **Verificar:** la actividad se cierra, pero el estado de campaña conserva su status y su
      resolución `S1`/`S2`. Es exactamente la falla del comando viejo.
 
-3. **Caso borde — la fecha de corte es inclusive:**
+3. **Caso borde — `--csv` no es un dry run:**
+   - Correr con `--csv` y sin `--dry-run`.
+   - **Verificar:** el CSV se escribe, la salida avisa "The CSV was written, but this is NOT a dry
+     run" y dice cuántas agendas está por cerrar, y efectivamente las cierra.
+
+4. **Caso borde — la fecha de corte es inclusive:**
    - Crear dos agendas, una el 2026-05-31 23:30 y otra el 2026-06-01 09:00.
    - Correr con `--date 2026-05-31`.
    - **Verificar:** la primera se cierra, la segunda no se toca.
 
-4. **Caso borde — agenda huérfana:**
+5. **Caso borde — agenda huérfana:**
    - Elegir una actividad con campaña pero sin `ContactCampaignStatus` (hay 2 en producción).
    - Correr el comando.
    - **Verificar:** la actividad se cierra y el par aparece en el resumen bajo "Without
      ContactCampaignStatus".
 
-5. **Idempotencia:**
+6. **Idempotencia:**
    - Correr el comando dos veces con la misma fecha.
    - **Verificar:** la segunda corrida informa "No schedules to close with the given parameters."
 
-6. **El número se ve después:**
+7. **El número se ve después:**
    - Abrir las estadísticas de una campaña que tenía agendas colgadas.
    - **Verificar:** la tarjeta "Contactados" muestra una fila "Finalizado por agenda perdida" con el
      conteo, "Agendado" bajó en la misma cantidad, y `contacted_pct` no se movió. Filtrando por esa
@@ -332,7 +346,7 @@ tengan activo.
 python -W ignore manage.py test --settings=test_settings --keepdb tests.test_close_lost_schedule
 ```
 
-23 tests que cubren el mapeo de cada status, la protección de las ventas, el corte inclusive, las
+26 tests que cubren el mapeo de cada status, la protección de las ventas, el corte inclusive, las
 actividades sin campaña, las actividades que no son llamadas, los pares con dos agendas, las agendas
 huérfanas, `--dry-run`, `--campaign`, la idempotencia, `last_action_date`, el guardarraíl de
 `get_contacted_statuses()`, la falta de la acción de consola, el comando deprecado, y el hecho de que

@@ -119,9 +119,18 @@ python manage.py close_lost_schedule_activities --date 2026-05-31
 | --- | --- | --- |
 | `--date YYYY-MM-DD` | yes | Closes schedules on that date or older. No default on purpose: nobody should close schedules by accident |
 | `--dry-run` | no | Writes nothing; prints the full breakdown of transitions |
-| `--csv PATH` | no | Dumps the affected rows (contact, campaign, seller, schedule date, status and resolution before/after) so they can be audited before running for real |
+| `--csv PATH` | no | Dumps the affected rows (contact, campaign, seller, schedule date, status and resolution before/after) so they can be audited before running for real. **Independent of `--dry-run`**: on a real run it doubles as a record of what was closed |
 | `--campaign ID` | no | Restricts to one campaign, so the work can be done in batches |
 | `--limit N` | no | Caps the universe for a first small pass |
+
+Because `--csv` on its own still closes everything — it reads like a preview to anyone who forgets
+the other flag — a run without `--dry-run` warns before writing:
+
+```text
+The CSV was written, but this is NOT a dry run.
+Closing 1173 schedules and updating 1164 campaign statuses now. Re-run with --dry-run to only
+preview the changes.
+```
 
 The selection is deliberately narrow: `status` in `P`/`E`, `activity_type="C"`,
 `campaign__isnull=False`. Pending activities that are not tied to a campaign are out of scope for
@@ -221,7 +230,7 @@ list in the CSV export, which already carried the resolution column.
   `ContactCampaignStatus.campaign_resolution`
 - **`support/migrations/0041_add_lost_schedule_campaign_resolution.py`** — `AlterField` on
   `SellerConsoleAction.campaign_resolution`
-- **`tests/test_close_lost_schedule.py`** — 23 tests
+- **`tests/test_close_lost_schedule.py`** — 26 tests
 
 ## 📁 Files Modified
 
@@ -300,22 +309,27 @@ only when `settings.USE_TZ` is on, so it keeps working in base-app installations
    - **Verify:** the activity is closed, but the campaign status keeps its status and its `S1`/`S2`
      resolution. This is the exact failure of the old command.
 
-3. **Edge case — the cutoff date is inclusive:**
+3. **Edge case — `--csv` is not a dry run:**
+   - Run with `--csv` and without `--dry-run`.
+   - **Verify:** the CSV is written, the output warns "The CSV was written, but this is NOT a dry
+     run" and names how many schedules are about to be closed, and the schedules are in fact closed.
+
+4. **Edge case — the cutoff date is inclusive:**
    - Create two schedules, one at 2026-05-31 23:30 and one at 2026-06-01 09:00.
    - Run with `--date 2026-05-31`.
    - **Verify:** the first is closed, the second is untouched.
 
-4. **Edge case — an orphan schedule:**
+5. **Edge case — an orphan schedule:**
    - Pick an activity with a campaign but no `ContactCampaignStatus` (there are 2 in production).
    - Run the command.
    - **Verify:** the activity is closed and the pair is listed in the summary under "Without
      ContactCampaignStatus".
 
-5. **Idempotency:**
+6. **Idempotency:**
    - Run the command twice with the same date.
    - **Verify:** the second run reports "No schedules to close with the given parameters."
 
-6. **The number is visible afterwards:**
+7. **The number is visible afterwards:**
    - Open the campaign statistics of a campaign that had dangling schedules.
    - **Verify:** the "Contactados" card shows a "Finalizado por agenda perdida" row with the count,
      "Agendado" dropped by the same amount, and `contacted_pct` did not move. Filtering by that
@@ -327,7 +341,7 @@ only when `settings.USE_TZ` is on, so it keeps working in base-app installations
 python -W ignore manage.py test --settings=test_settings --keepdb tests.test_close_lost_schedule
 ```
 
-23 tests covering the mapping of every status, sales protection, the inclusive cutoff, activities
+26 tests covering the mapping of every status, sales protection, the inclusive cutoff, activities
 without a campaign, non-call activities, pairs with two schedules, orphan schedules, `--dry-run`,
 `--campaign`, idempotency, `last_action_date`, the `get_contacted_statuses()` guard rail, the missing
 console action, the deprecated command, and the fact that `close-lost-schedule` survives the populate

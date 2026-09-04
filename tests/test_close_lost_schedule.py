@@ -1,4 +1,6 @@
 # coding=utf-8
+import os
+import tempfile
 from datetime import date, datetime
 from io import StringIO
 
@@ -227,6 +229,37 @@ class CloseLostScheduleCommandTest(CloseLostScheduleTestMixin, TestCase):
         ccs.refresh_from_db()
         self.assertEqual(ccs.status, CAMPAIGN_STATUS.CONTACTED)
         self.assertEqual(ccs.campaign_resolution, "SC")
+
+    def test_avisa_antes_de_cerrar_cuando_no_es_dry_run(self):
+        contact = ContactFactory()
+        self.make_activity(contact)
+        self.make_ccs(contact, CAMPAIGN_STATUS.CONTACTED, "SC")
+
+        output = self.run_command()
+
+        self.assertIn("Closing 1 schedules and updating 1 campaign statuses now", output)
+
+    def test_avisa_que_el_csv_solo_no_es_dry_run(self):
+        """--csv no convierte la corrida en una prueba, y eso tiene que decirse."""
+        contact = ContactFactory()
+        self.make_activity(contact)
+        self.make_ccs(contact, CAMPAIGN_STATUS.CONTACTED, "SC")
+
+        with tempfile.TemporaryDirectory() as tmp:
+            output = self.run_command("--csv", os.path.join(tmp, "salida.csv"))
+
+        self.assertIn("The CSV was written, but this is NOT a dry run.", output)
+
+    def test_el_dry_run_no_avisa_de_cierre(self):
+        contact = ContactFactory()
+        self.make_activity(contact)
+        self.make_ccs(contact, CAMPAIGN_STATUS.CONTACTED, "SC")
+
+        with tempfile.TemporaryDirectory() as tmp:
+            output = self.run_command("--dry-run", "--csv", os.path.join(tmp, "salida.csv"))
+
+        self.assertIn("DRY RUN: nothing was written.", output)
+        self.assertNotIn("NOT a dry run", output)
 
     def test_es_idempotente(self):
         """La segunda corrida no encuentra nada: las agendas ya no están pendientes."""

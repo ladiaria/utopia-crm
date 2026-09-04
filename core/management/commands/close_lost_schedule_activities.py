@@ -152,6 +152,8 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING("DRY RUN: nothing was written."))
             return
 
+        self.warn_not_a_dry_run(activities, statuses_to_update, options["csv_path"])
+
         with transaction.atomic():
             # bulk_update on purpose: ContactCampaignStatus.last_action_date is auto_now, and save()
             # would overwrite the date of the last real action on every row.
@@ -165,6 +167,22 @@ class Command(BaseCommand):
         self.stdout.write(
             self.style.SUCCESS(
                 f"Closed {len(activities)} schedules and updated {len(statuses_to_update)} campaign statuses."
+            )
+        )
+
+    def warn_not_a_dry_run(self, activities, statuses_to_update, csv_path):
+        """
+        Warns, right before writing, that this run is closing schedules for real.
+
+        --csv and --dry-run are independent: asking for the CSV does not turn the run into a
+        preview, and that reads like a dry run to anyone who forgets the other flag.
+        """
+        if csv_path:
+            self.stdout.write(self.style.WARNING("The CSV was written, but this is NOT a dry run."))
+        self.stdout.write(
+            self.style.WARNING(
+                f"Closing {len(activities)} schedules and updating {len(statuses_to_update)} campaign statuses "
+                "now. Re-run with --dry-run to only preview the changes."
             )
         )
 
