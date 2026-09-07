@@ -522,3 +522,13 @@ class TestCascadaSeparada(TestCase):
 
         self.assertEqual(req.cascade_lost, {"Contribution": 2})
         self.assertEqual(req.cascade_moved, {"Follow": 5})
+
+    def test_el_estado_de_avisos_en_articulo_se_muda(self):
+        """`MidArticleNoticeState` guarda que la persona cerro el aviso de fuentes preferidas de
+        Google y a cual de los dos softpaywalls le toca el turno. El CMS lo mueve a la cuenta que
+        queda desde la 4300; antes de eso esta pantalla lo reportaba como perdido, que es lo
+        contrario de lo que pasa, y el supervisor decide mirando justo eso."""
+        req = self._pedido({"User": 1, "MidArticleNoticeState": 1})
+
+        self.assertEqual(req.cascade_moved, {"MidArticleNoticeState": 1})
+        self.assertEqual(req.cascade_lost, {})

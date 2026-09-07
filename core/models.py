@@ -3762,6 +3762,9 @@ class EmailTakeoverRequest(models.Model):
     # "what would deleting this account destroy", and it is computed BEFORE the move -- so without
     # this split the reviewer reads "newsletters: 2" under a heading that says deleted, and
     # concludes the person loses them. They do not: they are merged into the kept account.
+    # Se mantiene a mano contra `move_data()` del CMS, que vive en el otro repo: cada modelo que
+    # se agregue alla hay que agregarlo aca, o la pantalla le dice al supervisor que se pierde algo
+    # que en realidad se muda. Paso con `midarticlenoticestate` y no lo detecto ninguna prueba.
     MOVED_ON_TAKEOVER = (
         "subscriber_newsletters",
         "subscriber_category_newsletters",
@@ -3772,6 +3775,10 @@ class EmailTakeoverRequest(models.Model):
         "audiostatistics",
         "user_user_permissions",
         "user_groups",
+        # OneToOne: si la cuenta que queda ya tiene el suyo, gana el de ella y el de la vieja se
+        # descarta. Va igual de este lado: es lo mismo que pasa con las lecturas o los follows
+        # repetidos, y el titulo se lee como "lo que se intenta mover".
+        "midarticlenoticestate",
     )
 
     def _split_cascade(self):
