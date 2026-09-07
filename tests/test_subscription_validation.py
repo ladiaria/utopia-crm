@@ -96,3 +96,43 @@ class TestFreeSubscriptionSalesRecord(TestCase):
         self.assertEqual(sales_record.seller, Seller.objects.filter(name="Generic Seller").first())
         # And it waits for validation, like any other sale.
         self.assertFalse(subscription.validated)
+
+    def test_a_free_subscription_reads_as_na_and_pays_no_commission(self):
+        # Free subscriptions are recorded as FULL sales, so without the free check they would report
+        # the subscription's payment method and compute a commission on a sale worth nothing.
+        subscription = create_subscription(self.contact, subscription_type="F", payment_type="S")
+        sales_record = SalesRecord.objects.create(subscription=subscription, price=0)
+
+        self.assertTrue(sales_record.is_free_subscription())
+        self.assertEqual(sales_record.get_payment_type(), "N/A")
+        self.assertEqual(sales_record.calculate_total_commission(), 0)
+
+        # Forcing the calculation the way the validation view does must not create a commission.
+        sales_record.set_commissions(force=True)
+        sales_record.refresh_from_db()
+        self.assertEqual(sales_record.total_commission_value, 0)
+
+    def test_the_validation_form_will_not_commission_a_free_subscription(self):
+        # Locked, not merely hidden: a hand-made POST asking for the commission must not get one.
+        seller = Seller.objects.create(name="Internal seller", internal=True)
+        subscription = create_subscription(self.contact, subscription_type="F", payment_type="S")
+        sales_record = SalesRecord.objects.create(subscription=subscription, price=0, seller=seller)
+
+        response = self.client.post(
+            reverse("validate_sale", args=[sales_record.pk]),
+            {"seller": seller.pk, "can_be_commissioned": "on", "override_commission_value": 5000},
+        )
+        self.assertEqual(response.status_code, 302)
+
+        sales_record.refresh_from_db()
+        subscription.refresh_from_db()
+        self.assertTrue(subscription.validated)  # the sale is validated all the same
+        self.assertFalse(sales_record.can_be_commissioned)
+        self.assertEqual(sales_record.total_commission_value, 0)
+
+    def test_a_paid_subscription_keeps_reporting_its_payment_method(self):
+        subscription = create_subscription(self.contact, subscription_type="N", payment_type="S")
+        sales_record = SalesRecord.objects.create(subscription=subscription, price=100)
+
+        self.assertFalse(sales_record.is_free_subscription())
+        self.assertNotEqual(sales_record.get_payment_type(), "N/A")

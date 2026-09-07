@@ -166,6 +166,10 @@
                           <i class="fas fa-info-circle text-muted ml-1"
                              data-toggle="tooltip"
                              title="{% trans "Payment method is only relevant for full sales" %}"></i>
+                        {% elif sr.is_free_subscription %}
+                          <i class="fas fa-info-circle text-muted ml-1"
+                             data-toggle="tooltip"
+                             title="{% trans "A free subscription has no payment method and pays no commission" %}"></i>
                         {% endif %}
                       </td>
                       <td>{{ sr.show_products_per_line }}</td>
