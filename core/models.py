@@ -2627,6 +2627,16 @@ class Subscription(models.Model):
     def has_sales_record(self):
         return self.salesrecord_set.exists()
 
+    def is_free(self):
+        """
+        Whether nobody pays for this subscription: a gift or a staff one.
+
+        Same pair of types that `core.forms` already treats as free when it demands to know who asked
+        for it. Kept here so the criterion lives in one place: the sales record asks this to decide
+        that there is no payment method to report and no commission to pay.
+        """
+        return self.type in ("F", "S")
+
     def validate(self, user):
         self.validated = True
         self.validated_by = user

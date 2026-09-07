@@ -624,7 +624,7 @@ class SalesRecord(models.Model):
         to report and no commission to pay, so both read as N/A and 0, the same way a partial sale
         already does.
         """
-        return bool(self.subscription and self.subscription.type in ("F", "S"))
+        return bool(self.subscription and self.subscription.is_free())
 
     def set_commissions(self, force=False) -> None:
         if self.is_free_subscription():

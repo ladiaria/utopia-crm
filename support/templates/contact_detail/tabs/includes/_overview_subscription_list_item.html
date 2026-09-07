@@ -120,6 +120,7 @@
              target="_blank">
             <i class="fas fa-cog"></i> {% trans "Advanced" %}
           </a>
+          {% include "contact_detail/tabs/includes/_subscription_validation_actions.html" %}
         {% endif %}
       {% elif subscription.type == "F" %}
         {% if request.user|in_group:"Managers" %}
@@ -135,6 +136,7 @@
              target="_blank">
             <i class="fas fa-cog"></i> {% trans "Advanced" %}
           </a>
+          {% include "contact_detail/tabs/includes/_subscription_validation_actions.html" %}
         {% endif %}
       {% else %}
         {% if not subscription.is_obsolete %}
@@ -183,32 +185,7 @@
              target="_blank">
             <i class="fas fa-cog"></i> {% trans "Advanced" %}
           </a>
-          {% if not subscription.validated and subscription.has_sales_record %}
-            <a href="{% url "validate_subscription" subscription.id %}"
-               class="btn btn-sm btn-warning mr-1 mb-1">
-              <i class="fas fa-check-circle"></i> {% trans "Validate" %}
-            </a>
-          {% elif subscription.validated and not subscription.has_sales_record %}
-            {# Came in through a channel with no seller: already on record, so this is only about commission #}
-            <a href="{% url "add_sales_record" subscription.id %}"
-               class="btn btn-sm btn-outline-warning mr-1 mb-1"
-               title="{% trans "This subscription came in through the website and needs no validation. Register a sale only if a seller should be commissioned for it." %}"
-               data-toggle="tooltip">
-              <i class="fas fa-hand-holding-usd"></i> {% trans "Commission a seller" %}
-            </a>
-          {% elif not subscription.has_sales_record and request.user|in_group:"Managers" %}
-            <a href="{% url "add_sales_record" subscription.id %}"
-               class="btn btn-sm btn-warning mr-1 mb-1">
-              <i class="fas fa-cash-register"></i> {% trans "Register Sale" %}
-            </a>
-          {% else %}
-            {# Nothing left to do: without this the row shows no control and looks like it failed to load #}
-            <span class="btn btn-sm btn-outline-success disabled mr-1 mb-1"
-                  title="{% if subscription.validated_by %}{% blocktrans with who=subscription.validated_by.get_full_name|default:subscription.validated_by.username when=subscription.validated_date|date:"d/m/Y H:i" %}Validated by {{ who }} on {{ when }}{% endblocktrans %}{% else %}{% blocktrans with when=subscription.validated_date|date:"d/m/Y H:i" %}Validated by the system on {{ when }}{% endblocktrans %}{% endif %}"
-                  data-toggle="tooltip">
-              <i class="fas fa-check"></i> {% trans "Validated" %}
-            </span>
-          {% endif %}
+          {% include "contact_detail/tabs/includes/_subscription_validation_actions.html" %}
           {% if subscription.is_obsolete %}
             <a href="{% url "admin:core_subscription_change" subscription.get_updated_subscription.id %}"
                class="btn btn-sm btn-info mr-1 mb-1"
