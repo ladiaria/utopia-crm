@@ -62,6 +62,20 @@
                     </a>
                   </li>
                 {% endif %}
+                {% if request.user|in_group:"Managers" %}
+                  {% url 'sales_record_filter' as sales_record_filter %}
+                  {% pending_sales_records as pending_sales %}
+                  <li class="nav-item">
+                    <a href="{{ sales_record_filter }}"
+                       class="nav-link {% if request.path == sales_record_filter %}active{% endif %}">
+                      <i class="nav-icon fas fa-file-invoice-dollar"></i>
+                      <p>
+                        {% trans "Sales Records" %}
+                        {% if pending_sales %}<span class="badge badge-warning right">{{ pending_sales }}</span>{% endif %}
+                      </p>
+                    </a>
+                  </li>
+                {% endif %}
                 {% if request.user|in_group:"Support" %}
                   {% include "components/sidebar_items/_support.html" %}
                 {% endif %}
