@@ -3346,7 +3346,13 @@ class SalesRecordCreateView(CreateView):
         SubscriptionProduct.objects.filter(
             subscription=subscription, product__in=sales_record_obj.products.all()
         ).update(seller=sales_record_obj.seller)
-        self.subscription.validate(user=self.request.user)
+        if not self.subscription.validated:
+            # An already-validated subscription is one that came in through a channel with no seller
+            # (the website, for instance) and was validated by the system, which is what a null
+            # `validated_by` means. Registering a sale on it afterwards is about commissioning
+            # somebody — a seller who referred the person — not about validating it again, so the
+            # original marker is left alone.
+            self.subscription.validate(user=self.request.user)
         return super().form_valid(form)
 
 

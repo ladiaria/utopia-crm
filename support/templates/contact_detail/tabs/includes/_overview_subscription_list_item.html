@@ -188,11 +188,28 @@
                class="btn btn-sm btn-warning mr-1 mb-1">
               <i class="fas fa-check-circle"></i> {% trans "Validate" %}
             </a>
+          {% elif subscription.validated and not subscription.has_sales_record %}
+            {# Validated with no sales record: it came in through a channel with no seller, so it is
+               already on record. Registering a sale here is only about commissioning someone. #}
+            <a href="{% url "add_sales_record" subscription.id %}"
+               class="btn btn-sm btn-outline-warning mr-1 mb-1"
+               title="{% trans "This subscription came in through the website and needs no validation. Register a sale only if a seller should be commissioned for it." %}"
+               data-toggle="tooltip">
+              <i class="fas fa-hand-holding-usd"></i> {% trans "Commission a seller" %}
+            </a>
           {% elif not subscription.has_sales_record and request.user|in_group:"Managers" %}
             <a href="{% url "add_sales_record" subscription.id %}"
                class="btn btn-sm btn-warning mr-1 mb-1">
               <i class="fas fa-cash-register"></i> {% trans "Register Sale" %}
             </a>
+          {% else %}
+            {# Validated and with a sales record: nothing left to do. Without this the row would show
+               no control at all, and "all in order" would look the same as "this failed to load". #}
+            <span class="badge badge-light text-success border mr-1 mb-1 py-1"
+                  title="{% if subscription.validated_by %}{% blocktrans with who=subscription.validated_by.get_full_name|default:subscription.validated_by.username when=subscription.validated_date|date:"d/m/Y H:i" %}Validated by {{ who }} on {{ when }}{% endblocktrans %}{% else %}{% blocktrans with when=subscription.validated_date|date:"d/m/Y H:i" %}Validated by the system on {{ when }}{% endblocktrans %}{% endif %}"
+                  data-toggle="tooltip">
+              <i class="fas fa-check"></i> {% trans "Validated" %}
+            </span>
           {% endif %}
           {% if subscription.is_obsolete %}
             <a href="{% url "admin:core_subscription_change" subscription.get_updated_subscription.id %}"
