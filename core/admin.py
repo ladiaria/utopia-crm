@@ -623,6 +623,7 @@ class ContactCampaignStatusAdmin(admin.ModelAdmin):
         "contact",
         "campaign",
         "status",
+        "campaign_resolution",
         "seller",
         "times_contacted",
         "date_created",
@@ -630,7 +631,7 @@ class ContactCampaignStatusAdmin(admin.ModelAdmin):
         "last_action_date",
     )
     readonly_fields = ("date_created", "date_assigned", "last_action_date")
-    list_filter = ("campaign", "status", "seller")
+    list_filter = ("campaign", "status", "campaign_resolution", "seller")
     search_fields = ("contact__name",)
 
 

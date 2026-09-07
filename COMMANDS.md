@@ -21,7 +21,8 @@ which run on a schedule, and which are one-shot scripts that can be archived.
 | Command | Classification | Notes |
 | --- | --- | --- |
 | `cleanup_country_state_data` | `unknown` | Normalizes country/state ISO codes. Likely one-shot — verify if it was ever re-run or if data is already clean |
-| `close_old_pending_activities_and_campaign_status` | `scheduled` | Closes expired activities and campaign statuses older than a given date |
+| `close_lost_schedule_activities` | `on-demand` | Closes campaign schedules (pending call activities) older than a given date and their ContactCampaignStatus with the `LS` resolution. Supports `--dry-run` and `--csv` |
+| `close_old_pending_activities_and_campaign_status` | `deprecated` | Stub that aborts. Replaced by `close_lost_schedule_activities`: the old version overwrote already resolved campaign statuses, sales included |
 | `disable_expired_campaigns` | `scheduled` | Disables campaigns that have passed their end date |
 | `emailfix` | `on-demand` | Applies approved email replacement rules to contacts |
 | `expire_old_pending_activities` | `scheduled` | Marks pending activities as expired; meant to run nightly at midnight |

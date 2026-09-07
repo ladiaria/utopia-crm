@@ -50,6 +50,7 @@ from .choices import (
     PRODUCT_EDITION_FREQUENCY,
     PRODUCT_WEEKDAYS,
     PRODUCTHISTORY_CHOICES,
+    SALE_RESOLUTIONS,
     SUBSCRIPTION_STATUS_CHOICES,
     SUBSCRIPTION_TYPE_CHOICES,
     VARIABLE_TYPES,
@@ -2761,7 +2762,9 @@ class Campaign(models.Model):
         return self.get_not_contacted(seller_id).count()
 
     def get_successful_count(self, seller_id):
-        return self.contactcampaignstatus_set.filter(seller_id=seller_id, campaign_resolution__in=["S1", "S2"]).count()
+        return self.contactcampaignstatus_set.filter(
+            seller_id=seller_id, campaign_resolution__in=SALE_RESOLUTIONS
+        ).count()
 
     class Meta:
         verbose_name = _("campaign")

@@ -2185,7 +2185,7 @@ def campaign_statistics_list(request):
         ).count()
         campaign.contacted_pct = (campaign.contacted_count * 100) / (campaign.called_count or 1)
         campaign.success_count = campaign.contactcampaignstatus_set.filter(
-            campaign_resolution__in=("S1", "S2")
+            campaign_resolution__in=core_choices.SALE_RESOLUTIONS
         ).count()
         campaign.success_over_total_pct = (campaign.success_count * 100) / (contacts or 1)
         campaign.success_over_contacted_pct = (campaign.success_count * 100) / (campaign.contacted_count or 1)
@@ -2232,6 +2232,23 @@ class CampaignStatisticsDetailView(BreadcrumbsMixin, UserPassesTestMixin, Filter
     @method_decorator(staff_member_required)
     def dispatch(self, *args, **kwargs):
         return super().dispatch(*args, **kwargs)
+
+    def build_resolution_rows(self, breakdown, counts_by_resolution, denominator, context):
+        """
+        Turns a resolution breakdown from core.choices into the rows the template renders.
+
+        Each row carries its label, its count and its percentage over `denominator`. The old
+        per-resolution context keys (``scheduled_count``, ``scheduled_pct``, ...) are kept so
+        templates overriding this one in a custom installation keep working.
+        """
+        rows = []
+        for key, label, codes in breakdown:
+            count = sum(counts_by_resolution.get(code, 0) for code in codes)
+            pct = (count * 100) / (denominator or 1)
+            context[f"{key}_count"] = count
+            context[f"{key}_pct"] = pct
+            rows.append({"key": key, "label": label, "count": count, "pct": pct})
+        return rows
 
     def get_queryset(self):
         """Get ContactCampaignStatus records for this campaign."""
@@ -2387,35 +2404,27 @@ class CampaignStatisticsDetailView(BreadcrumbsMixin, UserPassesTestMixin, Filter
         ).count()
         ccs_with_resolution_not_contacted_count = ccs_with_resolution.filter(status__in=[3, 5]).count()
 
-        context['success_with_direct_sale_count'] = ccs_with_resolution.filter(campaign_resolution="S2").count()
-        context['scheduled_count'] = ccs_with_resolution.filter(campaign_resolution="SC").count()
-        context['call_later_count'] = ccs_with_resolution.filter(campaign_resolution="CL").count()
-        context['unreachable_count'] = ccs_with_resolution.filter(campaign_resolution="UN").count()
-        context['error_in_promotion_count'] = ccs_with_resolution.filter(campaign_resolution="EP").count()
-        context['started_promotion_count'] = ccs_with_resolution.filter(campaign_resolution="SP").count()
-
-        # Resolution percentages
-        context['success_with_direct_sale_pct'] = (context['success_with_direct_sale_count'] * 100) / (
-            ccs_with_resolution_contacted_count or 1
+        # One grouped query instead of one count per resolution. The breakdown of the panel is
+        # declared in core.choices, so a new resolution shows up here without touching this view.
+        counts_by_resolution = {
+            row['campaign_resolution']: row['total']
+            for row in ccs_with_resolution.values('campaign_resolution').annotate(total=Count('id'))
+        }
+        context['contacted_resolutions'] = self.build_resolution_rows(
+            core_choices.CONTACTED_RESOLUTION_BREAKDOWN,
+            counts_by_resolution,
+            ccs_with_resolution_contacted_count,
+            context,
         )
-        context['scheduled_pct'] = (context['scheduled_count'] * 100) / (ccs_with_resolution_contacted_count or 1)
-        context['call_later_pct'] = (context['call_later_count'] * 100) / (ccs_with_resolution_contacted_count or 1)
-        context['started_promotion_pct'] = (context['started_promotion_count'] * 100) / (
-            ccs_with_resolution_contacted_count or 1
-        )
-        context['unreachable_pct'] = (context['unreachable_count'] * 100) / (
-            ccs_with_resolution_not_contacted_count or 1
-        )
-        context['error_in_promotion_pct'] = (context['error_in_promotion_count'] * 100) / (
-            ccs_with_resolution_not_contacted_count or 1
+        context['not_contacted_resolutions'] = self.build_resolution_rows(
+            core_choices.NOT_CONTACTED_RESOLUTION_BREAKDOWN,
+            counts_by_resolution,
+            ccs_with_resolution_not_contacted_count,
+            context,
         )
 
         # Rejects section
-        total_rejects = ccs_with_resolution.filter(campaign_resolution__in=("AS", "DN", "LO", "NI"))
-        context['total_rejects_count'] = total_rejects.count()
-        context['total_rejects_pct'] = (context['total_rejects_count'] * 100) / (
-            ccs_with_resolution_contacted_count or 1
-        )
+        total_rejects = ccs_with_resolution.filter(campaign_resolution__in=core_choices.REJECT_RESOLUTIONS)
 
         rejects_with_reason = total_rejects.filter(resolution_reason__isnull=False)
         rejects_with_reason_count = rejects_with_reason.count()
@@ -2702,11 +2711,11 @@ def campaign_statistics_per_seller(request, campaign_id):
         ).count()
         seller.contacted_pct = (seller.contacted_count * 100) / (seller.called_count or 1)
         seller.success_count = seller.contactcampaignstatus_set.filter(
-            campaign=campaign, campaign_resolution__in=("S1", "S2")
+            campaign=campaign, campaign_resolution__in=core_choices.SALE_RESOLUTIONS
         ).count()
         seller.success_pct = (seller.success_count * 100) / (seller.contacted_count or 1)
         seller.rejected_count = seller.contactcampaignstatus_set.filter(
-            campaign=campaign, campaign_resolution__in=("AS", "DN", "LO", "NI")
+            campaign=campaign, campaign_resolution__in=core_choices.REJECT_RESOLUTIONS
         ).count()
         seller.rejected_pct = (seller.rejected_count * 100) / assigned
         seller.unreachable_count = seller.contactcampaignstatus_set.filter(campaign=campaign, status=5).count()
@@ -2751,7 +2760,9 @@ def seller_performance_by_time(request):
         seller__isnull=False, status__in=core_choices.get_contacted_statuses()
     ).count()
     contacted_pct = (contacted_count * 100) / assigned_count
-    success_count = ccs_queryset.filter(seller__isnull=False, campaign_resolution__in=("S1", "S2")).count()
+    success_count = ccs_queryset.filter(
+        seller__isnull=False, campaign_resolution__in=core_choices.SALE_RESOLUTIONS
+    ).count()
     success_pct = (success_count * 100) / assigned_count
 
     for seller in sellers:
@@ -2764,10 +2775,12 @@ def seller_performance_by_time(request):
             seller=seller, status__in=core_choices.get_contacted_statuses()
         ).count()
         seller.contacted_pct = (seller.contacted_count * 100) / (seller.assigned_count or 1)
-        seller.success_count = ccs_queryset.filter(seller=seller, campaign_resolution__in=("S1", "S2")).count()
+        seller.success_count = ccs_queryset.filter(
+            seller=seller, campaign_resolution__in=core_choices.SALE_RESOLUTIONS
+        ).count()
         seller.success_pct = (seller.success_count * 100) / (seller.assigned_count or 1)
         seller.rejected_count = ccs_queryset.filter(
-            seller=seller, campaign_resolution__in=("AS", "DN", "LO", "NI")
+            seller=seller, campaign_resolution__in=core_choices.REJECT_RESOLUTIONS
         ).count()
         seller.rejected_pct = (seller.rejected_count * 100) / (seller.assigned_count or 1)
         seller.unreachable_count = ccs_queryset.filter(seller=seller, status=5).count()

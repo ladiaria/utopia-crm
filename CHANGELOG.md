@@ -2,6 +2,16 @@
 
 ## v0.5.1
 
+## 2026-09-04 — t1175 Cierre forzado de agendas perdidas
+
+- Las agendas viejas que nadie volvió a trabajar dejaban al contacto colgado para siempre: seguía en la cola del vendedor y, sobre todo, **quedaba bloqueado para todas las campañas activas**, porque tener una actividad pendiente lo saca de la cola de "no contactados" de cualquier campaña. Un comando nuevo las cierra en tanda, y el estado de campaña queda marcado con una resolución nueva, **"Finalizado por agenda perdida"**, para que se sepa que el cierre fue automático y no de un vendedor
+- El contacto no cambia de balde: a quien se le había hablado queda como **finalizado con contacto**, y sólo quien nunca atendió queda como finalizado sin contacto. Esto importa porque mandarlos a todos al mismo lado habría metido en el listado de "inubicables" a gente con la que sí se habló, y hundido los porcentajes históricos de todas esas campañas. Las ventas ya registradas nunca se pisan
+- El comando pide la fecha de corte sin default —nadie cierra agendas por accidente—, tiene modo de prueba que no escribe nada y puede volcar a un CSV las filas que va a tocar, para revisarlas antes de ejecutar. El CSV y el modo de prueba son independientes: pedir el CSV **no** frena la corrida, así que cuando se corre en serio el comando avisa antes de escribir cuántas agendas va a cerrar. La fecha pactada de cada agenda se conserva, igual que la fecha de última acción del contacto
+- Se reemplazó el comando viejo `close_old_pending_activities_and_campaign_status`, que hacía lo mismo de forma destructiva: cerraba **todo** como "sin contacto" sin mirar lo que ya estaba resuelto y, cuando se corrió en producción el 2025-07-01, **pisó 181 ventas**. Ahora aborta con un mensaje que apunta al nuevo. Reparar esas 181 ventas queda para otro ticket
+- **El número ahora se ve.** El panel de estadísticas de campaña suma una fila "Finalizado por agenda perdida", y tanto ese panel como la exportación de todas las campañas se pueden filtrar por resolución (antes sólo por vendedor y estado); en el admin la resolución pasa a ser columna y filtro. El desglose de resoluciones del panel dejó de estar hardcodeado en la vista y en el template: ahora se declara en un solo lugar, así que agregar una resolución nueva es una línea y aparece sola. De paso, las siete consultas que contaban resolución por resolución son ahora una sola
+- Deployment: **se requieren migraciones** (`core.0122` y `support.0041`, sólo choices), hay que correr `populate_seller_console_actions` después de migrar (si no, el comando aborta) y `compilemessages` para que la etiqueta se vea en español
+- **Author:** Tanya Tree + Claude Opus 5
+
 ## 2026-08-27 — t1157-cola-takeover Cola de takeovers de email para el call center
 
 - Cuando alguien quiere usar un email que en la web pertenece a otra cuenta suya sin vincular, el call center se trababa y **no se podía guardar nada** de la ficha: ni el teléfono, ni la dirección, ni lo que el operador acabara de corregir. Ahora el email es lo único que no se aplica —el resto del contacto se guarda— y queda anotado un pedido para resolverlo aparte. Sin el pedido, el conflicto no dejaba ningún rastro: nadie sabía que había existido

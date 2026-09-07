@@ -1527,6 +1527,43 @@ msgstr "No se puede encontrar al contacto"
 msgid "Close without contact"
 msgstr "Cerrar sin contacto"
 
+#: core/choices.py:142
+msgid "Closed due to lost schedule"
+msgstr "Finalizado por agenda perdida"
+
+#: core/choices.py:158
+msgid "Rejection"
+msgstr "Rechazo"
+
+#: core/choices.py:159
+msgid "Scheduled appointment"
+msgstr "Agendado"
+
+#: core/choices.py:160
+msgid "Promotion in progress"
+msgstr "Promoción en curso"
+
+#: core/choices.py:165
+msgid "Contact not found, call later"
+msgstr "No se encuentra contacto, llamar después"
+
+#: core/choices.py:166
+msgid "Unreachable"
+msgstr "Inubicable"
+
+#: core/choices.py:167
+msgid "Error in data"
+msgstr "Error en datos"
+
+#: support/templates/campaign_statistics_detail.html:99
+#: support/templates/all_campaigns_status_export.html:49
+msgid "Filter by resolution"
+msgstr "Filtrar por resolución"
+
+#: core/management/commands/close_lost_schedule_activities.py:121
+msgid "Automatically closed due to lost schedule (t1175, {})."
+msgstr "Cerrado automáticamente por agenda perdida (t1175, {})."
+
 #: core/choices.py:147
 msgid "Campaign start"
 msgstr "Comienzo de campaña"

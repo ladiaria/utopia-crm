@@ -139,6 +139,32 @@ CAMPAIGN_RESOLUTION_CHOICES = (
     ("NF", _("Not found")),
     ("UN", _("Cannot find contact")),
     ("CW", _("Close without contact")),
+    ("LS", _("Closed due to lost schedule")),
+)
+
+# Resolutions that mean the campaign ended in a sale. They are the ones that must never be
+# overwritten by an automated close.
+SALE_RESOLUTIONS = ("S1", "S2")
+
+# Resolutions that mean the contact was reached and said no.
+REJECT_RESOLUTIONS = ("AS", "DN", "LO", "NI")
+
+# How the campaign statistics panel breaks resolutions down, as (context_key, label, codes) rows.
+# The two tuples differ in their denominator: the first is a percentage over the contacts with a
+# resolution that were actually contacted, the second over those that were not. A resolution added
+# to CAMPAIGN_RESOLUTION_CHOICES only needs a row here to show up in the panel and in its CSV.
+CONTACTED_RESOLUTION_BREAKDOWN = (
+    ("success_with_direct_sale", _("Success"), ("S2",)),
+    ("total_rejects", _("Rejection"), REJECT_RESOLUTIONS),
+    ("scheduled", _("Scheduled appointment"), ("SC",)),
+    ("started_promotion", _("Promotion in progress"), ("SP",)),
+    ("lost_schedule", _("Closed due to lost schedule"), ("LS",)),
+)
+
+NOT_CONTACTED_RESOLUTION_BREAKDOWN = (
+    ("call_later", _("Contact not found, call later"), ("CL",)),
+    ("unreachable", _("Unreachable"), ("UN",)),
+    ("error_in_promotion", _("Error in data"), ("EP",)),
 )
 
 CAMPAIGN_RESOLUTION_REASONS_CHOICES = getattr(settings, "CAMPAIGN_RESOLUTION_REASONS_CHOICES", ())
