@@ -2,6 +2,14 @@
 
 ## v0.5.1
 
+## 2026-09-08 — t1176 Sacar a un contacto de una campaña ya no deja agendas colgando
+
+- Cuando se sacaba a un contacto de una campaña (el borrado masivo por CSV), se borraba su estado de campaña pero **no sus agendas**: la llamada pendiente seguía apareciendo en la cola del vendedor para una campaña de la que el contacto ya no formaba parte. Peor: al resolverla, la consola marcaba la actividad como hecha **antes** de verificar el estado de campaña, así que el vendedor veía el error "el contacto ya no está en esta campaña" y la agenda quedaba cerrada igual, sin haber quedado registrada en ningún lado. Ahora el borrado masivo limpia también esas agendas, y la consola verifica primero y no toca nada si el contacto ya salió
+- La cola de agendas del vendedor deja fuera las actividades de contactos que ya no están en la campaña, así que las que quedaron de antes no se ofrecen más para trabajar
+- Se corrigió el error 500 al abrir una venta desde un link viejo de la consola (una pestaña abierta, el botón "atrás"): el link lleva el número del estado de campaña y, si ese estado ya fue borrado, la pantalla reventaba. Ahora avisa y vuelve a la lista de campañas. El mismo aviso existía para las agendas pero nunca se llegaba a mostrar, porque la respuesta se descartaba
+- Deployment: **no se requieren migraciones**
+- **Author:** Tanya Tree + Claude Opus 5
+
 ## 2026-09-04 — t1175 Cierre forzado de agendas perdidas
 
 - Las agendas viejas que nadie volvió a trabajar dejaban al contacto colgado para siempre: seguía en la cola del vendedor y, sobre todo, **quedaba bloqueado para todas las campañas activas**, porque tener una actividad pendiente lo saca de la cola de "no contactados" de cualquier campaña. Un comando nuevo las cierra en tanda, y el estado de campaña queda marcado con una resolución nueva, **"Finalizado por agenda perdida"**, para que se sepa que el cierre fue automático y no de un vendedor

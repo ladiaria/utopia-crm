@@ -3,6 +3,7 @@ from django.contrib.auth.mixins import UserPassesTestMixin, LoginRequiredMixin
 from django.conf import settings
 from django.contrib import messages
 from django.utils import timezone
+from django.db.models import Exists, OuterRef
 from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
@@ -446,6 +447,13 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
         if not seller_console_action:
             return HttpResponseRedirect(reverse("seller_console", args=[category, campaign.id]))
 
+        # The contact must still be in the campaign before we touch anything. Activities point directly to the
+        # campaign, so a pending one can outlive the ContactCampaignStatus and still show up in this queue; if we
+        # completed it first and only checked afterwards, the activity would be closed by a request that aborts.
+        if not ContactCampaignStatus.objects.filter(campaign=campaign, contact=contact).exists():
+            messages.error(self.request, _("Contact is no longer in this campaign"))
+            return HttpResponseRedirect(reverse("seller_console", args=[category, campaign.id]))
+
         # Process based on category
         if category == "act":
             try:
@@ -738,13 +746,19 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
         category = self.kwargs['category']
         if category == "new":
             return campaign.get_not_contacted(seller.id).select_related('last_console_action')
-        if getattr(settings, "ALLOW_ACCESSING_FUTURE_ACTIVITIES_IN_SELLER_CONSOLE", False):
-            return campaign.activity_set.filter(
-                activity_type="C", seller=seller, status="P"
-            ).select_related('seller_console_action').order_by("datetime", "id")
-        return campaign.activity_set.filter(
-            activity_type="C", seller=seller, status="P", datetime__lte=datetime.now()
-        ).select_related('seller_console_action').order_by("datetime", "id")
+        activities = campaign.activity_set.filter(activity_type="C", seller=seller, status="P")
+        if not getattr(settings, "ALLOW_ACCESSING_FUTURE_ACTIVITIES_IN_SELLER_CONSOLE", False):
+            activities = activities.filter(datetime__lte=datetime.now())
+        # Leave out activities whose contact is no longer in the campaign: they can't be worked on, since every
+        # console action needs the ContactCampaignStatus that is already gone.
+        still_in_campaign = ContactCampaignStatus.objects.filter(
+            campaign=campaign, contact=OuterRef("contact")
+        )
+        return (
+            activities.filter(Exists(still_in_campaign))
+            .select_related('seller_console_action')
+            .order_by("datetime", "id")
+        )
 
     def post(self, request, *args, **kwargs):
         return self.handle_post_request()
