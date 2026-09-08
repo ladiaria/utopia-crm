@@ -218,6 +218,12 @@ class SubscriptionMixin(BreadcrumbsMixin):
                 return subscription
 
     def capture_variables(self):
+        """
+        Reads the console parameters from the querystring.
+
+        Returns None when everything is in place, or a response the caller must return as-is when the console
+        instance the link points to is gone. Every dispatch calling this has to honour that return value.
+        """
         self.url = self.request.GET.get("url", None)
         self.offset = self.request.GET.get("offset", None)
         self.is_new = self.request.GET.get("new", None)
@@ -235,23 +241,38 @@ class SubscriptionMixin(BreadcrumbsMixin):
             self.subscription, self.edit_subscription = None, False
 
         if self.request.GET.get("act", None):
-            self.activity = Activity.objects.get(pk=self.request.GET["act"])
+            try:
+                self.activity = Activity.objects.get(pk=self.request.GET["act"])
+            except Activity.DoesNotExist:
+                messages.error(self.request, _("This activity no longer exists."))
+                return HttpResponseRedirect(reverse("seller_console_list_campaigns"))
             self.campaign = self.activity.campaign
             try:
                 self.ccs = ContactCampaignStatus.objects.get(contact=self.contact, campaign=self.campaign)
             except ContactCampaignStatus.DoesNotExist:
                 msg = _(
-                    "Activity {} is not in campaign {}. Please report this error!".format(
-                        self.activity.id, self.campaign.id
+                    "The contact is no longer in campaign {}, so activity {} can't be used to sell.".format(
+                        self.campaign.id, self.activity.id
                     )
                 )
                 messages.error(self.request, msg)
                 return HttpResponseRedirect(reverse("seller_console_list_campaigns"))
-            self.user_seller_id = self.ccs.seller.id
+            self.user_seller_id = self.ccs.seller_id
         elif self.request.GET.get("new", None):
-            self.ccs = ContactCampaignStatus.objects.get(pk=self.request.GET["new"])
+            # The link carries the ContactCampaignStatus id. It can be stale: removing a contact from a campaign
+            # deletes that record while console pages already rendered keep pointing at it.
+            try:
+                self.ccs = ContactCampaignStatus.objects.get(pk=self.request.GET["new"])
+            except ContactCampaignStatus.DoesNotExist:
+                messages.error(
+                    self.request,
+                    _("The contact is no longer in this campaign, instance number: {}").format(
+                        self.request.GET["new"]
+                    ),
+                )
+                return HttpResponseRedirect(reverse("seller_console_list_campaigns"))
             self.campaign = self.ccs.campaign
-            self.user_seller_id = self.ccs.seller.id
+            self.user_seller_id = self.ccs.seller_id
         elif getattr(self.request.user, 'seller', None) is not None:
             self.user_seller_id = self.request.user.seller.id
         else:
@@ -310,7 +331,9 @@ class SubscriptionCreateView(UserPassesTestMixin, SubscriptionMixin, FormView):
     def dispatch(self, request, *args, **kwargs):
         self.contact = self.get_contact(kwargs['contact_id'])
         self.subscription = None
-        self.capture_variables()
+        response = self.capture_variables()
+        if response:
+            return response
         return super().dispatch(request, *args, **kwargs)
 
     def form_valid(self, form):
@@ -348,7 +371,9 @@ class SubscriptionUpdateView(SubscriptionMixin, FormView):
     def dispatch(self, request, *args, **kwargs):
         self.contact = self.get_contact(kwargs['contact_id'])
         self.subscription = self.get_subscription(kwargs['subscription_id'])
-        self.capture_variables()
+        response = self.capture_variables()
+        if response:
+            return response
         if self.subscription and self.subscription.contact != self.contact:
             # TODO: change this to a better approach, it generates bad UX and an error email wo traceback (useless)
             return HttpResponseServerError(_("Wrong data"))
@@ -1869,7 +1894,9 @@ class CorporateSubscriptionCreateView(SubscriptionMixin, FormView):
     def dispatch(self, request, *args, **kwargs):
         self.contact = self.get_contact(kwargs['contact_id'])
         self.subscription = None
-        self.capture_variables()
+        response = self.capture_variables()
+        if response:
+            return response
         return super().dispatch(request, *args, **kwargs)
 
 
