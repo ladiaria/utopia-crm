@@ -2101,6 +2101,19 @@ class CreateFreeSubscriptionView(FreeSubscriptionMixin, BreadcrumbsMixin, FormVi
         # Add products to subscription
         self.add_products_to_subscription(subscription)
 
+        # A free subscription is still an alta made by someone inside the CRM, so it gets a sales
+        # record like any other: it is the object managers validate, and without it the subscription
+        # would sit in the contact detail forever offering a "Register sale" button nobody owes.
+        # The price is the real one (zero for a free subscription), not the catalogue price.
+        sales_record = SalesRecord.objects.create(
+            subscription=subscription,
+            seller_id=getattr(getattr(self.request.user, "seller", None), "id", None),
+            price=0,
+        )
+        sales_record.add_products()
+        if not sales_record.seller_id:
+            sales_record.set_generic_seller()
+
         messages.success(
             self.request,
             _("Free subscription created successfully for {contact}").format(contact=self.contact.get_full_name()),

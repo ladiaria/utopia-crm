@@ -925,3 +925,29 @@ def api_log_entry(api_id, service_id, operation_id, request_data, response_data,
         logger.info(json.dumps(log_entry, ensure_ascii=False))
 
     return log_entry
+
+
+def run_subscription_validated_hook(subscription, user=None):
+    """
+    Notify the outside world that a subscription was just validated by a manager.
+
+    The base CRM has no opinion on what "validated" should trigger; installations do. la diaria uses
+    it to give the person reading rights on the website at that very moment instead of waiting for
+    the nightly batch, which is why the hook fires **on validation** and not when the subscription is
+    created: a sale that a manager has not looked at yet may still be a duplicate, and handing out
+    access before that is how the wrong web account gets the subscription.
+
+    Configured with ``SUBSCRIPTION_VALIDATED_HOOK``, a dotted path to a callable taking
+    ``(subscription, user)``. Never raises: the validation already happened and is the source of
+    truth, so a failure to propagate it is reported and swallowed.
+    """
+    hook_path = getattr(settings, "SUBSCRIPTION_VALIDATED_HOOK", None)
+    if not hook_path:
+        return None
+    try:
+        from django.utils.module_loading import import_string
+
+        return import_string(hook_path)(subscription, user)
+    except Exception:
+        logger.exception("SUBSCRIPTION_VALIDATED_HOOK failed for subscription %s", getattr(subscription, "id", None))
+        return None

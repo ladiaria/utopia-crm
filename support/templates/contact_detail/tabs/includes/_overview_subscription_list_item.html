@@ -120,6 +120,7 @@
              target="_blank">
             <i class="fas fa-cog"></i> {% trans "Advanced" %}
           </a>
+          {% include "contact_detail/tabs/includes/_subscription_validation_actions.html" %}
         {% endif %}
       {% elif subscription.type == "F" %}
         {% if request.user|in_group:"Managers" %}
@@ -135,6 +136,7 @@
              target="_blank">
             <i class="fas fa-cog"></i> {% trans "Advanced" %}
           </a>
+          {% include "contact_detail/tabs/includes/_subscription_validation_actions.html" %}
         {% endif %}
       {% else %}
         {% if not subscription.is_obsolete %}
@@ -183,17 +185,7 @@
              target="_blank">
             <i class="fas fa-cog"></i> {% trans "Advanced" %}
           </a>
-          {% if not subscription.validated and subscription.has_sales_record %}
-            <a href="{% url "validate_subscription" subscription.id %}"
-               class="btn btn-sm btn-warning mr-1 mb-1">
-              <i class="fas fa-check-circle"></i> {% trans "Validate" %}
-            </a>
-          {% elif not subscription.has_sales_record and request.user|in_group:"Managers" %}
-            <a href="{% url "add_sales_record" subscription.id %}"
-               class="btn btn-sm btn-warning mr-1 mb-1">
-              <i class="fas fa-cash-register"></i> {% trans "Register Sale" %}
-            </a>
-          {% endif %}
+          {% include "contact_detail/tabs/includes/_subscription_validation_actions.html" %}
           {% if subscription.is_obsolete %}
             <a href="{% url "admin:core_subscription_change" subscription.get_updated_subscription.id %}"
                class="btn btn-sm btn-info mr-1 mb-1"

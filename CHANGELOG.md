@@ -2,6 +2,16 @@
 
 ## v0.5.1
 
+## 2026-09-08 — desync/validacion-y-activacion Validar la venta es lo que le da acceso web a la persona
+
+- **Validar una venta pasa a ser la puerta del acceso a la web.** Hasta ahora un alta hecha por el call center no se veía en el sitio hasta el batch de la madrugada; ahora, en el momento en que un manager valida, la persona puede leer. Se eligió la validación y no el alta a propósito: un alta recién hecha todavía puede ser un duplicado, y dar el acceso antes de que alguien la mire se lo termina dando a la cuenta web equivocada. Cada instalación decide qué propagar, con el setting `SUBSCRIPTION_VALIDATED_HOOK`; **si no está configurado no pasa nada**, y si falla la propagación la validación queda guardada igual
+- **Se ordenó quién tiene que validarse y quién no.** Las altas que entran por la web no tienen vendedor, ni comisión, ni nada que un manager pueda mirar: nacen validadas y no ensucian más la cola de registros de ventas. Que una suscripción nazca validada ya no impide comisionarle a alguien —el caso real es el vendedor que refiere a una persona que después compra sola—, y hacerlo no pisa la marca de que la validó el sistema
+- **Una suscripción gratuita (obsequio o staff) no reporta forma de pago ni paga comisión.** Antes el panel le mostraba la forma de pago de la suscripción y le calculaba comisión sobre una venta que no movió plata. Ahora lee N/A y 0, y en la pantalla de validación los campos de comisión quedan **bloqueados**, no sólo escondidos: un pedido armado a mano tampoco consigue comisión. La validación sigue haciendo falta, porque es lo que deja constancia de la venta y lo que activa a la persona en la web
+- **El estado de validación se ve desde la ficha del contacto en todos los tipos de suscripción.** Los obsequios y las promos no mostraban nada, así que entraban en la cola pero no había cómo validarlos desde ahí. Y el caso "ya está todo en orden" —validada y con registro— se veía igual que "no se cargó nada": ahora muestra una chapita con quién validó y cuándo, o "por el sistema" cuando fue automático
+- **Registros de ventas** sale del menú de gestión de campañas y pasa al menú principal, para managers, con la cantidad pendiente de validar al lado
+- Deployment: **no se requieren migraciones**. Para encender la activación web hay que configurar `SUBSCRIPTION_VALIDATED_HOOK`, y conviene hacerlo **después** de cortar la cola vieja de validaciones
+- **Author:** Tanya Tree + Claude Opus 5
+
 ## 2026-09-08 — t1176 Sacar a un contacto de una campaña ya no deja agendas colgando
 
 - Cuando se sacaba a un contacto de una campaña (el borrado masivo por CSV), se borraba su estado de campaña pero **no sus agendas**: la llamada pendiente seguía apareciendo en la cola del vendedor para una campaña de la que el contacto ya no formaba parte. Peor: al resolverla, la consola marcaba la actividad como hecha **antes** de verificar el estado de campaña, así que el vendedor veía el error "el contacto ya no está en esta campaña" y la agenda quedaba cerrada igual, sin haber quedado registrada en ningún lado. Ahora el borrado masivo limpia también esas agendas, y la consola verifica primero y no toca nada si el contacto ya salió

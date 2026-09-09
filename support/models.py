@@ -640,7 +640,25 @@ class SalesRecord(models.Model):
                 return 0
             self.commission_for_subscription_frequency = 0
 
+    def is_free_subscription(self):
+        """
+        Whether there is no money behind this record: a gift or staff subscription.
+
+        Those still get a sales record — somebody inside the CRM created the subscription and a
+        manager has to validate it before the reader is activated — but there is no payment method
+        to report and no commission to pay, so both read as N/A and 0, the same way a partial sale
+        already does.
+        """
+        return bool(self.subscription and self.subscription.is_free())
+
     def set_commissions(self, force=False) -> None:
+        if self.is_free_subscription():
+            # Nothing to commission, not even when a manager forces the calculation at validation
+            # time. Written explicitly (instead of just skipping) so the stored value can never drift
+            # away from what the panel shows.
+            self.total_commission_value = 0
+            self.save()
+            return
         if (force or self.sale_type == self.SALE_TYPE.FULL) and self.can_be_commissioned:
             self.calculate_products_count_commission()
             self.calculate_payment_type_commission()
@@ -662,12 +680,16 @@ class SalesRecord(models.Model):
         return False
 
     def get_payment_type(self):
-        if self.sale_type == self.SALE_TYPE.FULL:
+        if self.sale_type == self.SALE_TYPE.FULL and not self.is_free_subscription():
             return self.subscription.get_payment_type_display()
         else:
             return _("N/A")
 
     def calculate_commission(self):
+        if self.is_free_subscription():
+            # Showing the breakdown here would read as "0 (None) + 150 (2 products) + ... = 0": each
+            # component computed on its own, none of them applicable. Say why instead.
+            return _("Free subscription: no commission")
         # Show all commission components in separate lines with labels
         payment_type_commission = (
             f"{self.calculate_payment_type_commission(return_value=True)} "
@@ -694,7 +716,7 @@ class SalesRecord(models.Model):
             return f"Error: {e}"
 
     def calculate_total_commission(self):
-        if self.sale_type == self.SALE_TYPE.FULL:
+        if self.sale_type == self.SALE_TYPE.FULL and not self.is_free_subscription():
             value = (
                 self.calculate_payment_type_commission(return_value=True)
                 + self.calculate_products_count_commission(return_value=True)

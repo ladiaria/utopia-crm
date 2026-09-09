@@ -904,6 +904,18 @@ class ValidateSubscriptionForm(forms.ModelForm):
             "can_be_commissioned": forms.CheckboxInput(attrs={"class": "form-check-input"}),
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk and self.instance.is_free_subscription():
+            # A gift or staff subscription has no money behind it, so there is nothing to commission.
+            # The fields are locked rather than merely hidden: `disabled` makes Django ignore whatever
+            # arrives in the POST and keep the initial value, so a hand-made request cannot set them
+            # either. The initial has to be overridden on `self.initial` — for a ModelForm that is
+            # where the instance's own value (`can_be_commissioned` defaults to True) lives.
+            self.initial["can_be_commissioned"] = False
+            self.fields["can_be_commissioned"].disabled = True
+            self.fields["override_commission_value"].disabled = True
+
 
 class SalesRecordCreateForm(forms.ModelForm):
     override_commission_value = forms.IntegerField(
