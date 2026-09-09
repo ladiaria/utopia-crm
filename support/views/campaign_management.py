@@ -13,8 +13,9 @@ from django.urls import reverse, reverse_lazy
 from django.utils.translation import gettext_lazy as _
 from django.views.generic import FormView, TemplateView
 
+from core.choices import ACTIVITY_STATUS
 from core.mixins import BreadcrumbsMixin
-from core.models import ContactCampaignStatus
+from core.models import Activity, ContactCampaignStatus
 from core.utils import detect_csv_delimiter
 from support.forms import BulkDeleteCampaignStatusForm
 
@@ -131,8 +132,15 @@ class BulkDeleteCampaignStatusView(BreadcrumbsMixin, UserPassesTestMixin, FormVi
             )
         )
 
-        # Delete ContactCampaignStatus records
+        # Delete ContactCampaignStatus records, along with the activities that are still open for the same
+        # contacts on the same campaign. Activities point directly to the campaign, so leaving them behind
+        # keeps the contact in the seller console queue for a campaign they are no longer part of.
         with transaction.atomic():
+            deleted_activities, _unused = Activity.objects.filter(
+                contact_id__in=contact_ids,
+                campaign=campaign,
+                status__in=[ACTIVITY_STATUS.PENDING, ACTIVITY_STATUS.DELAYED],
+            ).delete()
             deleted_count, _unused = ContactCampaignStatus.objects.filter(
                 contact_id__in=contact_ids, campaign=campaign
             ).delete()
@@ -161,9 +169,14 @@ class BulkDeleteCampaignStatusView(BreadcrumbsMixin, UserPassesTestMixin, FormVi
         messages.success(
             self.request,
             _(
-                "Successfully deleted {count} ContactCampaignStatus record(s) for campaign "
-                "'{campaign}' with {total} contact ID(s) from CSV."
-            ).format(count=deleted_count, campaign=campaign.name, total=len(contact_ids)),
+                "Successfully deleted {count} ContactCampaignStatus record(s) and {activities} open "
+                "activity(ies) for campaign '{campaign}' with {total} contact ID(s) from CSV."
+            ).format(
+                count=deleted_count,
+                activities=deleted_activities,
+                campaign=campaign.name,
+                total=len(contact_ids),
+            ),
         )
 
         return redirect(self.success_url)

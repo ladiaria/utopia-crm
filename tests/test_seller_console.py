@@ -2,6 +2,9 @@
 from django.contrib.auth.models import User
 from django.test import Client, TestCase
 from django.urls import reverse
+from django.utils import timezone
+
+from datetime import timedelta
 
 from core.models import Activity, Campaign, ContactCampaignStatus
 from core.choices import CAMPAIGN_STATUS
@@ -144,3 +147,99 @@ class TestSellerConsoleScheduledActivity(TestCase):
         )
         self.assertEqual(pending.count(), 1)
         self.assertEqual(pending.first().seller_console_action, self.schedule)
+
+
+class TestSellerConsoleContactRemovedFromCampaign(TestCase):
+    """
+    Verifica el comportamiento cuando el contacto ya no está en la campaña pero sobrevive una actividad
+    pendiente apuntando a ella.
+
+    Regresión t1176: sacar un contacto de una campaña borra el ContactCampaignStatus pero no las
+    actividades, que apuntan directo a la campaña. La pendiente seguía apareciendo en la cola "act" y, al
+    resolverla, la consola la marcaba como completada antes de verificar el estado de campaña: el vendedor
+    veía el error y la actividad quedaba cerrada igual.
+    """
+
+    def setUp(self):
+        self.client = Client()
+
+        self.user = User.objects.create_superuser(username="vendedor", password="testpass")
+        self.seller = Seller.objects.create(name="Vendedor", user=self.user, internal=True)
+        self.client.login(username="vendedor", password="testpass")
+
+        self.contact = ContactFactory()
+        self.campaign = Campaign.objects.create(name="Campaña test", active=True, priority=3)
+
+        self.call_later = SellerConsoleAction.objects.create(
+            slug="call-later",
+            name="Llamar más tarde",
+            action_type=SellerConsoleAction.ACTION_TYPES.CALL_LATER,
+            campaign_status=CAMPAIGN_STATUS.CALLED_COULD_NOT_CONTACT,
+            campaign_resolution="CL",
+            is_active=True,
+        )
+
+        # La actividad pendiente que quedó huérfana: el contacto ya no tiene ContactCampaignStatus.
+        self.activity = Activity.objects.create(
+            contact=self.contact,
+            campaign=self.campaign,
+            seller=self.seller,
+            activity_type="C",
+            status="P",
+            datetime=timezone.now() - timedelta(days=1),
+        )
+
+    def test_orphan_activity_is_not_completed(self):
+        """Resolver una actividad de un contacto que ya no está en la campaña no debe cerrarla."""
+        self.client.post(
+            reverse("seller_console", args=["act", self.campaign.id]),
+            data={
+                "result": "call-later",
+                "category": "act",
+                "instance_id": self.activity.id,
+                "seller_id": self.seller.id,
+                "offset": 1,
+                "notes": "No contesta",
+            },
+        )
+
+        self.activity.refresh_from_db()
+        self.assertEqual(self.activity.status, "P")
+        # Tampoco debe haberse creado una pendiente nueva para una campaña de la que ya salió.
+        self.assertEqual(Activity.objects.filter(contact=self.contact, campaign=self.campaign).count(), 1)
+
+    def test_orphan_activity_is_not_listed_in_console(self):
+        """La cola de la consola no debe ofrecer actividades de contactos que ya salieron de la campaña."""
+        # Con la única actividad huérfana, la cola queda vacía y la consola manda de vuelta a la lista.
+        response = self.client.get(reverse("seller_console", args=["act", self.campaign.id]))
+        self.assertRedirects(
+            response, reverse("seller_console_list_campaigns"), fetch_redirect_response=False
+        )
+
+        ContactCampaignStatus.objects.create(
+            contact=self.contact, campaign=self.campaign, status=1, seller=self.seller
+        )
+        response = self.client.get(reverse("seller_console", args=["act", self.campaign.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, self.contact.get_full_name())
+
+    def test_activity_is_listed_again_when_contact_is_back_in_campaign(self):
+        """Con el ContactCampaignStatus en su lugar, la misma actividad sí se puede trabajar."""
+        ContactCampaignStatus.objects.create(
+            contact=self.contact, campaign=self.campaign, status=1, seller=self.seller
+        )
+
+        self.client.post(
+            reverse("seller_console", args=["act", self.campaign.id]),
+            data={
+                "result": "call-later",
+                "category": "act",
+                "instance_id": self.activity.id,
+                "seller_id": self.seller.id,
+                "offset": 1,
+                "notes": "No contesta",
+            },
+        )
+
+        self.activity.refresh_from_db()
+        self.assertEqual(self.activity.status, "C")
