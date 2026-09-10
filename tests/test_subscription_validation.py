@@ -10,8 +10,12 @@ Two separate things worth not mixing up:
 - **The free subscription.** Free or not, somebody inside the CRM creates it, so it gets a sales
   record like any other and lands in the queue managers look at.
 """
+from datetime import datetime
+
 from django.contrib.auth.models import User
+from django.template.loader import render_to_string
 from django.test import TestCase
+from django.utils import translation
 from django.test.utils import override_settings
 from django.urls import reverse
 
@@ -136,3 +140,103 @@ class TestFreeSubscriptionSalesRecord(TestCase):
 
         self.assertFalse(sales_record.is_free_subscription())
         self.assertNotEqual(sales_record.get_payment_type(), "N/A")
+
+
+class TestValidationIsTraceable(TestCase):
+    """
+    Who validated a sale and when, and who the customer is, must be readable from the panel.
+
+    Both screens answer the same question from different distances: the list says it in a tooltip
+    over the OK, the detail says it in full next to the customer's name.
+    """
+
+    def setUp(self):
+        self.user = User.objects.create_superuser(
+            username="manager", password="x", first_name="Ana", last_name="Gestora"
+        )
+        self.client.login(username="manager", password="x")
+        self.contact = create_contact(name="Trace Test", phone="099111555", email="trace@example.com")
+        self.subscription = create_subscription(self.contact)
+        self.seller = Seller.objects.create(name="A seller")
+        self.sales_record = SalesRecord.objects.create(subscription=self.subscription, price=100, seller=self.seller)
+
+    def test_the_detail_shows_who_the_customer_is(self):
+        response = self.client.get(reverse("validate_sale", args=[self.sales_record.pk]))
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode()
+        self.assertIn(self.contact.get_full_name(), content)
+        self.assertIn("trace@example.com", content)
+        self.assertIn(str(self.contact.id), content)
+
+    def test_a_validated_sale_says_who_validated_it_and_when(self):
+        self.subscription.validate(user=self.user)
+
+        detail = self.client.get(reverse("validate_sale", args=[self.sales_record.pk]))
+        self.assertEqual(detail.status_code, 200)
+        detail_content = detail.content.decode()
+        self.assertIn("Ana Gestora", detail_content)
+        self.subscription.refresh_from_db()
+        expected_moment = self.subscription.validated_date.strftime("%d/%m/%Y %H:%M")
+        self.assertIn(expected_moment, detail_content)
+
+        listing = self.client.get(reverse("sales_record_filter"))
+        self.assertEqual(listing.status_code, 200)
+        listing_content = listing.content.decode()
+        self.assertIn("Ana Gestora", listing_content)
+        self.assertIn(expected_moment, listing_content)
+
+    def test_the_transaction_time_shows_minutes_and_not_the_month(self):
+        # `H:m` is the month, not the minutes: it made every hour in the list end in the current
+        # month's number. A minute that is nobody's month number tells the two apart.
+        SalesRecord.objects.filter(pk=self.sales_record.pk).update(date_time=datetime(2026, 9, 3, 14, 37))
+
+        listing = self.client.get(reverse("sales_record_filter"))
+        self.assertEqual(listing.status_code, 200)
+        content = listing.content.decode()
+        self.assertIn("03/09/2026 14:37", content)
+        self.assertNotIn("03/09/2026 14:09", content)
+
+
+class TestValidationCredit(TestCase):
+    """
+    The one line that says who validated a subscription, rendered by every screen that shows it.
+
+    The two fields arrived later than the flag, so a subscription validated before them carries
+    neither: every combination still has to read as a finished sentence.
+    """
+
+    def setUp(self):
+        self.contact = create_contact(name="Credit Test", phone="099111666")
+        self.subscription = create_subscription(self.contact)
+        self.user = User.objects.create_user(
+            username="validator", password="x", first_name="Ana", last_name="Gestora"
+        )
+
+    def render(self):
+        # Pinned to English on purpose. What is under test is which of the four sentences the
+        # partial picks, not how it was translated, and asserting on the Spanish would tie these
+        # to the contents of the .po and to whatever LANGUAGE_CODE the machine ends up with:
+        # `test_settings` asks for en-us, but a `local_test_settings` that re-imports `settings`
+        # quietly hands it back to es.
+        with translation.override("en"):
+            return render_to_string(
+                "components/_validation_credit.html", {"subscription": self.subscription}
+            ).strip()
+
+    def test_names_the_person_and_the_moment(self):
+        self.subscription.validated_by = self.user
+        self.subscription.validated_date = datetime(2026, 9, 3, 14, 37)
+        self.assertEqual(self.render(), "Validated by Ana Gestora on 03/09/2026 14:37")
+
+    def test_a_user_with_no_full_name_falls_back_to_the_username(self):
+        nameless = User.objects.create_user(username="nameless", password="x")
+        self.subscription.validated_by = nameless
+        self.subscription.validated_date = datetime(2026, 9, 3, 14, 37)
+        self.assertIn("nameless", self.render())
+
+    def test_no_user_means_the_system_did_it(self):
+        self.subscription.validated_date = datetime(2026, 9, 3, 14, 37)
+        self.assertEqual(self.render(), "Validated by the system on 03/09/2026 14:37")
+
+    def test_an_old_validation_with_neither_field_still_reads_as_a_sentence(self):
+        self.assertEqual(self.render(), "Validated, with no record of who did it or when")

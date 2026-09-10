@@ -42,7 +42,7 @@
 
     {# --- Sale summary card --- #}
     <div class="row mb-3">
-      <div class="col">
+      <div class="col-md-8">
         <div class="card card-outline
           {% if object.sale_type == 'F' %}card-success
           {% elif object.sale_type == 'P' %}card-info
@@ -126,6 +126,44 @@
               </div>
             {% endif %}
 
+          </div>
+        </div>
+      </div>
+
+      {# --- Customer and validation status --- #}
+      <div class="col-md-4">
+        <div class="card card-outline card-primary h-100">
+          <div class="card-header">
+            <h3 class="card-title">
+              <i class="fas fa-user mr-1"></i> {% trans "Customer" %}
+            </h3>
+          </div>
+          <div class="card-body">
+            <dt>{% trans "Name" %}</dt>
+            <dd>
+              <a href="{% url 'contact_detail' subscription.contact.id %}">{{ subscription.contact.get_full_name }}</a>
+            </dd>
+            <dt>{% trans "Contact ID" %}</dt>
+            <dd>
+              {{ subscription.contact.id }}
+            </dd>
+            <dt>{% trans "Email" %}</dt>
+            <dd>
+              {% if subscription.contact.email %}
+                <a href="mailto:{{ subscription.contact.email }}">{{ subscription.contact.email }}</a>
+              {% else %}
+                <span class="text-muted">{% trans "No email" %}</span>
+              {% endif %}
+            </dd>
+            {% if subscription.validated %}
+              <div class="callout callout-success mb-0 mt-3 p-2">
+                <span class="text-success font-weight-bold">
+                  <i class="fas fa-check-circle mr-1"></i> {% trans "Validated sale" %}
+                </span>
+                <br>
+                <small>{% include "components/_validation_credit.html" %}</small>
+              </div>
+            {% endif %}
           </div>
         </div>
       </div>

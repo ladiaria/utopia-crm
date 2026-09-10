@@ -155,10 +155,14 @@
                     <tr role="row"
                         {% if sr.subscription.validated %}class="bg-very-light-green"{% endif %}>
                       <td>
-                        <a href="{% url "contact_detail" sr.subscription.contact.id %}">{{ sr.subscription.contact.id }}</a>
+                        <a href="{% url "contact_detail" sr.subscription.contact.id %}"
+                           data-toggle="tooltip"
+                           title="{{ sr.subscription.contact.get_full_name }}{% if sr.subscription.contact.email %} — {{ sr.subscription.contact.email }}{% endif %}">
+                          {{ sr.subscription.contact.id }}
+                        </a>
                       </td>
                       {% if not seller %}<td>{{ sr.seller.name }}</td>{% endif %}
-                      <td>{{ sr.date_time|date:"d/m/Y H:m" }}</td>
+                      <td>{{ sr.date_time|date:"d/m/Y H:i" }}</td>
                       <td>{{ sr.subscription.start_date|date:"d/m/Y" }}</td>
                       <td>
                         {{ sr.get_payment_type }}
@@ -182,7 +186,13 @@
                       {% endif %}
                       <td class="text-center">
                         {% if sr.subscription.validated %}
-                          <div><span class="text-success font-weight-bold">{% trans "OK" %}</span></div>
+                          <div>
+                            <span class="text-success font-weight-bold"
+                                  data-toggle="tooltip"
+                                  title="{% include "components/_validation_credit.html" with subscription=sr.subscription %}">
+                              {% trans "OK" %}
+                            </span>
+                          </div>
                           <a href='{% url "validate_sale" sr.pk %}?from=sales_record_filter'
                              class="btn btn-sm btn-outline-secondary"
                              title="{% trans "View details" %}"
