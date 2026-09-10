@@ -8971,12 +8971,12 @@ msgid ""
 "This subscription came in through the website and needs no validation. "
 "Register a sale only if a seller should be commissioned for it."
 msgstr ""
+"Esta suscripción entró por la web y no necesita validación. Registrá una venta "
+"solamente si hay que comisionar a un vendedor."
 
 #: support/templates/contact_detail/tabs/includes/_subscription_validation_actions.html:19
-#, fuzzy
-#| msgid "Commissions"
 msgid "Commission a seller"
-msgstr "Comisiones"
+msgstr "Comisionar a un vendedor"
 
 #: support/templates/contact_detail/tabs/includes/_subscription_validation_actions.html:25
 #: support/templates/sales_record_filter.html:204
@@ -10438,10 +10438,8 @@ msgid "Payment method is only relevant for full sales"
 msgstr "El método de pago solo aplica para ventas completas"
 
 #: support/templates/sales_record_filter.html:176
-#, fuzzy
-#| msgid "The subscription has no payment type, it can't be billed"
 msgid "A free subscription has no payment method and pays no commission"
-msgstr "La suscripción no tiene forma de pago, no se puede facturar"
+msgstr "Una suscripción gratuita no tiene forma de pago y no paga comisión"
 
 #: support/templates/sales_record_filter.html:193
 msgid "OK"
