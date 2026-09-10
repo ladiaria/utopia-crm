@@ -161,17 +161,7 @@
                   <i class="fas fa-check-circle mr-1"></i> {% trans "Validated sale" %}
                 </span>
                 <br>
-                {% if subscription.validated_by %}
-                  <small>
-                    {% blocktrans with who=subscription.validated_by.get_full_name|default:subscription.validated_by.username %}by {{ who }}{% endblocktrans %}
-                  </small>
-                  <br>
-                {% endif %}
-                {% if subscription.validated_date %}
-                  <small>{{ subscription.validated_date|date:"d/m/Y H:i" }}</small>
-                {% else %}
-                  <small class="text-muted">{% trans "Validation date not recorded" %}</small>
-                {% endif %}
+                <small>{% include "components/_validation_credit.html" %}</small>
               </div>
             {% endif %}
           </div>

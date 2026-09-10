@@ -13,7 +13,9 @@ Two separate things worth not mixing up:
 from datetime import datetime
 
 from django.contrib.auth.models import User
+from django.template.loader import render_to_string
 from django.test import TestCase
+from django.utils import translation
 from django.test.utils import override_settings
 from django.urls import reverse
 
@@ -193,3 +195,45 @@ class TestValidationIsTraceable(TestCase):
         content = listing.content.decode()
         self.assertIn("03/09/2026 14:37", content)
         self.assertNotIn("03/09/2026 14:09", content)
+
+
+class TestValidationCredit(TestCase):
+    """
+    The one line that says who validated a subscription, rendered by every screen that shows it.
+
+    The two fields arrived later than the flag, so a subscription validated before them carries
+    neither: every combination still has to read as a finished sentence.
+    """
+
+    def setUp(self):
+        self.contact = create_contact(name="Credit Test", phone="099111666")
+        self.subscription = create_subscription(self.contact)
+        self.user = User.objects.create_user(
+            username="validator", password="x", first_name="Ana", last_name="Gestora"
+        )
+
+    def render(self):
+        # Pinned to the language the panel actually runs in: the point of these is the wording a
+        # manager reads, not the msgid behind it.
+        with translation.override("es"):
+            return render_to_string(
+                "components/_validation_credit.html", {"subscription": self.subscription}
+            ).strip()
+
+    def test_names_the_person_and_the_moment(self):
+        self.subscription.validated_by = self.user
+        self.subscription.validated_date = datetime(2026, 9, 3, 14, 37)
+        self.assertEqual(self.render(), "Validada por Ana Gestora el 03/09/2026 14:37")
+
+    def test_a_user_with_no_full_name_falls_back_to_the_username(self):
+        nameless = User.objects.create_user(username="nameless", password="x")
+        self.subscription.validated_by = nameless
+        self.subscription.validated_date = datetime(2026, 9, 3, 14, 37)
+        self.assertIn("nameless", self.render())
+
+    def test_no_user_means_the_system_did_it(self):
+        self.subscription.validated_date = datetime(2026, 9, 3, 14, 37)
+        self.assertEqual(self.render(), "Validada por el sistema el 03/09/2026 14:37")
+
+    def test_an_old_validation_with_neither_field_still_reads_as_a_sentence(self):
+        self.assertEqual(self.render(), "Validada, sin registro de quién ni cuándo")

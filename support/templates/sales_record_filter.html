@@ -187,16 +187,11 @@
                       <td class="text-center">
                         {% if sr.subscription.validated %}
                           <div>
-                            {% if sr.subscription.validated_date or sr.subscription.validated_by %}
-                              <span class="text-success font-weight-bold"
-                                    data-toggle="tooltip"
-                                    title="{% if sr.subscription.validated_date %}{% blocktrans with when=sr.subscription.validated_date|date:"d/m/Y H:i" %}Validated on {{ when }}{% endblocktrans %}{% else %}{% trans "Validation date not recorded" %}{% endif %}
-                                           {% if sr.subscription.validated_by %}— {% blocktrans with who=sr.subscription.validated_by.get_full_name|default:sr.subscription.validated_by.username %}by {{ who }}{% endblocktrans %}{% endif %}">
-                                {% trans "OK" %}
-                              </span>
-                            {% else %}
-                              <span class="text-success font-weight-bold">{% trans "OK" %}</span>
-                            {% endif %}
+                            <span class="text-success font-weight-bold"
+                                  data-toggle="tooltip"
+                                  title="{% include "components/_validation_credit.html" with subscription=sr.subscription %}">
+                              {% trans "OK" %}
+                            </span>
                           </div>
                           <a href='{% url "validate_sale" sr.pk %}?from=sales_record_filter'
                              class="btn btn-sm btn-outline-secondary"
