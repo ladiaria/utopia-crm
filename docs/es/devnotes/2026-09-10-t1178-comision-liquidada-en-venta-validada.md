@@ -76,7 +76,7 @@ de comparar números:
 | `can_be_commissioned` en falso | Marcada como no comisionable: no entra en la liquidación |
 | Sin validar y no es venta completa | Una venta parcial no paga comisión salvo que quien la valide decida lo contrario |
 | `commission_overridden` | Monto ingresado a mano al validar |
-| Liquidada, calculada, componentes que no dan | Liquidada al validar; los componentes son los de hoy y ya no dan esa cifra — o se comisionó contra la regla habitual, o cambiaron los precios |
+| Liquidada, calculada, componentes que no dan | Liquidada al validar; los componentes son los de hoy y ya no dan esa cifra — cambiaron los precios o las reglas de comisión |
 
 ### 4. Las sobreescrituras ahora quedan registradas
 
@@ -103,6 +103,21 @@ El campo es `can_be_commissioned`, así que esto creaba un atributo suelto y no 
 redundante: `can_be_commissioned` está en los `fields` del formulario de validación, así que el
 ModelForm ya había dejado el valor tildado en `form.instance`. Reemplazada por un comentario que lo
 aclara.
+
+### 6. Seguimiento (2026-09-11): el aviso saltaba en toda venta parcial comisionada
+
+**Archivo:** `support/models.py`
+
+La primera versión comparaba el monto liquidado contra `calculate_total_commission()`. Ese método
+aplica la regla de "sólo comisionan las ventas completas" y responde `0` para una parcial, así que
+**toda** parcial comisionada quedaba marcada como inexplicada — mientras su desglose,
+`0 + 0 + 0 + 105` al lado de un total de `105`, cerraba a la vista de cualquiera.
+
+`sum_commission_components()` da ahora la suma sin ninguna regla encima: la cuenta que el lector
+puede hacer con lo que tiene en pantalla. Contra eso compara el aviso, así que aparece sólo cuando
+los componentes de verdad no explican la cifra — el caso para el que se escribió, donde la venta se
+liquidó a un precio y el catálogo cambió después. `calculate_total_commission()` pasa a expresarse
+en términos de ese método y conserva intacto su comportamiento de previsión.
 
 ## 📁 Archivos modificados
 

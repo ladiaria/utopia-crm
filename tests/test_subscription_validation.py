@@ -378,16 +378,37 @@ class TestCommissionShownAfterValidating(TestCase):
         self.assertFalse(self.sales_record.commission_overridden)
         self.assertIsNone(self.sales_record.get_commission_note())
 
-    def test_a_forced_partial_sale_says_the_components_no_longer_add_up(self):
-        # Not an override: the amount was computed, but against the rule that a partial sale pays
-        # nothing, so the breakdown alone cannot explain it.
+    def test_a_commissioned_partial_sale_needs_no_note_when_its_breakdown_adds_up(self):
+        # "0 + 0 + 0 + 105" reads as 105 to anyone looking at it, so there is nothing to explain.
+        # Comparing against calculate_total_commission() instead of the components flagged every
+        # commissioned partial sale, because that method applies the "only full sales" rule and
+        # answers 0.
         self.validate()
 
         self.assertFalse(self.sales_record.commission_overridden)
         self.assertEqual(self.sales_record.total_commission_value, 105)
-        with translation.override("en"):
-            note = str(self.sales_record.get_commission_note())
+        self.assertEqual(self.sales_record.sum_commission_components(), 105)
+        self.assertIsNone(self.sales_record.get_commission_note())
+
+    def test_it_says_when_the_components_really_stopped_adding_up(self):
+        # The note is for the case it was written for: the sale was settled at one price and the
+        # catalogue moved afterwards.
+        self.validate()
+        self.assertIsNone(self.sales_record.get_commission_note())
+
+        with override_settings(SELLER_COMMISSION_PRODUCTS_SLUGS={"extra-product": 130}):
+            self.assertEqual(self.sales_record.total_commission_value, 105)
+            self.assertEqual(self.sales_record.sum_commission_components(), 130)
+            with translation.override("en"):
+                note = str(self.sales_record.get_commission_note())
         self.assertIn("no longer add up", note)
+
+    def test_the_forecast_still_applies_the_partial_sale_rule(self):
+        # sum_commission_components() must not be mistaken for the forecast: before validating, a
+        # partial sale is still worth nothing no matter what its components add up to.
+        self.assertEqual(self.sales_record.sum_commission_components(), 105)
+        self.assertEqual(self.sales_record.calculate_total_commission(), 0)
+        self.assertEqual(self.sales_record.get_commission_value(), 0)
 
     def test_the_list_reports_the_same_figure_as_the_detail(self):
         # The two screens disagreeing is what started this: they must read the same number both
