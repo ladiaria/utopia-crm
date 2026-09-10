@@ -33,8 +33,8 @@
                 {% for a in high %}
                 <tr role="row">
                   <td>{{a.name}}</td>
-                  <td>{{a.get_latest_completed_activity.date|date:"d/m/Y H:m"}}</td>
-                  <td>{{a.get_latest_pending_activity.date|date:"d/m/Y H:m"}}</td>
+                  <td>{{a.get_latest_completed_activity.date|date:"d/m/Y H:i"}}</td>
+                  <td>{{a.get_latest_pending_activity.date|date:"d/m/Y H:i"}}</td>
                   <td><a class="btn-sm btn-primary" href="{% url 'advertiser_detail' a.id %}">{% trans "Go" %}</a> <a class="btn-sm btn-primary" href="{% url "admin:advertisement_advertiser_change" a.id %}" target="_blank">{% trans "Edit" %}</a></td>
                 </tr>
                 {% endfor %}
@@ -65,7 +65,7 @@
                 {% for a in mid %}
                 <tr role="row">
                   <td>{{a.name}}</td>
-                  <td>{{a.get_latest_completed_activity.date|date:"d/m/Y H:m"}}</td>
+                  <td>{{a.get_latest_completed_activity.date|date:"d/m/Y H:i"}}</td>
                   <td><a class="btn-sm btn-primary" href="{% url 'advertiser_detail' a.id %}">{% trans "Go" %}</a> <a class="btn-sm btn-primary" href="{% url "admin:advertisement_advertiser_change" a.id %}" target="_blank">{% trans "Edit" %}</a></td>
                 </tr>
                 {% endfor %}
@@ -94,7 +94,7 @@
                 {% for a in low %}
                 <tr role="row">
                   <td>{{a.name}}</td>
-                  <td>{{a.get_latest_completed_activity.date|date:"d/m/Y H:m"}}</td>
+                  <td>{{a.get_latest_completed_activity.date|date:"d/m/Y H:i"}}</td>
                   <td><a class="btn-sm btn-primary" href="{% url 'advertiser_detail' a.id %}">{% trans "Go" %}</a> <a class="btn-sm btn-primary" href="{% url "admin:advertisement_advertiser_change" a.id %}" target="_blank">{% trans "Edit" %}</a></td>
                 </tr>
                 {% endfor %}
@@ -129,7 +129,7 @@
             <tr role="row">
               <td>{{row.advertiser}}</td>
               <td>{{row.get_type_display}}</td>
-              <td>{{row.date|date:"d/m/Y H:m"}}</td>
+              <td>{{row.date|date:"d/m/Y H:i"}}</td>
               <td><a class="btn-sm btn-primary" href="{% url 'admin:advertisement_advertisementactivity_change' row.id %}">{% trans "Go" %}</a></td>
             </tr>
             {% endfor %}
@@ -158,7 +158,7 @@
             <tr role="row">
               <td>{{row.advertiser}}</td>
               <td>{{row.get_type_display}}</td>
-              <td>{{row.date|date:"d/m/Y H:m"}}</td>
+              <td>{{row.date|date:"d/m/Y H:i"}}</td>
               <td><a class="btn-sm btn-primary" href="{% url 'admin:advertisement_advertisementactivity_change' row.id %}">{% trans "Go" %}</a></td>
             </tr>
             {% endfor %}

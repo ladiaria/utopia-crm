@@ -10,6 +10,8 @@ Two separate things worth not mixing up:
 - **The free subscription.** Free or not, somebody inside the CRM creates it, so it gets a sales
   record like any other and lands in the queue managers look at.
 """
+from datetime import datetime
+
 from django.contrib.auth.models import User
 from django.test import TestCase
 from django.test.utils import override_settings
@@ -136,3 +138,58 @@ class TestFreeSubscriptionSalesRecord(TestCase):
 
         self.assertFalse(sales_record.is_free_subscription())
         self.assertNotEqual(sales_record.get_payment_type(), "N/A")
+
+
+class TestValidationIsTraceable(TestCase):
+    """
+    Who validated a sale and when, and who the customer is, must be readable from the panel.
+
+    Both screens answer the same question from different distances: the list says it in a tooltip
+    over the OK, the detail says it in full next to the customer's name.
+    """
+
+    def setUp(self):
+        self.user = User.objects.create_superuser(
+            username="manager", password="x", first_name="Ana", last_name="Gestora"
+        )
+        self.client.login(username="manager", password="x")
+        self.contact = create_contact(name="Trace Test", phone="099111555", email="trace@example.com")
+        self.subscription = create_subscription(self.contact)
+        self.seller = Seller.objects.create(name="A seller")
+        self.sales_record = SalesRecord.objects.create(subscription=self.subscription, price=100, seller=self.seller)
+
+    def test_the_detail_shows_who_the_customer_is(self):
+        response = self.client.get(reverse("validate_sale", args=[self.sales_record.pk]))
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode()
+        self.assertIn(self.contact.get_full_name(), content)
+        self.assertIn("trace@example.com", content)
+        self.assertIn(str(self.contact.id), content)
+
+    def test_a_validated_sale_says_who_validated_it_and_when(self):
+        self.subscription.validate(user=self.user)
+
+        detail = self.client.get(reverse("validate_sale", args=[self.sales_record.pk]))
+        self.assertEqual(detail.status_code, 200)
+        detail_content = detail.content.decode()
+        self.assertIn("Ana Gestora", detail_content)
+        self.subscription.refresh_from_db()
+        expected_moment = self.subscription.validated_date.strftime("%d/%m/%Y %H:%M")
+        self.assertIn(expected_moment, detail_content)
+
+        listing = self.client.get(reverse("sales_record_filter"))
+        self.assertEqual(listing.status_code, 200)
+        listing_content = listing.content.decode()
+        self.assertIn("Ana Gestora", listing_content)
+        self.assertIn(expected_moment, listing_content)
+
+    def test_the_transaction_time_shows_minutes_and_not_the_month(self):
+        # `H:m` is the month, not the minutes: it made every hour in the list end in the current
+        # month's number. A minute that is nobody's month number tells the two apart.
+        SalesRecord.objects.filter(pk=self.sales_record.pk).update(date_time=datetime(2026, 9, 3, 14, 37))
+
+        listing = self.client.get(reverse("sales_record_filter"))
+        self.assertEqual(listing.status_code, 200)
+        content = listing.content.decode()
+        self.assertIn("03/09/2026 14:37", content)
+        self.assertNotIn("03/09/2026 14:09", content)

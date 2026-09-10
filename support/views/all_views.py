@@ -3052,7 +3052,7 @@ class SalesRecordFilterSellersView(BreadcrumbsMixin, FilterView):
     queryset = (
         SalesRecord.objects.all()
         .prefetch_related("products")
-        .select_related("subscription__contact")
+        .select_related("subscription__contact", "subscription__validated_by")
         .order_by("-date_time")
     )
     seller = None
