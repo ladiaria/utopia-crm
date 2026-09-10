@@ -213,9 +213,12 @@ class TestValidationCredit(TestCase):
         )
 
     def render(self):
-        # Pinned to the language the panel actually runs in: the point of these is the wording a
-        # manager reads, not the msgid behind it.
-        with translation.override("es"):
+        # Pinned to English on purpose. What is under test is which of the four sentences the
+        # partial picks, not how it was translated, and asserting on the Spanish would tie these
+        # to the contents of the .po and to whatever LANGUAGE_CODE the machine ends up with:
+        # `test_settings` asks for en-us, but a `local_test_settings` that re-imports `settings`
+        # quietly hands it back to es.
+        with translation.override("en"):
             return render_to_string(
                 "components/_validation_credit.html", {"subscription": self.subscription}
             ).strip()
@@ -223,7 +226,7 @@ class TestValidationCredit(TestCase):
     def test_names_the_person_and_the_moment(self):
         self.subscription.validated_by = self.user
         self.subscription.validated_date = datetime(2026, 9, 3, 14, 37)
-        self.assertEqual(self.render(), "Validada por Ana Gestora el 03/09/2026 14:37")
+        self.assertEqual(self.render(), "Validated by Ana Gestora on 03/09/2026 14:37")
 
     def test_a_user_with_no_full_name_falls_back_to_the_username(self):
         nameless = User.objects.create_user(username="nameless", password="x")
@@ -233,7 +236,7 @@ class TestValidationCredit(TestCase):
 
     def test_no_user_means_the_system_did_it(self):
         self.subscription.validated_date = datetime(2026, 9, 3, 14, 37)
-        self.assertEqual(self.render(), "Validada por el sistema el 03/09/2026 14:37")
+        self.assertEqual(self.render(), "Validated by the system on 03/09/2026 14:37")
 
     def test_an_old_validation_with_neither_field_still_reads_as_a_sentence(self):
-        self.assertEqual(self.render(), "Validada, sin registro de quién ni cuándo")
+        self.assertEqual(self.render(), "Validated, with no record of who did it or when")
