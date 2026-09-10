@@ -707,10 +707,14 @@ class SalesRecord(models.Model):
             return None
         if self.commission_overridden:
             return _("Amount entered by hand at validation time: it does not come from the breakdown.")
-        if Decimal(str(self.calculate_total_commission())) != self.total_commission_value:
+        if Decimal(str(self.sum_commission_components())) != self.total_commission_value:
+            # Compared against the components on screen, not against `calculate_total_commission()`:
+            # that one applies the "only full sales commission" rule and returns 0 for a partial
+            # sale, which would flag every commissioned partial sale as unexplained while its
+            # breakdown adds up perfectly.
             return _(
-                "Settled at validation time. The components below are today's and no longer add up to "
-                "it: either the sale was commissioned against the usual rule, or prices changed since."
+                "Settled at validation time. The components below are today's and no longer add up "
+                "to it: prices or commission rules changed since."
             )
         return None
 
@@ -768,7 +772,7 @@ class SalesRecord(models.Model):
             # decided yet. Lead with what was actually paid, and only spell the components out
             # separately when they no longer add up to it.
             settled = self.total_commission_value
-            if Decimal(str(self.calculate_total_commission())) == settled:
+            if Decimal(str(self.sum_commission_components())) == settled:
                 return f"{breakdown} = {settled}"
             return _("%(settled)s (settled) — components today: %(breakdown)s") % {
                 "settled": settled,
@@ -777,15 +781,25 @@ class SalesRecord(models.Model):
         except Exception as e:
             return f"Error: {e}"
 
+    def sum_commission_components(self):
+        """
+        What the components shown in the breakdown add up to, with no rule applied on top.
+
+        Different from `calculate_total_commission()`, which answers "what would be paid if this
+        were validated right now" and therefore returns 0 for anything that is not a full sale. To
+        ask whether a breakdown explains a settled figure, this is the sum to compare against: the
+        one the reader can do by hand from what is on screen.
+        """
+        return (
+            self.calculate_payment_type_commission(return_value=True)
+            + self.calculate_products_count_commission(return_value=True)
+            + self.calculate_frequency_commission(return_value=True)
+            + self.calculate_specific_products_commission(return_value=True)
+        )
+
     def calculate_total_commission(self):
         if self.sale_type == self.SALE_TYPE.FULL and not self.is_free_subscription():
-            value = (
-                self.calculate_payment_type_commission(return_value=True)
-                + self.calculate_products_count_commission(return_value=True)
-                + self.calculate_frequency_commission(return_value=True)
-                + self.calculate_specific_products_commission(return_value=True)
-            )
-            return value
+            return self.sum_commission_components()
         return 0
 
 

@@ -2,6 +2,13 @@
 
 ## v0.5.1
 
+## 2026-09-11 — t1178 (seguimiento) La aclaración de comisión aparecía en ventas parciales que no la necesitaban
+
+- Toda venta parcial ya validada mostraba el aviso "los componentes ya no dan esa cifra", incluso cuando el desglose la explicaba perfectamente: un `0 + 0 + 0 + 105` al lado de un total de 105. La comparación se hacía contra la previsión de comisión —que para una parcial vale 0 por definición— en vez de contra la suma de los componentes que la pantalla muestra
+- Ahora el aviso aparece sólo cuando los componentes **realmente** no dan la cifra liquidada, que es el caso para el que se escribió: la venta se liquidó a un precio y el catálogo cambió después
+- Deployment: **no se requieren migraciones**; sí **recompilar traducciones** (`compilemessages -l es`), porque el texto del aviso cambió
+- **Author:** Tanya Tree + Claude Opus 5
+
 ## 2026-09-10 — t1178 La comisión de una venta ya validada se muestra como quedó, no como se recalcularía
 
 - **La pantalla de detalle de un registro de venta mostraba 0 en ventas ya comisionadas.** Una venta parcial que se decide comisionar al validarla (marcando "Puede comisionarse") guarda la comisión y se la paga al vendedor, pero el detalle seguía mostrando el cálculo previo, que para una parcial da 0 por definición. El resultado era una pantalla diciendo "0 (Tarjeta de crédito) + 0 (1 productos) + 0 (1) + 105 (productos específicos) = 0" mientras el listado y la liquidación decían 105. La plata siempre estuvo bien calculada: lo que mentía era la pantalla

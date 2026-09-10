@@ -75,7 +75,7 @@ comparing numbers:
 | `can_be_commissioned` is false | Marked as not commissionable: it does not enter the liquidation |
 | Not validated yet, not a full sale | A partial sale pays no commission unless whoever validates decides otherwise |
 | `commission_overridden` | Amount entered by hand at validation time |
-| Settled, computed, components disagree | Settled at validation; the components are today's and no longer add up — either it was commissioned against the usual rule, or prices changed since |
+| Settled, computed, components disagree | Settled at validation; the components are today's and no longer add up — prices or commission rules changed since |
 
 ### 4. Overrides are now recorded
 
@@ -100,6 +100,21 @@ sales_record.can_be_commisioned = True   # one "s" short of the real field
 The field is `can_be_commissioned`, so this created a stray attribute and did nothing. It was also
 redundant: `can_be_commissioned` is in the validation form's `fields`, so the ModelForm had already
 put the checked value on `form.instance`. Replaced by a comment saying so.
+
+### 6. Follow-up (2026-09-11): the note fired on every commissioned partial sale
+
+**File:** `support/models.py`
+
+The first version compared the settled amount against `calculate_total_commission()`. That method
+applies the "only full sales commission" rule and answers `0` for a partial sale, so **every**
+commissioned partial sale was flagged as unexplained — while its breakdown, `0 + 0 + 0 + 105` next
+to a total of `105`, added up in plain sight.
+
+`sum_commission_components()` now provides the sum with no rule on top: the arithmetic a reader can
+do from what is on screen. That is what the note compares against, so it only appears when the
+components genuinely fail to explain the figure — the case it was written for, where a sale was
+settled at one price and the catalogue moved afterwards. `calculate_total_commission()` is now
+expressed in terms of it and keeps its forecasting behaviour untouched.
 
 ## 📁 Files Modified
 

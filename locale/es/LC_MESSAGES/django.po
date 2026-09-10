@@ -6589,12 +6589,10 @@ msgstr "Monto ingresado a mano al validar: no surge del desglose."
 #: support/models.py:712
 msgid ""
 "Settled at validation time. The components below are today's and no longer "
-"add up to it: either the sale was commissioned against the usual rule, or "
-"prices changed since."
+"add up to it: prices or commission rules changed since."
 msgstr ""
 "Liquidada al validar. Los componentes de abajo son los de hoy y ya no dan esa "
-"cifra: o la venta se comisionó contra la regla habitual, o los precios "
-"cambiaron desde entonces."
+"cifra: cambiaron los precios o las reglas de comisión desde entonces."
 
 #: support/models.py:700
 #, python-format
