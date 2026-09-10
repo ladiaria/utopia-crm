@@ -1,0 +1,32 @@
+{% load i18n %}
+{# Validation state of one subscription, as a single button (or none of them applies, a chip). #}
+{# Included from every subscription type: promo, free and regular all end up in the sales record #}
+{# queue, so all of them need a way in from the contact detail. #}
+{% if subscription.validated %}
+  {% if subscription.has_sales_record or subscription.is_free %}
+    {# Nothing left to do. Rendered anyway so "all in order" does not look like "this failed to load" #}
+    <span class="btn btn-sm btn-outline-success disabled mr-1 mb-1"
+          title="{% if subscription.validated_by %}{% blocktrans with who=subscription.validated_by.get_full_name|default:subscription.validated_by.username when=subscription.validated_date|date:"d/m/Y H:i" %}Validated by {{ who }} on {{ when }}{% endblocktrans %}{% else %}{% blocktrans with when=subscription.validated_date|date:"d/m/Y H:i" %}Validated by the system on {{ when }}{% endblocktrans %}{% endif %}"
+          data-toggle="tooltip">
+      <i class="fas fa-check"></i> {% trans "Validated" %}
+    </span>
+  {% else %}
+    {# Came in through a channel with no seller, so it is already on record: this is only about commission #}
+    <a href="{% url "add_sales_record" subscription.id %}"
+       class="btn btn-sm btn-outline-warning mr-1 mb-1"
+       title="{% trans "This subscription came in through the website and needs no validation. Register a sale only if a seller should be commissioned for it." %}"
+       data-toggle="tooltip">
+      <i class="fas fa-hand-holding-usd"></i> {% trans "Commission a seller" %}
+    </a>
+  {% endif %}
+{% elif subscription.has_sales_record %}
+  <a href="{% url "validate_subscription" subscription.id %}"
+     class="btn btn-sm btn-warning mr-1 mb-1">
+    <i class="fas fa-check-circle"></i> {% trans "Validate" %}
+  </a>
+{% else %}
+  <a href="{% url "add_sales_record" subscription.id %}"
+     class="btn btn-sm btn-warning mr-1 mb-1">
+    <i class="fas fa-cash-register"></i> {% trans "Register Sale" %}
+  </a>
+{% endif %}

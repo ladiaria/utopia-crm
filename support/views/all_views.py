@@ -66,6 +66,7 @@ from core.utils import (
     calc_price_from_products,
     logistics_is_installed,
     process_products,
+    run_subscription_validated_hook,
 )
 from invoicing.models import Invoice
 from util.location_utils import georef_habilitado
@@ -3273,6 +3274,10 @@ class ValidateSubscriptionSalesRecord(BreadcrumbsMixin, UpdateView):
         subscription = self.object.subscription
         sales_record = form.instance
         subscription.validate(user=self.request.user)
+        # Validating is the moment the sale becomes real for the rest of the world. Whatever the
+        # installation wants to propagate from here (la diaria activates the reader on the website)
+        # hangs off this hook, which never raises: the validation is already saved.
+        run_subscription_validated_hook(subscription, self.request.user)
         if form.cleaned_data["can_be_commissioned"]:
             sales_record.can_be_commisioned = True
             SubscriptionProduct.objects.filter(
@@ -3341,7 +3346,13 @@ class SalesRecordCreateView(CreateView):
         SubscriptionProduct.objects.filter(
             subscription=subscription, product__in=sales_record_obj.products.all()
         ).update(seller=sales_record_obj.seller)
-        self.subscription.validate(user=self.request.user)
+        if not self.subscription.validated:
+            # An already-validated subscription is one that came in through a channel with no seller
+            # (the website, for instance) and was validated by the system, which is what a null
+            # `validated_by` means. Registering a sale on it afterwards is about commissioning
+            # somebody — a seller who referred the person — not about validating it again, so the
+            # original marker is left alone.
+            self.subscription.validate(user=self.request.user)
         return super().form_valid(form)
 
 

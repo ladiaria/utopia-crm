@@ -148,3 +148,20 @@ def pending_email_takeovers():
         return EmailTakeoverRequest.objects.filter(status=EmailTakeoverRequest.PENDING).count()
     except Exception:
         return 0
+
+
+@register.simple_tag
+def pending_sales_records():
+    """
+    How many sales records are still waiting for a manager to validate them, for the sidebar badge.
+
+    Validation lives on the subscription (``Subscription.validated``), not on the sales record, so
+    this counts records whose subscription is still unvalidated. Same defensive shape as
+    ``pending_email_takeovers``: a badge is never a reason for a page not to render.
+    """
+    try:
+        from support.models import SalesRecord
+
+        return SalesRecord.objects.filter(subscription__validated=False).count()
+    except Exception:
+        return 0

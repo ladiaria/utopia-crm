@@ -364,6 +364,12 @@
                     <dt>{% trans "Calculated Commission" %}</dt>
                     <dd>
                       {{ object.calculate_commission }}
+                      {% if object.is_free_subscription %}
+                        <br>
+                        <small class="text-muted">
+                          {% trans "There is no money behind a free subscription: no payment method and no commission. Validate it anyway so the sale is on record and the reader gets activated on the website." %}
+                        </small>
+                      {% endif %}
                     </dd>
                   </div>
                 </div>
@@ -387,6 +393,9 @@
                 <div class="col-md-3">
                   <label for="override" class="form-label">{% trans "Add Commission Value Manually" %}</label>
                   {% render_field form.override_commission_value class="form-control" %}
+                  {% if object.is_free_subscription %}
+                    <small class="text-muted">{% trans "Locked: a free subscription pays no commission." %}</small>
+                  {% endif %}
                 </div>
                 <div class="col-md-3">
                   <div class="form-check mt-4 pt-2">
@@ -394,7 +403,11 @@
                     <label for="can_be_commissioned_id" class="form-check-label">{% trans "Can be commissioned" %}</label>
                   </div>
                   <small class="text-muted">
-                    {% trans "If checked, the seller will receive commission for this sale. Uncheck to exclude it from commission calculations (e.g. retention discounts or non-commissionable changes)." %}
+                    {% if object.is_free_subscription %}
+                      {% trans "Locked: a free subscription pays no commission." %}
+                    {% else %}
+                      {% trans "If checked, the seller will receive commission for this sale. Uncheck to exclude it from commission calculations (e.g. retention discounts or non-commissionable changes)." %}
+                    {% endif %}
                   </small>
                 </div>
               </div>
