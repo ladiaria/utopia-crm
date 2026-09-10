@@ -3279,12 +3279,18 @@ class ValidateSubscriptionSalesRecord(BreadcrumbsMixin, UpdateView):
         # hangs off this hook, which never raises: the validation is already saved.
         run_subscription_validated_hook(subscription, self.request.user)
         if form.cleaned_data["can_be_commissioned"]:
-            sales_record.can_be_commisioned = True
+            # `can_be_commissioned` is a field of the form, so the ModelForm already put the checked
+            # value on `form.instance`. There used to be an assignment here that misspelled the
+            # attribute ("commisioned") and therefore did nothing at all.
             SubscriptionProduct.objects.filter(
                 subscription=subscription, product__in=sales_record.products.all()
             ).update(seller=sales_record.seller)
             if form.cleaned_data["override_commission_value"]:
                 sales_record.total_commission_value = form.cleaned_data["override_commission_value"]
+                # Remembered, so the detail can say the amount was typed in rather than computed.
+                # Comparing it against the components would not tell an override apart from a price
+                # that changed after the fact.
+                sales_record.commission_overridden = True
             else:
                 sales_record.set_commissions(force=True)
         return super().form_valid(form)

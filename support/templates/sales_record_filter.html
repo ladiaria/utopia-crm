@@ -179,11 +179,7 @@
                       <td>{{ sr.show_products_per_line }}</td>
                       <td>{{ sr.campaign|default_if_none:"" }}</td>
                       <td>{{ sr.get_sale_type_display }}</td>
-                      {% if sr.subscription.validated %}
-                        <td>{{ sr.total_commission_value }}</td>
-                      {% else %}
-                        <td>{{ sr.calculate_total_commission }}</td>
-                      {% endif %}
+                      <td>{{ sr.get_commission_value }}</td>
                       <td class="text-center">
                         {% if sr.subscription.validated %}
                           <div>
