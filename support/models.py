@@ -1,5 +1,6 @@
 # coding=utf-8
 from datetime import date, timedelta
+from decimal import Decimal
 
 from django.db import models
 from django.conf import settings
@@ -507,6 +508,11 @@ class SalesRecord(models.Model):
         max_digits=10, decimal_places=2, verbose_name=_("Total commission value"), default=0
     )
     can_be_commissioned = models.BooleanField(default=True, verbose_name=_("Can be commissioned"))
+    # Whether `total_commission_value` was typed in by hand at validation time instead of computed.
+    # Without this the only trace of an override is that the stored value no longer matches the sum
+    # of the components — which is also what a price change after the fact looks like, so the panel
+    # could not tell the two apart and had to stay silent about both.
+    commission_overridden = models.BooleanField(default=False, verbose_name=_("Commission overridden"))
 
     class Meta:
         verbose_name = _("Sales record")
@@ -645,6 +651,7 @@ class SalesRecord(models.Model):
                 + self.commission_for_subscription_frequency
                 + self.commission_for_products_sold
             )
+            self.commission_overridden = False
             self.save()
 
     def has_special_product(self):
@@ -660,12 +667,66 @@ class SalesRecord(models.Model):
         else:
             return _("N/A")
 
-    def calculate_commission(self):
+    def is_settled(self):
+        """
+        Whether the commission is no longer a forecast.
+
+        Validating is the moment the sale becomes real, and `set_commissions` writes
+        `total_commission_value` right then. From that point on the stored value is what the seller
+        gets paid, and recomputing the components can legitimately give something else: a manager
+        may have overridden the amount, forced a partial sale to commission, or the price of a
+        product may have changed since.
+        """
+        return bool(self.subscription and self.subscription.validated)
+
+    def get_commission_value(self):
+        """
+        The commission figure to show anywhere in the UI: the settled amount once the sale is
+        validated, the forecast before that.
+        """
+        if self.is_settled():
+            return self.total_commission_value
+        return self.calculate_total_commission()
+
+    def get_commission_note(self):
+        """
+        Why the commission is the figure it is, when the figure alone does not say it.
+
+        Returns None when the breakdown speaks for itself. Everything reported here is something the
+        record actually knows: a stored flag or a rule, never a guess made by comparing numbers.
+        """
         if self.is_free_subscription():
-            # Showing the breakdown here would read as "0 (None) + 150 (2 products) + ... = 0": each
+            return _("A free subscription pays no commission.")
+        if not self.can_be_commissioned:
+            return _("Marked as not commissionable: it does not enter the seller's liquidation.")
+        if not self.is_settled():
+            if self.sale_type != self.SALE_TYPE.FULL:
+                return _(
+                    "A partial sale pays no commission unless whoever validates it decides otherwise."
+                )
+            return None
+        if self.commission_overridden:
+            return _("Amount entered by hand at validation time: it does not come from the breakdown.")
+        if Decimal(str(self.calculate_total_commission())) != self.total_commission_value:
+            return _(
+                "Settled at validation time. The components below are today's and no longer add up to "
+                "it: either the sale was commissioned against the usual rule, or prices changed since."
+            )
+        return None
+
+    def get_commission_breakdown(self):
+        """
+        What the commission is made of, as a readable line, with no total attached.
+
+        The total is deliberately left out: once a sale is validated the components can legitimately
+        stop adding up to what is paid — a manager may have overridden the amount, or a price may
+        have changed since — so whoever shows this is expected to show `get_commission_value()`
+        alongside it rather than glue an "=" between the two.
+        """
+        if self.is_free_subscription():
+            # Showing the breakdown here would read as "0 (None) + 150 (2 products) + ...": each
             # component computed on its own, none of them applicable. Say why instead.
             return _("Free subscription: no commission")
-        # Show all commission components in separate lines with labels
         payment_type_commission = (
             f"{self.calculate_payment_type_commission(return_value=True)} "
             f"({self.subscription.get_payment_type_display()})"
@@ -680,13 +741,39 @@ class SalesRecord(models.Model):
         specific_products_commission = (
             f"{self.calculate_specific_products_commission(return_value=True)} " f"({_('specific products')})"
         )
-        # Error catching
         try:
             return (
                 f"{payment_type_commission} + {products_count_commission} + "
-                f"{frequency_commission} + {specific_products_commission} = "
-                f"{self.calculate_total_commission()}"
+                f"{frequency_commission} + {specific_products_commission}"
             )
+        except Exception as e:
+            return f"Error: {e}"
+
+    def calculate_commission(self):
+        """
+        Breakdown and total in a single line, kept for callers outside the panel: the validation
+        screen shows the two apart so it can give the total its own weight.
+        """
+        if self.is_free_subscription():
+            return _("Free subscription: no commission")
+        # Show all commission components in separate lines with labels
+        breakdown = self.get_commission_breakdown()
+        # Error catching
+        try:
+            if not self.is_settled():
+                return f"{breakdown} = {self.calculate_total_commission()}"
+            # The sale is settled. Leading with the forecast here is how a validated partial sale
+            # ends up reading "... + 105 (specific products) = 0" while the list and the seller's
+            # liquidation both say 105: the components are recomputed as if nothing had been
+            # decided yet. Lead with what was actually paid, and only spell the components out
+            # separately when they no longer add up to it.
+            settled = self.total_commission_value
+            if Decimal(str(self.calculate_total_commission())) == settled:
+                return f"{breakdown} = {settled}"
+            return _("%(settled)s (settled) — components today: %(breakdown)s") % {
+                "settled": settled,
+                "breakdown": breakdown,
+            }
         except Exception as e:
             return f"Error: {e}"
 

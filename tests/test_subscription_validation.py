@@ -240,3 +240,162 @@ class TestValidationCredit(TestCase):
 
     def test_an_old_validation_with_neither_field_still_reads_as_a_sentence(self):
         self.assertEqual(self.render(), "Validated, with no record of who did it or when")
+
+
+@override_settings(
+    SELLER_COMMISSION_PRODUCTS_SLUGS={"extra-product": 105},
+    SELLER_COMMISSION_PRODUCTS_COUNT={1: 0, 2: 100},
+    SELLER_COMMISSION_PAYMENT_METHODS={"S": 80},
+    SELLER_COMMISSION_SUBSCRIPTION_FREQUENCY={1: 0, 3: 50},
+)
+class TestCommissionShownAfterValidating(TestCase):
+    """
+    A commission stops being a forecast the moment the sale is validated.
+
+    Before that, what the panel shows is what *would* be paid: a partial sale forecasts nothing,
+    because by default only full sales commission. But whoever validates can decide otherwise, and
+    from then on the stored value is the one that reaches the seller's liquidation. Recomputing the
+    components at that point answers a question nobody asked, and used to make a validated partial
+    sale read "... + 105 (specific products) = 0" while the list said 105.
+    """
+
+    def setUp(self):
+        self.user = User.objects.create_superuser(username="commission-manager", password="x")
+        self.client.login(username="commission-manager", password="x")
+        self.contact = create_contact(name="Partial Sale", phone="099111555")
+        self.seller = Seller.objects.create(name="Commissioned seller", internal=True)
+        self.product = Product.objects.create(
+            name="Extra product", slug="extra-product", type="S", offerable=True
+        )
+        self.subscription = create_subscription(self.contact, payment_type="S")
+        self.sales_record = SalesRecord.objects.create(
+            subscription=self.subscription,
+            seller=self.seller,
+            price=327,
+            sale_type=SalesRecord.SALE_TYPE.PARTIAL,
+        )
+        self.sales_record.products.add(self.product)
+
+    def validate(self, **extra):
+        data = {"seller": self.seller.pk, "can_be_commissioned": "on"}
+        data.update(extra)
+        response = self.client.post(reverse("validate_sale", args=[self.sales_record.pk]), data)
+        self.assertEqual(response.status_code, 302)
+        self.sales_record.refresh_from_db()
+        self.subscription.refresh_from_db()
+
+    def test_an_unvalidated_partial_sale_still_forecasts_nothing(self):
+        # Unchanged behaviour: until somebody decides, a partial sale is worth no commission.
+        self.assertFalse(self.sales_record.is_settled())
+        self.assertEqual(self.sales_record.calculate_total_commission(), 0)
+        self.assertEqual(self.sales_record.get_commission_value(), 0)
+        self.assertIn("= 0", self.sales_record.calculate_commission())
+
+    def test_a_validated_partial_sale_shows_what_was_actually_settled(self):
+        self.validate()
+
+        self.assertTrue(self.sales_record.is_settled())
+        # 0 (payment type, gated to full sales) + 0 (1 product) + 0 (monthly) + 105 (the product)
+        self.assertEqual(self.sales_record.total_commission_value, 105)
+        self.assertEqual(self.sales_record.get_commission_value(), 105)
+        # This is the regression: the breakdown may no longer add up on its own, but the figure
+        # the panel ends on has to be the one the seller gets paid.
+        self.assertNotIn("= 0", self.sales_record.calculate_commission())
+        self.assertIn("105", self.sales_record.calculate_commission())
+
+    def test_an_overridden_commission_says_so_instead_of_pretending_the_components_add_up(self):
+        self.validate(override_commission_value=300)
+
+        self.assertEqual(self.sales_record.total_commission_value, 300)
+        self.assertEqual(self.sales_record.get_commission_value(), 300)
+        with translation.override("en"):
+            shown = str(self.sales_record.calculate_commission())
+        # The components still total 105, so they are reported apart from the settled 300 rather
+        # than joined to it with an "=" that would be a lie.
+        self.assertIn("300", shown)
+        self.assertIn("settled", shown)
+        self.assertIn("105", shown)
+
+    def test_a_validated_full_sale_is_unaffected(self):
+        self.sales_record.sale_type = SalesRecord.SALE_TYPE.FULL
+        self.sales_record.save()
+        self.validate()
+
+        # 80 (payment type) + 0 (1 product) + 0 (monthly) + 105 (the product)
+        self.assertEqual(self.sales_record.total_commission_value, 185)
+        self.assertEqual(self.sales_record.get_commission_value(), 185)
+        self.assertIn("= 185", str(self.sales_record.calculate_commission()))
+
+    def test_the_detail_shows_the_total_apart_from_its_components(self):
+        # The validation screen gives the total its own weight and keeps the components as a
+        # footnote, so there is never an "=" claiming a breakdown adds up to an overridden amount.
+        self.validate(override_commission_value=300)
+        response = self.client.get(reverse("validate_sale", args=[self.sales_record.pk]))
+        content = response.content.decode()
+
+        self.assertIn("<strong class=\"h5\">300", content)
+        self.assertIn("105", self.sales_record.get_commission_breakdown())
+        self.assertNotIn("=", self.sales_record.get_commission_breakdown())
+
+    def test_a_free_subscription_still_explains_itself(self):
+        free_subscription = create_subscription(self.contact, subscription_type="F", payment_type="S")
+        free_record = SalesRecord.objects.create(subscription=free_subscription, price=0)
+
+        with translation.override("en"):
+            self.assertEqual(str(free_record.get_commission_breakdown()), "Free subscription: no commission")
+
+    def test_it_says_when_a_partial_sale_is_not_going_to_commission_yet(self):
+        with translation.override("en"):
+            note = str(self.sales_record.get_commission_note())
+        self.assertIn("partial sale pays no commission", note)
+
+    def test_it_says_when_the_amount_was_typed_in_by_hand(self):
+        self.validate(override_commission_value=300)
+
+        self.assertTrue(self.sales_record.commission_overridden)
+        with translation.override("en"):
+            note = str(self.sales_record.get_commission_note())
+        self.assertIn("entered by hand", note)
+
+    def test_it_says_when_the_record_is_not_commissionable_at_all(self):
+        # Unchecking the box is a decision, and a 0 with no explanation looks like a bug.
+        response = self.client.post(
+            reverse("validate_sale", args=[self.sales_record.pk]), {"seller": self.seller.pk}
+        )
+        self.assertEqual(response.status_code, 302)
+        self.sales_record.refresh_from_db()
+
+        self.assertFalse(self.sales_record.can_be_commissioned)
+        with translation.override("en"):
+            note = str(self.sales_record.get_commission_note())
+        self.assertIn("not commissionable", note)
+
+    def test_a_commission_that_came_out_of_the_breakdown_needs_no_note(self):
+        self.sales_record.sale_type = SalesRecord.SALE_TYPE.FULL
+        self.sales_record.save()
+        self.validate()
+
+        self.assertFalse(self.sales_record.commission_overridden)
+        self.assertIsNone(self.sales_record.get_commission_note())
+
+    def test_a_forced_partial_sale_says_the_components_no_longer_add_up(self):
+        # Not an override: the amount was computed, but against the rule that a partial sale pays
+        # nothing, so the breakdown alone cannot explain it.
+        self.validate()
+
+        self.assertFalse(self.sales_record.commission_overridden)
+        self.assertEqual(self.sales_record.total_commission_value, 105)
+        with translation.override("en"):
+            note = str(self.sales_record.get_commission_note())
+        self.assertIn("no longer add up", note)
+
+    def test_the_list_reports_the_same_figure_as_the_detail(self):
+        # The two screens disagreeing is what started this: they must read the same number both
+        # before and after validating.
+        self.assertEqual(
+            self.sales_record.get_commission_value(), self.sales_record.calculate_total_commission()
+        )
+        self.validate()
+        self.assertEqual(
+            self.sales_record.get_commission_value(), self.sales_record.total_commission_value
+        )

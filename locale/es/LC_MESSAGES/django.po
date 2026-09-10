@@ -6562,6 +6562,45 @@ msgstr "Registros de ventas"
 msgid "Free subscription: no commission"
 msgstr "Suscripción gratuita: sin comisión"
 
+#: support/models.py:515
+msgid "Commission overridden"
+msgstr "Comisión sobreescrita"
+
+#: support/models.py:699
+msgid "A free subscription pays no commission."
+msgstr "Una suscripción gratuita no paga comisión."
+
+#: support/models.py:701
+msgid "Marked as not commissionable: it does not enter the seller's liquidation."
+msgstr "Marcada como no comisionable: no entra en la liquidación del vendedor."
+
+#: support/models.py:705
+msgid ""
+"A partial sale pays no commission unless whoever validates it decides "
+"otherwise."
+msgstr ""
+"Una venta parcial no paga comisión salvo que quien la valide decida lo "
+"contrario."
+
+#: support/models.py:709
+msgid "Amount entered by hand at validation time: it does not come from the breakdown."
+msgstr "Monto ingresado a mano al validar: no surge del desglose."
+
+#: support/models.py:712
+msgid ""
+"Settled at validation time. The components below are today's and no longer "
+"add up to it: either the sale was commissioned against the usual rule, or "
+"prices changed since."
+msgstr ""
+"Liquidada al validar. Los componentes de abajo son los de hoy y ya no dan esa "
+"cifra: o la venta se comisionó contra la regla habitual, o los precios "
+"cambiaron desde entonces."
+
+#: support/models.py:700
+#, python-format
+msgid "%(settled)s (settled) — components today: %(breakdown)s"
+msgstr "%(settled)s (liquidada) — componentes hoy: %(breakdown)s"
+
 #: support/models.py:681
 msgid "specific products"
 msgstr "productos específicos"
@@ -11221,9 +11260,13 @@ msgstr ""
 msgid "Sale Type"
 msgstr "Tipo de venta"
 
-#: support/templates/validate_subscription_sales_record.html:402
+#: support/templates/validate_subscription_sales_record.html:404
 msgid "Calculated Commission"
 msgstr "Comisión calculada"
+
+#: support/templates/validate_subscription_sales_record.html:402
+msgid "Settled Commission"
+msgstr "Comisión liquidada"
 
 #: support/templates/validate_subscription_sales_record.html:408
 msgid ""

@@ -399,14 +399,30 @@
                         <small class="text-muted">{% trans "Payment method is only relevant for full sales" %}</small>
                       {% endif %}
                     </dd>
-                    <dt>{% trans "Calculated Commission" %}</dt>
+                    <dt>
+                      {% if object.is_settled %}
+                        {% trans "Settled Commission" %}
+                      {% else %}
+                        {% trans "Calculated Commission" %}
+                      {% endif %}
+                    </dt>
                     <dd>
-                      {{ object.calculate_commission }}
                       {% if object.is_free_subscription %}
+                        {% trans "Free subscription: no commission" %}
                         <br>
                         <small class="text-muted">
                           {% trans "There is no money behind a free subscription: no payment method and no commission. Validate it anyway so the sale is on record and the reader gets activated on the website." %}
                         </small>
+                      {% else %}
+                        <strong class="h5">{{ object.get_commission_value }}</strong>
+                        {% if object.get_commission_note %}
+                          <br>
+                          <span class="text-warning">
+                            <i class="fas fa-info-circle"></i> {{ object.get_commission_note }}
+                          </span>
+                        {% endif %}
+                        <br>
+                        <small class="text-muted">{{ object.get_commission_breakdown }}</small>
                       {% endif %}
                     </dd>
                   </div>

@@ -2,6 +2,16 @@
 
 ## v0.5.1
 
+## 2026-09-10 — t1178 La comisión de una venta ya validada se muestra como quedó, no como se recalcularía
+
+- **La pantalla de detalle de un registro de venta mostraba 0 en ventas ya comisionadas.** Una venta parcial que se decide comisionar al validarla (marcando "Puede comisionarse") guarda la comisión y se la paga al vendedor, pero el detalle seguía mostrando el cálculo previo, que para una parcial da 0 por definición. El resultado era una pantalla diciendo "0 (Tarjeta de crédito) + 0 (1 productos) + 0 (1) + 105 (productos específicos) = 0" mientras el listado y la liquidación decían 105. La plata siempre estuvo bien calculada: lo que mentía era la pantalla
+- **Ahora, una vez validada la venta, las dos pantallas informan la cifra que se le liquida al vendedor**, y el título pasa a decir "Comisión liquidada" en lugar de "Comisión calculada". Antes de validar no cambia nada: se sigue viendo la previsión
+- **El total pasa a mostrarse destacado y el desglose queda debajo como referencia**, en vez de una sola línea que terminaba en un `=`. Cuando el desglose no explica la cifra, la pantalla ahora **dice por qué**: si el monto se ingresó a mano al validar, si el registro está marcado como no comisionable, si es una parcial que todavía no comisiona, o si los componentes cambiaron desde que se validó
+- **Se empezó a guardar si una comisión fue ingresada a mano.** Antes esa información se perdía al validar, y desde afuera un monto escrito a mano era indistinguible de un precio que cambió después: la pantalla no tenía cómo saberlo y por eso no podía explicar nada
+- Se eliminó una línea de la validación que intentaba marcar el registro como comisionable con el nombre del campo mal escrito y por lo tanto no hacía nada; el valor ya venía correcto del formulario
+- Deployment: **requiere migración** (`support.0042`, agrega un campo con valor por defecto; no reescribe datos existentes) y **recompilar traducciones** (`compilemessages -l es`). Las ventas validadas antes de este cambio no quedan marcadas como sobreescritas aunque lo hayan sido: de esas no se guardó el dato
+- **Author:** Tanya Tree + Claude Opus 5
+
 ## 2026-09-08 — desync/validacion-y-activacion Validar la venta es lo que le da acceso web a la persona
 
 - **Validar una venta pasa a ser la puerta del acceso a la web.** Hasta ahora un alta hecha por el call center no se veía en el sitio hasta el batch de la madrugada; ahora, en el momento en que un manager valida, la persona puede leer. Se eligió la validación y no el alta a propósito: un alta recién hecha todavía puede ser un duplicado, y dar el acceso antes de que alguien la mire se lo termina dando a la cuenta web equivocada. Cada instalación decide qué propagar, con el setting `SUBSCRIPTION_VALIDATED_HOOK`; **si no está configurado no pasa nada**, y si falla la propagación la validación queda guardada igual
