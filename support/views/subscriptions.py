@@ -2015,24 +2015,57 @@ class FreeSubscriptionMixin:
             notify_takeover_queued(self.request, self.contact)
         return True
 
-    def add_products_to_subscription(self, subscription):
-        """Add products to the subscription based on POST data."""
-        for key, value in list(self.request.POST.items()):
-            if key.startswith("check"):
-                product_id = key.split("-")[1]
-                product = Product.objects.get(pk=product_id)
-                address_id = self.request.POST.get("address-{}".format(product_id))
-                address = Address.objects.get(pk=address_id)
-                copies = self.request.POST.get("copies-{}".format(product_id))
-                label_message = self.request.POST.get("message-{}".format(product_id))
-                special_instructions = self.request.POST.get("instruction-{}".format(product_id))
-                subscription.add_product(
-                    product=product,
-                    address=address,
-                    copies=copies,
-                    message=label_message,
-                    instructions=special_instructions,
-                )
+    def collect_products_from_post(self, form):
+        """
+        Read the products selected in the form, each with the address it has to be delivered to.
+
+        A digital product needs no address: it is delivered to the contact's email address, so it is
+        valid to sell one to a contact with no addresses at all. Anything delivered on paper does
+        need one, and when it is missing the form comes back with an error instead of creating a
+        subscription product nobody could deliver.
+
+        Returns the list of products to add, or None when a physical product has no address, in
+        which case the error is already on the form.
+        """
+        products_data, missing_address = [], []
+        for key in self.request.POST.keys():
+            if not key.startswith("check"):
+                continue
+            product_id = key.split("-")[1]
+            product = Product.objects.get(pk=product_id)
+            address_id = self.request.POST.get("address-{}".format(product_id))
+            address = Address.objects.filter(pk=address_id).first() if address_id else None
+            if address is None and not product.digital:
+                missing_address.append(product.name)
+                continue
+            products_data.append(
+                {
+                    "product": product,
+                    "address": address,
+                    "copies": self.request.POST.get("copies-{}".format(product_id)),
+                    "message": self.request.POST.get("message-{}".format(product_id)),
+                    "instructions": self.request.POST.get("instructions-{}".format(product_id)),
+                }
+            )
+        if missing_address:
+            form.add_error(
+                None,
+                _("These products are delivered on paper and need an address: %(products)s")
+                % {"products": ", ".join(missing_address)},
+            )
+            return None
+        return products_data
+
+    def add_products_to_subscription(self, subscription, products_data):
+        """Add the products already read from the POST data to the subscription."""
+        for product_data in products_data:
+            subscription.add_product(
+                product=product_data["product"],
+                address=product_data["address"],
+                copies=product_data["copies"],
+                message=product_data["message"],
+                instructions=product_data["instructions"],
+            )
 
 
 class CreateFreeSubscriptionView(FreeSubscriptionMixin, BreadcrumbsMixin, FormView):
@@ -2085,6 +2118,12 @@ class CreateFreeSubscriptionView(FreeSubscriptionMixin, BreadcrumbsMixin, FormVi
         if not self.update_contact_data(form):
             return self.form_invalid(form)
 
+        # Products are read and validated before creating anything: a physical product with no
+        # address has to stop the form, not leave a half-built subscription behind.
+        products_data = self.collect_products_from_post(form)
+        if products_data is None:
+            return self.form_invalid(form)
+
         # Create the free subscription
         start_date = form.cleaned_data["start_date"]
         end_date = form.cleaned_data["end_date"]
@@ -2099,7 +2138,7 @@ class CreateFreeSubscriptionView(FreeSubscriptionMixin, BreadcrumbsMixin, FormVi
         )
 
         # Add products to subscription
-        self.add_products_to_subscription(subscription)
+        self.add_products_to_subscription(subscription, products_data)
 
         # A free subscription is still an alta made by someone inside the CRM, so it gets a sales
         # record like any other: it is the object managers validate, and without it the subscription

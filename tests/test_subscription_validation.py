@@ -420,3 +420,81 @@ class TestCommissionShownAfterValidating(TestCase):
         self.assertEqual(
             self.sales_record.get_commission_value(), self.sales_record.total_commission_value
         )
+
+
+class TestFreeSubscriptionAddresses(TestCase):
+    """
+    Which products of a free subscription need an address and which do not.
+
+    A digital product is delivered to the contact's email address, so a contact with no addresses at
+    all can still be given one. That is how the regular subscription form already behaves, and the
+    free one used to disagree: it refused to save anything without an address, digital or not.
+    """
+
+    def setUp(self):
+        self.user = User.objects.create_superuser(username="manager_addresses", password="x")
+        self.client.login(username="manager_addresses", password="x")
+        self.contact = create_contact(name="No Address", phone="099111555", email="no.address@gmail.com")
+        # The flag is what decides, not the slug: this one is digital without saying so in its name.
+        self.digital = Product.objects.create(
+            name="Premium online", slug="premium-online", type="S", offerable=True, digital=True
+        )
+        self.paper = Product.objects.create(name="Paper product", slug="paper-product", type="S", offerable=True)
+
+    def post(self, products):
+        data = {
+            "name": self.contact.name,
+            "last_name": "",
+            "phone": self.contact.phone,
+            "mobile": "",
+            "email": self.contact.email,
+            "notes": "",
+            "start_date": "2026-09-01",
+            "end_date": "2026-09-08",
+            "free_subscription_requested_by": "PR",
+        }
+        for product, address in products:
+            data["check-{}".format(product.id)] = "on"
+            data["copies-{}".format(product.id)] = 1
+            if address:
+                data["address-{}".format(product.id)] = address.id
+        return self.client.post(reverse("create_free_subscription", args=[self.contact.id]), data)
+
+    def test_a_digital_product_is_saved_for_a_contact_with_no_addresses(self):
+        response = self.post([(self.digital, None)])
+        self.assertEqual(response.status_code, 302)
+
+        subscription = Subscription.objects.get(contact=self.contact, type="F")
+        subscription_product = subscription.subscriptionproduct_set.get(product=self.digital)
+        self.assertIsNone(subscription_product.address)
+
+    def test_a_paper_product_without_an_address_creates_nothing(self):
+        response = self.post([(self.paper, None)])
+
+        # The form comes back with the error instead of leaving a subscription nobody can deliver.
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Paper product")
+        self.assertFalse(Subscription.objects.filter(contact=self.contact).exists())
+
+    def test_a_paper_product_next_to_a_digital_one_still_needs_its_address(self):
+        # The digital product must not be a free pass for the rest of the selection.
+        response = self.post([(self.digital, None), (self.paper, None)])
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(Subscription.objects.filter(contact=self.contact).exists())
+
+    def test_both_are_saved_when_the_paper_one_has_an_address(self):
+        address = Address.objects.create(contact=self.contact, address_1="Street 1")
+        response = self.post([(self.digital, None), (self.paper, address)])
+        self.assertEqual(response.status_code, 302)
+
+        subscription = Subscription.objects.get(contact=self.contact, type="F")
+        self.assertIsNone(subscription.subscriptionproduct_set.get(product=self.digital).address)
+        self.assertEqual(subscription.subscriptionproduct_set.get(product=self.paper).address, address)
+
+    def test_the_form_offers_no_address_selector_for_a_digital_product(self):
+        Address.objects.create(contact=self.contact, address_1="Street 1")
+        response = self.client.get(reverse("create_free_subscription", args=[self.contact.id]))
+
+        # Having addresses is no reason to file a digital product under one of them.
+        self.assertNotContains(response, 'id="address-{}"'.format(self.digital.id))
+        self.assertContains(response, 'id="address-{}"'.format(self.paper.id))
