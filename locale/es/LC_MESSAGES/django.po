@@ -12000,6 +12000,25 @@ msgstr "Suscripción de tipo promoción actualizada con éxito"
 msgid "Free subscription created successfully for {contact}"
 msgstr "Suscripción gratuita creada con éxito para {contact}"
 
+#: support/views/subscriptions.py:2053
+#, python-format
+msgid "These products are delivered on paper and need an address: %(products)s"
+msgstr "Estos productos se entregan en papel y necesitan una dirección: %(products)s"
+
+#: support/templates/free_subscription_form.html:213
+#: support/templates/free_subscription_form.html:265
+#: support/templates/free_subscription_form.html:316
+msgid "Delivered by email, needs no address"
+msgstr "Se entrega por correo electrónico, no necesita dirección"
+
+#: support/templates/free_subscription_form.html:355
+msgid ""
+"The products delivered on paper need an address. Add one to the contact and "
+"reload the addresses."
+msgstr ""
+"Los productos que se entregan en papel necesitan una dirección. Agrega una al "
+"contacto y recarga las direcciones."
+
 #: support/views/subscriptions.py:2197
 #, python-brace-format
 msgid "Free subscription updated successfully for {contact}"
