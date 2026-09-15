@@ -1,4 +1,5 @@
 # coding=utf-8
+from django import forms
 from django.contrib import admin
 from django.utils.translation import gettext_lazy as _
 
@@ -24,8 +25,26 @@ class InvoiceItemInline(admin.StackedInline):
     extra = 0
 
 
+class InvoiceAdminForm(forms.ModelForm):
+    """
+    The amount is nullable in the model (old invoices may lack it), but saving an invoice from the admin without
+    an amount breaks every process that sends invoices to be collected: a single empty amount can make the payment
+    network reject the whole file.
+    """
+
+    class Meta:
+        model = Invoice
+        fields = "__all__"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if "amount" in self.fields:
+            self.fields["amount"].required = True
+
+
 @admin.register(Invoice)
 class InvoiceAdmin(SimpleHistoryAdmin):
+    form = InvoiceAdminForm
     search_fields = ('contact__id', 'contact__name')
     list_display = ('id', 'contact', 'amount', 'paid', 'debited', 'canceled', 'uncollectible', 'serie', 'numero')
     fieldsets = (

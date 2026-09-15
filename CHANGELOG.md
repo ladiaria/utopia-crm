@@ -2,6 +2,14 @@
 
 ## v0.5.1
 
+## 2026-09-15 — fix/invoice-admin-amount-required El admin ya no deja guardar una factura sin importe
+
+- **Desde el admin se podía guardar una factura con el importe vacío.** El campo acepta nulos en la base (hay facturas viejas sin importe), y el formulario del admin heredaba eso. En la diaria, una factura editada así entró al archivo que se manda a la red de cobranza, que rechazó el archivo **entero** durante cinco días: ninguna factura nueva quedó disponible para pagar
+- **Ahora el admin exige el importe al guardar**, con el mensaje estándar de campo obligatorio. Un importe de cero se sigue aceptando: hay facturas legítimas en cero
+- No cambia el modelo ni ningún otro camino que cree facturas (facturación, altas por API); sólo el formulario del admin, y también aplica a los paquetes de customización que extienden ese admin
+- Deployment: **no se requieren migraciones** ni recompilar traducciones (no hay textos nuevos)
+- **Author:** Tanya Tree + Claude Opus 5
+
 ## 2026-09-11 — t1178 (seguimiento) La aclaración de comisión aparecía en ventas parciales que no la necesitaban
 
 - Toda venta parcial ya validada mostraba el aviso "los componentes ya no dan esa cifra", incluso cuando el desglose la explicaba perfectamente: un `0 + 0 + 0 + 105` al lado de un total de 105. La comparación se hacía contra la previsión de comisión —que para una parcial vale 0 por definición— en vez de contra la suma de los componentes que la pantalla muestra
