@@ -16,6 +16,7 @@ from core.models import Campaign
 
 from simple_history.models import HistoricalRecords
 
+from support.managers import IssueSubcategoryManager
 from support.choices import (
     get_issue_categories,
     ISSUE_ANSWERS,
@@ -441,6 +442,8 @@ class IssueSubcategory(models.Model):
     name = models.CharField(max_length=60)
     slug = AutoSlugField(populate_from="name", always_update=True, null=True, blank=True)
     category = models.CharField(max_length=2, blank=True, null=True, choices=get_issue_categories())
+
+    objects = IssueSubcategoryManager()
 
     def __str__(self):
         return self.name
