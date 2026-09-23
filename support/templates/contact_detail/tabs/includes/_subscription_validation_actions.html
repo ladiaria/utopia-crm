@@ -6,7 +6,7 @@
   {% if subscription.has_sales_record or subscription.is_free %}
     {# Nothing left to do. Rendered anyway so "all in order" does not look like "this failed to load" #}
     <span class="btn btn-sm btn-outline-success disabled mr-1 mb-1"
-          title="{% if subscription.validated_by %}{% blocktrans with who=subscription.validated_by.get_full_name|default:subscription.validated_by.username when=subscription.validated_date|date:"d/m/Y H:i" %}Validated by {{ who }} on {{ when }}{% endblocktrans %}{% else %}{% blocktrans with when=subscription.validated_date|date:"d/m/Y H:i" %}Validated by the system on {{ when }}{% endblocktrans %}{% endif %}"
+          title="{% include "components/_validation_credit.html" %}"
           data-toggle="tooltip">
       <i class="fas fa-check"></i> {% trans "Validated" %}
     </span>

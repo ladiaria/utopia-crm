@@ -1,0 +1,7 @@
+{% load i18n %}{% comment %}
+Who validated a subscription and when, as one line of plain text.
+
+Rendered inside tooltips and callouts, so it must stay text-only: no markup, no trailing newline.
+The fields have not always existed, and a subscription validated before they did carries neither,
+so every combination has to read as a finished sentence.
+{% endcomment %}{% if subscription.validated_by and subscription.validated_date %}{% blocktrans with who=subscription.validated_by.get_full_name|default:subscription.validated_by.username when=subscription.validated_date|date:"d/m/Y H:i" %}Validated by {{ who }} on {{ when }}{% endblocktrans %}{% elif subscription.validated_by %}{% blocktrans with who=subscription.validated_by.get_full_name|default:subscription.validated_by.username %}Validated by {{ who }}{% endblocktrans %}{% elif subscription.validated_date %}{% blocktrans with when=subscription.validated_date|date:"d/m/Y H:i" %}Validated by the system on {{ when }}{% endblocktrans %}{% else %}{% trans "Validated, with no record of who did it or when" %}{% endif %}

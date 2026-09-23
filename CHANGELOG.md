@@ -2,6 +2,31 @@
 
 ## v0.5.1
 
+## 2026-09-15 — fix/invoice-admin-amount-required El admin ya no deja guardar una factura sin importe
+
+- **Desde el admin se podía guardar una factura con el importe vacío.** El campo acepta nulos en la base (hay facturas viejas sin importe), y el formulario del admin heredaba eso. En la diaria, una factura editada así entró al archivo que se manda a la red de cobranza, que rechazó el archivo **entero** durante cinco días: ninguna factura nueva quedó disponible para pagar
+- **Ahora el admin exige el importe al guardar**, con el mensaje estándar de campo obligatorio. Un importe de cero se sigue aceptando: hay facturas legítimas en cero
+- No cambia el modelo ni ningún otro camino que cree facturas (facturación, altas por API); sólo el formulario del admin, y también aplica a los paquetes de customización que extienden ese admin
+- Deployment: **no se requieren migraciones** ni recompilar traducciones (no hay textos nuevos)
+- **Author:** Tanya Tree + Claude Opus 5
+
+## 2026-09-11 — t1178 (seguimiento) La aclaración de comisión aparecía en ventas parciales que no la necesitaban
+
+- Toda venta parcial ya validada mostraba el aviso "los componentes ya no dan esa cifra", incluso cuando el desglose la explicaba perfectamente: un `0 + 0 + 0 + 105` al lado de un total de 105. La comparación se hacía contra la previsión de comisión —que para una parcial vale 0 por definición— en vez de contra la suma de los componentes que la pantalla muestra
+- Ahora el aviso aparece sólo cuando los componentes **realmente** no dan la cifra liquidada, que es el caso para el que se escribió: la venta se liquidó a un precio y el catálogo cambió después
+- Deployment: **no se requieren migraciones**; sí **recompilar traducciones** (`compilemessages -l es`), porque el texto del aviso cambió
+- **Author:** Tanya Tree + Claude Opus 5
+
+## 2026-09-10 — t1178 La comisión de una venta ya validada se muestra como quedó, no como se recalcularía
+
+- **La pantalla de detalle de un registro de venta mostraba 0 en ventas ya comisionadas.** Una venta parcial que se decide comisionar al validarla (marcando "Puede comisionarse") guarda la comisión y se la paga al vendedor, pero el detalle seguía mostrando el cálculo previo, que para una parcial da 0 por definición. El resultado era una pantalla diciendo "0 (Tarjeta de crédito) + 0 (1 productos) + 0 (1) + 105 (productos específicos) = 0" mientras el listado y la liquidación decían 105. La plata siempre estuvo bien calculada: lo que mentía era la pantalla
+- **Ahora, una vez validada la venta, las dos pantallas informan la cifra que se le liquida al vendedor**, y el título pasa a decir "Comisión liquidada" en lugar de "Comisión calculada". Antes de validar no cambia nada: se sigue viendo la previsión
+- **El total pasa a mostrarse destacado y el desglose queda debajo como referencia**, en vez de una sola línea que terminaba en un `=`. Cuando el desglose no explica la cifra, la pantalla ahora **dice por qué**: si el monto se ingresó a mano al validar, si el registro está marcado como no comisionable, si es una parcial que todavía no comisiona, o si los componentes cambiaron desde que se validó
+- **Se empezó a guardar si una comisión fue ingresada a mano.** Antes esa información se perdía al validar, y desde afuera un monto escrito a mano era indistinguible de un precio que cambió después: la pantalla no tenía cómo saberlo y por eso no podía explicar nada
+- Se eliminó una línea de la validación que intentaba marcar el registro como comisionable con el nombre del campo mal escrito y por lo tanto no hacía nada; el valor ya venía correcto del formulario
+- Deployment: **requiere migración** (`support.0042`, agrega un campo con valor por defecto; no reescribe datos existentes) y **recompilar traducciones** (`compilemessages -l es`). Las ventas validadas antes de este cambio no quedan marcadas como sobreescritas aunque lo hayan sido: de esas no se guardó el dato
+- **Author:** Tanya Tree + Claude Opus 5
+
 ## 2026-09-08 — desync/validacion-y-activacion Validar la venta es lo que le da acceso web a la persona
 
 - **Validar una venta pasa a ser la puerta del acceso a la web.** Hasta ahora un alta hecha por el call center no se veía en el sitio hasta el batch de la madrugada; ahora, en el momento en que un manager valida, la persona puede leer. Se eligió la validación y no el alta a propósito: un alta recién hecha todavía puede ser un duplicado, y dar el acceso antes de que alguien la mire se lo termina dando a la cuenta web equivocada. Cada instalación decide qué propagar, con el setting `SUBSCRIPTION_VALIDATED_HOOK`; **si no está configurado no pasa nada**, y si falla la propagación la validación queda guardada igual

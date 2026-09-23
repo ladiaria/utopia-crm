@@ -44,18 +44,29 @@
               addressSelect.append(option);
             });
           });
+          activateSend(); // The newly loaded addresses may unblock the form
         }
       });
     });
 
     function activateSend() {
       var disable = false;
+      $("#address_warning").addClass("d-none");
+
       if ($("#subscription_form input:checkbox:checked").length == 0) {
         disable = true; // Can't submit without a product
       }
 
-      if ($(".address_selector").has('option').length == 0) {
-        disable = true; // Can't submit without addresses
+      // A digital product is delivered to the contact's email address and has no address selector
+      // at all, so a digital-only selection is valid for a contact with no addresses. Only the
+      // products delivered on paper need one.
+      var paperChecked = $(".product_checkbox:checked").not(".digital_product");
+      var paperWithoutAddress = paperChecked.filter(function () {
+        return $("#address-" + $(this).val()).find("option").length == 0;
+      });
+      if (paperWithoutAddress.length > 0) {
+        disable = true; // Can't submit a paper product without an address
+        $("#address_warning").removeClass("d-none");
       }
 
       if (disable == false) {
@@ -189,7 +200,8 @@
             <div class="col-md-3">
               <div class="form-check">
                 <input value="{{ product.id }}" checked="checked"
-                  type="checkbox" name="check-{{ product.id }}" class="form-check-input product_checkbox"
+                  type="checkbox" name="check-{{ product.id }}"
+                  class="form-check-input product_checkbox{% if product.digital %} digital_product{% endif %}"
                   id="check-{{ product.id }}">
                 <label class="form-check-label font-weight-bold" for="check-{{ product.id }}">
                   {{ product.name }}
@@ -197,6 +209,9 @@
               </div>
             </div>
             <div class="col-md-4">
+              {% if product.digital %}
+              <span class="small text-muted"><i class="fas fa-envelope"></i> {% trans "Delivered by email, needs no address" %}</span>
+              {% else %}
               <label for="address-{{ product.id }}" class="small text-muted mb-1">{% trans "Address" %}</label>
               <select name="address-{{ product.id }}" id="address-{{ product.id }}" class="address_selector form-control form-control-sm">
                 {% for address in contact_addresses %}
@@ -205,6 +220,7 @@
                 </option>
                 {% endfor %}
               </select>
+              {% endif %}
             </div>
             <div class="col-md-1">
               <label for="copies-{{ product.id }}" class="small text-muted mb-1">{% trans "Copies" %}</label>
@@ -236,7 +252,8 @@
             <div class="col-md-3">
               <div class="form-check">
                 <input value="{{ product.id }}"
-                  type="checkbox" name="check-{{ product.id }}" class="form-check-input product_checkbox"
+                  type="checkbox" name="check-{{ product.id }}"
+                  class="form-check-input product_checkbox{% if product.digital %} digital_product{% endif %}"
                   id="check-{{ product.id }}">
                 <label class="form-check-label font-weight-bold" for="check-{{ product.id }}">
                   {{ product.name }}
@@ -244,6 +261,9 @@
               </div>
             </div>
             <div class="col-md-4">
+              {% if product.digital %}
+              <span class="small text-muted"><i class="fas fa-envelope"></i> {% trans "Delivered by email, needs no address" %}</span>
+              {% else %}
               <label for="address-{{ product.id }}" class="small text-muted mb-1">{% trans "Address" %}</label>
               <select name="address-{{ product.id }}" id="address-{{ product.id }}" class="address_selector form-control form-control-sm">
                 {% for address in contact_addresses %}
@@ -252,6 +272,7 @@
                 </option>
                 {% endfor %}
               </select>
+              {% endif %}
             </div>
             <div class="col-md-1">
               <label for="copies-{{ product.id }}" class="small text-muted mb-1">{% trans "Copies" %}</label>
@@ -282,7 +303,8 @@
             <div class="col-md-3">
               <div class="form-check">
                 <input value="{{ product.id }}"
-                  type="checkbox" name="check-{{ product.id }}" class="form-check-input product_checkbox"
+                  type="checkbox" name="check-{{ product.id }}"
+                  class="form-check-input product_checkbox{% if product.digital %} digital_product{% endif %}"
                   id="check-{{ product.id }}">
                 <label class="form-check-label font-weight-bold" for="check-{{ product.id }}">
                   {{ product.name }}
@@ -290,6 +312,9 @@
               </div>
             </div>
             <div class="col-md-4">
+              {% if product.digital %}
+              <span class="small text-muted"><i class="fas fa-envelope"></i> {% trans "Delivered by email, needs no address" %}</span>
+              {% else %}
               <label for="address-{{ product.id }}" class="small text-muted mb-1">{% trans "Address" %}</label>
               <select name="address-{{ product.id }}" id="address-{{ product.id }}" class="address_selector form-control form-control-sm">
                 {% for address in contact_addresses %}
@@ -298,6 +323,7 @@
                 </option>
                 {% endfor %}
               </select>
+              {% endif %}
             </div>
             <div class="col-md-1">
               <label for="copies-{{ product.id }}" class="small text-muted mb-1">{% trans "Copies" %}</label>
@@ -324,7 +350,10 @@
       </div>
       <hr class="my-4">
 
-      <div class="form-group d-flex justify-content-end">
+      <div class="form-group d-flex justify-content-end align-items-center">
+        <small id="address_warning" class="text-danger mr-3 d-none">
+          {% trans "The products delivered on paper need an address. Add one to the contact and reload the addresses." %}
+        </small>
         <a href="{% url 'contact_detail' contact.id %}" class="btn btn-secondary mr-2">{% trans "Cancel" %}</a>
         <input type="submit" name="result" id="send_form" value="{% if is_update %}{% trans "Update" %}{% else %}{% trans "Create" %}{% endif %}" class="btn btn-primary">
       </div>
