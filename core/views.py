@@ -3,6 +3,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework_api_key.permissions import HasAPIKey
 
 from django.conf import settings
+from django.core.exceptions import FieldDoesNotExist
 from django.db import IntegrityError
 from django.http import (
     JsonResponse,
@@ -67,6 +68,25 @@ def contact_by_emailprefix(request):
             return JsonResponse({"contact_id": c.id, "email": c.email})
 
 
+# Fields that must never be settable through the public contact_api mass-update mechanism,
+# even though they exist on the Contact model.
+CONTACT_API_FORBIDDEN_FIELDS = ("id", "pk", "updatefromweb")
+
+
+def _is_allowed_contact_field(field):
+    """
+    Only allow concrete, editable, non-relation Contact model fields to be set through the
+    contact_api endpoint, preventing mass assignment of arbitrary/internal attributes.
+    """
+    if not field or field in CONTACT_API_FORBIDDEN_FIELDS:
+        return False
+    try:
+        model_field = Contact._meta.get_field(field)
+    except FieldDoesNotExist:
+        return False
+    return model_field.editable and not model_field.is_relation
+
+
 @api_view(['POST', "PUT", "DELETE"])
 @api_view_auth_decorator
 @permission_classes([HasAPIKey])
@@ -102,11 +122,12 @@ def contact_api(request):
             """
             if "field" in request.data and (("value" in request.data) if value is not None else True):
                 # "untouched" back-compat: someone may be calling that way that was expected here
-                update_customer(c, newmail, field, value)
+                if _is_allowed_contact_field(field):
+                    update_customer(c, newmail, field, value)
             else:
                 # And this is the temporal fix, iterating adapting to the new "changeset approach" and do proper things
                 for field, value in request.data.items():
-                    if field not in ("contact_id", "email", "newemail"):
+                    if field not in ("contact_id", "email", "newemail") and _is_allowed_contact_field(field):
                         update_customer(c, newmail, field, value)
             id_contact = c.id
     except Contact.DoesNotExist:
@@ -120,7 +141,8 @@ def contact_api(request):
                     else:
                         return HttpResponseForbidden()
                 else:
-                    update_customer(contact, newmail, field, value)
+                    if _is_allowed_contact_field(field):
+                        update_customer(contact, newmail, field, value)
                     id_contact = contact.id
             except Contact.DoesNotExist:
                 if request.method == "POST":  # create
@@ -132,7 +154,8 @@ def contact_api(request):
                     except IntegrityError as ie_exc:
                         # TODO Notificar por mail a los managers
                         return HttpResponseBadRequest(ie_exc)
-                    update_customer(new_contact, mail, field, value)
+                    if _is_allowed_contact_field(field):
+                        update_customer(new_contact, mail, field, value)
                     id_contact = new_contact.id
             except (Contact.MultipleObjectsReturned, IntegrityError) as m_ie_exc:
                 # TODO Notificar por mail a los managers
