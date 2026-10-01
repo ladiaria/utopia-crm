@@ -511,7 +511,7 @@ class Contact(models.Model):
     history = HistoricalRecords()
 
     def __str__(self):
-        return self.name
+        return self.get_full_name()
 
     def get_absolute_url(self):
         return reverse('contact_detail', args=[str(self.id)])
