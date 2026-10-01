@@ -85,6 +85,10 @@ it is configured outside the repo.
 - Always run with `-W ignore`, `--settings=test_settings` and `--keepdb`.
 - Some tests may be tagged `broken`; exclude them with `--exclude-tag broken`.
 - Tests that are transactional must be run in isolation.
+- `TEST_CONTACT_ID_SECURE_LIMIT` (opt-in, e.g. `999` in `local_test_settings.py`): only when the tests talk to a
+  running CMS. `test9_update_contact` then fails if the contact id goes over it, so it cannot collide with a real
+  `Subscriber.contact_id`. With `--keepdb` the id sequence keeps growing between runs: recreate the test db by running
+  once without `--keepdb`.
 
 ### Fixtures first
 
