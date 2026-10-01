@@ -67,6 +67,9 @@ The base app is designed to be extended without modification:
   base URL.
 - **Custom validation**: set `WEB_UPDATE_USER_VALIDATION_MODULE` to a module with validation
   functions.
+- **Custom ID document validation**: set `CONTACT_ID_DOCUMENT_VALIDATOR` to the dotted path of a callable
+  `(id_document, id_document_type)` that raises `ValidationError`. The contact forms (`ContactAdminForm`,
+  `ContactUpdateForm`) call it on clean; without the setting nothing is validated.
 - **Custom active-check callbacks**: `CORE_DEFAULT_NEWSLETTERS` maps dotted-path callables to
   newsletter slugs.
 - **Feature flags**: many behaviours are toggled via settings (e.g. `WEB_UPDATE_USER_ENABLED`,
