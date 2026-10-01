@@ -5,6 +5,7 @@ import json
 from django.conf import settings
 from django import forms
 from django.core.mail import mail_managers
+from django.utils.module_loading import import_string
 from django.utils.translation import gettext as _
 from django.utils.safestring import mark_safe
 
@@ -118,7 +119,26 @@ class EmailValidationForm(forms.Form):
                     return email
 
 
-class ContactAdminForm(EmailValidationForm, forms.ModelForm):
+class IdDocumentValidationMixin:
+    """
+    Lets each installation validate the contact's ID document with its own rules (check digits, formats), which
+    depend on the country. Set CONTACT_ID_DOCUMENT_VALIDATOR to the dotted path of a callable that receives
+    (id_document, id_document_type) and raises ValidationError when the document is not valid for that type.
+    Without the setting, nothing is validated.
+    """
+
+    def validate_id_document(self, cleaned_data):
+        validator_path = getattr(settings, "CONTACT_ID_DOCUMENT_VALIDATOR", None)
+        id_document = cleaned_data.get("id_document")
+        if not (validator_path and id_document):
+            return
+        try:
+            import_string(validator_path)(id_document, cleaned_data.get("id_document_type"))
+        except forms.ValidationError as e:
+            self.add_error("id_document", e)
+
+
+class ContactAdminForm(IdDocumentValidationMixin, EmailValidationForm, forms.ModelForm):
 
     ROLES_ALLOWED_TO_REMOVE_EMAIL = [
         'Managers',
@@ -173,6 +193,8 @@ class ContactAdminForm(EmailValidationForm, forms.ModelForm):
             if email:
                 email = self.email_extra_clean(cleaned_data)
 
+        self.validate_id_document(cleaned_data)
+
         raw_tags = self.data.get("tags")
         if raw_tags:
             try:
@@ -202,8 +224,10 @@ class ContactAdminForm(EmailValidationForm, forms.ModelForm):
                 )
                 raise forms.ValidationError(msg)
 
+        return id_document
 
-class ContactUpdateForm(EmailValidationForm, forms.ModelForm):
+
+class ContactUpdateForm(IdDocumentValidationMixin, EmailValidationForm, forms.ModelForm):
     class Meta:
         model = Contact
         fields = [
@@ -236,6 +260,8 @@ class ContactUpdateForm(EmailValidationForm, forms.ModelForm):
         email = cleaned_data.get("email")
         if email:
             email = self.email_extra_clean(cleaned_data)
+
+        self.validate_id_document(cleaned_data)
 
         raw_tags = self.data.get("tags")
         if raw_tags:
