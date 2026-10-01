@@ -58,6 +58,9 @@ class TestCoreContact(TestCase):
             contact = create_contact(name='Contact 3', phone='12345567')
         self.assertTrue(isinstance(contact, Contact))
         self.assertEqual(contact.name, contact.__str__())
+        # With a last name, the string representation is the full name (issue lists, invoices, selects).
+        contact.last_name = "Last Name"
+        self.assertEqual(str(contact), "Contact 3 Last Name")
 
     def test4_contact_debtor_methods(self):
         """
