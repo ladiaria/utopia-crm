@@ -748,7 +748,20 @@ def select_or_create_contact(email, name=None, phone=None, id_document=None):
     return contact_obj
 
 
-def process_invoice_request(product_slugs, email, phone, name, id_document, payment_type):
+def parse_copies(copies):
+    """
+    Validates the number of copies received from an API. Empty means 1. Raises ValueError unless it is a whole
+    number of at least 1, so a malformed value can never produce an invoice for zero or a negative amount.
+    """
+    if copies in (None, ""):
+        return 1
+    copies_str = str(copies).strip()
+    if not copies_str.isdecimal() or int(copies_str) < 1:
+        raise ValueError(_("Invalid number of copies: %s") % copies)
+    return int(copies_str)
+
+
+def process_invoice_request(product_slugs, email, phone, name, id_document, payment_type, copies=1, add_tags=True):
     from core.models import Product
 
     """
@@ -767,6 +780,9 @@ def process_invoice_request(product_slugs, email, phone, name, id_document, paym
         name (str): The name of the user. If not provided, defaults to an empty string.
         payment_reference (str): A reference identifier for the payment transaction. This helps track payments.
         payment_type (str): The type of payment used (e.g., credit card, PayPal).
+        copies (int or str): Copies of each product. Validated with `parse_copies`; defaults to 1.
+        add_tags (bool): Whether to tag the contact with "{slug}-added". Pass False when the invoice still has to be
+            paid and the caller tags the contact only after a successful payment.
 
     Returns:
         dict: A dictionary containing the invoice ID and contact ID, which can be used for further processing
@@ -790,15 +806,17 @@ def process_invoice_request(product_slugs, email, phone, name, id_document, paym
       projects or environments) without affecting the core invoice creation logic. For example, additional steps
       can be added before or after the invoice creation based on specific business requirements.
     """
-    contact_obj = select_or_create_contact(email, name, phone, id_document)
+    copies = parse_copies(copies)
     product_objs = Product.objects.filter(slug__in=product_slugs.split(","))
 
     if not product_objs:
         raise ValueError("No se encontraron productos")
 
-    invoice = contact_obj.add_single_invoice_with_products(product_objs, payment_type)
-    for product in product_objs:
-        contact_obj.tags.add(product.slug + "-added")
+    contact_obj = select_or_create_contact(email, name, phone, id_document)
+    invoice = contact_obj.add_single_invoice_with_products(dict.fromkeys(product_objs, copies), payment_type)
+    if add_tags:
+        for product in product_objs:
+            contact_obj.tags.add(product.slug + "-added")
 
     return {
         "invoice_id": invoice.id,
