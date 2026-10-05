@@ -12607,3 +12607,7 @@ msgstr "La contraseña debe contener al menos 1 letra minúscula, a-z."
 #: validators.py:45
 msgid "Your password must contain at least 1 lowercase letter, a-z."
 msgstr "Tu contraseña debe contener al menos 1 letra minúscula, a-z."
+
+#: core/utils.py
+msgid "Invalid number of copies: %s"
+msgstr "Cantidad de ejemplares inválida: %s"
