@@ -1163,7 +1163,13 @@ class Contact(models.Model):
         return errors
 
     def add_single_invoice_with_products(self, products, payment_type, expiration_days=30):
+        """
+        Creates a one-time invoice for this contact. `products` is either an iterable of products (one copy each)
+        or a dict mapping each product to its number of copies.
+        """
         from invoicing.models import Invoice
+
+        copies_by_product = products if isinstance(products, dict) else dict.fromkeys(products, 1)
 
         invoice = Invoice.objects.create(
             contact=self,
@@ -1174,8 +1180,8 @@ class Contact(models.Model):
             service_from=date.today(),
             amount=0,
         )
-        for product in products:
-            invoice.add_item(product)
+        for product, copies in copies_by_product.items():
+            invoice.add_item(product, copies=copies)
         invoice.amount = invoice.get_total_amount()
         invoice.save()
         return invoice
