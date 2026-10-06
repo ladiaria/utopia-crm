@@ -58,6 +58,9 @@ class TestCoreContact(TestCase):
             contact = create_contact(name='Contact 3', phone='12345567')
         self.assertTrue(isinstance(contact, Contact))
         self.assertEqual(contact.name, contact.__str__())
+        # With a last name, the string representation is the full name (issue lists, invoices, selects).
+        contact.last_name = "Last Name"
+        self.assertEqual(str(contact), "Contact 3 Last Name")
 
     def test4_contact_debtor_methods(self):
         """
@@ -195,9 +198,14 @@ class TestCoreContact(TestCase):
             # are not allowed by settings to create new contacts. the error is harmless, and maybe another http status
             # code would be more appropriate (TODO)
             contact = create_contact("Digital", "29000808", email)
-            # secure id check to prevent failures on "running" CMS databases
-            if contact.id > 999:  # TODO: a new local setting and only make this check if the setting is set
-                self.fail("contact_id secure limit reached, please drop your test db and try again")
+            # When the tests talk to a running CMS, a high contact id could collide with a real Subscriber.contact_id
+            # there. Opt in with TEST_CONTACT_ID_SECURE_LIMIT (e.g. 999) in local_test_settings.py.
+            limit = getattr(settings, "TEST_CONTACT_ID_SECURE_LIMIT", None)
+            if limit and contact.id > limit:
+                self.fail(
+                    "contact_id %d is over TEST_CONTACT_ID_SECURE_LIMIT (%d): run the tests once without --keepdb "
+                    "to recreate the test db, then try again" % (contact.id, limit)
+                )
         contact.email = f"newemail{rand_chars()}@google.com"
         contact.save()
         # change again, if not, next run of this test will fail

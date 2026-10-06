@@ -67,6 +67,9 @@ The base app is designed to be extended without modification:
   base URL.
 - **Custom validation**: set `WEB_UPDATE_USER_VALIDATION_MODULE` to a module with validation
   functions.
+- **Custom ID document validation**: set `CONTACT_ID_DOCUMENT_VALIDATOR` to the dotted path of a callable
+  `(id_document, id_document_type)` that raises `ValidationError`. The contact forms (`ContactAdminForm`,
+  `ContactUpdateForm`) call it on clean; without the setting nothing is validated.
 - **Custom active-check callbacks**: `CORE_DEFAULT_NEWSLETTERS` maps dotted-path callables to
   newsletter slugs.
 - **Feature flags**: many behaviours are toggled via settings (e.g. `WEB_UPDATE_USER_ENABLED`,
@@ -82,6 +85,10 @@ it is configured outside the repo.
 - Always run with `-W ignore`, `--settings=test_settings` and `--keepdb`.
 - Some tests may be tagged `broken`; exclude them with `--exclude-tag broken`.
 - Tests that are transactional must be run in isolation.
+- `TEST_CONTACT_ID_SECURE_LIMIT` (opt-in, e.g. `999` in `local_test_settings.py`): only when the tests talk to a
+  running CMS. `test9_update_contact` then fails if the contact id goes over it, so it cannot collide with a real
+  `Subscriber.contact_id`. With `--keepdb` the id sequence keeps growing between runs: recreate the test db by running
+  once without `--keepdb`.
 
 ### Fixtures first
 

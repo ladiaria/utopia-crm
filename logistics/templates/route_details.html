@@ -123,7 +123,7 @@
       {% if changes_dict|get_item:route_id %}
         <strong>{% trans "Changes in route" %}</strong>
         <ul>
-          {% for rc in changes_dict|get_item:route_id %}<li>{{ rc.contact.name }} - {{ rc.old_address }}</li>{% endfor %}
+          {% for rc in changes_dict|get_item:route_id %}<li>{{ rc.contact.get_full_name }} - {{ rc.old_address }}</li>{% endfor %}
         </ul>
       {% endif %}
       {% if directions_dict|get_item:route_id %}
