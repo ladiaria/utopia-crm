@@ -411,6 +411,7 @@ class IdDocumentType(models.Model):
     class Meta:
         verbose_name = _("ID Document Type")
         verbose_name_plural = _("ID Document Types")
+        ordering = ["id"]
 
 
 class Contact(models.Model):
