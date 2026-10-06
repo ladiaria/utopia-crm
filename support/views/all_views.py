@@ -228,25 +228,33 @@ assign_campaigns = AssignCampaignsView.as_view()
 def list_campaigns_with_no_seller(request):
     """
     Shows a list of contacts in campaigns that have no seller.
+
+    Only active campaigns are listed unless the "active" filter says otherwise.
     """
-    campaigns = Campaign.objects.filter(contactcampaignstatus__seller=None).distinct()
-    campaign_list = []
-    for campaign in campaigns:
-        count = (
-            ContactCampaignStatus.objects.filter(campaign=campaign, seller=None, campaign_resolution=None)
-            .exclude(status__in=(6, 7))
-            .count()
-        )
-        campaign.count = count
-        campaign.morning = ContactCampaignStatus.objects.filter(campaign=campaign, seller=None, status=6).count()
-        campaign.afternoon = ContactCampaignStatus.objects.filter(campaign=campaign, seller=None, status=7).count()
-        campaign_list.append(campaign)
+    filter_data = request.GET.copy()
+    filter_data.setdefault("active", "true")
+    no_seller = Q(contactcampaignstatus__seller=None)
+    campaigns = Campaign.objects.filter(
+        Exists(ContactCampaignStatus.objects.filter(campaign=OuterRef("pk"), seller=None))
+    )
+    campaigns_filter = CampaignFilter(filter_data, queryset=campaigns)
+    campaign_list = campaigns_filter.qs.annotate(
+        count=Count(
+            "contactcampaignstatus",
+            filter=no_seller
+            & Q(contactcampaignstatus__campaign_resolution=None)
+            & ~Q(contactcampaignstatus__status__in=(6, 7)),
+        ),
+        morning=Count("contactcampaignstatus", filter=no_seller & Q(contactcampaignstatus__status=6)),
+        afternoon=Count("contactcampaignstatus", filter=no_seller & Q(contactcampaignstatus__status=7)),
+    ).order_by("-active", "name")
 
     return render(
         request,
         "distribute_campaigns.html",
         {
             "campaign_list": campaign_list,
+            "campaigns_filter": campaigns_filter,
             "breadcrumbs": [
                 {"url": reverse("home"), "label": _("Home")},
                 {"url": reverse("campaign_management"), "label": _("Campaign Management")},
