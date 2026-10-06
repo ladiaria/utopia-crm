@@ -12611,3 +12611,14 @@ msgstr "Tu contraseña debe contener al menos 1 letra minúscula, a-z."
 #: core/utils.py
 msgid "Invalid number of copies: %s"
 msgstr "Cantidad de ejemplares inválida: %s"
+
+msgctxt "campaign"
+msgid "Active"
+msgstr "Activa"
+
+msgctxt "campaign"
+msgid "Inactive"
+msgstr "Inactiva"
+
+msgid "No campaigns found"
+msgstr "No se encontraron campañas"

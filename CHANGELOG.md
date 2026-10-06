@@ -2,6 +2,14 @@
 
 ## v0.5.1
 
+## 2026-10-06 — assign-sellers-filters Filtros y columnas nuevas en la asignación de contactos a vendedores
+
+- **La lista de campañas para asignar contactos a vendedores muestra por defecto sólo las campañas activas.** Antes aparecían todas las que tuvieran algún contacto sin vendedor, incluidas cientos de campañas viejas. El filtro se puede cambiar para ver las inactivas o todas
+- **Se agregó un filtro por nombre de campaña**, y tres columnas nuevas: si la campaña está activa o inactiva, su fecha de comienzo y su fecha de fin
+- La página carga mucho más rápido: antes hacía tres consultas por cada campaña de la lista y ahora resuelve todos los conteos juntos
+- Deployment: **no se requieren migraciones**; sí **recompilar traducciones** (`compilemessages -l es`), porque hay textos nuevos
+- **Author:** Tanya Tree + Claude Opus 5.5
+
 ## 2026-09-15 — fix/invoice-admin-amount-required El admin ya no deja guardar una factura sin importe
 
 - **Desde el admin se podía guardar una factura con el importe vacío.** El campo acepta nulos en la base (hay facturas viejas sin importe), y el formulario del admin heredaba eso. En la diaria, una factura editada así entró al archivo que se manda a la red de cobranza, que rechazó el archivo **entero** durante cinco días: ninguna factura nueva quedó disponible para pagar
