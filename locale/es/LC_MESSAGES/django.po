@@ -12607,3 +12607,14 @@ msgstr "La contraseña debe contener al menos 1 letra minúscula, a-z."
 #: validators.py:45
 msgid "Your password must contain at least 1 lowercase letter, a-z."
 msgstr "Tu contraseña debe contener al menos 1 letra minúscula, a-z."
+
+msgctxt "campaign"
+msgid "Active"
+msgstr "Activa"
+
+msgctxt "campaign"
+msgid "Inactive"
+msgstr "Inactiva"
+
+msgid "No campaigns found"
+msgstr "No se encontraron campañas"
