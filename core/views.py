@@ -297,8 +297,8 @@ def create_oneshot_invoice_from_web(request):
     - `email` (str): The email address of the user making the purchase. This field is required.
     - `phone` (str, optional): The phone number of the user. If not provided, defaults to an empty string.
     - `name` (str, optional): The name of the user. If not provided, defaults to an empty string.
-    - `payment_reference` (str, optional):
-      A reference identifier for the payment transaction. Defaults to an empty string.
+    - `identification_number` (str, optional): The ID document of the user, stored only on a new contact.
+    - `copies` (int, optional): Copies of each product, a whole number of at least 1. Defaults to 1.
     - `payment_type` (str, optional):
       The type of payment used (e.g., credit card, PayPal). Defaults to an empty string.
 
@@ -325,13 +325,16 @@ def create_oneshot_invoice_from_web(request):
         email = request.data.get("email", "").strip()
         phone = request.data.get("phone", "")
         name = request.data.get("name", "")
-        payment_reference = request.data.get("payment_reference", "")
+        id_document = request.data.get("identification_number", "")
         payment_type = request.data.get("payment_type", "")
+        copies = request.data.get("copies")
 
         if not email:
             return HttpResponseBadRequest("Email requerido")
 
-        response_data = process_invoice_request(product_slugs, email, phone, name, payment_reference, payment_type)
+        response_data = process_invoice_request(
+            product_slugs, email, phone, name, id_document, payment_type, copies=copies
+        )
         return JsonResponse(response_data)
 
     except ValueError as e:
