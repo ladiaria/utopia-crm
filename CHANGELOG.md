@@ -2,6 +2,14 @@
 
 ## v0.5.1
 
+## 2026-10-08 — gl21-contact-detail-extra-tabs Puntos de extensión para sumar pestañas a la ficha del contacto
+
+- **La ficha del contacto tiene ahora dos puntos de extensión vacíos**: uno para agregar pestañas a la barra y otro para agregar sus paneles. Un paquete de customización puede sumar pestañas propias sin tocar el base ni copiar la plantilla entera
+- Las pestañas agregadas aparecen después de "Mensajes de WhatsApp" y antes de "Facturas", que sigue siendo la última
+- Sin un paquete que los use, la ficha se ve exactamente igual que antes
+- Deployment: **no se requieren migraciones** ni recompilar traducciones (no hay textos nuevos)
+- **Author:** Tanya Tree + Claude Opus 5.5
+
 ## 2026-10-06 — assign-sellers-filters Filtros y columnas nuevas en la asignación de contactos a vendedores
 
 - **La lista de campañas para asignar contactos a vendedores muestra por defecto sólo las campañas activas.** Antes aparecían todas las que tuvieran algún contacto sin vendedor, incluidas cientos de campañas viejas. El filtro se puede cambiar para ver las inactivas o todas
