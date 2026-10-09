@@ -141,10 +141,15 @@ function-based views. Never override the breadcrumbs block in the template.
 
 ## Code style
 
-- **Black** formatting for all Python.
-- **Line length: 120 characters** (Black and flake8).
+- **Black** formatting for all Python, written Black-compatible by hand.
+- **Never run `black` on an existing file just because you touched a few lines.** Much of the repo is not
+  Black-formatted (it uses single quotes), so Black rewrites the whole file and the real change gets lost
+  in hundreds of lines of noise. Run it only on new files; in existing ones, format the new lines by hand.
+- **Line length: 120 characters** (Black and flake8). There is no flake8 config file, so pass
+  `--max-line-length=120`, or the default of 79 reports false positives.
 - **flake8** linter; follow PEP8 as enforced by it.
-- **djlint** for Django HTML templates.
+- **djlint** for Django HTML templates. There is no djlint config either: templates use 2-space indentation,
+  so run `djlint --check --indent 2 --profile django <file>`.
 
 ## Known gotchas
 
