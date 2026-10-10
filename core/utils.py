@@ -34,9 +34,9 @@ def mailtrain_api_call(endpoint, method='get', data=None):
         url = f"{settings.MAILTRAIN_API_URL}{endpoint}"
         params = {'access_token': settings.MAILTRAIN_API_KEY}
         if method == 'get':
-            response = requests.get(url, params=params)
+            response = requests.get(url, params=params, verify=True, timeout=10)
         elif method == 'post':
-            response = requests.post(url, params=params, data=data)
+            response = requests.post(url, params=params, data=data, verify=True, timeout=10)
         response.raise_for_status()
         return response
     except (AssertionError, requests.RequestException) as e:
