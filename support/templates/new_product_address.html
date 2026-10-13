@@ -1,0 +1,31 @@
+{% load i18n %}
+{% comment %}
+  Address selector for a product booked onto an existing subscription (product change, additional product).
+  A digital product is delivered to the contact's email address and gets none. A paper product has to be
+  delivered somewhere: it starts on the suggested address, or on nothing when there is no obvious choice, and
+  the form can't be sent until one is chosen. Shown only while the product is checked.
+{% endcomment %}
+{% if not product.digital %}
+  <div class="new_product_address ml-4 mb-2 d-none"
+       id="new_product_address-{{ product.id }}">
+    <label for="address-{{ product.id }}" class="small text-muted mb-1">{% trans "Address" %}</label>
+    <select name="address-{{ product.id }}"
+            id="address-{{ product.id }}"
+            class="form-control form-control-sm">
+      <option value="">{% trans "Choose an address" %}</option>
+      {% for address in contact_addresses %}
+        <option value="{{ address.id }}"
+                {% if address.id == suggested_address.id %}selected="selected"{% endif %}>
+          {{ address.address_1|default_if_none:"" }} {{ address.city|default_if_none:"" }} {{ address.state_name|default_if_none:"" }}
+        </option>
+      {% endfor %}
+    </select>
+    {% if not contact_addresses %}
+      <small class="text-danger">
+        {% trans "This contact has no addresses: add one before booking a product delivered on paper." %}
+        <a href="{% url 'agregar_direccion' subscription.contact.id %}?stayhere=True"
+           target="_blank">{% trans "New address" %}</a>
+      </small>
+    {% endif %}
+  </div>
+{% endif %}

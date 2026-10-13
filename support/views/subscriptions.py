@@ -927,6 +927,61 @@ def partial_unsubscription(request, subscription_id):
     )
 
 
+def suggested_address_for_new_products(subscription):
+    """
+    The address to preselect for the paper products booked onto an existing subscription: the one a paper product of
+    the subscription is already delivered to, else the contact's default address, else the only address the contact
+    has. None when there is no obvious choice, so the agent has to pick one.
+    """
+    sp = (
+        subscription.subscriptionproduct_set.filter(product__digital=False, address__isnull=False)
+        .select_related("address")
+        .first()
+    )
+    if sp:
+        return sp.address
+    addresses = Address.objects.filter(contact=subscription.contact)
+    default_address = addresses.filter(default=True).first()
+    if default_address:
+        return default_address
+    return addresses.first() if addresses.count() == 1 else None
+
+
+def new_products_from_post(request, form, contact):
+    """
+    Read the products booked onto an existing subscription (``activateproduct-<id>``), each with the address it has to
+    be delivered to (``address-<id>``), out of the product change and additional product forms.
+
+    A digital product is delivered to the contact's email address and needs no address. A paper product does: without
+    one it would be created with no address and end up in no delivery route. In that case the error is added to the
+    form and None is returned, so the caller can render the form again before creating anything.
+
+    Returns a list of (product, address) tuples, address being None for the digital products.
+    """
+    new_products, missing_address = [], []
+    for key in request.POST.keys():
+        if not key.startswith("activateproduct-"):
+            continue
+        product = Product.objects.get(pk=key.split("-")[1])
+        address = None
+        if not product.digital:
+            address_id = request.POST.get("address-{}".format(product.id), "")
+            if address_id.isdigit():
+                address = Address.objects.filter(pk=address_id, contact=contact).first()
+            if address is None:
+                missing_address.append(product.name)
+                continue
+        new_products.append((product, address))
+    if missing_address:
+        form.add_error(
+            None,
+            _("These products are delivered on paper and need an address: %(products)s")
+            % {"products": ", ".join(missing_address)},
+        )
+        return None
+    return new_products
+
+
 @staff_member_required
 def product_change(request, subscription_id):
     old_subscription = get_object_or_404(Subscription, pk=subscription_id)
@@ -936,10 +991,12 @@ def product_change(request, subscription_id):
     offerable_products = Product.objects.filter(offerable=True, type="S").exclude(
         id__in=old_subscription.products.values_list("id")
     )
-    new_products_ids_list = []
     if request.POST:
         form = UnsubscriptionForm(request.POST, instance=old_subscription)
-        if form.is_valid():
+        # The new products are read and validated before anything gets saved: a paper product with no address
+        # returns the form with an error.
+        new_products = new_products_from_post(request, form, old_subscription.contact) if form.is_valid() else None
+        if new_products is not None:
             form.save()
             new_subscription = Subscription.objects.create(
                 active=False,
@@ -964,9 +1021,6 @@ def product_change(request, subscription_id):
                     subscription_product_id = key.split("-")[1]
                     subscription_product = SubscriptionProduct.objects.get(pk=subscription_product_id)
                     old_subscription.unsubscription_products.add(subscription_product.product)
-                if key.startswith("activateproduct"):
-                    product_id = key.split("-")[1]
-                    new_products_ids_list.append(product_id)
 
             for sp in old_subscription.subscriptionproduct_set.all():
                 if sp.product not in old_subscription.unsubscription_products.all():
@@ -985,16 +1039,15 @@ def product_change(request, subscription_id):
                         if sp.order:
                             new_sp.order = sp.order
                         new_sp.save()
-            # after this, we need to add the new products, that will have to be reviewed by an agent
+            # after this, we add the new products, each with the address chosen for it in the form
             seller = getattr(request.user, 'seller', None)
             seller_id = seller.id if seller else None
             new_products_list = []
-            for product_id in new_products_ids_list:
-                product = Product.objects.get(pk=product_id)
+            for product, address in new_products:
                 if product not in new_subscription.products.all():
                     new_subscription.add_product(
                         product=product,
-                        address=None,
+                        address=address,
                         seller_id=seller_id,
                         track_as_added=True,
                     )
@@ -1042,6 +1095,8 @@ def product_change(request, subscription_id):
         "book_product_change.html",
         {
             "offerable_products": offerable_products,
+            "contact_addresses": Address.objects.filter(contact=old_subscription.contact),
+            "suggested_address": suggested_address_for_new_products(old_subscription),
             "subscription": old_subscription,
             "form": form,
             "breadcrumbs": breadcrumbs,
@@ -1059,14 +1114,16 @@ def book_additional_product(request, subscription_id):
     offerable_products = Product.objects.filter(offerable=True, type="S").exclude(
         id__in=old_subscription.products.values_list("id")
     )
-    new_products_ids_list = []
     if request.POST:
         seller_id = getattr(request.user, 'seller', None)
         seller_id = seller_id.id if seller_id else None
         campaign = request.GET.get("campaign", None)
         campaign_obj = Campaign.objects.get(pk=campaign) if campaign else None
         form = AdditionalProductForm(request.POST, instance=old_subscription)
-        if form.is_valid():
+        # The new products are read and validated before anything gets saved: a paper product with no address
+        # returns the form with an error.
+        new_products = new_products_from_post(request, form, old_subscription.contact) if form.is_valid() else None
+        if new_products is not None:
             form.save()
             new_subscription = Subscription.objects.create(
                 active=False,
@@ -1086,12 +1143,6 @@ def book_additional_product(request, subscription_id):
                 frequency=old_subscription.frequency,
                 updated_from=old_subscription,
             )
-            for key, value in list(request.POST.items()):
-                # These are the new products
-                if key.startswith("activateproduct"):
-                    product_id = key.split("-")[1]
-                    new_products_ids_list.append(product_id)
-
             for sp in old_subscription.subscriptionproduct_set.all():
                 if sp.product not in old_subscription.unsubscription_products.all():
                     new_sp = new_subscription.add_product(
@@ -1109,18 +1160,13 @@ def book_additional_product(request, subscription_id):
                         if sp.order:
                             new_sp.order = sp.order
                         new_sp.save()
-            # after this, we need to add the new products, that will have to be reviewed by an agent
+            # after this, we add the new products, each with the address chosen for it in the form
             new_products_list = []
-            for product_id in new_products_ids_list:
-                product = Product.objects.get(pk=product_id)
+            for product, address in new_products:
                 if product not in new_subscription.products.all():
-                    if old_subscription.contact.address_set.exists():
-                        default_address = old_subscription.contact.address_set.first()
-                    else:
-                        default_address = None
                     new_subscription.add_product(
                         product=product,
-                        address=default_address,
+                        address=address,
                         seller_id=seller_id,
                         track_as_added=True,
                     )
@@ -1170,6 +1216,8 @@ def book_additional_product(request, subscription_id):
         {
             "from_seller_console": from_seller_console,
             "offerable_products": offerable_products,
+            "contact_addresses": Address.objects.filter(contact=old_subscription.contact),
+            "suggested_address": suggested_address_for_new_products(old_subscription),
             "subscription": old_subscription,
             "form": form,
             "breadcrumbs": breadcrumbs,

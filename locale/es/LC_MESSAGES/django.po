@@ -12622,3 +12622,16 @@ msgstr "Inactiva"
 
 msgid "No campaigns found"
 msgstr "No se encontraron campañas"
+
+#: support/templates/new_product_address.html
+msgid "Choose an address"
+msgstr "— Elegir dirección —"
+
+#: support/templates/book_additional_product.html
+#: support/templates/book_product_change.html
+msgid "The products delivered on paper need an address."
+msgstr "Los productos en papel necesitan una dirección."
+
+#: support/templates/new_product_address.html
+msgid "This contact has no addresses: add one before booking a product delivered on paper."
+msgstr "El contacto no tiene direcciones: agregale una antes de agendar un producto en papel."
