@@ -1,5 +1,10 @@
 {% extends "adminlte/base.html" %}
 {% load static i18n widget_tweaks core_tags leaflet_tags %}
+{% block extra_head %}
+  {# OpenStreetMap blocks the map tiles requested with no Referer, and Django's default "same-origin" policy sends #}
+  {# none to another site. This page sends its origin only, never the path. #}
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+{% endblock extra_head %}
 {% block extra_js %}
   <script src="{% static 'js/htmx.min.js' %}" defer></script>
   {% leaflet_js %}
@@ -52,6 +57,13 @@
     // estuviera cargado (sugerencia o texto tipeado) para que el operario solo corrija
     // lo necesario en vez de tener que escribir todo de nuevo.
     if (checked) {
+      // Lo escrito en el buscador (que está fuera del form y no viaja en el submit) pasa a la calle,
+      // para no perderlo cuando el servicio de georreferenciación no responde.
+      var buscador = document.querySelector('input[name="q_direccion"]');
+      var calle = document.getElementById('id_address_1');
+      if (buscador && calle && buscador.value.trim()) {
+        calle.value = buscador.value.trim();
+      }
       ['id_address_1', 'id_city', 'id_state'].forEach(function (id) {
         var el = document.getElementById(id);
         if (el) {
@@ -120,6 +132,7 @@
                 <div id="form_div">
                   <form action="" method="post">
                     {% csrf_token %}
+                    {% include "location/_form_errors.html" %}
                     <div class="row form-group">
                       <div class="col">
                         <label for="{{ form.address_1.id_for_label }}">
