@@ -2077,20 +2077,28 @@ class FreeSubscriptionMixin:
         """
         products_data, missing_address = [], []
         for key in self.request.POST.keys():
-            if not key.startswith("check"):
+            if not key.startswith("check-"):
                 continue
             product_id = key.split("-")[1]
-            product = Product.objects.get(pk=product_id)
-            address_id = self.request.POST.get("address-{}".format(product_id))
-            address = Address.objects.filter(pk=address_id).first() if address_id else None
+            # Only the products the screen offers: anything else in the POST is not a choice the agent could make.
+            product = self.offerable_products.filter(pk=product_id).first() if product_id.isdigit() else None
+            if product is None:
+                continue
+            address_id = self.request.POST.get("address-{}".format(product_id), "")
+            address = (
+                self.contact_addresses.filter(pk=address_id).first()
+                if address_id.isdigit() and not product.digital
+                else None
+            )
             if address is None and not product.digital:
                 missing_address.append(product.name)
                 continue
+            copies = self.request.POST.get("copies-{}".format(product_id), "")
             products_data.append(
                 {
                     "product": product,
                     "address": address,
-                    "copies": self.request.POST.get("copies-{}".format(product_id)),
+                    "copies": int(copies) if copies.isdigit() and int(copies) > 0 else 1,
                     "message": self.request.POST.get("message-{}".format(product_id)),
                     "instructions": self.request.POST.get("instructions-{}".format(product_id)),
                 }
@@ -2102,7 +2110,28 @@ class FreeSubscriptionMixin:
                 % {"products": ", ".join(missing_address)},
             )
             return None
+        if not products_data:
+            form.add_error(None, _("Choose at least one product."))
+            return None
         return products_data
+
+    def suggested_address(self):
+        """
+        The address preselected for a paper product the subscription doesn't have yet: the contact's default address,
+        else the only one the contact has. None when there is no obvious choice, so the agent has to pick one.
+        """
+        default_address = self.contact_addresses.filter(default=True).first()
+        if default_address:
+            return default_address
+        return self.contact_addresses.first() if self.contact_addresses.count() == 1 else None
+
+    def product_rows(self, subscription_products=()):
+        """
+        One (product, subscription product) pair per offerable product, the subscription product being None when the
+        subscription doesn't have it, so the template draws a single card per product.
+        """
+        by_product = {sp.product_id: sp for sp in subscription_products}
+        return [(product, by_product.get(product.id)) for product in self.offerable_products]
 
     def add_products_to_subscription(self, subscription, products_data):
         """Add the products already read from the POST data to the subscription."""
@@ -2215,7 +2244,8 @@ class CreateFreeSubscriptionView(FreeSubscriptionMixin, BreadcrumbsMixin, FormVi
             {
                 "contact": self.contact,
                 "address_form": NewAddressForm(initial={"address_type": "physical"}),
-                "offerable_products": self.offerable_products,
+                "product_rows": self.product_rows(),
+                "suggested_address": self.suggested_address(),
                 "contact_addresses": self.contact_addresses,
                 "is_update": False,
             }
@@ -2267,8 +2297,52 @@ class UpdateFreeSubscriptionView(FreeSubscriptionMixin, BreadcrumbsMixin, FormVi
             "free_subscription_requested_by": self.subscription.free_subscription_requested_by,
         }
 
+    def suggested_address(self):
+        return suggested_address_for_new_products(self.subscription)
+
+    def sync_products(self, products_data):
+        """
+        Make the offerable products of the subscription match the ones checked in the form: add the new ones, update
+        address, copies, message and instructions of the ones it already had, and remove the unchecked ones. The
+        products the screen doesn't show (not offerable) are left alone.
+
+        Removing goes last: products_data is never empty, so the subscription never runs out of products on the way,
+        which would deactivate it (see Subscription.remove_product).
+        """
+        existing = {
+            sp.product_id: sp
+            for sp in self.subscription.subscriptionproduct_set.filter(product__in=self.offerable_products)
+        }
+        checked_ids = set()
+        for product_data in products_data:
+            product = product_data["product"]
+            checked_ids.add(product.id)
+            sp = existing.get(product.id)
+            if sp is None:
+                self.subscription.add_product(
+                    product=product,
+                    address=product_data["address"],
+                    copies=product_data["copies"],
+                    message=product_data["message"],
+                    instructions=product_data["instructions"],
+                )
+                continue
+            sp.address = product_data["address"]
+            sp.copies = product_data["copies"]
+            sp.label_message = product_data["message"] or None
+            sp.special_instructions = product_data["instructions"] or None
+            sp.save()
+        for product_id, sp in existing.items():
+            if product_id not in checked_ids:
+                self.subscription.remove_product(sp.product)
+
     def form_valid(self, form):
         """Process the form and update subscription."""
+        # Products are read and validated before saving anything: a paper product with no address returns the form.
+        products_data = self.collect_products_from_post(form)
+        if products_data is None:
+            return self.form_invalid(form)
+
         # Update contact data if necessary
         if not self.update_contact_data(form):
             return self.form_invalid(form)
@@ -2278,6 +2352,7 @@ class UpdateFreeSubscriptionView(FreeSubscriptionMixin, BreadcrumbsMixin, FormVi
         self.subscription.end_date = form.cleaned_data["end_date"]
         self.subscription.free_subscription_requested_by = form.cleaned_data["free_subscription_requested_by"]
         self.subscription.save()
+        self.sync_products(products_data)
 
         messages.success(
             self.request,
@@ -2289,18 +2364,15 @@ class UpdateFreeSubscriptionView(FreeSubscriptionMixin, BreadcrumbsMixin, FormVi
     def get_context_data(self, **kwargs):
         """Add additional context for the template."""
         context = super().get_context_data(**kwargs)
-
-        # Get existing subscription products
-        existing_products = SubscriptionProduct.objects.filter(subscription=self.subscription)
-
+        subscription_products = self.subscription.subscriptionproduct_set.select_related("address")
         context.update(
             {
                 "contact": self.contact,
                 "address_form": NewAddressForm(initial={"address_type": "physical"}),
-                "offerable_products": self.offerable_products,
+                "product_rows": self.product_rows(subscription_products),
+                "suggested_address": self.suggested_address(),
                 "contact_addresses": self.contact_addresses,
                 "subscription": self.subscription,
-                "existing_products": existing_products,
                 "is_update": True,
             }
         )
