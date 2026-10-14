@@ -36,6 +36,7 @@
             var addressSelect = $(this);
             var selectedValue = addressSelect.val();
             addressSelect.empty();
+            addressSelect.append($('<option>').text('{% trans "Choose an address" %}').val(''));
             $.each(data, function (index, item) {
               var option = $('<option>').text(item.text).val(item.value);
               if (item.value == selectedValue) {
@@ -62,7 +63,7 @@
       // products delivered on paper need one.
       var paperChecked = $(".product_checkbox:checked").not(".digital_product");
       var paperWithoutAddress = paperChecked.filter(function () {
-        return $("#address-" + $(this).val()).find("option").length == 0;
+        return !$("#address-" + $(this).val()).val();
       });
       if (paperWithoutAddress.length > 0) {
         disable = true; // Can't submit a paper product without an address
@@ -188,171 +189,78 @@
       </div>
 
       <div class="mt-3">
-        {% for product in offerable_products %}
-          {% if is_update %}
-            {# Check if this product is already in the subscription #}
-            {% with existing_sp=None %}
-              {% for sp in existing_products %}
-                {% if sp.product.id == product.id %}
-                  {% with existing_sp=sp %}
-        <div class="border rounded p-2 mb-2 bg-success-light">
-          <div class="row align-items-center">
-            <div class="col-md-3">
-              <div class="form-check">
-                <input value="{{ product.id }}" checked="checked"
-                  type="checkbox" name="check-{{ product.id }}"
-                  class="form-check-input product_checkbox{% if product.digital %} digital_product{% endif %}"
-                  id="check-{{ product.id }}">
-                <label class="form-check-label font-weight-bold" for="check-{{ product.id }}">
-                  {{ product.name }}
-                </label>
+        {% for product, sp in product_rows %}
+          {# One card per product: checked when the subscription already has it #}
+          <div class="border rounded p-2 mb-2 {% if sp %}bg-success-light{% else %}bg-light{% endif %}">
+            <div class="row align-items-center">
+              <div class="col-md-3">
+                <div class="form-check">
+                  <input value="{{ product.id }}"
+                         {% if sp %}checked="checked"{% endif %}
+                         type="checkbox"
+                         name="check-{{ product.id }}"
+                         class="form-check-input product_checkbox{% if product.digital %} digital_product{% endif %}"
+                         id="check-{{ product.id }}">
+                  <label class="form-check-label font-weight-bold" for="check-{{ product.id }}">{{ product.name }}</label>
+                </div>
               </div>
-            </div>
-            <div class="col-md-4">
-              {% if product.digital %}
-              <span class="small text-muted"><i class="fas fa-envelope"></i> {% trans "Delivered by email, needs no address" %}</span>
-              {% else %}
-              <label for="address-{{ product.id }}" class="small text-muted mb-1">{% trans "Address" %}</label>
-              <select name="address-{{ product.id }}" id="address-{{ product.id }}" class="address_selector form-control form-control-sm">
-                {% for address in contact_addresses %}
-                <option value="{{ address.id }}" {% if existing_sp.address.id == address.id %}selected="selected"{% endif %}>
-                  {{ address.address_1 }} {{ address.city }} {{ address.state_name }}
-                </option>
-                {% endfor %}
-              </select>
-              {% endif %}
-            </div>
-            <div class="col-md-1">
-              <label for="copies-{{ product.id }}" class="small text-muted mb-1">{% trans "Copies" %}</label>
-              <input type="number" min="1" id="copies-{{ product.id }}" name="copies-{{ product.id }}"
-                value="{{ existing_sp.copies|default:1 }}" class="form-control form-control-sm"
-                title="{% trans "Copies" %}">
-            </div>
-            <div class="col-md-2">
-              <label for="message-{{ product.id }}" class="small text-muted mb-1">{% trans "Message" %}</label>
-              <input maxlength="40" type="text" id="message-{{ product.id }}" name="message-{{ product.id }}"
-                class="form-control form-control-sm" value="{{ existing_sp.label_message }}"
-                placeholder="{% trans "Optional" %}">
-            </div>
-            <div class="col-md-2">
-              <label for="instructions-{{ product.id }}" class="small text-muted mb-1">{% trans "Instructions" %}</label>
-              <input type="text" id="instructions-{{ product.id }}" name="instructions-{{ product.id }}"
-                class="form-control form-control-sm" value="{{ existing_sp.special_instructions }}"
-                placeholder="{% trans "Optional" %}">
-            </div>
-          </div>
-        </div>
-                  {% endwith %}
+              <div class="col-md-4">
+                {% if product.digital %}
+                  <span class="small text-muted"><i class="fas fa-envelope"></i> {% trans "Delivered by email, needs no address" %}</span>
+                {% else %}
+                  {# A product the subscription has goes to its own address, even none: then the agent has to pick one #}
+                  <label for="address-{{ product.id }}" class="small text-muted mb-1">{% trans "Address" %}</label>
+                  <select name="address-{{ product.id }}"
+                          id="address-{{ product.id }}"
+                          class="address_selector form-control form-control-sm">
+                    <option value="">{% trans "Choose an address" %}</option>
+                    {% for address in contact_addresses %}
+                      <option value="{{ address.id }}"
+                              {% if sp and sp.address_id == address.id or not sp and suggested_address.id == address.id %}selected="selected"{% endif %}>
+                        {{ address.address_1|default_if_none:"" }} {{ address.city|default_if_none:"" }} {{ address.state_name|default_if_none:"" }}
+                      </option>
+                    {% endfor %}
+                  </select>
                 {% endif %}
-              {% endfor %}
-              {# If product not in existing_products, show unchecked #}
-              {% if not existing_sp %}
-        <div class="border rounded p-2 mb-2 bg-light">
-          <div class="row align-items-center">
-            <div class="col-md-3">
-              <div class="form-check">
-                <input value="{{ product.id }}"
-                  type="checkbox" name="check-{{ product.id }}"
-                  class="form-check-input product_checkbox{% if product.digital %} digital_product{% endif %}"
-                  id="check-{{ product.id }}">
-                <label class="form-check-label font-weight-bold" for="check-{{ product.id }}">
-                  {{ product.name }}
-                </label>
+              </div>
+              <div class="col-md-1">
+                <label for="copies-{{ product.id }}" class="small text-muted mb-1">{% trans "Copies" %}</label>
+                <input type="number"
+                       min="1"
+                       id="copies-{{ product.id }}"
+                       name="copies-{{ product.id }}"
+                       value="{{ sp.copies|default:1 }}"
+                       class="form-control form-control-sm"
+                       title="{% trans "Copies" %}">
+              </div>
+              <div class="col-md-2">
+                <label for="message-{{ product.id }}" class="small text-muted mb-1">{% trans "Message" %}</label>
+                <input maxlength="40"
+                       type="text"
+                       id="message-{{ product.id }}"
+                       name="message-{{ product.id }}"
+                       class="form-control form-control-sm"
+                       value="{{ sp.label_message|default_if_none:"" }}"
+                       placeholder="{% trans "Optional" %}">
+              </div>
+              <div class="col-md-2">
+                <label for="instructions-{{ product.id }}" class="small text-muted mb-1">{% trans "Instructions" %}</label>
+                <input type="text"
+                       id="instructions-{{ product.id }}"
+                       name="instructions-{{ product.id }}"
+                       class="form-control form-control-sm"
+                       value="{{ sp.special_instructions|default_if_none:"" }}"
+                       placeholder="{% trans "Optional" %}">
               </div>
             </div>
-            <div class="col-md-4">
-              {% if product.digital %}
-              <span class="small text-muted"><i class="fas fa-envelope"></i> {% trans "Delivered by email, needs no address" %}</span>
-              {% else %}
-              <label for="address-{{ product.id }}" class="small text-muted mb-1">{% trans "Address" %}</label>
-              <select name="address-{{ product.id }}" id="address-{{ product.id }}" class="address_selector form-control form-control-sm">
-                {% for address in contact_addresses %}
-                <option value="{{ address.id }}">
-                  {{ address.address_1 }} {{ address.city }} {{ address.state_name }}
-                </option>
-                {% endfor %}
-              </select>
-              {% endif %}
-            </div>
-            <div class="col-md-1">
-              <label for="copies-{{ product.id }}" class="small text-muted mb-1">{% trans "Copies" %}</label>
-              <input type="number" min="1" id="copies-{{ product.id }}" name="copies-{{ product.id }}"
-                value="1" class="form-control form-control-sm"
-                title="{% trans "Copies" %}">
-            </div>
-            <div class="col-md-2">
-              <label for="message-{{ product.id }}" class="small text-muted mb-1">{% trans "Message" %}</label>
-              <input maxlength="40" type="text" id="message-{{ product.id }}" name="message-{{ product.id }}"
-                class="form-control form-control-sm"
-                placeholder="{% trans "Optional" %}">
-            </div>
-            <div class="col-md-2">
-              <label for="instructions-{{ product.id }}" class="small text-muted mb-1">{% trans "Instructions" %}</label>
-              <input type="text" id="instructions-{{ product.id }}" name="instructions-{{ product.id }}"
-                class="form-control form-control-sm"
-                placeholder="{% trans "Optional" %}">
-            </div>
           </div>
-        </div>
-              {% endif %}
-            {% endwith %}
-          {% else %}
-            {# Create mode - show all products unchecked #}
-        <div class="border rounded p-2 mb-2 bg-light">
-          <div class="row align-items-center">
-            <div class="col-md-3">
-              <div class="form-check">
-                <input value="{{ product.id }}"
-                  type="checkbox" name="check-{{ product.id }}"
-                  class="form-check-input product_checkbox{% if product.digital %} digital_product{% endif %}"
-                  id="check-{{ product.id }}">
-                <label class="form-check-label font-weight-bold" for="check-{{ product.id }}">
-                  {{ product.name }}
-                </label>
-              </div>
-            </div>
-            <div class="col-md-4">
-              {% if product.digital %}
-              <span class="small text-muted"><i class="fas fa-envelope"></i> {% trans "Delivered by email, needs no address" %}</span>
-              {% else %}
-              <label for="address-{{ product.id }}" class="small text-muted mb-1">{% trans "Address" %}</label>
-              <select name="address-{{ product.id }}" id="address-{{ product.id }}" class="address_selector form-control form-control-sm">
-                {% for address in contact_addresses %}
-                <option value="{{ address.id }}">
-                  {{ address.address_1 }} {{ address.city }} {{ address.state_name }}
-                </option>
-                {% endfor %}
-              </select>
-              {% endif %}
-            </div>
-            <div class="col-md-1">
-              <label for="copies-{{ product.id }}" class="small text-muted mb-1">{% trans "Copies" %}</label>
-              <input type="number" min="1" id="copies-{{ product.id }}" name="copies-{{ product.id }}"
-                value="1" class="form-control form-control-sm"
-                title="{% trans "Copies" %}">
-            </div>
-            <div class="col-md-2">
-              <label for="message-{{ product.id }}" class="small text-muted mb-1">{% trans "Message" %}</label>
-              <input maxlength="40" type="text" id="message-{{ product.id }}" name="message-{{ product.id }}"
-                class="form-control form-control-sm"
-                placeholder="{% trans "Optional" %}">
-            </div>
-            <div class="col-md-2">
-              <label for="instructions-{{ product.id }}" class="small text-muted mb-1">{% trans "Instructions" %}</label>
-              <input type="text" id="instructions-{{ product.id }}" name="instructions-{{ product.id }}"
-                class="form-control form-control-sm"
-                placeholder="{% trans "Optional" %}">
-            </div>
-          </div>
-        </div>
-          {% endif %}
         {% endfor %}
       </div>
       <hr class="my-4">
 
       <div class="form-group d-flex justify-content-end align-items-center">
         <small id="address_warning" class="text-danger mr-3 d-none">
-          {% trans "The products delivered on paper need an address. Add one to the contact and reload the addresses." %}
+          {% trans "The products delivered on paper need an address: choose one, or add one to the contact and reload the addresses." %}
         </small>
         <a href="{% url 'contact_detail' contact.id %}" class="btn btn-secondary mr-2">{% trans "Cancel" %}</a>
         <input type="submit" name="result" id="send_form" value="{% if is_update %}{% trans "Update" %}{% else %}{% trans "Create" %}{% endif %}" class="btn btn-primary">

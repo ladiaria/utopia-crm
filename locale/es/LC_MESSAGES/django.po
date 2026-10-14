@@ -12635,3 +12635,15 @@ msgstr "Los productos en papel necesitan una dirección."
 #: support/templates/new_product_address.html
 msgid "This contact has no addresses: add one before booking a product delivered on paper."
 msgstr "El contacto no tiene direcciones: agregale una antes de agendar un producto en papel."
+
+#: support/templates/free_subscription_form.html
+msgid ""
+"The products delivered on paper need an address: choose one, or add one to "
+"the contact and reload the addresses."
+msgstr ""
+"Los productos en papel necesitan una dirección: elegí una, o agregale una al "
+"contacto y recargá las direcciones."
+
+#: support/views/subscriptions.py
+msgid "Choose at least one product."
+msgstr "Elegí al menos un producto."
