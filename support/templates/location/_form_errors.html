@@ -1,0 +1,14 @@
+{% comment %}
+  Errors of the address form. With georeferencing on, street, city and coordinates are readonly, and the browser
+  doesn't validate readonly fields: without this, a rejected form came back with no message at all.
+{% endcomment %}
+{% if form.errors %}
+  <div class="alert alert-danger">
+    <ul class="mb-0">
+      {% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
+      {% for field in form %}
+        {% for error in field.errors %}<li>{{ field.label }}: {{ error }}</li>{% endfor %}
+      {% endfor %}
+    </ul>
+  </div>
+{% endif %}

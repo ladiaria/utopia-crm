@@ -12647,3 +12647,11 @@ msgstr ""
 #: support/views/subscriptions.py
 msgid "Choose at least one product."
 msgstr "Elegí al menos un producto."
+
+#: support/templates/location/sugerencias_htmx.html
+msgid ""
+"The georeferencing service is not responding. Check the manual option above "
+"to save the address without georeferencing."
+msgstr ""
+"El servicio de georreferenciación no responde. Marcá la opción de carga "
+"manual de arriba para guardar la dirección sin georreferenciación."
