@@ -76,6 +76,7 @@ class TestProductChangeSellerPreservation(TestCase):
                 "unsubscription_channel": 4,
                 "unsubscription_addendum": "",
                 f"activateproduct-{self.product2.id}": "on",
+                f"address-{self.product2.id}": self.address.id,
             },
         )
         new_sub = Subscription.objects.get(updated_from=sub)
