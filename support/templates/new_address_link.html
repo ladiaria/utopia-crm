@@ -11,6 +11,8 @@
    data-addresses-url="{% url 'api_get_addresses' contact.id %}"><i class="fas fa-plus"></i> {% trans "New address" %}</a>
 <div class="new_address_notice alert alert-success small py-1 px-2 mt-2 mb-0 d-none"
      role="status">
-  <i class="fas fa-check"></i> {% trans "Address added to the address lists:" %}
+  <i class="fas fa-check"></i>
+  <span class="new_address_added">{% trans "Address added to the address lists:" %}</span>
+  <span class="new_address_existing d-none">{% trans "The contact already had this address, choose it in the address lists:" %}</span>
   <strong class="new_address_text"></strong>
 </div>

@@ -20,6 +20,9 @@ from util.location_utils import (
     georef_habilitado,
 )
 
+# Los botones de "Nueva dirección" que guardan la dirección
+ACCIONES_GUARDAR = ("save", "save_needs_georef", "no_encuentro_direccion")
+
 
 @staff_member_required
 def normalizar_direccion(request, contact_id, address_id):
@@ -137,39 +140,47 @@ def agregar_direccion(request, contact_id):
     form = SugerenciaGeorefForm(initial={"address_type": "physical"})
     stayhere = "?stayhere=True" if request.GET.get("stayhere", None) else ""
     lat, lng, q_sugerencia = None, None, None
+    # La dirección del contacto igual a la que se quiere guardar, y el botón que se apretó para guardarla
+    repetida, accion = None, None
     if request.POST:
-        if request.POST.get("save", False):
-            form = SugerenciaGeorefForm(request.POST)
-            if form.is_valid():
+        # "Guardar igual" trae el botón que se había apretado, una vez avisado que el contacto ya tiene la dirección
+        guardar_igual = request.POST.get("guardar_igual")
+        if guardar_igual not in ACCIONES_GUARDAR:
+            guardar_igual = None
+        accion = guardar_igual or next((nombre for nombre in ACCIONES_GUARDAR if request.POST.get(nombre)), None)
+    if accion:
+        form = SugerenciaGeorefForm(request.POST)
+        if form.is_valid():
+            if not guardar_igual:
+                datos = form.cleaned_data
+                repetida = Address.find_same(
+                    contact_obj, datos.get("address_1"), datos.get("address_2"), datos.get("city"), datos.get("state")
+                )
+            if repetida is None:
                 address = form.save(commit=False)
                 address.contact = contact_obj
-                address.save()
-                messages.success(request, "Dirección georreferenciada guardada con éxito")
+                if accion == "no_encuentro_direccion":
+                    address.needs_georef = True
+                    address.save()
+                    messages.info(request, "Dirección guardada con éxito, buscando otras alternativas...")
+                    return HttpResponseRedirect(
+                        reverse("normalizar_direccion", args=[contact_id, address.id]) + stayhere
+                    )
+                if accion == "save":
+                    address.save()
+                    messages.success(request, "Dirección georreferenciada guardada con éxito")
+                else:
+                    address.reset_georef()  # Ya cuenta con save
+                    messages.warning(request, "Dirección guardada con éxito sin georeferenciación")
                 if stayhere:
                     return HttpResponseRedirect(reverse("direccion_guardada", args=[contact_id, address.id]))
                 else:
                     return HttpResponseRedirect(reverse("contact_detail", args=[contact_id]))
-        elif request.POST.get("save_needs_georef", False):
-            form = SugerenciaGeorefForm(request.POST)
-            if form.is_valid():
-                address = form.save(commit=False)
-                address.contact = contact_obj
-                address.reset_georef()  # Ya cuenta con save
-                messages.warning(request, "Dirección guardada con éxito sin georeferenciación")
-                if stayhere:
-                    return HttpResponseRedirect(reverse("direccion_guardada", args=[contact_id, address.id]))
-                else:
-                    return HttpResponseRedirect(reverse("contact_detail", args=[contact_id]))
-        elif request.POST.get("no_encuentro_direccion", False):
-            form = SugerenciaGeorefForm(request.POST)
-            if form.is_valid():
-                address = form.save(commit=False)
-                address.contact = contact_obj
-                address.needs_georef = True
-                address.save()
-                messages.info(request, "Dirección guardada con éxito, buscando otras alternativas...")
-                return HttpResponseRedirect(reverse("normalizar_direccion", args=[contact_id, address.id]) + stayhere)
-        elif request.POST.get("sugerencias"):
+            # Vuelve el formulario tal como se mandó, con el mapa si traía coordenadas, y el aviso arriba
+            lat, lng = form.cleaned_data.get("latitude"), form.cleaned_data.get("longitude")
+            q_sugerencia = form.cleaned_data.get("address_1")
+    elif request.POST:
+        if request.POST.get("sugerencias"):
             direccion, id_calle, id_localidad, id_portal = request.POST.get('sugerencias').split("|")
             j = seleccionar_sugerencia(direccion, id_calle, id_localidad, id_portal)
             if not j or "departamento" not in j or not j["departamento"]:
@@ -221,6 +232,9 @@ def agregar_direccion(request, contact_id):
             "lat": lat,
             "lng": lng,
             "q_sugerencia": q_sugerencia,
+            "repetida": repetida,
+            "accion": accion,
+            "stayhere": stayhere,
             "breadcrumbs": breadcrumbs,
         },
     )
@@ -234,6 +248,9 @@ def direccion_guardada(request, contact_id, address_id):
 
     Before, the window went back to an empty "Nueva dirección" form and the sale only saw the address after pressing
     "Recargar direcciones". Whoever did not press it took the address for lost and loaded it again.
+
+    With ``?ya_existia=1`` nothing was saved: the agent chose the address the contact already had over loading it
+    again, and the sale is told about that one.
     """
     contact_obj = get_object_or_404(Contact, pk=contact_id)
     address_obj = get_object_or_404(Address, pk=address_id, contact=contact_obj)
@@ -245,7 +262,12 @@ def direccion_guardada(request, contact_id, address_id):
     return render(
         request,
         "location/direccion_guardada.html",
-        {"contact": contact_obj, "address": address_obj, "breadcrumbs": breadcrumbs},
+        {
+            "contact": contact_obj,
+            "address": address_obj,
+            "ya_existia": bool(request.GET.get("ya_existia")),
+            "breadcrumbs": breadcrumbs,
+        },
     )
 
 

@@ -88,14 +88,17 @@ def new_scheduled_task_address_change(request, contact_id):
         form = NewAddressChangeScheduledTaskForm(request.POST)
         if form.is_valid():
             if form.cleaned_data.get("new_address"):
-                address = Address.objects.create(
-                    contact=contact,
-                    address_1=form.cleaned_data.get("new_address_1"),
-                    address_2=form.cleaned_data.get("new_address_2"),
-                    city=form.cleaned_data.get("new_address_city"),
-                    state=form.cleaned_data.get("new_address_state"),
+                # Typing an address the contact already has must not load it twice
+                address, created = Address.find_same_or_create(
+                    contact,
+                    form.cleaned_data.get("new_address_1"),
+                    form.cleaned_data.get("new_address_2"),
+                    form.cleaned_data.get("new_address_city"),
+                    form.cleaned_data.get("new_address_state"),
                     notes=form.cleaned_data.get("new_address_notes"),
                 )
+                if not created:
+                    messages.info(request, _("The contact already had this address: that one was used."))
             else:
                 address = form.cleaned_data.get("contact_address")
             date1 = form.cleaned_data.get("date_1")

@@ -133,6 +133,23 @@
                   <form action="" method="post">
                     {% csrf_token %}
                     {% include "location/_form_errors.html" %}
+                    {% if repetida %}
+                      {# The contact already has this address: use that one, or save it again on purpose #}
+                      <div class="alert alert-warning" id="repeated_address">
+                        <p>
+                          <i class="fas fa-exclamation-triangle"></i> {% trans "The contact already has this address:" %}
+                          <strong>{{ repetida.get_option_label }}</strong>
+                        </p>
+                        <a class="btn btn-sm btn-primary text-decoration-none"
+                           href="{% if stayhere %}{% url 'direccion_guardada' contact.id repetida.id %}?ya_existia=1{% else %}{% url 'contact_detail' contact.id %}{% endif %}">
+                          <i class="fas fa-check"></i> {% trans "Use the one it has" %}
+                        </a>
+                        <button type="submit"
+                                name="guardar_igual"
+                                value="{{ accion }}"
+                                class="btn btn-sm btn-outline-dark">{% trans "Save it again anyway" %}</button>
+                      </div>
+                    {% endif %}
                     <div class="row form-group">
                       <div class="col">
                         <label for="{{ form.address_1.id_for_label }}">

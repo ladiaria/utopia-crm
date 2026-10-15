@@ -1444,14 +1444,17 @@ class NewIssueView(BreadcrumbsMixin, CreateView):
     def form_valid(self, form):
         # Handle address creation/selection
         if form.cleaned_data.get("new_address"):
-            address = Address.objects.create(
-                contact=self.contact,
-                address_1=form.cleaned_data.get("new_address_1"),
-                address_2=form.cleaned_data.get("new_address_2"),
-                city=form.cleaned_data.get("new_address_city"),
-                state=form.cleaned_data.get("new_address_state"),
+            # Typing an address the contact already has must not load it twice
+            address, created = Address.find_same_or_create(
+                self.contact,
+                form.cleaned_data.get("new_address_1"),
+                form.cleaned_data.get("new_address_2"),
+                form.cleaned_data.get("new_address_city"),
+                form.cleaned_data.get("new_address_state"),
                 notes=form.cleaned_data.get("new_address_notes"),
             )
+            if not created:
+                messages.info(self.request, _("The contact already had this address: that one was used."))
         else:
             address = form.cleaned_data.get("contact_address")
 
@@ -1639,7 +1642,7 @@ def api_new_address(request, contact_id):
                     address.needs_georef = True
             address.contact = contact
             address.save()
-            data = {address.id: "{} {} {}".format(address.address_1, address.city, address.state)}
+            data = {address.id: address.get_option_label()}
             return JsonResponse(data)
     else:
         return HttpResponseNotFound()
@@ -1670,9 +1673,9 @@ def api_get_addresses(request, contact_id):
     if request.method == "POST" and request.META.get('HTTP_X_REQUESTED_WITH') == "XMLHttpRequest":
         contact = get_object_or_404(Contact, pk=contact_id)
         addresses_list = []
-        addresses_qs = contact.addresses.all()
+        addresses_qs = contact.addresses.select_related("state", "city_fk")
         for address in addresses_qs:
-            addresses_list.append({"value": address.id, "text": f"{address.address_1} {address.city} {address.state}"})
+            addresses_list.append({"value": address.id, "text": address.get_option_label()})
         return JsonResponse(addresses_list, safe=False)
     else:
         return HttpResponseNotFound()

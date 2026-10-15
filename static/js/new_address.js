@@ -19,13 +19,14 @@
     return "BroadcastChannel" in window ? new BroadcastChannel(CHANNEL_NAME) : null;
   }
 
-  // Called by the window where the address was saved. Returns false when the browser can't tell the other windows.
-  window.announceNewAddress = function (contactId, addressId) {
+  // Called by the window where the address was saved, or chosen among the contact's own (existed). Returns false when
+  // the browser can't tell the other windows.
+  window.announceNewAddress = function (contactId, addressId, existed) {
     var channel = openChannel();
     if (!channel) {
       return false;
     }
-    channel.postMessage({ contactId: String(contactId), addressId: String(addressId) });
+    channel.postMessage({ contactId: String(contactId), addressId: String(addressId), existed: Boolean(existed) });
     channel.close();
     return true;
   };
@@ -68,13 +69,15 @@
     var contactId = String(links.first().data("contact-id"));
     var url = links.first().data("addresses-url");
 
-    function showNewAddress(addressId) {
+    function showNewAddress(addressId, existed) {
       reloadAddressSelectors(url, function (data) {
         var added = $.grep(data, function (item) {
           return String(item.value) === String(addressId);
         })[0];
         if (added) {
           $(".new_address_notice .new_address_text").text(added.text);
+          $(".new_address_notice .new_address_added").toggleClass("d-none", existed);
+          $(".new_address_notice .new_address_existing").toggleClass("d-none", !existed);
           $(".new_address_notice").removeClass("d-none");
           $(".no_addresses_warning").addClass("d-none");
         }
@@ -94,7 +97,7 @@
     if (channel) {
       channel.onmessage = function (event) {
         if (event.data && event.data.contactId === contactId) {
-          showNewAddress(event.data.addressId);
+          showNewAddress(event.data.addressId, Boolean(event.data.existed));
         }
       };
     } else {
