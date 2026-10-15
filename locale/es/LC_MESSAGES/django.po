@@ -12639,10 +12639,10 @@ msgstr "El contacto no tiene direcciones: agregale una antes de agendar un produ
 #: support/templates/free_subscription_form.html
 msgid ""
 "The products delivered on paper need an address: choose one, or add one to "
-"the contact and reload the addresses."
+"the contact."
 msgstr ""
 "Los productos en papel necesitan una dirección: elegí una, o agregale una al "
-"contacto y recargá las direcciones."
+"contacto."
 
 #: support/views/subscriptions.py
 msgid "Choose at least one product."
@@ -12655,3 +12655,39 @@ msgid ""
 msgstr ""
 "El servicio de georreferenciación no responde. Marcá la opción de carga "
 "manual de arriba para guardar la dirección sin georreferenciación."
+
+#: support/templates/new_address_link.html
+msgid "Address added to the address lists:"
+msgstr "Dirección agregada a las listas de direcciones:"
+
+#: support/templates/location/direccion_guardada.html
+msgid "Address saved"
+msgstr "Dirección guardada"
+
+#: support/templates/location/direccion_guardada.html
+msgid ""
+"The screen you added it from has reloaded its address lists: choose it there "
+"for the products that go to it."
+msgstr ""
+"La pantalla desde la que la agregaste ya recargó sus listas de direcciones: "
+"elegila ahí en los productos que van a esa dirección."
+
+#: support/templates/location/direccion_guardada.html
+msgid "This tab closes on its own."
+msgstr "Esta pestaña se cierra sola."
+
+#: support/templates/location/direccion_guardada.html
+msgid "You can close this tab now."
+msgstr "Ya podés cerrar esta pestaña."
+
+#: support/templates/location/direccion_guardada.html
+msgid ""
+"Go back to the screen you added it from: it reloads its address lists when "
+"you get back to it."
+msgstr ""
+"Volvé a la pantalla desde la que la agregaste: recarga sus listas de "
+"direcciones cuando volvés a ella."
+
+#: support/templates/location/direccion_guardada.html
+msgid "Add another address"
+msgstr "Agregar otra dirección"

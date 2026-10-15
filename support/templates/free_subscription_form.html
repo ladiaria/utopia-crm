@@ -14,6 +14,7 @@
 {% block extra_js %}
 <script type="text/javascript" src="{% static 'js/datepicker-es.js' %}"></script>
 <script type="text/javascript" src="{% static 'js/product_dynamic_prices.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/new_address.js' %}"></script>
 <script type="text/javascript">
   $(function () {
     $(".datepicker").datepicker({
@@ -23,32 +24,6 @@
     function handleFormError() {
       console.log("error");
     };
-
-    $('#fetch-button').click(function () {
-      // Send an AJAX request to the Django view
-      $.ajax({
-        url: '{% url "api_get_addresses" contact.id %}',
-        method: 'POST',
-        dataType: 'json',
-        success: function (data) {
-          // Clear previous options and populate the HTML selects
-          $('.address_selector').each(function () {
-            var addressSelect = $(this);
-            var selectedValue = addressSelect.val();
-            addressSelect.empty();
-            addressSelect.append($('<option>').text('{% trans "Choose an address" %}').val(''));
-            $.each(data, function (index, item) {
-              var option = $('<option>').text(item.text).val(item.value);
-              if (item.value == selectedValue) {
-                option.prop('selected', true);
-              }
-              addressSelect.append(option);
-            });
-          });
-          activateSend(); // The newly loaded addresses may unblock the form
-        }
-      });
-    });
 
     function activateSend() {
       var disable = false;
@@ -181,11 +156,7 @@
       <h5 class="mb-3">{% trans "Products and Addresses" %}</h5>
 
       <div class="form-group mb-3">
-        <a href="{% url 'agregar_direccion' contact.id %}?stayhere=True" id="add_address" class="btn btn-success btn-sm"
-          target="_blank"><i class="fas fa-plus"></i> {% trans "New address" %}</a>
-        <button type="button" class="btn btn-success btn-sm" id="fetch-button">
-          <i class="fas fa-sync-alt"></i> {% trans "Reload addresses" %}
-        </button>
+        {% include "new_address_link.html" with link_class="btn btn-success btn-sm" %}
       </div>
 
       <div class="mt-3">
@@ -260,7 +231,7 @@
 
       <div class="form-group d-flex justify-content-end align-items-center">
         <small id="address_warning" class="text-danger mr-3 d-none">
-          {% trans "The products delivered on paper need an address: choose one, or add one to the contact and reload the addresses." %}
+          {% trans "The products delivered on paper need an address: choose one, or add one to the contact." %}
         </small>
         <a href="{% url 'contact_detail' contact.id %}" class="btn btn-secondary mr-2">{% trans "Cancel" %}</a>
         <input type="submit" name="result" id="send_form" value="{% if is_update %}{% trans "Update" %}{% else %}{% trans "Create" %}{% endif %}" class="btn btn-primary">

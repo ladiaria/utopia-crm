@@ -4,6 +4,7 @@
 {% block title %}{% trans "Book product change" %}{% endblock title %}
 
 {% block extra_js %}
+<script type="text/javascript" src="{% static 'js/new_address.js' %}"></script>
 <script type="text/javascript">
   document.addEventListener('DOMContentLoaded', () => {
     const formElement = document.getElementById('form-product-change');
