@@ -12715,3 +12715,7 @@ msgstr "El contacto ya tenía esta dirección, elegila en las listas de direccio
 #: support/views/all_views.py support/views/scheduled_tasks.py
 msgid "The contact already had this address: that one was used."
 msgstr "El contacto ya tenía esta dirección: se usó esa."
+
+#: core/models.py
+msgid "An address can't be merged into itself."
+msgstr "No se puede combinar una dirección consigo misma."

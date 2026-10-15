@@ -1543,68 +1543,77 @@ class Address(models.Model):
         Returns:
             list: List of errors encountered during merge, empty if successful.
         """
+        if source.pk == self.pk:
+            return [_("An address can't be merged into itself.")]
         errors = []
         try:
-            # Update fields with provided overrides
-            if address_1 is not None:
-                self.address_1 = address_1.strip() if address_1 else None
-            if address_2 is not None:
-                self.address_2 = address_2.strip() if address_2 else None
-            if city is not None:
-                self.city = city.strip() if city else None
-            if email is not None:
-                self.email = email.strip() if email else None
-            if address_type is not None:
-                self.address_type = address_type
-            if name is not None:
-                self.name = name.strip() if name else None
-            if default is not None:
-                self.default = default
-            if google_maps_url is not None:
-                self.google_maps_url = google_maps_url.strip() if google_maps_url else None
+            # One transaction: an error halfway leaves both addresses as they were
+            with transaction.atomic():
+                # Update fields with provided overrides
+                if address_1 is not None:
+                    self.address_1 = address_1.strip() if address_1 else None
+                if address_2 is not None:
+                    self.address_2 = address_2.strip() if address_2 else None
+                if city is not None:
+                    self.city = city.strip() if city else None
+                if email is not None:
+                    self.email = email.strip() if email else None
+                if address_type is not None:
+                    self.address_type = address_type
+                if name is not None:
+                    self.name = name.strip() if name else None
+                if default is not None:
+                    self.default = default
+                elif source.default:
+                    # The default mark goes with the merge, or the contact would be left with no default address
+                    self.default = True
+                if google_maps_url is not None:
+                    self.google_maps_url = google_maps_url.strip() if google_maps_url else None
 
-            # Handle FK fields
-            if state_id is not None:
-                self.state_id = state_id if state_id else None
-            if country_id is not None:
-                self.country_id = country_id if country_id else None
-            if city_fk_id is not None:
-                self.city_fk_id = city_fk_id if city_fk_id else None
+                # Handle FK fields
+                if state_id is not None:
+                    self.state_id = state_id if state_id else None
+                if country_id is not None:
+                    self.country_id = country_id if country_id else None
+                if city_fk_id is not None:
+                    self.city_fk_id = city_fk_id if city_fk_id else None
 
-            # Handle georef data
-            if latitude is not None:
-                self.latitude = latitude
-            if longitude is not None:
-                self.longitude = longitude
+                # Handle georef data
+                if latitude is not None:
+                    self.latitude = latitude
+                if longitude is not None:
+                    self.longitude = longitude
 
-            # Merge notes
-            if notes is not None:
-                self.notes = notes
-            else:
-                # Append source notes if not overridden
-                merge_note = f"Merged from address {source.id} on {date.today()}"
-                if self.notes:
-                    self.notes = f"{merge_note}\n{self.notes}"
+                # Merge notes
+                if notes is not None:
+                    self.notes = notes
                 else:
-                    self.notes = merge_note
+                    # Append source notes if not overridden
+                    merge_note = f"Merged from address {source.id} on {date.today()}"
+                    if self.notes:
+                        self.notes = f"{merge_note}\n{self.notes}"
+                    else:
+                        self.notes = merge_note
 
-                if source.notes:
-                    self.notes += f"\n\nNotes from address {source.id}:\n{source.notes}"
+                    if source.notes:
+                        self.notes += f"\n\nNotes from address {source.id}:\n{source.notes}"
 
-            self.save()
+                self.save()
 
-            # Transfer all related objects from source to target
-            # SubscriptionProducts
-            source.subscriptionproduct_set.update(address=self)
+                # Transfer all related objects from source to target. Every FK to Address has to be here: the
+                # product and billing ones are SET_NULL (a subscription silently left with no address), the issue and
+                # scheduled task ones are CASCADE (deleted along with the source).
+                source.subscriptionproduct_set.update(address=self)
+                Subscription.objects.filter(billing_address=source).update(billing_address=self)
+                source.issue_set.update(address=self)
+                source.scheduledtask_set.update(address=self)
 
-            # Issues
-            source.issue_set.update(address=self)
-
-            # ScheduledTasks
-            source.scheduledtask_set.update(address=self)
-
-            # Delete the source address
-            source.delete()
+                # Delete the source address. Without its default mark first: deleting a default address tells the web
+                # the contact has no address, and this one already took the mark.
+                if source.default:
+                    Address.objects.filter(pk=source.pk).update(default=False)
+                    source.default = False
+                source.delete()
 
         except Exception as e:
             errors.append(str(e))
