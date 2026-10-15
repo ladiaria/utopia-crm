@@ -1440,6 +1440,69 @@ class Address(models.Model):
     def get_city(self):
         return self.city_fk.name if self.city_fk else self.city
 
+    def get_option_label(self):
+        """
+        How the address reads in a list to choose from: street, second line, city and state. The second line is there
+        to help the agent tell which address is which.
+        """
+        return ", ".join(filter(None, (self.address_1, self.address_2, self.get_city(), self.state_name)))
+
+    @staticmethod
+    def same_place_key(address_1, city, state_id):
+        """
+        What two addresses of a contact must share to be the same one: street, city and state, with no regard for case
+        or repeated spaces. The second line doesn't count: it holds complementary information (the cross streets, how
+        to find the door), and the same address loaded twice rarely carries the same words there. The apartment goes
+        in the street line. Nothing looser than this: telling apart two neighbours is not a call to make on
+        resemblance.
+        """
+
+        def clean(value):
+            return " ".join((value or "").split()).lower()
+
+        return clean(address_1), clean(city), state_id
+
+    @classmethod
+    def find_same(cls, contact, address_1, city, state):
+        """
+        The contact's address that is the same one as these values (see same_place_key), or None. Among several, the
+        verified one goes first, then the oldest.
+        """
+        if contact is None:
+            return None
+        key = cls.same_place_key(address_1, city, state.id if state else None)
+        same = [
+            address
+            for address in cls.objects.filter(contact=contact)
+            if cls.same_place_key(address.address_1, address.city, address.state_id) == key
+        ]
+        same.sort(key=lambda address: (not address.verified, address.id))
+        return same[0] if same else None
+
+    @classmethod
+    def find_same_or_create(cls, contact, address_1, address_2, city, state, notes=None):
+        """
+        For the forms where an agent types a new address in passing (an issue, a scheduled address change): the
+        contact's same address if it has one (see find_same), else a new one. Returns (address, created).
+
+        What was typed is not lost on the address used: the second line fills it if it had none, and the notes are
+        added to its own.
+        """
+        address = cls.find_same(contact, address_1, city, state)
+        if address is None:
+            address = cls.objects.create(
+                contact=contact, address_1=address_1, address_2=address_2, city=city, state=state, notes=notes
+            )
+            return address, True
+        changed = False
+        if address_2 and not address.address_2:
+            address.address_2, changed = address_2, True
+        if notes and notes not in (address.notes or ""):
+            address.notes, changed = f"{address.notes}\n{notes}" if address.notes else notes, True
+        if changed:
+            address.save()
+        return address, False
+
     def merge_other_address_into_this(
         self,
         source: "Address",

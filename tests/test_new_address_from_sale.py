@@ -56,7 +56,7 @@ class TestAddAddressFromSale(NewAddressTestCase):
         address = Address.objects.create(contact=self.contact, address_1="Street 10", city="Montevideo")
         response = self.client.get(reverse("direccion_guardada", args=[self.contact.id, address.id]))
         self.assertContains(response, "js/new_address.js")
-        self.assertContains(response, "announceNewAddress(%d, %d)" % (self.contact.id, address.id))
+        self.assertContains(response, "announceNewAddress(%d, %d, false)" % (self.contact.id, address.id))
 
     def test_the_saved_page_only_shows_addresses_of_the_contact(self):
         other = create_contact(name="Other", phone="099111998")

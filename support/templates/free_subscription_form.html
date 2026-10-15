@@ -188,7 +188,7 @@
                     {% for address in contact_addresses %}
                       <option value="{{ address.id }}"
                               {% if sp and sp.address_id == address.id or not sp and suggested_address.id == address.id %}selected="selected"{% endif %}>
-                        {{ address.address_1|default_if_none:"" }} {{ address.city|default_if_none:"" }} {{ address.state_name|default_if_none:"" }}
+                        {{ address.get_option_label }}
                       </option>
                     {% endfor %}
                   </select>
