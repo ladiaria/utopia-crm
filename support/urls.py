@@ -231,6 +231,11 @@ urlpatterns = [
     ),
     path("contacts/<int:contact_id>/agregar_direccion/", location.agregar_direccion, name="agregar_direccion"),
     path(
+        "contacts/<int:contact_id>/direccion_guardada/<int:address_id>/",
+        location.direccion_guardada,
+        name="direccion_guardada",
+    ),
+    path(
         "contacts/<int:contact_id>/editar_direccion/<int:address_id>/",
         location.editar_direccion,
         name="editar_direccion",

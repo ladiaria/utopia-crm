@@ -30,6 +30,9 @@ def normalizar_direccion(request, contact_id, address_id):
     contact_obj = get_object_or_404(Contact, pk=contact_id)
     old_address_1 = address_obj.address_1
     form_rechazado = None
+    # Venimos de "Nueva dirección" en una venta: la dirección ya existe, así que al terminar acá se avisa a esa
+    # pantalla en vez de mandar a la ficha del contacto.
+    stayhere = bool(request.GET.get("stayhere", None))
     if request.POST:
         form_nuevo = SugerenciaGeorefForm(request.POST, instance=address_obj)
         if form_nuevo.is_valid():
@@ -48,6 +51,8 @@ def normalizar_direccion(request, contact_id, address_id):
                 messages.error(request, "Dirección no cuenta con los valores correctos de georreferenciación.")
             if request.GET.get("goback", None) == "mass_georef":
                 return HttpResponseRedirect(reverse("mass_georef_address"))
+            elif stayhere:
+                return HttpResponseRedirect(reverse("direccion_guardada", args=[contact_id, address_id]))
             else:
                 return HttpResponseRedirect(reverse("normalizar_direccion", args=[contact_id, address_id]))
         else:
@@ -61,6 +66,9 @@ def normalizar_direccion(request, contact_id, address_id):
         messages.error(request, "No hay sugerencias encontradas para esta dirección")
         if request.GET.get("goback", None) == "mass_georef":
             return HttpResponseRedirect(reverse("mass_georef_address"))
+        elif stayhere:
+            # Quedó guardada sin georreferenciar: la venta igual tiene que verla, o se carga de nuevo
+            return HttpResponseRedirect(reverse("direccion_guardada", args=[contact_id, address_id]))
         else:
             return HttpResponseRedirect(reverse("contact_detail", args=[contact_id]))
     direccion, id_calle = sugerencia['direccion'], sugerencia["idCalle"]
@@ -116,6 +124,7 @@ def normalizar_direccion(request, contact_id, address_id):
             "sugindex": sugindex,
             "lat": lat,
             "lng": lng,
+            "stayhere": stayhere,
             "breadcrumbs": breadcrumbs,
         },
     )
@@ -136,8 +145,8 @@ def agregar_direccion(request, contact_id):
                 address.contact = contact_obj
                 address.save()
                 messages.success(request, "Dirección georreferenciada guardada con éxito")
-                if request.GET.get("stayhere", None):
-                    return HttpResponseRedirect(reverse("agregar_direccion", args=[contact_id]))
+                if stayhere:
+                    return HttpResponseRedirect(reverse("direccion_guardada", args=[contact_id, address.id]))
                 else:
                     return HttpResponseRedirect(reverse("contact_detail", args=[contact_id]))
         elif request.POST.get("save_needs_georef", False):
@@ -148,7 +157,7 @@ def agregar_direccion(request, contact_id):
                 address.reset_georef()  # Ya cuenta con save
                 messages.warning(request, "Dirección guardada con éxito sin georeferenciación")
                 if stayhere:
-                    return HttpResponseRedirect(reverse("agregar_direccion", args=[contact_id]) + stayhere)
+                    return HttpResponseRedirect(reverse("direccion_guardada", args=[contact_id, address.id]))
                 else:
                     return HttpResponseRedirect(reverse("contact_detail", args=[contact_id]))
         elif request.POST.get("no_encuentro_direccion", False):
@@ -165,7 +174,7 @@ def agregar_direccion(request, contact_id):
             j = seleccionar_sugerencia(direccion, id_calle, id_localidad, id_portal)
             if not j or "departamento" not in j or not j["departamento"]:
                 messages.error(request, "El departamento de la dirección sugerida no es válido o está vacío.")
-                return HttpResponseRedirect(reverse("agregar_direccion", args=[contact_id]))
+                return HttpResponseRedirect(reverse("agregar_direccion", args=[contact_id]) + stayhere)
             state_name_slug = slugify(j["departamento"].title())
             try:
                 state_obj = next(
@@ -174,7 +183,7 @@ def agregar_direccion(request, contact_id):
                 )
             except StopIteration:
                 messages.error(request, f"No se encontró un departamento coincidente para '{j['departamento']}'.")
-                return HttpResponseRedirect(reverse("agregar_direccion", args=[contact_id]))
+                return HttpResponseRedirect(reverse("agregar_direccion", args=[contact_id]) + stayhere)
             form = SugerenciaGeorefForm(
                 initial={
                     "address_1": j["direccion"],
@@ -214,6 +223,29 @@ def agregar_direccion(request, contact_id):
             "q_sugerencia": q_sugerencia,
             "breadcrumbs": breadcrumbs,
         },
+    )
+
+
+@staff_member_required
+def direccion_guardada(request, contact_id, address_id):
+    """
+    Where "Nueva dirección" ends when it was opened from a sale (``?stayhere=True``). The page tells the sale's
+    window that the contact has a new address, so it reloads its address selectors on its own, and closes itself.
+
+    Before, the window went back to an empty "Nueva dirección" form and the sale only saw the address after pressing
+    "Recargar direcciones". Whoever did not press it took the address for lost and loaded it again.
+    """
+    contact_obj = get_object_or_404(Contact, pk=contact_id)
+    address_obj = get_object_or_404(Address, pk=address_id, contact=contact_obj)
+    breadcrumbs = [
+        {"label": _("Contact list"), "url": reverse("contact_list")},
+        {"label": contact_obj.get_full_name(), "url": reverse("contact_detail", args=[contact_id])},
+        {"label": _("Add address"), "url": ""},
+    ]
+    return render(
+        request,
+        "location/direccion_guardada.html",
+        {"contact": contact_obj, "address": address_obj, "breadcrumbs": breadcrumbs},
     )
 
 
