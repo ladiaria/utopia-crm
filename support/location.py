@@ -153,9 +153,7 @@ def agregar_direccion(request, contact_id):
         if form.is_valid():
             if not guardar_igual:
                 datos = form.cleaned_data
-                repetida = Address.find_same(
-                    contact_obj, datos.get("address_1"), datos.get("address_2"), datos.get("city"), datos.get("state")
-                )
+                repetida = Address.find_same(contact_obj, datos.get("address_1"), datos.get("city"), datos.get("state"))
             if repetida is None:
                 address = form.save(commit=False)
                 address.contact = contact_obj
