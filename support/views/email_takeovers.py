@@ -147,9 +147,17 @@ class EmailTakeoverOnDemandView(LoginRequiredMixin, PermissionRequiredMixin, Bre
             return self.form_invalid(form)
 
         if self.request.POST.get("action") != "execute":
-            # First pass: show what would happen and let them decide.
+            # First pass: show what would happen and let them decide. The unsaved request is only there to split
+            # the cascade into what moves and what is lost, the same way the queue does.
+            detail = preview.get("detail") or {}
             return self.render_to_response(
-                self.get_context_data(form=form, preview=preview.get("detail") or {}, contact=contact, email=email)
+                self.get_context_data(
+                    form=form,
+                    preview=detail,
+                    preview_request=EmailTakeoverRequest(preview_detail=detail),
+                    contact=contact,
+                    email=email,
+                )
             )
 
         takeover_request = enqueue_takeover(

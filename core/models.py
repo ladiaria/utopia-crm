@@ -3855,9 +3855,11 @@ class EmailTakeoverRequest(models.Model):
     # "what would deleting this account destroy", and it is computed BEFORE the move -- so without
     # this split the reviewer reads "newsletters: 2" under a heading that says deleted, and
     # concludes the person loses them. They do not: they are merged into the kept account.
-    # Se mantiene a mano contra `move_data()` del CMS, que vive en el otro repo: cada modelo que
-    # se agregue alla hay que agregarlo aca, o la pantalla le dice al supervisor que se pierde algo
-    # que en realidad se muda. Paso con `midarticlenoticestate` y no lo detecto ninguna prueba.
+    # El CMS manda la lista de lo que mueve en el preview (`cascade_moves`), y cuando viene manda
+    # ella. Esta copia a mano es sólo el respaldo para las solicitudes guardadas antes de que el
+    # CMS la mandara: se desfasaba con cada modelo que el CMS volvía movible (pasó con
+    # `midarticlenoticestate` y después con ocho más), y la pantalla le decía al supervisor que se
+    # perdía algo que en realidad se muda.
     MOVED_ON_TAKEOVER = (
         "subscriber_newsletters",
         "subscriber_category_newsletters",
@@ -3872,18 +3874,24 @@ class EmailTakeoverRequest(models.Model):
         # descarta. Va igual de este lado: es lo mismo que pasa con las lecturas o los follows
         # repetidos, y el titulo se lee como "lo que se intenta mover".
         "midarticlenoticestate",
+        "sentmail",
+        "noticesetting",
+        "userreaderid",
     )
 
     def _split_cascade(self):
         """(moved, gone) from the stored cascade inventory. `User` and `Subscriber` are the account
         rows themselves, so they are neither: they are what the takeover deletes on purpose."""
-        cascade = (self.preview_detail or {}).get("cascade_would_delete") or {}
+        detail = self.preview_detail or {}
+        cascade = detail.get("cascade_would_delete") or {}
+        cms_moves = detail.get("cascade_moves")
         # When the surviving account is the contact's own (the call center case, the one that
         # leaves a contact without a web account), the CMS moves over the Google login of the
         # claimed address: that account ends up carrying exactly that email, so the binding stays
         # consistent and the person keeps signing in with Google. Listing it as lost there would
         # tell the reviewer the opposite of what happens.
-        moved_models = self.MOVED_ON_TAKEOVER + (("usersocialauth",) if self.released_contact_id else ())
+        moved_models = tuple(m.lower() for m in cms_moves) if cms_moves is not None else self.MOVED_ON_TAKEOVER
+        moved_models += ("usersocialauth",) if self.released_contact_id else ()
         moved, gone = {}, {}
         for model, amount in cascade.items():
             key = model.lower()
