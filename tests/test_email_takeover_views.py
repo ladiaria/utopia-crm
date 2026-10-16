@@ -126,6 +126,27 @@ class TestEmailTakeoverViews(TestCase):
         # solo preview, y con la politica del call center (ver preview_takeover)
         mock_cms.assert_called_once_with(self.contact.id, EMAIL, confirm=False, keep_subscription=True)
 
+    @mock.patch("core.email_takeover_queue.emailTakeoverOnWeb")
+    def test_a_demanda_separa_lo_que_se_muda_de_lo_que_se_pierde(self, mock_cms):
+        """Igual que la cola: el supervisor no tiene que leer como borrado algo que se muda."""
+        detail = dict(
+            PREVIEW,
+            cascade_would_delete={"User": 1, "PromoTelefono": 1, "Contribution": 2},
+            cascade_moves=["PromoTelefono"],
+        )
+        mock_cms.return_value = {"msg": "OK", "retval": 1, "detail": detail}
+        self.client.force_login(self.reviewer)
+        requests_before = EmailTakeoverRequest.objects.count()
+
+        response = self.client.post(
+            reverse("email_takeover_on_demand"), {"contact": self.contact.id, "email": EMAIL}
+        )
+
+        self.assertEqual(response.context["preview_request"].cascade_moved, {"PromoTelefono": 1})
+        self.assertEqual(response.context["preview_request"].cascade_lost, {"Contribution": 2})
+        # la solicitud del preview es sólo para separar la cascada: no se guarda
+        self.assertEqual(EmailTakeoverRequest.objects.count(), requests_before)
+
     @mock.patch("core.models.validateEmailOnWeb")
     @mock.patch("core.email_takeover_queue.emailTakeoverOnWeb")
     def test_a_demanda_ejecuta_y_deja_rastro(self, mock_cms, mock_validate):
