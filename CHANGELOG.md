@@ -2,6 +2,14 @@
 
 ## v0.5.1
 
+## 2026-10-20 — gl45-whatsapp-callcenter Punto de extensión para sumar acciones de venta en la consola del vendedor
+
+- **La consola del vendedor tiene un punto de extensión vacío en la columna "Acciones de Venta"**, debajo de Vender / Enviar promo y antes de Programar. Un paquete de customización puede sumar botones propios ahí sin copiar la plantilla
+- Los botones de resultado de la llamada ya no están adentro del formulario de la consola, para que lo que se agregue pueda tener sus propios formularios (HTML no permite anidarlos). Siguen funcionando igual: mandan el formulario por JavaScript, y la fecha y la hora de Programar se le asocian con el atributo `form`
+- Sin un paquete que lo use, la consola se ve exactamente igual que antes
+- Deployment: **no se requieren migraciones** ni recompilar traducciones (no hay textos nuevos)
+- **Author:** Tanya Tree + Claude Opus 5.5
+
 ## 2026-10-08 — gl21-contact-detail-extra-tabs Puntos de extensión para sumar pestañas a la ficha del contacto
 
 - **La ficha del contacto tiene ahora dos puntos de extensión vacíos**: uno para agregar pestañas a la barra y otro para agregar sus paneles. Un paquete de customización puede sumar pestañas propias sin tocar el base ni copiar la plantilla entera
