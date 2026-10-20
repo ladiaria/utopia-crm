@@ -59,7 +59,6 @@ from support.forms import (
 from support.location import SugerenciaGeorefForm
 from support.models import SalesRecord
 from util.dates import add_business_days
-from util.location_utils import georef_habilitado
 
 
 class SubscriptionMixin(BreadcrumbsMixin):
@@ -357,7 +356,6 @@ class SubscriptionCreateView(UserPassesTestMixin, SubscriptionMixin, FormView):
                 "other_active_normal_subscriptions": Subscription.objects.filter(
                     contact=self.contact, active=True, type="N"
                 ),
-                "georef_activated": georef_habilitado(),
                 "address_form": SugerenciaGeorefForm(),
                 "dnc_phone": self.contact.do_not_call_phone(),
                 "dnc_mobile": self.contact.do_not_call_mobile(),
@@ -416,7 +414,6 @@ class SubscriptionUpdateView(SubscriptionMixin, FormView):
                 "other_active_normal_subscriptions": Subscription.objects.filter(
                     contact=self.contact, active=True, type="N"
                 ),
-                "georef_activated": georef_habilitado(),
                 "address_form": SugerenciaGeorefForm(),
             }
         )
