@@ -41,12 +41,12 @@
             {% if contact.phone %}
               {% if contact.do_not_call_phone %}
                 <span class="text-danger">
-                  <a href="tel:{{ contact.phone }}" class="text-danger">{{ contact.phone.as_national }}</a>
+                  <a href="tel:{{ contact.phone }}" class="text-danger">{{ contact.phone|phone_display }}</a>
                   <i class="fas fa-times-circle ml-1" title="{% trans "Number in do not call list" %}"></i>
                   <small>{% trans "Number in do not call list" %}</small>
                 </span>
               {% else %}
-                <a href="tel:{{ contact.phone }}">{{ contact.phone.as_national }}</a>
+                <a href="tel:{{ contact.phone }}">{{ contact.phone|phone_display }}</a>
               {% endif %}
             {% else %}
               -
@@ -57,12 +57,12 @@
               <i class="fas fa-mobile-alt text-success"></i> <strong>{% trans "Mobile" %}:</strong>
               {% if contact.do_not_call_mobile %}
                 <span class="text-danger">
-                  <a href="tel:{{ contact.mobile }}" class="text-danger">{{ contact.mobile.as_national }}</a>
+                  <a href="tel:{{ contact.mobile }}" class="text-danger">{{ contact.mobile|phone_display }}</a>
                   <i class="fas fa-times-circle ml-1" title="{% trans "Number in do not call list" %}"></i>
                   <small>{% trans "Number in do not call list" %}</small>
                 </span>
               {% else %}
-                <a href="tel:{{ contact.mobile }}">{{ contact.mobile.as_national }}</a>
+                <a href="tel:{{ contact.mobile }}">{{ contact.mobile|phone_display }}</a>
               {% endif %}
             </div>
           {% endif %}

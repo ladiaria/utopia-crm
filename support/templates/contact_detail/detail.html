@@ -1,5 +1,9 @@
 {% extends "adminlte/base.html" %}
 {% load static i18n core_tags %}
+{% block stylesheets %}
+  {{ block.super }}
+  <link rel="stylesheet" href="{% static 'admin-lte/plugins/flag-icon-css/css/flag-icon.min.css' %}">
+{% endblock stylesheets %}
 {% block extra_js %}
   <script type="text/javascript">
     document.addEventListener("DOMContentLoaded", () => {
