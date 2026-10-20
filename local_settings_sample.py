@@ -91,6 +91,9 @@ MERCADOPAGO_ENABLED = False  # Override to True to enable Mercado Pago
 # MERCADOPAGO_ERRORS_RECIPIENTS = ["comercial@example.com"]
 # Recipients for MercadoPago new-subscription errors (t1156): full exception + traceback + MP data
 # MERCADOPAGO_SUBSCRIPTION_ERRORS_RECIPIENTS = ["soporte@example.com"]
+# Recipients for pending address changes left without an address because it was deleted (support.ScheduledTask)
+# SCHEDULED_TASK_NOTIFY_RECIPIENTS = ["logistics@example.com"]
+# SCHEDULED_TASK_NOTIFY_BASE_URL = "https://crm.example.com"
 
 # =============================================================================
 # Error reporting: ADMINS + Sentry

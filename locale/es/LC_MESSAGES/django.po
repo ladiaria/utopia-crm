@@ -12719,3 +12719,27 @@ msgstr "El contacto ya tenía esta dirección: se usó esa."
 #: core/models.py
 msgid "An address can't be merged into itself."
 msgstr "No se puede combinar una dirección consigo misma."
+
+#: support/models.py
+msgid "Address change {id} has no address: its address was deleted."
+msgstr "El cambio de dirección {id} no tiene dirección: la borraron."
+
+#: support/signals.py
+msgid "Pending address change left without an address: %(name)s (%(id)s)"
+msgstr "Cambio de dirección pendiente sin dirección: %(name)s (%(id)s)"
+
+#: support/signals.py
+msgid "Deleted address: %(address)s"
+msgstr "Dirección borrada: %(address)s"
+
+#: support/signals.py
+msgid "These address changes were pending and pointed to it:"
+msgstr "Estos cambios de dirección estaban pendientes y la usaban:"
+
+#: support/signals.py
+msgid ""
+"They will not be executed until they have an address: the products keep the "
+"one they have now. Give them a new address or delete them."
+msgstr ""
+"No se van a ejecutar hasta que tengan una dirección: los productos siguen con "
+"la que tienen ahora. Poneles una dirección nueva o borralos."
