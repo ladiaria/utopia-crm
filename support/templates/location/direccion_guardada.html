@@ -1,0 +1,60 @@
+{% extends "adminlte/base.html" %}
+{% load static i18n %}
+{% block extra_js %}
+  <script src="{% static 'js/new_address.js' %}"></script>
+  <script>
+    $(function () {
+      // The sale's window reloads its address lists as soon as it hears this
+      if (!announceNewAddress({{ contact.id }}, {{ address.id }}, {{ ya_existia|yesno:'true,false' }})) {
+        $("#no_broadcast").removeClass("d-none");
+        return;
+      }
+      $("#announced").removeClass("d-none");
+      setTimeout(function () {
+        // A browser only lets a script close a window a script opened: if it is still here, say so
+        window.close();
+        $("#closing").addClass("d-none");
+        $("#close_by_hand").removeClass("d-none");
+      }, 2500);
+    });
+  </script>
+{% endblock extra_js %}
+{% block title %}
+  {% if ya_existia %}
+    {% trans "The contact already had this address" %}
+  {% else %}
+    {% trans "Address saved" %}
+  {% endif %}
+{% endblock title %}
+{% block no_heading %}
+  <h1>
+    {% if ya_existia %}
+      {% trans "The contact already had this address" %}
+    {% else %}
+      {% trans "Address saved" %}
+    {% endif %}
+  </h1>
+{% endblock no_heading %}
+{% block content %}
+  <div class="card card-success card-outline">
+    <div class="card-body">
+      <p class="lead mb-3">
+        <i class="fas fa-map-marker-alt text-success"></i> {{ address.get_option_label }}
+      </p>
+      <div id="announced" class="d-none">
+        <p>
+          {% trans "The screen you came from has reloaded its address lists: choose it there for the products that go to it." %}
+        </p>
+        <p id="closing" class="text-muted">
+          <i class="fas fa-spinner fa-spin"></i> {% trans "This tab closes on its own." %}
+        </p>
+        <p id="close_by_hand" class="text-muted d-none">{% trans "You can close this tab now." %}</p>
+      </div>
+      <p id="no_broadcast" class="d-none">
+        {% trans "Go back to the screen you came from: it reloads its address lists when you get back to it." %}
+      </p>
+      <a href="{% url 'agregar_direccion' contact.id %}?stayhere=True"
+         class="btn btn-outline-success btn-sm"><i class="fas fa-plus"></i> {% trans "Add another address" %}</a>
+    </div>
+  </div>
+{% endblock content %}

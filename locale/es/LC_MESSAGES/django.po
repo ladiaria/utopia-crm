@@ -12611,3 +12611,111 @@ msgstr "Tu contraseña debe contener al menos 1 letra minúscula, a-z."
 #: core/utils.py
 msgid "Invalid number of copies: %s"
 msgstr "Cantidad de ejemplares inválida: %s"
+
+msgctxt "campaign"
+msgid "Active"
+msgstr "Activa"
+
+msgctxt "campaign"
+msgid "Inactive"
+msgstr "Inactiva"
+
+msgid "No campaigns found"
+msgstr "No se encontraron campañas"
+
+#: support/templates/new_product_address.html
+msgid "Choose an address"
+msgstr "— Elegir dirección —"
+
+#: support/templates/book_additional_product.html
+#: support/templates/book_product_change.html
+msgid "The products delivered on paper need an address."
+msgstr "Los productos en papel necesitan una dirección."
+
+#: support/templates/new_product_address.html
+msgid "This contact has no addresses: add one before booking a product delivered on paper."
+msgstr "El contacto no tiene direcciones: agregale una antes de agendar un producto en papel."
+
+#: support/templates/free_subscription_form.html
+msgid ""
+"The products delivered on paper need an address: choose one, or add one to "
+"the contact."
+msgstr ""
+"Los productos en papel necesitan una dirección: elegí una, o agregale una al "
+"contacto."
+
+#: support/views/subscriptions.py
+msgid "Choose at least one product."
+msgstr "Elegí al menos un producto."
+
+#: support/templates/location/sugerencias_htmx.html
+msgid ""
+"The georeferencing service is not responding. Check the manual option above "
+"to save the address without georeferencing."
+msgstr ""
+"El servicio de georreferenciación no responde. Marcá la opción de carga "
+"manual de arriba para guardar la dirección sin georreferenciación."
+
+#: support/templates/new_address_link.html
+msgid "Address added to the address lists:"
+msgstr "Dirección agregada a las listas de direcciones:"
+
+#: support/templates/location/direccion_guardada.html
+msgid "Address saved"
+msgstr "Dirección guardada"
+
+#: support/templates/location/direccion_guardada.html
+msgid ""
+"The screen you came from has reloaded its address lists: choose it there for "
+"the products that go to it."
+msgstr ""
+"La pantalla de la que viniste ya recargó sus listas de direcciones: elegila "
+"ahí en los productos que van a esa dirección."
+
+#: support/templates/location/direccion_guardada.html
+msgid "This tab closes on its own."
+msgstr "Esta pestaña se cierra sola."
+
+#: support/templates/location/direccion_guardada.html
+msgid "You can close this tab now."
+msgstr "Ya podés cerrar esta pestaña."
+
+#: support/templates/location/direccion_guardada.html
+msgid ""
+"Go back to the screen you came from: it reloads its address lists when you "
+"get back to it."
+msgstr ""
+"Volvé a la pantalla de la que viniste: recarga sus listas de direcciones "
+"cuando volvés a ella."
+
+#: support/templates/location/direccion_guardada.html
+msgid "Add another address"
+msgstr "Agregar otra dirección"
+
+#: support/templates/location/agregar_direccion.html
+msgid "The contact already has this address:"
+msgstr "El contacto ya tiene esta dirección:"
+
+#: support/templates/location/agregar_direccion.html
+msgid "Use the one it has"
+msgstr "Usar la que ya tiene"
+
+#: support/templates/location/agregar_direccion.html
+msgid "Save it again anyway"
+msgstr "Guardarla igual"
+
+#: support/templates/location/direccion_guardada.html
+msgid "The contact already had this address"
+msgstr "El contacto ya tenía esta dirección"
+
+#: support/templates/new_address_link.html
+msgid "The contact already had this address, choose it in the address lists:"
+msgstr "El contacto ya tenía esta dirección, elegila en las listas de direcciones:"
+
+#: support/views/all_views.py support/views/scheduled_tasks.py
+msgid "The contact already had this address: that one was used."
+msgstr "El contacto ya tenía esta dirección: se usó esa."
+
+#: core/models.py
+msgid "An address can't be merged into itself."
+msgstr "No se puede combinar una dirección consigo misma."

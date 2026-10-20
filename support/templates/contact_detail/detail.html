@@ -165,6 +165,8 @@
                     {% block whatsapp_messages_count %}{% endblock %}
                   </a>
                 </li>
+                {% comment %}Extension point: extra <li class="nav-item"> tabs, each paired with a pane in extra_tab_panes{% endcomment %}
+                {% block extra_tabs %}{% endblock extra_tabs %}
                 <li class="nav-item">
                   <a class="text-light nav-link {% if contact.expired_invoices_count > 0 %}btn-danger{% else %}btn-success{% endif %}"
                      href="#invoices"
@@ -206,6 +208,8 @@
                 <div class="tab-pane" id="whatsapp_messages">{% include "contact_detail/tabs/_whatsapp_messages.html" %}</div>
                 <!-- Tab invoices -->
                 <div class="tab-pane" id="invoices">{% include "contact_detail/tabs/_invoices.html" %}</div>
+                {% comment %}Extension point: the <div class="tab-pane"> for each tab added in extra_tabs{% endcomment %}
+                {% block extra_tab_panes %}{% endblock extra_tab_panes %}
               </div>
             </div>
           </div>

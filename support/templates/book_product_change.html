@@ -4,9 +4,20 @@
 {% block title %}{% trans "Book product change" %}{% endblock title %}
 
 {% block extra_js %}
+<script type="text/javascript" src="{% static 'js/new_address.js' %}"></script>
 <script type="text/javascript">
   document.addEventListener('DOMContentLoaded', () => {
     const formElement = document.getElementById('form-product-change');
+
+    // The address selector of a paper product is shown only while the product is checked
+    document.querySelectorAll('.enable-product').forEach((checkbox) => {
+      checkbox.addEventListener('change', () => {
+        const addressDiv = document.getElementById('new_product_address-' + checkbox.value);
+        if (addressDiv) {
+          addressDiv.classList.toggle('d-none', !checkbox.checked);
+        }
+      });
+    });
 
     formElement.addEventListener('submit', (event) => {
       event.preventDefault();
@@ -17,6 +28,14 @@
       if (!hasDisabledProducts || !hasEnabledProducts) {
         alert("Selecciona productos para activar y desactivar");
         return; // Stop the submission if conditions are not met
+      }
+
+      const paperWithoutAddress = Array.from(
+        document.querySelectorAll(".enable-product:checked[data-needs-address='true']")
+      ).filter((checkbox) => !document.getElementById('address-' + checkbox.value).value);
+      if (paperWithoutAddress.length > 0) {
+        alert("{% trans "The products delivered on paper need an address." %}");
+        return;
       }
 
       formElement.submit(); // Submit the form if both conditions are met
@@ -83,9 +102,10 @@
               <label>Activar estos productos</label>
               {% for product in offerable_products %}
                 <div class="form-check">
-                  <input id="activateproduct-{{ product.id }}" class="enable-product form-check-input" type="checkbox" name="activateproduct-{{ product.id }}">
+                  <input id="activateproduct-{{ product.id }}" class="enable-product form-check-input" type="checkbox" name="activateproduct-{{ product.id }}" value="{{ product.id }}"{% if not product.digital %} data-needs-address="true"{% endif %}>
                   <label class="form-check-label" for="activateproduct-{{ product.id }}">{{ product.name }}</label>
                 </div>
+                {% include "new_product_address.html" %}
               {% endfor %}
             </div>
           </div>

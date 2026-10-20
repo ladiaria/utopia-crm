@@ -10,6 +10,7 @@
 {% block extra_js %}
 <script type="text/javascript" src="{% static 'js/datepicker-es.js' %}"></script>
 <script type="text/javascript" src="{% static 'js/product_dynamic_prices.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/new_address.js' %}"></script>
 <script type="text/javascript">
   $(function () {
     $(".datepicker").datepicker({
@@ -19,30 +20,6 @@
     function handleFormError() {
       console.log("error");
     };
-
-    $('#fetch-button').click(function () {
-      // Send an AJAX request to the Django view
-      $.ajax({
-        url: '{% url "api_get_addresses" contact.id %}',
-        method: 'POST',
-        dataType: 'json',
-        success: function (data) {
-          // Clear previous options and populate the HTML selects
-          $('.address_selector').each(function () {
-            var addressSelect = $(this);
-            var selectedValue = addressSelect.val();
-            addressSelect.empty();
-            $.each(data, function (index, item) {
-              var option = $('<option>').text(item.text).val(item.value);
-              if (item.value == selectedValue) {
-                option.prop('selected', true);
-              }
-              addressSelect.append(option);
-            });
-          });
-        }
-      });
-    });
 
     function activateSend() {
       var disable = false;
@@ -166,11 +143,7 @@
       <h5 class="mb-3">{% trans "Products and Addresses" %}</h5>
 
       <div class="form-group mb-3">
-        <a href="{% url 'agregar_direccion' contact.id %}?stayhere=True" id="add_address" class="btn btn-success btn-sm"
-          target="_blank"><i class="fas fa-plus"></i> {% trans "New address" %}</a>
-        <button type="button" class="btn btn-success btn-sm" id="fetch-button">
-          <i class="fas fa-sync-alt"></i> {% trans "Reload addresses" %}
-        </button>
+        {% include "new_address_link.html" with link_class="btn btn-success btn-sm" %}
       </div>
 
       <div class="mt-3">
@@ -194,7 +167,7 @@
                 {% for address in contact_addresses %}
                 <option value="{{ address.id }}" {% if bound_product_values.address == address.id %}selected="selected"
                   {% endif %}>
-                  {{ address.address_1 }} {{ address.city }} {{ address.state_name }}
+                  {{ address.get_option_label }}
                 </option>
                 {% endfor %}
               </select>
