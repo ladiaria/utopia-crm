@@ -5,6 +5,8 @@ from django import template
 from django.conf import settings
 from django.utils.safestring import mark_safe
 
+from core.templatetags.core_tags import foreign_region, phone_display
+
 
 register = template.Library()
 
@@ -24,6 +26,9 @@ def sip_filter(value):
     @param value: phonenumber_field.phonenumber.PhoneNumber instance
     @return: html with a button to call the phone number using SIP
     """
+    # The call center doesn't dial abroad: foreign numbers are shown without the button
+    if foreign_region(value):
+        return phone_display(value)
     # TODO: think what to do if value is not a valid phone number
     try:
         normalized_number = national_number(value)

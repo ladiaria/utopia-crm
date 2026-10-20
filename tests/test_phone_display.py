@@ -3,6 +3,7 @@ from phonenumber_field.phonenumber import PhoneNumber
 from django.test import SimpleTestCase, override_settings
 
 from core.templatetags.core_tags import phone_display
+from core.templatetags.sip_tags import sip_filter
 
 
 @override_settings(PHONENUMBER_DEFAULT_REGION="UY")
@@ -24,3 +25,18 @@ class PhoneDisplayTestCase(SimpleTestCase):
     def test_invalid_number_keeps_national_format(self):
         number = PhoneNumber.from_string("123", region="UY")
         self.assertEqual(phone_display(number), number.as_national)
+
+
+@override_settings(PHONENUMBER_DEFAULT_REGION="UY", SIP_DIALOUT="")
+class SipFilterTestCase(SimpleTestCase):
+    def test_local_number_has_call_button(self):
+        self.assertIn('href="sip://099123456"', sip_filter(PhoneNumber.from_string("+59899123456")))
+
+    def test_foreign_number_has_no_call_button(self):
+        number = PhoneNumber.from_string("+5491123456789")
+        html = sip_filter(number)
+        self.assertNotIn("sip://", html)
+        self.assertEqual(html, phone_display(number))
+
+    def test_plain_string_keeps_call_button(self):
+        self.assertIn('href="sip://29001234"', sip_filter("29001234"))

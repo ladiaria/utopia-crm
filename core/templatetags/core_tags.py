@@ -1,4 +1,5 @@
 from phonenumbers import region_code_for_number
+from phonenumber_field.phonenumber import PhoneNumber
 
 from django import template
 from django.template.loader_tags import do_include
@@ -45,6 +46,17 @@ def in_group(user, group_name):
     return False
 
 
+def foreign_region(value):
+    """
+    Region code of a valid phone number from outside PHONENUMBER_DEFAULT_REGION, None for local, invalid or empty
+    numbers and for plain strings.
+    """
+    if not isinstance(value, PhoneNumber) or not value.is_valid():
+        return None
+    region = region_code_for_number(value)
+    return None if region == getattr(settings, "PHONENUMBER_DEFAULT_REGION", None) else region
+
+
 @register.filter
 def phone_display(value):
     """
@@ -54,8 +66,8 @@ def phone_display(value):
     """
     if not value:
         return ""
-    region = region_code_for_number(value) if value.is_valid() else None
-    if region is None or region == getattr(settings, "PHONENUMBER_DEFAULT_REGION", None):
+    region = foreign_region(value)
+    if region is None:
         return value.as_national
     return format_html(
         '{} <span class="flag-icon flag-icon-{}" title="{}"></span>', value.as_international, region.lower(), region
