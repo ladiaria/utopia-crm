@@ -254,6 +254,11 @@ EMAIL_TAKEOVER_NOTIFY_RECIPIENTS = []
 # Prefijo para armar el link a la cola en ese aviso (ej. "https://crm.example.com"). Sin esto el
 # correo lleva la ruta relativa, que igual sirve para quien ya esta adentro del CRM.
 EMAIL_TAKEOVER_NOTIFY_BASE_URL = ""
+# Destinatarios del aviso cuando borrar una direccion deja sin direccion un cambio de direccion pendiente
+# (support.ScheduledTask): no se ejecuta hasta que alguien le ponga otra. Vacio = mail_managers.
+SCHEDULED_TASK_NOTIFY_RECIPIENTS = []
+# Prefijo para los links de ese aviso (ej. "https://crm.example.com"). Sin esto van rutas relativas.
+SCHEDULED_TASK_NOTIFY_BASE_URL = ""
 # Newsletter read/delta endpoints on the CMS (CRM reads/edits newsletters on demand from the CMS).
 WEB_NEWSLETTERS_READ_URI = None
 WEB_NEWSLETTERS_UPDATE_URI = None

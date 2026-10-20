@@ -904,12 +904,15 @@ def issues_labels(request):
                     label.address = (issue.address.address_1 or "") + "\n" + (issue.address.address_2 or "")
                     label.route = ""
                     label.route_order = ""
-                else:
+                elif issue.subscription_product and issue.subscription_product.address:
                     label.address = (
                         (issue.subscription_product.address.address_1 or "")
                         + "\n"
                         + (issue.subscription_product.address.address_2 or "")
                     )
+                else:
+                    # Its address was deleted (SET_NULL): print the label rather than break the whole PDF
+                    label.address = ""
                 if issue.subscription_product and issue.subscription_product.route:
                     label.route = issue.subscription_product.route.number
                     label.route_order = issue.subscription_product.order

@@ -1,7 +1,7 @@
 from datetime import date, timedelta
 
 from django.core.management import BaseCommand
-from support.models import ScheduledTask
+from support.models import ScheduledTask, ScheduledTaskMissingAddress
 
 try:
     import sentry_sdk
@@ -22,6 +22,26 @@ class Command(BaseCommand):
         for task in tasks:
             try:
                 response = task.execute(verbose=verbosity >= 2)
+            except ScheduledTaskMissingAddress as exc:
+                # Not a crash: someone deleted the address. It stays pending, so it comes back every day: one Sentry
+                # issue per task (fingerprint) instead of a new one each run. The mail went out when it was deleted.
+                product_ids = list(task.subscription_products.values_list("id", flat=True))
+                self.stderr.write(f"{exc} (contact_id={task.contact_id}, subscription_product_ids={product_ids})")
+                if sentry_sdk is not None:
+                    with sentry_sdk.push_scope() as scope:
+                        scope.fingerprint = ["scheduled-task-missing-address", str(task.id)]
+                        scope.set_context(
+                            "scheduled_task",
+                            {
+                                "id": task.id,
+                                "category": task.category,
+                                "contact_id": task.contact_id,
+                                "subscription_product_ids": product_ids,
+                                "execution_date": str(task.execution_date),
+                            },
+                        )
+                        sentry_sdk.capture_message(str(exc), level="warning")
+                continue
             except Exception as exc:
                 self.stderr.write(
                     f"Error executing ScheduledTask {task.id} "
