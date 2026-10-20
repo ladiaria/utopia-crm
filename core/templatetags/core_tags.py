@@ -1,6 +1,10 @@
+from phonenumbers import region_code_for_number
+from phonenumber_field.phonenumber import PhoneNumber
+
 from django import template
 from django.template.loader_tags import do_include
 from django.conf import settings
+from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 from django.urls import reverse
 from django.utils.safestring import mark_safe
@@ -40,6 +44,34 @@ def in_group(user, group_name):
     if user.groups.filter(name=group_name).exists():
         return True
     return False
+
+
+def foreign_region(value):
+    """
+    Region code of a valid phone number from outside PHONENUMBER_DEFAULT_REGION, None for local, invalid or empty
+    numbers and for plain strings.
+    """
+    if not isinstance(value, PhoneNumber) or not value.is_valid():
+        return None
+    region = region_code_for_number(value)
+    return None if region == getattr(settings, "PHONENUMBER_DEFAULT_REGION", None) else region
+
+
+@register.filter
+def phone_display(value):
+    """
+    Numbers from PHONENUMBER_DEFAULT_REGION are shown in national format, as before. The rest are shown in
+    international format with their country flag: in national format a foreign number loses its country code and
+    reads as a local one.
+    """
+    if not value:
+        return ""
+    region = foreign_region(value)
+    if region is None:
+        return value.as_national
+    return format_html(
+        '{} <span class="flag-icon flag-icon-{}" title="{}"></span>', value.as_international, region.lower(), region
+    )
 
 
 @register.filter(is_safe=True)

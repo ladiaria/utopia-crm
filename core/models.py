@@ -1440,6 +1440,69 @@ class Address(models.Model):
     def get_city(self):
         return self.city_fk.name if self.city_fk else self.city
 
+    def get_option_label(self):
+        """
+        How the address reads in a list to choose from: street, second line, city and state. The second line is there
+        to help the agent tell which address is which.
+        """
+        return ", ".join(filter(None, (self.address_1, self.address_2, self.get_city(), self.state_name)))
+
+    @staticmethod
+    def same_place_key(address_1, city, state_id):
+        """
+        What two addresses of a contact must share to be the same one: street, city and state, with no regard for case
+        or repeated spaces. The second line doesn't count: it holds complementary information (the cross streets, how
+        to find the door), and the same address loaded twice rarely carries the same words there. The apartment goes
+        in the street line. Nothing looser than this: telling apart two neighbours is not a call to make on
+        resemblance.
+        """
+
+        def clean(value):
+            return " ".join((value or "").split()).lower()
+
+        return clean(address_1), clean(city), state_id
+
+    @classmethod
+    def find_same(cls, contact, address_1, city, state):
+        """
+        The contact's address that is the same one as these values (see same_place_key), or None. Among several, the
+        verified one goes first, then the oldest.
+        """
+        if contact is None:
+            return None
+        key = cls.same_place_key(address_1, city, state.id if state else None)
+        same = [
+            address
+            for address in cls.objects.filter(contact=contact)
+            if cls.same_place_key(address.address_1, address.city, address.state_id) == key
+        ]
+        same.sort(key=lambda address: (not address.verified, address.id))
+        return same[0] if same else None
+
+    @classmethod
+    def find_same_or_create(cls, contact, address_1, address_2, city, state, notes=None):
+        """
+        For the forms where an agent types a new address in passing (an issue, a scheduled address change): the
+        contact's same address if it has one (see find_same), else a new one. Returns (address, created).
+
+        What was typed is not lost on the address used: the second line fills it if it had none, and the notes are
+        added to its own.
+        """
+        address = cls.find_same(contact, address_1, city, state)
+        if address is None:
+            address = cls.objects.create(
+                contact=contact, address_1=address_1, address_2=address_2, city=city, state=state, notes=notes
+            )
+            return address, True
+        changed = False
+        if address_2 and not address.address_2:
+            address.address_2, changed = address_2, True
+        if notes and notes not in (address.notes or ""):
+            address.notes, changed = f"{address.notes}\n{notes}" if address.notes else notes, True
+        if changed:
+            address.save()
+        return address, False
+
     def merge_other_address_into_this(
         self,
         source: "Address",
@@ -1480,68 +1543,77 @@ class Address(models.Model):
         Returns:
             list: List of errors encountered during merge, empty if successful.
         """
+        if source.pk == self.pk:
+            return [_("An address can't be merged into itself.")]
         errors = []
         try:
-            # Update fields with provided overrides
-            if address_1 is not None:
-                self.address_1 = address_1.strip() if address_1 else None
-            if address_2 is not None:
-                self.address_2 = address_2.strip() if address_2 else None
-            if city is not None:
-                self.city = city.strip() if city else None
-            if email is not None:
-                self.email = email.strip() if email else None
-            if address_type is not None:
-                self.address_type = address_type
-            if name is not None:
-                self.name = name.strip() if name else None
-            if default is not None:
-                self.default = default
-            if google_maps_url is not None:
-                self.google_maps_url = google_maps_url.strip() if google_maps_url else None
+            # One transaction: an error halfway leaves both addresses as they were
+            with transaction.atomic():
+                # Update fields with provided overrides
+                if address_1 is not None:
+                    self.address_1 = address_1.strip() if address_1 else None
+                if address_2 is not None:
+                    self.address_2 = address_2.strip() if address_2 else None
+                if city is not None:
+                    self.city = city.strip() if city else None
+                if email is not None:
+                    self.email = email.strip() if email else None
+                if address_type is not None:
+                    self.address_type = address_type
+                if name is not None:
+                    self.name = name.strip() if name else None
+                if default is not None:
+                    self.default = default
+                elif source.default:
+                    # The default mark goes with the merge, or the contact would be left with no default address
+                    self.default = True
+                if google_maps_url is not None:
+                    self.google_maps_url = google_maps_url.strip() if google_maps_url else None
 
-            # Handle FK fields
-            if state_id is not None:
-                self.state_id = state_id if state_id else None
-            if country_id is not None:
-                self.country_id = country_id if country_id else None
-            if city_fk_id is not None:
-                self.city_fk_id = city_fk_id if city_fk_id else None
+                # Handle FK fields
+                if state_id is not None:
+                    self.state_id = state_id if state_id else None
+                if country_id is not None:
+                    self.country_id = country_id if country_id else None
+                if city_fk_id is not None:
+                    self.city_fk_id = city_fk_id if city_fk_id else None
 
-            # Handle georef data
-            if latitude is not None:
-                self.latitude = latitude
-            if longitude is not None:
-                self.longitude = longitude
+                # Handle georef data
+                if latitude is not None:
+                    self.latitude = latitude
+                if longitude is not None:
+                    self.longitude = longitude
 
-            # Merge notes
-            if notes is not None:
-                self.notes = notes
-            else:
-                # Append source notes if not overridden
-                merge_note = f"Merged from address {source.id} on {date.today()}"
-                if self.notes:
-                    self.notes = f"{merge_note}\n{self.notes}"
+                # Merge notes
+                if notes is not None:
+                    self.notes = notes
                 else:
-                    self.notes = merge_note
+                    # Append source notes if not overridden
+                    merge_note = f"Merged from address {source.id} on {date.today()}"
+                    if self.notes:
+                        self.notes = f"{merge_note}\n{self.notes}"
+                    else:
+                        self.notes = merge_note
 
-                if source.notes:
-                    self.notes += f"\n\nNotes from address {source.id}:\n{source.notes}"
+                    if source.notes:
+                        self.notes += f"\n\nNotes from address {source.id}:\n{source.notes}"
 
-            self.save()
+                self.save()
 
-            # Transfer all related objects from source to target
-            # SubscriptionProducts
-            source.subscriptionproduct_set.update(address=self)
+                # Transfer all related objects from source to target. Every FK to Address has to be here: the
+                # product and billing ones are SET_NULL (a subscription silently left with no address), the issue and
+                # scheduled task ones are CASCADE (deleted along with the source).
+                source.subscriptionproduct_set.update(address=self)
+                Subscription.objects.filter(billing_address=source).update(billing_address=self)
+                source.issue_set.update(address=self)
+                source.scheduledtask_set.update(address=self)
 
-            # Issues
-            source.issue_set.update(address=self)
-
-            # ScheduledTasks
-            source.scheduledtask_set.update(address=self)
-
-            # Delete the source address
-            source.delete()
+                # Delete the source address. Without its default mark first: deleting a default address tells the web
+                # the contact has no address, and this one already took the mark.
+                if source.default:
+                    Address.objects.filter(pk=source.pk).update(default=False)
+                    source.default = False
+                source.delete()
 
         except Exception as e:
             errors.append(str(e))
@@ -3782,9 +3854,11 @@ class EmailTakeoverRequest(models.Model):
     # "what would deleting this account destroy", and it is computed BEFORE the move -- so without
     # this split the reviewer reads "newsletters: 2" under a heading that says deleted, and
     # concludes the person loses them. They do not: they are merged into the kept account.
-    # Se mantiene a mano contra `move_data()` del CMS, que vive en el otro repo: cada modelo que
-    # se agregue alla hay que agregarlo aca, o la pantalla le dice al supervisor que se pierde algo
-    # que en realidad se muda. Paso con `midarticlenoticestate` y no lo detecto ninguna prueba.
+    # El CMS manda la lista de lo que mueve en el preview (`cascade_moves`), y cuando viene manda
+    # ella. Esta copia a mano es sólo el respaldo para las solicitudes guardadas antes de que el
+    # CMS la mandara: se desfasaba con cada modelo que el CMS volvía movible (pasó con
+    # `midarticlenoticestate` y después con ocho más), y la pantalla le decía al supervisor que se
+    # perdía algo que en realidad se muda.
     MOVED_ON_TAKEOVER = (
         "subscriber_newsletters",
         "subscriber_category_newsletters",
@@ -3799,18 +3873,24 @@ class EmailTakeoverRequest(models.Model):
         # descarta. Va igual de este lado: es lo mismo que pasa con las lecturas o los follows
         # repetidos, y el titulo se lee como "lo que se intenta mover".
         "midarticlenoticestate",
+        "sentmail",
+        "noticesetting",
+        "userreaderid",
     )
 
     def _split_cascade(self):
         """(moved, gone) from the stored cascade inventory. `User` and `Subscriber` are the account
         rows themselves, so they are neither: they are what the takeover deletes on purpose."""
-        cascade = (self.preview_detail or {}).get("cascade_would_delete") or {}
+        detail = self.preview_detail or {}
+        cascade = detail.get("cascade_would_delete") or {}
+        cms_moves = detail.get("cascade_moves")
         # When the surviving account is the contact's own (the call center case, the one that
         # leaves a contact without a web account), the CMS moves over the Google login of the
         # claimed address: that account ends up carrying exactly that email, so the binding stays
         # consistent and the person keeps signing in with Google. Listing it as lost there would
         # tell the reviewer the opposite of what happens.
-        moved_models = self.MOVED_ON_TAKEOVER + (("usersocialauth",) if self.released_contact_id else ())
+        moved_models = tuple(m.lower() for m in cms_moves) if cms_moves is not None else self.MOVED_ON_TAKEOVER
+        moved_models += ("usersocialauth",) if self.released_contact_id else ()
         moved, gone = {}, {}
         for model, amount in cascade.items():
             key = model.lower()

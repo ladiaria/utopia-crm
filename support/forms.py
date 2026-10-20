@@ -866,9 +866,10 @@ class SugerenciaGeorefForm(forms.ModelForm):
 
     class Meta:
         model = Address
+        # No "default", "contact" or "verified": no screen draws them, and a field missing from the POST is not left
+        # alone. An unchecked checkbox reads as False, so editing a default address took the mark away. The views
+        # set the contact themselves, and "verified" comes from the georeferencing (Address.save(), reset_georef()).
         fields = [
-            "default",
-            "contact",
             "address_1",
             "address_2",
             "city",
@@ -877,9 +878,17 @@ class SugerenciaGeorefForm(forms.ModelForm):
             "city_georef_id",
             "latitude",
             "longitude",
-            "verified",
             "address_type",
         ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # A hidden field: thousands of old addresses have it empty, and requiring it made their edit screen bounce
+        # with an error nobody could fix. These screens are for physical addresses.
+        self.fields["address_type"].required = False
+
+    def clean_address_type(self):
+        return self.cleaned_data.get("address_type") or "physical"
 
 
 class ValidateSubscriptionForm(forms.ModelForm):

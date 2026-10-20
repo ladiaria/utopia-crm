@@ -70,6 +70,10 @@ The base app is designed to be extended without modification:
 - **Custom ID document validation**: set `CONTACT_ID_DOCUMENT_VALIDATOR` to the dotted path of a callable
   `(id_document, id_document_type)` that raises `ValidationError`. The contact forms (`ContactAdminForm`,
   `ContactUpdateForm`) call it on clean; without the setting nothing is validated.
+- **Extra contact detail tabs**: a package's `contact_detail/detail.html` (extending the base one) fills the empty
+  `extra_tabs` and `extra_tab_panes` blocks. Don't copy the `content` block to add a tab.
+- **Extra seller console actions**: a package's `seller_console.html` (extending the base one) fills the empty
+  `extra_sale_actions` block, under the sale buttons. It sits outside `consoleForm`, so it can hold its own forms.
 - **Custom active-check callbacks**: `CORE_DEFAULT_NEWSLETTERS` maps dotted-path callables to
   newsletter slugs.
 - **Feature flags**: many behaviours are toggled via settings (e.g. `WEB_UPDATE_USER_ENABLED`,
@@ -139,10 +143,15 @@ function-based views. Never override the breadcrumbs block in the template.
 
 ## Code style
 
-- **Black** formatting for all Python.
-- **Line length: 120 characters** (Black and flake8).
+- **Black** formatting for all Python, written Black-compatible by hand.
+- **Never run `black` on an existing file just because you touched a few lines.** Much of the repo is not
+  Black-formatted (it uses single quotes), so Black rewrites the whole file and the real change gets lost
+  in hundreds of lines of noise. Run it only on new files; in existing ones, format the new lines by hand.
+- **Line length: 120 characters** (Black and flake8). There is no flake8 config file, so pass
+  `--max-line-length=120`, or the default of 79 reports false positives.
 - **flake8** linter; follow PEP8 as enforced by it.
-- **djlint** for Django HTML templates.
+- **djlint** for Django HTML templates. There is no djlint config either: templates use 2-space indentation,
+  so run `djlint --check --indent 2 --profile django <file>`.
 
 ## Known gotchas
 

@@ -532,3 +532,38 @@ class TestCascadaSeparada(TestCase):
 
         self.assertEqual(req.cascade_moved, {"MidArticleNoticeState": 1})
         self.assertEqual(req.cascade_lost, {})
+
+    def test_manda_la_lista_del_cms(self):
+        """Cuando el preview trae `cascade_moves`, el reparto sale de ahí y no de la copia a mano:
+        un modelo que sólo el CMS sabe que mueve (uno de su paquete de customización) va del lado
+        que se muda, y uno que el CMS no lista se reporta como perdido aunque la copia lo tenga."""
+        req = EmailTakeoverRequest(
+            preview_detail={
+                "mode": "merge",
+                "cascade_would_delete": {"User": 1, "PromoTelefono": 1, "Follow": 5},
+                "cascade_moves": ["PromoTelefono"],
+            }
+        )
+
+        self.assertEqual(req.cascade_moved, {"PromoTelefono": 1})
+        self.assertEqual(req.cascade_lost, {"Follow": 5})
+
+    def test_sin_lista_del_cms_usa_la_copia_a_mano(self):
+        """Las solicitudes guardadas antes de que el CMS mandara la lista no la tienen."""
+        req = self._pedido({"User": 1, "SentMail": 40, "UserReaderId": 3, "NoticeSetting": 1})
+
+        self.assertEqual(req.cascade_moved, {"SentMail": 40, "UserReaderId": 3, "NoticeSetting": 1})
+        self.assertEqual(req.cascade_lost, {})
+
+    def test_el_login_de_google_se_muda_tambien_con_la_lista_del_cms(self):
+        req = EmailTakeoverRequest(
+            preview_detail={
+                "mode": "merge",
+                "released_contact_id": 694270,
+                "cascade_would_delete": {"User": 1, "UserSocialAuth": 1},
+                "cascade_moves": ["Follow"],
+            }
+        )
+
+        self.assertEqual(req.cascade_moved, {"UserSocialAuth": 1})
+        self.assertEqual(req.cascade_lost, {})

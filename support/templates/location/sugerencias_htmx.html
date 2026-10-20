@@ -1,4 +1,9 @@
-{% load url_replace %}
+{% load i18n url_replace %}
+{% if servicio_caido %}
+<div class="alert alert-warning small mb-0">
+  {% trans "The georeferencing service is not responding. Check the manual option above to save the address without georeferencing." %}
+</div>
+{% endif %}
 {% if sugerencias %}
 <form method="POST" id="sugerencia_form">
   {% csrf_token %}

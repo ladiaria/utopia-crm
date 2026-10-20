@@ -309,119 +309,127 @@
                 </select>
               </div>
             </div>
-            <br>
-            <div class="row">
-              <!-- DECLINED Actions Column (RED - Left) -->
-              <div class="col-sm-4">
-                <h6 class="text-danger">
-                  <i class="fas fa-times-circle"></i> <strong>Rechazados / Sin Contacto</strong>
-                </h6>
-                <button class="reject btn btn-block bg-gradient-danger btn-sm result-btn"
-                        type="button"
-                        data-result="not-interested">No interesado</button>
-                <button class="reject btn btn-block bg-gradient-danger btn-sm result-btn"
-                        type="button"
-                        data-result="do-not-call">No llamar</button>
-                <button class="reject btn btn-block bg-gradient-danger btn-sm result-btn"
-                        type="button"
-                        data-result="logistics">Logística</button>
-                <button class="reject btn btn-block bg-gradient-danger btn-sm result-btn"
-                        type="button"
-                        data-result="already-subscriber">Ya suscrito</button>
-                <button class="reject btn btn-block bg-gradient-danger btn-sm result-btn"
-                        type="button"
-                        data-result="error-promotion"
-                        data-confirm="{% trans "Do you want to continue?" %}">Error en promoción</button>
-                <button class="reject btn btn-block bg-gradient-secondary btn-sm result-btn"
-                        type="button"
-                        data-result="uncontactable"
-                        data-confirm="{% trans "Do you want to continue?" %}">No contactable</button>
-                <button class="btn btn-block bg-gradient-secondary btn-sm result-btn"
-                        type="button"
-                        data-result="close-without-contact">Cerrar sin contacto</button>
-              </div>
-              <!-- PENDING Actions Column (YELLOW - Middle) -->
-              <div class="col-sm-4">
-                <h6 class="text-warning">
-                  <i class="fas fa-clock"></i> <strong>Pendientes</strong>
-                </h6>
-                <button class="btn btn-block bg-gradient-warning btn-sm result-btn"
-                        type="button"
-                        data-result="call-later">Llamar más tarde</button>
-                <button class="btn btn-block bg-gradient-warning btn-sm result-btn"
-                        type="button"
-                        data-result="not-found">No encontrado</button>
-                <button class="btn btn-block bg-gradient-warning btn-sm result-btn"
-                        type="button"
-                        data-result="move-morning"
-                        data-confirm="{% trans "Do you want to continue?" %}">Mover a la mañana</button>
-                <button class="btn btn-block bg-gradient-warning btn-sm result-btn"
-                        type="button"
-                        data-result="move-afternoon"
-                        data-confirm="{% trans "Do you want to continue?" %}">Mover a la tarde</button>
-              </div>
-              <!-- SUCCESS Actions & Schedule Column (GREEN - Right) -->
-              <div class="col-sm-4">
-                <h6 class="text-success">
-                  <i class="fas fa-check-circle"></i> <strong>Acciones de Venta</strong>
-                </h6>
-                {% if not contact.has_active_subscription %}
-                  <a href="{% url 'send_promo' contact.id %}?url={{ url }}&offset={{ offset }}&{{ category }}={{ console_instance.id }}"
-                     class="btn btn-block bg-gradient-success btn-sm">{% trans "Send promo" %}</a>
-                {% endif %}
-                {% if contact.has_active_subscription %}
-                  {% if campaign.product.edition_frequency == 4 %}
-                    <a href="{% url 'edit_subscription' contact.id contact.get_first_active_subscription.id %}?url={{ url }}&offset={{ offset }}&{{ category }}={{ console_instance.id }}"
-                       class="btn btn-block bg-gradient-success btn-sm mb-1">{% trans "Edit subscription" %}</a>
-                  {% endif %}
-                  <a href="{% url 'additional_product' contact.get_first_active_subscription.id %}?url={{ url }}&offset={{ offset }}&{{ category }}={{ console_instance.id }}"
-                     class="btn btn-block bg-gradient-success btn-sm mb-1">{% trans "Add product" %}</a>
-                  <a href="{% url 'product_change' contact.get_first_active_subscription.id %}?url={{ url }}&offset={{ offset }}&{{ category }}={{ console_instance.id }}"
-                     class="btn btn-block bg-gradient-success btn-sm mb-1">{% trans "Change product" %}</a>
-                {% else %}
-                  <a href="{% url 'new_subscription' contact.id %}?url={{ url }}&offset={{ offset }}&{{ category }}={{ console_instance.id }}"
-                     class="btn btn-block bg-gradient-success btn-sm">{% trans "Sell" %}</a>
-                {% endif %}
-                <hr>
-                <h6 class="text-info">
-                  <i class="fas fa-calendar-alt"></i> <strong>Programar</strong>
-                </h6>
-                <div class="form-group row">
-                  <div class="col-sm-3">
-                    <label for="call_date">{% trans "Date" %}:</label>
-                  </div>
-                  <div class="col-sm-9">
-                    <input id="call_date"
-                           type="date"
-                           name="call_date"
-                           class="form-control form-control-sm"
-                           value="{{ call_date }}"
-                           min="{% now "Y-m-d" %}" />
-                  </div>
-                </div>
-                <div class="form-group row">
-                  <div class="col-sm-3">
-                    <label for="call_time">{% trans "Time" %}:</label>
-                  </div>
-                  <div class="col-sm-9">
-                    <input type="time"
-                           name="call_time"
-                           class="form-control form-control-sm"
-                           value="09:00"
-                           title="El formato de hora no es válido"
-                           min="09:00"
-                           max="21:00" />
-                  </div>
-                </div>
-                <button type="button"
-                        class="btn btn-sm btn-primary btn-block result-btn"
-                        data-result="schedule">{% trans "Schedule" %}</button>
-                <hr>
-                <a href="{{ url }}?offset={{ position }}"
-                   class="btn btn-block bg-gradient-light btn-sm">Omitir y pasar al siguiente contacto</a>
-              </div>
-            </div>
           </form>
+          {% comment %}
+            The result buttons sit outside consoleForm so that extra_sale_actions can hold forms of its own: they
+            submit it through JavaScript, and the schedule inputs join it with the form attribute.
+          {% endcomment %}
+          <br>
+          <div class="row">
+            <!-- DECLINED Actions Column (RED - Left) -->
+            <div class="col-sm-4">
+              <h6 class="text-danger">
+                <i class="fas fa-times-circle"></i> <strong>Rechazados / Sin Contacto</strong>
+              </h6>
+              <button class="reject btn btn-block bg-gradient-danger btn-sm result-btn"
+                      type="button"
+                      data-result="not-interested">No interesado</button>
+              <button class="reject btn btn-block bg-gradient-danger btn-sm result-btn"
+                      type="button"
+                      data-result="do-not-call">No llamar</button>
+              <button class="reject btn btn-block bg-gradient-danger btn-sm result-btn"
+                      type="button"
+                      data-result="logistics">Logística</button>
+              <button class="reject btn btn-block bg-gradient-danger btn-sm result-btn"
+                      type="button"
+                      data-result="already-subscriber">Ya suscrito</button>
+              <button class="reject btn btn-block bg-gradient-danger btn-sm result-btn"
+                      type="button"
+                      data-result="error-promotion"
+                      data-confirm="{% trans "Do you want to continue?" %}">Error en promoción</button>
+              <button class="reject btn btn-block bg-gradient-secondary btn-sm result-btn"
+                      type="button"
+                      data-result="uncontactable"
+                      data-confirm="{% trans "Do you want to continue?" %}">No contactable</button>
+              <button class="btn btn-block bg-gradient-secondary btn-sm result-btn"
+                      type="button"
+                      data-result="close-without-contact">Cerrar sin contacto</button>
+            </div>
+            <!-- PENDING Actions Column (YELLOW - Middle) -->
+            <div class="col-sm-4">
+              <h6 class="text-warning">
+                <i class="fas fa-clock"></i> <strong>Pendientes</strong>
+              </h6>
+              <button class="btn btn-block bg-gradient-warning btn-sm result-btn"
+                      type="button"
+                      data-result="call-later">Llamar más tarde</button>
+              <button class="btn btn-block bg-gradient-warning btn-sm result-btn"
+                      type="button"
+                      data-result="not-found">No encontrado</button>
+              <button class="btn btn-block bg-gradient-warning btn-sm result-btn"
+                      type="button"
+                      data-result="move-morning"
+                      data-confirm="{% trans "Do you want to continue?" %}">Mover a la mañana</button>
+              <button class="btn btn-block bg-gradient-warning btn-sm result-btn"
+                      type="button"
+                      data-result="move-afternoon"
+                      data-confirm="{% trans "Do you want to continue?" %}">Mover a la tarde</button>
+            </div>
+            <!-- SUCCESS Actions & Schedule Column (GREEN - Right) -->
+            <div class="col-sm-4">
+              <h6 class="text-success">
+                <i class="fas fa-check-circle"></i> <strong>Acciones de Venta</strong>
+              </h6>
+              {% if not contact.has_active_subscription %}
+                <a href="{% url 'send_promo' contact.id %}?url={{ url }}&offset={{ offset }}&{{ category }}={{ console_instance.id }}"
+                   class="btn btn-block bg-gradient-success btn-sm">{% trans "Send promo" %}</a>
+              {% endif %}
+              {% if contact.has_active_subscription %}
+                {% if campaign.product.edition_frequency == 4 %}
+                  <a href="{% url 'edit_subscription' contact.id contact.get_first_active_subscription.id %}?url={{ url }}&offset={{ offset }}&{{ category }}={{ console_instance.id }}"
+                     class="btn btn-block bg-gradient-success btn-sm mb-1">{% trans "Edit subscription" %}</a>
+                {% endif %}
+                <a href="{% url 'additional_product' contact.get_first_active_subscription.id %}?url={{ url }}&offset={{ offset }}&{{ category }}={{ console_instance.id }}"
+                   class="btn btn-block bg-gradient-success btn-sm mb-1">{% trans "Add product" %}</a>
+                <a href="{% url 'product_change' contact.get_first_active_subscription.id %}?url={{ url }}&offset={{ offset }}&{{ category }}={{ console_instance.id }}"
+                   class="btn btn-block bg-gradient-success btn-sm mb-1">{% trans "Change product" %}</a>
+              {% else %}
+                <a href="{% url 'new_subscription' contact.id %}?url={{ url }}&offset={{ offset }}&{{ category }}={{ console_instance.id }}"
+                   class="btn btn-block bg-gradient-success btn-sm">{% trans "Sell" %}</a>
+              {% endif %}
+              {% comment %}Extension point: more sale actions. Outside consoleForm, so it can hold its own forms.{% endcomment %}
+              {% block extra_sale_actions %}{% endblock extra_sale_actions %}
+              <hr>
+              <h6 class="text-info">
+                <i class="fas fa-calendar-alt"></i> <strong>Programar</strong>
+              </h6>
+              <div class="form-group row">
+                <div class="col-sm-3">
+                  <label for="call_date">{% trans "Date" %}:</label>
+                </div>
+                <div class="col-sm-9">
+                  <input id="call_date"
+                         form="consoleForm"
+                         type="date"
+                         name="call_date"
+                         class="form-control form-control-sm"
+                         value="{{ call_date }}"
+                         min="{% now "Y-m-d" %}" />
+                </div>
+              </div>
+              <div class="form-group row">
+                <div class="col-sm-3">
+                  <label for="call_time">{% trans "Time" %}:</label>
+                </div>
+                <div class="col-sm-9">
+                  <input type="time"
+                         form="consoleForm"
+                         name="call_time"
+                         class="form-control form-control-sm"
+                         value="09:00"
+                         title="El formato de hora no es válido"
+                         min="09:00"
+                         max="21:00" />
+                </div>
+              </div>
+              <button type="button"
+                      class="btn btn-sm btn-primary btn-block result-btn"
+                      data-result="schedule">{% trans "Schedule" %}</button>
+              <hr>
+              <a href="{{ url }}?offset={{ position }}"
+                 class="btn btn-block bg-gradient-light btn-sm">Omitir y pasar al siguiente contacto</a>
+            </div>
+          </div>
         </div>
       </div>
     </div>

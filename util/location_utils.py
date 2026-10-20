@@ -85,13 +85,18 @@ def buscar_localidades(state):
     return _georef_get(url, params)
 
 
-def autocompletar_direccion(texto, obs):
+def autocompletar_direccion(texto, obs, informar_caida=False):
     """
-    A partir de un texto, devuelve una lista de posibles direcciones (sin geolocalización)
+    A partir de un texto, devuelve una lista de posibles direcciones (sin geolocalización).
+
+    Con informar_caida=True devuelve None cuando el servicio no respondió, para distinguirlo de una búsqueda sin
+    resultados; si no, en los dos casos devuelve una lista vacía.
     """
     url = settings.SERVICIO_DIRECCION_AUTOCOMPLETADO
     params = {"q": texto, "soloLocalidad": False, "limit": 20}
     sugerencias = _georef_get(url, params)
+    if sugerencias is None and informar_caida:
+        return None
     result = []
     if sugerencias:
         df_sug = pd.DataFrame(sugerencias)

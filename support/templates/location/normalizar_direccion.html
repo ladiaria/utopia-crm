@@ -1,5 +1,10 @@
 {% extends "adminlte/base.html" %}
 {% load static i18n widget_tweaks core_tags leaflet_tags %}
+{% block extra_head %}
+  {# OpenStreetMap blocks the map tiles requested with no Referer, and Django's default "same-origin" policy sends #}
+  {# none to another site. This page sends its origin only, never the path. #}
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+{% endblock extra_head %}
 {% block extra_js %}
   <script src="{% static 'js/htmx.min.js' %}" defer></script>
   {% leaflet_js %}
@@ -33,17 +38,27 @@ $(window).on('beforeunload', function (e) {
   <script type="text/javascript">
   $(function(){
     $("#sugerencia").change(function() {
-      var optionValue = $(this).val();
-      var url = window.location.href.split("?")[0];
+      // Cambia sólo la sugerencia: stayhere y goback siguen viajando
+      var params = new URLSearchParams(window.location.search);
+      params.set("sugerencia", $(this).val());
       // Navegación intencional dentro de la misma herramienta: no mostrar el aviso de
       // "salir sin guardar" que dispara beforeunload.
       if (typeof submitButtonPressed !== "undefined") {
         submitButtonPressed = true;
       }
-      window.location = url + "?sugerencia=" + optionValue;
+      window.location = window.location.pathname + "?" + params.toString();
     });
   });
   </script>
+  {% if stayhere %}
+    {# Venimos de "Nueva dirección" en una venta y la dirección ya está guardada: la venta tiene que verla ya #}
+    <script src="{% static 'js/new_address.js' %}"></script>
+    <script>
+      $(function () {
+        announceNewAddress({{ contact.id }}, {{ address.id }});
+      });
+    </script>
+  {% endif %}
 {% endblock extra_js %}
 
 {% block no_heading %}
@@ -114,6 +129,7 @@ $(window).on('beforeunload', function (e) {
                 <div id="form_div">
                   <form action="" method="post" id="form_normalizar">
                     {% csrf_token %}
+                    {% include "location/_form_errors.html" with form=form_nuevo %}
                     <div class="row form-group">
                       <div class="col">
                         {% render_field form_nuevo.address_1 class="form-control" placeholder=form_nuevo.address_1.label readonly=True %}
