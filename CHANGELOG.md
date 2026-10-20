@@ -2,6 +2,14 @@
 
 ## v0.5.1
 
+## 2026-10-20 — gl19-pais-telefonos Los teléfonos de otro país muestran de qué país son
+
+- **La ficha del contacto muestra los teléfonos de otro país en formato internacional y con la bandera del país.** Antes se veían en formato nacional y perdían el código de país: un celular argentino se leía como si fuera uruguayo. Los números del país local (el que configura la instalación) se siguen viendo como siempre
+- **El botón "Llamar" ya no aparece en los números de otro país**, en la consola del vendedor, las rutas especiales y la vista de la incidencia: marcaba el número como si fuera local. Ahí también se muestra el número con su bandera
+- Los números que el sistema no reconoce como válidos y el teléfono laboral (texto libre) se siguen viendo como antes, con el botón
+- Deployment: **no se requieren migraciones** ni recompilar traducciones (no hay textos nuevos)
+- **Author:** Tanya Tree + Claude Opus 5.5
+
 ## 2026-10-20 — gl45-whatsapp-callcenter Punto de extensión para sumar acciones de venta en la consola del vendedor
 
 - **La consola del vendedor tiene un punto de extensión vacío en la columna "Acciones de Venta"**, debajo de Vender / Enviar promo y antes de Programar. Un paquete de customización puede sumar botones propios ahí sin copiar la plantilla
