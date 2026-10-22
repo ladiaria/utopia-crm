@@ -2,6 +2,14 @@
 
 ## v0.5.1
 
+## 2026-10-22 — gl58-cierre-agendas-cron El cierre de agendas perdidas puede correr todos los días por cron
+
+- **El cierre de agendas perdidas acepta un plazo en días además de una fecha fija**, para poder programarlo como rutina diaria: "cerrar todo lo que tenga más de 30 días". Sigue sin tener valor por defecto, para que nadie cierre agendas por accidente
+- **La nota que deja en cada agenda cerrada ya no menciona el ticket original**: dice sólo que se cerró automáticamente por agenda perdida y la fecha
+- **El cierre de agendas y la creación de repartos del día pueden correr en silencio**: con el nivel de detalle en cero no imprimen nada en una corrida normal, así el mail del cron llega sólo cuando algo falla. El cierre de agendas igual avisa si encuentra agendas sin estado de campaña, porque es una anomalía
+- Deployment: **no se requieren migraciones**; sí **recompilar traducciones** (`compilemessages -l es`), porque cambia el texto de la nota
+- **Author:** Tanya Tree + Claude Opus 5.5
+
 ## 2026-10-20 — gl19-pais-telefonos Los teléfonos de otro país muestran de qué país son
 
 - **La ficha del contacto muestra los teléfonos de otro país en formato internacional y con la bandera del país.** Antes se veían en formato nacional y perdían el código de país: un celular argentino se leía como si fuera uruguayo. Los números del país local (el que configura la instalación) se siguen viendo como siempre

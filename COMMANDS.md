@@ -21,7 +21,7 @@ which run on a schedule, and which are one-shot scripts that can be archived.
 | Command | Classification | Notes |
 | --- | --- | --- |
 | `cleanup_country_state_data` | `unknown` | Normalizes country/state ISO codes. Likely one-shot — verify if it was ever re-run or if data is already clean |
-| `close_lost_schedule_activities` | `on-demand` | Closes campaign schedules (pending call activities) older than a given date and their ContactCampaignStatus with the `LS` resolution. Supports `--dry-run` and `--csv` |
+| `close_lost_schedule_activities` | `scheduled` | Closes campaign schedules (pending call activities) older than a given date (`--date`) or than N days (`--days`, for a daily cron) and their ContactCampaignStatus with the `LS` resolution. Supports `--dry-run` and `--csv`; with `--verbosity 0` it only prints anomalies |
 | `close_old_pending_activities_and_campaign_status` | `deprecated` | Stub that aborts. Replaced by `close_lost_schedule_activities`: the old version overwrote already resolved campaign statuses, sales included |
 | `disable_expired_campaigns` | `scheduled` | Disables campaigns that have passed their end date |
 | `emailfix` | `on-demand` | Applies approved email replacement rules to contacts |
@@ -42,7 +42,7 @@ which run on a schedule, and which are one-shot scripts that can be archived.
 | Command | Classification | Notes |
 | --- | --- | --- |
 | `activate_subscriptions_by_start_date` | `scheduled` | Activates subscriptions on or one day before their start date |
-| `create_deliveries` | `scheduled` | Creates delivery records for today's weekday products |
+| `create_deliveries` | `scheduled` | Creates delivery records for today's weekday products. With `--verbosity 0` it prints nothing |
 | `disable_subscriptions_by_end_date` | `scheduled` | Deactivates subscriptions that have reached their end date |
 
 ## support

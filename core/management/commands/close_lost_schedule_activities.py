@@ -1,5 +1,5 @@
 import csv
-from datetime import datetime, time
+from datetime import date, datetime, time, timedelta
 
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
@@ -49,15 +49,22 @@ class Command(BaseCommand):
         "Closes campaign schedules (pending or expired call activities tied to a campaign) older than a given "
         "date, and closes their ContactCampaignStatus with the 'LS' (closed due to lost schedule) resolution. "
         "The campaign status is mapped conditionally: contacts we actually spoke to end as 'Ended with contact', "
-        "the rest as 'Ended without contact'. Already terminal statuses and sales are never overwritten."
+        "the rest as 'Ended without contact'. Already terminal statuses and sales are never overwritten. "
+        "With --verbosity 0 it only prints anomalies, so a cron only mails when something needs attention."
     )
 
     def add_arguments(self, parser):
-        parser.add_argument(
+        # No default on purpose: nobody should close schedules by accident.
+        cutoff_group = parser.add_mutually_exclusive_group(required=True)
+        cutoff_group.add_argument(
             "--date",
             type=str,
-            required=True,
             help="Date in YYYY-MM-DD format. Schedules on that date or older will be closed (the date is included).",
+        )
+        cutoff_group.add_argument(
+            "--days",
+            type=int,
+            help="Close schedules dated N days ago or older. Same as --date with that date, meant for a daily cron.",
         )
         parser.add_argument(
             "--dry-run",
@@ -84,7 +91,8 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         dry_run = options["dry_run"]
-        cutoff = self.get_cutoff(options["date"])
+        self.verbosity = options["verbosity"]
+        cutoff = self.get_cutoff(self.get_cutoff_date(options["date"], options["days"]))
 
         try:
             seller_action = SellerConsoleAction.objects.get(slug=LOST_SCHEDULE_ACTION_SLUG)
@@ -111,14 +119,13 @@ class Command(BaseCommand):
 
         activities = list(activities)
         if not activities:
-            self.stdout.write(self.style.WARNING("No schedules to close with the given parameters."))
+            if self.verbosity >= 1:
+                self.stdout.write(self.style.WARNING("No schedules to close with the given parameters."))
             return
 
         statuses_by_pair = self.get_statuses_by_pair(activities)
 
-        note = _("Automatically closed due to lost schedule (t1175, {}).").format(
-            timezone.now().date().strftime("%Y-%m-%d")
-        )
+        note = _("Automatically closed due to lost schedule ({}).").format(timezone.now().date().strftime("%Y-%m-%d"))
 
         rows, statuses_to_update = [], {}
         for activity in activities:
@@ -149,10 +156,12 @@ class Command(BaseCommand):
             self.write_csv(options["csv_path"], rows)
 
         if dry_run:
-            self.stdout.write(self.style.WARNING("DRY RUN: nothing was written."))
+            if self.verbosity >= 1:
+                self.stdout.write(self.style.WARNING("DRY RUN: nothing was written."))
             return
 
-        self.warn_not_a_dry_run(activities, statuses_to_update, options["csv_path"])
+        if self.verbosity >= 1:
+            self.warn_not_a_dry_run(activities, statuses_to_update, options["csv_path"])
 
         with transaction.atomic():
             # bulk_update on purpose: ContactCampaignStatus.last_action_date is auto_now, and save()
@@ -164,11 +173,12 @@ class Command(BaseCommand):
                 batch_size=500,
             )
 
-        self.stdout.write(
-            self.style.SUCCESS(
-                f"Closed {len(activities)} schedules and updated {len(statuses_to_update)} campaign statuses."
+        if self.verbosity >= 1:
+            self.stdout.write(
+                self.style.SUCCESS(
+                    f"Closed {len(activities)} schedules and updated {len(statuses_to_update)} campaign statuses."
+                )
             )
-        )
 
     def warn_not_a_dry_run(self, activities, statuses_to_update, csv_path):
         """
@@ -186,15 +196,24 @@ class Command(BaseCommand):
             )
         )
 
-    def get_cutoff(self, date_str):
+    def get_cutoff_date(self, date_str, days):
+        """
+        Returns the cutoff day from --date, or from --days counting back from today.
+        """
+        if days is not None:
+            if days < 0:
+                raise CommandError("--days cannot be negative.")
+            return date.today() - timedelta(days=days)
+        try:
+            return datetime.strptime(date_str, "%Y-%m-%d").date()
+        except ValueError:
+            raise CommandError("Invalid date format. Please use YYYY-MM-DD format.")
+
+    def get_cutoff(self, cutoff_date):
         """
         Returns the end of the given day, so --date 2026-05-31 includes everything scheduled on the 31st.
         """
-        try:
-            parsed = datetime.strptime(date_str, "%Y-%m-%d").date()
-        except ValueError:
-            raise CommandError("Invalid date format. Please use YYYY-MM-DD format.")
-        cutoff = datetime.combine(parsed, time.max)
+        cutoff = datetime.combine(cutoff_date, time.max)
         return timezone.make_aware(cutoff) if settings.USE_TZ else cutoff
 
     def get_statuses_by_pair(self, activities):
@@ -239,11 +258,14 @@ class Command(BaseCommand):
         without_ccs = [pair for pair in pairs if pair not in statuses_by_pair]
         already_terminal = len(pairs) - len(statuses_to_update) - len(without_ccs)
 
-        self.stdout.write(f"Activities to close: {len(activities)} ({len(pairs)} contact/campaign pairs)")
-        self.stdout.write(f"  - Status 2/6/7 -> 4 (ended with contact), resolution LS: {ended_with_contact}")
-        self.stdout.write(f"  - Status 1/3 -> 5 (ended without contact), resolution LS: {ended_without_contact}")
-        self.stdout.write(f"  - Already terminal or with a sale (campaign status untouched): {already_terminal}")
-        self.stdout.write(f"  - Without ContactCampaignStatus (only the activity is closed): {len(without_ccs)}")
+        if self.verbosity >= 1:
+            self.stdout.write(f"Activities to close: {len(activities)} ({len(pairs)} contact/campaign pairs)")
+            self.stdout.write(f"  - Status 2/6/7 -> 4 (ended with contact), resolution LS: {ended_with_contact}")
+            self.stdout.write(f"  - Status 1/3 -> 5 (ended without contact), resolution LS: {ended_without_contact}")
+            self.stdout.write(f"  - Already terminal or with a sale (campaign status untouched): {already_terminal}")
+        # Schedules without a campaign status are an anomaly: they are reported even with --verbosity 0.
+        if self.verbosity >= 1 or without_ccs:
+            self.stdout.write(f"  - Without ContactCampaignStatus (only the activity is closed): {len(without_ccs)}")
         for contact_id, campaign_id in sorted(without_ccs):
             self.stdout.write(self.style.WARNING(f"    contact {contact_id} / campaign {campaign_id}"))
 
@@ -252,4 +274,5 @@ class Command(BaseCommand):
             writer = csv.DictWriter(csv_file, fieldnames=CSV_HEADER)
             writer.writeheader()
             writer.writerows(rows)
-        self.stdout.write(self.style.SUCCESS(f"Wrote {len(rows)} rows to {path}"))
+        if self.verbosity >= 1:
+            self.stdout.write(self.style.SUCCESS(f"Wrote {len(rows)} rows to {path}"))
