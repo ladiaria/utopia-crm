@@ -1,4 +1,5 @@
 # coding=utf-8
+import csv
 import os
 import tempfile
 from datetime import date, datetime, timedelta
@@ -12,7 +13,7 @@ from django.test import Client, TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from core.choices import CAMPAIGN_STATUS, get_contacted_statuses
+from core.choices import CAMPAIGN_RESOLUTION_CHOICES, CAMPAIGN_STATUS, get_contacted_statuses
 from core.models import Activity, Campaign, ContactCampaignStatus
 from support.models import Seller, SellerConsoleAction
 from tests.factories.core_factories import ContactFactory
@@ -325,6 +326,101 @@ class CloseLostScheduleCommandTest(CloseLostScheduleTestMixin, TestCase):
     def test_comando_viejo_esta_deprecado(self):
         with self.assertRaises(CommandError):
             call_command("close_old_pending_activities_and_campaign_status", "--date", CUTOFF, stdout=StringIO())
+
+
+class CloseLostScheduleCsvTest(CloseLostScheduleTestMixin, TestCase):
+    """
+    El CSV es para que lo audite gente que no conoce el modelo: etiquetas en vez de códigos, "hoy" antes que
+    "después del cierre", y abrible en Excel. Se compara contra las etiquetas de los choices y no contra un
+    texto fijo, porque los tests corren en en-us y en producción sale en castellano.
+    """
+
+    RESOLUTIONS = dict(CAMPAIGN_RESOLUTION_CHOICES)
+
+    def run_csv(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "agendas.csv")
+            output = self.run_command("--dry-run", "--csv", path)
+            with open(path, "rb") as csv_file:
+                raw = csv_file.read()
+        rows = list(csv.reader(raw.decode("utf-8-sig").splitlines()))
+        return output, raw, rows[0], [dict(zip(rows[0], row)) for row in rows[1:]]
+
+    def test_etiquetas_en_vez_de_codigos(self):
+        contact = ContactFactory()
+        self.make_activity(contact)
+        self.make_ccs(contact, CAMPAIGN_STATUS.CALLED_COULD_NOT_CONTACT, "NF")
+
+        _, _, _, rows = self.run_csv()
+
+        self.assertEqual(rows[0]["Status today"], CAMPAIGN_STATUS.CALLED_COULD_NOT_CONTACT.label)
+        self.assertEqual(rows[0]["Resolution today"], self.RESOLUTIONS["NF"])
+        self.assertEqual(rows[0]["Status after closing"], CAMPAIGN_STATUS.ENDED_WITHOUT_CONTACT.label)
+        self.assertEqual(rows[0]["Resolution after closing"], self.RESOLUTIONS["LS"])
+
+    def test_hoy_va_antes_que_despues_del_cierre(self):
+        self.make_activity(ContactFactory())
+
+        _, _, header, _ = self.run_csv()
+
+        today = header.index("Status today")
+        self.assertEqual(
+            header[today:],
+            ["Status today", "Resolution today", "Status after closing", "Resolution after closing", "Activity ID"],
+        )
+
+    def test_vendedor_y_campania_activos(self):
+        inactive_campaign = Campaign.objects.create(name="Campaña vieja", active=False, priority=3)
+        external_seller = Seller.objects.create(name="Externo", internal=False)
+        self.make_activity(ContactFactory())
+        Activity.objects.filter(pk=self.make_activity(ContactFactory(), campaign=inactive_campaign).pk).update(
+            seller=external_seller
+        )
+
+        _, _, _, rows = self.run_csv()
+
+        by_campaign = {row["Campaign"]: row for row in rows}
+        self.assertEqual(by_campaign[self.campaign.name]["Internal seller"], "Yes")
+        self.assertEqual(by_campaign[self.campaign.name]["Active campaign"], "Yes")
+        self.assertEqual(by_campaign["Campaña vieja"]["Internal seller"], "No")
+        self.assertEqual(by_campaign["Campaña vieja"]["Active campaign"], "No")
+
+    def test_sin_resolucion_y_sin_ccs(self):
+        """Un ccs sin resolución lo dice; una agenda sin ccs deja estado y resolución vacíos."""
+        with_ccs = ContactFactory()
+        self.make_activity(with_ccs)
+        self.make_ccs(with_ccs, CAMPAIGN_STATUS.CONTACTED)
+        orphan = ContactFactory()
+        self.make_activity(orphan)
+
+        _, _, _, rows = self.run_csv()
+
+        by_contact = {row["Contact ID"]: row for row in rows}
+        self.assertEqual(by_contact[str(with_ccs.id)]["Resolution today"], "(no resolution)")
+        self.assertEqual(by_contact[str(with_ccs.id)]["Resolution after closing"], self.RESOLUTIONS["LS"])
+        for column in ("Status today", "Resolution today", "Status after closing", "Resolution after closing"):
+            self.assertEqual(by_contact[str(orphan.id)][column], "")
+
+    def test_se_abre_en_excel_con_acentos(self):
+        """El BOM de utf-8-sig es lo que le dice a Excel que el archivo es UTF-8."""
+        self.make_activity(ContactFactory())
+
+        _, raw, _, _ = self.run_csv()
+
+        self.assertTrue(raw.startswith(b"\xef\xbb\xbf"))
+
+    def test_el_resumen_usa_las_etiquetas(self):
+        contact = ContactFactory()
+        self.make_activity(contact)
+        self.make_ccs(contact, CAMPAIGN_STATUS.CONTACTED, "SC")
+
+        output, _, _, _ = self.run_csv()
+
+        self.assertIn(
+            f"-> {CAMPAIGN_STATUS.ENDED_WITH_CONTACT.label} ({self.RESOLUTIONS['LS']}): 1",
+            output,
+        )
+        self.assertNotIn("Status 2/6/7", output)
 
 
 class CloseLostScheduleCronTest(CloseLostScheduleTestMixin, TestCase):

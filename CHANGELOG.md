@@ -2,6 +2,15 @@
 
 ## v0.5.1
 
+## 2026-10-22 — gl57-csv-legible La planilla del cierre de agendas perdidas se lee sin conocer el sistema
+
+- **La planilla que genera el cierre de agendas perdidas muestra los nombres de los estados y las resoluciones**, en el idioma de la instalación, en vez de sus códigos (2, 4, `SC`, `LS`). Antes había que tener una tabla al lado para entenderla
+- **Las columnas de cómo está el contacto hoy van juntas y antes de las de cómo queda después del cierre.** Antes se intercalaban, y una fila parecía decir que el contacto ya estaba finalizado
+- **Dos columnas nuevas para auditar: si el vendedor es interno y si la campaña está activa.** El encabezado también se traduce, y el archivo se abre bien en Excel, con los acentos
+- **El resumen por pantalla también usa los nombres de los estados** en vez de los números
+- Deployment: **no se requieren migraciones**; sí **recompilar traducciones** (`compilemessages -l es`), porque hay textos nuevos
+- **Author:** Tanya Tree + Claude Opus 5.5
+
 ## 2026-10-22 — gl58-cierre-agendas-cron El cierre de agendas perdidas puede correr todos los días por cron
 
 - **El cierre de agendas perdidas acepta un plazo en días además de una fecha fija**, para poder programarlo como rutina diaria: "cerrar todo lo que tenga más de 30 días". Sigue sin tener valor por defecto, para que nadie cierre agendas por accidente

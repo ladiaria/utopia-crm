@@ -2003,6 +2003,42 @@ msgstr "Las promociones deben tener una fecha de fin"
 msgid "Automatically closed due to lost schedule ({})."
 msgstr "Cerrado automáticamente por agenda perdida ({})."
 
+#: core/management/commands/close_lost_schedule_activities.py
+msgid "(no resolution)"
+msgstr "(sin resolución)"
+
+#: core/management/commands/close_lost_schedule_activities.py
+msgid "Schedule date"
+msgstr "Fecha de la agenda"
+
+#: core/management/commands/close_lost_schedule_activities.py
+msgid "Internal seller"
+msgstr "Vendedor interno"
+
+#: core/management/commands/close_lost_schedule_activities.py
+msgid "Active campaign"
+msgstr "Campaña activa"
+
+#: core/management/commands/close_lost_schedule_activities.py
+msgid "Status today"
+msgstr "Estado hoy"
+
+#: core/management/commands/close_lost_schedule_activities.py
+msgid "Resolution today"
+msgstr "Resolución hoy"
+
+#: core/management/commands/close_lost_schedule_activities.py
+msgid "Status after closing"
+msgstr "Estado después del cierre"
+
+#: core/management/commands/close_lost_schedule_activities.py
+msgid "Resolution after closing"
+msgstr "Resolución después del cierre"
+
+#: core/management/commands/close_lost_schedule_activities.py
+msgid "Activity ID"
+msgstr "ID de actividad"
+
 #: core/models.py:79
 msgid ""
 "This field only supports alphanumeric characters, at, apostrophes, spaces, "
