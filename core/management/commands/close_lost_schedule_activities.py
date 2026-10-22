@@ -7,7 +7,7 @@ from django.db import transaction
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
-from core.choices import ACTIVITY_STATUS, CAMPAIGN_STATUS, SALE_RESOLUTIONS
+from core.choices import ACTIVITY_STATUS, CAMPAIGN_RESOLUTION_CHOICES, CAMPAIGN_STATUS, SALE_RESOLUTIONS
 from core.models import Activity, ContactCampaignStatus
 from support.models import SellerConsoleAction
 
@@ -29,18 +29,22 @@ STATUS_MAP = {
     CAMPAIGN_STATUS.SWITCH_TO_AFTERNOON: CAMPAIGN_STATUS.ENDED_WITH_CONTACT,
 }
 
-CSV_HEADER = (
-    "activity_id",
+# CSV columns, in order. The header is translated when the file is written (see csv_header), and the values are
+# the labels of the choices, not their codes: the CSV is meant to be audited by people who do not know the model.
+# "Today" goes before "after closing", so a row does not read as if the contact were already closed.
+CSV_COLUMNS = (
+    "activity_datetime",
+    "seller",
+    "seller_internal",
+    "campaign_name",
+    "campaign_active",
     "contact_id",
     "contact_name",
-    "campaign_id",
-    "campaign_name",
-    "seller",
-    "activity_datetime",
     "ccs_status_before",
-    "ccs_status_after",
     "ccs_resolution_before",
+    "ccs_status_after",
     "ccs_resolution_after",
+    "activity_id",
 )
 
 
@@ -235,33 +239,58 @@ class Command(BaseCommand):
         return ccs.status in STATUS_MAP and ccs.campaign_resolution not in SALE_RESOLUTIONS
 
     def build_row(self, activity, status_before, status_after, resolution_before, resolution_after):
+        seller = activity.seller
         return {
-            "activity_id": activity.id,
+            "activity_datetime": activity.datetime.strftime("%Y-%m-%d %H:%M") if activity.datetime else "",
+            "seller": seller.name if seller else "",
+            "seller_internal": self.yes_no(seller.internal) if seller else "",
+            "campaign_name": activity.campaign.name,
+            "campaign_active": self.yes_no(activity.campaign.active),
             "contact_id": activity.contact_id,
             "contact_name": activity.contact.name if activity.contact else "",
-            "campaign_id": activity.campaign_id,
-            "campaign_name": activity.campaign.name,
-            "seller": activity.seller.name if activity.seller else "",
-            "activity_datetime": activity.datetime.strftime("%Y-%m-%d %H:%M") if activity.datetime else "",
-            "ccs_status_before": status_before or "",
-            "ccs_status_after": status_after or "",
-            "ccs_resolution_before": resolution_before or "",
-            "ccs_resolution_after": resolution_after or "",
+            # A schedule without a ContactCampaignStatus has neither status nor resolution: both columns stay empty.
+            "ccs_status_before": self.status_label(status_before),
+            "ccs_resolution_before": self.resolution_label(resolution_before) if status_before else "",
+            "ccs_status_after": self.status_label(status_after),
+            "ccs_resolution_after": self.resolution_label(resolution_after) if status_after else "",
+            "activity_id": activity.id,
+        }
+
+    def status_label(self, status):
+        return str(CAMPAIGN_STATUS(status).label) if status else ""
+
+    def resolution_label(self, resolution):
+        if not resolution:
+            return _("(no resolution)")
+        return str(dict(CAMPAIGN_RESOLUTION_CHOICES).get(resolution, resolution))
+
+    def yes_no(self, value):
+        return _("Yes") if value else _("No")
+
+    def csv_header(self):
+        return {
+            "activity_datetime": _("Schedule date"),
+            "seller": _("Seller"),
+            "seller_internal": _("Internal seller"),
+            "campaign_name": _("Campaign"),
+            "campaign_active": _("Active campaign"),
+            "contact_id": _("Contact ID"),
+            "contact_name": _("Contact"),
+            "ccs_status_before": _("Status today"),
+            "ccs_resolution_before": _("Resolution today"),
+            "ccs_status_after": _("Status after closing"),
+            "ccs_resolution_after": _("Resolution after closing"),
+            "activity_id": _("Activity ID"),
         }
 
     def print_summary(self, activities, statuses_by_pair, statuses_to_update, rows):
         pairs = {(activity.contact_id, activity.campaign_id) for activity in activities}
-        ended_with_contact = sum(
-            1 for ccs in statuses_to_update.values() if ccs.status == CAMPAIGN_STATUS.ENDED_WITH_CONTACT
-        )
-        ended_without_contact = len(statuses_to_update) - ended_with_contact
         without_ccs = [pair for pair in pairs if pair not in statuses_by_pair]
         already_terminal = len(pairs) - len(statuses_to_update) - len(without_ccs)
 
         if self.verbosity >= 1:
             self.stdout.write(f"Activities to close: {len(activities)} ({len(pairs)} contact/campaign pairs)")
-            self.stdout.write(f"  - Status 2/6/7 -> 4 (ended with contact), resolution LS: {ended_with_contact}")
-            self.stdout.write(f"  - Status 1/3 -> 5 (ended without contact), resolution LS: {ended_without_contact}")
+            self.print_transitions(statuses_to_update)
             self.stdout.write(f"  - Already terminal or with a sale (campaign status untouched): {already_terminal}")
         # Schedules without a campaign status are an anomaly: they are reported even with --verbosity 0.
         if self.verbosity >= 1 or without_ccs:
@@ -269,10 +298,25 @@ class Command(BaseCommand):
         for contact_id, campaign_id in sorted(without_ccs):
             self.stdout.write(self.style.WARNING(f"    contact {contact_id} / campaign {campaign_id}"))
 
+    def print_transitions(self, statuses_to_update):
+        """
+        One line per terminal status, with the labels of the statuses that end there, built from STATUS_MAP:
+        "Not yet contacted, Called, could not contact -> Ended without contact (Closed due to lost schedule): 3"
+        """
+        sources_by_target = {}
+        for source, target in STATUS_MAP.items():
+            sources_by_target.setdefault(target, []).append(source)
+        resolution = self.resolution_label(LOST_SCHEDULE_RESOLUTION)
+        for target in sorted(sources_by_target):
+            sources = ", ".join(str(CAMPAIGN_STATUS(source).label) for source in sources_by_target[target])
+            count = sum(1 for ccs in statuses_to_update.values() if ccs.status == target)
+            self.stdout.write(f"  - {sources} -> {CAMPAIGN_STATUS(target).label} ({resolution}): {count}")
+
     def write_csv(self, path, rows):
-        with open(path, "w", newline="") as csv_file:
-            writer = csv.DictWriter(csv_file, fieldnames=CSV_HEADER)
-            writer.writeheader()
+        # utf-8-sig adds the BOM that Excel needs to read the accents right.
+        with open(path, "w", newline="", encoding="utf-8-sig") as csv_file:
+            writer = csv.DictWriter(csv_file, fieldnames=CSV_COLUMNS)
+            writer.writerow(self.csv_header())
             writer.writerows(rows)
         if self.verbosity >= 1:
             self.stdout.write(self.style.SUCCESS(f"Wrote {len(rows)} rows to {path}"))
