@@ -1,7 +1,7 @@
 # coding=utf-8
 import os
 import tempfile
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from io import StringIO
 
 from django.conf import settings
@@ -75,7 +75,9 @@ class CloseLostScheduleCommandTest(CloseLostScheduleTestMixin, TestCase):
         self.assertEqual(activity.status, "C")
         self.assertEqual(activity.seller_console_action.slug, "close-lost-schedule")
         self.assertIn("Pidió que la llamen el lunes", activity.notes)
-        self.assertIn("t1175", activity.notes)
+        self.assertIn(date.today().strftime("%Y-%m-%d"), activity.notes)
+        # La nota la escribe también la corrida diaria del cron: no lleva el número de ticket.
+        self.assertNotIn("t1175", activity.notes)
 
     def test_no_modifica_datetime_de_la_actividad(self):
         """La fecha pactada es información: el cierre no la pisa."""
@@ -323,6 +325,69 @@ class CloseLostScheduleCommandTest(CloseLostScheduleTestMixin, TestCase):
     def test_comando_viejo_esta_deprecado(self):
         with self.assertRaises(CommandError):
             call_command("close_old_pending_activities_and_campaign_status", "--date", CUTOFF, stdout=StringIO())
+
+
+class CloseLostScheduleCronTest(CloseLostScheduleTestMixin, TestCase):
+    """
+    El cron diario corre con --days y --verbosity 0: corte relativo a hoy, y salida sólo si hay
+    algo que mirar, porque cron manda por mail todo lo que se imprime.
+    """
+
+    def days_ago(self, days):
+        return datetime.combine(date.today() - timedelta(days=days), datetime.min.time()).replace(hour=10)
+
+    def run_cron(self, *args):
+        out = StringIO()
+        call_command("close_lost_schedule_activities", *args, stdout=out)
+        return out.getvalue()
+
+    def test_days_cierra_hasta_el_dia_del_corte_inclusive(self):
+        older = self.make_activity(ContactFactory(), when=self.days_ago(31))
+        on_cutoff = self.make_activity(ContactFactory(), when=self.days_ago(30))
+        newer = self.make_activity(ContactFactory(), when=self.days_ago(29))
+
+        self.run_cron("--days", "30")
+
+        for activity, status in ((older, "C"), (on_cutoff, "C"), (newer, "P")):
+            activity.refresh_from_db()
+            self.assertEqual(activity.status, status)
+
+    def test_days_y_date_son_excluyentes(self):
+        with self.assertRaises(CommandError):
+            self.run_cron("--days", "30", "--date", CUTOFF)
+
+    def test_sin_corte_no_corre(self):
+        """Sin --date ni --days aborta: nadie tiene que cerrar agendas por accidente."""
+        with self.assertRaises(CommandError):
+            self.run_cron()
+
+    def test_days_negativo_no_corre(self):
+        with self.assertRaises(CommandError):
+            self.run_cron("--days", "-1")
+
+    def test_verbosity_cero_no_imprime_en_una_corrida_normal(self):
+        contact = ContactFactory()
+        activity = self.make_activity(contact, when=self.days_ago(40))
+        self.make_ccs(contact, CAMPAIGN_STATUS.CONTACTED, "SC")
+
+        output = self.run_cron("--days", "30", "--verbosity", "0")
+
+        self.assertEqual(output, "")
+        activity.refresh_from_db()
+        self.assertEqual(activity.status, "C")
+
+    def test_verbosity_cero_no_imprime_si_no_hay_nada_que_cerrar(self):
+        self.assertEqual(self.run_cron("--days", "30", "--verbosity", "0"), "")
+
+    def test_verbosity_cero_igual_reporta_las_agendas_sin_ccs(self):
+        """Una agenda sin ContactCampaignStatus es una anomalía: tiene que llegar en el mail."""
+        contact = ContactFactory()
+        self.make_activity(contact, when=self.days_ago(40))
+
+        output = self.run_cron("--days", "30", "--verbosity", "0")
+
+        self.assertIn("Without ContactCampaignStatus (only the activity is closed): 1", output)
+        self.assertIn(f"contact {contact.id} / campaign {self.campaign.id}", output)
 
 
 class PopulateSellerConsoleActionsTest(TestCase):

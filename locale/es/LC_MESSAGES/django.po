@@ -2000,8 +2000,8 @@ msgstr "Las promociones deben tener una fecha de fin"
 
 #: core/management/commands/close_lost_schedule_activities.py:119
 #, python-brace-format
-msgid "Automatically closed due to lost schedule (t1175, {})."
-msgstr "Cerrado automáticamente por agenda perdida (t1175, {})."
+msgid "Automatically closed due to lost schedule ({})."
+msgstr "Cerrado automáticamente por agenda perdida ({})."
 
 #: core/models.py:79
 msgid ""
