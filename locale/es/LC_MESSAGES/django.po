@@ -12798,3 +12798,20 @@ msgstr ""
 "El contacto tiene abierta una incidencia de servicio «No entregado» (<a "
 "class=\"alert-link\" href=\"%(blocking_issue_url)s\">#%(issue_id)s</a>): no se puede crear una de "
 "logística hasta que se cierre."
+
+#: support/management/commands/close_invoicing_issues.py
+#, python-brace-format
+msgid ""
+"Closing issue {} for contact {} as {}. Their overdue invoices are "
+"uncollectible"
+msgstr ""
+"Cerrando incidencia {} para contacto {} como {}. Sus facturas vencidas son "
+"incobrables"
+
+#: support/management/commands/close_invoicing_issues.py
+#, python-brace-format
+msgid ""
+"Closed automatically on {}: the overdue invoices were marked as uncollectible"
+msgstr ""
+"Cerrada automáticamente el {}: las facturas vencidas se marcaron como "
+"incobrables"

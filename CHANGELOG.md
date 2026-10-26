@@ -2,6 +2,22 @@
 
 ## v0.5.1
 
+## 2026-10-26 — gl63-close-invoicing-issues-subcategorias El cierre automático de incidencias de cobranza vuelve a cerrar
+
+- **El cierre automático nocturno de incidencias de facturación no cerraba ninguna**: comparaba la lista de subcategorías contra el estado de la incidencia, así que no encontraba nada. Ahora filtra por subcategoría, como dice el setting
+- **Distingue a quien pagó de quien tiene la deuda dada por perdida.** Si la última factura saldada está paga o debitada, la incidencia se cierra como resuelta, igual que antes. Si es incobrable, se cierra con el estado que diga un setting nuevo (por ejemplo "no resuelto") y una nota que lo explica; sin el setting, queda abierta
+- **El comando acepta `--dry-run`**, para ver qué cerraría sin cerrar nada. La primera corrida puede cerrar de una vez todo lo que se acumuló mientras no funcionaba
+- Deployment: **no se requieren migraciones**; sí **recompilar traducciones** (`compilemessages -l es`), porque hay textos nuevos. Conviene correr el comando con `--dry-run` antes de la primera corrida del cron
+- **Author:** Tanya Tree + Claude Opus 5.5
+
+## 2026-10-26 — gl60-consola-vendedor-no-consolidados La consola del vendedor lista más de una subcategoría de "nunca pagó"
+
+- **La consola del vendedor puede listar, junto con las incidencias de "nunca pagó", otras subcategorías que sean variantes de lo mismo** (por ejemplo, el no consolidado que debe 2 facturas o más). Antes, cuando una incidencia pasaba a la variante, desaparecía de la consola aunque siguiera asignada al vendedor
+- Con más de una subcategoría, la página muestra una columna con la subcategoría de cada incidencia
+- Se configura con un setting nuevo, opcional: sin él, todo sigue igual que antes
+- Deployment: **no se requieren migraciones**
+- **Author:** Tanya Tree + Claude Opus 5.5
+
 ## 2026-10-26 — gl61-contraste-link-aviso El link del aviso de "No entregado" se lee
 
 - **El número de la incidencia que frena, en el aviso amarillo de nueva incidencia, ahora se ve oscuro y en negrita.** Antes salía blanco sobre amarillo y casi no se leía

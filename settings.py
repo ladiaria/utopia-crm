@@ -198,6 +198,9 @@ ISSUE_STATUS_UNASSIGNED = "unassigned"
 # list of statuses slugs that will be used to mark the issue as finished
 ISSUE_STATUS_SOLVED = "solved"
 ISSUE_STATUS_FINISHED_LIST = [ISSUE_STATUS_SOLVED, "not-solved"]
+# close_invoicing_issues closes as solved the issues of contacts that paid. Set a finished status slug (e.g.
+# "not-solved") to also close, with it, the ones of contacts whose overdue invoices were marked as uncollectible.
+ISSUE_STATUS_AUTO_CLOSE_UNCOLLECTIBLE = None
 
 # Subcategory slugs whose resolutions auto-close the issue (set status to ISSUE_STATUS_SOLVED).
 # Override in local_settings to activate this behaviour for specific subcategories.
