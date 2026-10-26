@@ -72,6 +72,10 @@ ISSUE_SUBCATEGORY_1_INVOICE = 'debt-1-invoice'
 ISSUE_SUBCATEGORY_2_INVOICES = 'debt-2-invoices'
 ISSUE_SUBCATEGORY_GENERIC_DEBT = 'generic-debt'
 
+# Forbid new logistics issues while the contact has an open service issue of the ISSUE_SUBCATEGORY_NOT_DELIVERED
+# subcategory (the one created when a subscription is moved to a special route)
+# ISSUE_BLOCK_LOGISTICS_IF_NOT_DELIVERED_OPEN = True
+
 # Temporary discounts: A dict map of product slug, months.
 # Use for products (discounts) that have to disappear from the subscription after a set amount of months.
 # TEMPORARY_DISCOUNT = {'product-slug': 3}

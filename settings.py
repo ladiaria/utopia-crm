@@ -206,6 +206,9 @@ ISSUE_RESOLUTION_SOLVED_SUBCATEGORIES = []
 # logistics
 LOGISTICS_LABEL_INVOICE_PAYMENT_TYPES = []
 ISSUE_SUBCATEGORY_NOT_DELIVERED = "not-delivered"
+# Override to True to forbid new logistics issues while the contact has an open service issue of the
+# ISSUE_SUBCATEGORY_NOT_DELIVERED subcategory (the delivery is on hold on purpose, e.g. a special route)
+ISSUE_BLOCK_LOGISTICS_IF_NOT_DELIVERED_OPEN = False
 
 # Override to True if route for billing is required
 # Useful when you explicitly require to send the invoices via logistics

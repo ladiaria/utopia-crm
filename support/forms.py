@@ -2,6 +2,7 @@ from datetime import date
 
 from django.utils.translation import gettext_lazy as _
 from django import forms
+from django.conf import settings
 from django.forms import ValidationError
 from django.contrib.auth.models import User
 from django.utils.safestring import mark_safe
@@ -30,6 +31,21 @@ from core.signals import alphanumeric
 
 from .models import Seller, Issue, IssueStatus, IssueSubcategory, SalesRecord
 from .choices import get_issue_categories
+
+
+def get_blocking_not_delivered_issue(contact, category):
+    """
+    Returns the open "not delivered" service issue that forbids creating a logistics issue for this contact, or None.
+    Only applies when settings.ISSUE_BLOCK_LOGISTICS_IF_NOT_DELIVERED_OPEN is enabled.
+    """
+    if not (getattr(settings, "ISSUE_BLOCK_LOGISTICS_IF_NOT_DELIVERED_OPEN", False) and contact and category == "L"):
+        return None
+    return (
+        contact.issue_set.filter(category="S", sub_category__slug=settings.ISSUE_SUBCATEGORY_NOT_DELIVERED)
+        .exclude(status__slug__in=settings.ISSUE_STATUS_FINISHED_LIST)
+        .order_by("-id")
+        .first()
+    )
 
 
 class SellerForm(forms.ModelForm):
@@ -509,6 +525,17 @@ class IssueStartForm(forms.ModelForm):
         elif sub_category.category and sub_category.category != category:
             msg = _("{} is not a subcategory of {}").format(sub_category, dict_categories[category])
             self.add_error("sub_category", forms.ValidationError(msg))
+
+        # The view saves the issue for the contact in its initial data, not for the hidden contact field: check that one
+        contact = self.initial.get("contact") or self.cleaned_data.get("contact")
+        blocking_issue = get_blocking_not_delivered_issue(contact, category)
+        if blocking_issue:
+            raise forms.ValidationError(
+                _(
+                    "This contact has an open 'not delivered' service issue (#{}): a logistics issue can't be "
+                    "created until it is closed."
+                ).format(blocking_issue.id)
+            )
 
         return self.cleaned_data
 
