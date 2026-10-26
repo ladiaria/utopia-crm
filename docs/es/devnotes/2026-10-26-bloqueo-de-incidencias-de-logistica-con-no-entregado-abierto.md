@@ -44,7 +44,9 @@ contact.issue_set.filter(category="S", sub_category__slug=settings.ISSUE_SUBCATE
 **Archivos:** `support/views/all_views.py`, `support/templates/new_issue.html`
 
 `NewIssueView` pone la incidencia que frena en el contexto como `blocking_issue`. El template muestra un
-`alert-warning` arriba del formulario, con el link a esa incidencia, y el botón de crear sale `disabled`.
+`alert-warning` arriba del formulario, con el link a esa incidencia, y el botón de crear sale `disabled`. El link
+lleva `alert-link`: AdminLTE pinta de blanco los links comunes dentro de las alertas (`.alert a`), y sobre el
+amarillo del aviso no se leen.
 
 ### 4. El `clean()` del formulario la rechaza
 
