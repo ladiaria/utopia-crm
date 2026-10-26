@@ -12779,3 +12779,22 @@ msgid ""
 msgstr ""
 "No se van a ejecutar hasta que tengan una dirección: los productos siguen con "
 "la que tienen ahora. Poneles una dirección nueva o borralos."
+
+#: support/forms.py
+msgid ""
+"This contact has an open 'not delivered' service issue (#{}): a logistics "
+"issue can't be created until it is closed."
+msgstr ""
+"El contacto tiene abierta una incidencia de servicio «No entregado» (#{}): "
+"no se puede crear una de logística hasta que se cierre."
+
+#: support/templates/new_issue.html
+#, python-format
+msgid ""
+"This contact has an open 'not delivered' service issue (<a "
+"href=\"%(blocking_issue_url)s\">#%(issue_id)s</a>): a logistics issue can't "
+"be created until it is closed."
+msgstr ""
+"El contacto tiene abierta una incidencia de servicio «No entregado» (<a "
+"href=\"%(blocking_issue_url)s\">#%(issue_id)s</a>): no se puede crear una de "
+"logística hasta que se cierre."

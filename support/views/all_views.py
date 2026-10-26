@@ -84,6 +84,7 @@ from support.filters import (
 from support.forms import (
     AddressComplementaryInformationForm,
     ContactCampaignStatusByDateForm,
+    get_blocking_not_delivered_issue,
     InvoicingIssueChangeForm,
     IssueChangeForm,
     IssueStartForm,
@@ -1423,6 +1424,9 @@ class NewIssueView(BreadcrumbsMixin, CreateView):
         # Add category name to context
         dict_categories = dict(get_issue_categories())
         context['category_name'] = dict_categories[self.category]
+
+        # Warn beforehand and disable the submit button; the form's clean() still forbids it
+        context['blocking_issue'] = get_blocking_not_delivered_issue(self.contact, self.category)
 
         # Create mapping of subcategory_id -> list of resolution options for JavaScript filtering
         # Cache this data to avoid repeated queries

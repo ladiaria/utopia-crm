@@ -2,6 +2,14 @@
 
 ## v0.5.1
 
+## 2026-10-26 — gl61-logistica-no-entregado-abierto No se crean incidencias de logística mientras hay un "No entregado" abierto
+
+- **Si el contacto tiene abierta una incidencia de servicio "No entregado", no se le puede crear una de logística.** Esa incidencia la crea el sistema cuando una suscripción pasa a una ruta especial: mientras está abierta, el diario no llega a propósito, y un "No llegó" no corresponde
+- **El formulario avisa antes de que la persona cargue nada**: muestra un aviso con el link a la incidencia que lo frena y deja el botón de crear desactivado. Si igual se manda, el formulario lo rechaza con un error y conserva todo lo cargado
+- Se prende con un setting nuevo, apagado por defecto: sin él, todo sigue igual que antes
+- Deployment: **no se requieren migraciones**; sí **recompilar traducciones** (`compilemessages -l es`), porque hay textos nuevos, y prender el setting en la instalación que lo quiera
+- **Author:** Tanya Tree + Claude Opus 5.5
+
 ## 2026-10-22 — gl57-csv-legible La planilla del cierre de agendas perdidas se lee sin conocer el sistema
 
 - **La planilla que genera el cierre de agendas perdidas muestra los nombres de los estados y las resoluciones**, en el idioma de la instalación, en vez de sus códigos (2, 4, `SC`, `LS`). Antes había que tener una tabla al lado para entenderla
