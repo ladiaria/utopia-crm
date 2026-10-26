@@ -72,6 +72,10 @@ ISSUE_SUBCATEGORY_1_INVOICE = 'debt-1-invoice'
 ISSUE_SUBCATEGORY_2_INVOICES = 'debt-2-invoices'
 ISSUE_SUBCATEGORY_GENERIC_DEBT = 'generic-debt'
 
+# The seller console lists the open issues of the ISSUE_SUBCATEGORY_NEVER_PAID subcategory assigned to the seller.
+# Add here other subcategories to list with them (e.g. a never paid variant for contacts that owe 2+ invoices).
+# ISSUE_SUBCATEGORY_NEVER_PAID_EXTRA_SLUGS = ['never-paid-2-invoices']
+
 # Forbid new logistics issues while the contact has an open service issue of the ISSUE_SUBCATEGORY_NOT_DELIVERED
 # subcategory (the one created when a subscription is moved to a special route)
 # ISSUE_BLOCK_LOGISTICS_IF_NOT_DELIVERED_OPEN = True
