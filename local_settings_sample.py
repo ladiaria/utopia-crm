@@ -58,6 +58,10 @@ INVOICE_PAYMENT_METHODS = (("M", "Mastercard"), ("V", "Visa"), ("C", "Cash"))
 # Set a list of subcategories slugs that will be used to allow an issue to be closed
 # ISSUE_SUBCATEGORY_AUTO_CLOSE_SLUGS = ['inactive', '1-invoice-debt']
 
+# close_invoicing_issues closes as solved the issues of contacts that paid. With this status slug it also closes the
+# ones of contacts whose overdue invoices were marked as uncollectible (they stopped being debtors without paying).
+# ISSUE_STATUS_AUTO_CLOSE_UNCOLLECTIBLE = 'not-solved'
+
 # Used when a new issue is created, depending if it was assigned or not. You must create the issue statuses beforehand
 # TODO: verify if they can be commented
 ISSUE_STATUS_ASSIGNED = 'assigned'
