@@ -24,6 +24,9 @@
             <th>{% trans "Issue ID" %}</th>
             <th>{% trans "Contact" %}</th>
             <th>{% trans "Contact ID" %}</th>
+            {% if show_subcategory %}
+              <th>{% trans "Subcategory" %}</th>
+            {% endif %}
             <th>{% trans "Subscription start date" %}</th>
             <th>{% trans "Overdue invoices" %}</th>
             <th>{% trans "Email" %}</th>
@@ -41,6 +44,9 @@
               <td>
                 <a href="{% url "contact_detail" issue.contact.id %}">{{ issue.contact.id }}</a>
               </td>
+              {% if show_subcategory %}
+                <td>{{ issue.sub_category }}</td>
+              {% endif %}
               <td>
                 {% if issue.subscription %}
                   {{ issue.subscription.start_date|date:"SHORT_DATE_FORMAT" }}
