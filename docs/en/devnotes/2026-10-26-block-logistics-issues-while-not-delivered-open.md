@@ -43,7 +43,8 @@ contact.issue_set.filter(category="S", sub_category__slug=settings.ISSUE_SUBCATE
 **Files:** `support/views/all_views.py`, `support/templates/new_issue.html`
 
 `NewIssueView` puts the blocking issue in the context as `blocking_issue`. The template shows an `alert-warning` at
-the top of the form, with a link to that issue, and renders the submit button `disabled`.
+the top of the form, with a link to that issue, and renders the submit button `disabled`. The link carries
+`alert-link`: AdminLTE paints plain links inside alerts white (`.alert a`), unreadable on the warning's yellow.
 
 ### 4. The form's `clean()` refuses it
 

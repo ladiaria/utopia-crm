@@ -247,7 +247,7 @@ $( function() {
               <div class="alert alert-warning" role="alert">
                 <i class="fas fa-exclamation-triangle mr-2"></i>
                 {% url "view_issue" blocking_issue.id as blocking_issue_url %}
-                {% blocktrans with issue_id=blocking_issue.id %}This contact has an open 'not delivered' service issue (<a href="{{ blocking_issue_url }}">#{{ issue_id }}</a>): a logistics issue can't be created until it is closed.{% endblocktrans %}
+                {% blocktrans with issue_id=blocking_issue.id %}This contact has an open 'not delivered' service issue (<a class="alert-link" href="{{ blocking_issue_url }}">#{{ issue_id }}</a>): a logistics issue can't be created until it is closed.{% endblocktrans %}
               </div>
             {% endif %}
             {% if form.errors %}

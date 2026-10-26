@@ -2,6 +2,12 @@
 
 ## v0.5.1
 
+## 2026-10-26 — gl61-contraste-link-aviso El link del aviso de "No entregado" se lee
+
+- **El número de la incidencia que frena, en el aviso amarillo de nueva incidencia, ahora se ve oscuro y en negrita.** Antes salía blanco sobre amarillo y casi no se leía
+- Deployment: **no se requieren migraciones**; sí **recompilar traducciones** (`compilemessages -l es`), porque cambia el texto del aviso
+- **Author:** Tanya Tree + Claude Opus 5.5
+
 ## 2026-10-26 — gl61-logistica-no-entregado-abierto No se crean incidencias de logística mientras hay un "No entregado" abierto
 
 - **Si el contacto tiene abierta una incidencia de servicio "No entregado", no se le puede crear una de logística.** Esa incidencia la crea el sistema cuando una suscripción pasa a una ruta especial: mientras está abierta, el diario no llega a propósito, y un "No llegó" no corresponde
