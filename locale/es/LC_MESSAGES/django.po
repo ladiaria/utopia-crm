@@ -11452,6 +11452,14 @@ msgstr "Incidencia #{}"
 msgid "Issue #{issue_id} updated for contact {contact_name}"
 msgstr "Incidencia #{issue_id} actualizada para el contacto {contact_name}"
 
+#: support/views/all_views.py:1626
+msgid ""
+"Issue #{issue_id} was automatically marked as {status} because it has a "
+"resolution"
+msgstr ""
+"La incidencia #{issue_id} se marcó automáticamente como {status} porque "
+"tiene resolución"
+
 #: support/views/all_views.py:1878
 msgid "id document"
 msgstr "documento de identidad"
