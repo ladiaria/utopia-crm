@@ -6,13 +6,11 @@ from simple_history.models import HistoricalRecords
 
 from django.conf import settings
 from django.db import models
-from django.db.models import Sum, Q
-from django.contrib.auth.models import User
+from django.db.models import Sum
 from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
 
-from core.models import Subscription, Contact
-from invoicing.choices import INVOICEITEM_TYPE_CHOICES, INVOICEITEM_DR_TYPE_CHOICES, BILLING_STATUS
+from invoicing.choices import INVOICEITEM_TYPE_CHOICES, INVOICEITEM_DR_TYPE_CHOICES
 
 
 class Invoice(models.Model):
@@ -106,7 +104,6 @@ class Invoice(models.Model):
 
     consecutive_payment = models.PositiveIntegerField(verbose_name=_("Consecutive Payment"), blank=True, null=True)
 
-    billing = models.ForeignKey("invoicing.Billing", blank=True, null=True, on_delete=models.SET_NULL)
     history = HistoricalRecords()
 
     created_at = models.DateTimeField(verbose_name=_("Created at"), auto_now_add=True, null=True, blank=True)
@@ -323,74 +320,6 @@ class InvoiceItemCopy(InvoiceItem):
 
     class Meta:
         proxy = True
-
-
-class Billing(models.Model):
-    start = models.DateTimeField(auto_now_add=True)
-    end = models.DateTimeField(null=True, blank=True)
-    created_by = models.ForeignKey(User, on_delete=models.CASCADE, blank=True, null=True, related_name="created_by")
-    started_by = models.ForeignKey(User, on_delete=models.CASCADE, blank=True, null=True, related_name="started_by")
-    product = models.ForeignKey("core.Product", on_delete=models.CASCADE, blank=True, null=True)
-    payment_type = models.CharField(
-        max_length=2,
-        choices=settings.SUBSCRIPTION_PAYMENT_METHODS,
-        null=True,
-        blank=True,
-    )
-    errors = models.TextField(blank=True, null=True)
-    completed = models.BooleanField(default=False)
-    billing_date = models.DateField()
-    dpp = models.PositiveSmallIntegerField(default=10)
-    exclude = models.ManyToManyField(Contact)
-    status = models.CharField(max_length=1, default="P", choices=BILLING_STATUS)
-
-    # Used to generate an accurate progress
-    processed_contacts = models.IntegerField(default=0)
-    subscriber_amount = models.IntegerField(default=0)
-
-    def progress(self):
-        """
-        Returns the percentage of progress for completion on this Billing object.
-        """
-        count = self.processed_contacts
-        total = self.subscriber_amount
-        if self.status == "C":
-            return "100.00"
-        if total > 0:
-            return "{0:.2f}".format(float(count) * 100 / float(total))
-        else:
-            return 0
-
-    def count(self):
-        """
-        Returns the amount of invoices this billing has.
-        """
-        return self.invoice_set.all().count()
-
-    def amount_billed(self):
-        """
-        Returns the amount of money billed in this billing. It includes every invoice, even if it was canceled.
-        """
-        if self.invoice_set.exists():
-            return self.invoice_set.aggregate(Sum("amount"))["amount__sum"]
-        else:
-            return "-"
-
-    def subscriptions_to_bill(self, count=False):
-        subscriptions = Subscription.objects.filter(
-            Q(end_date=None) | Q(end_date__gt=self.billing_date),
-            active=True,
-            type="N",
-            next_billing__lte=self.billing_date,
-        )
-        if self.payment_type:
-            subscriptions = subscriptions.filter(payment_type=self.payment_type)
-        return subscriptions.count() if count else subscriptions
-
-    class Meta:
-        app_label = "invoicing"
-        verbose_name_plural = "billings"
-        get_latest_by = "start"
 
 
 class CreditNote(models.Model):
