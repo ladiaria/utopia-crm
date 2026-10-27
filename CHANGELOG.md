@@ -2,6 +2,14 @@
 
 ## v0.5.1
 
+## 2026-10-27 — gl65-remove-billing Se quita el modelo Billing, que no se usaba
+
+- **Se quita `Billing`, las "corridas de facturación"**, de cuando se facturaba a mano agrupando las facturas de cada corrida. Hoy se factura por día y el modelo no se usa más. También se van el vínculo de cada factura con su corrida, la vista que listaba las facturas de una corrida (ninguna URL la enrutaba) y los permisos de "billing" de la fixture de grupos
+- **Las facturas no se borran**: el vínculo era opcional, y quitarlo elimina la columna, no filas
+- **Para otras instalaciones:** si una customización tiene un modelo con FK a `Billing`, hay que borrarlo **antes** de migrar, y su migración tiene que declarar `run_before` sobre `invoicing.0031_remove_billing`. Si no, en una base nueva esa migración corre después y falla
+- Deployment: **se requieren migraciones** (`invoicing.0031_remove_billing`)
+- **Author:** Tanya Tree + Claude Opus 5.5
+
 ## 2026-10-26 — gl63-close-invoicing-issues-subcategorias El cierre automático de incidencias de cobranza vuelve a cerrar
 
 - **El cierre automático nocturno de incidencias de facturación no cerraba ninguna**: comparaba la lista de subcategorías contra el estado de la incidencia, así que no encontraba nada. Ahora filtra por subcategoría, como dice el setting

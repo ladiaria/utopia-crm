@@ -11,9 +11,8 @@ from django.http import HttpResponse, HttpResponseBadRequest
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework_api_key.permissions import HasAPIKey
 
-from core.models import Contact
+from core.models import Contact, Subscription
 from core.utils import api_view_auth_decorator
-from .models import Subscription
 from .utils import contact_update_mp_wrapper, create_mp_subscription_for_contact, mercadopago_debit
 
 
