@@ -2,6 +2,14 @@
 
 ## v0.5.1
 
+## 2026-10-28 — gl71-cotizaciones-bcu Tabla de cotizaciones diarias, bajada del BCU
+
+- **Nueva tabla de cotizaciones**, una por moneda y día, para las futuras facturas en moneda extranjera. Para una fecha se usa la cotización del día hábil anterior: la última publicada antes de esa fecha, así que fines de semana y feriados se saltean solos, sin calendario. Si la última es demasiado vieja, se rechaza con un error claro
+- **Un comando nuevo la carga todos los días** desde el web service público del Banco Central del Uruguay (dólar billete interbancario, cotización de compra). Trae varios días de una, así que se pone al día si un día falla. Nunca pisa una cotización que ya está: si no coincide con la fuente, avisa
+- **La fuente se puede cambiar por setting**, y una cotización se puede cargar a mano desde el admin como respaldo. Sin configurar monedas, el comando no hace nada
+- Deployment: **se requieren migraciones** (`invoicing.0032_exchangerate`) y **recompilar traducciones** (`compilemessages -l es`). Para usarlo, configurar las monedas y agregar el comando al cron, antes de la facturación
+- **Author:** Tanya Tree + Claude Opus 5.5
+
 ## 2026-10-27 — gl65-remove-billing Se quita el modelo Billing, que no se usaba
 
 - **Se quita `Billing`, las "corridas de facturación"**, de cuando se facturaba a mano agrupando las facturas de cada corrida. Hoy se factura por día y el modelo no se usa más. También se van el vínculo de cada factura con su corrida, la vista que listaba las facturas de una corrida (ninguna URL la enrutaba) y los permisos de "billing" de la fixture de grupos

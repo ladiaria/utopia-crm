@@ -392,3 +392,28 @@ class TransactionType(models.Model):
             code = slugify(base).replace('-', '_')
             self.code = code
         super().save(*args, **kwargs)
+
+
+class ExchangeRate(models.Model):
+    """
+    The rate of a foreign currency against the local one for a given day, as published by the source. There is one
+    row per currency and day, and only for the days the source publishes (business days), so the history says which
+    rate applied on any date. Rows are loaded by update_exchange_rates, or by hand from the admin as a fallback.
+    """
+
+    SOURCE_MANUAL = "manual"
+
+    currency = models.CharField(_("Currency"), max_length=3, help_text=_("ISO 4217 code, e.g. USD"))
+    date = models.DateField(_("Date"))
+    rate = models.DecimalField(_("Rate"), max_digits=12, decimal_places=6)
+    source = models.CharField(_("Source"), max_length=30, default=SOURCE_MANUAL, editable=False)
+    created_at = models.DateTimeField(_("Created at"), auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.currency} {self.date}: {self.rate}"
+
+    class Meta:
+        verbose_name = _("exchange rate")
+        verbose_name_plural = _("exchange rates")
+        ordering = ["-date", "currency"]
+        constraints = [models.UniqueConstraint(fields=["currency", "date"], name="unique_exchange_rate_per_day")]
