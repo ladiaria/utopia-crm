@@ -3,9 +3,9 @@ Management command para detectar y opcionalmente borrar direcciones (Address) co
 vacias: sin calle, sin ciudad, sin notas ni georreferenciacion. No confundir con direcciones
 huerfanas (sin suscripcion asociada) pero con datos cargados -- esas son validas y no se tocan.
 
-Antes de borrar, excluye las direcciones referenciadas por un Issue o ScheduledTask, porque esos
-modelos tienen on_delete=CASCADE hacia Address: borrar la direccion se llevaria puesto el Issue o
-la tarea agendada. Esas se reportan aparte para revision manual.
+Los Issue y ScheduledTask que apuntan a una direccion borrada quedan, sin la direccion
+(on_delete=SET_NULL). Se excluyen solo las direcciones de un cambio de direccion pendiente: borrarlas
+deja la tarea sin ejecutar. Esas se reportan aparte para revision manual.
 
 Usage:
     # Dry run - reporta las direcciones vacias encontradas
@@ -69,18 +69,21 @@ class Command(BaseCommand):
 
         empty_ids = list(empty_qs.values_list("id", flat=True))
         blocked_ids = set(
-            Issue.objects.filter(address_id__in=empty_ids).values_list("address_id", flat=True)
-        ) | set(
-            ScheduledTask.objects.filter(address_id__in=empty_ids).values_list("address_id", flat=True)
+            ScheduledTask.objects.filter(address_id__in=empty_ids, category="AC", completed=False).values_list(
+                "address_id", flat=True
+            )
         )
+        unblocked_ids = [address_id for address_id in empty_ids if address_id not in blocked_ids]
+        issues_left = Issue.objects.filter(address_id__in=unblocked_ids).count()
+        tasks_left = ScheduledTask.objects.filter(address_id__in=unblocked_ids).count()
 
         deleted_count = 0
         action_desc = "Borrando direcciones vacias" if fix_mode else "Procesando direcciones vacias"
         for address in tqdm(empty_qs, total=total, desc=action_desc, unit="address"):
             if address.id in blocked_ids:
                 tqdm.write(
-                    f"  [OMITIDA] Address #{address.id} (contact_id={address.contact_id}) esta "
-                    "referenciada por un Issue o ScheduledTask (CASCADE); revisar manualmente."
+                    f"  [OMITIDA] Address #{address.id} (contact_id={address.contact_id}) es la de un "
+                    "cambio de direccion pendiente; revisar manualmente."
                 )
                 continue
 
@@ -95,7 +98,9 @@ class Command(BaseCommand):
         self.stdout.write(self.style.WARNING("RESUMEN"))
         self.stdout.write(self.style.WARNING("=" * 80))
         self.stdout.write(f"Total vacias encontradas: {total}")
-        self.stdout.write(f"Omitidas por estar referenciadas (Issue/ScheduledTask): {len(blocked_ids)}")
+        self.stdout.write(f"Omitidas por un cambio de direccion pendiente: {len(blocked_ids)}")
+        self.stdout.write(f"Issues que quedan sin direccion: {issues_left}")
+        self.stdout.write(f"ScheduledTasks que quedan sin direccion: {tasks_left}")
 
         if fix_mode:
             self.stdout.write(self.style.SUCCESS(f"Borradas: {deleted_count}"))

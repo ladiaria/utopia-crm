@@ -243,6 +243,13 @@ $( function() {
         <div class="card-body p-4">
           <form method="post">
             {{ form.category }}
+            {% if blocking_issue %}
+              <div class="alert alert-warning" role="alert">
+                <i class="fas fa-exclamation-triangle mr-2"></i>
+                {% url "view_issue" blocking_issue.id as blocking_issue_url %}
+                {% blocktrans with issue_id=blocking_issue.id %}This contact has an open 'not delivered' service issue (<a class="alert-link" href="{{ blocking_issue_url }}">#{{ issue_id }}</a>): a logistics issue can't be created until it is closed.{% endblocktrans %}
+              </div>
+            {% endif %}
             {% if form.errors %}
               <div class="alert alert-danger alert-dismissible fade show" role="alert">
                 <h5 class="alert-heading">
@@ -464,7 +471,10 @@ $( function() {
                   <i class="fas fa-arrow-left mr-1"></i>
                   {% trans "Cancel" %}
                 </a>
-                <button type="submit" name="submit" class="btn btn-primary btn-lg px-5">
+                <button type="submit"
+                        name="submit"
+                        class="btn btn-primary btn-lg px-5"
+                        {% if blocking_issue %}disabled{% endif %}>
                   <i class="fas fa-paper-plane mr-2"></i>
                   {% trans "Create Issue" %}
                 </button>

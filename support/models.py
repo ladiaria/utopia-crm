@@ -2,7 +2,7 @@
 from datetime import date, timedelta
 from decimal import Decimal
 
-from django.db import models
+from django.db import models, transaction
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
@@ -195,7 +195,7 @@ class Issue(models.Model):
         "core.Product", verbose_name=_("Product"), on_delete=models.CASCADE, null=True, blank=True
     )
     address = models.ForeignKey(
-        "core.Address", verbose_name=_("Address"), on_delete=models.CASCADE, null=True, blank=True
+        "core.Address", verbose_name=_("Address"), on_delete=models.SET_NULL, null=True, blank=True
     )
     envelope = models.BooleanField(default=False, verbose_name=_("Envelope"), null=True)
     resolution = models.ForeignKey(
@@ -331,6 +331,13 @@ class Issue(models.Model):
         )
 
 
+class ScheduledTaskMissingAddress(Exception):
+    """
+    An address change whose address was deleted (Issue and ScheduledTask keep the row with address=None). Raised by
+    ScheduledTask.execute() before it touches any product, so nothing is left without an address or a route.
+    """
+
+
 class ScheduledTask(models.Model):
     """
     Description: This is used to execute certain tasks in the future, it replaces events
@@ -339,7 +346,7 @@ class ScheduledTask(models.Model):
     contact = models.ForeignKey("core.Contact", on_delete=models.CASCADE, verbose_name=_("Contact"))
     category = models.CharField(max_length=2, choices=SCHEDULED_TASK_CATEGORIES, verbose_name=_("Type"))
     address = models.ForeignKey(
-        "core.Address", on_delete=models.CASCADE, verbose_name=_("Address"), null=True, blank=True
+        "core.Address", on_delete=models.SET_NULL, verbose_name=_("Address"), null=True, blank=True
     )
     completed = models.BooleanField(default=False, verbose_name=_("Completed"))
     execution_date = models.DateField(verbose_name=_("Date of execution"))
@@ -373,6 +380,26 @@ class ScheduledTask(models.Model):
 
     def execute(self, debug=False, verbose=False):
         """Execute the scheduled task based on its category"""
+        if self.category == 'AC' and not self.address_id:
+            raise ScheduledTaskMissingAddress(
+                _("Address change {id} has no address: its address was deleted.").format(id=self.id)
+            )
+        # A failure halfway must not leave products half changed
+        with transaction.atomic():
+            self._execute(debug)
+
+        if debug:
+            print(f"DEBUG: Task {self.id} completed successfully.")
+        if verbose:
+            return _(
+                "Task {id} of type {category} for contact {contact} completed successfully.".format(
+                    id=self.id, category=self.get_category(), contact=self.contact.get_full_name()
+                )
+            )
+        else:
+            return None
+
+    def _execute(self, debug=False):
         from core.models import SubscriptionProduct, ContactProductHistory
         from logistics.models import RouteChange
 
@@ -428,17 +455,6 @@ class ScheduledTask(models.Model):
 
         self.completed = True
         self.save()
-
-        if debug:
-            print(f"DEBUG: Task {self.id} completed successfully.")
-        if verbose:
-            return _(
-                "Task {id} of type {category} for contact {contact} completed successfully.".format(
-                    id=self.id, category=self.get_category(), contact=self.contact.get_full_name()
-                )
-            )
-        else:
-            return None
 
     class Meta:
         verbose_name = _("Scheduled task")
