@@ -12823,3 +12823,77 @@ msgid ""
 msgstr ""
 "Cerrada automáticamente el {}: las facturas vencidas se marcaron como "
 "incobrables"
+
+#: invoicing/models.py
+msgid "Currency"
+msgstr "Moneda"
+
+#: invoicing/models.py
+msgid "ISO 4217 code, e.g. USD"
+msgstr "Código ISO 4217, por ejemplo USD"
+
+#: invoicing/models.py
+msgid "Rate"
+msgstr "Cotización"
+
+#: invoicing/models.py
+msgid "Source"
+msgstr "Fuente"
+
+#: invoicing/models.py
+msgid "exchange rate"
+msgstr "cotización"
+
+#: invoicing/models.py
+msgid "exchange rates"
+msgstr "cotizaciones"
+
+#: invoicing/exchange_rates.py
+#, python-brace-format
+msgid "There is no {currency} exchange rate before {date}"
+msgstr "No hay cotización de {currency} anterior al {date}"
+
+#: invoicing/exchange_rates.py
+#, python-brace-format
+msgid ""
+"The last {currency} exchange rate before {date} is from {rate_date}, more "
+"than {days} days old"
+msgstr ""
+"La última cotización de {currency} anterior al {date} es del {rate_date}, de "
+"hace más de {days} días"
+
+#: invoicing/management/commands/update_exchange_rates.py
+msgid "No currencies to update: EXCHANGE_RATE_CURRENCIES is empty."
+msgstr "No hay monedas para actualizar: EXCHANGE_RATE_CURRENCIES está vacío."
+
+#: invoicing/management/commands/update_exchange_rates.py
+msgid ""
+"EXCHANGE_RATE_SOURCE is not set: set it to the dotted path of the function "
+"that fetches the rates."
+msgstr ""
+"EXCHANGE_RATE_SOURCE no está configurado: poné la ruta con puntos de la "
+"función que trae las cotizaciones."
+
+#: invoicing/management/commands/update_exchange_rates.py
+#, python-brace-format
+msgid "{currency}: the source failed: {error}"
+msgstr "{currency}: falló la fuente: {error}"
+
+#: invoicing/management/commands/update_exchange_rates.py
+#, python-brace-format
+msgid "{currency} {date}: {rate} loaded"
+msgstr "{currency} {date}: {rate} cargada"
+
+#: invoicing/management/commands/update_exchange_rates.py
+#, python-brace-format
+msgid ""
+"{currency} {date}: the stored rate {stored} ({stored_source}) differs from "
+"the source's {rate}. It was not overwritten: fix it from the admin."
+msgstr ""
+"{currency} {date}: la cotización guardada {stored} ({stored_source}) no "
+"coincide con la de la fuente, {rate}. No se pisó: corregila desde el admin."
+
+#: invoicing/management/commands/update_exchange_rates.py
+#, python-brace-format
+msgid "{count} anomalies while updating exchange rates"
+msgstr "{count} anomalías al actualizar las cotizaciones"
