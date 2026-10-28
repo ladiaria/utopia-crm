@@ -6,32 +6,8 @@ from unittest import mock
 from django.core.management import CommandError, call_command
 from django.test import TestCase, override_settings
 
-from invoicing.exchange_rates import ExchangeRateNotAvailable, get_exchange_rate, parse_bcu_response
+from invoicing.exchange_rates import ExchangeRateNotAvailable, get_exchange_rate
 from invoicing.models import ExchangeRate
-
-
-# A real answer of the BCU for 2026-10-23 to 2026-10-26 (a Friday and a Monday: the weekend is not published),
-# trimmed of its indentation.
-BCU_ANSWER = b"""<?xml version="1.0" encoding="utf-8"?>
-<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/"><SOAP-ENV:Body>
-<wsbcucotizaciones.ExecuteResponse xmlns="Cotiza"><Salida xmlns="Cotiza">
-<respuestastatus><status>1</status><codigoerror>0</codigoerror><mensaje/></respuestastatus>
-<datoscotizaciones>
-<datoscotizaciones.dato xmlns="Cotiza"><Fecha>2026-10-23</Fecha><Moneda>2225</Moneda><Nombre>DLS. USA BILLETE</Nombre>
-<CodigoISO>DLS.</CodigoISO><Emisor>ESTADOS UNIDOS</Emisor><TCC>40.078000</TCC><TCV>40.078000</TCV>
-<ArbAct>1.000000</ArbAct><FormaArbitrar>0</FormaArbitrar></datoscotizaciones.dato>
-<datoscotizaciones.dato xmlns="Cotiza"><Fecha>2026-10-26</Fecha><Moneda>2225</Moneda><Nombre>DLS. USA BILLETE</Nombre>
-<CodigoISO>DLS.</CodigoISO><Emisor>ESTADOS UNIDOS</Emisor><TCC>40.214000</TCC><TCV>40.214000</TCV>
-<ArbAct>1.000000</ArbAct><FormaArbitrar>0</FormaArbitrar></datoscotizaciones.dato>
-</datoscotizaciones></Salida></wsbcucotizaciones.ExecuteResponse></SOAP-ENV:Body></SOAP-ENV:Envelope>"""
-
-# What the BCU answers for a range with no published day, and for a malformed request.
-BCU_ERROR = b"""<?xml version="1.0" encoding="utf-8"?>
-<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/"><SOAP-ENV:Body>
-<wsbcucotizaciones.ExecuteResponse xmlns="Cotiza"><Salida xmlns="Cotiza">
-<respuestastatus><status>0</status><codigoerror>%s</codigoerror><mensaje>%s</mensaje></respuestastatus>
-<datoscotizaciones><datoscotizaciones.dato xmlns="Cotiza"><Moneda>0</Moneda><TCC>0.000000</TCC></datoscotizaciones.dato>
-</datoscotizaciones></Salida></wsbcucotizaciones.ExecuteResponse></SOAP-ENV:Body></SOAP-ENV:Envelope>"""
 
 
 class GetExchangeRateTest(TestCase):
@@ -78,26 +54,6 @@ class GetExchangeRateTest(TestCase):
     def test_max_age_is_configurable(self):
         with self.assertRaises(ExchangeRateNotAvailable):
             get_exchange_rate("USD", date(2026, 10, 26))
-
-
-class ParseBcuResponseTest(TestCase):
-    def test_parses_the_buying_rate_of_each_day(self):
-        self.assertEqual(
-            parse_bcu_response(BCU_ANSWER, 2225),
-            [(date(2026, 10, 23), Decimal("40.078")), (date(2026, 10, 26), Decimal("40.214"))],
-        )
-
-    def test_ignores_other_currencies(self):
-        self.assertEqual(parse_bcu_response(BCU_ANSWER, 501), [])
-
-    def test_no_published_day_is_not_an_error(self):
-        answer = BCU_ERROR % (b"100", "No existe cotización para la fecha indicada".encode())
-        self.assertEqual(parse_bcu_response(answer, 2225), [])
-
-    def test_other_errors_raise(self):
-        answer = BCU_ERROR % (b"102", "Campo de fecha inválida".encode())
-        with self.assertRaisesRegex(ValueError, "102"):
-            parse_bcu_response(answer, 2225)
 
 
 def fake_source(currency, date_from, date_to):
@@ -151,7 +107,12 @@ class UpdateExchangeRatesTest(TestCase):
             self.run_command()
         self.assertFalse(ExchangeRate.objects.exists())
 
-    @override_settings(EXCHANGE_RATE_CURRENCIES=[])
+    @override_settings(EXCHANGE_RATE_SOURCE=None)
+    def test_requires_a_source(self):
+        with self.assertRaisesRegex(CommandError, "EXCHANGE_RATE_SOURCE"):
+            self.run_command()
+
+    @override_settings(EXCHANGE_RATE_CURRENCIES=[], EXCHANGE_RATE_SOURCE=None)
     def test_does_nothing_without_currencies(self):
         self.run_command()
         self.assertFalse(ExchangeRate.objects.exists())

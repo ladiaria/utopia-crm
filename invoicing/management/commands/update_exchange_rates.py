@@ -10,8 +10,8 @@ from invoicing.models import ExchangeRate
 
 class Command(BaseCommand):
     help = (
-        "Loads the daily exchange rates of EXCHANGE_RATE_CURRENCIES from EXCHANGE_RATE_SOURCE (by default, the "
-        "Central Bank of Uruguay). It fetches the last --days days, so a day the source failed is caught up the next "
+        "Loads the daily exchange rates of EXCHANGE_RATE_CURRENCIES from EXCHANGE_RATE_SOURCE, which each "
+        "installation provides. It fetches the last --days days, so a day the source failed is caught up the next "
         "one. Rows that already exist are never overwritten: if one differs from the source (for instance, it was "
         "loaded by hand), it is reported. It also reports when the rate for today is not available, so it should run "
         "before billing. With --verbosity 0 it only prints anomalies, and it exits with an error if there is any, so "
@@ -31,6 +31,10 @@ class Command(BaseCommand):
                 self.stdout.write(_("No currencies to update: EXCHANGE_RATE_CURRENCIES is empty."))
             return
         source = get_exchange_rate_source()
+        if source is None:
+            raise CommandError(
+                _("EXCHANGE_RATE_SOURCE is not set: set it to the dotted path of the function that fetches the rates.")
+            )
         source_name = getattr(source, "source_name", "auto")
         today = date.today()
         date_from = today - timedelta(days=options["days"])

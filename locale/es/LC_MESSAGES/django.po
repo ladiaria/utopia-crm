@@ -12862,23 +12862,17 @@ msgstr ""
 "La última cotización de {currency} anterior al {date} es del {rate_date}, de "
 "hace más de {days} días"
 
-#: invoicing/exchange_rates.py
-#, python-brace-format
-msgid "The BCU source does not know the currency {currency}"
-msgstr "La fuente del BCU no conoce la moneda {currency}"
-
-#: invoicing/exchange_rates.py
-msgid "Unexpected answer from the BCU"
-msgstr "Respuesta inesperada del BCU"
-
-#: invoicing/exchange_rates.py
-#, python-brace-format
-msgid "The BCU answered error {code}: {message}"
-msgstr "El BCU respondió el error {code}: {message}"
-
 #: invoicing/management/commands/update_exchange_rates.py
 msgid "No currencies to update: EXCHANGE_RATE_CURRENCIES is empty."
 msgstr "No hay monedas para actualizar: EXCHANGE_RATE_CURRENCIES está vacío."
+
+#: invoicing/management/commands/update_exchange_rates.py
+msgid ""
+"EXCHANGE_RATE_SOURCE is not set: set it to the dotted path of the function "
+"that fetches the rates."
+msgstr ""
+"EXCHANGE_RATE_SOURCE no está configurado: poné la ruta con puntos de la "
+"función que trae las cotizaciones."
 
 #: invoicing/management/commands/update_exchange_rates.py
 #, python-brace-format
