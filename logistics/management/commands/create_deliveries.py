@@ -13,12 +13,15 @@ class Command(BaseCommand):
     help = """Creates deliveries based on product per weekday."""
 
     def handle(self, *args, **options):
+        # With --verbosity 0 it prints nothing, so a cron only mails when the command fails
+        verbose = options['verbosity'] >= 1
         today = date.today()
         isoweekday = today.isoweekday()
         sp_queryset = SubscriptionProduct.objects.filter(
             product__weekday=isoweekday, subscription__active=True, subscription__start_date__lte=today)
 
-        print(("Creating deliveries for the day {}".format(today)))
+        if verbose:
+            self.stdout.write(f"Creating deliveries for the day {today}")
         for route in sp_queryset.values('route_id').distinct():
             route_id = route['route_id']
             if route_id is None:
@@ -33,8 +36,11 @@ class Command(BaseCommand):
             else:
                 nd.copies = copies
             nd.save()
+            if not verbose:
+                continue
             if created:
-                print(("New delivery for route {}: {} copies".format(route_id, copies)))
+                self.stdout.write(f"New delivery for route {route_id}: {copies} copies")
             else:
-                print(("Added {} copies to delivery for route {}".format(copies, route_id)))
-        print("Ended process")
+                self.stdout.write(f"Added {copies} copies to delivery for route {route_id}")
+        if verbose:
+            self.stdout.write("Ended process")

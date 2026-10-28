@@ -84,6 +84,7 @@ from support.filters import (
 from support.forms import (
     AddressComplementaryInformationForm,
     ContactCampaignStatusByDateForm,
+    get_blocking_not_delivered_issue,
     InvoicingIssueChangeForm,
     IssueChangeForm,
     IssueStartForm,
@@ -1424,6 +1425,9 @@ class NewIssueView(BreadcrumbsMixin, CreateView):
         dict_categories = dict(get_issue_categories())
         context['category_name'] = dict_categories[self.category]
 
+        # Warn beforehand and disable the submit button; the form's clean() still forbids it
+        context['blocking_issue'] = get_blocking_not_delivered_issue(self.contact, self.category)
+
         # Create mapping of subcategory_id -> list of resolution options for JavaScript filtering
         # Cache this data to avoid repeated queries
         if not hasattr(self.__class__, '_cached_subcategory_resolutions'):
@@ -1577,6 +1581,7 @@ class IssueDetailView(BreadcrumbsMixin, UpdateView):
         old_status = issue.status
 
         # Force status to solved when the resolution belongs to a configured subcategory.
+        auto_solved = False
         resolution = form.cleaned_data.get('resolution')
         solved_subcategories = getattr(settings, 'ISSUE_RESOLUTION_SOLVED_SUBCATEGORIES', [])
         if (
@@ -1592,6 +1597,7 @@ class IssueDetailView(BreadcrumbsMixin, UpdateView):
                     form.instance.status = IssueStatus.objects.get(slug=settings.ISSUE_STATUS_SOLVED)
                     if not form.instance.closing_date:
                         form.instance.closing_date = date.today()
+                    auto_solved = True
                 except IssueStatus.DoesNotExist:
                     pass
 
@@ -1614,6 +1620,13 @@ class IssueDetailView(BreadcrumbsMixin, UpdateView):
             issue_id=self.object.id, contact_name=self.object.contact.get_full_name()
         )
         messages.success(self.request, message)
+        if auto_solved:
+            messages.warning(
+                self.request,
+                _('Issue #{issue_id} was automatically marked as {status} because it has a resolution').format(
+                    issue_id=self.object.id, status=self.object.status.name
+                ),
+            )
 
         return response
 

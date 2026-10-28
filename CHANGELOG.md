@@ -2,6 +2,69 @@
 
 ## v0.5.1
 
+## 2026-10-28 — gl71-cotizaciones-bcu Tabla de cotizaciones diarias
+
+- **Nueva tabla de cotizaciones**, una por moneda y día, para las futuras facturas en moneda extranjera. Para una fecha se usa la cotización del día hábil anterior: la última publicada antes de esa fecha, así que fines de semana y feriados se saltean solos, sin calendario. Si la última es demasiado vieja, se rechaza con un error claro
+- **Un comando nuevo la carga todos los días** desde una fuente que pone cada instalación por setting (en la diaria, el Banco Central del Uruguay, desde su paquete de customización). Trae varios días de una, así que se pone al día si un día falla. Nunca pisa una cotización que ya está: si no coincide con la fuente, avisa
+- Una cotización se puede cargar a mano desde el admin como respaldo. Sin configurar monedas, el comando no hace nada
+- Deployment: **se requieren migraciones** (`invoicing.0032_exchangerate`) y **recompilar traducciones** (`compilemessages -l es`). Para usarlo, configurar las monedas y la fuente, y agregar el comando al cron, antes de la facturación
+- **Author:** Tanya Tree + Claude Opus 5.5
+
+## 2026-10-27 — gl65-remove-billing Se quita el modelo Billing, que no se usaba
+
+- **Se quita `Billing`, las "corridas de facturación"**, de cuando se facturaba a mano agrupando las facturas de cada corrida. Hoy se factura por día y el modelo no se usa más. También se van el vínculo de cada factura con su corrida, la vista que listaba las facturas de una corrida (ninguna URL la enrutaba) y los permisos de "billing" de la fixture de grupos
+- **Las facturas no se borran**: el vínculo era opcional, y quitarlo elimina la columna, no filas
+- **Para otras instalaciones:** si una customización tiene un modelo con FK a `Billing`, hay que borrarlo **antes** de migrar, y su migración tiene que declarar `run_before` sobre `invoicing.0031_remove_billing`. Si no, en una base nueva esa migración corre después y falla
+- Deployment: **se requieren migraciones** (`invoicing.0031_remove_billing`)
+- **Author:** Tanya Tree + Claude Opus 5.5
+
+## 2026-10-26 — gl63-close-invoicing-issues-subcategorias El cierre automático de incidencias de cobranza vuelve a cerrar
+
+- **El cierre automático nocturno de incidencias de facturación no cerraba ninguna**: comparaba la lista de subcategorías contra el estado de la incidencia, así que no encontraba nada. Ahora filtra por subcategoría, como dice el setting
+- **Distingue a quien pagó de quien tiene la deuda dada por perdida.** Si la última factura saldada está paga o debitada, la incidencia se cierra como resuelta, igual que antes. Si es incobrable, se cierra con el estado que diga un setting nuevo (por ejemplo "no resuelto") y una nota que lo explica; sin el setting, queda abierta
+- **El comando acepta `--dry-run`**, para ver qué cerraría sin cerrar nada. La primera corrida puede cerrar de una vez todo lo que se acumuló mientras no funcionaba
+- Deployment: **no se requieren migraciones**; sí **recompilar traducciones** (`compilemessages -l es`), porque hay textos nuevos. Conviene correr el comando con `--dry-run` antes de la primera corrida del cron
+- **Author:** Tanya Tree + Claude Opus 5.5
+
+## 2026-10-26 — gl60-consola-vendedor-no-consolidados La consola del vendedor lista más de una subcategoría de "nunca pagó"
+
+- **La consola del vendedor puede listar, junto con las incidencias de "nunca pagó", otras subcategorías que sean variantes de lo mismo** (por ejemplo, el no consolidado que debe 2 facturas o más). Antes, cuando una incidencia pasaba a la variante, desaparecía de la consola aunque siguiera asignada al vendedor
+- Con más de una subcategoría, la página muestra una columna con la subcategoría de cada incidencia
+- Se configura con un setting nuevo, opcional: sin él, todo sigue igual que antes
+- Deployment: **no se requieren migraciones**
+- **Author:** Tanya Tree + Claude Opus 5.5
+
+## 2026-10-26 — gl61-contraste-link-aviso El link del aviso de "No entregado" se lee
+
+- **El número de la incidencia que frena, en el aviso amarillo de nueva incidencia, ahora se ve oscuro y en negrita.** Antes salía blanco sobre amarillo y casi no se leía
+- Deployment: **no se requieren migraciones**; sí **recompilar traducciones** (`compilemessages -l es`), porque cambia el texto del aviso
+- **Author:** Tanya Tree + Claude Opus 5.5
+
+## 2026-10-26 — gl61-logistica-no-entregado-abierto No se crean incidencias de logística mientras hay un "No entregado" abierto
+
+- **Si el contacto tiene abierta una incidencia de servicio "No entregado", no se le puede crear una de logística.** Esa incidencia la crea el sistema cuando una suscripción pasa a una ruta especial: mientras está abierta, el diario no llega a propósito, y un "No llegó" no corresponde
+- **El formulario avisa antes de que la persona cargue nada**: muestra un aviso con el link a la incidencia que lo frena y deja el botón de crear desactivado. Si igual se manda, el formulario lo rechaza con un error y conserva todo lo cargado
+- Se prende con un setting nuevo, apagado por defecto: sin él, todo sigue igual que antes
+- Deployment: **no se requieren migraciones**; sí **recompilar traducciones** (`compilemessages -l es`), porque hay textos nuevos, y prender el setting en la instalación que lo quiera
+- **Author:** Tanya Tree + Claude Opus 5.5
+
+## 2026-10-22 — gl57-csv-legible La planilla del cierre de agendas perdidas se lee sin conocer el sistema
+
+- **La planilla que genera el cierre de agendas perdidas muestra los nombres de los estados y las resoluciones**, en el idioma de la instalación, en vez de sus códigos (2, 4, `SC`, `LS`). Antes había que tener una tabla al lado para entenderla
+- **Las columnas de cómo está el contacto hoy van juntas y antes de las de cómo queda después del cierre.** Antes se intercalaban, y una fila parecía decir que el contacto ya estaba finalizado
+- **Dos columnas nuevas para auditar: si el vendedor es interno y si la campaña está activa.** El encabezado también se traduce, y el archivo se abre bien en Excel, con los acentos
+- **El resumen por pantalla también usa los nombres de los estados** en vez de los números
+- Deployment: **no se requieren migraciones**; sí **recompilar traducciones** (`compilemessages -l es`), porque hay textos nuevos
+- **Author:** Tanya Tree + Claude Opus 5.5
+
+## 2026-10-22 — gl58-cierre-agendas-cron El cierre de agendas perdidas puede correr todos los días por cron
+
+- **El cierre de agendas perdidas acepta un plazo en días además de una fecha fija**, para poder programarlo como rutina diaria: "cerrar todo lo que tenga más de 30 días". Sigue sin tener valor por defecto, para que nadie cierre agendas por accidente
+- **La nota que deja en cada agenda cerrada ya no menciona el ticket original**: dice sólo que se cerró automáticamente por agenda perdida y la fecha
+- **El cierre de agendas y la creación de repartos del día pueden correr en silencio**: con el nivel de detalle en cero no imprimen nada en una corrida normal, así el mail del cron llega sólo cuando algo falla. El cierre de agendas igual avisa si encuentra agendas sin estado de campaña, porque es una anomalía
+- Deployment: **no se requieren migraciones**; sí **recompilar traducciones** (`compilemessages -l es`), porque cambia el texto de la nota
+- **Author:** Tanya Tree + Claude Opus 5.5
+
 ## 2026-10-20 — gl19-pais-telefonos Los teléfonos de otro país muestran de qué país son
 
 - **La ficha del contacto muestra los teléfonos de otro país en formato internacional y con la bandera del país.** Antes se veían en formato nacional y perdían el código de país: un celular argentino se leía como si fuera uruguayo. Los números del país local (el que configura la instalación) se siguen viendo como siempre

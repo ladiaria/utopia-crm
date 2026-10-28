@@ -5,7 +5,7 @@ from django.utils.translation import gettext_lazy as _
 
 from simple_history.admin import SimpleHistoryAdmin
 
-from invoicing.models import CreditNote, Invoice, InvoiceItem, TransactionType
+from invoicing.models import CreditNote, ExchangeRate, Invoice, InvoiceItem, TransactionType
 
 
 @admin.register(CreditNote)
@@ -106,3 +106,13 @@ class TransactionTypeAdmin(admin.ModelAdmin):
     list_display = ('name', 'code')
     search_fields = ('name', 'code')
     ordering = ['-id']
+
+
+@admin.register(ExchangeRate)
+class ExchangeRateAdmin(admin.ModelAdmin):
+    """Rates are loaded daily by update_exchange_rates; loading one here is the fallback when the source fails."""
+
+    list_display = ("currency", "date", "rate", "source", "created_at")
+    list_filter = ("currency", "source")
+    date_hierarchy = "date"
+    readonly_fields = ("source", "created_at")

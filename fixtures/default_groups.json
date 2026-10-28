@@ -27,8 +27,6 @@
     "fields": {
       "name": "Finances",
       "permissions": [
-        ["add_billing", "invoicing", "billing"],
-        ["change_billing", "invoicing", "billing"],
         ["change_creditnote", "invoicing", "creditnote"],
         ["delete_creditnote", "invoicing", "creditnote"],
         ["change_creditnotecopy", "invoicing", "creditnotecopy"],
@@ -198,8 +196,6 @@
         ["add_variable", "core", "variable"],
         ["change_variable", "core", "variable"],
         ["delete_variable", "core", "variable"],
-        ["add_billing", "invoicing", "billing"],
-        ["change_billing", "invoicing", "billing"],
         ["change_creditnote", "invoicing", "creditnote"],
         ["delete_creditnote", "invoicing", "creditnote"],
         ["change_creditnotecopy", "invoicing", "creditnotecopy"],

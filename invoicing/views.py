@@ -24,7 +24,7 @@ from reportlab.platypus import Table, TableStyle
 
 from .filters import InvoiceFilter
 from .forms import InvoiceForm, InvoiceItemFormSet
-from invoicing.models import Invoice, InvoiceItem, Billing, CreditNote
+from invoicing.models import Invoice, InvoiceItem, CreditNote
 from core.models import Contact, Product
 from core.mixins import BreadcrumbsMixin
 
@@ -108,42 +108,6 @@ def bill_subscriptions_for_one_contact(request, contact_id):
             'breadcrumbs': breadcrumbs,
             'active_subscriptions': active_subscriptions,
             'subscriptions_with_prices': subscriptions_with_prices,
-        },
-    )
-
-
-@staff_member_required
-def billing_invoices(request, billing_id):
-    """
-    Shows a list of invoices from a billing.
-    """
-    billing = get_object_or_404(Billing, id=billing_id)
-
-    invoice_list = []
-    for invoice in billing.invoice_set.all().order_by('-id'):
-        if invoice.canceled:
-            invoice.status = 'null'
-        elif invoice.paid or invoice.debited:
-            invoice.status = 'paid'
-        else:
-            if invoice.expiration_date < date.today():
-                invoice.status = 'expired'
-                # si es incobrable hay que mostrarlo
-                if invoice.uncollectible:
-                    invoice.status = 'uncollectible'
-            elif invoice.uncollectible:
-                # se podria dar que no este vencida pero igual sea incobrable
-                invoice.status = 'uncollectible'
-            else:
-                invoice.status = 'pending'
-        invoice_list.append(invoice)
-
-    return render(
-        request,
-        'billing_invoices.html',
-        {
-            'billing': billing,
-            'invoice_list': invoice_list,
         },
     )
 

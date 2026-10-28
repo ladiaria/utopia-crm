@@ -58,6 +58,10 @@ INVOICE_PAYMENT_METHODS = (("M", "Mastercard"), ("V", "Visa"), ("C", "Cash"))
 # Set a list of subcategories slugs that will be used to allow an issue to be closed
 # ISSUE_SUBCATEGORY_AUTO_CLOSE_SLUGS = ['inactive', '1-invoice-debt']
 
+# close_invoicing_issues closes as solved the issues of contacts that paid. With this status slug it also closes the
+# ones of contacts whose overdue invoices were marked as uncollectible (they stopped being debtors without paying).
+# ISSUE_STATUS_AUTO_CLOSE_UNCOLLECTIBLE = 'not-solved'
+
 # Used when a new issue is created, depending if it was assigned or not. You must create the issue statuses beforehand
 # TODO: verify if they can be commented
 ISSUE_STATUS_ASSIGNED = 'assigned'
@@ -71,6 +75,14 @@ ISSUE_STATUS_NEW = 'new'
 ISSUE_SUBCATEGORY_1_INVOICE = 'debt-1-invoice'
 ISSUE_SUBCATEGORY_2_INVOICES = 'debt-2-invoices'
 ISSUE_SUBCATEGORY_GENERIC_DEBT = 'generic-debt'
+
+# The seller console lists the open issues of the ISSUE_SUBCATEGORY_NEVER_PAID subcategory assigned to the seller.
+# Add here other subcategories to list with them (e.g. a never paid variant for contacts that owe 2+ invoices).
+# ISSUE_SUBCATEGORY_NEVER_PAID_EXTRA_SLUGS = ['never-paid-2-invoices']
+
+# Forbid new logistics issues while the contact has an open service issue of the ISSUE_SUBCATEGORY_NOT_DELIVERED
+# subcategory (the one created when a subscription is moved to a special route)
+# ISSUE_BLOCK_LOGISTICS_IF_NOT_DELIVERED_OPEN = True
 
 # Temporary discounts: A dict map of product slug, months.
 # Use for products (discounts) that have to disappear from the subscription after a set amount of months.
@@ -91,6 +103,9 @@ MERCADOPAGO_ENABLED = False  # Override to True to enable Mercado Pago
 # MERCADOPAGO_ERRORS_RECIPIENTS = ["comercial@example.com"]
 # Recipients for MercadoPago new-subscription errors (t1156): full exception + traceback + MP data
 # MERCADOPAGO_SUBSCRIPTION_ERRORS_RECIPIENTS = ["soporte@example.com"]
+# Recipients for pending address changes left without an address because it was deleted (support.ScheduledTask)
+# SCHEDULED_TASK_NOTIFY_RECIPIENTS = ["logistics@example.com"]
+# SCHEDULED_TASK_NOTIFY_BASE_URL = "https://crm.example.com"
 
 # =============================================================================
 # Error reporting: ADMINS + Sentry
