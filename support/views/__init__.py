@@ -13,6 +13,7 @@ from .contacts import (  # noqa
     ContactUpdateView,
     ImportContactsView,
     contact_invoices_htmx,
+    contact_activities_htmx,
     CheckForExistingContactsView,
     TagAnalysisView,
 )

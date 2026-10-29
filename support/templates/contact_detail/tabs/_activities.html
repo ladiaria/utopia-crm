@@ -1,67 +1,37 @@
 {% load i18n %}
-<div class="row">
-  <div class="card col-sm-12">
-    <div class="card-header">
-      <h3 class="card-title">{% trans "Latest activities" %}</h3>
-    </div>
-    <div class="card-body">
-      {% if all_activities %}
-        <div class="table-responsive">
-          <table class="table">
-            <thead>
-              <tr role="row">
-                <th>{% trans "Date" %}</th>
-                <th>{% trans "Activity type" %}</th>
-                <th>{% trans "Direction" %}</th>
-                <th>{% trans "Campaign" %}</th>
-                <th>{% trans "Product" %}</th>
-                <th>{% trans "Issue" %}</th>
-                <th>{% trans "Status" %}</th>
-                <th>{% trans "Topic" %}</th>
-                <th>{% trans "Response" %}</th>
-                <th>{% trans "Created by" %}</th>
-                <th>{% trans "Seller" %}</th>
-                <th>{% trans "Seller console action" %}</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for activity in all_activities %}
-                <tr role="row"
-                    style="{% if activity.topic or activity.response %}border-bottom: none{% endif %}">
-                  <td>{{ activity.datetime|date:"d/m/Y H:i" }}</td>
-                  <td>{{ activity.get_activity_type_display }}</td>
-                  <td>{{ activity.get_direction_display }}</td>
-                  <td>{{ activity.campaign|default_if_none:"-" }}</td>
-                  <td>{{ activity.product|default_if_none:"-" }}</td>
-                  <td>
-                    {% if activity.issue %}
-                      <a href="{% url "view_issue" activity.issue.id %}"
-                         class="btn btn-primary btn-sm">{% trans "View" %}</a>
-                    {% else %}
-                      -
-                    {% endif %}
-                  </td>
-                  <td>{{ activity.get_status }}</td>
-                  <td>{{ activity.topic|default_if_none:"-" }}</td>
-                  <td>{{ activity.response|default_if_none:"-" }}</td>
-                  <td>{{ activity.created_by_name|default_if_none:"-" }}</td>
-                  <td>{{ activity.seller.name }}</td>
-                  <td>{{ activity.seller_console_action.name }}</td>
-                  <td>
-                    <a href="#"
-                       class="btn btn-primary btn-sm"
-                       data-toggle="modal"
-                       data-target="#activityView-{{ activity.id }}">{% trans "View" %}</a>
-                  </td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
+<div class="card">
+  <div class="card-header">
+    <h3 class="card-title">{% trans "Activities" %}</h3>
+    <div class="card-tools">
+      <div class="input-group input-group-sm activity-search">
+        <input type="search"
+               name="q"
+               class="form-control"
+               placeholder="{% trans "Search in notes, campaign or seller" %}"
+               aria-label="{% trans "Search activities" %}"
+               autocomplete="off"
+               hx-get="{% url 'contact_activities_htmx' contact.id %}"
+               hx-trigger="input changed delay:300ms, search"
+               hx-target="#activities-htmx"
+               hx-swap="innerHTML"
+               hx-indicator="#activities-search-indicator">
+        <div class="input-group-append">
+          <span id="activities-search-indicator" class="input-group-text">
+            <i class="fas fa-search"></i>
+            <span class="spinner-border spinner-border-sm" role="status"></span>
+          </span>
         </div>
-      {% else %}
-        {% trans "This contact has no activities" %}
-      {% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="card-body">
+    <div id="activities-htmx"
+         hx-get="{% url 'contact_activities_htmx' contact.id %}"
+         hx-trigger="revealed"
+         hx-target="#activities-htmx"
+         hx-swap="innerHTML">
+      <div class="spinner-border text-primary" role="status"></div>
+      {% trans "Loading" %}
     </div>
   </div>
 </div>
