@@ -80,6 +80,10 @@ ISSUE_SUBCATEGORY_GENERIC_DEBT = 'generic-debt'
 # Add here other subcategories to list with them (e.g. a never paid variant for contacts that owe 2+ invoices).
 # ISSUE_SUBCATEGORY_NEVER_PAID_EXTRA_SLUGS = ['never-paid-2-invoices']
 
+# With two shifts loaded (support.Shift: the first by start time is the morning one), the first "not found" call to a
+# contact in a campaign moves it to the other shift, as "switch to afternoon/morning" would. Set to False to turn off.
+# SELLER_CONSOLE_FIRST_NOT_FOUND_SWITCHES_SHIFT = True
+
 # Forbid new logistics issues while the contact has an open service issue of the ISSUE_SUBCATEGORY_NOT_DELIVERED
 # subcategory (the one created when a subscription is moved to a special route)
 # ISSUE_BLOCK_LOGISTICS_IF_NOT_DELIVERED_OPEN = True

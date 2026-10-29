@@ -2205,9 +2205,7 @@ def campaign_statistics_list(request):
         contacts = campaign.contactcampaignstatus_set.count() or 1
         campaign.called_count = campaign.contactcampaignstatus_set.filter(status__gte=2).count()
         campaign.called_pct = (campaign.called_count * 100) / contacts
-        campaign.contacted_count = campaign.contactcampaignstatus_set.filter(
-            status__in=core_choices.get_contacted_statuses()
-        ).count()
+        campaign.contacted_count = campaign.contactcampaignstatus_set.filter(core_choices.get_contacted_q()).count()
         campaign.contacted_pct = (campaign.contacted_count * 100) / (campaign.called_count or 1)
         campaign.success_count = campaign.contactcampaignstatus_set.filter(
             campaign_resolution__in=core_choices.SALE_RESOLUTIONS
@@ -2412,7 +2410,7 @@ class CampaignStatisticsDetailView(BreadcrumbsMixin, UserPassesTestMixin, Filter
         # Status counts from filtered queryset
         context['not_contacted_yet_count'] = filtered_qs.filter(status=1).count()
         context['tried_to_contact_count'] = filtered_qs.filter(status=3).count()
-        context['contacted_count'] = filtered_qs.filter(status__in=core_choices.get_contacted_statuses()).count()
+        context['contacted_count'] = filtered_qs.filter(core_choices.get_contacted_q()).count()
         context['could_not_contact_count'] = filtered_qs.filter(status=5).count()
         called_count = filtered_qs.filter(status__gte=2).count()
 
@@ -2424,9 +2422,7 @@ class CampaignStatisticsDetailView(BreadcrumbsMixin, UserPassesTestMixin, Filter
 
         # Resolution statistics
         ccs_with_resolution = filtered_qs.filter(campaign_resolution__isnull=False)
-        ccs_with_resolution_contacted_count = ccs_with_resolution.filter(
-            status__in=core_choices.get_contacted_statuses()
-        ).count()
+        ccs_with_resolution_contacted_count = ccs_with_resolution.filter(core_choices.get_contacted_q()).count()
         ccs_with_resolution_not_contacted_count = ccs_with_resolution.filter(status__in=[3, 5]).count()
 
         # One grouped query instead of one count per resolution. The breakdown of the panel is
@@ -2732,7 +2728,7 @@ def campaign_statistics_per_seller(request, campaign_id):
         seller.called_count = seller.contactcampaignstatus_set.filter(campaign=campaign, status__gte=2).count()
         seller.called_pct = (seller.called_count * 100) / assigned
         seller.contacted_count = seller.contactcampaignstatus_set.filter(
-            campaign=campaign, status__in=core_choices.get_contacted_statuses()
+            core_choices.get_contacted_q(), campaign=campaign
         ).count()
         seller.contacted_pct = (seller.contacted_count * 100) / (seller.called_count or 1)
         seller.success_count = seller.contactcampaignstatus_set.filter(
@@ -2781,9 +2777,7 @@ def seller_performance_by_time(request):
     assigned_count = ccs_queryset.filter(seller__isnull=False).count() or 1
     called_count = ccs_queryset.filter(seller__isnull=False, status__gte=2).count()
     called_pct = (called_count * 100) / assigned_count
-    contacted_count = ccs_queryset.filter(
-        seller__isnull=False, status__in=core_choices.get_contacted_statuses()
-    ).count()
+    contacted_count = ccs_queryset.filter(core_choices.get_contacted_q(), seller__isnull=False).count()
     contacted_pct = (contacted_count * 100) / assigned_count
     success_count = ccs_queryset.filter(
         seller__isnull=False, campaign_resolution__in=core_choices.SALE_RESOLUTIONS
@@ -2796,9 +2790,7 @@ def seller_performance_by_time(request):
         seller.not_contacted_yet_pct = (seller.not_contacted_yet_count * 100) / (seller.assigned_count or 1)
         seller.called_count = ccs_queryset.filter(seller=seller, status__gte=2).count()
         seller.called_pct = (seller.called_count * 100) / (seller.assigned_count or 1)
-        seller.contacted_count = ccs_queryset.filter(
-            seller=seller, status__in=core_choices.get_contacted_statuses()
-        ).count()
+        seller.contacted_count = ccs_queryset.filter(core_choices.get_contacted_q(), seller=seller).count()
         seller.contacted_pct = (seller.contacted_count * 100) / (seller.assigned_count or 1)
         seller.success_count = ccs_queryset.filter(
             seller=seller, campaign_resolution__in=core_choices.SALE_RESOLUTIONS

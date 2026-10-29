@@ -33,6 +33,33 @@ class Shift(models.Model):
     def __str__(self):
         return f"{self.name} ({self.start_time}–{self.end_time})"
 
+    def contains(self, moment):
+        """
+        Whether the time of `moment` falls in this shift. It compares by the minute and the end is inclusive, so there
+        is no gap between shifts whether the end is set as 14:59 or as 14:59:59.
+        """
+        def to_minute(t):
+            return t.replace(second=0, microsecond=0)
+
+        return to_minute(self.start_time) <= to_minute(moment.time()) <= to_minute(self.end_time)
+
+    @classmethod
+    def switch_status_at(cls, moment):
+        """
+        The campaign status that moves a contact to the other shift at `moment`: SWITCH_TO_AFTERNOON during the morning
+        shift and SWITCH_TO_MORNING during the afternoon one. The morning shift is the first by start time and the
+        afternoon one the second. None outside both shifts, or unless there are exactly two shifts.
+        """
+        shifts = list(cls.objects.order_by("start_time")[:3])
+        if len(shifts) != 2:
+            return None
+        morning, afternoon = shifts
+        if morning.contains(moment):
+            return CAMPAIGN_STATUS.SWITCH_TO_AFTERNOON
+        if afternoon.contains(moment):
+            return CAMPAIGN_STATUS.SWITCH_TO_MORNING
+        return None
+
     class Meta:
         verbose_name = _("shift")
         verbose_name_plural = _("shifts")
