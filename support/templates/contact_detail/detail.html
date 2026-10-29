@@ -55,6 +55,22 @@
           link.textContent = collapsed ? "{% trans "expand" %}" : "{% trans "collapse" %}";
         });
       });
+
+      // Activities tab: the "Show more" of a note only shows when the clamp actually cut it
+      document.body.addEventListener("htmx:load", event => {
+        event.target.querySelectorAll(".activity-notes-clamped").forEach(notes => {
+          if (notes.scrollHeight > notes.clientHeight) {
+            notes.nextElementSibling.classList.remove("d-none");
+          }
+        });
+      });
+      document.body.addEventListener("click", event => {
+        const toggle = event.target.closest(".activity-notes-toggle");
+        if (!toggle) return;
+        event.preventDefault();
+        const clamped = toggle.previousElementSibling.classList.toggle("activity-notes-clamped");
+        toggle.textContent = clamped ? "{% trans "Show more" %}" : "{% trans "Show less" %}";
+      });
     });
   </script>
   <script src="{% static "js/htmx.min.js" %}" defer></script>
@@ -73,6 +89,64 @@
 
     dl dd {
       margin-bottom: 0;
+    }
+
+    /* Activities tab: the note is what people come to read, so it keeps its line breaks and long words wrap */
+    .activity-notes {
+      font-size: 1.1em;
+      white-space: pre-line;
+      overflow-wrap: anywhere;
+    }
+
+    /* Not .timeline-footer: AdminLTE styles its links as buttons, white */
+    .activity-meta {
+      padding: 0 10px 10px;
+    }
+
+    .timeline-header + .activity-meta {
+      padding-top: 10px;
+    }
+
+    .activity-notes-clamped {
+      display: -webkit-box;
+      -webkit-line-clamp: 6;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .activity-timeline dl dt {
+      margin-top: 0;
+    }
+
+    /* On the white card a light badge needs an edge to read as a badge */
+    .activity-timeline .badge-light {
+      border: 1px solid #dee2e6;
+    }
+
+    .activity-timeline mark {
+      padding: 0;
+    }
+
+    .activity-details-toggle .fa-chevron-down {
+      transition: transform 0.2s;
+    }
+
+    .activity-details-toggle:not(.collapsed) .fa-chevron-down {
+      transform: rotate(180deg);
+    }
+
+    .activity-search {
+      width: 300px;
+      max-width: 100%;
+    }
+
+    .activity-search .spinner-border,
+    .activity-search .htmx-request .fa-search {
+      display: none;
+    }
+
+    .activity-search .htmx-request .spinner-border {
+      display: inline-block;
     }
   </style>
 {% endblock extra_head %}
@@ -217,7 +291,4 @@
       </div>
     </div>
   </section>
-  {% for activity in all_activities %}
-    {% include "contact_detail/tabs/includes/_activity_modal.html" %}
-  {% endfor %}
 {% endblock %}
