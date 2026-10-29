@@ -6,8 +6,9 @@ from datetime import date
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import transaction
-from django.db.models import Q, Prefetch, Case, When, Value, BooleanField, Count, Exists, OuterRef
+from django.db.models import Q, F, Prefetch, Case, When, Value, BooleanField, Count, Exists, OuterRef
 from django.contrib.auth.models import Group
+from django.core.paginator import Paginator
 from django.views.generic import UpdateView, CreateView, DetailView, ListView, FormView
 from django.utils.decorators import method_decorator
 from django.utils.translation import gettext_lazy as _
@@ -334,7 +335,6 @@ class ContactDetailView(BreadcrumbsMixin, DetailView):
         all_issues = self.object.issue_set.all().order_by("-date", "id").select_related("status", "sub_category")
         last_issues = all_issues[:5]
         last_paid_invoice = self.object.get_last_paid_invoice()
-        all_activities = self.object.activity_set.all().select_related("seller", "campaign").order_by("-datetime", "id")
         all_scheduled_tasks = self.object.scheduledtask_set.all().order_by("-creation_date", "id")
         all_campaigns = self.object.contactcampaignstatus_set.all().order_by("-date_created", "id")
         return {
@@ -343,7 +343,6 @@ class ContactDetailView(BreadcrumbsMixin, DetailView):
             "all_issues": all_issues,
             "last_issues": last_issues,
             "last_paid_invoice": last_paid_invoice,
-            "all_activities": all_activities,
             "all_scheduled_tasks": all_scheduled_tasks,
             "all_campaigns": all_campaigns,
         }
@@ -888,6 +887,44 @@ def contact_invoices_htmx(request, contact_id):
     credit_notes = CreditNote.objects.filter(invoice__in=invoices)
     return render(
         request, "contact_detail/htmx/_invoices_htmx.html", {"invoices": invoices, "credit_notes": credit_notes}
+    )
+
+
+CONTACT_ACTIVITIES_PAGE_SIZE = 25
+
+
+@csrf_protect
+def contact_activities_htmx(request, contact_id):
+    """
+    A page of the contact's activities timeline, filtered by the search box of the Activities tab. The first page
+    renders the timeline; the next ones only its items, appended in place of the "Load more" button.
+    """
+    if request.headers.get("HX-Request") != "true":
+        return HttpResponseNotFound()
+
+    contact = get_object_or_404(Contact, pk=contact_id)
+    activities = contact.activity_set.select_related(
+        "seller", "campaign", "product", "issue", "created_by", "topic", "response", "seller_console_action"
+    ).order_by(F("datetime").desc(nulls_last=True), "-id")
+    query = request.GET.get("q", "").strip()
+    if query:
+        activities = activities.filter(
+            Q(notes__icontains=query) | Q(campaign__name__icontains=query) | Q(seller__name__icontains=query)
+        )
+    page = Paginator(activities, CONTACT_ACTIVITIES_PAGE_SIZE).get_page(request.GET.get("page"))
+
+    # The day label goes on the first activity of each day. The previous page tells its last day, so a day that
+    # straddles two pages doesn't get the label twice.
+    last_day = request.GET.get("last_day")
+    for activity in page:
+        day = activity.datetime.date().isoformat() if activity.datetime else ""
+        activity.starts_day = day != last_day
+        last_day = day
+
+    return render(
+        request,
+        "contact_detail/htmx/_activities_htmx.html",
+        {"contact": contact, "page": page, "query": query, "last_day": last_day},
     )
 
 

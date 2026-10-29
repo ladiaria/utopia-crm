@@ -12917,3 +12917,35 @@ msgstr ""
 #, python-brace-format
 msgid "{count} anomalies while updating exchange rates"
 msgstr "{count} anomalías al actualizar las cotizaciones"
+
+#: support/templates/contact_detail/tabs/_activities.html
+msgid "Search in notes, campaign or seller"
+msgstr "Buscar en notas, campaña o vendedor"
+
+#: support/templates/contact_detail/tabs/_activities.html
+msgid "Search activities"
+msgstr "Buscar actividades"
+
+#: support/templates/contact_detail/htmx/_activities_htmx.html
+#, python-format
+msgid "%(counter)s activity"
+msgid_plural "%(counter)s activities"
+msgstr[0] "%(counter)s actividad"
+msgstr[1] "%(counter)s actividades"
+
+#: support/templates/contact_detail/htmx/_activities_htmx.html
+#, python-format
+msgid "No activities match \"%(query)s\"."
+msgstr "Ninguna actividad coincide con «%(query)s»."
+
+#: support/templates/contact_detail/htmx/_activities_timeline_items.html
+msgid "Open activity"
+msgstr "Abrir actividad"
+
+#: support/templates/contact_detail/htmx/_activities_timeline_items.html
+msgid "Load more"
+msgstr "Cargar más"
+
+#: support/templates/contact_detail/detail.html
+msgid "Show less"
+msgstr "Mostrar menos"

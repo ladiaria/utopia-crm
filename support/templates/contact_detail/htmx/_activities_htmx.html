@@ -1,0 +1,19 @@
+{% load i18n %}
+{% comment %}
+  The first page renders the timeline; the next ones (from "Load more") only its items, which take the place of the
+  button inside the same timeline.
+{% endcomment %}
+{% if page.number == 1 %}
+  {% if page.paginator.count %}
+    <p class="text-muted small">
+      {% blocktrans count counter=page.paginator.count %}{{ counter }} activity{% plural %}{{ counter }} activities{% endblocktrans %}
+    </p>
+    <div class="timeline activity-timeline mb-0">{% include "contact_detail/htmx/_activities_timeline_items.html" %}</div>
+  {% elif query %}
+    <p class="text-muted mb-0">{% blocktrans %}No activities match "{{ query }}".{% endblocktrans %}</p>
+  {% else %}
+    <p class="text-muted mb-0">{% trans "This contact has no activities" %}</p>
+  {% endif %}
+{% else %}
+  {% include "contact_detail/htmx/_activities_timeline_items.html" %}
+{% endif %}

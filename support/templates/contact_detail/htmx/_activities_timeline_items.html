@@ -1,0 +1,147 @@
+{% load i18n core_tags %}
+{% for activity in page %}
+  {% if activity.starts_day %}
+    <div class="time-label">
+      <span class="bg-secondary">
+        {% if activity.datetime %}
+          {{ activity.datetime|date:"l d/m/Y" }}
+        {% else %}
+          {% trans "No date" %}
+        {% endif %}
+      </span>
+    </div>
+  {% endif %}
+  <div>
+    <i class="{{ activity|activity_icon }}"
+       title="{{ activity.get_activity_type_display }}"></i>
+    <div class="timeline-item">
+      {% if activity.datetime %}
+        <span class="time"><i class="fas fa-clock"></i> {{ activity.datetime|date:"H:i" }}</span>
+      {% endif %}
+      <h3 class="timeline-header">
+        <strong>{{ activity.get_activity_type_display }}</strong>
+        <span class="text-muted">· {{ activity.get_direction }}</span>
+        {% if activity.status != "C" %}<span class="badge badge-warning ml-1">{{ activity.get_status }}</span>{% endif %}
+        {% if activity.campaign %}
+          <span class="d-block d-md-inline text-muted small ml-md-2">
+            <i class="fas fa-bullhorn mr-1"></i>{{ activity.campaign.name|highlight:query }}
+          </span>
+        {% endif %}
+      </h3>
+      {% if activity.notes %}
+        <div class="timeline-body">
+          <div class="activity-notes activity-notes-clamped">{{ activity.notes|highlight:query }}</div>
+          <a href="#" class="activity-notes-toggle small d-none">{% trans "Show more" %}</a>
+        </div>
+      {% endif %}
+      <div class="activity-meta d-flex flex-wrap align-items-center text-muted">
+        {% if activity.seller %}
+          <span class="mr-3"><i class="fas fa-user-tie mr-1"></i>{{ activity.seller.name|highlight:query }}</span>
+        {% endif %}
+        {% if activity.seller_console_action %}
+          <span class="badge badge-light mr-3">{{ activity.seller_console_action.name }}</span>
+        {% endif %}
+        {% if activity.issue %}
+          <a href="{% url "view_issue" activity.issue.id %}" class="mr-3">
+            <i class="fas fa-ticket-alt mr-1"></i>{% trans "Issue" %} #{{ activity.issue.id }}
+          </a>
+        {% endif %}
+        <a href="#activity-details-{{ activity.id }}"
+           class="activity-details-toggle collapsed ml-auto"
+           data-toggle="collapse"
+           role="button"
+           aria-expanded="false"
+           aria-controls="activity-details-{{ activity.id }}">
+          <i class="fas fa-chevron-down mr-1"></i>{% trans "Details" %}
+        </a>
+      </div>
+      <div class="collapse" id="activity-details-{{ activity.id }}">
+        <dl class="row mb-0 px-3 pb-3">
+          <dt class="col-sm-3">{% trans "Date" %}</dt>
+          <dd class="col-sm-9">
+            {{ activity.datetime|date:"d/m/Y H:i"|default:"-" }}
+          </dd>
+          <dt class="col-sm-3">{% trans "Status" %}</dt>
+          <dd class="col-sm-9">
+            {{ activity.get_status }}
+          </dd>
+          {% if activity.seller %}
+            <dt class="col-sm-3">{% trans "Seller" %}</dt>
+            <dd class="col-sm-9">
+              {{ activity.seller.name }}
+            </dd>
+          {% endif %}
+          {% if activity.created_by %}
+            <dt class="col-sm-3">{% trans "Created by" %}</dt>
+            <dd class="col-sm-9">
+              {{ activity.created_by_name }}
+            </dd>
+          {% endif %}
+          {% if activity.campaign %}
+            <dt class="col-sm-3">{% trans "Campaign" %}</dt>
+            <dd class="col-sm-9">
+              {{ activity.campaign.name }}
+            </dd>
+          {% endif %}
+          {% if activity.product %}
+            <dt class="col-sm-3">{% trans "Product" %}</dt>
+            <dd class="col-sm-9">
+              {{ activity.product }}
+            </dd>
+          {% endif %}
+          {% if activity.issue %}
+            <dt class="col-sm-3">{% trans "Issue" %}</dt>
+            <dd class="col-sm-9">
+              <a href="{% url "view_issue" activity.issue.id %}">#{{ activity.issue.id }}</a>
+            </dd>
+          {% endif %}
+          {% if activity.topic %}
+            <dt class="col-sm-3">{% trans "Topic" %}</dt>
+            <dd class="col-sm-9">
+              {{ activity.topic }}
+            </dd>
+          {% endif %}
+          {% if activity.response %}
+            <dt class="col-sm-3">{% trans "Response" %}</dt>
+            <dd class="col-sm-9">
+              {{ activity.response }}
+            </dd>
+          {% endif %}
+          {% if activity.seller_console_action %}
+            <dt class="col-sm-3">{% trans "Seller console action" %}</dt>
+            <dd class="col-sm-9">
+              {{ activity.seller_console_action.name }}
+            </dd>
+          {% endif %}
+        </dl>
+        {% if request.user.is_staff %}
+          <div class="px-3 pb-3">
+            <a href="{% url "activity_detail" activity.id %}"
+               class="btn btn-default btn-xs">
+              <i class="fas fa-external-link-alt mr-1"></i>{% trans "Open activity" %}
+            </a>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+{% endfor %}
+{% if page.has_next %}
+  <div id="activities-more">
+    <i class="fas fa-ellipsis-h bg-gray"></i>
+    <div class="timeline-item border-0 shadow-none bg-transparent">
+      <button type="button"
+              class="btn btn-default btn-sm"
+              hx-get="{% url "contact_activities_htmx" contact.id %}?q={{ query|urlencode }}&amp;page={{ page.next_page_number }}&amp;last_day={{ last_day }}"
+              hx-target="#activities-more"
+              hx-swap="outerHTML">
+        <span class="spinner-border spinner-border-sm htmx-indicator" role="status"></span>
+        {% trans "Load more" %}
+      </button>
+    </div>
+  </div>
+{% else %}
+  <div>
+    <i class="fas fa-clock bg-gray"></i>
+  </div>
+{% endif %}

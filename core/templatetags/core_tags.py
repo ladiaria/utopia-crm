@@ -1,10 +1,12 @@
+import re
+
 from phonenumbers import region_code_for_number
 from phonenumber_field.phonenumber import PhoneNumber
 
 from django import template
 from django.template.loader_tags import do_include
 from django.conf import settings
-from django.utils.html import format_html
+from django.utils.html import conditional_escape, format_html
 from django.utils.translation import gettext_lazy as _
 from django.urls import reverse
 from django.utils.safestring import mark_safe
@@ -197,3 +199,43 @@ def pending_sales_records():
         return SalesRecord.objects.filter(subscription__validated=False).count()
     except Exception:
         return 0
+
+
+@register.filter(needs_autoescape=True)
+def highlight(text, query, autoescape=True):
+    """
+    Wraps the case-insensitive matches of ``query`` in ``text`` with ``<mark>``. The text is split on the matches
+    and every piece escaped on its own, so a match never lands inside an escaped entity.
+    """
+    text = text or ""
+    escape = conditional_escape if autoescape else (lambda value: value)
+    if not query:
+        return escape(text)
+    pieces = re.split(f"({re.escape(query)})", text, flags=re.IGNORECASE)
+    # re.split with a capturing group leaves the matches at the odd positions
+    return mark_safe(
+        "".join(f"<mark>{escape(piece)}</mark>" if i % 2 else escape(piece) for i, piece in enumerate(pieces))
+    )
+
+
+ACTIVITY_TYPE_ICONS = {
+    "S": "fas fa-bullhorn",
+    "C": "fas fa-phone",
+    "M": "fas fa-envelope",
+    "L": "fas fa-link",
+    "W": "fab fa-whatsapp",
+    "E": "fas fa-calendar-check",
+    "I": "fas fa-handshake",
+    "N": "fas fa-sticky-note",
+}
+ACTIVITY_DIRECTION_COLORS = {"I": "bg-info", "O": "bg-primary", "N": "bg-gray", "R": "bg-warning"}
+
+
+@register.filter
+def activity_icon(activity):
+    """
+    CSS classes for the icon of an activity in a timeline: the icon tells the type, the color the direction.
+    Activity types are configurable (``CUSTOM_ACTIVITY_TYPES``), so an unknown one gets a generic icon.
+    """
+    icon = ACTIVITY_TYPE_ICONS.get(activity.activity_type, "fas fa-circle")
+    return f"{icon} {ACTIVITY_DIRECTION_COLORS.get(activity.direction, 'bg-secondary')}"

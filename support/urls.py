@@ -294,6 +294,9 @@ urlpatterns = [
     path("activity/<int:pk>/", views.ActivityDetailView.as_view(), name="activity_detail"),
     path("contact_invoices_htmx/<int:contact_id>/", views.contact_invoices_htmx, name="contact_invoices_htmx"),
     path(
+        "contact_activities_htmx/<int:contact_id>/", views.contact_activities_htmx, name="contact_activities_htmx"
+    ),
+    path(
         "check_for_existing_contacts/",
         views.CheckForExistingContactsView.as_view(),
         name="check_for_existing_contacts",
