@@ -356,14 +356,19 @@
               <button class="btn btn-block bg-gradient-warning btn-sm result-btn"
                       type="button"
                       data-result="not-found">No encontrado</button>
-              <button class="btn btn-block bg-gradient-warning btn-sm result-btn"
-                      type="button"
-                      data-result="move-morning"
-                      data-confirm="{% trans "Do you want to continue?" %}">Mover a la mañana</button>
-              <button class="btn btn-block bg-gradient-warning btn-sm result-btn"
-                      type="button"
-                      data-result="move-afternoon"
-                      data-confirm="{% trans "Do you want to continue?" %}">Mover a la tarde</button>
+              {% comment %}During a shift only the move to the other one is shown{% endcomment %}
+              {% if show_move_morning %}
+                <button class="btn btn-block bg-gradient-warning btn-sm result-btn"
+                        type="button"
+                        data-result="move-morning"
+                        data-confirm="{% trans "Do you want to continue?" %}">Mover a la mañana</button>
+              {% endif %}
+              {% if show_move_afternoon %}
+                <button class="btn btn-block bg-gradient-warning btn-sm result-btn"
+                        type="button"
+                        data-result="move-afternoon"
+                        data-confirm="{% trans "Do you want to continue?" %}">Mover a la tarde</button>
+              {% endif %}
             </div>
             <!-- SUCCESS Actions & Schedule Column (GREEN - Right) -->
             <div class="col-sm-4">

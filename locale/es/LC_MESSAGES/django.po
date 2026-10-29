@@ -11885,6 +11885,26 @@ msgstr "Sin nombre"
 msgid "Contact {id} - {name} - Action: {action}"
 msgstr "Contacto {id} - {name} - Acción: {action}"
 
+#: support/views/seller_console.py
+msgid "This contact can only be moved to the other shift"
+msgstr "Este contacto sólo se puede pasar al otro turno"
+
+#: support/views/seller_console.py
+msgid ""
+"First unanswered call in this campaign: the contact was moved to the "
+"afternoon shift"
+msgstr ""
+"Primera llamada sin respuesta en esta campaña: el contacto pasó al turno de "
+"la tarde"
+
+#: support/views/seller_console.py
+msgid ""
+"First unanswered call in this campaign: the contact was moved to the morning "
+"shift"
+msgstr ""
+"Primera llamada sin respuesta en esta campaña: el contacto pasó al turno de "
+"la mañana"
+
 #: support/views/seller_console.py:509
 #, python-brace-format
 msgid " - Scheduled for: {date}"

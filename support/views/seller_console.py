@@ -13,7 +13,7 @@ from django.utils.translation import gettext_lazy as _
 from django.utils.html import format_html
 from datetime import date, timedelta, datetime
 
-from support.models import Seller, Issue, SellerConsoleAction
+from support.models import Seller, Issue, SellerConsoleAction, Shift
 from core.models import Address, SubscriptionProduct, Activity, ContactCampaignStatus, Campaign, Subscription, Contact
 from core.utils import logistics_is_installed
 from core.choices import ACTIVITY_STATUS, CAMPAIGN_RESOLUTION_REASONS_CHOICES, CAMPAIGN_STATUS
@@ -312,8 +312,11 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
                 messages.warning(self.request, _("Invalid action slug: {action}").format(action=result_slug))
                 return None
 
-    def process_activity_result(self, contact, campaign, seller, seller_console_action, notes):
-        """Process activity result and create/update related objects"""
+    def process_activity_result(self, contact, campaign, seller, seller_console_action, notes, switch_status=None):
+        """
+        Process activity result and create/update related objects. switch_status, when set, moves the contact to the
+        other shift instead of the status of the action (see get_first_not_found_switch_status).
+        """
         try:
             ccs = ContactCampaignStatus.objects.filter(campaign=campaign, contact=contact).first()
             if not ccs:
@@ -334,6 +337,10 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
                 ):
                     ccs.seller = None
 
+            if switch_status:
+                ccs.status = switch_status
+                ccs.seller = None
+
             # Use the campaign_resolution from the action if it's set
             if seller_console_action.campaign_resolution:
                 ccs.campaign_resolution = seller_console_action.campaign_resolution
@@ -342,6 +349,31 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
         except Exception as e:
             messages.error(self.request, str(e))
             return None
+
+    def get_first_not_found_switch_status(self, contact, campaign, seller_console_action, moment):
+        """
+        The first "not found" call to a contact in a campaign moves it to the other shift, so that the other shift
+        tries again: returns the status for that (see Shift.switch_status_at), or None to keep the usual behaviour.
+
+        The call is still registered as a "not found" one, so it counts as an unanswered call. Turned off with
+        SELLER_CONSOLE_FIRST_NOT_FOUND_SWITCHES_SHIFT = False.
+        """
+        if not getattr(settings, "SELLER_CONSOLE_FIRST_NOT_FOUND_SWITCHES_SHIFT", True):
+            return None
+        if seller_console_action.action_type != SellerConsoleAction.ACTION_TYPES.NOT_FOUND:
+            return None
+        # Previous calls only: it runs before the current one is completed. It looks at the activities and not at the
+        # status, because assigning sellers to the other shift sets the status back to "not yet contacted".
+        previous_not_found = Activity.objects.filter(
+            contact=contact,
+            campaign=campaign,
+            activity_type="C",
+            status=ACTIVITY_STATUS.COMPLETED,
+            seller_console_action__action_type=SellerConsoleAction.ACTION_TYPES.NOT_FOUND,
+        )
+        if previous_not_found.exists():
+            return None
+        return Shift.switch_status_at(moment)
 
     def create_scheduled_activity(self, contact, campaign, seller, call_datetime, seller_console_action=None):
         """Create a scheduled activity"""
@@ -374,7 +406,7 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
                 )
                 return None
 
-    def register_new_activity(self, instance_id, category, campaign, seller, notes, result):
+    def register_new_activity(self, instance_id, category, campaign, seller, notes, result, switches_shift=False):
         contact = self.get_contact_from_instance_id(instance_id, category)
         if not contact:
             return None
@@ -405,7 +437,8 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
         # If we're using the setting to keep contacts in campaigns indefinitely, we'll need to set the datetime
         # to a future date, otherwise we'll use the current date and set this as closed. Anyways we'll mark the
         # current activity as closed and create a new one with the future datetime.
-        if getattr(settings, "KEEP_CONTACTS_IN_CAMPAIGNS_INDEFINITELY", False):
+        # A contact moved to the other shift leaves this seller's queues
+        if getattr(settings, "KEEP_CONTACTS_IN_CAMPAIGNS_INDEFINITELY", False) and not switches_shift:
             Activity.objects.create(
                 contact=contact,
                 activity_type="C",  # Call
@@ -466,6 +499,17 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
             messages.error(self.request, _("Contact is no longer in this campaign"))
             return HttpResponseRedirect(reverse("seller_console", args=[category, campaign.id]))
 
+        # During a shift only the move to the other one is offered (see get_context_data)
+        now = datetime.now()
+        current_switch_status = Shift.switch_status_at(now)
+        action_status = seller_console_action.campaign_status
+        shift_moves = (CAMPAIGN_STATUS.SWITCH_TO_MORNING, CAMPAIGN_STATUS.SWITCH_TO_AFTERNOON)
+        if current_switch_status and action_status in shift_moves and action_status != current_switch_status:
+            messages.error(self.request, _("This contact can only be moved to the other shift"))
+            return HttpResponseRedirect(reverse("seller_console", args=[category, campaign.id]))
+
+        switch_status = self.get_first_not_found_switch_status(contact, campaign, seller_console_action, now)
+
         # Process based on category
         if category == "act":
             try:
@@ -479,20 +523,23 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
             activity.seller_console_action = seller_console_action
             activity.save()
             # For CALL_LATER and NOT_FOUND, always create a new pending activity so the contact
-            # stays in the "act" queue instead of falling back to "new".
-            if seller_console_action.action_type in (
+            # stays in the "act" queue instead of falling back to "new". A contact moved to the other
+            # shift leaves this seller's queues, so it gets none.
+            if not switch_status and seller_console_action.action_type in (
                 SellerConsoleAction.ACTION_TYPES.CALL_LATER,
                 SellerConsoleAction.ACTION_TYPES.NOT_FOUND,
             ):
                 self.register_new_activity(instance_id, category, campaign, seller, notes, result)
-            elif getattr(settings, "KEEP_CONTACTS_IN_CAMPAIGNS_INDEFINITELY", False):
+            elif not switch_status and getattr(settings, "KEEP_CONTACTS_IN_CAMPAIGNS_INDEFINITELY", False):
                 # This is only here so that we can register a new activity if the setting is enabled
                 self.register_new_activity(instance_id, category, campaign, seller, notes, result)
         else:  # category == "new"
-            self.register_new_activity(instance_id, category, campaign, seller, notes, result)
+            self.register_new_activity(
+                instance_id, category, campaign, seller, notes, result, switches_shift=bool(switch_status)
+            )
 
         # Process the result
-        ccs = self.process_activity_result(contact, campaign, seller, seller_console_action, notes)
+        ccs = self.process_activity_result(contact, campaign, seller, seller_console_action, notes, switch_status)
         if not ccs:
             return HttpResponseRedirect(reverse("seller_console", args=[category, campaign.id]))
 
@@ -528,11 +575,22 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
             _("view contact"),
         )
 
-        messages.success(self.request, success_msg_html, extra_tags='safe')
+        if switch_status:
+            # A warning, so that the seller notices that the "not found" moved the contact to the other shift
+            if switch_status == CAMPAIGN_STATUS.SWITCH_TO_AFTERNOON:
+                switch_msg = _("First unanswered call in this campaign: the contact was moved to the afternoon shift")
+            else:
+                switch_msg = _("First unanswered call in this campaign: the contact was moved to the morning shift")
+            messages.warning(
+                self.request, format_html("{}<br><strong>{}</strong>", success_msg_html, switch_msg), extra_tags='safe'
+            )
+        else:
+            messages.success(self.request, success_msg_html, extra_tags='safe')
 
-        # Convert offset to int and increment it for "Call later" and "Not found" results
+        # Convert offset to int and increment it for "Call later" and "Not found" results. A contact moved to the
+        # other shift leaves the list, so the next one is already at the same offset.
         try:
-            if seller_console_action.action_type in (
+            if not switch_status and seller_console_action.action_type in (
                 SellerConsoleAction.ACTION_TYPES.CALL_LATER,
                 SellerConsoleAction.ACTION_TYPES.NOT_FOUND,
             ):
@@ -649,6 +707,10 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
                 'open_issues_count': open_issues.count(),
             }
         )
+        # During a shift only the move to the other one is shown; outside the shifts, both
+        switch_status = Shift.switch_status_at(datetime.now())
+        context['show_move_morning'] = switch_status != CAMPAIGN_STATUS.SWITCH_TO_AFTERNOON
+        context['show_move_afternoon'] = switch_status != CAMPAIGN_STATUS.SWITCH_TO_MORNING
         return context
 
     def get_phone_duplicates_info(self, contact):
