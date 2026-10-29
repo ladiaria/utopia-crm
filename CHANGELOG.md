@@ -2,6 +2,15 @@
 
 ## v0.5.1
 
+## 2026-10-29 — gl72-cambio-de-turno La consola de ventas cambia de turno según la hora
+
+- **El primer «No encontrado» de un contacto en una campaña lo pasa al otro turno**: en el turno de la mañana, como «Mover a la tarde», y en el de la tarde, como «Mover a la mañana». Así la siguiente llamada la hace el otro turno. Fuera de los dos turnos, y a partir del segundo «No encontrado», todo sigue como antes. La llamada queda registrada como «No encontrado», y el vendedor ve un aviso que dice que el contacto se pasó de turno
+- **Durante un turno sólo se ofrece pasar al otro**: a la mañana se ve «Mover a la tarde» y a la tarde, «Mover a la mañana». Fuera de los turnos, los dos
+- **Un contacto que se pasó de turno por su primer «No encontrado» no cuenta como contactado** en las estadísticas de campañas y vendedores, porque nadie atendió. Los que se mueven a mano siguen contando
+- Funciona con exactamente dos turnos cargados (el que empieza primero es la mañana). El cambio automático se apaga con un setting nuevo, que viene prendido
+- Deployment: **no se requieren migraciones**; sí **recompilar traducciones** (`compilemessages -l es`)
+- **Author:** Tanya Tree + Claude Opus 5.5
+
 ## 2026-10-28 — gl71-cotizaciones-bcu Tabla de cotizaciones diarias
 
 - **Nueva tabla de cotizaciones**, una por moneda y día, para las futuras facturas en moneda extranjera. Para una fecha se usa la cotización del día hábil anterior: la última publicada antes de esa fecha, así que fines de semana y feriados se saltean solos, sin calendario. Si la última es demasiado vieja, se rechaza con un error claro

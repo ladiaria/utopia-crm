@@ -1,5 +1,5 @@
 # coding=utf-8
-from django.db.models import TextChoices, IntegerChoices
+from django.db.models import IntegerChoices, Q, TextChoices
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 
@@ -123,6 +123,18 @@ def get_contacted_statuses():
         CAMPAIGN_STATUS.SWITCH_TO_MORNING,
         CAMPAIGN_STATUS.SWITCH_TO_AFTERNOON,
     ]
+
+
+def get_contacted_q():
+    """
+    Q for the ContactCampaignStatus rows that count as contacted: the statuses of get_contacted_statuses(), except the
+    contacts that the seller console moved to the other shift on their first "not found" call (the last console action
+    is a "not found" one), because nobody answered. Contacts moved by hand with "switch to morning/afternoon" count.
+    """
+    switched_shift = Q(status__in=[CAMPAIGN_STATUS.SWITCH_TO_MORNING, CAMPAIGN_STATUS.SWITCH_TO_AFTERNOON])
+    # "F" is SellerConsoleAction.ACTION_TYPES.NOT_FOUND (support imports core, so it can't be imported here)
+    not_found_shift_switch = switched_shift & Q(last_console_action__action_type="F")
+    return Q(status__in=get_contacted_statuses()) & ~not_found_shift_switch
 
 
 CAMPAIGN_RESOLUTION_CHOICES = (
