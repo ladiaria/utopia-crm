@@ -40,6 +40,7 @@ from core.models import (
     EmailTakeoverRequest,
     IdDocumentType,
 )
+from core.choices import ACTIVITY_STATUS
 from core.filters import ContactFilter
 from core.forms import ContactAdminForm, ContactUpdateForm
 from core.mixins import BreadcrumbsMixin
@@ -921,11 +922,11 @@ def contact_activities_htmx(request, contact_id):
         activity.starts_day = day != last_day
         last_day = day
 
-    return render(
-        request,
-        "contact_detail/htmx/_activities_htmx.html",
-        {"contact": contact, "page": page, "query": query, "last_day": last_day},
-    )
+    context = {"contact": contact, "page": page, "query": query, "last_day": last_day}
+    if page.number == 1:
+        # For the summary above the timeline: a pending activity can be far down the list
+        context["pending_count"] = activities.filter(status=ACTIVITY_STATUS.PENDING).count()
+    return render(request, "contact_detail/htmx/_activities_htmx.html", context)
 
 
 @method_decorator(staff_member_required, name="dispatch")

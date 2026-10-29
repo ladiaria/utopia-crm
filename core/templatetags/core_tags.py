@@ -229,6 +229,8 @@ ACTIVITY_TYPE_ICONS = {
     "N": "fas fa-sticky-note",
 }
 ACTIVITY_DIRECTION_COLORS = {"I": "bg-info", "O": "bg-primary", "N": "bg-gray", "R": "bg-warning"}
+# Completed is the usual state, so it stays quiet and the others stand out
+ACTIVITY_STATUS_BADGES = {"C": "badge-light", "P": "badge-warning", "D": "bg-orange", "E": "badge-danger"}
 
 
 @register.filter
@@ -239,3 +241,9 @@ def activity_icon(activity):
     """
     icon = ACTIVITY_TYPE_ICONS.get(activity.activity_type, "fas fa-circle")
     return f"{icon} {ACTIVITY_DIRECTION_COLORS.get(activity.direction, 'bg-secondary')}"
+
+
+@register.filter
+def activity_status_badge(activity):
+    """CSS class for the status badge of an activity."""
+    return ACTIVITY_STATUS_BADGES.get(activity.status, "badge-secondary")

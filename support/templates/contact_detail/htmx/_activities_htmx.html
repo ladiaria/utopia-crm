@@ -5,8 +5,14 @@
 {% endcomment %}
 {% if page.number == 1 %}
   {% if page.paginator.count %}
-    <p class="text-muted small">
+    <p class="text-muted">
       {% blocktrans count counter=page.paginator.count %}{{ counter }} activity{% plural %}{{ counter }} activities{% endblocktrans %}
+      {% if pending_count %}
+        ·
+        <span class="badge badge-warning">
+          {% blocktrans count counter=pending_count %}{{ counter }} pending{% plural %}{{ counter }} pending{% endblocktrans %}
+        </span>
+      {% endif %}
     </p>
     <div class="timeline activity-timeline mb-0">{% include "contact_detail/htmx/_activities_timeline_items.html" %}</div>
   {% elif query %}

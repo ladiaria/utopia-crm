@@ -90,3 +90,14 @@ class ContactActivitiesHtmxTestCase(TestCase):
         self.create_activity("Con fecha", datetime(2026, 10, 28, 10, 0))
         content = self.client.get(self.url, **HX).content.decode()
         self.assertLess(content.index("Con fecha"), content.index("Sin fecha cargada"))
+
+    def test_status_is_always_shown_and_pending_ones_are_counted(self):
+        self.create_activity("Hecha", datetime(2026, 10, 28, 10, 0))
+        pending = self.create_activity("Por hacer", datetime(2026, 10, 29, 10, 0))
+        pending.status = "P"
+        pending.save()
+        response = self.client.get(self.url, **HX)
+        self.assertContains(response, '<span class="badge badge-light mr-2">Completed</span>', html=True)
+        self.assertContains(response, '<span class="badge badge-warning mr-2">Pending</span>', html=True)
+        self.assertEqual(response.context["pending_count"], 1)
+        self.assertContains(response, "1 pending")

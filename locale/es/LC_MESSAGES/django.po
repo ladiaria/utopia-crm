@@ -12949,3 +12949,10 @@ msgstr "Cargar más"
 #: support/templates/contact_detail/detail.html
 msgid "Show less"
 msgstr "Mostrar menos"
+
+#: support/templates/contact_detail/htmx/_activities_htmx.html
+#, python-format
+msgid "%(counter)s pending"
+msgid_plural "%(counter)s pending"
+msgstr[0] "%(counter)s pendiente"
+msgstr[1] "%(counter)s pendientes"
