@@ -270,9 +270,6 @@ WEB_NEWSLETTERS_READ_URI = None
 WEB_NEWSLETTERS_UPDATE_URI = None
 WEB_CREATE_USER_ENABLED = None
 WEB_CREATE_USER_POST_WHITELIST = []
-# When True (the new model), Contact saves no longer push the local newsletter mirror to the CMS with a
-# destructive .set(); the CMS is the source of truth and the CRM edits newsletters on demand by delta.
-WEB_UPDATE_USER_NEWSLETTERS_ENABLED = True
 
 GEOREF_SERVICES = False
 # Timeout (segundos) para las llamadas HTTP a los servicios de georreferenciación (Uruguay).
