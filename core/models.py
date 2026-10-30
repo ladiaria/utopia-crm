@@ -2,7 +2,6 @@
 from pydoc import locate
 from datetime import date, datetime, timedelta
 from dateutil.relativedelta import relativedelta
-import json
 from requests.exceptions import RequestException
 
 from django.contrib.auth.models import User
@@ -3573,24 +3572,6 @@ def update_web_user(contact, target_email=None, newsletter_data=None, area_newsl
         else:
             if api_result in ("TIMEOUT", "ERROR"):
                 contact.sync_error = api_result  # TODO: try to get more info from the error
-
-
-def update_web_user_newsletters(contact):
-    """
-    Update web user newsletters when they are edited
-    @params contact: Contact instance
-    """
-    # When the CMS is the source of truth (newsletters edited on demand against it), this destructive
-    # full-photo push must stay off: otherwise a Contact save would .set() the CMS to the local mirror and
-    # wipe newsletters the CRM doesn't know about. A single guard covers both signal callers.
-    if not getattr(settings, "WEB_UPDATE_USER_NEWSLETTERS_ENABLED", True):
-        return
-    try:
-        newsletters_slugs = list(contact.get_newsletter_products().values_list('slug', flat=True))
-        update_web_user(contact, contact.email, json.dumps(newsletters_slugs))
-    except Exception as exc:
-        if settings.DEBUG:
-            print(f"DEBUG: Error sending the request to CMS: {exc}")
 
 
 class MailtrainList(models.Model):
