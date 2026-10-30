@@ -2,6 +2,15 @@
 
 ## v0.5.1
 
+## 2026-10-30 — gl35-cleanup-desmapeo-nl Se quita el envío de newsletters del CRM a la web, que estaba apagado
+
+- **Se quita el envío completo de newsletters del CRM a la web**, el que reemplazaba las newsletters de la persona en la web por las del CRM cada vez que se guardaba un contacto. Desde el 2026-06-30 la web es la que manda en las newsletters y el CRM las lee y edita a demanda, así que ese envío estaba apagado por configuración y no hacía nada
+- **Se va también el setting que lo apagaba**, `WEB_UPDATE_USER_NEWSLETTERS_ENABLED`. Si una instalación lo tiene en su configuración, queda sin efecto y se puede borrar
+- Guardar un contacto sigue sincronizando con la web sus otros datos, igual que antes. La lectura y edición de newsletters contra la web no cambia
+- **Para otras instalaciones:** una customización que importe la función quitada tiene que dejar de hacerlo en el mismo deploy
+- Deployment: **no se requieren migraciones**
+- **Author:** Tanya Tree + Claude Opus 5.5
+
 ## 2026-10-29 — gl72-cambio-de-turno La consola de ventas cambia de turno según la hora
 
 - **El primer «No encontrado» de un contacto en una campaña lo pasa al otro turno**: en el turno de la mañana, como «Mover a la tarde», y en el de la tarde, como «Mover a la mañana». Así la siguiente llamada la hace el otro turno. Fuera de los dos turnos, y a partir del segundo «No encontrado», todo sigue como antes. La llamada queda registrada como «No encontrado», y el vendedor ve un aviso que dice que el contacto se pasó de turno

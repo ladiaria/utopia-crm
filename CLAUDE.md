@@ -74,8 +74,6 @@ The base app is designed to be extended without modification:
   `extra_tabs` and `extra_tab_panes` blocks. Don't copy the `content` block to add a tab.
 - **Extra seller console actions**: a package's `seller_console.html` (extending the base one) fills the empty
   `extra_sale_actions` block, under the sale buttons. It sits outside `consoleForm`, so it can hold its own forms.
-- **Custom active-check callbacks**: `CORE_DEFAULT_NEWSLETTERS` maps dotted-path callables to
-  newsletter slugs.
 - **Feature flags**: many behaviours are toggled via settings (e.g. `WEB_UPDATE_USER_ENABLED`,
   `EFACTURA_ENABLED`, `MERCADOPAGO_ENABLED`, `REQUIRE_ROUTE_FOR_BILLING`).
 

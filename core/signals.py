@@ -15,7 +15,6 @@ from .models import (
     regex_alphanumeric,
     regex_alphanumeric_msg,
     update_web_user,
-    update_web_user_newsletters,
 )
 from .utils import cms_rest_api_request, mail_managers_on_errors
 
@@ -44,7 +43,6 @@ def contact_post_save_signal(sender, instance, created, **kwargs):
     else:
         target_email = instance.old_email if hasattr(instance, 'old_email') else None
         update_web_user(instance, target_email)
-    update_web_user_newsletters(instance)
 
 
 @receiver(post_save, sender=Subscription)
