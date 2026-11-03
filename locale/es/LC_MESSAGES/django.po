@@ -12956,3 +12956,11 @@ msgid "%(counter)s pending"
 msgid_plural "%(counter)s pending"
 msgstr[0] "%(counter)s pendiente"
 msgstr[1] "%(counter)s pendientes"
+
+#: support/templates/view_issue.html
+msgid "Closing status: the issue is finished."
+msgstr "Estado de cierre: la incidencia está finalizada."
+
+#: support/templates/view_issue.html
+msgid "Closed"
+msgstr "Cerrada"

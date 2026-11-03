@@ -188,6 +188,15 @@
             {% if issue.status %}
               <span class="text-muted" style="font-size: 0.75rem;">{% trans "Status" %}:</span>
               <span class="badge badge-dark" style="font-size: 0.8rem;">{{ issue.status }}</span>
+              {% if issue.has_terminal_status %}
+                <span class="badge badge-success"
+                      style="font-size: 0.8rem;"
+                      data-toggle="tooltip"
+                      data-placement="bottom"
+                      title="{% trans 'Closing status: the issue is finished.' %}{% if issue.closing_date %} {% trans 'Closing date' %}: {{ issue.closing_date|date:'SHORT_DATE_FORMAT' }}{% endif %}">
+                  <i class="fas fa-lock"></i> {% trans "Closed" %}
+                </span>
+              {% endif %}
             {% endif %}
           </div>
         </div>

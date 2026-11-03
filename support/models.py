@@ -251,6 +251,10 @@ class Issue(models.Model):
         else:
             return None
 
+    def has_terminal_status(self):
+        """True when the issue's status is one of ISSUE_STATUS_FINISHED_LIST."""
+        return bool(self.status) and self.status.slug in getattr(settings, "ISSUE_STATUS_FINISHED_LIST", [])
+
     def get_address(self):
         if self.subscription_product and self.subscription_product.address:
             return self.subscription_product.address.address_1
