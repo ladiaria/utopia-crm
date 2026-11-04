@@ -302,8 +302,9 @@ class TestShiftSwitchStatus(TestCase):
 
 class TestFirstNotFoundSwitchesShift(TestCase):
     """
-    El primer «No encontrado» de un contacto en una campaña lo pasa al otro turno según la hora, y durante un turno
-    sólo se ofrece pasar al otro (#72 de utopia-crm-ladiaria). La llamada queda registrada como «No encontrado»:
+    Si la primera interacción con un contacto en una campaña es un «No encontrado», pasa al otro turno según la hora
+    (#72 y #92 de utopia-crm-ladiaria), y durante un turno sólo se ofrece pasar al otro. La llamada queda registrada
+    como «No encontrado»:
     es lo que cuenta el WhatsApp del call center para habilitar el botón (#45).
     """
 
@@ -415,8 +416,53 @@ class TestFirstNotFoundSwitchesShift(TestCase):
 
         self.assert_usual_not_found(response)
 
-    def test_first_not_found_from_the_activities_queue(self):
-        """En la cola «act» no se crea la pendiente nueva: el contacto se va al otro turno."""
+    def test_not_found_after_a_call_later_behaves_as_usual(self):
+        """
+        La primera interacción en la campaña fue «Llamar más tarde»: el «No encontrado» de después no cambia de turno
+        (#92 de utopia-crm-ladiaria).
+        """
+        with at(10, 0):
+            self.post("call-later")
+            response = self.post("not-found")
+
+        self.assert_usual_not_found(response)
+        self.assertEqual(self.unanswered_calls(), 1)
+
+    def test_any_earlier_activity_in_the_campaign_counts(self):
+        """Una interacción previa de otro tipo y de otro vendedor, como un WhatsApp del call center, también cuenta."""
+        Activity.objects.create(
+            contact=self.contact,
+            campaign=self.campaign,
+            activity_type="W",
+            status="C",
+            datetime=datetime(2026, 10, 28, 10, 0),
+        )
+        with at(10, 0):
+            response = self.post("not-found")
+
+        self.assert_usual_not_found(response)
+
+    def test_activities_in_other_campaigns_do_not_count(self):
+        other_campaign = Campaign.objects.create(name="Otra campaña", active=True, priority=3)
+        Activity.objects.create(
+            contact=self.contact,
+            campaign=other_campaign,
+            activity_type="C",
+            status="C",
+            datetime=datetime(2026, 10, 28, 10, 0),
+            seller_console_action_id="call-later",
+        )
+        with at(10, 0):
+            self.post("not-found")
+
+        self.ccs.refresh_from_db()
+        self.assertEqual(self.ccs.status, CAMPAIGN_STATUS.SWITCH_TO_AFTERNOON)
+
+    def test_not_found_from_the_activities_queue_behaves_as_usual(self):
+        """
+        Un contacto de la cola «act» viene de una agenda, que ya es una interacción en la campaña: no cambia de turno y
+        sigue en la cola del vendedor (#92 de utopia-crm-ladiaria).
+        """
         activity = Activity.objects.create(
             contact=self.contact,
             campaign=self.campaign,
@@ -424,6 +470,7 @@ class TestFirstNotFoundSwitchesShift(TestCase):
             activity_type="C",
             status="P",
             datetime=datetime(2026, 10, 29, 9, 0),
+            seller_console_action_id="schedule",
         )
         with at(10, 0):
             response = self.post("not-found", category="act", instance_id=activity.id)
@@ -431,11 +478,13 @@ class TestFirstNotFoundSwitchesShift(TestCase):
         activity.refresh_from_db()
         self.assertEqual(activity.status, "C")
         self.assertEqual(activity.seller_console_action_id, "not-found")
-        self.assertFalse(Activity.objects.filter(contact=self.contact, status="P").exists())
+        self.assertTrue(Activity.objects.filter(contact=self.contact, status="P").exists())
         self.ccs.refresh_from_db()
-        self.assertEqual(self.ccs.status, CAMPAIGN_STATUS.SWITCH_TO_AFTERNOON)
+        self.assertEqual(self.ccs.status, CAMPAIGN_STATUS.CALLED_COULD_NOT_CONTACT)
+        self.assertEqual(self.ccs.seller, self.seller)
         self.assertEqual(self.unanswered_calls(), 1)
-        self.assert_redirects_to_offset(response, "act", 1)
+        self.assert_redirects_to_offset(response, "act", 2)
+        self.assertFalse([m for m in get_messages(response.wsgi_request) if m.level == WARNING])
 
     def test_only_the_move_to_the_other_shift_is_shown(self):
         url = reverse("seller_console", args=["new", self.campaign.id])

@@ -352,8 +352,12 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
 
     def get_first_not_found_switch_status(self, contact, campaign, seller_console_action, moment):
         """
-        The first "not found" call to a contact in a campaign moves it to the other shift, so that the other shift
-        tries again: returns the status for that (see Shift.switch_status_at), or None to keep the usual behaviour.
+        When the first interaction with a contact in a campaign is a "not found" call, it moves the contact to the
+        other shift, so that the other shift tries again: returns the status for that (see Shift.switch_status_at), or
+        None to keep the usual behaviour.
+
+        Any earlier activity of the contact in the campaign, of any type, status or seller, is an earlier interaction:
+        a contact in the "act" queue never switches, because the pending activity being completed is one.
 
         The call is still registered as a "not found" one, so it counts as an unanswered call. Turned off with
         SELLER_CONSOLE_FIRST_NOT_FOUND_SWITCHES_SHIFT = False.
@@ -362,16 +366,10 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
             return None
         if seller_console_action.action_type != SellerConsoleAction.ACTION_TYPES.NOT_FOUND:
             return None
-        # Previous calls only: it runs before the current one is completed. It looks at the activities and not at the
-        # status, because assigning sellers to the other shift sets the status back to "not yet contacted".
-        previous_not_found = Activity.objects.filter(
-            contact=contact,
-            campaign=campaign,
-            activity_type="C",
-            status=ACTIVITY_STATUS.COMPLETED,
-            seller_console_action__action_type=SellerConsoleAction.ACTION_TYPES.NOT_FOUND,
-        )
-        if previous_not_found.exists():
+        # It runs before the current call is registered, so every activity found is an earlier one. It looks at the
+        # activities and not at the status, because assigning sellers to the other shift sets the status back to
+        # "not yet contacted".
+        if Activity.objects.filter(contact=contact, campaign=campaign).exists():
             return None
         return Shift.switch_status_at(moment)
 
