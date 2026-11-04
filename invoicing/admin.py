@@ -96,11 +96,6 @@ class InvoiceAdmin(SimpleHistoryAdmin):
     ordering = ['-id']
 
 
-@admin.register(InvoiceItem)
-class InvoiceItemAdmin(admin.ModelAdmin):
-    pass
-
-
 @admin.register(TransactionType)
 class TransactionTypeAdmin(admin.ModelAdmin):
     list_display = ('name', 'code')
