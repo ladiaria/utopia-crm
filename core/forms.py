@@ -348,8 +348,10 @@ class SubscriptionAdminForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super(SubscriptionAdminForm, self).__init__(*args, **kwargs)
         instance = kwargs.get("instance")
-        if instance:
-            self.fields['billing_address'].queryset = Address.objects.filter(contact=instance.contact)
+        # Never list every address: without a contact the dropdown would hold the whole table
+        self.fields['billing_address'].queryset = (
+            Address.objects.filter(contact=instance.contact) if instance else Address.objects.none()
+        )
 
 
 class AddressForm(forms.ModelForm):
