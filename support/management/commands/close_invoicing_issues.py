@@ -19,9 +19,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         dry_run = options["dry_run"]
-        issues = Issue.objects.filter(category="I").exclude(
-            status__slug__in=settings.ISSUE_STATUS_FINISHED_LIST
-        ).select_related("contact")
+        issues = Issue.objects.filter(category="I").exclude(status__is_terminal=True).select_related("contact")
 
         issue_status_autoclose = getattr(settings, 'ISSUE_STATUS_AUTO_CLOSE_SLUGS', [])
         if issue_status_autoclose:

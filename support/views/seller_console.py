@@ -105,7 +105,7 @@ def seller_console_never_paid_issues(request):
 
     # Check if the feature is configured
     never_paid_slugs = get_never_paid_subcategory_slugs()
-    if not never_paid_slugs or not getattr(settings, "ISSUE_STATUS_FINISHED_LIST", None):
+    if not never_paid_slugs:
         messages.error(request, _("This function is not available."))
         return HttpResponseRedirect(reverse("seller_console_list_campaigns"))
 
@@ -116,7 +116,7 @@ def seller_console_never_paid_issues(request):
         sub_category__slug__in=never_paid_slugs,
         assigned_to=user,
     ).exclude(
-        status__slug__in=getattr(settings, "ISSUE_STATUS_FINISHED_LIST", [])
+        status__is_terminal=True
     ).select_related(
         'contact', 'subscription', 'status', 'sub_category'
     ).annotate(
@@ -204,11 +204,11 @@ def seller_console_list_campaigns(request, seller_id=None):
     # Get count of never paid issues for this seller
     issues_never_paid_count = 0
     never_paid_slugs = get_never_paid_subcategory_slugs()
-    if never_paid_slugs and getattr(settings, "ISSUE_STATUS_FINISHED_LIST", None):
+    if never_paid_slugs:
         issues_never_paid_count = Issue.objects.filter(
             sub_category__slug__in=never_paid_slugs,
             assigned_to=user,
-        ).exclude(status__slug__in=getattr(settings, "ISSUE_STATUS_FINISHED_LIST", [])).count()
+        ).exclude(status__is_terminal=True).count()
 
     not_contacted_campaigns = seller.get_campaigns_by_status([1, 3])
     campaigns_with_activities = seller.get_campaigns_with_activities()
@@ -352,8 +352,12 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
 
     def get_first_not_found_switch_status(self, contact, campaign, seller_console_action, moment):
         """
-        The first "not found" call to a contact in a campaign moves it to the other shift, so that the other shift
-        tries again: returns the status for that (see Shift.switch_status_at), or None to keep the usual behaviour.
+        When the first interaction with a contact in a campaign is a "not found" call, it moves the contact to the
+        other shift, so that the other shift tries again: returns the status for that (see Shift.switch_status_at), or
+        None to keep the usual behaviour.
+
+        Any earlier activity of the contact in the campaign, of any type, status or seller, is an earlier interaction:
+        a contact in the "act" queue never switches, because the pending activity being completed is one.
 
         The call is still registered as a "not found" one, so it counts as an unanswered call. Turned off with
         SELLER_CONSOLE_FIRST_NOT_FOUND_SWITCHES_SHIFT = False.
@@ -362,16 +366,10 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
             return None
         if seller_console_action.action_type != SellerConsoleAction.ACTION_TYPES.NOT_FOUND:
             return None
-        # Previous calls only: it runs before the current one is completed. It looks at the activities and not at the
-        # status, because assigning sellers to the other shift sets the status back to "not yet contacted".
-        previous_not_found = Activity.objects.filter(
-            contact=contact,
-            campaign=campaign,
-            activity_type="C",
-            status=ACTIVITY_STATUS.COMPLETED,
-            seller_console_action__action_type=SellerConsoleAction.ACTION_TYPES.NOT_FOUND,
-        )
-        if previous_not_found.exists():
+        # It runs before the current call is registered, so every activity found is an earlier one. It looks at the
+        # activities and not at the status, because assigning sellers to the other shift sets the status back to
+        # "not yet contacted".
+        if Activity.objects.filter(contact=contact, campaign=campaign).exists():
             return None
         return Shift.switch_status_at(moment)
 
@@ -672,10 +670,7 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
             if last_action_activity:
                 last_action_datetime = last_action_activity.datetime
 
-        terminal_statuses = getattr(settings, 'ISSUE_STATUS_FINISHED_LIST', [])
-        open_issues = Issue.objects.filter(contact=contact).exclude(status__slug__in=terminal_statuses).order_by(
-            "-date_created"
-        )
+        open_issues = Issue.objects.filter(contact=contact).exclude(status__is_terminal=True).order_by("-date_created")
 
         context.update(
             {

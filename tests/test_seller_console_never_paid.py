@@ -29,7 +29,7 @@ class SellerConsoleNeverPaidTest(TestCase):
         cls.user = User.objects.create_superuser(username="vendedor", password="secret")
         cls.seller = Seller.objects.create(name="Vendedor", user=cls.user, internal=True)
         cls.status_new = IssueStatus.objects.create(name=settings.ISSUE_STATUS_NEW)
-        cls.status_solved = IssueStatus.objects.create(name=settings.ISSUE_STATUS_SOLVED)
+        cls.status_solved = IssueStatus.objects.create(name=settings.ISSUE_STATUS_SOLVED, is_terminal=True)
         cls.never_paid = IssueSubcategory.objects.create(name="never-paid-test", category="I")
         cls.never_paid_2 = IssueSubcategory.objects.create(name="never-paid-2-test", category="I")
         cls.debt = IssueSubcategory.objects.create(name="debt-test", category="I")

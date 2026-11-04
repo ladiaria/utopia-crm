@@ -26,7 +26,7 @@ class IssueResolutionAutoSolvedTest(TestCase):
     def setUpTestData(cls):
         cls.contact = create_contact("Test", "099111222", "test@example.com")
         cls.status_new = IssueStatus.objects.create(name=settings.ISSUE_STATUS_NEW)
-        cls.status_solved = IssueStatus.objects.create(name=settings.ISSUE_STATUS_SOLVED)
+        cls.status_solved = IssueStatus.objects.create(name=settings.ISSUE_STATUS_SOLVED, is_terminal=True)
         cls.subcategory = IssueSubcategory.objects.create(name="baja-test", category="S")
         cls.other_subcategory = IssueSubcategory.objects.create(name="otra-test", category="S")
         cls.resolution = IssueResolution.objects.create(name="Baja", subcategory=cls.subcategory)

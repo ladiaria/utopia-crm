@@ -1071,7 +1071,7 @@ def route_details(request, route_list, extra_context=None):
 
     all_issues = (
         Issue.objects.filter(subscription_product__route__in=routes, category="L")
-        .exclude(status__slug__in=settings.ISSUE_STATUS_FINISHED_LIST)
+        .exclude(status__is_terminal=True)
         .select_related(
             "contact",
             "product",

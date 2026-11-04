@@ -14,11 +14,10 @@ class BulkReassignIssueStatusTest(TestCase):
     def setUp(self):
         self.contact = create_contact("Test", "099111222", "test@example.com")
 
-        # "resuelto" is terminal (in ISSUE_STATUS_FINISHED_LIST via local_settings),
-        # "pendiente" is not. Slugs are auto-generated from the name.
+        # "resuelto" is terminal, "pendiente" is not. Slugs are auto-generated from the name.
         self.status_pending = IssueStatus.objects.create(name="pendiente")
         self.status_open = IssueStatus.objects.create(name="abierto")
-        self.status_solved = IssueStatus.objects.create(name="resuelto")
+        self.status_solved = IssueStatus.objects.create(name="resuelto", is_terminal=True)
 
         self.subcategory = IssueSubcategory.objects.create(name="reclamo")
 
