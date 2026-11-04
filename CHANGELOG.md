@@ -2,6 +2,13 @@
 
 ## v0.5.1
 
+## 2026-11-04 — gl96-cerrar-alta-suscripcion-admin Las suscripciones ya no se pueden crear desde el admin
+
+- **La pantalla de alta de suscripciones del admin queda cerrada para todos, superusuarios incluidos**: las suscripciones se crean desde el contacto, y esa pantalla se salteaba ese flujo y armaba un desplegable con todas las direcciones de la base
+- **El formulario del admin ya no puede listar todas las direcciones**. Editar una suscripción sigue igual, con las direcciones de su contacto
+- Deployment: no se requieren migraciones
+- **Author:** Tanya Tree + Claude Opus 5.5
+
 ## 2026-11-04 — gl96-sacar-admin-invoiceitem Los ítems de factura ya no tienen una pantalla propia en el admin
 
 - **Se saca la pantalla de ítems de factura del admin**: armaba un desplegable con todas las facturas y otro con todas las suscripciones, y abrirla dejó sin memoria al servidor de producción, con errores 502 para otros usuarios durante unos segundos

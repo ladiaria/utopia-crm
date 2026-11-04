@@ -190,6 +190,10 @@ class SubscriptionAdmin(SimpleHistoryAdmin):
         form.request = request
         return form
 
+    def has_add_permission(self, request):
+        # Subscriptions are created from the contact (new_subscription). This also applies to superusers.
+        return False
+
     fieldsets = (
         (_("Contact data"), {"fields": ("contact",)}),
         (
