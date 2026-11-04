@@ -2,6 +2,13 @@
 
 ## v0.5.1
 
+## 2026-11-04 — gl96-sacar-admin-invoiceitem Los ítems de factura ya no tienen una pantalla propia en el admin
+
+- **Se saca la pantalla de ítems de factura del admin**: armaba un desplegable con todas las facturas y otro con todas las suscripciones, y abrirla dejó sin memoria al servidor de producción, con errores 502 para otros usuarios durante unos segundos
+- **Los ítems se siguen viendo y editando dentro de su factura**, como se hacía siempre. Nada usaba la pantalla que se saca
+- Deployment: no se requieren migraciones. Los enlaces viejos a esa pantalla responden 404
+- **Author:** Tanya Tree + Claude Opus 5.5
+
 ## 2026-11-04 — gl87-estados-terminales Qué estados de incidencia son de cierre se decide desde el admin, y renombrarlos ya no rompe nada
 
 - **Cada estado de incidencia tiene una casilla «Terminal» en el admin**, que reemplaza a la lista `ISSUE_STATUS_FINISHED_LIST` de la configuración de cada servidor. La puede cambiar sólo quien tiene un permiso propio. La migración marca sola los estados que ya estaban en la lista de cada instalación
