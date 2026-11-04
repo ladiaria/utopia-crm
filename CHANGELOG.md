@@ -2,6 +2,14 @@
 
 ## v0.5.1
 
+## 2026-11-04 — gl87-estados-terminales Qué estados de incidencia son de cierre se decide desde el admin, y renombrarlos ya no rompe nada
+
+- **Cada estado de incidencia tiene una casilla «Terminal» en el admin**, que reemplaza a la lista `ISSUE_STATUS_FINISHED_LIST` de la configuración de cada servidor. La puede cambiar sólo quien tiene un permiso propio. La migración marca sola los estados que ya estaban en la lista de cada instalación
+- **Marcar o desmarcar un estado con incidencias pide confirmar con el número**, y en el mismo paso las cierra con la fecha de hoy o las reabre. El historial de cada incidencia dice quién lo hizo. Los estados de los que dependen los cierres automáticos y los de las incidencias nuevas no pueden cambiar de lado
+- **Renombrar un estado o una subcategoría ya no le cambia el slug**, que antes rompía sin aviso todo lo que lo busca por slug. El admin tampoco deja repetir un nombre, ni usar uno que sólo se diferencie en mayúsculas, tildes o signos
+- Deployment: **se requiere migración** (`support/0044`), y **la lista tiene que seguir en la configuración cuando corre**. Después se puede sacar. Una customización que lea la lista pasa a leer el campo nuevo después de migrar
+- **Author:** Tanya Tree + Claude Opus 5.5
+
 ## 2026-11-04 — gl92-primera-interaccion-no-encontrado El cambio de turno por «No encontrado» sólo en la primera interacción
 
 - **El cambio de turno automático de la consola de ventas se afina**: un contacto pasa al otro turno sólo si la **primera interacción** con él en la campaña es un «No encontrado». Antes bastaba con que fuera el primer «No encontrado», así que contactos agendados, o con un «Llamar más tarde» previo, cambiaban de turno al no contestar
