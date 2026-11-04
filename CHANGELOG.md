@@ -2,6 +2,14 @@
 
 ## v0.5.1
 
+## 2026-11-04 — gl92-primera-interaccion-no-encontrado El cambio de turno por «No encontrado» sólo en la primera interacción
+
+- **El cambio de turno automático de la consola de ventas se afina**: un contacto pasa al otro turno sólo si la **primera interacción** con él en la campaña es un «No encontrado». Antes bastaba con que fuera el primer «No encontrado», así que contactos agendados, o con un «Llamar más tarde» previo, cambiaban de turno al no contestar
+- Cuenta como interacción cualquier actividad anterior del contacto en esa campaña, de cualquier tipo y de cualquier vendedor. Por eso un contacto de la cola de actividades (agendas, «Llamar más tarde») ya no cambia de turno nunca
+- Lo demás sigue igual: la llamada queda registrada como «No encontrado», el aviso al vendedor, los botones de turno según la hora y el setting que lo apaga
+- Deployment: **no se requieren migraciones**
+- **Author:** Tanya Tree + Claude Opus 5.5
+
 ## 2026-10-30 — gl35-cleanup-desmapeo-nl Se quita el envío de newsletters del CRM a la web, que estaba apagado
 
 - **Se quita el envío completo de newsletters del CRM a la web**, el que reemplazaba las newsletters de la persona en la web por las del CRM cada vez que se guardaba un contacto. Desde el 2026-06-30 la web es la que manda en las newsletters y el CRM las lee y edita a demanda, así que ese envío estaba apagado por configuración y no hacía nada
