@@ -13048,3 +13048,7 @@ msgid "%(count)d issue was reopened."
 msgid_plural "%(count)d issues were reopened."
 msgstr[0] "Se reabrió %(count)d incidencia."
 msgstr[1] "Se reabrieron %(count)d incidencias."
+
+#: support/forms.py
+msgid "This name is already in use, or only differs from one in use in case, accents or punctuation."
+msgstr "Este nombre ya está en uso, o se diferencia de uno en uso sólo en mayúsculas, tildes o signos."

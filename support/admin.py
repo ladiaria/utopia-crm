@@ -9,7 +9,7 @@ from django.utils.translation import gettext_lazy as _, ngettext
 
 from simple_history.admin import SimpleHistoryAdmin
 
-from .forms import IssueStatusAdminForm, SellerForm
+from .forms import IssueStatusAdminForm, IssueSubcategoryAdminForm, SellerForm
 from .models import (
     ScheduledTask,
     Issue,
@@ -117,6 +117,7 @@ class IssueStatusAdmin(admin.ModelAdmin):
 
 @admin.register(IssueSubcategory)
 class IssueSubcategoryAdmin(admin.ModelAdmin):
+    form = IssueSubcategoryAdminForm
     list_editable = ["category"]
     list_display = ["name", "slug", "category"]
     readonly_fields = ["slug"]

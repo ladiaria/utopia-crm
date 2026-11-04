@@ -52,7 +52,7 @@ class IssueStatusTerminalTest(TestCase):
             category="S",
             sub_category=self.subcategory,
             status=status,
-            **kwargs
+            **kwargs,
         )
 
     def _post(self, user, status, **data):
@@ -195,5 +195,41 @@ class IssueStatusTerminalTest(TestCase):
 
     def test_marking_without_issues_needs_no_confirmation(self):
         response = self._post(self.manager, self.status_waiting, is_terminal="on")
+
+        self.assertEqual(response.status_code, 302)
+
+    # Admin: names (and so slugs) are unique
+
+    def _add(self, model_name, name):
+        self.client.force_login(User.objects.create_superuser("root", "root@example.com", "secret"))
+        return self.client.post(reverse(f"admin:support_{model_name}_add"), {"name": name, "category": ""})
+
+    def test_a_status_with_a_name_in_use_cannot_be_created(self):
+        response = self._add("issuestatus", "en-espera-test")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("name", response.context["adminform"].form.errors)
+        self.assertEqual(IssueStatus.objects.filter(slug="en-espera-test").count(), 1)
+
+    def test_a_name_that_only_differs_in_case_and_accents_is_rejected(self):
+        response = self._add("issuesubcategory", "Sub Tést")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("name", response.context["adminform"].form.errors)
+
+    def test_a_new_name_is_accepted(self):
+        response = self._add("issuesubcategory", "Otra subcategoría")
+
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(IssueSubcategory.objects.filter(slug="otra-subcategoria").exists())
+
+    def test_renaming_to_a_name_in_use_is_rejected(self):
+        response = self._post(self.manager, self.status_waiting, name="Nueva-Test")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("name", response.context["adminform"].form.errors)
+
+    def test_saving_without_changing_the_name_is_not_checked(self):
+        response = self._post(self.manager, self.status_waiting, category="S")
 
         self.assertEqual(response.status_code, 302)

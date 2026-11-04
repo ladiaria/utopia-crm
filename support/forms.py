@@ -3,6 +3,7 @@ from datetime import date
 from django.utils.translation import gettext_lazy as _, ngettext
 from django import forms
 from django.conf import settings
+from django.db.models import Q
 from django.forms import ValidationError
 from django.contrib.auth.models import User
 from django.utils.safestring import mark_safe
@@ -1184,7 +1185,34 @@ def status_slugs_from_settings(setting_names):
     return {getattr(settings, name, None) for name in setting_names} - {None, ""}
 
 
-class IssueStatusAdminForm(forms.ModelForm):
+class UniqueNameAdminFormMixin:
+    """
+    Statuses and subcategories are looked up by slug, and AutoSlugField does not make it unique: a second "Resuelto"
+    would get the same slug and break every IssueStatus.objects.get(slug=...). Rejects a new or changed name that is
+    already in use, or that only differs from one in use in case, accents or punctuation (that is, same slug).
+    """
+
+    def clean_name(self):
+        name = self.cleaned_data["name"]
+        if self.instance.pk and "name" not in self.changed_data:
+            return name
+        model = self._meta.model
+        others = model.objects.exclude(pk=self.instance.pk) if self.instance.pk else model.objects.all()
+        slug = model._meta.get_field("slug").slugify(name)
+        if others.filter(Q(name__iexact=name) | Q(slug=slug)).exists():
+            raise ValidationError(
+                _("This name is already in use, or only differs from one in use in case, accents or punctuation.")
+            )
+        return name
+
+
+class IssueSubcategoryAdminForm(UniqueNameAdminFormMixin, forms.ModelForm):
+    class Meta:
+        model = IssueSubcategory
+        fields = "__all__"
+
+
+class IssueStatusAdminForm(UniqueNameAdminFormMixin, forms.ModelForm):
     """
     Guards is_terminal in the admin: the statuses that settings rely on cannot change sides, and changing it on a
     status that already has issues asks for confirmation, because saving closes or reopens them
