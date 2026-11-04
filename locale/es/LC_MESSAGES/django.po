@@ -4032,7 +4032,7 @@ msgstr "Editar suscripción en el panel de administración"
 
 #: invoicing/templates/invoice/invoice_detail.html:65
 msgid "No subscription associated"
-msgstr "Sin suscripción asocialda"
+msgstr "Sin suscripción asociada"
 
 #: invoicing/templates/invoice/invoice_detail.html:94
 msgid "Service Period"
