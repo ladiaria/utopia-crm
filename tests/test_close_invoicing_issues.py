@@ -15,7 +15,6 @@ from .factory import create_contact
     ISSUE_SUBCATEGORY_AUTO_CLOSE_SLUGS=["debt-test"],
     ISSUE_STATUS_AUTO_CLOSE_UNCOLLECTIBLE="not-solved-test",
     ISSUE_STATUS_SOLVED="solved-test",
-    ISSUE_STATUS_FINISHED_LIST=["solved-test", "not-solved-test"],
 )
 class CloseInvoicingIssuesTest(TestCase):
     """
@@ -30,8 +29,8 @@ class CloseInvoicingIssuesTest(TestCase):
     def setUpTestData(cls):
         cls.status_new = IssueStatus.objects.create(name="new-test")
         cls.status_other = IssueStatus.objects.create(name="other-test")
-        IssueStatus.objects.create(name="solved-test")
-        IssueStatus.objects.create(name="not-solved-test")
+        IssueStatus.objects.create(name="solved-test", is_terminal=True)
+        IssueStatus.objects.create(name="not-solved-test", is_terminal=True)
         cls.debt = IssueSubcategory.objects.create(name="debt-test", category="I")
         cls.other = IssueSubcategory.objects.create(name="other-sub-test", category="I")
 

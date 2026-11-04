@@ -105,7 +105,7 @@ def seller_console_never_paid_issues(request):
 
     # Check if the feature is configured
     never_paid_slugs = get_never_paid_subcategory_slugs()
-    if not never_paid_slugs or not getattr(settings, "ISSUE_STATUS_FINISHED_LIST", None):
+    if not never_paid_slugs:
         messages.error(request, _("This function is not available."))
         return HttpResponseRedirect(reverse("seller_console_list_campaigns"))
 
@@ -116,7 +116,7 @@ def seller_console_never_paid_issues(request):
         sub_category__slug__in=never_paid_slugs,
         assigned_to=user,
     ).exclude(
-        status__slug__in=getattr(settings, "ISSUE_STATUS_FINISHED_LIST", [])
+        status__is_terminal=True
     ).select_related(
         'contact', 'subscription', 'status', 'sub_category'
     ).annotate(
@@ -204,11 +204,11 @@ def seller_console_list_campaigns(request, seller_id=None):
     # Get count of never paid issues for this seller
     issues_never_paid_count = 0
     never_paid_slugs = get_never_paid_subcategory_slugs()
-    if never_paid_slugs and getattr(settings, "ISSUE_STATUS_FINISHED_LIST", None):
+    if never_paid_slugs:
         issues_never_paid_count = Issue.objects.filter(
             sub_category__slug__in=never_paid_slugs,
             assigned_to=user,
-        ).exclude(status__slug__in=getattr(settings, "ISSUE_STATUS_FINISHED_LIST", [])).count()
+        ).exclude(status__is_terminal=True).count()
 
     not_contacted_campaigns = seller.get_campaigns_by_status([1, 3])
     campaigns_with_activities = seller.get_campaigns_with_activities()
@@ -670,10 +670,7 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
             if last_action_activity:
                 last_action_datetime = last_action_activity.datetime
 
-        terminal_statuses = getattr(settings, 'ISSUE_STATUS_FINISHED_LIST', [])
-        open_issues = Issue.objects.filter(contact=contact).exclude(status__slug__in=terminal_statuses).order_by(
-            "-date_created"
-        )
+        open_issues = Issue.objects.filter(contact=contact).exclude(status__is_terminal=True).order_by("-date_created")
 
         context.update(
             {

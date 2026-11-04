@@ -764,20 +764,20 @@ class Contact(models.Model):
 
     def has_no_open_issues(self, category=None):
         """
-        Checks if all the issues for this contact are finalized, based off the finished issue status slug list on
-        the settings. Use any statuses you like to be used as an issue finisher.
+        Checks if all the issues for this contact are finalized, that is, in a terminal status
+        (IssueStatus.is_terminal).
         """
         if category:
             return (
                 self.issue_set.filter(
-                    status__slug__in=settings.ISSUE_STATUS_FINISHED_LIST,
+                    status__is_terminal=True,
                     category=category,
                 ).count()
                 == self.issue_set.filter(category=category).count()
             )
         else:
             return (
-                self.issue_set.filter(status__slug__in=settings.ISSUE_STATUS_FINISHED_LIST).count()
+                self.issue_set.filter(status__is_terminal=True).count()
                 == self.issue_set.all().count()
             )
 
@@ -989,7 +989,7 @@ class Contact(models.Model):
         return self.issue_set.all().count()
 
     def get_finished_issues_count(self):
-        return self.issue_set.filter(status__slug__in=settings.ISSUE_STATUS_FINISHED_LIST).count()
+        return self.issue_set.filter(status__is_terminal=True).count()
 
     def get_open_issues_count(self):
         return self.get_total_issues_count() - self.get_finished_issues_count()
@@ -997,28 +997,28 @@ class Contact(models.Model):
     def get_open_issues_by_subcategory_count(self, sub_category_slug):
         return (
             self.issue_set.filter(sub_category__slug=sub_category_slug)
-            .exclude(status__slug__in=settings.ISSUE_STATUS_FINISHED_LIST)
+            .exclude(status__is_terminal=True)
             .count()
         )
 
     def get_finished_issues_by_subcategory_count(self, sub_category_slug):
         return (
             self.issue_set.filter(sub_category__slug=sub_category_slug)
-            .exclude(status__slug__in=settings.ISSUE_STATUS_FINISHED_LIST)
+            .exclude(status__is_terminal=True)
             .count()
         )
 
     def get_open_issues_by_category_count(self, category):
         return (
             self.issue_set.filter(category=category)
-            .exclude(status__slug__in=settings.ISSUE_STATUS_FINISHED_LIST)
+            .exclude(status__is_terminal=True)
             .count()
         )
 
     def get_finished_issues_by_category_count(self, category):
         return (
             self.issue_set.filter(category=category)
-            .exclude(status__slug__in=settings.ISSUE_STATUS_FINISHED_LIST)
+            .exclude(status__is_terminal=True)
             .count()
         )
 
@@ -2466,17 +2466,16 @@ class Subscription(models.Model):
 
     def has_no_open_issues(self, category=None):
         """
-        Checks if all this subscription's issues are finished based off the finished issue status slug list on the
-        settings. Use any statuses you like as issue finishers.
+        Checks if all this subscription's issues are finished, that is, in a terminal status (IssueStatus.is_terminal).
         """
         if category:
             return (
-                self.issue_set.exclude(status__slug__in=settings.ISSUE_STATUS_FINISHED_LIST, category=category).count()
+                self.issue_set.exclude(status__is_terminal=True, category=category).count()
                 == self.issue_set.all().count()
             )
         else:
             return (
-                self.issue_set.exclude(status__slug__in=settings.ISSUE_STATUS_FINISHED_LIST).count()
+                self.issue_set.exclude(status__is_terminal=True).count()
                 == self.issue_set.all().count()
             )
 

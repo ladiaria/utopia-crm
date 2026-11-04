@@ -7,7 +7,7 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.utils import timezone
-from django.utils.translation import gettext_lazy as _
+from django.utils.translation import gettext, gettext_lazy as _
 from django.utils.safestring import mark_safe
 from autoslug import AutoSlugField
 
@@ -252,8 +252,8 @@ class Issue(models.Model):
             return None
 
     def has_terminal_status(self):
-        """True when the issue's status is one of ISSUE_STATUS_FINISHED_LIST."""
-        return bool(self.status) and self.status.slug in getattr(settings, "ISSUE_STATUS_FINISHED_LIST", [])
+        """True when the issue's status is marked as terminal."""
+        return bool(self.status) and self.status.is_terminal
 
     def get_address(self):
         if self.subscription_product and self.subscription_product.address:
@@ -285,8 +285,8 @@ class Issue(models.Model):
         """
         Change the issue's status applying the shared side-effect rules:
 
-        - If the new status is terminal (its slug is in ISSUE_STATUS_FINISHED_LIST)
-          and there is no closing_date yet, set closing_date to today.
+        - If the new status is terminal (IssueStatus.is_terminal) and there is
+          no closing_date yet, set closing_date to today.
         - If the new status is NOT terminal and next_action_date is missing or in
           the past, set next_action_date to tomorrow.
 
@@ -301,9 +301,8 @@ class Issue(models.Model):
         if old_status == new_status:
             return changed_fields
 
-        terminal_statuses = getattr(settings, "ISSUE_STATUS_FINISHED_LIST", [])
         today = date.today()
-        if new_status and new_status.slug in terminal_statuses:
+        if new_status and new_status.is_terminal:
             if not self.closing_date:
                 self.closing_date = today
                 changed_fields.append("closing_date")
@@ -470,8 +469,14 @@ class ScheduledTask(models.Model):
 
 class IssueStatus(models.Model):
     name = models.CharField(max_length=60)
-    slug = AutoSlugField(populate_from="name", always_update=True, null=True, blank=True)
+    # The slug is set only on creation: code and settings look statuses up by slug, so renaming must not change it.
+    slug = AutoSlugField(populate_from="name", always_update=False, null=True, blank=True)
     category = models.CharField(max_length=2, blank=True, null=True, choices=get_issue_categories())
+    is_terminal = models.BooleanField(
+        _("Terminal"),
+        default=False,
+        help_text=_("Issues in a terminal status are closed: they get a closing date and leave the open lists."),
+    )
 
     def __str__(self):
         return self.name
@@ -483,11 +488,53 @@ class IssueStatus(models.Model):
         ordering = ["category", "name"]
         verbose_name = _("Issue Status")
         verbose_name_plural = _("Issue Statuses")
+        permissions = [("change_issuestatus_terminal", _("Can change whether an issue status is terminal"))]
+
+    def issues_to_sync_with_terminal(self):
+        """
+        The issues of this status that sync_issues_with_terminal() updates: the ones without a closing date when the
+        status is terminal, and all of them when it is not.
+        """
+        issues = self.issue_set.all()
+        return issues.filter(closing_date__isnull=True) if self.is_terminal else issues
+
+    def sync_issues_with_terminal(self, user=None):
+        """
+        Bring this status' issues in line with is_terminal after it changed, with the same rules as
+        Issue.apply_status_change(): a terminal status closes its issues today, and a non terminal one reopens them,
+        with tomorrow as the next action date if it is missing or past. Without this, changing is_terminal would leave
+        closed issues without a closing date, or open ones with it (hidden from the boards that filter on it).
+
+        Uses bulk_update_with_history, so each issue's history records who closed or reopened it. Returns the number
+        of issues updated.
+        """
+        from simple_history.utils import bulk_update_with_history
+
+        today = date.today()
+        issues = list(self.issues_to_sync_with_terminal())
+        if self.is_terminal:
+            fields = ["closing_date"]
+            reason = gettext("Status «{}» marked as terminal").format(self.name)
+            for issue in issues:
+                issue.closing_date = today
+        else:
+            fields = ["closing_date", "next_action_date"]
+            reason = gettext("Status «{}» unmarked as terminal").format(self.name)
+            for issue in issues:
+                issue.closing_date = None
+                if not issue.next_action_date or issue.next_action_date <= today:
+                    issue.next_action_date = today + timedelta(days=1)
+        if issues:
+            bulk_update_with_history(
+                issues, Issue, fields, batch_size=500, default_user=user, default_change_reason=reason[:100]
+            )
+        return len(issues)
 
 
 class IssueSubcategory(models.Model):
     name = models.CharField(max_length=60)
-    slug = AutoSlugField(populate_from="name", always_update=True, null=True, blank=True)
+    # Set only on creation, like IssueStatus.slug: renaming must not change it.
+    slug = AutoSlugField(populate_from="name", always_update=False, null=True, blank=True)
     category = models.CharField(max_length=2, blank=True, null=True, choices=get_issue_categories())
 
     objects = IssueSubcategoryManager()

@@ -26,7 +26,7 @@ class NewIssueNotDeliveredBlockTest(TestCase):
     def setUpTestData(cls):
         cls.contact = create_contact("Test", "099111222", "test@example.com")
         cls.status_new = IssueStatus.objects.create(name=settings.ISSUE_STATUS_NEW)
-        cls.status_solved = IssueStatus.objects.create(name=settings.ISSUE_STATUS_SOLVED)
+        cls.status_solved = IssueStatus.objects.create(name=settings.ISSUE_STATUS_SOLVED, is_terminal=True)
         cls.not_delivered = IssueSubcategory.objects.create(name=settings.ISSUE_SUBCATEGORY_NOT_DELIVERED, category="S")
         cls.did_not_arrive = IssueSubcategory.objects.create(name="no-llego-test", category="L")
         cls.user = User.objects.create_user(username="agente", password="secret", is_staff=True)
