@@ -1,6 +1,6 @@
 from datetime import date
 
-from django.utils.translation import gettext_lazy as _
+from django.utils.translation import gettext_lazy as _, ngettext
 from django import forms
 from django.conf import settings
 from django.forms import ValidationError
@@ -42,7 +42,7 @@ def get_blocking_not_delivered_issue(contact, category):
         return None
     return (
         contact.issue_set.filter(category="S", sub_category__slug=settings.ISSUE_SUBCATEGORY_NOT_DELIVERED)
-        .exclude(status__slug__in=settings.ISSUE_STATUS_FINISHED_LIST)
+        .exclude(status__is_terminal=True)
         .order_by("-id")
         .first()
     )
@@ -1172,3 +1172,85 @@ class AffiliateSubscriptionForm(forms.ModelForm):
         if commit:
             instance.save()
         return instance
+
+
+# Settings that name a status the CRM moves issues to in order to close them: it must stay terminal.
+TERMINAL_STATUS_SETTINGS = ("ISSUE_STATUS_SOLVED", "ISSUE_STATUS_AUTO_CLOSE_UNCOLLECTIBLE")
+# Settings that name a status the CRM gives to issues that are still open: it cannot be terminal.
+OPEN_STATUS_SETTINGS = ("ISSUE_STATUS_NEW", "ISSUE_STATUS_ASSIGNED", "ISSUE_STATUS_UNASSIGNED", "ISSUE_STATUS_PENDING")
+
+
+def status_slugs_from_settings(setting_names):
+    return {getattr(settings, name, None) for name in setting_names} - {None, ""}
+
+
+class IssueStatusAdminForm(forms.ModelForm):
+    """
+    Guards is_terminal in the admin: the statuses that settings rely on cannot change sides, and changing it on a
+    status that already has issues asks for confirmation, because saving closes or reopens them
+    (IssueStatus.sync_issues_with_terminal).
+    """
+
+    confirm_terminal_change = forms.BooleanField(
+        label=_("Confirm the change on its issues"),
+        required=False,
+        help_text=_(
+            "Marking this status as terminal closes today its issues that are still open, and unmarking it reopens "
+            "them. If it has issues, you are asked to confirm."
+        ),
+    )
+
+    class Meta:
+        model = IssueStatus
+        fields = "__all__"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.affected_issues_count = 0
+
+    def get_slug(self):
+        """The status' slug, or the one it will get when it is created."""
+        if self.instance.pk:
+            return self.instance.slug
+        name = self.cleaned_data.get("name")
+        return IssueStatus._meta.get_field("slug").slugify(name) if name else None
+
+    def clean(self):
+        cleaned_data = super().clean()
+        if "is_terminal" not in self.fields or "is_terminal" not in self.changed_data:
+            return cleaned_data
+
+        is_terminal = cleaned_data.get("is_terminal")
+        slug = self.get_slug()
+        if not is_terminal and slug in status_slugs_from_settings(TERMINAL_STATUS_SETTINGS):
+            self.add_error(
+                "is_terminal",
+                _("This status must be terminal: the CRM moves issues to it to close them automatically."),
+            )
+        if is_terminal and slug in status_slugs_from_settings(OPEN_STATUS_SETTINGS):
+            self.add_error(
+                "is_terminal",
+                _("This status cannot be terminal: the CRM gives it to issues that are still open."),
+            )
+        if self.errors or not self.instance.pk:
+            return cleaned_data
+
+        # Count on a copy, so the instance does not change before it is saved.
+        status = IssueStatus(pk=self.instance.pk, is_terminal=is_terminal)
+        count = status.issues_to_sync_with_terminal().count()
+        if count and not cleaned_data.get("confirm_terminal_change"):
+            if is_terminal:
+                msg = ngettext(
+                    "This closes today %(count)d issue in this status. Check the box to confirm.",
+                    "This closes today %(count)d issues in this status. Check the box to confirm.",
+                    count,
+                )
+            else:
+                msg = ngettext(
+                    "This reopens %(count)d issue in this status. Check the box to confirm.",
+                    "This reopens %(count)d issues in this status. Check the box to confirm.",
+                    count,
+                )
+            self.add_error("confirm_terminal_change", msg % {"count": count})
+        self.affected_issues_count = count
+        return cleaned_data

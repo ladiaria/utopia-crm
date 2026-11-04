@@ -195,10 +195,12 @@ ISSUE_STATUS_PENDING = "pending"
 ISSUE_STATUS_ASSIGNED = "assigned"
 ISSUE_STATUS_UNASSIGNED = "unassigned"
 
-# list of statuses slugs that will be used to mark the issue as finished
+# The status an issue is moved to when it is closed as solved. It must be a terminal status.
 ISSUE_STATUS_SOLVED = "solved"
+# DEPRECATED: whether a status is terminal (finished) is now IssueStatus.is_terminal, managed from the admin. This list
+# is read only by the migration support/0044, to mark the statuses that were terminal before it.
 ISSUE_STATUS_FINISHED_LIST = [ISSUE_STATUS_SOLVED, "not-solved"]
-# close_invoicing_issues closes as solved the issues of contacts that paid. Set a finished status slug (e.g.
+# close_invoicing_issues closes as solved the issues of contacts that paid. Set a terminal status slug (e.g.
 # "not-solved") to also close, with it, the ones of contacts whose overdue invoices were marked as uncollectible.
 ISSUE_STATUS_AUTO_CLOSE_UNCOLLECTIBLE = None
 

@@ -1,12 +1,15 @@
 # coding=utf-8
 
 
-from django.contrib import admin
-from django.utils.translation import gettext_lazy as _
+import json
+
+from django.contrib import admin, messages
+from django.contrib.admin.models import LogEntry
+from django.utils.translation import gettext_lazy as _, ngettext
 
 from simple_history.admin import SimpleHistoryAdmin
 
-from .forms import SellerForm
+from .forms import IssueStatusAdminForm, SellerForm
 from .models import (
     ScheduledTask,
     Issue,
@@ -66,9 +69,50 @@ class ScheduledTaskAdmin(SimpleHistoryAdmin):
 
 @admin.register(IssueStatus)
 class IssueStatusAdmin(admin.ModelAdmin):
+    form = IssueStatusAdminForm
+    # is_terminal is not list_editable on purpose: the changelist would skip the form's checks and confirmation.
     list_editable = ["category"]
-    list_display = ["name", "slug", "category"]
+    list_display = ["name", "slug", "category", "is_terminal"]
+    list_filter = ["is_terminal", "category"]
     readonly_fields = ["slug"]
+
+    def can_change_terminal(self, request):
+        return request.user.has_perm("support.change_issuestatus_terminal")
+
+    def get_readonly_fields(self, request, obj=None):
+        fields = list(super().get_readonly_fields(request, obj))
+        if not self.can_change_terminal(request):
+            fields.append("is_terminal")
+        return fields
+
+    def get_fields(self, request, obj=None):
+        fields = super().get_fields(request, obj)
+        if obj is None or not self.can_change_terminal(request):
+            fields = [field for field in fields if field != "confirm_terminal_change"]
+        return fields
+
+    def construct_change_message(self, request, form, formsets, add=False):
+        message = super().construct_change_message(request, form, formsets, add)
+        if add or not form.affected_issues_count:
+            return message
+        # The LogEntry already records who changed is_terminal and when; this adds how many issues it touched.
+        text = LogEntry(change_message=json.dumps(message)).get_change_message()
+        if form.instance.is_terminal:
+            extra = ngettext("Closed %(count)d issue.", "Closed %(count)d issues.", form.affected_issues_count)
+        else:
+            extra = ngettext("Reopened %(count)d issue.", "Reopened %(count)d issues.", form.affected_issues_count)
+        return f"{text} {extra % {'count': form.affected_issues_count}}"
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        if change and "is_terminal" in form.changed_data:
+            count = obj.sync_issues_with_terminal(user=request.user)
+            if count:
+                if obj.is_terminal:
+                    msg = ngettext("%(count)d issue was closed.", "%(count)d issues were closed.", count)
+                else:
+                    msg = ngettext("%(count)d issue was reopened.", "%(count)d issues were reopened.", count)
+                self.message_user(request, msg % {"count": count}, messages.WARNING)
 
 
 @admin.register(IssueSubcategory)

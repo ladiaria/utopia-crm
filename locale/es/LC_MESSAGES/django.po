@@ -12964,3 +12964,87 @@ msgstr "Estado de cierre: la incidencia está finalizada."
 #: support/templates/view_issue.html
 msgid "Closed"
 msgstr "Cerrada"
+
+#: support/models.py
+msgid "Terminal"
+msgstr "Terminal"
+
+#: support/models.py
+msgid "Issues in a terminal status are closed: they get a closing date and leave the open lists."
+msgstr ""
+"Las incidencias en un estado terminal están cerradas: se les pone fecha de cierre y salen de las listas de "
+"abiertas."
+
+#: support/models.py
+msgid "Can change whether an issue status is terminal"
+msgstr "Puede cambiar si un estado de incidencia es terminal"
+
+#: support/models.py
+msgid "Status «{}» marked as terminal"
+msgstr "Estado «{}» marcado como terminal"
+
+#: support/models.py
+msgid "Status «{}» unmarked as terminal"
+msgstr "Estado «{}» desmarcado como terminal"
+
+#: support/forms.py
+msgid "Confirm the change on its issues"
+msgstr "Confirmar el cambio en sus incidencias"
+
+#: support/forms.py
+msgid ""
+"Marking this status as terminal closes today its issues that are still open, and unmarking it reopens them. If it "
+"has issues, you are asked to confirm."
+msgstr ""
+"Marcar este estado como terminal cierra hoy sus incidencias que siguen abiertas, y desmarcarlo las reabre. Si "
+"tiene incidencias, se te pide confirmar."
+
+#: support/forms.py
+msgid "This status must be terminal: the CRM moves issues to it to close them automatically."
+msgstr "Este estado tiene que ser terminal: el CRM pasa incidencias a este estado para cerrarlas automáticamente."
+
+#: support/forms.py
+msgid "This status cannot be terminal: the CRM gives it to issues that are still open."
+msgstr "Este estado no puede ser terminal: el CRM se lo pone a incidencias que siguen abiertas."
+
+#: support/forms.py
+#, python-format
+msgid "This closes today %(count)d issue in this status. Check the box to confirm."
+msgid_plural "This closes today %(count)d issues in this status. Check the box to confirm."
+msgstr[0] "Esto cierra hoy %(count)d incidencia en este estado. Marcá la casilla para confirmar."
+msgstr[1] "Esto cierra hoy %(count)d incidencias en este estado. Marcá la casilla para confirmar."
+
+#: support/forms.py
+#, python-format
+msgid "This reopens %(count)d issue in this status. Check the box to confirm."
+msgid_plural "This reopens %(count)d issues in this status. Check the box to confirm."
+msgstr[0] "Esto reabre %(count)d incidencia en este estado. Marcá la casilla para confirmar."
+msgstr[1] "Esto reabre %(count)d incidencias en este estado. Marcá la casilla para confirmar."
+
+#: support/admin.py
+#, python-format
+msgid "Closed %(count)d issue."
+msgid_plural "Closed %(count)d issues."
+msgstr[0] "Se cerró %(count)d incidencia."
+msgstr[1] "Se cerraron %(count)d incidencias."
+
+#: support/admin.py
+#, python-format
+msgid "Reopened %(count)d issue."
+msgid_plural "Reopened %(count)d issues."
+msgstr[0] "Se reabrió %(count)d incidencia."
+msgstr[1] "Se reabrieron %(count)d incidencias."
+
+#: support/admin.py
+#, python-format
+msgid "%(count)d issue was closed."
+msgid_plural "%(count)d issues were closed."
+msgstr[0] "Se cerró %(count)d incidencia."
+msgstr[1] "Se cerraron %(count)d incidencias."
+
+#: support/admin.py
+#, python-format
+msgid "%(count)d issue was reopened."
+msgid_plural "%(count)d issues were reopened."
+msgstr[0] "Se reabrió %(count)d incidencia."
+msgstr[1] "Se reabrieron %(count)d incidencias."

@@ -781,14 +781,13 @@ class CommunityConsoleView(PermissionRequiredMixin, LoginRequiredMixin, Breadcru
         tomorrow = today + timedelta(days=1)
 
         # Get open issues assigned to the current user (not closed, not in terminal state)
-        terminal_statuses = getattr(settings, 'ISSUE_STATUS_FINISHED_LIST', [])
         issues = (
             Issue.objects.filter(
                 assigned_to=self.request.user,
                 closing_date__isnull=True,
             )
             .exclude(
-                status__slug__in=terminal_statuses,
+                status__is_terminal=True,
             )
             .select_related('sub_category', 'status')
         )
@@ -881,12 +880,11 @@ class CommunityManagerDashboardView(PermissionRequiredMixin, LoginRequiredMixin,
         ]
 
     def _get_open_unassigned_issues_qs(self):
-        terminal_statuses = getattr(settings, 'ISSUE_STATUS_FINISHED_LIST', [])
         return Issue.objects.filter(
             assigned_to__isnull=True,
             closing_date__isnull=True,
         ).exclude(
-            status__slug__in=terminal_statuses,
+            status__is_terminal=True,
         )
 
     def get_context_data(self, **kwargs):
@@ -989,7 +987,6 @@ class CommunityManagerAssignView(PermissionRequiredMixin, LoginRequiredMixin, Br
         return super().dispatch(request, *args, **kwargs)
 
     def _get_unassigned_issues_qs(self):
-        terminal_statuses = getattr(settings, 'ISSUE_STATUS_FINISHED_LIST', [])
         return (
             Issue.objects.filter(
                 sub_category=self.sub_category,
@@ -997,7 +994,7 @@ class CommunityManagerAssignView(PermissionRequiredMixin, LoginRequiredMixin, Br
                 closing_date__isnull=True,
             )
             .exclude(
-                status__slug__in=terminal_statuses,
+                status__is_terminal=True,
             )
             .order_by('date')
         )  # oldest first
@@ -1015,14 +1012,13 @@ class CommunityManagerAssignView(PermissionRequiredMixin, LoginRequiredMixin, Br
         )
 
     def _get_user_open_issue_count(self, user):
-        terminal_statuses = getattr(settings, 'ISSUE_STATUS_FINISHED_LIST', [])
         return (
             Issue.objects.filter(
                 assigned_to=user,
                 closing_date__isnull=True,
             )
             .exclude(
-                status__slug__in=terminal_statuses,
+                status__is_terminal=True,
             )
             .count()
         )
@@ -1068,7 +1064,6 @@ class CommunityManagerAssignView(PermissionRequiredMixin, LoginRequiredMixin, Br
 
         # Get GDC users with their open issue counts
         gdc_users = self._get_gdc_users()
-        terminal_statuses = getattr(settings, 'ISSUE_STATUS_FINISHED_LIST', [])
         user_data = []
         for user in gdc_users.order_by('username'):
             open_count = (
@@ -1077,7 +1072,7 @@ class CommunityManagerAssignView(PermissionRequiredMixin, LoginRequiredMixin, Br
                     closing_date__isnull=True,
                 )
                 .exclude(
-                    status__slug__in=terminal_statuses,
+                    status__is_terminal=True,
                 )
                 .count()
             )
@@ -1086,7 +1081,7 @@ class CommunityManagerAssignView(PermissionRequiredMixin, LoginRequiredMixin, Br
                 assigned_to=user,
                 closing_date__isnull=True,
             ).exclude(
-                status__slug__in=terminal_statuses,
+                status__is_terminal=True,
             )
             user_data.append(
                 {
@@ -1217,7 +1212,6 @@ class CommunityManagerOverviewView(PermissionRequiredMixin, LoginRequiredMixin, 
         yesterday = today - timedelta(days=1)
         tomorrow = today + timedelta(days=1)
 
-        terminal_statuses = getattr(settings, 'ISSUE_STATUS_FINISHED_LIST', [])
         gdc_users = self._get_gdc_users().order_by('username')
 
         team_data = []
@@ -1232,7 +1226,7 @@ class CommunityManagerOverviewView(PermissionRequiredMixin, LoginRequiredMixin, 
                     closing_date__isnull=True,
                 )
                 .exclude(
-                    status__slug__in=terminal_statuses,
+                    status__is_terminal=True,
                 )
                 .select_related('sub_category', 'status')
             )
@@ -1590,9 +1584,7 @@ class IssueDetailView(BreadcrumbsMixin, UpdateView):
             and resolution.subcategory
             and resolution.subcategory.slug in solved_subcategories
         ):
-            finished_slugs = getattr(settings, 'ISSUE_STATUS_FINISHED_LIST', [])
-            current_slug = form.instance.status.slug if form.instance.status else None
-            if current_slug not in finished_slugs:
+            if not (form.instance.status and form.instance.status.is_terminal):
                 try:
                     form.instance.status = IssueStatus.objects.get(slug=settings.ISSUE_STATUS_SOLVED)
                     if not form.instance.closing_date:
@@ -2033,7 +2025,7 @@ def invoicing_issues(request):
             contact__invoice__uncollectible=False,
             contact__invoice__expiration_date__lt=date.today(),
         )
-        .exclude(status__slug__in=settings.ISSUE_STATUS_FINISHED_LIST)
+        .exclude(status__is_terminal=True)
         .annotate(owed_invoices=Count("contact__invoice"))
         .annotate(debt=Sum("contact__invoice__amount"))
         .annotate(oldest_invoice=Min("contact__invoice__creation_date"))

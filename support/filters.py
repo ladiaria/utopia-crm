@@ -122,8 +122,7 @@ class IssueFilter(django_filters.FilterSet):
 
     def filter_exclude_finished(self, queryset, name, value):
         if value:
-            finished_list = getattr(settings, 'ISSUE_STATUS_FINISHED_LIST', [])
-            return queryset.exclude(status__slug__in=finished_list)
+            return queryset.exclude(status__is_terminal=True)
         return queryset
 
     def filter_by_next_action_date(self, queryset, name, value):

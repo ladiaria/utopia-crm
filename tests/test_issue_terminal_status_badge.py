@@ -3,7 +3,7 @@ from datetime import date
 
 from django.conf import settings
 from django.contrib.auth.models import User
-from django.test import TestCase, override_settings
+from django.test import TestCase
 from django.urls import reverse
 from django.utils.formats import date_format
 
@@ -14,21 +14,19 @@ from .factory import create_contact
 BADGE = "fa-lock"
 
 
-@override_settings(ISSUE_STATUS_FINISHED_LIST=["cerrado-test"])
 class IssueTerminalStatusBadgeTest(TestCase):
     """
     The issue detail shows a "closed" badge next to the status when the status is terminal, with the closing date in
     its tooltip when the issue has one.
 
-    Statuses are built by hand: the base repo ships no issue catalogue fixture, and the terminal slug is set by the
-    test so it does not depend on local_settings. Slugs are auto-generated from the name.
+    Statuses are built by hand: the base repo ships no issue catalogue fixture.
     """
 
     @classmethod
     def setUpTestData(cls):
         cls.contact = create_contact("Test", "099111222", "test@example.com")
         cls.status_open = IssueStatus.objects.create(name=settings.ISSUE_STATUS_NEW)
-        cls.status_closed = IssueStatus.objects.create(name="cerrado-test")
+        cls.status_closed = IssueStatus.objects.create(name="cerrado-test", is_terminal=True)
         cls.subcategory = IssueSubcategory.objects.create(name="sub-test", category="S")
         cls.user = User.objects.create_user(username="agente", password="secret", is_staff=True)
 
