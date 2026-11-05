@@ -3593,6 +3593,10 @@ msgstr "Anulada"
 msgid "Uncollectible"
 msgstr "Incobrable"
 
+#: invoicing/filters.py:33
+msgid "Uncollectible, paid or debited"
+msgstr "Incobrable, pago o debitado"
+
 #: invoicing/filters.py:33 invoicing/models.py:164
 #: invoicing/templates/invoice/invoice_detail.html:151
 #: invoicing/templates/invoice_filter.html:200

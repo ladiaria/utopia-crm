@@ -2,6 +2,12 @@
 
 ## v0.5.1
 
+## 2026-11-05 — gl101-filtro-incobrables-pagas Filtro de facturas: incobrables pagas o debitadas
+
+- **Nueva opción en el filtro de estado de facturas** para encontrar las facturas dadas por incobrables que igual se cobraron, por pago o por débito. Deja afuera las anuladas, porque esa plata puede no haber quedado
+- Deployment: no se requieren migraciones
+- **Author:** Tanya Tree + Claude Opus 5.5
+
 ## 2026-11-05 — gl99-fecha-cierre-regla La fecha de cierre de una incidencia siempre acompaña al estado
 
 - **Una incidencia en estado terminal tiene fecha de cierre, y cualquier otra no**: cerrarla pone la de hoy, pasar de un estado terminal a otro la conserva y reabrirla, desde donde sea, la borra. Antes reabrirla dejaba la fecha puesta, y la incidencia quedaba oculta en la consola de comunidad
