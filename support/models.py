@@ -238,6 +238,22 @@ class Issue(models.Model):
             ("can_manage_community_console", _("Can manage community console (assign issues)")),
         ]
 
+    def save(self, *args, **kwargs):
+        """
+        The closing date always goes with the status: a terminal status keeps the date it has or gets today's, so
+        moving between terminal statuses does not change it, and any other status has none.
+
+        bulk_update and queryset.update() do not get here, so they have to keep this rule themselves.
+        """
+        if self.has_terminal_status():
+            self.closing_date = self.closing_date or date.today()
+        else:
+            self.closing_date = None
+        update_fields = kwargs.get("update_fields")
+        if update_fields is not None and "status" in update_fields:
+            kwargs["update_fields"] = {*update_fields, "closing_date"}
+        super().save(*args, **kwargs)
+
     def get_category(self):
         categories = dict(get_issue_categories())
         return categories.get(self.category, "N/A")
@@ -265,7 +281,6 @@ class Issue(models.Model):
 
     def mark_solved(self, answer_2):
         self.status = IssueStatus.objects.get(slug=settings.ISSUE_STATUS_SOLVED)
-        self.closing_date = date.today()
         if answer_2:
             if self.answer_2:
                 self.answer_2 = f"{self.answer_2}\n\n{answer_2}"
@@ -283,16 +298,11 @@ class Issue(models.Model):
 
     def apply_status_change(self, new_status):
         """
-        Change the issue's status applying the shared side-effect rules:
+        Change the issue's status: if the new status is NOT terminal and next_action_date is missing or in the past,
+        set next_action_date to tomorrow. The closing date follows the status in save().
 
-        - If the new status is terminal (IssueStatus.is_terminal) and there is
-          no closing_date yet, set closing_date to today.
-        - If the new status is NOT terminal and next_action_date is missing or in
-          the past, set next_action_date to tomorrow.
-
-        This does not save the instance; the caller is responsible for persisting
-        the changes (via save() or bulk_update). Returns the list of field names
-        that were modified, so callers using bulk_update know what to pass.
+        This does not save the instance; the caller is responsible for persisting the changes via save(). Returns the
+        list of field names that were modified, to pass as update_fields.
         """
         old_status = self.status
         self.status = new_status
@@ -302,11 +312,7 @@ class Issue(models.Model):
             return changed_fields
 
         today = date.today()
-        if new_status and new_status.is_terminal:
-            if not self.closing_date:
-                self.closing_date = today
-                changed_fields.append("closing_date")
-        else:
+        if not (new_status and new_status.is_terminal):
             if not self.next_action_date or self.next_action_date <= today:
                 self.next_action_date = today + timedelta(days=1)
                 changed_fields.append("next_action_date")

@@ -162,7 +162,9 @@ class IssueStatusTerminalTest(TestCase):
 
     def test_marking_closes_its_issues_today(self):
         open_issue = self._issue(self.status_waiting)
-        already_closed = self._issue(self.status_waiting, closing_date=date.today() - timedelta(days=5))
+        already_closed = self._issue(self.status_waiting)
+        # update(), because save() does not let an open issue have a closing date.
+        Issue.objects.filter(pk=already_closed.pk).update(closing_date=date.today() - timedelta(days=5))
 
         response = self._post(self.manager, self.status_waiting, is_terminal="on", confirm_terminal_change="on")
 
