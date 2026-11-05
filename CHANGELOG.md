@@ -2,6 +2,13 @@
 
 ## v0.5.1
 
+## 2026-11-05 — gl95-bloquear-desmarcar-estado Un estado de cierre con incidencias no se puede desmarcar
+
+- **La casilla «Terminal» no se puede desmarcar mientras el estado tenga incidencias**: hacerlo reabría todas y les borraba la fecha de cierre, y volver a marcarla les ponía la de ese día. Para desmarcarlo, primero hay que pasarlas a otro estado
+- **Marcar la casilla no cambia**: cierra con la fecha de hoy las incidencias sin fecha y sigue pidiendo confirmar
+- Deployment: no se requieren migraciones
+- **Author:** Tanya Tree + Claude Opus 5.5
+
 ## 2026-11-05 — gl101-filtro-incobrables-pagas Filtro de facturas: incobrables pagas o debitadas
 
 - **Nueva opción en el filtro de estado de facturas** para encontrar las facturas dadas por incobrables que igual se cobraron, por pago o por débito. Deja afuera las anuladas, porque esa plata puede no haber quedado

@@ -1214,17 +1214,17 @@ class IssueSubcategoryAdminForm(UniqueNameAdminFormMixin, forms.ModelForm):
 
 class IssueStatusAdminForm(UniqueNameAdminFormMixin, forms.ModelForm):
     """
-    Guards is_terminal in the admin: the statuses that settings rely on cannot change sides, and changing it on a
-    status that already has issues asks for confirmation, because saving closes or reopens them
-    (IssueStatus.sync_issues_with_terminal).
+    Guards is_terminal in the admin: the statuses that settings rely on cannot change sides, a status that has issues
+    cannot be unmarked, because that would reopen all of them and lose their closing dates, and marking one with issues
+    without a closing date asks for confirmation, because saving closes them (IssueStatus.close_issues).
     """
 
     confirm_terminal_change = forms.BooleanField(
         label=_("Confirm the change on its issues"),
         required=False,
         help_text=_(
-            "Marking this status as terminal closes today its issues that are still open, and unmarking it reopens "
-            "them. If it has issues, you are asked to confirm."
+            "Marking this status as terminal closes today its issues without a closing date. If it has any, you are "
+            "asked to confirm."
         ),
     )
 
@@ -1263,22 +1263,21 @@ class IssueStatusAdminForm(UniqueNameAdminFormMixin, forms.ModelForm):
         if self.errors or not self.instance.pk:
             return cleaned_data
 
-        # Count on a copy, so the instance does not change before it is saved.
-        status = IssueStatus(pk=self.instance.pk, is_terminal=is_terminal)
-        count = status.issues_to_sync_with_terminal().count()
+        if not is_terminal:
+            if self.instance.issue_set.exists():
+                self.add_error(
+                    "is_terminal",
+                    _("This status cannot stop being terminal while it has issues. Move them to another status first."),
+                )
+            return cleaned_data
+
+        count = self.instance.issues_to_close().count()
         if count and not cleaned_data.get("confirm_terminal_change"):
-            if is_terminal:
-                msg = ngettext(
-                    "This closes today %(count)d issue in this status. Check the box to confirm.",
-                    "This closes today %(count)d issues in this status. Check the box to confirm.",
-                    count,
-                )
-            else:
-                msg = ngettext(
-                    "This reopens %(count)d issue in this status. Check the box to confirm.",
-                    "This reopens %(count)d issues in this status. Check the box to confirm.",
-                    count,
-                )
+            msg = ngettext(
+                "This closes today %(count)d issue in this status. Check the box to confirm.",
+                "This closes today %(count)d issues in this status. Check the box to confirm.",
+                count,
+            )
             self.add_error("confirm_terminal_change", msg % {"count": count})
         self.affected_issues_count = count
         return cleaned_data

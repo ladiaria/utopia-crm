@@ -12987,21 +12987,17 @@ msgstr "Puede cambiar si un estado de incidencia es terminal"
 msgid "Status «{}» marked as terminal"
 msgstr "Estado «{}» marcado como terminal"
 
-#: support/models.py
-msgid "Status «{}» unmarked as terminal"
-msgstr "Estado «{}» desmarcado como terminal"
-
 #: support/forms.py
 msgid "Confirm the change on its issues"
 msgstr "Confirmar el cambio en sus incidencias"
 
 #: support/forms.py
 msgid ""
-"Marking this status as terminal closes today its issues that are still open, and unmarking it reopens them. If it "
-"has issues, you are asked to confirm."
+"Marking this status as terminal closes today its issues without a closing date. If it has any, you are asked to "
+"confirm."
 msgstr ""
-"Marcar este estado como terminal cierra hoy sus incidencias que siguen abiertas, y desmarcarlo las reabre. Si "
-"tiene incidencias, se te pide confirmar."
+"Marcar este estado como terminal cierra hoy sus incidencias sin fecha de cierre. Si tiene alguna, se te pide "
+"confirmar."
 
 #: support/forms.py
 msgid "This status must be terminal: the CRM moves issues to it to close them automatically."
@@ -13019,11 +13015,8 @@ msgstr[0] "Esto cierra hoy %(count)d incidencia en este estado. Marcá la casill
 msgstr[1] "Esto cierra hoy %(count)d incidencias en este estado. Marcá la casilla para confirmar."
 
 #: support/forms.py
-#, python-format
-msgid "This reopens %(count)d issue in this status. Check the box to confirm."
-msgid_plural "This reopens %(count)d issues in this status. Check the box to confirm."
-msgstr[0] "Esto reabre %(count)d incidencia en este estado. Marcá la casilla para confirmar."
-msgstr[1] "Esto reabre %(count)d incidencias en este estado. Marcá la casilla para confirmar."
+msgid "This status cannot stop being terminal while it has issues. Move them to another status first."
+msgstr "Este estado no puede dejar de ser terminal mientras tenga incidencias. Primero pasalas a otro estado."
 
 #: support/admin.py
 #, python-format
@@ -13034,24 +13027,10 @@ msgstr[1] "Se cerraron %(count)d incidencias."
 
 #: support/admin.py
 #, python-format
-msgid "Reopened %(count)d issue."
-msgid_plural "Reopened %(count)d issues."
-msgstr[0] "Se reabrió %(count)d incidencia."
-msgstr[1] "Se reabrieron %(count)d incidencias."
-
-#: support/admin.py
-#, python-format
 msgid "%(count)d issue was closed."
 msgid_plural "%(count)d issues were closed."
 msgstr[0] "Se cerró %(count)d incidencia."
 msgstr[1] "Se cerraron %(count)d incidencias."
-
-#: support/admin.py
-#, python-format
-msgid "%(count)d issue was reopened."
-msgid_plural "%(count)d issues were reopened."
-msgstr[0] "Se reabrió %(count)d incidencia."
-msgstr[1] "Se reabrieron %(count)d incidencias."
 
 #: support/forms.py
 msgid "This name is already in use, or only differs from one in use in case, accents or punctuation."
