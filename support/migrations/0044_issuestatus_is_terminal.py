@@ -5,13 +5,18 @@ from django.conf import settings
 from django.db import migrations, models
 
 
+# The default of ISSUE_STATUS_FINISHED_LIST when settings.py still had it. A deployment that has not migrated yet and
+# relied on it keeps its terminal statuses.
+DEFAULT_FINISHED_LIST = ["solved", "not-solved"]
+
+
 def mark_terminal_statuses(apps, schema_editor):
     """
-    Seed is_terminal from the deprecated ISSUE_STATUS_FINISHED_LIST setting. The migration runs with each deployment's
-    own settings, so every environment keeps the terminal statuses it already had.
+    Seed is_terminal from the old ISSUE_STATUS_FINISHED_LIST setting. The migration runs with each deployment's own
+    settings, so every environment keeps the terminal statuses it already had.
     """
     IssueStatus = apps.get_model("support", "IssueStatus")
-    finished_list = getattr(settings, "ISSUE_STATUS_FINISHED_LIST", None) or []
+    finished_list = getattr(settings, "ISSUE_STATUS_FINISHED_LIST", DEFAULT_FINISHED_LIST) or []
     IssueStatus.objects.filter(slug__in=finished_list).update(is_terminal=True)
 
 
