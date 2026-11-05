@@ -179,21 +179,28 @@ class IssueStatusTerminalTest(TestCase):
         log = LogEntry.objects.filter(object_id=str(self.status_waiting.pk)).latest("action_time")
         self.assertIn("1", log.get_change_message())
 
-    def test_unmarking_reopens_its_issues(self):
+    def test_a_status_with_issues_cannot_be_unmarked(self):
         status = IssueStatus.objects.create(name="cerrada-test", is_terminal=True)
-        stale = self._issue(status, closing_date=date.today(), next_action_date=date.today() - timedelta(days=3))
-        future = date.today() + timedelta(days=10)
-        scheduled = self._issue(status, closing_date=date.today(), next_action_date=future)
+        closed_on = date.today() - timedelta(days=5)
+        issue = self._issue(status, closing_date=closed_on)
 
         response = self._post(self.manager, status, confirm_terminal_change="on")
 
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("is_terminal", response.context["adminform"].form.errors)
+        status.refresh_from_db()
+        issue.refresh_from_db()
+        self.assertTrue(status.is_terminal)
+        self.assertEqual(issue.closing_date, closed_on)
+
+    def test_a_status_without_issues_can_be_unmarked(self):
+        status = IssueStatus.objects.create(name="cerrada-test", is_terminal=True)
+
+        response = self._post(self.manager, status)
+
         self.assertEqual(response.status_code, 302)
-        stale.refresh_from_db()
-        scheduled.refresh_from_db()
-        self.assertIsNone(stale.closing_date)
-        self.assertEqual(stale.next_action_date, date.today() + timedelta(days=1))
-        self.assertIsNone(scheduled.closing_date)
-        self.assertEqual(scheduled.next_action_date, future)
+        status.refresh_from_db()
+        self.assertFalse(status.is_terminal)
 
     def test_marking_without_issues_needs_no_confirmation(self):
         response = self._post(self.manager, self.status_waiting, is_terminal="on")

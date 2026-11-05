@@ -95,23 +95,17 @@ class IssueStatusAdmin(admin.ModelAdmin):
         message = super().construct_change_message(request, form, formsets, add)
         if add or not form.affected_issues_count:
             return message
-        # The LogEntry already records who changed is_terminal and when; this adds how many issues it touched.
+        # The LogEntry already records who changed is_terminal and when; this adds how many issues it closed.
         text = LogEntry(change_message=json.dumps(message)).get_change_message()
-        if form.instance.is_terminal:
-            extra = ngettext("Closed %(count)d issue.", "Closed %(count)d issues.", form.affected_issues_count)
-        else:
-            extra = ngettext("Reopened %(count)d issue.", "Reopened %(count)d issues.", form.affected_issues_count)
+        extra = ngettext("Closed %(count)d issue.", "Closed %(count)d issues.", form.affected_issues_count)
         return f"{text} {extra % {'count': form.affected_issues_count}}"
 
     def save_model(self, request, obj, form, change):
         super().save_model(request, obj, form, change)
-        if change and "is_terminal" in form.changed_data:
-            count = obj.sync_issues_with_terminal(user=request.user)
+        if change and "is_terminal" in form.changed_data and obj.is_terminal:
+            count = obj.close_issues(user=request.user)
             if count:
-                if obj.is_terminal:
-                    msg = ngettext("%(count)d issue was closed.", "%(count)d issues were closed.", count)
-                else:
-                    msg = ngettext("%(count)d issue was reopened.", "%(count)d issues were reopened.", count)
+                msg = ngettext("%(count)d issue was closed.", "%(count)d issues were closed.", count)
                 self.message_user(request, msg % {"count": count}, messages.WARNING)
 
 

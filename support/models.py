@@ -496,43 +496,28 @@ class IssueStatus(models.Model):
         verbose_name_plural = _("Issue Statuses")
         permissions = [("change_issuestatus_terminal", _("Can change whether an issue status is terminal"))]
 
-    def issues_to_sync_with_terminal(self):
-        """
-        The issues of this status that sync_issues_with_terminal() updates: the ones without a closing date when the
-        status is terminal, and all of them when it is not.
-        """
-        issues = self.issue_set.all()
-        return issues.filter(closing_date__isnull=True) if self.is_terminal else issues
+    def issues_to_close(self):
+        """The issues of this status without a closing date, the ones close_issues() updates."""
+        return self.issue_set.filter(closing_date__isnull=True)
 
-    def sync_issues_with_terminal(self, user=None):
+    def close_issues(self, user=None):
         """
-        Bring this status' issues in line with is_terminal after it changed, with the same rules as
-        Issue.apply_status_change(): a terminal status closes its issues today, and a non terminal one reopens them,
-        with tomorrow as the next action date if it is missing or past. Without this, changing is_terminal would leave
-        closed issues without a closing date, or open ones with it (hidden from the boards that filter on it).
+        Give today's closing date to the issues that have none, after marking this status as terminal. There is no way
+        back: a status that has issues cannot be unmarked (IssueStatusAdminForm).
 
-        Uses bulk_update_with_history, so each issue's history records who closed or reopened it. Returns the number
-        of issues updated.
+        Uses bulk_update_with_history, so each issue's history records who closed it. Returns the number of issues
+        updated.
         """
         from simple_history.utils import bulk_update_with_history
 
         today = date.today()
-        issues = list(self.issues_to_sync_with_terminal())
-        if self.is_terminal:
-            fields = ["closing_date"]
-            reason = gettext("Status «{}» marked as terminal").format(self.name)
-            for issue in issues:
-                issue.closing_date = today
-        else:
-            fields = ["closing_date", "next_action_date"]
-            reason = gettext("Status «{}» unmarked as terminal").format(self.name)
-            for issue in issues:
-                issue.closing_date = None
-                if not issue.next_action_date or issue.next_action_date <= today:
-                    issue.next_action_date = today + timedelta(days=1)
+        issues = list(self.issues_to_close())
+        reason = gettext("Status «{}» marked as terminal").format(self.name)
+        for issue in issues:
+            issue.closing_date = today
         if issues:
             bulk_update_with_history(
-                issues, Issue, fields, batch_size=500, default_user=user, default_change_reason=reason[:100]
+                issues, Issue, ["closing_date"], batch_size=500, default_user=user, default_change_reason=reason[:100]
             )
         return len(issues)
 
