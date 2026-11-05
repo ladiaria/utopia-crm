@@ -2,6 +2,13 @@
 
 ## v0.5.1
 
+## 2026-11-05 — gl103-contador-finalizadas El CSV de deudores cuenta bien las incidencias finalizadas
+
+- **La columna de incidencias de facturación finalizadas del CSV de deudores mostraba las abiertas**: las dos columnas salían con el mismo número. Ahora cuenta las que están en un estado de cierre
+- Se saca el contador equivalente por subcategoría, que tenía el mismo error y nadie usaba
+- Deployment: no se requieren migraciones. Cambia el número de esa columna
+- **Author:** Tanya Tree + Claude Opus 5.5
+
 ## 2026-11-05 — gl102-test-import-tipo-documento El test de importar contactos no depende de un paquete de customización
 
 - **El test del tipo de documento inválido ya no falla con un paquete instalado que tipifica documentos**: comprueba que el tipo inválido no se crea, en vez de que el contacto quede sin tipo

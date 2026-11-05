@@ -1001,13 +1001,6 @@ class Contact(models.Model):
             .count()
         )
 
-    def get_finished_issues_by_subcategory_count(self, sub_category_slug):
-        return (
-            self.issue_set.filter(sub_category__slug=sub_category_slug)
-            .exclude(status__is_terminal=True)
-            .count()
-        )
-
     def get_open_issues_by_category_count(self, category):
         return (
             self.issue_set.filter(category=category)
@@ -1016,11 +1009,7 @@ class Contact(models.Model):
         )
 
     def get_finished_issues_by_category_count(self, category):
-        return (
-            self.issue_set.filter(category=category)
-            .exclude(status__is_terminal=True)
-            .count()
-        )
+        return self.issue_set.filter(category=category, status__is_terminal=True).count()
 
     def get_total_scheduledtask_count(self):
         return self.scheduledtask_set.count()
