@@ -3,6 +3,7 @@ from datetime import date, timedelta
 from importlib import import_module
 
 from django.apps import apps
+from django.conf import settings
 from django.contrib.admin.models import LogEntry
 from django.contrib.auth.models import Permission, User
 from django.test import TestCase, override_settings
@@ -86,10 +87,25 @@ class IssueStatusTerminalTest(TestCase):
         self.assertFalse(self.status_new.is_terminal)
 
     @override_settings(ISSUE_STATUS_FINISHED_LIST=None)
-    def test_migration_without_the_list_marks_nothing(self):
+    def test_migration_with_an_empty_list_marks_nothing(self):
         migration_0044.mark_terminal_statuses(apps, None)
 
         self.assertEqual(list(IssueStatus.objects.filter(is_terminal=True)), [self.status_solved])
+
+    def test_migration_without_the_setting_uses_its_old_default(self):
+        solved = IssueStatus.objects.create(name="solved")
+        not_solved = IssueStatus.objects.create(name="not solved")
+
+        with self.settings():
+            del settings.ISSUE_STATUS_FINISHED_LIST
+            migration_0044.mark_terminal_statuses(apps, None)
+
+        solved.refresh_from_db()
+        not_solved.refresh_from_db()
+        self.status_waiting.refresh_from_db()
+        self.assertTrue(solved.is_terminal)
+        self.assertTrue(not_solved.is_terminal)
+        self.assertFalse(self.status_waiting.is_terminal)
 
     # Open issues still include the ones without a status
 
@@ -162,7 +178,9 @@ class IssueStatusTerminalTest(TestCase):
 
     def test_marking_closes_its_issues_today(self):
         open_issue = self._issue(self.status_waiting)
-        already_closed = self._issue(self.status_waiting, closing_date=date.today() - timedelta(days=5))
+        already_closed = self._issue(self.status_waiting)
+        # update(), because save() does not let an open issue have a closing date.
+        Issue.objects.filter(pk=already_closed.pk).update(closing_date=date.today() - timedelta(days=5))
 
         response = self._post(self.manager, self.status_waiting, is_terminal="on", confirm_terminal_change="on")
 
@@ -177,21 +195,28 @@ class IssueStatusTerminalTest(TestCase):
         log = LogEntry.objects.filter(object_id=str(self.status_waiting.pk)).latest("action_time")
         self.assertIn("1", log.get_change_message())
 
-    def test_unmarking_reopens_its_issues(self):
+    def test_a_status_with_issues_cannot_be_unmarked(self):
         status = IssueStatus.objects.create(name="cerrada-test", is_terminal=True)
-        stale = self._issue(status, closing_date=date.today(), next_action_date=date.today() - timedelta(days=3))
-        future = date.today() + timedelta(days=10)
-        scheduled = self._issue(status, closing_date=date.today(), next_action_date=future)
+        closed_on = date.today() - timedelta(days=5)
+        issue = self._issue(status, closing_date=closed_on)
 
         response = self._post(self.manager, status, confirm_terminal_change="on")
 
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("is_terminal", response.context["adminform"].form.errors)
+        status.refresh_from_db()
+        issue.refresh_from_db()
+        self.assertTrue(status.is_terminal)
+        self.assertEqual(issue.closing_date, closed_on)
+
+    def test_a_status_without_issues_can_be_unmarked(self):
+        status = IssueStatus.objects.create(name="cerrada-test", is_terminal=True)
+
+        response = self._post(self.manager, status)
+
         self.assertEqual(response.status_code, 302)
-        stale.refresh_from_db()
-        scheduled.refresh_from_db()
-        self.assertIsNone(stale.closing_date)
-        self.assertEqual(stale.next_action_date, date.today() + timedelta(days=1))
-        self.assertIsNone(scheduled.closing_date)
-        self.assertEqual(scheduled.next_action_date, future)
+        status.refresh_from_db()
+        self.assertFalse(status.is_terminal)
 
     def test_marking_without_issues_needs_no_confirmation(self):
         response = self._post(self.manager, self.status_waiting, is_terminal="on")

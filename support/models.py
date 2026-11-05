@@ -238,6 +238,22 @@ class Issue(models.Model):
             ("can_manage_community_console", _("Can manage community console (assign issues)")),
         ]
 
+    def save(self, *args, **kwargs):
+        """
+        The closing date always goes with the status: a terminal status keeps the date it has or gets today's, so
+        moving between terminal statuses does not change it, and any other status has none.
+
+        bulk_update and queryset.update() do not get here, so they have to keep this rule themselves.
+        """
+        if self.has_terminal_status():
+            self.closing_date = self.closing_date or date.today()
+        else:
+            self.closing_date = None
+        update_fields = kwargs.get("update_fields")
+        if update_fields is not None and "status" in update_fields:
+            kwargs["update_fields"] = {*update_fields, "closing_date"}
+        super().save(*args, **kwargs)
+
     def get_category(self):
         categories = dict(get_issue_categories())
         return categories.get(self.category, "N/A")
@@ -265,7 +281,6 @@ class Issue(models.Model):
 
     def mark_solved(self, answer_2):
         self.status = IssueStatus.objects.get(slug=settings.ISSUE_STATUS_SOLVED)
-        self.closing_date = date.today()
         if answer_2:
             if self.answer_2:
                 self.answer_2 = f"{self.answer_2}\n\n{answer_2}"
@@ -283,16 +298,11 @@ class Issue(models.Model):
 
     def apply_status_change(self, new_status):
         """
-        Change the issue's status applying the shared side-effect rules:
+        Change the issue's status: if the new status is NOT terminal and next_action_date is missing or in the past,
+        set next_action_date to tomorrow. The closing date follows the status in save().
 
-        - If the new status is terminal (IssueStatus.is_terminal) and there is
-          no closing_date yet, set closing_date to today.
-        - If the new status is NOT terminal and next_action_date is missing or in
-          the past, set next_action_date to tomorrow.
-
-        This does not save the instance; the caller is responsible for persisting
-        the changes (via save() or bulk_update). Returns the list of field names
-        that were modified, so callers using bulk_update know what to pass.
+        This does not save the instance; the caller is responsible for persisting the changes via save(). Returns the
+        list of field names that were modified, to pass as update_fields.
         """
         old_status = self.status
         self.status = new_status
@@ -302,11 +312,7 @@ class Issue(models.Model):
             return changed_fields
 
         today = date.today()
-        if new_status and new_status.is_terminal:
-            if not self.closing_date:
-                self.closing_date = today
-                changed_fields.append("closing_date")
-        else:
+        if not (new_status and new_status.is_terminal):
             if not self.next_action_date or self.next_action_date <= today:
                 self.next_action_date = today + timedelta(days=1)
                 changed_fields.append("next_action_date")
@@ -515,43 +521,28 @@ class IssueStatus(models.Model):
         verbose_name_plural = _("Issue Statuses")
         permissions = [("change_issuestatus_terminal", _("Can change whether an issue status is terminal"))]
 
-    def issues_to_sync_with_terminal(self):
-        """
-        The issues of this status that sync_issues_with_terminal() updates: the ones without a closing date when the
-        status is terminal, and all of them when it is not.
-        """
-        issues = self.issue_set.all()
-        return issues.filter(closing_date__isnull=True) if self.is_terminal else issues
+    def issues_to_close(self):
+        """The issues of this status without a closing date, the ones close_issues() updates."""
+        return self.issue_set.filter(closing_date__isnull=True)
 
-    def sync_issues_with_terminal(self, user=None):
+    def close_issues(self, user=None):
         """
-        Bring this status' issues in line with is_terminal after it changed, with the same rules as
-        Issue.apply_status_change(): a terminal status closes its issues today, and a non terminal one reopens them,
-        with tomorrow as the next action date if it is missing or past. Without this, changing is_terminal would leave
-        closed issues without a closing date, or open ones with it (hidden from the boards that filter on it).
+        Give today's closing date to the issues that have none, after marking this status as terminal. There is no way
+        back: a status that has issues cannot be unmarked (IssueStatusAdminForm).
 
-        Uses bulk_update_with_history, so each issue's history records who closed or reopened it. Returns the number
-        of issues updated.
+        Uses bulk_update_with_history, so each issue's history records who closed it. Returns the number of issues
+        updated.
         """
         from simple_history.utils import bulk_update_with_history
 
         today = date.today()
-        issues = list(self.issues_to_sync_with_terminal())
-        if self.is_terminal:
-            fields = ["closing_date"]
-            reason = gettext("Status «{}» marked as terminal").format(self.name)
-            for issue in issues:
-                issue.closing_date = today
-        else:
-            fields = ["closing_date", "next_action_date"]
-            reason = gettext("Status «{}» unmarked as terminal").format(self.name)
-            for issue in issues:
-                issue.closing_date = None
-                if not issue.next_action_date or issue.next_action_date <= today:
-                    issue.next_action_date = today + timedelta(days=1)
+        issues = list(self.issues_to_close())
+        reason = gettext("Status «{}» marked as terminal").format(self.name)
+        for issue in issues:
+            issue.closing_date = today
         if issues:
             bulk_update_with_history(
-                issues, Issue, fields, batch_size=500, default_user=user, default_change_reason=reason[:100]
+                issues, Issue, ["closing_date"], batch_size=500, default_user=user, default_change_reason=reason[:100]
             )
         return len(issues)
 

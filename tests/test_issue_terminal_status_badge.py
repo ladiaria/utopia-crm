@@ -53,12 +53,7 @@ class IssueTerminalStatusBadgeTest(TestCase):
         self.assertIn(BADGE, content)
         self.assertIn(date_format(closing_date, "SHORT_DATE_FORMAT"), content)
 
-    def test_terminal_status_without_closing_date_shows_badge(self):
-        issue, content = self._detail(self.status_closed)
-        self.assertTrue(issue.has_terminal_status())
-        self.assertIn(BADGE, content)
-
     def test_open_status_shows_no_badge(self):
-        issue, content = self._detail(self.status_open, date(2026, 11, 3))
+        issue, content = self._detail(self.status_open)
         self.assertFalse(issue.has_terminal_status())
         self.assertNotIn(BADGE, content)

@@ -139,8 +139,8 @@ class BulkReassignIssueStatusView(BreadcrumbsMixin, UserPassesTestMixin, View):
         affected = 0
 
         with transaction.atomic():
-            # Lock and iterate; apply_status_change derives next_action_date /
-            # closing_date per issue, so we save each instance individually.
+            # Lock and iterate; apply_status_change and save() derive next_action_date
+            # and closing_date per issue, so we save each instance individually.
             # Lock only the Issue rows (of="self"); status/contact are nullable
             # FKs and a plain FOR UPDATE over their outer joins is unsupported.
             locked = queryset.select_related("status", "contact").select_for_update(of=("self",))

@@ -30,6 +30,7 @@ STATUS_CHOICES = (
     ('pending', _('Pending')),
     ('canceled', _('Canceled')),
     ('uncollectible', _('Uncollectible')),
+    ('uncollectible_paid_or_debited', _('Uncollectible, paid or debited')),
     ('overdue', _('Overdue')),
     ('not_paid', _('Not paid'))
 )
@@ -122,6 +123,8 @@ class InvoiceFilter(django_filters.FilterSet):
             return queryset.filter(canceled=True)
         elif value == 'uncollectible':
             return queryset.filter(uncollectible=True)
+        elif value == 'uncollectible_paid_or_debited':
+            return queryset.filter(Q(paid=True) | Q(debited=True), uncollectible=True, canceled=False)
         elif value == 'overdue':
             return queryset.filter(
                 paid=False, debited=False, canceled=False, uncollectible=False, expiration_date__lt=date.today())

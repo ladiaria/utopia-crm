@@ -9,12 +9,15 @@ Cubre:
 - debtor_contacts: payment_date seteado con debited=False no cuenta como deuda.
 - debtor_contacts: owed_invoices cuenta solo las facturas reales impagas.
 """
+import csv
+import io
 from datetime import date, timedelta
 
 from django.test import RequestFactory, TestCase
 from django.contrib.auth.models import User
 
 from invoicing.models import Invoice
+from support.models import Issue, IssueStatus
 from support.views.all_views import debtor_contacts
 from tests.factory import create_contact, create_subscription
 
@@ -190,3 +193,31 @@ class TestDebtorContactsView(TestCase):
         qs = self._get_debtor_qs()
         self.assertEqual(qs.count(), 1)
         self.assertEqual(qs.first().owed_invoices, 2)
+
+
+class TestDebtorContactsExport(TestCase):
+    """El CSV de deudores separa las incidencias de facturación abiertas de las finalizadas (#103 de ladiaria)."""
+
+    def setUp(self):
+        self.contact = create_contact("deudor", "099000020")
+        make_invoice(self.contact, days_offset=-1)
+        self.status_open = IssueStatus.objects.create(name="abierta-test")
+        self.status_closed = IssueStatus.objects.create(name="cerrada-test", is_terminal=True)
+
+    def _issue(self, category, status):
+        Issue.objects.create(contact=self.contact, category=category, status=status, date=date.today())
+
+    def test_cuenta_abiertas_y_finalizadas_de_la_categoria(self):
+        self._issue("I", self.status_open)
+        self._issue("I", self.status_open)
+        self._issue("I", self.status_closed)
+        self._issue("S", self.status_closed)
+
+        self.assertEqual(self.contact.get_open_issues_by_category_count("I"), 2)
+        self.assertEqual(self.contact.get_finished_issues_by_category_count("I"), 1)
+
+        request = RequestFactory().get("/", {"export": "1"})
+        request.user = User.objects.create_superuser("admin", "admin@test.com", "password")
+        rows = list(csv.reader(io.StringIO(debtor_contacts(request).content.decode())))
+        self.assertEqual(rows[1][0], str(self.contact.id))
+        self.assertEqual(rows[1][4:6], ["2", "1"])

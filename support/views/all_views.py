@@ -784,7 +784,6 @@ class CommunityConsoleView(PermissionRequiredMixin, LoginRequiredMixin, Breadcru
         issues = (
             Issue.objects.filter(
                 assigned_to=self.request.user,
-                closing_date__isnull=True,
             )
             .exclude(
                 status__is_terminal=True,
@@ -882,7 +881,6 @@ class CommunityManagerDashboardView(PermissionRequiredMixin, LoginRequiredMixin,
     def _get_open_unassigned_issues_qs(self):
         return Issue.objects.filter(
             assigned_to__isnull=True,
-            closing_date__isnull=True,
         ).exclude(
             status__is_terminal=True,
         )
@@ -991,7 +989,6 @@ class CommunityManagerAssignView(PermissionRequiredMixin, LoginRequiredMixin, Br
             Issue.objects.filter(
                 sub_category=self.sub_category,
                 assigned_to__isnull=True,
-                closing_date__isnull=True,
             )
             .exclude(
                 status__is_terminal=True,
@@ -1015,7 +1012,6 @@ class CommunityManagerAssignView(PermissionRequiredMixin, LoginRequiredMixin, Br
         return (
             Issue.objects.filter(
                 assigned_to=user,
-                closing_date__isnull=True,
             )
             .exclude(
                 status__is_terminal=True,
@@ -1069,7 +1065,6 @@ class CommunityManagerAssignView(PermissionRequiredMixin, LoginRequiredMixin, Br
             open_count = (
                 Issue.objects.filter(
                     assigned_to=user,
-                    closing_date__isnull=True,
                 )
                 .exclude(
                     status__is_terminal=True,
@@ -1079,7 +1074,6 @@ class CommunityManagerAssignView(PermissionRequiredMixin, LoginRequiredMixin, Br
             # Also get per-temporal-bucket counts for this user
             user_issues = Issue.objects.filter(
                 assigned_to=user,
-                closing_date__isnull=True,
             ).exclude(
                 status__is_terminal=True,
             )
@@ -1223,7 +1217,6 @@ class CommunityManagerOverviewView(PermissionRequiredMixin, LoginRequiredMixin, 
             user_issues = (
                 Issue.objects.filter(
                     assigned_to=user,
-                    closing_date__isnull=True,
                 )
                 .exclude(
                     status__is_terminal=True,
@@ -1587,8 +1580,6 @@ class IssueDetailView(BreadcrumbsMixin, UpdateView):
             if not (form.instance.status and form.instance.status.is_terminal):
                 try:
                     form.instance.status = IssueStatus.objects.get(slug=settings.ISSUE_STATUS_SOLVED)
-                    if not form.instance.closing_date:
-                        form.instance.closing_date = date.today()
                     auto_solved = True
                 except IssueStatus.DoesNotExist:
                     pass
@@ -1597,8 +1588,8 @@ class IssueDetailView(BreadcrumbsMixin, UpdateView):
         response = super().form_valid(form)
 
         # Check if status has changed and apply the shared status-change side
-        # effects (next_action_date / closing_date). The instance is already
-        # saved with the new status, so we only persist the derived fields.
+        # effect (next_action_date). The instance is already saved with the new
+        # status, so we only persist the derived fields.
         new_status = self.object.status
         if old_status != new_status:
             self.object.status = old_status  # apply_status_change re-applies it

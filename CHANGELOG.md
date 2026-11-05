@@ -2,6 +2,61 @@
 
 ## v0.5.1
 
+## 2026-11-05 — gl104-sacar-finished-list Se saca la lista vieja de estados de cierre de los settings
+
+- **`ISSUE_STATUS_FINISHED_LIST` sale de los settings del repo**: qué estados son de cierre lo decide la casilla «Terminal» del admin, y nada más la leía salvo la migración que marcó los estados
+- **Una instalación que todavía no migró no pierde sus estados de cierre**: la migración conserva el valor por defecto que tenía esa lista, y sigue respetando la lista de quien la tenga en su configuración
+- Deployment: no se requieren migraciones nuevas
+- **Author:** Tanya Tree + Claude Opus 5.5
+
+## 2026-11-05 — gl103-contador-finalizadas El CSV de deudores cuenta bien las incidencias finalizadas
+
+- **La columna de incidencias de facturación finalizadas del CSV de deudores mostraba las abiertas**: las dos columnas salían con el mismo número. Ahora cuenta las que están en un estado de cierre
+- Se saca el contador equivalente por subcategoría, que tenía el mismo error y nadie usaba
+- Deployment: no se requieren migraciones. Cambia el número de esa columna
+- **Author:** Tanya Tree + Claude Opus 5.5
+
+## 2026-11-05 — gl102-test-import-tipo-documento El test de importar contactos no depende de un paquete de customización
+
+- **El test del tipo de documento inválido ya no falla con un paquete instalado que tipifica documentos**: comprueba que el tipo inválido no se crea, en vez de que el contacto quede sin tipo
+- Sólo cambia un test
+- Deployment: no se requieren migraciones
+- **Author:** Tanya Tree + Claude Opus 5.5
+
+## 2026-11-05 — gl95-bloquear-desmarcar-estado Un estado de cierre con incidencias no se puede desmarcar
+
+- **La casilla «Terminal» no se puede desmarcar mientras el estado tenga incidencias**: hacerlo reabría todas y les borraba la fecha de cierre, y volver a marcarla les ponía la de ese día. Para desmarcarlo, primero hay que pasarlas a otro estado
+- **Marcar la casilla no cambia**: cierra con la fecha de hoy las incidencias sin fecha y sigue pidiendo confirmar
+- Deployment: no se requieren migraciones
+- **Author:** Tanya Tree + Claude Opus 5.5
+
+## 2026-11-05 — gl101-filtro-incobrables-pagas Filtro de facturas: incobrables pagas o debitadas
+
+- **Nueva opción en el filtro de estado de facturas** para encontrar las facturas dadas por incobrables que igual se cobraron, por pago o por débito. Deja afuera las anuladas, porque esa plata puede no haber quedado
+- Deployment: no se requieren migraciones
+- **Author:** Tanya Tree + Claude Opus 5.5
+
+## 2026-11-05 — gl99-fecha-cierre-regla La fecha de cierre de una incidencia siempre acompaña al estado
+
+- **Una incidencia en estado terminal tiene fecha de cierre, y cualquier otra no**: cerrarla pone la de hoy, pasar de un estado terminal a otro la conserva y reabrirla, desde donde sea, la borra. Antes reabrirla dejaba la fecha puesta, y la incidencia quedaba oculta en la consola de comunidad
+- **La consola de comunidad decide por el estado**, como el resto del sistema: la fecha dice cuándo se cerró, no si está cerrada
+- Deployment: no se requieren migraciones. Hay que normalizar los datos antes, porque el próximo guardado aplica la regla a las incidencias viejas
+- **Author:** Tanya Tree + Claude Opus 5.5
+
+## 2026-11-04 — gl96-cerrar-alta-suscripcion-admin Las suscripciones ya no se pueden crear desde el admin
+
+- **La pantalla de alta de suscripciones del admin queda cerrada para todos, superusuarios incluidos**: las suscripciones se crean desde el contacto, y esa pantalla se salteaba ese flujo y armaba un desplegable con todas las direcciones de la base
+- **El formulario del admin ya no puede listar todas las direcciones**. Editar una suscripción sigue igual, con las direcciones de su contacto
+- Deployment: no se requieren migraciones
+- **Author:** Tanya Tree + Claude Opus 5.5
+
+## 2026-11-04 — gl96-sacar-admin-invoiceitem Los ítems de factura ya no tienen una pantalla propia en el admin
+
+- **Se saca la pantalla de ítems de factura del admin**: armaba un desplegable con todas las facturas y otro con todas las suscripciones, y abrirla dejó sin memoria al servidor de producción, con errores 502 para otros usuarios durante unos segundos
+- **Los ítems se siguen viendo y editando dentro de su factura**, como se hacía siempre. Nada usaba la pantalla que se saca
+- Deployment: no se requieren migraciones. Los enlaces viejos a esa pantalla responden 404
+- **Author:** Tanya Tree + Claude Opus 5.5
+
 ## 2026-11-04 — gl87-estados-terminales Qué estados de incidencia son de cierre se decide desde el admin, y renombrarlos ya no rompe nada
 
 - **Cada estado de incidencia tiene una casilla «Terminal» en el admin**, que reemplaza a la lista `ISSUE_STATUS_FINISHED_LIST` de la configuración de cada servidor. La puede cambiar sólo quien tiene un permiso propio. La migración marca sola los estados que ya estaban en la lista de cada instalación
