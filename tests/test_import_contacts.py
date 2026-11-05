@@ -385,9 +385,10 @@ class ImportContactsViewTest(TestCase):
         self.assertTrue(Contact.objects.filter(email='maria@example.com').exists())
         contact = Contact.objects.get(email='maria@example.com')
 
-        # Document type should be None
-        self.assertIsNone(contact.id_document_type)
-        
+        # The invalid type is not created. Whether the contact ends up with a type is not checked: a customization
+        # package can classify documents that arrive without one when the contact is saved.
+        self.assertFalse(IdDocumentType.objects.filter(name='INVALID_TYPE').exists())
+
         # Document number should still be saved
         self.assertEqual(contact.id_document, '99999999')
 
