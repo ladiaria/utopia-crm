@@ -2,6 +2,13 @@
 
 ## v0.5.1
 
+## 2026-11-05 — gl99-fecha-cierre-regla La fecha de cierre de una incidencia siempre acompaña al estado
+
+- **Una incidencia en estado terminal tiene fecha de cierre, y cualquier otra no**: cerrarla pone la de hoy, pasar de un estado terminal a otro la conserva y reabrirla, desde donde sea, la borra. Antes reabrirla dejaba la fecha puesta, y la incidencia quedaba oculta en la consola de comunidad
+- **La consola de comunidad decide por el estado**, como el resto del sistema: la fecha dice cuándo se cerró, no si está cerrada
+- Deployment: no se requieren migraciones. Hay que normalizar los datos antes, porque el próximo guardado aplica la regla a las incidencias viejas
+- **Author:** Tanya Tree + Claude Opus 5.5
+
 ## 2026-11-04 — gl96-cerrar-alta-suscripcion-admin Las suscripciones ya no se pueden crear desde el admin
 
 - **La pantalla de alta de suscripciones del admin queda cerrada para todos, superusuarios incluidos**: las suscripciones se crean desde el contacto, y esa pantalla se salteaba ese flujo y armaba un desplegable con todas las direcciones de la base
