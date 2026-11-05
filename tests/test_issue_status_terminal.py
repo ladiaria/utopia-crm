@@ -3,6 +3,7 @@ from datetime import date, timedelta
 from importlib import import_module
 
 from django.apps import apps
+from django.conf import settings
 from django.contrib.admin.models import LogEntry
 from django.contrib.auth.models import Permission, User
 from django.test import TestCase, override_settings
@@ -86,10 +87,25 @@ class IssueStatusTerminalTest(TestCase):
         self.assertFalse(self.status_new.is_terminal)
 
     @override_settings(ISSUE_STATUS_FINISHED_LIST=None)
-    def test_migration_without_the_list_marks_nothing(self):
+    def test_migration_with_an_empty_list_marks_nothing(self):
         migration_0044.mark_terminal_statuses(apps, None)
 
         self.assertEqual(list(IssueStatus.objects.filter(is_terminal=True)), [self.status_solved])
+
+    def test_migration_without_the_setting_uses_its_old_default(self):
+        solved = IssueStatus.objects.create(name="solved")
+        not_solved = IssueStatus.objects.create(name="not solved")
+
+        with self.settings():
+            del settings.ISSUE_STATUS_FINISHED_LIST
+            migration_0044.mark_terminal_statuses(apps, None)
+
+        solved.refresh_from_db()
+        not_solved.refresh_from_db()
+        self.status_waiting.refresh_from_db()
+        self.assertTrue(solved.is_terminal)
+        self.assertTrue(not_solved.is_terminal)
+        self.assertFalse(self.status_waiting.is_terminal)
 
     # Open issues still include the ones without a status
 

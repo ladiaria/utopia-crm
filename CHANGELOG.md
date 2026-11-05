@@ -2,6 +2,13 @@
 
 ## v0.5.1
 
+## 2026-11-05 — gl104-sacar-finished-list Se saca la lista vieja de estados de cierre de los settings
+
+- **`ISSUE_STATUS_FINISHED_LIST` sale de los settings del repo**: qué estados son de cierre lo decide la casilla «Terminal» del admin, y nada más la leía salvo la migración que marcó los estados
+- **Una instalación que todavía no migró no pierde sus estados de cierre**: la migración conserva el valor por defecto que tenía esa lista, y sigue respetando la lista de quien la tenga en su configuración
+- Deployment: no se requieren migraciones nuevas
+- **Author:** Tanya Tree + Claude Opus 5.5
+
 ## 2026-11-05 — gl103-contador-finalizadas El CSV de deudores cuenta bien las incidencias finalizadas
 
 - **La columna de incidencias de facturación finalizadas del CSV de deudores mostraba las abiertas**: las dos columnas salían con el mismo número. Ahora cuenta las que están en un estado de cierre
