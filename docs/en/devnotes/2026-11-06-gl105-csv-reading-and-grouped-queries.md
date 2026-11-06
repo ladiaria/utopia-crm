@@ -70,8 +70,12 @@ Phones barely change, because almost all the time is in looking for the digits i
 
 ## 🚀 Future Improvements
 
-- **Phones:** a `pg_trgm` index on `phone` and `mobile` took 300 phones from 16.2 s to 3.2 s in a test that was rolled back, and it took about 22 MB with `work_phone` included. A single query with a regular expression doesn't help: it costs about the same per number, with or without the index. It needs a migration and a decision, so it is not included here.
-- **The other CSV uploads:** they could use `read_uploaded_csv`. File formats fixed by banks and card processors should stay as they are.
+- **The other CSV uploads:** they could use `read_uploaded_csv` (it/utopia-crm-ladiaria#107). File formats fixed by banks and card processors should stay as they are.
+
+## 🎓 Design Decisions
+
+- **No index for phones:** a `pg_trgm` index on `phone`, `mobile` and `work_phone` took 300 phones from 16.2 s to 3.2 s in a test that was reverted, and it takes about 22 MB. It was discarded: at about 54 ms per row this screen is acceptable, the search boxes work well, and it isn't worth a new extension and migration. If a person often uploads files of thousands of phones, these numbers are the starting point. In Django 4.2 it has to be written with `fields` and `opclasses`: `OpClass` on a column generates invalid SQL.
+- **No regular expression either:** a single query with all the numbers costs about the same per number, with or without the index.
 
 ---
 

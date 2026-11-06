@@ -70,8 +70,12 @@ Los teléfonos casi no cambian, porque casi todo el tiempo está en buscar los d
 
 ## 🚀 Mejoras Futuras
 
-- **Teléfonos:** un índice `pg_trgm` en `phone` y `mobile` bajó 300 teléfonos de 16,2 s a 3,2 s en una prueba que se revirtió, y ocupó unos 22 MB contando también `work_phone`. Una sola consulta con una expresión regular no ayuda: cuesta más o menos lo mismo por número, con o sin el índice. Necesita una migración y una decisión, así que no entra acá.
-- **Las demás subidas de CSV:** podrían usar `read_uploaded_csv`. Los formatos fijos de bancos y procesadoras de tarjetas deberían quedar como están.
+- **Las demás subidas de CSV:** podrían usar `read_uploaded_csv` (it/utopia-crm-ladiaria#107). Los formatos fijos de bancos y procesadoras de tarjetas deberían quedar como están.
+
+## 🎓 Decisiones de Diseño
+
+- **Sin índice para los teléfonos:** un índice `pg_trgm` en `phone`, `mobile` y `work_phone` bajó 300 teléfonos de 16,2 s a 3,2 s en una prueba que se revirtió, y ocupa unos 22 MB. Se descartó: con unos 54 ms por fila esta pantalla es aceptable, los buscadores andan bien, y no justifica una extensión y una migración nuevas. Si alguien sube seguido archivos de miles de teléfonos, estos números son el punto de partida. En Django 4.2 hay que escribirlo con `fields` y `opclasses`: `OpClass` sobre una columna genera SQL inválido.
+- **Tampoco una expresión regular:** una sola consulta con todos los números cuesta más o menos lo mismo por número, con o sin el índice.
 
 ---
 
