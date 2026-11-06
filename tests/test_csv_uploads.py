@@ -1,5 +1,3 @@
-from unittest.mock import patch
-
 from django.contrib.auth.models import Group, User
 from django.contrib.messages import get_messages
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -149,17 +147,14 @@ class PrintLabelsTestCase(CsvUploadTestCase):
 
         self.assertPdf(self.client.post(reverse("print_labels_from_csv"), {"labels": file}))
 
-    # Without labels to draw the PDF itself fails, and these two are about reading the file
-    @patch("logistics.views.Canvas")
-    def test_print_labels_for_day_excludes_contacts(self, _canvas):
+    def test_print_labels_for_day_excludes_contacts(self):
         file = uploaded(f"contact_id\n{self.ana.id}\n", "utf-8-sig")
 
         response = self.client.post(reverse("print_labels_for_day"), {"exclude_contacts": file, "isoweekday": "1"})
 
         self.assertPdf(response)
 
-    @patch("logistics.views.Canvas")
-    def test_print_labels_marks_contacts_with_a_header_and_a_bom(self, _canvas):
+    def test_print_labels_marks_contacts_with_a_header_and_a_bom(self):
         file = uploaded(f"contact_id\n{self.ana.id}\n", "utf-8-sig")
         url = reverse("print_labels", kwargs={"page": "Roll"})
 

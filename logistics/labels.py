@@ -6,6 +6,7 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 
 from django.conf import settings
+from django.utils.translation import gettext as _
 
 
 fonts_dir = settings.STATIC_ROOT + '/fonts/'
@@ -123,8 +124,10 @@ class SheetLayout(object):
         self.canvas = canvas
         self.label_type = label_type
         self.debug = debug
+        self.has_labels = False
 
     def iterator(self):
+        self.has_labels = True
         while True:
             for y, x_list in self.spots:
                 for x in x_list:
@@ -138,7 +141,12 @@ class SheetLayout(object):
             self.canvas.showPage()
 
     def flush(self):
-        self.canvas.restoreState()
+        # The state to restore is saved when the first label is requested. A day without labels gets a page that says so
+        if self.has_labels:
+            self.canvas.restoreState()
+        else:
+            self.canvas.setFont("Helvetica", 8)
+            self.canvas.drawString(2 * mm, self.height / 2, _("There are no labels to print"))
         self.canvas.showPage()
 
 

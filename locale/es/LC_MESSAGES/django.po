@@ -7371,6 +7371,10 @@ msgstr "Ir a revisar"
 #: support/templates/campaign_management_menu.html:161
 #: support/views/all_views.py:3019
 #: templates/components/sidebar_items/_campaign_management.html:44
+#: logistics/labels.py
+msgid "There are no labels to print"
+msgstr "No hay etiquetas para imprimir"
+
 msgid "Tag Contacts"
 msgstr "Etiquetar contactos"
 
