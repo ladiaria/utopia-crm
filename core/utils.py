@@ -9,6 +9,7 @@ from requests.auth import HTTPBasicAuth
 from requests.exceptions import ReadTimeout, RequestException
 from typing import Literal
 import csv
+import io
 import logging
 import re
 import mercadopago
@@ -941,6 +942,25 @@ def detect_csv_delimiter(file_content):
             return ';'
         else:
             return ','
+
+
+def read_uploaded_csv(uploaded_file):
+    """
+    Read a CSV file uploaded by a person, however their spreadsheet saved it.
+
+    Excel's "CSV UTF-8" starts with a BOM, which would become part of the first column name, and its plain "CSV" is not
+    UTF-8. A row with fewer columns than the header gets empty strings instead of None.
+
+    Returns the csv.DictReader and the detected delimiter.
+    """
+    raw = uploaded_file.read()
+    try:
+        text = raw.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        text = raw.decode("latin-1")
+    content = io.StringIO(text, newline="")
+    delimiter = detect_csv_delimiter(content)
+    return csv.DictReader(content, delimiter=delimiter, restval=""), delimiter
 
 
 def mail_managers_on_errors(process_name, error_msg, traceback_info=""):
