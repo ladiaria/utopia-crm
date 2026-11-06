@@ -2,6 +2,15 @@
 
 ## v0.5.1
 
+## 2026-11-06 — gl107-lectura-csv Una sola forma de leer los CSV que sube la gente
+
+- **Las planillas de Excel se leen bien en todas las pantallas de este repo**: con «CSV» común, con «CSV UTF-8» y con punto y coma. Antes daban error 500 o se cargaban mal sin avisar
+- **La lista de no llamar ya no puede guardar un número con caracteres de más**, que no coincidiría con nadie. En la copia local, la lista actual está limpia
+- **Importar contactos ya no corre los datos** de una fila con más columnas que el encabezado: el nombre terminaba en el apellido
+- **Imprimir etiquetas del día vuelve a aceptar la lista de excluidos**: daba error 500 con cualquier archivo
+- Deployment: no se requieren migraciones. Tiene que subir antes que el cambio de `utopia-crm-ladiaria`
+- **Author:** Tanya Tree + Claude Opus 5.5
+
 ## 2026-11-06 — gl105-csv-consultas-agrupadas Buscar contactos existentes: cualquier CSV de una planilla, y los emails en una consulta
 
 - **Un CSV que no está en UTF-8 o con una fila corta ya no da error 500**: es lo que pasaba con el «CSV» común de Excel y con las filas con menos columnas que el encabezado

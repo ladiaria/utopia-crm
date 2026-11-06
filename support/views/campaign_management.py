@@ -1,5 +1,4 @@
 import csv
-import io
 
 from django.contrib import messages
 from django.contrib.admin.models import DELETION, LogEntry
@@ -16,7 +15,7 @@ from django.views.generic import FormView, TemplateView
 from core.choices import ACTIVITY_STATUS
 from core.mixins import BreadcrumbsMixin
 from core.models import Activity, ContactCampaignStatus
-from core.utils import detect_csv_delimiter
+from core.utils import read_uploaded_csv
 from support.forms import BulkDeleteCampaignStatusForm
 
 
@@ -83,15 +82,9 @@ class BulkDeleteCampaignStatusView(BreadcrumbsMixin, UserPassesTestMixin, FormVi
         csv_file = form.cleaned_data["csv_file"]
         campaign = form.cleaned_data["campaign"]
 
-        # Read CSV file
-        file_content = io.StringIO(csv_file.read().decode("utf-8"))
-
-        # Detect delimiter automatically
-        delimiter = detect_csv_delimiter(file_content)
-
         # Parse contact IDs from CSV
         contact_ids = []
-        csv_reader = csv.DictReader(file_content, delimiter=delimiter)
+        csv_reader, _delimiter = read_uploaded_csv(csv_file)
 
         # Try to find the contact_id column (case-insensitive)
         for row in csv_reader:
