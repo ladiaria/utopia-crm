@@ -2,6 +2,14 @@
 
 ## v0.5.1
 
+## 2026-11-06 — gl105-telefonos-minimo-digitos Buscar contactos existentes: mínimo de 7 dígitos para los teléfonos e instrucciones corregidas
+
+- **Un teléfono con menos de 7 dígitos ya no se busca**: un `N/A` o un guion en el CSV coincidían con todos los contactos de la base y los cargaban en memoria. Ahora esos valores aparecen en una tabla aparte, para corregirlos, y no entre los que no tienen coincidencia
+- **El CSV «UTF-8» de Excel funciona**: antes no reconocía la primera columna y daba todas las filas como sin coincidencia
+- **Las instrucciones dicen lo que la pantalla hace**: el número con el 0 inicial en general no se encuentra, la columna va en minúsculas, y la lista de sin coincidencia no se puede subir tal cual a la importación. También se corrigen erratas de la traducción
+- Deployment: no se requieren migraciones. Cambia qué busca la pantalla
+- **Author:** Tanya Tree + Claude Opus 5.5
+
 ## 2026-11-05 — gl104-sacar-finished-list Se saca la lista vieja de estados de cierre de los settings
 
 - **`ISSUE_STATUS_FINISHED_LIST` sale de los settings del repo**: qué estados son de cierre lo decide la casilla «Terminal» del admin, y nada más la leía salvo la migración que marcó los estados

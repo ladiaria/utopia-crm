@@ -7705,7 +7705,7 @@ msgstr "Estadísticas para"
 #: support/templates/check_for_existing_contacts.html:5
 #: support/templates/check_for_existing_contacts.html:9
 msgid "Check for Existing Contacts"
-msgstr "Buscar si existen contactos ya existentes"
+msgstr "Buscar contactos existentes"
 
 #: support/templates/check_for_existing_contacts.html:15
 msgid "Upload Form"
@@ -7754,11 +7754,11 @@ msgstr "Coincidencia de teléfono"
 
 #: support/templates/check_for_existing_contacts.html:60
 msgid ""
-"The system searches for contacts by phone or mobile number. It checks both "
-"the 'phone' and 'mobile' fields in the database."
+"The system searches for contacts by phone or mobile number. It checks both the 'phone' and 'mobile' fields in the "
+"database."
 msgstr ""
-"El sistema busca contactos por teléfono o celular. Busca tanto en el campo "
-"“teléfono (phone)” y “celular (mobile)” en la bse de datos."
+"El sistema busca contactos por teléfono o celular. Busca tanto en el campo “teléfono (phone)” como en “celular "
+"(mobile)” de la base de datos."
 
 #: support/templates/check_for_existing_contacts.html:65
 msgid "What You'll See in Results"
@@ -7778,7 +7778,7 @@ msgstr "Link a la página del contacto"
 
 #: support/templates/check_for_existing_contacts.html:69
 msgid "CSV Row Number"
-msgstr "Línea de fila del CSV"
+msgstr "Número de fila del CSV"
 
 #: support/templates/check_for_existing_contacts.html:69
 msgid "Which row in your CSV file matched this contact"
@@ -7802,19 +7802,19 @@ msgstr "En campaña activa"
 
 #: support/templates/check_for_existing_contacts.html:71
 msgid "Whether the contact is currently in an active campaign"
-msgstr "Si el contacto se encuentra en una campaña ahora mismo"
+msgstr "Si el contacto se encuentra en una campaña activa ahora mismo"
 
 #: support/templates/check_for_existing_contacts.html:76
 msgid "Matches Found:"
-msgstr "Coincidencias enconttradas:"
+msgstr "Coincidencias encontradas:"
 
 #: support/templates/check_for_existing_contacts.html:76
 msgid ""
-"These contacts already exist in the database. You can review their status "
-"and decide if you want to add them to a campaign or take other actions."
+"These contacts already exist in the database. You can review their status and decide if you want to add them to a "
+"campaign or take other actions."
 msgstr ""
-"Estos contactos ya existen en la base de datos. Puedes revisar su estado y "
-"decidir si los quieres agregar a una campaña o tomar otras acciones."
+"Estos contactos ya existen en la base de datos. Podés revisar su estado y decidir si los querés agregar a una "
+"campaña o tomar otras acciones."
 
 #: support/templates/check_for_existing_contacts.html:81
 msgid "No Matches Found:"
@@ -7822,12 +7822,11 @@ msgstr "No se encontraron coincidencias:"
 
 #: support/templates/check_for_existing_contacts.html:81
 msgid ""
-"These entries don't exist in the database. These are potential new contacts "
-"that could be imported using the Import Contacts tool."
+"These entries were not found in the database, so they could be new contacts to add with the Import Contacts tool. "
+"For phone numbers, first check how they are written."
 msgstr ""
-"Estas entradas no existen en la base de datos. Estos son contactos "
-"potencialmente nuevos que podrían ser importados utilizando la herramienta "
-"de importar contactos."
+"Estas entradas no se encontraron en la base de datos, así que podrían ser contactos nuevos para agregar con la "
+"herramienta de importar contactos. Si son teléfonos, revisá primero cómo están escritos."
 
 #: support/templates/check_for_existing_contacts.html:87
 msgid "What to Expect After Checking"
@@ -7855,7 +7854,7 @@ msgstr "Cuántos están en campañas activas"
 
 #: support/templates/check_for_existing_contacts.html:96
 msgid "Export option to download results as CSV"
-msgstr "Opción de exportación para descargar contactos como un CSV"
+msgstr "Opción de exportación para descargar los resultados como CSV"
 
 #: support/templates/check_for_existing_contacts.html:101
 msgid "No Matches"
@@ -7871,11 +7870,11 @@ msgstr "Valores no encontrados en la base de datos"
 
 #: support/templates/check_for_existing_contacts.html:105
 msgid "CSV row numbers for reference"
-msgstr "Línea del archivo CSV para referencia"
+msgstr "Número de fila del CSV como referencia"
 
 #: support/templates/check_for_existing_contacts.html:106
 msgid "Export option to download non-matches"
-msgstr "Opción de exportación para descargar aquellas no-coincidencias"
+msgstr "Opción de exportación para descargar las no coincidencias"
 
 #: support/templates/check_for_existing_contacts.html:113
 #: support/templates/import_contacts.html:245
@@ -7884,17 +7883,16 @@ msgstr "Pro Tip:"
 
 #: support/templates/check_for_existing_contacts.html:113
 msgid ""
-"Use this tool before importing contacts to avoid duplicates. Export the 'No "
-"Matches' list and use it with the Import Contacts tool to add only new "
-"contacts."
+"Use this tool before importing contacts to avoid duplicates. The 'No Matches' list shows which entries are missing, "
+"but it cannot be uploaded as is: the Import Contacts tool has its own template, with other columns."
 msgstr ""
-"Utiliza esta herramienta antes de importar contactos para evitar duplicados. "
-"Exporta la lista de “No hay coincidencias” y úsala con la herramienta de "
-"importación de contactos para agregar solo nuevos contactos."
+"Usá esta herramienta antes de importar contactos para evitar duplicados. La lista de “No hay coincidencias” muestra "
+"qué entradas faltan, pero no se puede subir tal cual: la herramienta de importar contactos tiene su propia "
+"plantilla, con otras columnas."
 
 #: support/templates/check_for_existing_contacts.html:122
 msgid "Choose a CSV file to check for existing contacts"
-msgstr "Elija un archivo CSV para revisar contactos ya existentes"
+msgstr "Elegí un archivo CSV para buscar contactos ya existentes"
 
 #: support/templates/check_for_existing_contacts.html:125
 msgid "CSV File Requirements"
@@ -7905,17 +7903,16 @@ msgid "For Email Checking"
 msgstr "Para chequear por email"
 
 #: support/templates/check_for_existing_contacts.html:127
-msgid "Your CSV file must contain an 'email' column header"
-msgstr ""
-"Tu archivo CSV debe contener un cabezal de columna con el nombre “email”"
+msgid "Your CSV file must have a column named exactly 'email', in lowercase"
+msgstr "Tu archivo CSV debe tener una columna llamada exactamente “email”, en minúsculas"
 
 #: support/templates/check_for_existing_contacts.html:128
 msgid "For Phone Checking"
 msgstr "Para chequear por teléfono"
 
 #: support/templates/check_for_existing_contacts.html:128
-msgid "Your CSV file must contain a 'phone' column header"
-msgstr "Tu archivo CSV debe contener un cabezal llamado “phone”"
+msgid "Your CSV file must have a column named exactly 'phone', in lowercase"
+msgstr "Tu archivo CSV debe tener una columna llamada exactamente “phone”, en minúsculas"
 
 #: support/templates/check_for_existing_contacts.html:129
 msgid "The system automatically detects comma (,) or semicolon (;) delimiters"
@@ -7925,7 +7922,48 @@ msgstr ""
 
 #: support/templates/check_for_existing_contacts.html:130
 msgid "Download the appropriate template above for the correct format"
-msgstr "Descarga la plantilla adecuada para utilizar el formato correcto"
+msgstr "Descargá arriba la plantilla que corresponda para usar el formato correcto"
+
+#: support/templates/check_for_existing_contacts.html
+msgid ""
+"Write the number with its country code (+59899123456) or without the leading 0 (99123456). Written with the leading "
+"0 (099123456) it is usually not found, and it is listed under No Matches even if the contact exists."
+msgstr ""
+"Escribí el número con el código de país (+59899123456) o sin el 0 inicial (99123456). Con el 0 inicial (099123456) "
+"en general no se encuentra, y aparece en “No hay coincidencias” aunque el contacto exista."
+
+#: support/templates/check_for_existing_contacts.html
+msgid ""
+"Spaces and symbols are ignored. The number in the CSV can be just part of the stored one, so a row can find several "
+"contacts."
+msgstr ""
+"Los espacios y los símbolos se ignoran. El número del CSV puede ser sólo una parte del guardado, así que una fila "
+"puede encontrar varios contactos."
+
+#: support/templates/check_for_existing_contacts.html
+#, python-format
+msgid ""
+"Values with fewer than %(min_digits)s digits are not searched: they are listed in a separate table so you can fix "
+"them."
+msgstr ""
+"Los valores con menos de %(min_digits)s dígitos no se buscan: aparecen en una tabla aparte para que los corrijas."
+
+#: support/templates/check_for_existing_contacts.html
+msgid "Save the file in UTF-8 format (in Excel, the 'CSV UTF-8' option under Save As)"
+msgstr "Guardá el archivo en formato UTF-8 (en Excel, la opción “CSV UTF-8” de Guardar como)"
+
+#: support/templates/check_for_existing_contacts.html
+msgid "Phone Numbers Not Searched"
+msgstr "Teléfonos sin buscar"
+
+#: support/templates/check_for_existing_contacts.html
+#, python-format
+msgid ""
+"These values have fewer than %(min_digits)s digits, so they were not searched. Fix them in your file and check "
+"again."
+msgstr ""
+"Estos valores tienen menos de %(min_digits)s dígitos, por eso no se buscaron. Corregilos en tu archivo y volvé a "
+"chequear."
 
 #: support/templates/check_for_existing_contacts.html:137
 msgid "Check by Email"
@@ -7937,7 +7975,7 @@ msgstr "Chequear por teléfono"
 
 #: support/templates/check_for_existing_contacts.html:151
 msgid "Matching Contacts Found"
-msgstr "Coincidencias en contactos entcontradas"
+msgstr "Coincidencias encontradas"
 
 #: support/templates/check_for_existing_contacts.html:152
 msgid "Active Subscriptions"
