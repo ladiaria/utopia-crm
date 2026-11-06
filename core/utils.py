@@ -10,6 +10,7 @@ from requests.exceptions import ReadTimeout, RequestException
 from typing import Literal
 import csv
 import logging
+import re
 import mercadopago
 from html2text import html2text
 
@@ -17,6 +18,7 @@ from django.conf import settings
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
 from django.core.mail import mail_managers
+from django.db.models import Q
 from django.utils.timezone import now
 from django.utils.translation import gettext as _
 from django.utils.text import format_lazy
@@ -24,6 +26,11 @@ from rest_framework.decorators import authentication_classes
 
 
 logger = logging.getLogger(__name__)
+
+# The searches look for the digits anywhere in the number: with few digits they match thousands of contacts
+MIN_PHONE_SEARCH_DIGITS = 7
+# Only digits and the symbols people use to write a phone number
+PHONE_LIKE_RE = re.compile(r"[\d\s+().\-/]*")
 
 
 def mailtrain_api_call(endpoint, method='get', data=None):
@@ -724,6 +731,55 @@ def manage_mailtrain_subscription(email: str, list_id: str, action: Literal["sub
         result = delete_email_from_mailtrain_list(email, list_id)
 
     return result
+
+
+def significant_phone_digits(value):
+    """The digits of a typed phone number, without its leading zeros."""
+    return re.sub(r"\D", "", value).lstrip("0")
+
+
+def phone_search_forms(value):
+    """
+    The forms to look for inside the stored numbers when a person types a phone number.
+
+    Numbers are stored with their country code, so 099123456 is not part of +59899123456: besides the digits, the search
+    needs them without the leading zeros. That form has a minimum, or 0123 would look for 123 in every number. The text
+    as it was typed stays because some old numbers are stored with spaces. Without digits there is nothing to look for,
+    and an empty form would match every contact.
+    """
+    typed = value.strip()
+    digits = re.sub(r"\D", "", typed)
+    if not digits:
+        return []
+    forms = [digits]
+    without_zeros = digits.lstrip("0")
+    if without_zeros != digits and len(without_zeros) >= MIN_PHONE_SEARCH_DIGITS:
+        forms.append(without_zeros)
+    if typed.lstrip("+") != digits:
+        forms.append(typed)
+    return forms
+
+
+def phone_search_q(value, *fields):
+    """A filter for a box that only searches phones: looks for the forms of value in any of the fields."""
+    query = Q()
+    for form in phone_search_forms(value):
+        for field in fields:
+            query |= Q(**{f"{field}__contains": form})
+    return query or Q(pk__in=[])
+
+
+def phone_or_text_search_q(value, *fields):
+    """
+    A filter for a box that also searches names, emails or documents: the same as phone_search_q if value looks like a
+    number. Otherwise it stays literal, since taking the digits out of Ana2 would look for 2 in every number.
+    """
+    if PHONE_LIKE_RE.fullmatch(value.strip()):
+        return phone_search_q(value, *fields)
+    query = Q()
+    for field in fields:
+        query |= Q(**{f"{field}__contains": value})
+    return query
 
 
 def select_or_create_contact(email, name=None, phone=None, id_document=None):

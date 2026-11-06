@@ -45,7 +45,13 @@ from core.choices import ACTIVITY_STATUS
 from core.filters import ContactFilter
 from core.forms import ContactAdminForm, ContactUpdateForm
 from core.mixins import BreadcrumbsMixin
-from core.utils import get_mailtrain_lists, detect_csv_delimiter
+from core.utils import (
+    MIN_PHONE_SEARCH_DIGITS,
+    detect_csv_delimiter,
+    get_mailtrain_lists,
+    phone_search_q,
+    significant_phone_digits,
+)
 from util.location_utils import georef_habilitado
 
 from support.forms import ContactCampaignStatusEditForm, ImportContactsForm, CheckForExistingContactsForm
@@ -934,9 +940,7 @@ def contact_activities_htmx(request, contact_id):
 class CheckForExistingContactsView(BreadcrumbsMixin, FormView):
     template_name = "check_for_existing_contacts.html"
     form_class = CheckForExistingContactsForm
-    # The search looks for the digits anywhere in the number: with few digits it matches thousands of contacts, and with
-    # none it matches all of them and loads them in memory. Leading zeros do not count: without them, 0000000 is empty.
-    min_phone_digits = 7
+    min_phone_digits = MIN_PHONE_SEARCH_DIGITS
 
     def breadcrumbs(self):
         return [
@@ -983,33 +987,20 @@ class CheckForExistingContactsView(BreadcrumbsMixin, FormView):
         """
         Find matching contacts based on phone or mobile number.
         Returns a list of contacts that match the given phone number.
-        Normalizes phone numbers to work with or without the '+' symbol, and with or without the leading 0: numbers are
-        stored with their country code, so 099123456 is not part of +59899123456, but some old ones keep the 0.
+        The search itself is phone_search_q, the same as in the other phone search boxes.
         """
         from phonenumber_field.phonenumber import PhoneNumber
 
-        # Normalize the input phone number by removing non-digit characters except +
-        # This helps match numbers with or without the + symbol
-        normalized_input = re.sub(r'[^\d+]', '', phone_number)
-
-        # Create two versions: with and without the + symbol
-        phone_with_plus = normalized_input if normalized_input.startswith('+') else f'+{normalized_input}'
-        phone_without_plus = normalized_input.lstrip('+')
+        digits = re.sub(r'\D', '', phone_number)
 
         # Try to parse the phone number with + symbol for proper matching
         try:
-            parsed_phone = PhoneNumber.from_string(phone_with_plus)
+            parsed_phone = PhoneNumber.from_string(f'+{digits}')
         except Exception:
             parsed_phone = None
 
-        # Build query to match phone numbers with or without + symbol
-        # Use icontains to match the digits regardless of formatting
-        phone_query = Q(phone__icontains=phone_without_plus)
-        mobile_query = Q(mobile__icontains=phone_without_plus)
-        without_leading_zeros = phone_without_plus.lstrip('0')
-        if without_leading_zeros != phone_without_plus:
-            phone_query |= Q(phone__icontains=without_leading_zeros)
-            mobile_query |= Q(mobile__icontains=without_leading_zeros)
+        phone_query = phone_search_q(phone_number, 'phone')
+        mobile_query = phone_search_q(phone_number, 'mobile')
         query = phone_query | mobile_query
 
         # If we successfully parsed the phone, also try exact matching
@@ -1087,7 +1078,7 @@ class CheckForExistingContactsView(BreadcrumbsMixin, FormView):
 
             elif check_type == 'phone':
                 value = row.get('phone', '').strip()
-                if len(re.sub(r'\D', '', value).lstrip('0')) < self.min_phone_digits:
+                if len(significant_phone_digits(value)) < self.min_phone_digits:
                     not_searched_phones.append({'value': value, 'row_number': row_number + 1})
                     continue
                 contacts = self.find_matching_contacts_by_phone(value)

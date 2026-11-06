@@ -2,6 +2,14 @@
 
 ## v0.5.1
 
+## 2026-11-06 — gl106-buscar-telefono Todos los buscadores de teléfono encuentran el número con el 0 inicial y con espacios
+
+- **`099123456` y `099 123 456` ahora encuentran a la persona** en la lista de contactos, las tareas programadas y las facturas: los números se guardan con el código de país, así que antes no coincidían
+- **Una sola regla para todos**, también para «Buscar contactos existentes»: limpia lo escrito y prueba con y sin los ceros iniciales, si quedan al menos 7 dígitos. Así `0123` sigue buscando documentos y no todos los números con `123`
+- **Un valor sin dígitos no encuentra a nadie**: un `+` en un buscador de teléfono devolvía a todos los que tienen teléfono
+- Deployment: no se requieren migraciones. Tiene que subir antes que el cambio de `utopia-crm-ladiaria`
+- **Author:** Tanya Tree + Claude Opus 5.5
+
 ## 2026-11-06 — gl105-telefono-cero-inicial Buscar contactos existentes encuentra los teléfonos escritos con el 0 inicial
 
 - **Un número escrito `099…` ahora encuentra a la persona**: los teléfonos se guardan con el código de país, así que antes no coincidía y la persona aparecía como si fuera un contacto nuevo. Se busca con y sin el 0, para seguir encontrando los números viejos guardados con el 0

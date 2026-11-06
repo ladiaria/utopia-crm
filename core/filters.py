@@ -4,6 +4,7 @@ from django.utils.translation import gettext_lazy as _
 from django.db.models import Q, Func
 
 from .models import Contact, State
+from .utils import PHONE_LIKE_RE, phone_or_text_search_q
 
 
 YESNO_CHOICES = (
@@ -37,7 +38,8 @@ def apply_main_filter(queryset, value):
         unaccented_last_name=Unaccent('last_name')
     )
 
-    if len(terms) > 1:
+    # A number written with spaces has several terms, but it is not a name
+    if len(terms) > 1 and not PHONE_LIKE_RE.fullmatch(value.strip()):
         # Handle multiple terms
         first_name_term = terms[0]
         last_name_term = terms[1]
@@ -52,9 +54,7 @@ def apply_main_filter(queryset, value):
     else:
         queryset = queryset.filter(
             Q(id__contains=value)
-            | Q(phone__contains=value)
-            | Q(mobile__contains=value)
-            | Q(work_phone__contains=value)
+            | phone_or_text_search_q(value, "phone", "mobile", "work_phone")
             | Q(unaccented_name__icontains=normalized_value)
             | Q(unaccented_last_name__icontains=normalized_value)
             | Q(email__icontains=value)
