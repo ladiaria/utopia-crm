@@ -2,6 +2,12 @@
 
 ## v0.5.1
 
+## 2026-11-06 — gl110-etiquetas-sin-datos Imprimir etiquetas ya no da error cuando no hay ninguna para imprimir
+
+- **Un día sin etiquetas ya no da error 500**: el PDF sale con una página que dice «No hay etiquetas para imprimir». Vale para todas las pantallas de etiquetas, porque el error estaba en un solo lugar
+- Deployment: no se requieren migraciones
+- **Author:** Tanya Tree + Claude Opus 5.5
+
 ## 2026-11-06 — gl107-lectura-csv Una sola forma de leer los CSV que sube la gente
 
 - **Las planillas de Excel se leen bien en todas las pantallas de este repo**: con «CSV» común, con «CSV UTF-8» y con punto y coma. Antes daban error 500 o se cargaban mal sin avisar
