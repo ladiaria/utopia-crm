@@ -935,7 +935,7 @@ class CheckForExistingContactsView(BreadcrumbsMixin, FormView):
     template_name = "check_for_existing_contacts.html"
     form_class = CheckForExistingContactsForm
     # The search looks for the digits anywhere in the number: with few digits it matches thousands of contacts, and with
-    # none it matches all of them and loads them in memory.
+    # none it matches all of them and loads them in memory. Leading zeros do not count: without them, 0000000 is empty.
     min_phone_digits = 7
 
     def breadcrumbs(self):
@@ -983,7 +983,8 @@ class CheckForExistingContactsView(BreadcrumbsMixin, FormView):
         """
         Find matching contacts based on phone or mobile number.
         Returns a list of contacts that match the given phone number.
-        Normalizes phone numbers to work with or without the '+' symbol.
+        Normalizes phone numbers to work with or without the '+' symbol, and with or without the leading 0: numbers are
+        stored with their country code, so 099123456 is not part of +59899123456, but some old ones keep the 0.
         """
         from phonenumber_field.phonenumber import PhoneNumber
 
@@ -1003,7 +1004,13 @@ class CheckForExistingContactsView(BreadcrumbsMixin, FormView):
 
         # Build query to match phone numbers with or without + symbol
         # Use icontains to match the digits regardless of formatting
-        query = Q(phone__icontains=phone_without_plus) | Q(mobile__icontains=phone_without_plus)
+        phone_query = Q(phone__icontains=phone_without_plus)
+        mobile_query = Q(mobile__icontains=phone_without_plus)
+        without_leading_zeros = phone_without_plus.lstrip('0')
+        if without_leading_zeros != phone_without_plus:
+            phone_query |= Q(phone__icontains=without_leading_zeros)
+            mobile_query |= Q(mobile__icontains=without_leading_zeros)
+        query = phone_query | mobile_query
 
         # If we successfully parsed the phone, also try exact matching
         if parsed_phone:
@@ -1019,12 +1026,12 @@ class CheckForExistingContactsView(BreadcrumbsMixin, FormView):
             .prefetch_related('contactcampaignstatus_set')
             .annotate(
                 is_phone_match=Case(
-                    When(phone__icontains=phone_without_plus, then=Value(True)),
+                    When(phone_query, then=Value(True)),
                     default=Value(False),
                     output_field=BooleanField(),
                 ),
                 is_mobile_match=Case(
-                    When(mobile__icontains=phone_without_plus, then=Value(True)),
+                    When(mobile_query, then=Value(True)),
                     default=Value(False),
                     output_field=BooleanField(),
                 ),
@@ -1080,7 +1087,7 @@ class CheckForExistingContactsView(BreadcrumbsMixin, FormView):
 
             elif check_type == 'phone':
                 value = row.get('phone', '').strip()
-                if len(re.sub(r'\D', '', value)) < self.min_phone_digits:
+                if len(re.sub(r'\D', '', value).lstrip('0')) < self.min_phone_digits:
                     not_searched_phones.append({'value': value, 'row_number': row_number + 1})
                     continue
                 contacts = self.find_matching_contacts_by_phone(value)

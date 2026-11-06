@@ -7822,11 +7822,10 @@ msgstr "No se encontraron coincidencias:"
 
 #: support/templates/check_for_existing_contacts.html:81
 msgid ""
-"These entries were not found in the database, so they could be new contacts to add with the Import Contacts tool. "
-"For phone numbers, first check how they are written."
+"These entries were not found in the database, so they could be new contacts to add with the Import Contacts tool."
 msgstr ""
 "Estas entradas no se encontraron en la base de datos, así que podrían ser contactos nuevos para agregar con la "
-"herramienta de importar contactos. Si son teléfonos, revisá primero cómo están escritos."
+"herramienta de importar contactos."
 
 #: support/templates/check_for_existing_contacts.html:87
 msgid "What to Expect After Checking"
@@ -7926,11 +7925,10 @@ msgstr "Descargá arriba la plantilla que corresponda para usar el formato corre
 
 #: support/templates/check_for_existing_contacts.html
 msgid ""
-"Write the number with its country code (+59899123456) or without the leading 0 (99123456). Written with the leading "
-"0 (099123456) it is usually not found, and it is listed under No Matches even if the contact exists."
+"The number can be written with its country code (+59899123456), with the leading 0 (099123456) or without it "
+"(99123456)."
 msgstr ""
-"Escribí el número con el código de país (+59899123456) o sin el 0 inicial (99123456). Con el 0 inicial (099123456) "
-"en general no se encuentra, y aparece en “No hay coincidencias” aunque el contacto exista."
+"El número se puede escribir con el código de país (+59899123456), con el 0 inicial (099123456) o sin él (99123456)."
 
 #: support/templates/check_for_existing_contacts.html
 msgid ""
@@ -7943,10 +7941,11 @@ msgstr ""
 #: support/templates/check_for_existing_contacts.html
 #, python-format
 msgid ""
-"Values with fewer than %(min_digits)s digits are not searched: they are listed in a separate table so you can fix "
-"them."
+"Values with fewer than %(min_digits)s digits, not counting leading zeros, are not searched: they are listed in a "
+"separate table so you can fix them."
 msgstr ""
-"Los valores con menos de %(min_digits)s dígitos no se buscan: aparecen en una tabla aparte para que los corrijas."
+"Los valores con menos de %(min_digits)s dígitos, sin contar los ceros iniciales, no se buscan: aparecen en una tabla"
+" aparte para que los corrijas."
 
 #: support/templates/check_for_existing_contacts.html
 msgid "Save the file in UTF-8 format (in Excel, the 'CSV UTF-8' option under Save As)"
@@ -7959,11 +7958,11 @@ msgstr "Teléfonos sin buscar"
 #: support/templates/check_for_existing_contacts.html
 #, python-format
 msgid ""
-"These values have fewer than %(min_digits)s digits, so they were not searched. Fix them in your file and check "
-"again."
+"These values have fewer than %(min_digits)s digits, not counting leading zeros, so they were not searched. Fix them "
+"in your file and check again."
 msgstr ""
-"Estos valores tienen menos de %(min_digits)s dígitos, por eso no se buscaron. Corregilos en tu archivo y volvé a "
-"chequear."
+"Estos valores tienen menos de %(min_digits)s dígitos, sin contar los ceros iniciales, por eso no se buscaron. "
+"Corregilos en tu archivo y volvé a chequear."
 
 #: support/templates/check_for_existing_contacts.html:137
 msgid "Check by Email"
