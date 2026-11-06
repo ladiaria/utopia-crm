@@ -1,5 +1,6 @@
 from django.contrib.auth.models import User
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.db import connection
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
@@ -75,11 +76,43 @@ class CheckForExistingContactsTestCase(TestCase):
         self.assertEqual(context["not_searched_phones"], [{"value": "N/A", "row_number": 2}])
         self.assertEqual(context["non_matches"], [{"value": "+59891000000", "row_number": 3}])
 
-    def test_leading_zero_is_not_found_as_the_instructions_say(self):
+    def test_leading_zero_finds_the_number_stored_with_country_code(self):
         context = self.check_phones("099123456")
 
+        self.assertEqual(self.matched_contacts(context), [self.contact.id])
+        self.assertEqual(context["non_matches"], [])
+        self.assertTrue(context["results"][0]["phone_matches"])
+        self.assertFalse(context["results"][0]["mobile_matches"])
+
+    def test_leading_zero_also_finds_the_mobile(self):
+        contact = ContactFactory(phone="", mobile="+59891222333")
+
+        context = self.check_phones("091222333")
+
+        self.assertEqual(self.matched_contacts(context), [contact.id])
+        self.assertFalse(context["results"][0]["phone_matches"])
+        self.assertTrue(context["results"][0]["mobile_matches"])
+
+    def test_international_prefix_finds_the_number(self):
+        context = self.check_phones("00598 99 123 456")
+
+        self.assertEqual(self.matched_contacts(context), [self.contact.id])
+
+    def test_number_stored_with_the_leading_zero_is_still_found(self):
+        # Raw SQL: the field would normalize it, and these are old rows that kept the 0
+        with connection.cursor() as cursor:
+            cursor.execute("UPDATE core_contact SET phone = %s WHERE id = %s", ["0234567890", self.other_contact.pk])
+
+        for value in ("0234567890", "234567890"):
+            with self.subTest(value=value):
+                self.assertEqual(self.matched_contacts(self.check_phones(value)), [self.other_contact.id])
+
+    def test_leading_zeros_do_not_count_for_the_minimum(self):
+        context = self.check_phones("0000000", "0123456")
+
         self.assertEqual(context["results"], [])
-        self.assertEqual(context["non_matches"], [{"value": "099123456", "row_number": 1}])
+        self.assertEqual(context["non_matches"], [])
+        self.assertEqual(len(context["not_searched_phones"]), 2)
 
     def test_excel_utf8_csv_finds_the_contact(self):
         context = self.upload("﻿email\nANA@example.com\n", "check_email")
@@ -96,4 +129,4 @@ class CheckForExistingContactsTestCase(TestCase):
     def test_instructions_show_the_minimum(self):
         minimum = CheckForExistingContactsView.min_phone_digits
 
-        self.assertContains(self.client.get(self.url), f"Values with fewer than {minimum} digits are not searched")
+        self.assertContains(self.client.get(self.url), f"Values with fewer than {minimum} digits, not counting leading zeros")

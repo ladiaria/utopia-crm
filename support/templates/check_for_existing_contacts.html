@@ -59,9 +59,9 @@
               <h6><i class="fas fa-phone"></i> {% trans "Phone Match" %}</h6>
               <p class="mb-1">{% trans "The system searches for contacts by phone or mobile number. It checks both the 'phone' and 'mobile' fields in the database." %}</p>
               <ul class="mb-0">
-                <li>{% trans "Write the number with its country code (+59899123456) or without the leading 0 (99123456). Written with the leading 0 (099123456) it is usually not found, and it is listed under No Matches even if the contact exists." %}</li>
+                <li>{% trans "The number can be written with its country code (+59899123456), with the leading 0 (099123456) or without it (99123456)." %}</li>
                 <li>{% trans "Spaces and symbols are ignored. The number in the CSV can be just part of the stored one, so a row can find several contacts." %}</li>
-                <li>{% blocktrans with min_digits=min_phone_digits %}Values with fewer than {{ min_digits }} digits are not searched: they are listed in a separate table so you can fix them.{% endblocktrans %}</li>
+                <li>{% blocktrans with min_digits=min_phone_digits %}Values with fewer than {{ min_digits }} digits, not counting leading zeros, are not searched: they are listed in a separate table so you can fix them.{% endblocktrans %}</li>
               </ul>
             </div>
 
@@ -83,7 +83,7 @@
 
             <div class="alert alert-info mb-0">
               <i class="icon fas fa-info-circle"></i>
-              <strong>{% trans "No Matches Found:" %}</strong> {% trans "These entries were not found in the database, so they could be new contacts to add with the Import Contacts tool. For phone numbers, first check how they are written." %}
+              <strong>{% trans "No Matches Found:" %}</strong> {% trans "These entries were not found in the database, so they could be new contacts to add with the Import Contacts tool." %}
             </div>
           </div>
 
@@ -164,7 +164,7 @@
         </div>
       </div>
       <div class="card-body">
-        <p>{% blocktrans with min_digits=min_phone_digits %}These values have fewer than {{ min_digits }} digits, so they were not searched. Fix them in your file and check again.{% endblocktrans %}</p>
+        <p>{% blocktrans with min_digits=min_phone_digits %}These values have fewer than {{ min_digits }} digits, not counting leading zeros, so they were not searched. Fix them in your file and check again.{% endblocktrans %}</p>
         <div class="table-responsive">
           <table class="table table-bordered" id="not-searched-phones-table">
             <thead>
