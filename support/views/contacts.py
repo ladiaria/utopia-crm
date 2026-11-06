@@ -8,6 +8,7 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import Q, F, Prefetch, Case, When, Value, BooleanField, Count, Exists, OuterRef
+from django.db.models.functions import Lower
 from django.contrib.auth.models import Group
 from django.core.paginator import Paginator
 from django.views.generic import UpdateView, CreateView, DetailView, ListView, FormView
@@ -21,7 +22,6 @@ from django.contrib import messages
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_protect
 from django.utils.functional import cached_property
-import io
 
 from core.email_takeover_queue import (
     notify_takeover_after_create,
@@ -47,9 +47,9 @@ from core.forms import ContactAdminForm, ContactUpdateForm
 from core.mixins import BreadcrumbsMixin
 from core.utils import (
     MIN_PHONE_SEARCH_DIGITS,
-    detect_csv_delimiter,
     get_mailtrain_lists,
     phone_search_q,
+    read_uploaded_csv,
     significant_phone_digits,
 )
 from util.location_utils import georef_habilitado
@@ -957,36 +957,33 @@ class CheckForExistingContactsView(BreadcrumbsMixin, FormView):
     def get_success_url(self):
         return reverse("contact_list")
 
-    def find_matching_contacts_by_email(self, email):
-        """
-        Find matching contacts based on email only.
-        Returns a list of contacts that match the given email.
-        """
-        contacts = (
-            Contact.objects.filter(email__iexact=email)
-            .prefetch_related(
-                Prefetch('subscriptions', queryset=Subscription.objects.filter(active=True, status__in=['OK', 'G']))
-            )
-            .prefetch_related('contactcampaignstatus_set')
-            .annotate(
-                is_email_match=Case(
-                    When(email__iexact=email, then=Value(True)),
-                    default=Value(False),
-                    output_field=BooleanField(),
-                ),
-                active_campaign_count=Count(
-                    'contactcampaignstatus', filter=Q(contactcampaignstatus__campaign__active=True), distinct=True
-                ),
-            )
-            .distinct()
+    def with_results_data(self, contacts):
+        """Adds what the results table shows to the contacts, so that it doesn't take a query per contact."""
+        return contacts.annotate(
+            has_active_subscription=Exists(
+                Subscription.objects.filter(contact=OuterRef('pk'), active=True, status__in=['OK', 'G'])
+            ),
+            is_in_active_campaign=Exists(
+                ContactCampaignStatus.objects.filter(contact=OuterRef('pk'), campaign__active=True)
+            ),
         )
 
-        return contacts
+    def find_matching_contacts_by_emails(self, emails):
+        """
+        Find the contacts of all the emails in one query, ignoring case.
+        Returns a dict with the lowercase email as the key and its contacts as the value.
+        """
+        contacts_by_email = {}
+        contacts = Contact.objects.annotate(lower_email=Lower('email')).filter(
+            lower_email__in={email.lower() for email in emails}
+        )
+        for contact in self.with_results_data(contacts):
+            contacts_by_email.setdefault(contact.lower_email, []).append(contact)
+        return contacts_by_email
 
     def find_matching_contacts_by_phone(self, phone_number):
         """
         Find matching contacts based on phone or mobile number.
-        Returns a list of contacts that match the given phone number.
         The search itself is phone_search_q, the same as in the other phone search boxes.
         """
         from phonenumber_field.phonenumber import PhoneNumber
@@ -1007,104 +1004,65 @@ class CheckForExistingContactsView(BreadcrumbsMixin, FormView):
         if parsed_phone:
             query |= Q(phone=parsed_phone) | Q(mobile=parsed_phone)
 
-        contacts = (
-            Contact.objects.filter(query)
-            .prefetch_related(
-                Prefetch(
-                    'subscriptions', queryset=Subscription.objects.filter(active=True, status__in=['OK', 'G'])
-                )
-            )
-            .prefetch_related('contactcampaignstatus_set')
-            .annotate(
-                is_phone_match=Case(
-                    When(phone_query, then=Value(True)),
-                    default=Value(False),
-                    output_field=BooleanField(),
-                ),
-                is_mobile_match=Case(
-                    When(mobile_query, then=Value(True)),
-                    default=Value(False),
-                    output_field=BooleanField(),
-                ),
-                active_campaign_count=Count(
-                    'contactcampaignstatus', filter=Q(contactcampaignstatus__campaign__active=True), distinct=True
-                ),
-            )
-            .distinct()
+        return self.with_results_data(Contact.objects.filter(query)).annotate(
+            is_phone_match=Case(
+                When(phone_query, then=Value(True)),
+                default=Value(False),
+                output_field=BooleanField(),
+            ),
+            is_mobile_match=Case(
+                When(mobile_query, then=Value(True)),
+                default=Value(False),
+                output_field=BooleanField(),
+            ),
         )
 
-        return contacts
-
-    def process_file(self, file, check_type='email'):
+    def process_file(self, reader, check_type='email'):
         """
-        Process CSV file with automatic delimiter detection.
-        Processes email or phone column for contact matching based on check_type.
+        Look for the email or phone column of each row of a read CSV file.
 
         Args:
-            file: CSV file to process
+            reader: csv.DictReader of the file
             check_type: 'email' or 'phone' - determines which column to check
         """
         results = []
         non_matches = []
         not_searched_phones = []
 
-        # Detect delimiter automatically
-        delimiter = detect_csv_delimiter(file)
+        rows = [(row_number, row.get(check_type, '').strip()) for row_number, row in enumerate(reader, start=1)]
+        if check_type == 'email':
+            contacts_by_email = self.find_matching_contacts_by_emails(value for _, value in rows if value)
 
-        for row_number, row in enumerate(csv.DictReader(file, delimiter=delimiter, quotechar='"')):
+        for row_number, value in rows:
             if check_type == 'email':
-                value = row.get('email', '').strip()
                 if not value:
-                    non_matches.append({'value': value or 'N/A', 'row_number': row_number + 1})
+                    non_matches.append({'value': 'N/A', 'row_number': row_number})
                     continue
-                contacts = self.find_matching_contacts_by_email(value)
-
-                if contacts:
-                    for contact in contacts:
-                        results.append(
-                            {
-                                'contact': contact,
-                                'count': contacts.count(),
-                                'email_matches': contact.is_email_match,
-                                'has_active_subscription': bool(contact.subscriptions.all()),
-                                'is_in_active_campaign': contact.active_campaign_count > 0,
-                                'csv_value': value,
-                                'csv_row': row_number + 1,
-                                'check_type': 'email',
-                            }
-                        )
-                else:
-                    non_matches.append({'value': value, 'row_number': row_number + 1})
-
-            elif check_type == 'phone':
-                value = row.get('phone', '').strip()
+                contacts = contacts_by_email.get(value.lower(), [])
+            else:
                 if len(significant_phone_digits(value)) < self.min_phone_digits:
-                    not_searched_phones.append({'value': value, 'row_number': row_number + 1})
+                    not_searched_phones.append({'value': value, 'row_number': row_number})
                     continue
                 contacts = self.find_matching_contacts_by_phone(value)
 
-                if contacts:
-                    for contact in contacts:
-                        results.append(
-                            {
-                                'contact': contact,
-                                'count': contacts.count(),
-                                'phone_matches': getattr(contact, 'is_phone_match', False),
-                                'mobile_matches': getattr(contact, 'is_mobile_match', False),
-                                'has_active_subscription': bool(contact.subscriptions.all()),
-                                'is_in_active_campaign': contact.active_campaign_count > 0,
-                                'csv_value': value,
-                                'csv_row': row_number + 1,
-                                'check_type': 'phone',
-                            }
-                        )
-                else:
-                    non_matches.append({'value': value, 'row_number': row_number + 1})
+            if not contacts:
+                non_matches.append({'value': value, 'row_number': row_number})
 
-            if (row_number + 1) % 100 == 0 and settings.DEBUG:
-                print(f"processed {row_number + 1} rows")
+            for contact in contacts:
+                results.append(
+                    {
+                        'contact': contact,
+                        'phone_matches': getattr(contact, 'is_phone_match', False),
+                        'mobile_matches': getattr(contact, 'is_mobile_match', False),
+                        'has_active_subscription': contact.has_active_subscription,
+                        'is_in_active_campaign': contact.is_in_active_campaign,
+                        'csv_value': value,
+                        'csv_row': row_number,
+                        'check_type': check_type,
+                    }
+                )
 
-        return results, non_matches, not_searched_phones, delimiter
+        return results, non_matches, not_searched_phones
 
     def get(self, request, *args, **kwargs):
         """Handle GET requests, including CSV template downloads."""
@@ -1149,14 +1107,12 @@ class CheckForExistingContactsView(BreadcrumbsMixin, FormView):
         return response
 
     def form_valid(self, form):
-        csvfile = form.cleaned_data['file']
-        # utf-8-sig: Excel's "CSV UTF-8" starts with a BOM, which would otherwise become part of the first column name
-        decoded_file = io.StringIO(csvfile.read().decode('utf-8-sig'))
+        reader, delimiter = read_uploaded_csv(form.cleaned_data['file'])
 
         # Determine check type based on which button was pressed
         check_type = 'phone' if 'check_phone' in self.request.POST else 'email'
 
-        results, non_matches, not_searched_phones, delimiter = self.process_file(decoded_file, check_type=check_type)
+        results, non_matches, not_searched_phones = self.process_file(reader, check_type=check_type)
 
         context = self.get_context_data(form=form)
         context['results'] = results

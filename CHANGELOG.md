@@ -2,6 +2,14 @@
 
 ## v0.5.1
 
+## 2026-11-06 — gl105-csv-consultas-agrupadas Buscar contactos existentes: cualquier CSV de una planilla, y los emails en una consulta
+
+- **Un CSV que no está en UTF-8 o con una fila corta ya no da error 500**: es lo que pasaba con el «CSV» común de Excel y con las filas con menos columnas que el encabezado
+- **2.000 emails pasan de casi 3 minutos a menos de un segundo**: se buscan todos en una consulta, con la suscripción activa y la campaña en la misma
+- **Los teléfonos hacen una consulta por fila en vez de tres**, pero tardan casi lo mismo: buscar los dígitos dentro del número sigue siendo lo que cuesta
+- Deployment: no se requieren migraciones. No cambia lo que encuentra la pantalla
+- **Author:** Tanya Tree + Claude Opus 5.5
+
 ## 2026-11-06 — gl106-buscar-telefono Todos los buscadores de teléfono encuentran el número con el 0 inicial y con espacios
 
 - **`099123456` y `099 123 456` ahora encuentran a la persona** en la lista de contactos, las tareas programadas y las facturas: los números se guardan con el código de país, así que antes no coincidían
