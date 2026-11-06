@@ -1,5 +1,6 @@
 import csv
 import json
+import re
 import pandas as pd
 from datetime import date
 
@@ -933,6 +934,9 @@ def contact_activities_htmx(request, contact_id):
 class CheckForExistingContactsView(BreadcrumbsMixin, FormView):
     template_name = "check_for_existing_contacts.html"
     form_class = CheckForExistingContactsForm
+    # The search looks for the digits anywhere in the number: with few digits it matches thousands of contacts, and with
+    # none it matches all of them and loads them in memory.
+    min_phone_digits = 7
 
     def breadcrumbs(self):
         return [
@@ -940,6 +944,11 @@ class CheckForExistingContactsView(BreadcrumbsMixin, FormView):
             {"url": reverse("campaign_management"), "label": _("Campaign Management")},
             {"label": _("Check for existing contacts"), "url": reverse("check_for_existing_contacts")},
         ]
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['min_phone_digits'] = self.min_phone_digits
+        return context
 
     def get_success_url(self):
         return reverse("contact_list")
@@ -976,7 +985,6 @@ class CheckForExistingContactsView(BreadcrumbsMixin, FormView):
         Returns a list of contacts that match the given phone number.
         Normalizes phone numbers to work with or without the '+' symbol.
         """
-        import re
         from phonenumber_field.phonenumber import PhoneNumber
 
         # Normalize the input phone number by removing non-digit characters except +
@@ -1040,6 +1048,7 @@ class CheckForExistingContactsView(BreadcrumbsMixin, FormView):
         """
         results = []
         non_matches = []
+        not_searched_phones = []
 
         # Detect delimiter automatically
         delimiter = detect_csv_delimiter(file)
@@ -1071,8 +1080,8 @@ class CheckForExistingContactsView(BreadcrumbsMixin, FormView):
 
             elif check_type == 'phone':
                 value = row.get('phone', '').strip()
-                if not value:
-                    non_matches.append({'value': value or 'N/A', 'row_number': row_number + 1})
+                if len(re.sub(r'\D', '', value)) < self.min_phone_digits:
+                    not_searched_phones.append({'value': value, 'row_number': row_number + 1})
                     continue
                 contacts = self.find_matching_contacts_by_phone(value)
 
@@ -1097,7 +1106,7 @@ class CheckForExistingContactsView(BreadcrumbsMixin, FormView):
             if (row_number + 1) % 100 == 0 and settings.DEBUG:
                 print(f"processed {row_number + 1} rows")
 
-        return results, non_matches, delimiter
+        return results, non_matches, not_searched_phones, delimiter
 
     def get(self, request, *args, **kwargs):
         """Handle GET requests, including CSV template downloads."""
@@ -1143,16 +1152,18 @@ class CheckForExistingContactsView(BreadcrumbsMixin, FormView):
 
     def form_valid(self, form):
         csvfile = form.cleaned_data['file']
-        decoded_file = io.StringIO(csvfile.read().decode('utf-8'))
+        # utf-8-sig: Excel's "CSV UTF-8" starts with a BOM, which would otherwise become part of the first column name
+        decoded_file = io.StringIO(csvfile.read().decode('utf-8-sig'))
 
         # Determine check type based on which button was pressed
         check_type = 'phone' if 'check_phone' in self.request.POST else 'email'
 
-        results, non_matches, delimiter = self.process_file(decoded_file, check_type=check_type)
+        results, non_matches, not_searched_phones, delimiter = self.process_file(decoded_file, check_type=check_type)
 
         context = self.get_context_data(form=form)
         context['results'] = results
         context['non_matches'] = non_matches
+        context['not_searched_phones'] = not_searched_phones
         context['detected_delimiter'] = 'semicolon (;)' if delimiter == ';' else 'comma (,)'
         context['check_type'] = check_type
 
