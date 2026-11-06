@@ -7374,6 +7374,11 @@ msgstr "Ir a revisar"
 msgid "Tag Contacts"
 msgstr "Etiquetar contactos"
 
+#: support/views/all_views.py
+#, python-format
+msgid "%(count)s rows have no tag and were skipped"
+msgstr "%(count)s filas no tienen etiqueta y se saltearon"
+
 #: support/templates/campaign_management_menu.html:164
 msgid "Upload a CSV to add tags to a set of contacts."
 msgstr "Subir un archivo CSV para agregar etiquetas a un grupo de contactos."

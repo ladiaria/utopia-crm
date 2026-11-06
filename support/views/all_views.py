@@ -66,6 +66,7 @@ from core.utils import (
     calc_price_from_products,
     logistics_is_installed,
     process_products,
+    read_uploaded_csv_rows,
     run_subscription_validated_hook,
 )
 from invoicing.models import Invoice
@@ -2939,12 +2940,7 @@ def upload_do_not_call_numbers(request):
         if not uploaded_file:
             messages.error(request, _("Please select a CSV file to upload."))
         else:
-            raw = uploaded_file.read()
-            try:
-                decoded_file = raw.decode("utf-8")
-            except UnicodeDecodeError:
-                decoded_file = raw.decode("latin-1")
-            rows = islice(csv.reader(io.StringIO(decoded_file)), header_rows, None)
+            rows = islice(read_uploaded_csv_rows(uploaded_file), header_rows, None)
             try:
                 loaded, discarded = DoNotCallNumber.replace_all_numbers(rows)
             except Exception as e:
@@ -2984,18 +2980,17 @@ def upload_do_not_call_numbers(request):
 @staff_member_required
 def tag_contacts(request):
     if request.FILES:
-        raw = request.FILES.get("file").read()
-        try:
-            decoded_file = raw.decode("utf-8").splitlines()
-        except UnicodeDecodeError:
-            decoded_file = raw.decode("latin-1").splitlines()
-        csvfile = csv.reader(decoded_file)
+        csvfile = read_uploaded_csv_rows(request.FILES.get("file"))
         count = 0
         errors = []
+        without_tag = 0
         if csvfile:
             for row in csvfile:
                 if not row or not row[0].strip().lstrip("-").isdigit():
                     # Skip empty rows or header rows (non-numeric first column)
+                    continue
+                if len(row) < 2 or not row[1].strip():
+                    without_tag += 1
                     continue
                 try:
                     contact = Contact.objects.get(pk=row[0])
@@ -3006,6 +3001,8 @@ def tag_contacts(request):
             messages.success(request, f"Se agregaron {count} etiquetas.")
             if errors:
                 messages.error(request, f"{len(errors)} contactos no existen")
+            if without_tag:
+                messages.warning(request, _("%(count)s rows have no tag and were skipped") % {"count": without_tag})
             return HttpResponseRedirect(reverse("tag_contacts"))
 
     return render(

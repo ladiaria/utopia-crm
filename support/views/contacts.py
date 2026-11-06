@@ -51,6 +51,7 @@ from core.utils import (
     phone_search_q,
     read_uploaded_csv,
     significant_phone_digits,
+    uploaded_csv_content,
 )
 from util.location_utils import georef_habilitado
 
@@ -695,11 +696,12 @@ class ImportContactsView(BreadcrumbsMixin, FormView):
         }
 
         try:
+            content, delimiter = uploaded_csv_content(csv_file)
             if use_headers:
-                df = pd.read_csv(csv_file, dtype=str, keep_default_na=False)
+                df = pd.read_csv(content, sep=delimiter, dtype=str, keep_default_na=False, index_col=False)
             else:
                 # Read without headers and assign column names manually
-                df = pd.read_csv(csv_file, header=None, dtype=str, keep_default_na=False)
+                df = pd.read_csv(content, sep=delimiter, header=None, dtype=str, keep_default_na=False)
                 df.columns = [
                     'name',
                     'last_name',
