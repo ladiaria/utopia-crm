@@ -1,0 +1,12 @@
+{% load i18n %}
+{% comment %}
+  What a contact owes in currencies other than the local one (it/utopia-crm-ladiaria#123), never added to the debt in
+  the local currency. Needs debt_in_other_currencies, from Contact.get_debt_in_other_currencies.
+{% endcomment %}
+{% for row in debt_in_other_currencies %}
+  <div class="alert alert-danger py-2 px-3 mb-3">
+    <i class="fas fa-exclamation-triangle"></i> <strong>{% trans "Debt" %} ({{ row.currency }}):</strong>
+    {{ row.currency }} {{ row.total|floatformat:"-2" }}
+    <small class="d-block mt-1">{{ row.count }} {% trans "overdue invoices" %}</small>
+  </div>
+{% endfor %}

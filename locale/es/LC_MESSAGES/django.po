@@ -13106,3 +13106,12 @@ msgstr "La suscripción está en %(currency)s y no hay precios en esa moneda: no
 #: support/templates/contact_detail/tabs/includes/_subscription_card.html
 msgid "There are no prices in this currency"
 msgstr "No hay precios en esta moneda"
+
+#: invoicing/templates/invoicing/_other_currency_totals.html
+msgid "Not included in these totals, which are in the local currency only:"
+msgstr "No están en estos totales, que son sólo en moneda local:"
+
+#: invoicing/templates/invoicing/_other_currency_totals.html
+#, python-format
+msgid "%(count)s in %(currency)s"
+msgstr "%(count)s en %(currency)s"

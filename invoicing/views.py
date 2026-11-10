@@ -27,6 +27,7 @@ from .forms import InvoiceForm, InvoiceItemFormSet
 from invoicing.models import Invoice, InvoiceItem, CreditNote
 from core.models import Contact, Product
 from core.mixins import BreadcrumbsMixin
+from util.currency import split_by_currency
 
 
 @staff_member_required
@@ -57,7 +58,16 @@ def contact_invoices(request, contact_id):
 
     debt = contact.get_debt()
 
-    return render(request, 'contact_invoices.html', {'contact': contact, 'invoice_list': invoice_list, 'debt': debt})
+    return render(
+        request,
+        'contact_invoices.html',
+        {
+            'contact': contact,
+            'invoice_list': invoice_list,
+            'debt': debt,
+            'debt_in_other_currencies': contact.get_debt_in_other_currencies(),
+        },
+    )
 
 
 @staff_member_required
@@ -317,7 +327,8 @@ class InvoiceFilterView(BreadcrumbsMixin, FilterView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        filtered_qs = context['filter'].qs
+        # Totals add up the local currency only; the other currencies are shown apart, each in its own
+        filtered_qs, other_currencies = split_by_currency(context['filter'].qs)
 
         invoices_sum = filtered_qs.aggregate(Sum('amount'))['amount__sum']
         invoices_count = filtered_qs.count()
@@ -346,7 +357,8 @@ class InvoiceFilterView(BreadcrumbsMixin, FilterView):
         uncollectible_sum = uncollectible.aggregate(Sum('amount'))['amount__sum']
         uncollectible_count = uncollectible.count()
 
-        date_range = filtered_qs.aggregate(
+        # The date range describes what was filtered, in any currency: it is not a money total
+        date_range = context['filter'].qs.aggregate(
             oldest_date=Min('creation_date'),
             newest_date=Max('creation_date'),
         )
@@ -366,6 +378,7 @@ class InvoiceFilterView(BreadcrumbsMixin, FilterView):
             'uncollectible_count': uncollectible_count,
             'oldest_date': date_range['oldest_date'],
             'newest_date': date_range['newest_date'],
+            'other_currencies': other_currencies,
         })
         return context
 

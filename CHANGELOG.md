@@ -2,6 +2,14 @@
 
 ## v0.5.1
 
+## 2026-11-10 — gl123-sumas-por-moneda Ningún total de plata mezcla monedas
+
+- **Los totales suman sólo la moneda local**: el filtro de facturas, la deuda del contacto y el listado de deudores. Lo que esté en otra moneda se muestra aparte, con su cantidad y su suma en esa moneda, y nunca se suma a los pesos. Mientras no haya facturas en otra moneda no cambia ningún número
+- **La deuda en otra moneda se ve aparte** en la ficha y en las facturas del contacto
+- **El listado de deudores muestra lo que se debe**: la columna de deuda y el total de abajo sumaban todas las facturas del contacto, también las pagas. Ahora suman sólo las vencidas impagas (la exportación a CSV ya lo hacía bien)
+- Deployment: no se requieren migraciones
+- **Author:** Tanya Tree + Claude Opus 5.5
+
 ## 2026-11-10 — gl122-pais-de-la-direccion Las direcciones toman el país de su departamento
 
 - **Una dirección que se guarda sin país toma el de su departamento.** Ninguna pantalla ni integración que crea direcciones les ponía el país, así que desde que el país pasó a ser un campo propio nacían sin él (13.966 en la diaria), aunque en la ficha se viera por el departamento

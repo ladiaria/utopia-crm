@@ -142,13 +142,14 @@
         {% block payment_requests %}
         {% endblock payment_requests %}
 
-        {% if last_paid_invoice or debt %}
+        {% if last_paid_invoice or debt or debt_in_other_currencies %}
           {% if debt %}
             <div class="alert alert-danger py-2 px-3 mb-3">
               <i class="fas fa-exclamation-triangle"></i> <strong>{% trans "Debt" %}:</strong> ${{ debt }}
               <small class="d-block mt-1">{{ expired_invoices_count }} {% trans "overdue invoices" %}</small>
             </div>
           {% endif %}
+          {% include "invoicing/_debt_in_other_currencies.html" %}
 
           {% if last_paid_invoice %}
             <div class="mb-2">
