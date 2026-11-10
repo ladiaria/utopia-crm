@@ -25,6 +25,7 @@ from taggit.managers import TaggableManager
 from simple_history.models import HistoricalRecords
 from phonenumber_field.modelfields import PhoneNumberField
 
+from util.currency import get_default_currency
 from util.dates import get_default_next_billing, get_default_start_date, diff_month
 
 from .managers import ProductManager
@@ -1832,6 +1833,12 @@ class Subscription(models.Model):
         null=True,
         blank=True,
         verbose_name=_("Payment type"),
+    )
+    currency = models.CharField(
+        _("Currency"),
+        max_length=3,
+        default=get_default_currency,
+        help_text=_("ISO 4217 code. Its invoices are in this currency."),
     )
 
     updated_from = models.OneToOneField(

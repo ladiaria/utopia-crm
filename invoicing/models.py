@@ -11,6 +11,7 @@ from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
 
 from invoicing.choices import INVOICEITEM_TYPE_CHOICES, INVOICEITEM_DR_TYPE_CHOICES
+from util.currency import get_default_currency
 
 
 class Invoice(models.Model):
@@ -21,6 +22,23 @@ class Invoice(models.Model):
     service_to = models.DateField(verbose_name=_("Service To"))
     balance = models.DecimalField(_("Balance"), max_digits=10, decimal_places=2, blank=True, null=True)
     amount = models.DecimalField(_("Amount"), max_digits=10, decimal_places=2, blank=True, null=True)
+    currency = models.CharField(
+        _("Currency"),
+        max_length=3,
+        default=get_default_currency,
+        help_text=_("ISO 4217 code. Copied from the subscription when it is billed, and never changed afterwards."),
+    )
+    exchange_rate = models.DecimalField(
+        _("Exchange rate"),
+        max_digits=12,
+        decimal_places=6,
+        blank=True,
+        null=True,
+        help_text=_(
+            "Local currency per unit of the invoice currency, set when the fiscal document is issued. Empty for "
+            "invoices in the local currency and for those not issued yet."
+        ),
+    )
     payment_type = models.CharField(
         _("Payment type"),
         max_length=2,
@@ -331,7 +349,7 @@ class CreditNote(models.Model):
     uuid = models.CharField(max_length=36, blank=True, null=True)
     serie = models.CharField(max_length=1, editable=False, blank=True, null=True, verbose_name=_("Serie"))
     numero = models.PositiveIntegerField(editable=False, blank=True, null=True, verbose_name=_("Number"))
-    amount = models.PositiveIntegerField(blank=True, null=True, verbose_name=_("Amount"))
+    amount = models.DecimalField(_("Amount"), max_digits=10, decimal_places=2, blank=True, null=True)
     old_pk = models.PositiveIntegerField(blank=True, null=True)
     created_at = models.DateTimeField(verbose_name=_("Created at"), auto_now_add=True, null=True, blank=True)
     updated_at = models.DateTimeField(verbose_name=_("Updated at"), auto_now=True, null=True, blank=True)
