@@ -1424,6 +1424,9 @@ class Address(models.Model):
         if self.state_georef_id and self.city_georef_id and self.georef_point:
             self.verified = True
             self.needs_georef = False
+        if self.country_id is None and self.state_id:
+            # The country of an address without one is its state's: a state belongs to a single country
+            self.country_id = self.state.country_id
         super(Address, self).save(*args, **kwargs)
 
     def get_city(self):
