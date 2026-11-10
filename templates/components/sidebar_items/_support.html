@@ -1,7 +1,6 @@
 {% load i18n core_tags %}
 {% url 'list_issues' as list_issues %}
 {% url "invoicing_issues" as collection_issues %}
-{% url "dynamic_contact_filter_list" as dynamic_contact_filter_list %}
 {% url "list_routes" as list_routes %}
 {% url "list_routes_detailed" as list_routes_detailed %}
 {% url "scheduled_task_filter" as scheduled_task_filter %}
@@ -28,13 +27,6 @@
          class="nav-link {% if request.path == collection_issues %}active{% endif %}">
         <i class="nav-icon fas fa-exclamation-triangle"></i>
         <p>{% trans "Collection issues" %}</p>
-      </a>
-    </li>
-    <li class="nav-item">
-      <a href="{{ dynamic_contact_filter_list }}"
-         class="nav-link {% if request.path == dynamic_contact_filter_list %}active{% endif %}">
-        <i class="nav-icon fas fa-filter"></i>
-        <p>{% trans "Contact filters" %}</p>
       </a>
     </li>
     <li class="nav-item">
