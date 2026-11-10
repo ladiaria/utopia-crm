@@ -13102,3 +13102,7 @@ msgstr "Código ISO 4217. Sus facturas van en esta moneda."
 #, python-format
 msgid "The subscription is in %(currency)s and there are no prices in that currency, it can't be billed"
 msgstr "La suscripción está en %(currency)s y no hay precios en esa moneda: no se puede facturar"
+
+#: support/templates/contact_detail/tabs/includes/_subscription_card.html
+msgid "There are no prices in this currency"
+msgstr "No hay precios en esta moneda"

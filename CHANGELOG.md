@@ -5,7 +5,8 @@
 ## 2026-11-10 — gl120-moneda La suscripción y la factura tienen moneda
 
 - **Cada suscripción y cada factura dicen en qué moneda están.** Todas las que ya existen quedan en pesos, y las nuevas también, salvo que se creen en otra. Es la base para las suscripciones en dólares por PayPal (it/utopia-crm-ladiaria#64)
-- **La factura toma la moneda de su suscripción** al facturarla, y después no cambia
+- **La factura toma la moneda de su suscripción** al facturarla, y después no cambia. La moneda se ve en la ficha del contacto (resumen y tarjeta de la suscripción) y en el detalle de la factura, sólo para informar: no se edita en ninguna pantalla
+- **En una suscripción en otra moneda, la ficha no muestra un precio en pesos**: dice que no hay precios en esa moneda
 - **Una suscripción en otra moneda no se factura con la facturación de siempre**: los precios de los productos están en pesos, y el CRM nunca convierte. Da un error que lo explica
 - **La factura puede guardar la cotización** con la que se emitió su comprobante fiscal. Las notas de crédito ahora guardan los centavos
 - Deployment: se requieren migraciones (`core` e `invoicing`)

@@ -57,6 +57,14 @@ Todavía no hay precios en otras monedas, así que facturarla pondría un precio
 - **Suscripción:** la moneda se ve al lado del saldo, sólo lectura: la pone quien crea la suscripción, y de ella dependen sus facturas.
 - **Factura:** la moneda en el listado y como filtro; moneda y cotización en el formulario, sólo lectura; y `billing_country`, que no se mostraba, al lado del documento de facturación.
 
+### 6. La moneda en las pantallas, sólo para ver
+
+**Archivos:** `core/models.py`, `support/templates/contact_detail/tabs/includes/_overview_subscription_list_item.html`, `support/templates/contact_detail/tabs/includes/_subscription_card.html`, `invoicing/templates/invoice/invoice_detail.html`
+
+La moneda es informativa: ningún formulario la edita. La ficha del contacto la muestra debajo del precio, en el resumen y en la tarjeta de la suscripción, y el detalle de la factura la muestra debajo del monto, con la cotización cuando la hay. Los paquetes de customización que extienden estas plantillas también la muestran.
+
+`Subscription.in_default_currency` dice si la suscripción está en moneda local. Si no lo está, la ficha no muestra el precio que calcula el CRM (sería un precio en moneda local) y dice que no hay precios en esa moneda. `calc_price_from_products` y `get_price_for_full_period` no cambian: ponen precio al catálogo, que está en moneda local, y los usan unos 40 lugares.
+
 ## 📁 Archivos modificados
 
 - **`settings.py`** — `DEFAULT_CURRENCY`
@@ -65,6 +73,8 @@ Todavía no hay precios en otras monedas, así que facturarla pondría un precio
 - **`invoicing/utils.py`** — `bill_subscription` copia la moneda y rechaza otra
 - **`core/admin.py`** — La moneda en el admin de la suscripción, sólo lectura
 - **`invoicing/admin.py`** — Moneda, cotización y país de facturación en el admin de la factura
+- **`support/templates/contact_detail/tabs/includes/_overview_subscription_list_item.html`**, **`_subscription_card.html`** — La moneda, y sin precio local para otra moneda
+- **`invoicing/templates/invoice/invoice_detail.html`** — La moneda y la cotización
 - **`locale/es/LC_MESSAGES/django.po`** — Traducciones de los textos nuevos
 - **`CHANGELOG.md`** — Entrada de este cambio
 
@@ -77,7 +87,7 @@ Todavía no hay precios en otras monedas, así que facturarla pondría un precio
 
 ## 🧪 Pruebas manuales
 
-**Tests automatizados** (`tests/test_currency.py`): las filas nuevas toman la moneda local, el valor por defecto se lee de los settings al crear la fila, la factura copia la moneda de la suscripción, una suscripción en otra moneda no se factura y no se crea ninguna factura, la moneda local es la de los settings, y las notas de crédito guardan los centavos. Pasa el suite completo del base (523 tests, sin `test_cmssync`, que necesita un CMS corriendo).
+**Tests automatizados** (`tests/test_currency.py`): las filas nuevas toman la moneda local, el valor por defecto se lee de los settings al crear la fila, la factura copia la moneda de la suscripción, una suscripción en otra moneda no se factura y no se crea ninguna factura, la moneda local es la de los settings, las notas de crédito guardan los centavos, y la ficha del contacto y el detalle de la factura muestran la moneda, sin precio local para otra moneda. Pasa el suite completo del base (526 tests, sin `test_cmssync`, que necesita un CMS corriendo).
 
 1. **Caso exitoso, facturar como siempre:**
    - Facturar una suscripción existente desde la pantalla del contacto.

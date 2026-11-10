@@ -57,6 +57,14 @@ There are no prices in other currencies yet, so billing one would put a local-cu
 - **Subscription:** the currency is shown next to the balance, read-only: whoever creates the subscription sets it, and its invoices depend on it.
 - **Invoice:** the currency in the list and as a filter; currency and exchange rate in the form, read-only; and `billing_country`, which was not shown, next to the billing document.
 
+### 6. The currency in the screens, read-only
+
+**Files:** `core/models.py`, `support/templates/contact_detail/tabs/includes/_overview_subscription_list_item.html`, `support/templates/contact_detail/tabs/includes/_subscription_card.html`, `invoicing/templates/invoice/invoice_detail.html`
+
+The currency is informative: no form edits it. The contact screen shows it under the price, in both the overview and the subscription card, and the invoice detail shows it under the amount, with the exchange rate when there is one. Customization packages that extend these templates get it too.
+
+`Subscription.in_default_currency` tells whether the subscription is in the local currency. When it is not, the contact screen does not show the price the CRM calculates (it would be a local-currency price) and says there are no prices in that currency instead. `calc_price_from_products` and `get_price_for_full_period` are not changed: they price the catalogue, which is in the local currency, and some 40 places use them.
+
 ## 📁 Files Modified
 
 - **`settings.py`** — `DEFAULT_CURRENCY`
@@ -65,6 +73,8 @@ There are no prices in other currencies yet, so billing one would put a local-cu
 - **`invoicing/utils.py`** — `bill_subscription` copies the currency and refuses another one
 - **`core/admin.py`** — Currency in the subscription admin, read-only
 - **`invoicing/admin.py`** — Currency, exchange rate and billing country in the invoice admin
+- **`support/templates/contact_detail/tabs/includes/_overview_subscription_list_item.html`**, **`_subscription_card.html`** — The currency, and no local price for another currency
+- **`invoicing/templates/invoice/invoice_detail.html`** — The currency and the exchange rate
 - **`locale/es/LC_MESSAGES/django.po`** — Translations of the new texts
 - **`CHANGELOG.md`** — Entry for this change
 
@@ -77,7 +87,7 @@ There are no prices in other currencies yet, so billing one would put a local-cu
 
 ## 🧪 Manual Testing
 
-**Automated tests** (`tests/test_currency.py`): new rows default to the local currency, the default is read from settings when the row is created, the invoice copies the subscription's currency, a subscription in another currency is not billed and no invoice is created, the local currency is the one in settings, and credit notes keep their cents. The whole base suite passes (523 tests, without `test_cmssync`, which needs a running CMS).
+**Automated tests** (`tests/test_currency.py`): new rows default to the local currency, the default is read from settings when the row is created, the invoice copies the subscription's currency, a subscription in another currency is not billed and no invoice is created, the local currency is the one in settings, credit notes keep their cents, and the contact screen and the invoice detail show the currency without a local price for another currency. The whole base suite passes (526 tests, without `test_cmssync`, which needs a running CMS).
 
 1. **Happy path, billing as always:**
    - Bill an existing subscription from the contact screen.

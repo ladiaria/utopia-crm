@@ -6,7 +6,9 @@ subscription in a currency other than the local one is never billed at a convert
 from datetime import date
 from decimal import Decimal
 
+from django.contrib.auth.models import User
 from django.test import TestCase, override_settings
+from django.urls import reverse
 
 from core.models import Product, Subscription
 from invoicing.models import CreditNote, Invoice
@@ -87,3 +89,40 @@ class CreditNoteAmountTests(TestCase):
         note = CreditNote.objects.create(invoice=invoice, amount=Decimal("4.99"))
         note.refresh_from_db()
         self.assertEqual(note.amount, Decimal("4.99"))
+
+
+class ShownCurrencyTests(TestCase):
+    """The currency is informative: shown in the screens, never edited there."""
+
+    def test_in_default_currency(self):
+        subscription = create_subscription(create_contact("Shown currency", "29000124"))
+        self.assertTrue(subscription.in_default_currency)
+        subscription.currency = "USD"
+        self.assertFalse(subscription.in_default_currency)
+
+    def test_the_invoice_detail_shows_the_currency_and_the_exchange_rate(self):
+        user = User.objects.create_superuser(username="currency_detail", password="x")
+        self.client.force_login(user)
+        invoice = Invoice.objects.create(
+            contact=create_contact("Invoice detail currency", "29000125"),
+            creation_date=date(2026, 11, 10),
+            expiration_date=date(2026, 11, 20),
+            service_from=date(2026, 11, 10),
+            service_to=date(2026, 12, 10),
+            amount=Decimal("6.50"),
+            currency="USD",
+            exchange_rate=Decimal("40.214000"),
+        )
+        response = self.client.get(reverse("invoice_detail", args=[invoice.pk]))
+        self.assertContains(response, "<p>USD</p>", html=True)
+        self.assertContains(response, "40.214000")
+
+    def test_the_contact_screen_does_not_show_a_local_price_for_another_currency(self):
+        user = User.objects.create_superuser(username="currency_contact", password="x")
+        self.client.force_login(user)
+        contact = create_contact("Contact USD subscription", "29000126")
+        subscription = create_subscription(contact)
+        Subscription.objects.filter(pk=subscription.pk).update(currency="USD")
+        response = self.client.get(reverse("contact_detail", args=[contact.pk]))
+        self.assertContains(response, "There are no prices in this currency")
+        self.assertContains(response, "USD")
