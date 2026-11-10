@@ -46,7 +46,10 @@ class InvoiceAdminForm(forms.ModelForm):
 class InvoiceAdmin(SimpleHistoryAdmin):
     form = InvoiceAdminForm
     search_fields = ('contact__id', 'contact__name')
-    list_display = ('id', 'contact', 'amount', 'paid', 'debited', 'canceled', 'uncollectible', 'serie', 'numero')
+    list_display = (
+        'id', 'contact', 'amount', 'currency', 'paid', 'debited', 'canceled', 'uncollectible', 'serie', 'numero'
+    )
+    list_filter = ('currency',)
     fieldsets = (
         (
             "",
@@ -56,7 +59,8 @@ class InvoiceAdmin(SimpleHistoryAdmin):
                     'subscription',
                     ('creation_date', 'expiration_date'),
                     ('service_from', 'service_to'),
-                    ('amount', 'payment_type'),
+                    ('amount', 'currency', 'exchange_rate'),
+                    'payment_type',
                     ('debited', 'paid'),
                     ('payment_date', 'payment_reference'),
                     'notes',
@@ -75,7 +79,7 @@ class InvoiceAdmin(SimpleHistoryAdmin):
                 'fields': (
                     ('billing_name', 'billing_address'),
                     ('billing_state', 'billing_city'),
-                    'billing_document',
+                    ('billing_country', 'billing_document'),
                 )
             },
         ),
@@ -85,6 +89,9 @@ class InvoiceAdmin(SimpleHistoryAdmin):
     readonly_fields = [
         'canceled',
         'cancelation_date',
+        # The currency comes from the subscription and the rate from the fiscal document: neither is edited by hand
+        'currency',
+        'exchange_rate',
         'uuid',
         'serie',
         'numero',

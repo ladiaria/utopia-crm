@@ -70,6 +70,16 @@
                         <p>{{ object.amount }}</p>
                       </div>
                       <div class="form-group">
+                        <label>{% trans "Currency" %}</label>
+                        <p>{{ object.currency }}</p>
+                      </div>
+                      {% if object.exchange_rate %}
+                        <div class="form-group">
+                          <label>{% trans "Exchange rate" %}</label>
+                          <p>{{ object.exchange_rate }}</p>
+                        </div>
+                      {% endif %}
+                      <div class="form-group">
                         <label>{% trans "Payment Type" %}</label>
                         <p>{{ object.get_payment_type_display }}</p>
                       </div>

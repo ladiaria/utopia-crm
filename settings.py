@@ -189,6 +189,10 @@ INVOICE_PAYMENT_METHODS = (("M", "Mastercard"), ("V", "Visa"), ("C", "Cash"))
 # How many days into the future are we going to bill contacts
 BILLING_EXTRA_DAYS = 2
 
+# ISO 4217 code of the local currency: the one product prices are in, and the default currency of subscriptions and
+# invoices. A subscription in another currency is not billed by bill_subscription (there are no prices in it).
+DEFAULT_CURRENCY = "UYU"
+
 # Issue statuses
 ISSUE_STATUS_NEW = "new"
 ISSUE_STATUS_PENDING = "pending"

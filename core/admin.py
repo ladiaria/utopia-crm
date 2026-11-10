@@ -203,7 +203,7 @@ class SubscriptionAdmin(SimpleHistoryAdmin):
                     ("active", "type"),
                     ("start_date", "end_date"),
                     ("next_billing", "payment_type"),
-                    ("balance", "frequency"),
+                    ("currency", "balance", "frequency"),
                     ("status", "send_bill_copy_by_email", "send_pdf"),
                     ("payment_certificate"),
                     ("updated_from", "campaign"),
@@ -256,6 +256,8 @@ class SubscriptionAdmin(SimpleHistoryAdmin):
         "updated_from",
         "unsubscription_products",
         "validated_by",
+        # Set by whoever creates the subscription: its invoices are in this currency
+        "currency",
     )
 
     def save_model(self, request, obj, form, change):
