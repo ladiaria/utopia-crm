@@ -2,6 +2,14 @@
 
 ## v0.5.1
 
+## 2026-11-10 — gl122-pais-de-la-direccion Las direcciones toman el país de su departamento
+
+- **Una dirección que se guarda sin país toma el de su departamento.** Ninguna pantalla ni integración que crea direcciones les ponía el país, así que desde que el país pasó a ser un campo propio nacían sin él (13.966 en la diaria), aunque en la ficha se viera por el departamento
+- **Las direcciones que ya existían sin país se completan igual**, si tienen departamento. Las que no tienen departamento quedan como estaban
+- **Una dirección que trae su país lo conserva**, como las direcciones de facturación del exterior
+- Deployment: se requieren migraciones (`core`)
+- **Author:** Tanya Tree + Claude Opus 5.5
+
 ## 2026-11-10 — gl120-moneda La suscripción y la factura tienen moneda
 
 - **Cada suscripción y cada factura dicen en qué moneda están.** Todas las que ya existen quedan en pesos, y las nuevas también, salvo que se creen en otra. Es la base para las suscripciones en dólares por PayPal (it/utopia-crm-ladiaria#64)
