@@ -57,7 +57,12 @@
 
             <div class="callout callout-success">
               <h6><i class="fas fa-phone"></i> {% trans "Phone Match" %}</h6>
-              <p class="mb-0">{% trans "The system searches for contacts by phone or mobile number. It checks both the 'phone' and 'mobile' fields in the database." %}</p>
+              <p class="mb-1">{% trans "The system searches for contacts by phone or mobile number. It checks both the 'phone' and 'mobile' fields in the database." %}</p>
+              <ul class="mb-0">
+                <li>{% trans "The number can be written with its country code (+59899123456), with the leading 0 (099123456) or without it (99123456)." %}</li>
+                <li>{% trans "Spaces and symbols are ignored. The number in the CSV can be just part of the stored one, so a row can find several contacts." %}</li>
+                <li>{% blocktrans with min_digits=min_phone_digits %}Values with fewer than {{ min_digits }} digits, not counting leading zeros, are not searched: they are listed in a separate table so you can fix them.{% endblocktrans %}</li>
+              </ul>
             </div>
 
             <hr>
@@ -78,7 +83,7 @@
 
             <div class="alert alert-info mb-0">
               <i class="icon fas fa-info-circle"></i>
-              <strong>{% trans "No Matches Found:" %}</strong> {% trans "These entries don't exist in the database. These are potential new contacts that could be imported using the Import Contacts tool." %}
+              <strong>{% trans "No Matches Found:" %}</strong> {% trans "These entries were not found in the database, so they could be new contacts to add with the Import Contacts tool." %}
             </div>
           </div>
 
@@ -87,7 +92,7 @@
             <h5><i class="fas fa-lightbulb"></i> {% trans "What to Expect After Checking" %}</h5>
             <div class="row">
               <div class="col-md-6">
-                <h6 class="text-success"><i class="fas fa-check-circle"></i> {% trans "Matching Contacts" %}</h6>
+                <h6><i class="fas fa-check-circle"></i> {% trans "Matching Contacts" %}</h6>
                 <p class="small mb-2">{% trans "You'll see a table with:" %}</p>
                 <ul class="small mb-0">
                   <li>{% trans "Total number of matches found" %}</li>
@@ -98,7 +103,7 @@
               </div>
 
               <div class="col-md-6">
-                <h6 class="text-warning"><i class="fas fa-exclamation-triangle"></i> {% trans "No Matches" %}</h6>
+                <h6><i class="fas fa-exclamation-triangle"></i> {% trans "No Matches" %}</h6>
                 <p class="small mb-2">{% trans "You'll see a separate table with:" %}</p>
                 <ul class="small mb-0">
                   <li>{% trans "Values not found in database" %}</li>
@@ -110,7 +115,7 @@
 
             <hr class="my-2">
 
-            <p class="mb-0"><strong><i class="fas fa-info-circle"></i> {% trans "Pro Tip:" %}</strong> {% trans "Use this tool before importing contacts to avoid duplicates. Export the 'No Matches' list and use it with the Import Contacts tool to add only new contacts." %}</p>
+            <p class="mb-0"><strong><i class="fas fa-info-circle"></i> {% trans "Pro Tip:" %}</strong> {% trans "Use this tool before importing contacts to avoid duplicates. The 'No Matches' list shows which entries are missing, but it cannot be uploaded as is: the Import Contacts tool has its own template, with other columns." %}</p>
           </div>
         </div>
       </div>
@@ -124,8 +129,9 @@
           <div class="alert alert-info mt-2">
             <h5><i class="icon fas fa-info"></i> {% trans "CSV File Requirements" %}:</h5>
             <ul class="mb-0">
-              <li><strong>{% trans "For Email Checking" %}:</strong> {% trans "Your CSV file must contain an 'email' column header" %}</li>
-              <li><strong>{% trans "For Phone Checking" %}:</strong> {% trans "Your CSV file must contain a 'phone' column header" %}</li>
+              <li><strong>{% trans "For Email Checking" %}:</strong> {% trans "Your CSV file must have a column named exactly 'email', in lowercase" %}</li>
+              <li><strong>{% trans "For Phone Checking" %}:</strong> {% trans "Your CSV file must have a column named exactly 'phone', in lowercase" %}</li>
+              <li>{% trans "Save the file in UTF-8 format (in Excel, the 'CSV UTF-8' option under Save As)" %}</li>
               <li>{% trans "The system automatically detects comma (,) or semicolon (;) delimiters" %}</li>
               <li>{% trans "Download the appropriate template above for the correct format" %}</li>
             </ul>
@@ -143,6 +149,43 @@
       </form>
     </div>
   </div>
+
+  {% if not_searched_phones %}
+    <div class="card card-warning mt-4">
+      <div class="card-header">
+        <h3 class="card-title">{% trans "Phone Numbers Not Searched" %} ({{ not_searched_phones|length }})</h3>
+        <div class="card-tools">
+          <button type="button" class="btn btn-tool" data-card-widget="collapse">
+            <i class="fas fa-minus"></i>
+          </button>
+          <button type="button" class="btn btn-success btn-sm ml-2" onclick="exportTableToCSV('not-searched-phones.csv', 'not-searched-phones-table')">
+            <i class="fas fa-download"></i> {% trans "Export to CSV" %}
+          </button>
+        </div>
+      </div>
+      <div class="card-body">
+        <p>{% blocktrans with min_digits=min_phone_digits %}These values have fewer than {{ min_digits }} digits, not counting leading zeros, so they were not searched. Fix them in your file and check again.{% endblocktrans %}</p>
+        <div class="table-responsive">
+          <table class="table table-bordered" id="not-searched-phones-table">
+            <thead>
+              <tr>
+                <th>{% trans "CSV Row" %}</th>
+                <th>{% trans "Value" %}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in not_searched_phones %}
+                <tr>
+                  <td>{{ row.row_number }}</td>
+                  <td>{{ row.value|default:"-" }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  {% endif %}
 
   {% if results %}
     <div class="card mt-4">

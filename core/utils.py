@@ -9,7 +9,9 @@ from requests.auth import HTTPBasicAuth
 from requests.exceptions import ReadTimeout, RequestException
 from typing import Literal
 import csv
+import io
 import logging
+import re
 import mercadopago
 from html2text import html2text
 
@@ -17,6 +19,7 @@ from django.conf import settings
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
 from django.core.mail import mail_managers
+from django.db.models import Q
 from django.utils.timezone import now
 from django.utils.translation import gettext as _
 from django.utils.text import format_lazy
@@ -24,6 +27,11 @@ from rest_framework.decorators import authentication_classes
 
 
 logger = logging.getLogger(__name__)
+
+# The searches look for the digits anywhere in the number: with few digits they match thousands of contacts
+MIN_PHONE_SEARCH_DIGITS = 7
+# Only digits and the symbols people use to write a phone number
+PHONE_LIKE_RE = re.compile(r"[\d\s+().\-/]*")
 
 
 def mailtrain_api_call(endpoint, method='get', data=None):
@@ -726,6 +734,55 @@ def manage_mailtrain_subscription(email: str, list_id: str, action: Literal["sub
     return result
 
 
+def significant_phone_digits(value):
+    """The digits of a typed phone number, without its leading zeros."""
+    return re.sub(r"\D", "", value).lstrip("0")
+
+
+def phone_search_forms(value):
+    """
+    The forms to look for inside the stored numbers when a person types a phone number.
+
+    Numbers are stored with their country code, so 099123456 is not part of +59899123456: besides the digits, the search
+    needs them without the leading zeros. That form has a minimum, or 0123 would look for 123 in every number. The text
+    as it was typed stays because some old numbers are stored with spaces. Without digits there is nothing to look for,
+    and an empty form would match every contact.
+    """
+    typed = value.strip()
+    digits = re.sub(r"\D", "", typed)
+    if not digits:
+        return []
+    forms = [digits]
+    without_zeros = digits.lstrip("0")
+    if without_zeros != digits and len(without_zeros) >= MIN_PHONE_SEARCH_DIGITS:
+        forms.append(without_zeros)
+    if typed.lstrip("+") != digits:
+        forms.append(typed)
+    return forms
+
+
+def phone_search_q(value, *fields):
+    """A filter for a box that only searches phones: looks for the forms of value in any of the fields."""
+    query = Q()
+    for form in phone_search_forms(value):
+        for field in fields:
+            query |= Q(**{f"{field}__contains": form})
+    return query or Q(pk__in=[])
+
+
+def phone_or_text_search_q(value, *fields):
+    """
+    A filter for a box that also searches names, emails or documents: the same as phone_search_q if value looks like a
+    number. Otherwise it stays literal, since taking the digits out of Ana2 would look for 2 in every number.
+    """
+    if PHONE_LIKE_RE.fullmatch(value.strip()):
+        return phone_search_q(value, *fields)
+    query = Q()
+    for field in fields:
+        query |= Q(**{f"{field}__contains": value})
+    return query
+
+
 def select_or_create_contact(email, name=None, phone=None, id_document=None):
     """
     Check if a contact exists in the CRM, if not, create it.
@@ -885,6 +942,49 @@ def detect_csv_delimiter(file_content):
             return ';'
         else:
             return ','
+
+
+def uploaded_csv_content(uploaded_file):
+    """
+    Decode a CSV file uploaded by a person, however their spreadsheet saved it.
+
+    Excel's "CSV UTF-8" starts with a BOM, which would stick to the first value, and its plain "CSV" is cp1252. latin-1
+    is the last resort because it never fails. With a Spanish locale, Excel separates with semicolons.
+
+    Returns the content, ready for a csv reader, and the detected delimiter.
+    """
+    raw = uploaded_file.read()
+    for encoding in ("utf-8-sig", "cp1252"):
+        try:
+            text = raw.decode(encoding)
+            break
+        except UnicodeDecodeError:
+            continue
+    else:
+        text = raw.decode("latin-1")
+    content = io.StringIO(text, newline="")
+    return content, detect_csv_delimiter(content)
+
+
+def read_uploaded_csv(uploaded_file):
+    """
+    Read by column name a CSV file uploaded by a person (see uploaded_csv_content).
+
+    A row with fewer columns than the header gets empty strings instead of None, and what a longer row has left over
+    goes to "extra_columns" instead of a None key. Spaces around the column names are removed.
+
+    Returns the csv.DictReader and the detected delimiter.
+    """
+    content, delimiter = uploaded_csv_content(uploaded_file)
+    reader = csv.DictReader(content, delimiter=delimiter, restval="", restkey="extra_columns")
+    reader.fieldnames = [name.strip() for name in reader.fieldnames or []]
+    return reader, delimiter
+
+
+def read_uploaded_csv_rows(uploaded_file):
+    """Read by position a CSV file uploaded by a person (see uploaded_csv_content). Returns a csv.reader."""
+    content, delimiter = uploaded_csv_content(uploaded_file)
+    return csv.reader(content, delimiter=delimiter)
 
 
 def mail_managers_on_errors(process_name, error_msg, traceback_info=""):

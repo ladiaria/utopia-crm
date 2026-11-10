@@ -2,6 +2,61 @@
 
 ## v0.5.1
 
+## 2026-11-10 — gl116-retirar-filtros-de-contactos Se retira la pantalla «Filtros de contactos» de Soporte
+
+- **La entrada «Filtros de contactos» ya no está en el menú de Soporte**: era para mantener listas de Mailtrain, no para filtrar contactos, y crear o editar un filtro daba error 500. Para filtrar contactos está el filtro de contactos de la diaria
+- **Los filtros guardados no se borran**: siguen en el admin, por si hace falta consultar alguno
+- **Se van también los comandos que sincronizaban con Mailtrain**, que hacía tiempo que no corrían
+- Deployment: no se requieren migraciones
+- **Author:** Tanya Tree + Claude Opus 5.5
+
+## 2026-11-06 — gl110-etiquetas-sin-datos Imprimir etiquetas ya no da error cuando no hay ninguna para imprimir
+
+- **Un día sin etiquetas ya no da error 500**: el PDF sale con una página que dice «No hay etiquetas para imprimir». Vale para todas las pantallas de etiquetas, porque el error estaba en un solo lugar
+- Deployment: no se requieren migraciones
+- **Author:** Tanya Tree + Claude Opus 5.5
+
+## 2026-11-06 — gl107-lectura-csv Una sola forma de leer los CSV que sube la gente
+
+- **Las planillas de Excel se leen bien en todas las pantallas de este repo**: con «CSV» común, con «CSV UTF-8» y con punto y coma. Antes daban error 500 o se cargaban mal sin avisar
+- **La lista de no llamar ya no puede guardar un número con caracteres de más**, que no coincidiría con nadie. En la copia local, la lista actual está limpia
+- **Importar contactos ya no corre los datos** de una fila con más columnas que el encabezado: el nombre terminaba en el apellido
+- **Imprimir etiquetas del día vuelve a aceptar la lista de excluidos**: daba error 500 con cualquier archivo
+- Deployment: no se requieren migraciones. Tiene que subir antes que el cambio de `utopia-crm-ladiaria`
+- **Author:** Tanya Tree + Claude Opus 5.5
+
+## 2026-11-06 — gl105-csv-consultas-agrupadas Buscar contactos existentes: cualquier CSV de una planilla, y los emails en una consulta
+
+- **Un CSV que no está en UTF-8 o con una fila corta ya no da error 500**: es lo que pasaba con el «CSV» común de Excel y con las filas con menos columnas que el encabezado
+- **2.000 emails pasan de casi 3 minutos a menos de un segundo**: se buscan todos en una consulta, con la suscripción activa y la campaña en la misma
+- **Los teléfonos hacen una consulta por fila en vez de tres**, pero tardan casi lo mismo: buscar los dígitos dentro del número sigue siendo lo que cuesta
+- Deployment: no se requieren migraciones. No cambia lo que encuentra la pantalla
+- **Author:** Tanya Tree + Claude Opus 5.5
+
+## 2026-11-06 — gl106-buscar-telefono Todos los buscadores de teléfono encuentran el número con el 0 inicial y con espacios
+
+- **`099123456` y `099 123 456` ahora encuentran a la persona** en la lista de contactos, las tareas programadas y las facturas: los números se guardan con el código de país, así que antes no coincidían
+- **Una sola regla para todos**, también para «Buscar contactos existentes»: limpia lo escrito y prueba con y sin los ceros iniciales, si quedan al menos 7 dígitos. Así `0123` sigue buscando documentos y no todos los números con `123`
+- **Un valor sin dígitos no encuentra a nadie**: un `+` en un buscador de teléfono devolvía a todos los que tienen teléfono
+- Deployment: no se requieren migraciones. Tiene que subir antes que el cambio de `utopia-crm-ladiaria`
+- **Author:** Tanya Tree + Claude Opus 5.5
+
+## 2026-11-06 — gl105-telefono-cero-inicial Buscar contactos existentes encuentra los teléfonos escritos con el 0 inicial
+
+- **Un número escrito `099…` ahora encuentra a la persona**: los teléfonos se guardan con el código de país, así que antes no coincidía y la persona aparecía como si fuera un contacto nuevo. Se busca con y sin el 0, para seguir encontrando los números viejos guardados con el 0
+- **Los ceros iniciales no cuentan para el mínimo de 7 dígitos**: sin ellos, `0000000` quedaría vacío y coincidiría con todos los contactos
+- Las instrucciones de la pantalla dejan de pedir que se escriba sin el 0
+- Deployment: no se requieren migraciones. Cambia qué encuentra la pantalla
+- **Author:** Tanya Tree + Claude Opus 5.5
+
+## 2026-11-06 — gl105-telefonos-minimo-digitos Buscar contactos existentes: mínimo de 7 dígitos para los teléfonos e instrucciones corregidas
+
+- **Un teléfono con menos de 7 dígitos ya no se busca**: un `N/A` o un guion en el CSV coincidían con todos los contactos de la base y los cargaban en memoria. Ahora esos valores aparecen en una tabla aparte, para corregirlos, y no entre los que no tienen coincidencia
+- **El CSV «UTF-8» de Excel funciona**: antes no reconocía la primera columna y daba todas las filas como sin coincidencia
+- **Las instrucciones dicen lo que la pantalla hace**: el número con el 0 inicial en general no se encuentra, la columna va en minúsculas, y la lista de sin coincidencia no se puede subir tal cual a la importación. También se corrigen erratas de la traducción
+- Deployment: no se requieren migraciones. Cambia qué busca la pantalla
+- **Author:** Tanya Tree + Claude Opus 5.5
+
 ## 2026-11-05 — gl104-sacar-finished-list Se saca la lista vieja de estados de cierre de los settings
 
 - **`ISSUE_STATUS_FINISHED_LIST` sale de los settings del repo**: qué estados son de cierre lo decide la casilla «Terminal» del admin, y nada más la leía salvo la migración que marcó los estados

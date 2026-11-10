@@ -8,6 +8,7 @@ from django.contrib.auth.models import User
 from django.db.models import Q
 
 from core.models import Activity, ContactCampaignStatus, Subscription, Campaign, Product
+from core.utils import phone_or_text_search_q
 from .models import (
     AbsenceReason,
     Issue,
@@ -363,8 +364,7 @@ class ScheduledTaskFilter(django_filters.FilterSet):
             | Q(contact__name__contains=value)
             | Q(contact__id_document__contains=value)
             | Q(contact__email__icontains=value)
-            | Q(contact__phone__icontains=value)
-            | Q(contact__mobile__contains=value)
+            | phone_or_text_search_q(value, "contact__phone", "contact__mobile")
         )
 
     def by_address(self, queryset, name, value):

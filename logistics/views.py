@@ -25,6 +25,7 @@ from reportlab.pdfgen.canvas import Canvas
 from core.models import SubscriptionProduct, Subscription, Product, Address
 from core.choices import PRODUCT_WEEKDAYS
 from core.mixins import BreadcrumbsMixin
+from core.utils import read_uploaded_csv_rows
 from logistics.models import Route, RouteChange, Edition
 from support.models import Issue
 
@@ -433,11 +434,9 @@ def list_routes_detailed(request):
 def print_labels(request, page="Roll", list_type="", route_list="", product_id=None):
     if request.POST:
         if request.FILES:
-            decoded_file = request.FILES.get("mark_contacts").read().decode("utf-8").splitlines()
-            mark_contacts = csv.reader(decoded_file)
-            mark_contacts_list = list(mark_contacts)
-            # flatten the list
-            mark_contacts_list = [int(item) for sublist in mark_contacts_list for item in sublist]
+            mark_contacts = read_uploaded_csv_rows(request.FILES.get("mark_contacts"))
+            # flatten the list, leaving out a header or anything else that isn't an id
+            mark_contacts_list = [int(item) for sublist in mark_contacts for item in sublist if item.strip().isdigit()]
         else:
             mark_contacts_list = []
         if settings.DEBUG:
@@ -594,9 +593,8 @@ def print_labels_for_day(request):
     page = "Roll"
     if request.POST:
         if request.FILES:
-            decoded_file = request.FILES.get("exclude_contacts").read().decode("utf-8").splitlines()
-            exclude_contacts = csv.reader(decoded_file)
-            exclude_contacts_list = list(exclude_contacts)
+            exclude_contacts = read_uploaded_csv_rows(request.FILES.get("exclude_contacts"))
+            exclude_contacts_list = [int(row[0]) for row in exclude_contacts if row and row[0].strip().isdigit()]
         else:
             exclude_contacts = None
         isoweekday = request.POST.get("isoweekday")
@@ -835,9 +833,8 @@ def print_labels_from_csv(request):
         use_separators = request.POST.get("separators", None)
 
         iterator = hoja.iterator()
-        decoded_file = request.FILES.get("labels").read().decode("utf-8").splitlines()
-        label_list = csv.reader(decoded_file)
-        next(label_list)  # consumo header
+        label_list = read_uploaded_csv_rows(request.FILES.get("labels"))
+        next(label_list, None)  # consumo header
 
         old_route = 0
         for row in label_list:

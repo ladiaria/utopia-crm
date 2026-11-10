@@ -19,7 +19,6 @@ from core.models import (
     Subscription,
     Address,
     Campaign,
-    DynamicContactFilter,
     SubscriptionProduct,
     Activity,
     State,
@@ -712,30 +711,6 @@ class NewAddressForm(forms.Form):
         choices=ADDRESS_TYPE_CHOICES,
         widget=forms.Select(attrs={"class": "form-control"}),
     )
-
-
-class NewDynamicContactFilterForm(forms.ModelForm):
-    class Meta:
-        model = DynamicContactFilter
-        widgets = {
-            "description": forms.TextInput(attrs={"class": "form-control"}),
-            "products": forms.SelectMultiple(attrs={"class": "form-control"}),
-            "newsletters": forms.SelectMultiple(attrs={"class": "form-control"}),
-            "mode": forms.Select(attrs={"class": "form-control"}),
-            "debtor_contacts": forms.Select(attrs={"class": "form-control"}),
-            "mailtrain_id": forms.TextInput(attrs={"class": "form-control"}),
-        }
-        fields = (
-            "description",
-            "products",
-            "newsletters",
-            "allow_promotions",
-            "allow_polls",
-            "debtor_contacts",
-            "mode",
-            "autosync",
-            "mailtrain_id",
-        )
 
 
 class NewActivityForm(forms.ModelForm):

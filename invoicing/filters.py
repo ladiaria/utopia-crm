@@ -5,6 +5,8 @@ from django import forms
 from django.utils.translation import gettext_lazy as _
 from django.db.models import Q
 
+from core.utils import phone_search_q
+
 from .models import Invoice
 
 YESNO_CHOICES = (
@@ -87,9 +89,7 @@ class InvoiceFilter(django_filters.FilterSet):
         return queryset.filter(contact__id_document__icontains=value)
 
     def filter_by_contact_phone(self, queryset, name, value):
-        return queryset.filter(
-            Q(contact__phone__icontains=value) | Q(contact__mobile__icontains=value)
-        )
+        return queryset.filter(phone_search_q(value, "contact__phone", "contact__mobile"))
 
     def filter_by_creation_date(self, queryset, name, value):
         if value == 'today':
