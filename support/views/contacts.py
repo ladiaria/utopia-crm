@@ -436,6 +436,7 @@ class ContactDetailView(BreadcrumbsMixin, DetailView):
         expired_invoices_count = self.object.expired_invoices_count()
         return {
             "debt": debt,
+            "debt_in_other_currencies": self.object.get_debt_in_other_currencies(),
             "last_paid_invoice": last_paid_invoice,
             "latest_invoice": latest_invoice,
             "expired_invoices_count": expired_invoices_count,

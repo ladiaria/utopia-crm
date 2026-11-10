@@ -25,7 +25,7 @@ from taggit.managers import TaggableManager
 from simple_history.models import HistoricalRecords
 from phonenumber_field.modelfields import PhoneNumberField
 
-from util.currency import get_default_currency, is_default_currency
+from util.currency import get_default_currency, is_default_currency, split_by_currency
 from util.dates import get_default_next_billing, get_default_start_date, diff_month
 
 from .managers import ProductManager
@@ -752,16 +752,15 @@ class Contact(models.Model):
 
     def get_debt(self):
         """
-        Returns how much money the contact owes.
+        Returns how much money the contact owes, in the local currency. What is owed in other currencies is never
+        added to it: see get_debt_in_other_currencies.
         """
-        sum_import = self.invoice_set.filter(
-            expiration_date__lt=date.today(),
-            paid=False,
-            debited=False,
-            canceled=False,
-            uncollectible=False,
-        ).aggregate(Sum("amount"))
-        return sum_import.get("amount__sum", None)
+        local, _ = split_by_currency(self.get_expired_invoices())
+        return local.aggregate(Sum("amount"))["amount__sum"]
+
+    def get_debt_in_other_currencies(self):
+        """What the contact owes in currencies other than the local one: [{"currency", "count", "total"}]."""
+        return split_by_currency(self.get_expired_invoices())[1]
 
     def has_no_open_issues(self, category=None):
         """

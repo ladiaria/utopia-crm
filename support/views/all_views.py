@@ -68,6 +68,7 @@ from core.utils import (
     run_subscription_validated_hook,
 )
 from invoicing.models import Invoice
+from util.currency import get_default_currency, split_by_currency
 from util.location_utils import georef_habilitado
 from support.choices import ISSUE_ANSWERS, get_issue_categories
 from support.filters import (
@@ -1853,23 +1854,19 @@ def debtor_contacts(request):
         payment_date__isnull=True,
         expiration_date__lt=date.today(),
     )
+    overdue_invoice = Q(
+        invoice__paid=False,
+        invoice__debited=False,
+        invoice__canceled=False,
+        invoice__uncollectible=False,
+        invoice__payment_date__isnull=True,
+        invoice__expiration_date__lt=date.today(),
+    )
     debtor_queryset = (
         Contact.objects.filter(Exists(overdue_invoice_qs))
-        .annotate(
-            owed_invoices=Count(
-                "invoice",
-                filter=Q(
-                    invoice__paid=False,
-                    invoice__debited=False,
-                    invoice__canceled=False,
-                    invoice__uncollectible=False,
-                    invoice__payment_date__isnull=True,
-                    invoice__expiration_date__lt=date.today(),
-                ),
-                distinct=True,
-            )
-        )
-        .annotate(debt=Sum("invoice__amount"))
+        .annotate(owed_invoices=Count("invoice", filter=overdue_invoice, distinct=True))
+        # The debt is what is owed in the local currency: the overdue invoices only, never other currencies
+        .annotate(debt=Sum("invoice__amount", filter=overdue_invoice & Q(invoice__currency=get_default_currency())))
         .annotate(oldest_invoice=Min("invoice__creation_date"))
     )
     sort_by = request.GET.get("sort_by", "owed_invoices")
@@ -1919,6 +1916,18 @@ def debtor_contacts(request):
     except EmptyPage:
         # If page is out of range (e.g. 9999), deliver last page of results.
         page = paginator.page(paginator.num_pages)
+    # The total owed by the filtered debtors, in the local currency; what they owe in others is shown apart
+    debtors_total, other_currencies = split_by_currency(
+        Invoice.objects.filter(
+            contact__in=debtor_filter.qs.values("pk"),
+            paid=False,
+            debited=False,
+            canceled=False,
+            uncollectible=False,
+            payment_date__isnull=True,
+            expiration_date__lt=date.today(),
+        )
+    )
     return render(
         request,
         "debtor_contacts.html",
@@ -1928,7 +1937,8 @@ def debtor_contacts(request):
             "debtor_filter": debtor_filter,
             # "count": debtor_filter.qs.count(),
             "count": debtor_filter.qs.count(),
-            "sum": debtor_filter.qs.aggregate(total_sum=Sum("invoice__amount"))["total_sum"],
+            "sum": debtors_total.aggregate(total_sum=Sum("amount"))["total_sum"],
+            "other_currencies": other_currencies,
             "sort_by": sort_by,
             "order": order,
         },
