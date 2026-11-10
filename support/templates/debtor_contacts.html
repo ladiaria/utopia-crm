@@ -66,6 +66,7 @@
                 </select>
               </div>
             </div>
+            {% include "invoicing/_other_currency_totals.html" %}
             <div class="text-right">
               {{ sum }} {% trans "owed" %} /
               {{ count }} {% trans "contacts" %}

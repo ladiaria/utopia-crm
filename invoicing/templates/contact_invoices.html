@@ -37,6 +37,9 @@
         </div>
       </div>
     {% endif %}
+    {% if debt_in_other_currencies %}
+      <div class="col-md-12">{% include "invoicing/_debt_in_other_currencies.html" %}</div>
+    {% endif %}
 
     <div class="col-md-12">
       <div class="card">

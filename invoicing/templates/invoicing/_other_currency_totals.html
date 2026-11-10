@@ -1,0 +1,18 @@
+{% load i18n %}
+{% comment %}
+  The rows in another currency that a money total leaves out (it/utopia-crm-ladiaria#123). Needs other_currencies,
+  as returned by util.currency.split_by_currency: [{"currency", "count", "total"}].
+{% endcomment %}
+{% if other_currencies %}
+  <div class="alert alert-info py-2 mb-2">
+    <i class="fas fa-coins mr-1"></i>
+    {% trans "Not included in these totals, which are in the local currency only:" %}
+    {% for row in other_currencies %}
+      {% with total=row.total|default_if_none:"0"|floatformat:"-2" %}
+        <strong>{% blocktrans with count=row.count currency=row.currency %}{{ count }} in {{ currency }}{% endblocktrans %}</strong>
+        ({{ row.currency }} {{ total }})
+        {% if not forloop.last %};{% endif %}
+      {% endwith %}
+    {% endfor %}
+  </div>
+{% endif %}
