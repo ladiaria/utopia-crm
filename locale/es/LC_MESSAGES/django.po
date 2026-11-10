@@ -13081,3 +13081,28 @@ msgstr[1] "Se cerraron %(count)d incidencias."
 #: support/forms.py
 msgid "This name is already in use, or only differs from one in use in case, accents or punctuation."
 msgstr "Este nombre ya está en uso, o se diferencia de uno en uso sólo en mayúsculas, tildes o signos."
+
+#: invoicing/models.py
+msgid "Exchange rate"
+msgstr "Cotización"
+
+#: invoicing/models.py
+msgid "ISO 4217 code. Copied from the subscription when it is billed, and never changed afterwards."
+msgstr "Código ISO 4217. Se copia de la suscripción al facturarla y no cambia después."
+
+#: invoicing/models.py
+msgid "Local currency per unit of the invoice currency, set when the fiscal document is issued. Empty for invoices in the local currency and for those not issued yet."
+msgstr "Moneda local por unidad de la moneda de la factura. Se fija al emitir el comprobante fiscal: queda vacía en las facturas en moneda local y en las que todavía no se emitieron."
+
+#: core/models.py
+msgid "ISO 4217 code. Its invoices are in this currency."
+msgstr "Código ISO 4217. Sus facturas van en esta moneda."
+
+#: invoicing/utils.py
+#, python-format
+msgid "The subscription is in %(currency)s and there are no prices in that currency, it can't be billed"
+msgstr "La suscripción está en %(currency)s y no hay precios en esa moneda: no se puede facturar"
+
+#: support/templates/contact_detail/tabs/includes/_subscription_card.html
+msgid "There are no prices in this currency"
+msgstr "No hay precios en esta moneda"

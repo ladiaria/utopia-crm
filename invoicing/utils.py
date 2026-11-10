@@ -12,6 +12,7 @@ from invoicing.models import InvoiceItem, Invoice
 # TODO: explain or remove the "Updated import" comment in next line
 from core.models import Address, Subscription, Product, SubscriptionProduct  # Updated import
 from core.utils import calc_price_from_products, create_invoiceitem_for_corporate_subscription, mercadopago_sdk
+from util.currency import is_default_currency
 
 
 def mercadopago_debit(invoice, debug=False):
@@ -359,6 +360,11 @@ def bill_subscription(
         "The subscription has no payment type, it can't be billed"
     )
 
+    # Prices are in the local currency only: a subscription in another one is never billed at a converted price
+    assert is_default_currency(subscription.currency), _(
+        "The subscription is in %(currency)s and there are no prices in that currency, it can't be billed"
+    ) % {"currency": subscription.currency}
+
     # Check that the subscription's next billing is smaller than end date if it has it
     if subscription.end_date:
         error_msg = _("This subscription has an end date greater than its next billing")
@@ -424,6 +430,7 @@ def bill_subscription(
             invoice = Invoice.objects.create(
                 contact=subscription.get_billing_contact(),
                 payment_type=subscription.payment_type,
+                currency=subscription.currency,
                 creation_date=billing_date,
                 service_from=service_from,
                 service_to=service_from + relativedelta(months=subscription.frequency),

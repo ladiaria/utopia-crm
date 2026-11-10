@@ -25,6 +25,7 @@ from taggit.managers import TaggableManager
 from simple_history.models import HistoricalRecords
 from phonenumber_field.modelfields import PhoneNumberField
 
+from util.currency import get_default_currency, is_default_currency
 from util.dates import get_default_next_billing, get_default_start_date, diff_month
 
 from .managers import ProductManager
@@ -1833,6 +1834,12 @@ class Subscription(models.Model):
         blank=True,
         verbose_name=_("Payment type"),
     )
+    currency = models.CharField(
+        _("Currency"),
+        max_length=3,
+        default=get_default_currency,
+        help_text=_("ISO 4217 code. Its invoices are in this currency."),
+    )
 
     updated_from = models.OneToOneField(
         "core.Subscription", on_delete=models.SET_NULL, blank=True, null=True, verbose_name=_("Updated from")
@@ -2297,6 +2304,14 @@ class Subscription(models.Model):
             product = Product.objects.get(pk=product_id)
             output += "<li>{}</li>".format(product.name)
         return output + "</ul>"
+
+    @property
+    def in_default_currency(self):
+        """
+        True if the subscription is in the local currency, the one product prices are in. Otherwise the prices the
+        CRM calculates (get_price_for_full_period) do not apply to it, and it is not billed by bill_subscription.
+        """
+        return is_default_currency(self.currency)
 
     def get_price_for_full_period(self, debug_id=""):
         """Returns the price for a single period on this customer"""

@@ -56,10 +56,18 @@
         <i class="fas fa-sync-alt text-info"></i> <strong>{% trans "Frequency" %}:</strong> {{ subscription.get_frequency }}
       </div>
       <div class="mb-1">
-        <i class="fas fa-dollar-sign text-success"></i> <strong>{% trans "Price" %}:</strong> {{ subscription.get_price_for_full_period }}
-        {% if subscription.has_paused_products %}
-          <span class="text-muted">(${{ subscription.get_price_for_full_period_with_pauses }})</span>
+        <i class="fas fa-dollar-sign text-success"></i> <strong>{% trans "Price" %}:</strong>
+        {% if subscription.in_default_currency %}
+          {{ subscription.get_price_for_full_period }}
+          {% if subscription.has_paused_products %}
+            <span class="text-muted">(${{ subscription.get_price_for_full_period_with_pauses }})</span>
+          {% endif %}
+        {% else %}
+          <span class="text-muted">{% trans "There are no prices in this currency" %}</span>
         {% endif %}
+      </div>
+      <div class="mb-1">
+        <i class="fas fa-coins text-secondary"></i> <strong>{% trans "Currency" %}:</strong> {{ subscription.currency }}
       </div>
       {% block extensions %}
         <div class="mb-1">
