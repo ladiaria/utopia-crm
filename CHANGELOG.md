@@ -2,6 +2,14 @@
 
 ## v0.5.1
 
+## 2026-11-10 — gl116-retirar-filtros-de-contactos Se retira la pantalla «Filtros de contactos» de Soporte
+
+- **La entrada «Filtros de contactos» ya no está en el menú de Soporte**: era para mantener listas de Mailtrain, no para filtrar contactos, y crear o editar un filtro daba error 500. Para filtrar contactos está el filtro de contactos de la diaria
+- **Los filtros guardados no se borran**: siguen en el admin, por si hace falta consultar alguno
+- **Se van también los comandos que sincronizaban con Mailtrain**, que hacía tiempo que no corrían
+- Deployment: no se requieren migraciones
+- **Author:** Tanya Tree + Claude Opus 5.5
+
 ## 2026-11-06 — gl110-etiquetas-sin-datos Imprimir etiquetas ya no da error cuando no hay ninguna para imprimir
 
 - **Un día sin etiquetas ya no da error 500**: el PDF sale con una página que dice «No hay etiquetas para imprimir». Vale para todas las pantallas de etiquetas, porque el error estaba en un solo lugar
