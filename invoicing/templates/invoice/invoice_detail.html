@@ -236,6 +236,12 @@
                     <label>{% trans "Billing City" %}</label>
                     <p>{{ object.billing_city|default_if_none:"-" }}</p>
                   </div>
+                  {% if object.billing_country %}
+                    <div class="form-group">
+                      <label>{% trans "Billing Country" %}</label>
+                      <p>{{ object.billing_country }}</p>
+                    </div>
+                  {% endif %}
                   <div class="form-group">
                     <label>{% trans "Billing Document" %}</label>
                     <p>{{ object.billing_document|default_if_none:"-" }}</p>

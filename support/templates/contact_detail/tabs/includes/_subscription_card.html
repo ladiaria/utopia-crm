@@ -151,6 +151,9 @@
         </div>
       </div>
     </div>
+    {% comment %}Extension point: full-width sections under the subscription details (e.g. a payment provider's charges){% endcomment %}
+    {% block extra_sections %}
+    {% endblock extra_sections %}
   </div>
   <div class="card-footer bg-light">
     <div class="d-flex flex-wrap justify-content-end">
