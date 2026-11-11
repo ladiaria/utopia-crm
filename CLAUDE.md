@@ -72,6 +72,9 @@ The base app is designed to be extended without modification:
   `ContactUpdateForm`) call it on clean; without the setting nothing is validated.
 - **Extra contact detail tabs**: a package's `contact_detail/detail.html` (extending the base one) fills the empty
   `extra_tabs` and `extra_tab_panes` blocks. Don't copy the `content` block to add a tab.
+- **Extra subscription card sections**: a package's `contact_detail/tabs/includes/_subscription_card.html` (extending
+  the base one) fills the empty `extra_sections` block, full width under the subscription details. `extra_information`
+  sits in a quarter-width column: use it only for a line or two.
 - **Extra seller console actions**: a package's `seller_console.html` (extending the base one) fills the empty
   `extra_sale_actions` block, under the sale buttons. It sits outside `consoleForm`, so it can hold its own forms.
 - **Feature flags**: many behaviours are toggled via settings (e.g. `WEB_UPDATE_USER_ENABLED`,
