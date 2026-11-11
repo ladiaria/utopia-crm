@@ -9,6 +9,7 @@ from decimal import Decimal
 from django.contrib.auth.models import User
 from django.test import TestCase, override_settings
 from django.urls import reverse
+from django.utils.translation import gettext
 
 from core.models import Product, Subscription
 from invoicing.models import CreditNote, Invoice
@@ -116,6 +117,31 @@ class ShownCurrencyTests(TestCase):
         response = self.client.get(reverse("invoice_detail", args=[invoice.pk]))
         self.assertContains(response, "<p>USD</p>", html=True)
         self.assertContains(response, "40.214000")
+
+    def test_the_invoice_detail_shows_the_billing_country_only_when_it_has_one(self):
+        user = User.objects.create_superuser(username="billing_country_detail", password="x")
+        self.client.force_login(user)
+        abroad, local = (
+            Invoice.objects.create(
+                contact=create_contact(name, document),
+                creation_date=date(2026, 11, 10),
+                expiration_date=date(2026, 11, 20),
+                service_from=date(2026, 11, 10),
+                service_to=date(2026, 12, 10),
+                amount=Decimal("7.00"),
+                billing_country=country,
+            )
+            for name, document, country in (
+                ("Billing country abroad", "29000127", "Estados Unidos"),
+                ("Billing country local", "29000128", None),
+            )
+        )
+        label = gettext("Billing Country")
+        response = self.client.get(reverse("invoice_detail", args=[abroad.pk]))
+        self.assertContains(response, label)
+        self.assertContains(response, "<p>Estados Unidos</p>", html=True)
+        # The local invoices don't fill it in: no empty field for them
+        self.assertNotContains(self.client.get(reverse("invoice_detail", args=[local.pk])), label)
 
     def test_the_contact_screen_does_not_show_a_local_price_for_another_currency(self):
         user = User.objects.create_superuser(username="currency_contact", password="x")
