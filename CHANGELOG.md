@@ -2,6 +2,13 @@
 
 ## v0.5.1
 
+## 2026-11-11 — gl126-pais-factura-y-bloque-suscripcion El detalle de la factura muestra el país de facturación
+
+- **El detalle de la factura muestra el país de facturación** cuando la factura lo tiene, debajo de la ciudad. Se guardaba pero no se veía. Las facturas que no lo tienen (las de pesos no lo completan) no muestran un campo vacío
+- **La tarjeta de la suscripción tiene un lugar nuevo, a todo el ancho**, debajo de los datos, para que un paquete de customización agregue ahí lo suyo. El que había estaba en una columna angosta, donde una tabla no entraba. La diaria lo usa para los cobros de PayPal (it/utopia-crm-ladiaria#126)
+- Deployment: no se requieren migraciones
+- **Author:** Tanya Tree + Claude Opus 5.5
+
 ## 2026-11-10 — gl123-sumas-por-moneda Ningún total de plata mezcla monedas
 
 - **Los totales suman sólo la moneda local**: el filtro de facturas, la deuda del contacto y el listado de deudores. Lo que esté en otra moneda se muestra aparte, con su cantidad y su suma en esa moneda, y nunca se suma a los pesos. Mientras no haya facturas en otra moneda no cambia ningún número
