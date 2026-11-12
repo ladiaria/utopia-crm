@@ -184,6 +184,7 @@
         <a href="{% url "history_extended" contact.id %}"
            class="btn btn-sm btn-primary"><i class="fas fa-history"></i> Historial</a>
       {% endif %}
+      {% block extra_actions %}{% endblock extra_actions %}
     </div>
   </section>
   <section class="content">
