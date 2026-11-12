@@ -72,6 +72,8 @@ The base app is designed to be extended without modification:
   `ContactUpdateForm`) call it on clean; without the setting nothing is validated.
 - **Extra contact detail tabs**: a package's `contact_detail/detail.html` (extending the base one) fills the empty
   `extra_tabs` and `extra_tab_panes` blocks. Don't copy the `content` block to add a tab.
+- **Extra contact detail actions**: a package's `contact_detail/detail.html` fills the empty `extra_actions` block,
+  at the end of the button bar above the tabs (New Activity, New Issue…). Each button checks its own permission.
 - **Extra subscription card sections**: a package's `contact_detail/tabs/includes/_subscription_card.html` (extending
   the base one) fills the empty `extra_sections` block, full width under the subscription details. `extra_information`
   sits in a quarter-width column: use it only for a line or two.
