@@ -2,6 +2,13 @@
 
 ## v0.5.1
 
+## 2026-11-12 — gl130-ficha-extra-actions La ficha del contacto admite botones de un paquete de customización
+
+- **La barra de botones de la ficha** (Nueva actividad, Nueva incidencia…) **tiene un lugar nuevo al final**, para que un paquete de customización agregue sus propios botones. Antes había que copiar la ficha entera. La diaria lo usa para el botón «Vender producto de una única vez» (it/utopia-crm-ladiaria#130)
+- Sin un paquete que lo use, la ficha se ve igual que antes
+- Deployment: no se requieren migraciones
+- **Author:** Tanya Tree + Claude Opus 5.5
+
 ## 2026-11-11 — gl126-pais-factura-y-bloque-suscripcion El detalle de la factura muestra el país de facturación
 
 - **El detalle de la factura muestra el país de facturación** cuando la factura lo tiene, debajo de la ciudad. Se guardaba pero no se veía. Las facturas que no lo tienen (las de pesos no lo completan) no muestran un campo vacío
