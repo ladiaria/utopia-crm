@@ -1393,7 +1393,20 @@ class Address(models.Model):
         """
         if self.state_id:
             return False
-        return self.country_id is None or State.objects.filter(country_id=self.country_id).exists()
+        return self.country_id is None or not self.is_abroad
+
+    @cached_property
+    def is_abroad(self):
+        """
+        Whether the address is in a country with no states on file, so a list that names only the street would not
+        tell where it is (it/utopia-crm-ladiaria#145). With no country it is not: its state, if any, says where.
+        """
+        return self.country_id is not None and not State.objects.filter(country_id=self.country_id).exists()
+
+    @cached_property
+    def abroad_label(self):
+        """Street, city and country: how a foreign address reads in a short list."""
+        return ", ".join(filter(None, (self.address_1, self.get_city(), self.country_name)))
 
     def __str__(self):
         address_str = ', '.join(
