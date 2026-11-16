@@ -2,6 +2,13 @@
 
 ## v0.5.1
 
+## 2026-11-16 — gl144-pais-direccion-sin-estado La ficha muestra el país de una dirección sin departamento
+
+- **La línea País de cada dirección muestra el país de la dirección.** Lo sacaba del departamento, así que una dirección del exterior (por ejemplo de PayPal) mostraba «-» con una advertencia roja, aunque el país estaba guardado (it/utopia-crm-ladiaria#144)
+- **La advertencia por falta de departamento sale sólo cuando corresponde:** si la dirección no tiene país, o si su país tiene departamentos para elegir. Una dirección del exterior no tiene departamento que elegir, así que ya no la muestra
+- Deployment: no se requieren migraciones
+- **Author:** Tanya Tree + Claude Opus 5.5
+
 ## 2026-11-16 — gl143-moneda-montos Los montos que no son en pesos dicen su moneda
 
 - **Los montos en otra moneda llevan la moneda adelante** («USD 6,00»): el último pago y el saldo en la vista general del contacto, la columna Monto de la pestaña Facturas, y los productos, descuentos y totales del detalle de la factura. El último pago decía «$6,00» para una factura en dólares, y se leía como pesos (it/utopia-crm-ladiaria#143)
