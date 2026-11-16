@@ -149,13 +149,13 @@
                   </div>
                   <div class="mb-2">
                     <i class="fas fa-map text-info"></i> <strong>{% trans "State" %}:</strong>
-                    {% if not address.state %}<i class="fas fa-exclamation-triangle text-danger"></i>{% endif %}
+                    {% if address.needs_state %}<i class="fas fa-exclamation-triangle text-danger"></i>{% endif %}
                     {{ address.state_name|default_if_none:"-" }}
                   </div>
                   <div class="mb-2">
                     <i class="fas fa-globe text-info"></i> <strong>{% trans "Country" %}:</strong>
-                    {% if not address.state %}<i class="fas fa-exclamation-triangle text-danger"></i>{% endif %}
-                    {{ address.state.country.name|default_if_none:"-" }}
+                    {% if not address.country %}<i class="fas fa-exclamation-triangle text-danger"></i>{% endif %}
+                    {{ address.country_name|default_if_none:"-" }}
                   </div>
                 </div>
               </div>

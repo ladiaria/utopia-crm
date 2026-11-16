@@ -1385,6 +1385,16 @@ class Address(models.Model):
     def state_name(self):
         return self.state.name if self.state else None
 
+    @cached_property
+    def needs_state(self):
+        """
+        Whether a missing state is a missing piece of data: only when the address has no country, or its country has
+        states to choose from. A foreign address (PayPal, for instance) has no state on file to point to.
+        """
+        if self.state_id:
+            return False
+        return self.country_id is None or State.objects.filter(country_id=self.country_id).exists()
+
     def __str__(self):
         address_str = ', '.join(
             filter(None, (self.address_1, self.address_2, self.get_city(), self.state_name, self.country_name))
