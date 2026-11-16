@@ -11,7 +11,7 @@ from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
 
 from invoicing.choices import INVOICEITEM_TYPE_CHOICES, INVOICEITEM_DR_TYPE_CHOICES
-from util.currency import get_default_currency
+from util.currency import get_default_currency, is_default_currency
 
 
 class Invoice(models.Model):
@@ -140,6 +140,11 @@ class Invoice(models.Model):
 
     def __str__(self):
         return '%s %d' % (_('Invoice'), self.id)
+
+    @property
+    def in_default_currency(self):
+        """True if the invoice is in the local currency, the one the screens show amounts in without saying so."""
+        return is_default_currency(self.currency)
 
     def calc_total_amount(self):
         """

@@ -2,6 +2,14 @@
 
 ## v0.5.1
 
+## 2026-11-16 — gl143-moneda-montos Los montos que no son en pesos dicen su moneda
+
+- **Los montos en otra moneda llevan la moneda adelante** («USD 6,00»): el último pago y el saldo en la vista general del contacto, la columna Monto de la pestaña Facturas, y los productos, descuentos y totales del detalle de la factura. El último pago decía «$6,00» para una factura en dólares, y se leía como pesos (it/utopia-crm-ladiaria#143)
+- **Los montos en pesos se ven igual que antes**
+- **Las suscripciones en otra moneda ya no muestran la línea «Precio: No hay precios en esta moneda»**: la moneda está en la línea de abajo
+- Deployment: no se requieren migraciones
+- **Author:** Tanya Tree + Claude Opus 5.5
+
 ## 2026-11-12 — gl130-ficha-extra-actions La ficha del contacto admite botones de un paquete de customización
 
 - **La barra de botones de la ficha** (Nueva actividad, Nueva incidencia…) **tiene un lugar nuevo al final**, para que un paquete de customización agregue sus propios botones. Antes había que copiar la ficha entera. La diaria lo usa para el botón «Vender producto de una única vez» (it/utopia-crm-ladiaria#130)

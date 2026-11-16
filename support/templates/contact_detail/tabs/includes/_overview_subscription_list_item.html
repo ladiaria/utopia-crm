@@ -55,17 +55,16 @@
       <div class="mb-1">
         <i class="fas fa-sync-alt text-info"></i> <strong>{% trans "Frequency" %}:</strong> {{ subscription.get_frequency }}
       </div>
-      <div class="mb-1">
-        <i class="fas fa-dollar-sign text-success"></i> <strong>{% trans "Price" %}:</strong>
-        {% if subscription.in_default_currency %}
+      {# The CRM has no prices in other currencies, and the currency is on the next line #}
+      {% if subscription.in_default_currency %}
+        <div class="mb-1">
+          <i class="fas fa-dollar-sign text-success"></i> <strong>{% trans "Price" %}:</strong>
           {{ subscription.get_price_for_full_period }}
           {% if subscription.has_paused_products %}
             <span class="text-muted">(${{ subscription.get_price_for_full_period_with_pauses }})</span>
           {% endif %}
-        {% else %}
-          <span class="text-muted">{% trans "There are no prices in this currency" %}</span>
-        {% endif %}
-      </div>
+        </div>
+      {% endif %}
       <div class="mb-1">
         <i class="fas fa-coins text-secondary"></i> <strong>{% trans "Currency" %}:</strong> {{ subscription.currency }}
       </div>
@@ -84,9 +83,9 @@
         <i class="fas {% if subscription.balance > 0 %}fa-arrow-down text-success{% else %}fa-arrow-up text-danger{% endif %}"></i>
         <strong>{% trans "Balance" %}:</strong>
         {% if subscription.balance > 0 %}
-          <span class="text-success">{{ subscription.balance }}</span>
+          <span class="text-success">{{ subscription.balance|with_currency:subscription.currency }}</span>
         {% else %}
-          <span class="text-danger">{{ subscription.balance_abs }}</span>
+          <span class="text-danger">{{ subscription.balance_abs|with_currency:subscription.currency }}</span>
         {% endif %}
       </div>
     {% endif %}

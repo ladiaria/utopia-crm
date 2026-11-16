@@ -154,7 +154,12 @@
           {% if last_paid_invoice %}
             <div class="mb-2">
               <i class="fas fa-calendar-check text-success"></i> <strong>{% trans "Latest payment" %}:</strong>
-              {{ last_paid_invoice.payment_date|date:"d/m/Y" }} <span class="text-success">${{ last_paid_invoice.amount }}</span>
+              {{ last_paid_invoice.payment_date|date:"d/m/Y" }}
+              {% if last_paid_invoice.in_default_currency %}
+                <span class="text-success">${{ last_paid_invoice.amount }}</span>
+              {% else %}
+                <span class="text-success">{{ last_paid_invoice.amount|with_currency:last_paid_invoice.currency }}</span>
+              {% endif %}
             </div>
             <div class="mb-2">
               <i class="fas fa-file-invoice-dollar text-info"></i> <strong>{% trans "Total paid" %}:</strong> {{ contact.get_paid_invoices_count }} {% trans "invoices" %}
