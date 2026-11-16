@@ -10,9 +10,10 @@ from django.utils.html import conditional_escape, format_html
 from django.utils.translation import gettext_lazy as _
 from django.urls import reverse
 from django.utils.safestring import mark_safe
-from django.utils import timezone
+from django.utils import formats, timezone
 
 from core.models import SubscriptionProduct
+from util.currency import is_default_currency
 
 register = template.Library()
 
@@ -35,6 +36,17 @@ def call_method(obj, method_name, *args):
 @register.filter
 def get_item(dictionary, key):
     return dictionary.get(key)
+
+
+@register.filter
+def with_currency(amount, currency):
+    """
+    An amount with its currency in front when it is not the local one: ``{{ amount|with_currency:currency }}`` gives
+    "USD 6,00", and the amount as is in the local currency, so the screens in the local currency do not change.
+    """
+    if amount is None or amount == "" or is_default_currency(currency):
+        return amount
+    return f"{currency} {formats.localize(amount)}"
 
 
 @register.filter(is_safe=True)
