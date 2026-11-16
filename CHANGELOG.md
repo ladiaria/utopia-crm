@@ -2,6 +2,13 @@
 
 ## v0.5.1
 
+## 2026-11-16 — gl145-direccion-exterior-vista-general La vista general dice de qué ciudad y país es una dirección del exterior
+
+- **En la tarjeta Información de contacto de la vista general, una dirección del exterior muestra calle, ciudad y país** («131 Lake Shore Dr, Newnan, Estados Unidos»). Antes mostraba sólo la calle, y no se sabía dónde quedaba (it/utopia-crm-ladiaria#145)
+- **Las direcciones de un país con departamentos cargados se ven igual que antes**, sólo con la calle
+- Deployment: no se requieren migraciones
+- **Author:** Tanya Tree + Claude Opus 5.5
+
 ## 2026-11-16 — gl144-pais-direccion-sin-estado La ficha muestra el país de una dirección sin departamento
 
 - **La línea País de cada dirección muestra el país de la dirección.** Lo sacaba del departamento, así que una dirección del exterior (por ejemplo de PayPal) mostraba «-» con una advertencia roja, aunque el país estaba guardado (it/utopia-crm-ladiaria#144)

@@ -90,7 +90,11 @@
             {% for address in addresses %}
               {% if address.address_1 %}
                 <div class="mb-2 pl-3">
-                  {{ address.address_1|default:"-" }}
+                  {% if address.is_abroad %}
+                    {{ address.abroad_label }}
+                  {% else %}
+                    {{ address.address_1|default:"-" }}
+                  {% endif %}
                   {% if georef_activated %}
                     {% if address.verified %}
                       <i class="fas fa-check-circle text-success ml-1" title="{% trans "Verified" %}"></i>
