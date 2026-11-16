@@ -1385,6 +1385,29 @@ class Address(models.Model):
     def state_name(self):
         return self.state.name if self.state else None
 
+    @cached_property
+    def needs_state(self):
+        """
+        Whether a missing state is a missing piece of data: only when the address has no country, or its country has
+        states to choose from. A foreign address (PayPal, for instance) has no state on file to point to.
+        """
+        if self.state_id:
+            return False
+        return self.country_id is None or not self.is_abroad
+
+    @cached_property
+    def is_abroad(self):
+        """
+        Whether the address is in a country with no states on file, so a list that names only the street would not
+        tell where it is (it/utopia-crm-ladiaria#145). With no country it is not: its state, if any, says where.
+        """
+        return self.country_id is not None and not State.objects.filter(country_id=self.country_id).exists()
+
+    @cached_property
+    def abroad_label(self):
+        """Street, city and country: how a foreign address reads in a short list."""
+        return ", ".join(filter(None, (self.address_1, self.get_city(), self.country_name)))
+
     def __str__(self):
         address_str = ', '.join(
             filter(None, (self.address_1, self.address_2, self.get_city(), self.state_name, self.country_name))

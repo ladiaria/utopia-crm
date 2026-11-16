@@ -47,7 +47,7 @@
     <td>{{ invoice.service_to|date:"Y-m-d" }}</td>
     <td>{{ invoice.creation_date|date:"Y-m-d" }}</td>
     <td>{{ invoice.expiration_date|date:"Y-m-d" }}</td>
-    <td>{{ invoice.amount }}</td>
+    <td>{{ invoice.amount|with_currency:invoice.currency }}</td>
     <td>{{ invoice.get_payment_type_display }}</td>
     <td>{{ invoice.get_status }}</td>
     <td></td>

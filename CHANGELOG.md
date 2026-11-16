@@ -2,6 +2,42 @@
 
 ## v0.5.1
 
+## 2026-11-16 — gl145-direccion-exterior-vista-general La vista general dice de qué ciudad y país es una dirección del exterior
+
+- **En la tarjeta Información de contacto de la vista general, una dirección del exterior muestra calle, ciudad y país** («131 Lake Shore Dr, Newnan, Estados Unidos»). Antes mostraba sólo la calle, y no se sabía dónde quedaba (it/utopia-crm-ladiaria#145)
+- **Las direcciones de un país con departamentos cargados se ven igual que antes**, sólo con la calle
+- Deployment: no se requieren migraciones
+- **Author:** Tanya Tree + Claude Opus 5.5
+
+## 2026-11-16 — gl144-pais-direccion-sin-estado La ficha muestra el país de una dirección sin departamento
+
+- **La línea País de cada dirección muestra el país de la dirección.** Lo sacaba del departamento, así que una dirección del exterior (por ejemplo de PayPal) mostraba «-» con una advertencia roja, aunque el país estaba guardado (it/utopia-crm-ladiaria#144)
+- **La advertencia por falta de departamento sale sólo cuando corresponde:** si la dirección no tiene país, o si su país tiene departamentos para elegir. Una dirección del exterior no tiene departamento que elegir, así que ya no la muestra
+- Deployment: no se requieren migraciones
+- **Author:** Tanya Tree + Claude Opus 5.5
+
+## 2026-11-16 — gl143-moneda-montos Los montos que no son en pesos dicen su moneda
+
+- **Los montos en otra moneda llevan la moneda adelante** («USD 6,00»): el último pago y el saldo en la vista general del contacto, la columna Monto de la pestaña Facturas, y los productos, descuentos y totales del detalle de la factura. El último pago decía «$6,00» para una factura en dólares, y se leía como pesos (it/utopia-crm-ladiaria#143)
+- **Los montos en pesos se ven igual que antes**
+- **Las suscripciones en otra moneda ya no muestran la línea «Precio: No hay precios en esta moneda»**: la moneda está en la línea de abajo
+- Deployment: no se requieren migraciones
+- **Author:** Tanya Tree + Claude Opus 5.5
+
+## 2026-11-12 — gl130-ficha-extra-actions La ficha del contacto admite botones de un paquete de customización
+
+- **La barra de botones de la ficha** (Nueva actividad, Nueva incidencia…) **tiene un lugar nuevo al final**, para que un paquete de customización agregue sus propios botones. Antes había que copiar la ficha entera. La diaria lo usa para el botón «Vender producto de una única vez» (it/utopia-crm-ladiaria#130)
+- Sin un paquete que lo use, la ficha se ve igual que antes
+- Deployment: no se requieren migraciones
+- **Author:** Tanya Tree + Claude Opus 5.5
+
+## 2026-11-11 — gl126-pais-factura-y-bloque-suscripcion El detalle de la factura muestra el país de facturación
+
+- **El detalle de la factura muestra el país de facturación** cuando la factura lo tiene, debajo de la ciudad. Se guardaba pero no se veía. Las facturas que no lo tienen (las de pesos no lo completan) no muestran un campo vacío
+- **La tarjeta de la suscripción tiene un lugar nuevo, a todo el ancho**, debajo de los datos, para que un paquete de customización agregue ahí lo suyo. El que había estaba en una columna angosta, donde una tabla no entraba. La diaria lo usa para los cobros de PayPal (it/utopia-crm-ladiaria#126)
+- Deployment: no se requieren migraciones
+- **Author:** Tanya Tree + Claude Opus 5.5
+
 ## 2026-11-10 — gl123-sumas-por-moneda Ningún total de plata mezcla monedas
 
 - **Los totales suman sólo la moneda local**: el filtro de facturas, la deuda del contacto y el listado de deudores. Lo que esté en otra moneda se muestra aparte, con su cantidad y su suma en esa moneda, y nunca se suma a los pesos. Mientras no haya facturas en otra moneda no cambia ningún número

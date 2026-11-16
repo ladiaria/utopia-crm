@@ -9,10 +9,12 @@ from decimal import Decimal
 from django.contrib.auth.models import User
 from django.test import TestCase, override_settings
 from django.urls import reverse
+from django.utils import translation
 from django.utils.translation import gettext
 
 from core.models import Product, Subscription
-from invoicing.models import CreditNote, Invoice
+from core.templatetags.core_tags import with_currency
+from invoicing.models import CreditNote, Invoice, InvoiceItem
 from util.currency import get_default_currency, is_default_currency
 
 from tests.factory import create_address, create_contact, create_product, create_route, create_subscription
@@ -143,12 +145,83 @@ class ShownCurrencyTests(TestCase):
         # The local invoices don't fill it in: no empty field for them
         self.assertNotContains(self.client.get(reverse("invoice_detail", args=[local.pk])), label)
 
-    def test_the_contact_screen_does_not_show_a_local_price_for_another_currency(self):
+    def test_the_contact_screen_shows_no_price_for_another_currency(self):
         user = User.objects.create_superuser(username="currency_contact", password="x")
         self.client.force_login(user)
         contact = create_contact("Contact USD subscription", "29000126")
         subscription = create_subscription(contact)
-        Subscription.objects.filter(pk=subscription.pk).update(currency="USD")
+        Subscription.objects.filter(pk=subscription.pk).update(currency="USD", balance=Decimal("2.50"))
         response = self.client.get(reverse("contact_detail", args=[contact.pk]))
-        self.assertContains(response, "There are no prices in this currency")
-        self.assertContains(response, "USD")
+        # Neither a local price nor a line saying there is none: the currency goes on the line below (#143)
+        self.assertNotContains(response, "fa-dollar-sign text-success")
+        self.assertContains(response, "USD 2.50")
+
+
+class WithCurrencyFilterTests(TestCase):
+    """Amounts in another currency say so; the ones in the local currency stay as they were (#143)."""
+
+    def test_the_local_currency_is_left_as_is(self):
+        self.assertEqual(with_currency(Decimal("500.00"), "UYU"), Decimal("500.00"))
+
+    def test_another_currency_goes_in_front(self):
+        self.assertEqual(with_currency(Decimal("6.00"), "USD"), "USD 6.00")
+        with translation.override("es"):
+            self.assertEqual(with_currency(Decimal("6.00"), "USD"), "USD 6,00")
+
+    def test_no_amount_is_left_as_is(self):
+        self.assertIsNone(with_currency(None, "USD"))
+        self.assertEqual(with_currency("", "USD"), "")
+
+    def test_invoice_in_default_currency(self):
+        self.assertTrue(Invoice(currency="UYU").in_default_currency)
+        self.assertFalse(Invoice(currency="USD").in_default_currency)
+
+
+class AmountsWithCurrencyScreenTests(TestCase):
+    """The screens that show invoice amounts put the currency in front of the ones that are not local (#143)."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = User.objects.create_superuser(username="amounts_currency", password="x")
+        cls.contact = create_contact("Amounts with currency", "29000129")
+        cls.invoice = Invoice.objects.create(
+            contact=cls.contact,
+            creation_date=date(2026, 11, 10),
+            expiration_date=date(2026, 11, 20),
+            service_from=date(2026, 11, 10),
+            service_to=date(2026, 12, 10),
+            payment_date=date(2026, 11, 10),
+            amount=Decimal("6.00"),
+            currency="USD",
+            paid=True,
+        )
+        InvoiceItem.objects.create(
+            invoice=cls.invoice, amount=Decimal("7.00"), price=Decimal("7.00"), description="Producto", type="I"
+        )
+        InvoiceItem.objects.create(invoice=cls.invoice, amount=Decimal("1.00"), description="Descuento", type="D")
+
+    def setUp(self):
+        self.client.force_login(self.user)
+
+    def test_the_latest_payment_does_not_read_as_pesos(self):
+        response = self.client.get(reverse("contact_detail", args=[self.contact.pk]))
+        self.assertContains(response, '<span class="text-success">USD 6.00</span>', html=True)
+        self.assertNotContains(response, "$6.00")
+
+    def test_the_invoices_tab(self):
+        response = self.client.get(reverse("contact_invoices_htmx", args=[self.contact.pk]), HTTP_HX_REQUEST="true")
+        self.assertContains(response, "<td>USD 6.00</td>", html=True)
+
+    def test_the_invoice_detail(self):
+        response = self.client.get(reverse("invoice_detail", args=[self.invoice.pk]))
+        # Item amount and price, discount, and the totals
+        self.assertContains(response, "<td>USD 7.00</td>", count=2, html=True)
+        self.assertContains(response, "<td>USD 1.00</td>", html=True)
+        self.assertContains(response, '<strong class="ms-2">USD 6.00</strong>', html=True)
+
+    def test_the_local_currency_does_not_change(self):
+        Invoice.objects.filter(pk=self.invoice.pk).update(currency="UYU")
+        response = self.client.get(reverse("contact_detail", args=[self.contact.pk]))
+        self.assertContains(response, '<span class="text-success">$6.00</span>', html=True)
+        response = self.client.get(reverse("contact_invoices_htmx", args=[self.contact.pk]), HTTP_HX_REQUEST="true")
+        self.assertContains(response, "<td>6.00</td>", html=True)

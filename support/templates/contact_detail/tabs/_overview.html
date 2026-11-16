@@ -90,7 +90,11 @@
             {% for address in addresses %}
               {% if address.address_1 %}
                 <div class="mb-2 pl-3">
-                  {{ address.address_1|default:"-" }}
+                  {% if address.is_abroad %}
+                    {{ address.abroad_label }}
+                  {% else %}
+                    {{ address.address_1|default:"-" }}
+                  {% endif %}
                   {% if georef_activated %}
                     {% if address.verified %}
                       <i class="fas fa-check-circle text-success ml-1" title="{% trans "Verified" %}"></i>
@@ -154,7 +158,12 @@
           {% if last_paid_invoice %}
             <div class="mb-2">
               <i class="fas fa-calendar-check text-success"></i> <strong>{% trans "Latest payment" %}:</strong>
-              {{ last_paid_invoice.payment_date|date:"d/m/Y" }} <span class="text-success">${{ last_paid_invoice.amount }}</span>
+              {{ last_paid_invoice.payment_date|date:"d/m/Y" }}
+              {% if last_paid_invoice.in_default_currency %}
+                <span class="text-success">${{ last_paid_invoice.amount }}</span>
+              {% else %}
+                <span class="text-success">{{ last_paid_invoice.amount|with_currency:last_paid_invoice.currency }}</span>
+              {% endif %}
             </div>
             <div class="mb-2">
               <i class="fas fa-file-invoice-dollar text-info"></i> <strong>{% trans "Total paid" %}:</strong> {{ contact.get_paid_invoices_count }} {% trans "invoices" %}
