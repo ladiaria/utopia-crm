@@ -289,3 +289,11 @@ class FreeSubscriptionRequestedBy(TextChoices):
     MANAGEMENT = "MA", _("Management")
     NEWSROOM = "JD", _("Newsroom")
     PROMOTION = "PR", _("Promotion")
+
+
+class PhoneValidationSource(TextChoices):
+    """Where a contact's phone number was confirmed to be theirs."""
+
+    CALL_CENTER = "call_center", _("Call center")
+    INCOMING_CALL = "incoming_call", _("Incoming call")
+    WEB = "web", _("Web")

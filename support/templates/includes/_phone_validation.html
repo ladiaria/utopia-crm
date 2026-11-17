@@ -1,0 +1,13 @@
+{% load i18n %}
+{% comment %}
+  Badge for a validated phone number. Takes validated_at (a datetime) and source (the display of its validation
+  source); renders nothing when validated_at is empty.
+{% endcomment %}
+{% if validated_at %}
+  {% with date=validated_at|date:"d/m/Y" %}
+    <span class="badge badge-success ml-1"
+          title="{% if source %}{% blocktrans %}Validated on {{ date }} ({{ source }}){% endblocktrans %}{% else %}{% blocktrans %}Validated on {{ date }}{% endblocktrans %}{% endif %}">
+      <i class="fas fa-check"></i> {% trans "Validated" %}
+    </span>
+  {% endwith %}
+{% endif %}

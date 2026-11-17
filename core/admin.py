@@ -315,6 +315,8 @@ class ContactAdmin(SimpleHistoryAdmin):
                     ("email", "no_email"),
                     ("id_document_type", "id_document"),
                     ("phone", "mobile"),
+                    ("phone_validated_at", "phone_validation_source"),
+                    ("mobile_validated_at", "mobile_validation_source"),
                     "work_phone",
                     ("gender", "education", "cms_date_joined"),
                     # TODO: include "occupation" right here after its name got fixed from single "c" to "cc"
@@ -328,6 +330,13 @@ class ContactAdmin(SimpleHistoryAdmin):
         ),
     )
     list_display = ("id", "get_full_name", "get_full_id_document", "email", "tag_list")
+    # Set by the processes that confirm a number (call center, web), and cleared when the number changes
+    readonly_fields = (
+        "phone_validated_at",
+        "phone_validation_source",
+        "mobile_validated_at",
+        "mobile_validation_source",
+    )
     raw_id_fields = (
         "subtype",
         "referrer",
