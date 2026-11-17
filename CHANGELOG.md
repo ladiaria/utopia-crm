@@ -2,6 +2,14 @@
 
 ## v0.5.1
 
+## 2026-11-17 — gl3-consola-telefonos La consola de ventas valida o borra cada teléfono
+
+- **En la consola, cada Teléfono y Celular tiene dos botones:** ✓ «Es el número de la persona», que lo valida, y ✗ «Número equivocado: borrarlo», que lo borra después de preguntar. Actúan en el momento, sin recargar la pantalla ni perder lo escrito en la actividad (it/utopia-crm-ladiaria#3)
+- **Si el contacto tiene un solo número, se valida solo** al cerrar la llamada con un resultado en el que se habló con la persona (los de estado «Contactado» o «Finalizado con contacto»). No se valida con los motivos de `SELLER_CONSOLE_PHONE_NOT_VALIDATED_REASONS` (en la diaria, «Número y email incorrectos» y «Falleció»). Con dos números, lo marca el vendedor
+- **El número borrado queda en el historial del contacto**, con quién lo borró y el motivo. Validar o borrar no dispara la sincronización con la web
+- Deployment: no se requieren migraciones. Setting nuevo opcional: `SELLER_CONSOLE_PHONE_NOT_VALIDATED_REASONS`
+- **Author:** Tanya Tree + Claude Opus 5.5
+
 ## 2026-11-17 — gl3-telefonos-validados Cada teléfono del contacto guarda si está validado
 
 - **Teléfono y Celular guardan cuándo se validaron y por qué vía** (call center, llamada entrante o web). La ficha del contacto y la consola de ventas muestran una etiqueta «Validado» al lado del número, con la fecha y el origen al pasar el mouse. Un número sin la etiqueta está sin verificar (it/utopia-crm-ladiaria#3)

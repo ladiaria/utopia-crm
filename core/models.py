@@ -23,6 +23,7 @@ from django.utils import timezone
 
 from taggit.managers import TaggableManager
 from simple_history.models import HistoricalRecords
+from simple_history.utils import bulk_update_with_history
 from phonenumber_field.modelfields import PhoneNumberField
 
 from util.currency import get_default_currency, is_default_currency, split_by_currency
@@ -701,6 +702,43 @@ class Contact(models.Model):
                 setattr(self, f"{field}_validation_source", "")
                 cleared += [validated_at, f"{field}_validation_source"]
         return cleared
+
+    def _save_phone_fields(self, fields, user, reason):
+        """
+        Saves only these fields, with a history record, without save(): what changes here is not something the web
+        system needs to hear about contact by contact (the same as the bulk scripts that clean phones).
+        """
+        bulk_update_with_history([self], Contact, fields, default_user=user, default_change_reason=reason)
+        self._loaded_phones = self._phones_snapshot()
+
+    def mark_phone_validated(self, field, source, user=None, when=None):
+        """Records that phone or mobile (field) was confirmed to be the contact's, now unless when is given."""
+        if field not in self.VALIDATED_PHONE_FIELDS or not getattr(self, field):
+            raise ValueError(f"There is no {field} to validate")
+        setattr(self, f"{field}_validated_at", when or datetime.now())
+        setattr(self, f"{field}_validation_source", source)
+        self._save_phone_fields(
+            [f"{field}_validated_at", f"{field}_validation_source"],
+            user,
+            gettext("%(field)s validated (%(source)s)")
+            % {"field": self._meta.get_field(field).verbose_name, "source": PhoneValidationSource(source).label},
+        )
+
+    def remove_phone(self, field, user=None, reason=""):
+        """
+        Deletes a wrong phone or mobile number (field), with its validation and, for the phone, its extension. The
+        contact's history keeps the number, with the user and the reason.
+        """
+        if field not in self.VALIDATED_PHONE_FIELDS:
+            raise ValueError(f"{field} is not a phone that can be removed")
+        fields = [field, f"{field}_validated_at", f"{field}_validation_source"]
+        setattr(self, field, "")
+        setattr(self, f"{field}_validated_at", None)
+        setattr(self, f"{field}_validation_source", "")
+        if field == "phone":
+            self.phone_extension = ""
+            fields.append("phone_extension")
+        self._save_phone_fields(fields, user, reason)
 
     def save(self, *args, **kwargs):
         cleared = self.reset_changed_phone_validations(kwargs.get("update_fields"))

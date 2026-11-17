@@ -166,18 +166,7 @@
           </div>
           <table class="table table-bordered mb-2">
             <tbody>
-              {% if contact.phone %}
-                <tr {% if contact.do_not_call_phone %}class="table-danger"{% endif %}>
-                  <td>
-                    <i class="fas fa-phone"></i> {% trans "Phone" %}:
-                  </td>
-                  <td>
-                    {% if contact.do_not_call_phone %}<span>No llamar:</span>{% endif %}
-                    {{ contact.phone|sip }}
-                    {% include "includes/_phone_validation.html" with validated_at=contact.phone_validated_at source=contact.get_phone_validation_source_display %}
-                  </td>
-                </tr>
-              {% endif %}
+              {% include "seller_console_phone_row.html" with row=phone_row %}
               {% if contact.work_phone %}
                 <tr {% if contact.do_not_call_work_phone %}class="table-danger"{% endif %}>
                   <td>
@@ -189,18 +178,7 @@
                   </td>
                 </tr>
               {% endif %}
-              {% if contact.mobile %}
-                <tr {% if contact.do_not_call_mobile %}class="table-danger"{% endif %}>
-                  <td>
-                    <i class="fas fa-mobile-alt"></i> {% trans "Mobile" %}:
-                  </td>
-                  <td>
-                    {% if contact.do_not_call_mobile %}<span>No llamar:</span>{% endif %}
-                    {{ contact.mobile|sip }}
-                    {% include "includes/_phone_validation.html" with validated_at=contact.mobile_validated_at source=contact.get_mobile_validation_source_display %}
-                  </td>
-                </tr>
-              {% endif %}
+              {% include "seller_console_phone_row.html" with row=mobile_row %}
               {% if phone_duplicates_count > 0 %}
                 <tr class="table-warning">
                   <td>
