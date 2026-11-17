@@ -25,6 +25,8 @@ from taggit.managers import TaggableManager
 from simple_history.models import HistoricalRecords
 from simple_history.utils import bulk_update_with_history
 from phonenumber_field.modelfields import PhoneNumberField
+from phonenumber_field.phonenumber import PhoneNumber
+from phonenumbers import NumberParseException
 
 from util.currency import get_default_currency, is_default_currency, split_by_currency
 from util.dates import get_default_next_billing, get_default_start_date, diff_month
@@ -723,6 +725,30 @@ class Contact(models.Model):
             gettext("%(field)s validated (%(source)s)")
             % {"field": self._meta.get_field(field).verbose_name, "source": PhoneValidationSource(source).label},
         )
+
+    def validate_phone_number(self, number, source, when=None, user=None):
+        """
+        Validates the phone or mobile that is exactly this number (any format the phone fields take), for example the
+        one a message came from. A number that is validated at a later date keeps that date. Returns the field it
+        validated, or None when no field has the number or there was nothing to change.
+        """
+        try:
+            wanted = PhoneNumber.from_string(str(number), region=settings.PHONENUMBER_DEFAULT_REGION)
+        except NumberParseException:
+            return None
+        if not wanted.is_valid():
+            return None
+        when = when or datetime.now()
+        for field in self.VALIDATED_PHONE_FIELDS:
+            value = getattr(self, field)
+            if not value or str(value) != wanted.as_e164:
+                continue
+            validated_at = getattr(self, f"{field}_validated_at")
+            if validated_at and validated_at >= when:
+                return None
+            self.mark_phone_validated(field, source, user=user, when=when)
+            return field
+        return None
 
     def remove_phone(self, field, user=None, reason=""):
         """

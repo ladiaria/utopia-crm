@@ -2,6 +2,13 @@
 
 ## v0.5.1
 
+## 2026-11-17 — gl3-validar-whatsapp Un teléfono también se puede validar por WhatsApp
+
+- **«WhatsApp» es un origen nuevo de la validación de Teléfono y Celular**, para cuando la persona nos escribe desde ese número (it/utopia-crm-ladiaria#3)
+- **`Contact.validate_phone_number()`** valida el campo que tiene exactamente ese número, escrito de cualquier forma. Un número que ya estaba validado con una fecha más nueva la conserva. Lo usan los paquetes de customización que reciben mensajes
+- Deployment: migración `core.0127_phone_validation_source_whatsapp` (sólo cambia las opciones del origen)
+- **Author:** Tanya Tree + Claude Opus 5.5
+
 ## 2026-11-17 — gl3-consola-telefonos La consola de ventas valida o borra cada teléfono
 
 - **En la consola, cada Teléfono y Celular tiene dos botones:** ✓ «Es el número de la persona», que lo valida, y ✗ «Número equivocado: borrarlo», que lo borra después de preguntar. Actúan en el momento, sin recargar la pantalla ni perder lo escrito en la actividad (it/utopia-crm-ladiaria#3)

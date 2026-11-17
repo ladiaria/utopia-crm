@@ -297,3 +297,4 @@ class PhoneValidationSource(TextChoices):
     CALL_CENTER = "call_center", _("Call center")
     INCOMING_CALL = "incoming_call", _("Incoming call")
     WEB = "web", _("Web")
+    WHATSAPP = "whatsapp", _("WhatsApp")
