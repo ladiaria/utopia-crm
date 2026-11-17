@@ -750,6 +750,18 @@ class Contact(models.Model):
             return field
         return None
 
+    def validate_the_only_phone(self, source, user=None):
+        """
+        Validates the phone or mobile when it is the contact's only number, for example after the seller spoke with the
+        person: with more numbers (the institutional phone counts) nothing says which one answered. Returns the field it
+        validated, or None.
+        """
+        numbers = [field for field in ("phone", "mobile", "work_phone") if getattr(self, field)]
+        if numbers not in (["phone"], ["mobile"]):
+            return None
+        self.mark_phone_validated(numbers[0], source, user=user)
+        return numbers[0]
+
     def remove_phone(self, field, user=None, reason=""):
         """
         Deletes a wrong phone or mobile number (field), with its validation and, for the phone, its extension. The

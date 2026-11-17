@@ -1,21 +1,21 @@
 # coding=utf-8
 """
-The seller console validates a phone or mobile number, or deletes it as wrong, with a button per number; and a result
-that means the seller spoke with the contact validates the number when it is the only one (it/utopia-crm-ladiaria#3).
+The seller console validates the contact's phone or mobile when it is the only number and the seller spoke with the
+person: a sale, a scheduled call, or a call that ends with contact, unless the reason says who answered was not the
+person. The console has no buttons to validate or delete a number (it/utopia-crm-ladiaria#3).
 """
 from datetime import datetime
 
 from django.contrib.auth.models import User
-from django.test import TestCase, override_settings
+from django.test import RequestFactory, TestCase, override_settings
 from django.urls import reverse
 
 from core.choices import CAMPAIGN_STATUS, PhoneValidationSource
 from core.models import Campaign, Contact, ContactCampaignStatus
 from support.models import Seller, SellerConsoleAction
+from support.views import SubscriptionCreateView
 
 from tests.factory import create_contact
-
-HTMX = {"HTTP_HX_REQUEST": "true"}
 
 
 class ContactPhoneMethodsTests(TestCase):
@@ -41,6 +41,19 @@ class ContactPhoneMethodsTests(TestCase):
         with self.assertRaises(ValueError):
             self.contact.mark_phone_validated("work_phone", PhoneValidationSource.WEB)
 
+    def test_validate_the_only_phone(self):
+        # phone and mobile: nothing says which one answered
+        self.assertIsNone(self.contact.validate_the_only_phone(PhoneValidationSource.CALL_CENTER))
+        Contact.objects.filter(pk=self.contact.pk).update(phone="")
+        contact = Contact.objects.get(pk=self.contact.pk)
+        self.assertEqual(contact.validate_the_only_phone(PhoneValidationSource.CALL_CENTER, user=self.user), "mobile")
+        self.assertIsNotNone(Contact.objects.get(pk=self.contact.pk).mobile_validated_at)
+        # the institutional phone counts as another number
+        Contact.objects.filter(pk=self.contact.pk).update(mobile_validated_at=None, work_phone="0800 1234")
+        contact = Contact.objects.get(pk=self.contact.pk)
+        self.assertIsNone(contact.validate_the_only_phone(PhoneValidationSource.CALL_CENTER))
+        self.assertIsNone(Contact.objects.get(pk=self.contact.pk).mobile_validated_at)
+
     def test_remove_phone_takes_its_extension_and_validation(self):
         Contact.objects.filter(pk=self.contact.pk).update(phone_validated_at=datetime(2026, 11, 17))
         contact = Contact.objects.get(pk=self.contact.pk)
@@ -55,69 +68,6 @@ class ContactPhoneMethodsTests(TestCase):
         self.assertEqual(record.history_change_reason, "Wrong number")
         self.assertEqual(record.history_user, self.user)
         self.assertEqual(str(record.prev_record.phone), "+59829000150")
-
-
-class SellerConsolePhoneButtonsTests(TestCase):
-    @classmethod
-    def setUpTestData(cls):
-        cls.user = User.objects.create_superuser(username="phone_buttons", password="x")
-
-    def setUp(self):
-        contact = create_contact("Phone buttons", "29000151")
-        Contact.objects.filter(pk=contact.pk).update(mobile="+59899123451")
-        self.contact = Contact.objects.get(pk=contact.pk)
-        self.client.force_login(self.user)
-
-    def post(self, field, action, number, **headers):
-        url = reverse("seller_console_phone", args=[self.contact.pk, field, action])
-        return self.client.post(url, {"number": number}, **(headers or HTMX))
-
-    def test_validate(self):
-        response = self.post("phone", "validate", "+59829000151")
-        self.assertEqual(response.status_code, 200)
-        contact = Contact.objects.get(pk=self.contact.pk)
-        self.assertEqual(contact.phone_validation_source, PhoneValidationSource.CALL_CENTER)
-        self.assertEqual(contact.history.latest().history_user, self.user)
-        content = response.content.decode()
-        self.assertIn("badge badge-success", content)
-        # validated: only the delete button is left
-        self.assertNotIn("/phone/validate/", content)
-        self.assertIn("/phone/remove/", content)
-
-    def test_remove(self):
-        response = self.post("mobile", "remove", "+59899123451")
-        self.assertEqual(response.status_code, 200)
-        contact = Contact.objects.get(pk=self.contact.pk)
-        self.assertEqual(str(contact.mobile), "")
-        self.assertEqual(str(contact.phone), "+59829000151")
-        content = response.content.decode()
-        self.assertIn("<del>", content)
-        self.assertIn("Deleted as a wrong number", content)
-        self.assertNotIn("/mobile/remove/", content)
-
-    def test_a_number_that_changed_meanwhile_is_not_touched(self):
-        response = self.post("phone", "remove", "+59829009999")
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(str(Contact.objects.get(pk=self.contact.pk).phone), "+59829000151")
-        self.assertNotIn("<del>", response.content.decode())
-
-    def test_only_htmx_posts_on_phone_and_mobile(self):
-        self.assertEqual(self.post("phone", "remove", "+59829000151", HTTP_X_OTHER="1").status_code, 404)
-        self.assertEqual(self.post("work_phone", "remove", "").status_code, 404)
-        self.assertEqual(self.post("phone", "erase", "+59829000151").status_code, 404)
-        url = reverse("seller_console_phone", args=[self.contact.pk, "phone", "remove"])
-        self.assertEqual(self.client.get(url, **HTMX).status_code, 405)
-        self.assertEqual(str(Contact.objects.get(pk=self.contact.pk).phone), "+59829000151")
-
-    def test_a_foreign_number_reads_whole_in_the_confirmation(self):
-        Contact.objects.filter(pk=self.contact.pk).update(mobile="+34612345678")
-        response = self.post("mobile", "validate", "+34612345678")
-        self.assertIn('hx-confirm="Delete +34 612 34 56 78 from the contact', response.content.decode())
-
-    def test_staff_only(self):
-        self.client.force_login(User.objects.create_user(username="phone_buttons_not_staff"))
-        self.post("phone", "remove", "+59829000151")
-        self.assertEqual(str(Contact.objects.get(pk=self.contact.pk).phone), "+59829000151")
 
 
 @override_settings(SELLER_CONSOLE_PHONE_NOT_VALIDATED_REASONS=(12, 14))
@@ -139,6 +89,13 @@ class SellerConsoleValidatesTheOnlyPhoneTests(TestCase):
             campaign_resolution="NI",
         )
         SellerConsoleAction.objects.create(
+            slug="schedule",
+            name="Agendar",
+            action_type=SellerConsoleAction.ACTION_TYPES.SCHEDULED,
+            campaign_status=CAMPAIGN_STATUS.CONTACTED,
+            campaign_resolution="SC",
+        )
+        SellerConsoleAction.objects.create(
             slug="not-found",
             name="No encontrado",
             action_type=SellerConsoleAction.ACTION_TYPES.NOT_FOUND,
@@ -146,7 +103,7 @@ class SellerConsoleValidatesTheOnlyPhoneTests(TestCase):
             campaign_resolution="NF",
         )
 
-    def post_result(self, result, reason=""):
+    def post_result(self, result, reason="", **extra):
         self.client.post(
             reverse("seller_console", args=["new", self.campaign.id]),
             {
@@ -157,6 +114,7 @@ class SellerConsoleValidatesTheOnlyPhoneTests(TestCase):
                 "offset": 1,
                 "notes": "",
                 "campaign_resolution_reason": reason,
+                **extra,
             },
         )
         return Contact.objects.get(pk=self.contact.pk)
@@ -166,13 +124,18 @@ class SellerConsoleValidatesTheOnlyPhoneTests(TestCase):
         self.assertEqual(contact.phone_validation_source, PhoneValidationSource.CALL_CENTER)
         self.assertEqual(contact.history.latest().history_user, self.user)
 
+    def test_a_scheduled_call_validates_the_only_number(self):
+        contact = self.post_result("schedule", call_date="2026-11-30", call_time="10:00")
+        self.assertEqual(contact.phone_validation_source, PhoneValidationSource.CALL_CENTER)
+
     def test_not_found_validates_nothing(self):
         self.assertIsNone(self.post_result("not-found").phone_validated_at)
 
-    def test_a_wrong_number_reason_validates_nothing(self):
+    def test_a_reason_that_says_it_was_not_the_person_validates_nothing(self):
         self.assertIsNone(self.post_result("not-interested", reason="12").phone_validated_at)
+        self.assertIsNone(self.post_result("not-interested", reason="14").phone_validated_at)
 
-    def test_with_two_numbers_the_seller_chooses(self):
+    def test_with_two_numbers_nothing_is_validated(self):
         Contact.objects.filter(pk=self.contact.pk).update(mobile="+59899123452")
         contact = self.post_result("not-interested", reason="7")
         self.assertIsNone(contact.phone_validated_at)
@@ -182,8 +145,32 @@ class SellerConsoleValidatesTheOnlyPhoneTests(TestCase):
         Contact.objects.filter(pk=self.contact.pk).update(work_phone="0800 1234")
         self.assertIsNone(self.post_result("not-interested", reason="7").phone_validated_at)
 
-    def test_the_console_shows_the_buttons(self):
+    def test_the_console_has_no_phone_buttons(self):
         response = self.client.get(reverse("seller_console", args=["new", self.campaign.id]))
         content = response.content.decode()
-        self.assertIn(reverse("seller_console_phone", args=[self.contact.pk, "phone", "validate"]), content)
-        self.assertIn(reverse("seller_console_phone", args=[self.contact.pk, "phone", "remove"]), content)
+        self.assertIn("29000152", content.replace(" ", ""))
+        self.assertNotIn("seller_console_phone", content)
+        self.assertNotIn("hx-post", content)
+
+    def sell(self, contact):
+        """Registers a direct sale from the console of the contact, as the subscription form does when it is saved."""
+        view = SubscriptionCreateView()
+        view.request = RequestFactory().post("/")
+        view.request.user = self.user
+        view.is_new, view.is_activity = str(self.ccs.pk), None
+        view.ccs, view.url, view.offset = self.ccs, "/", 1
+        view.edit_subscription = True  # no sales record: it needs a whole subscription, and it is not what is tested
+        form = type("Form", (), {"cleaned_data": {"register_activity": "Venta"}})()
+        view.get_redirect_url_and_sales_record(form, None, contact, self.seller.pk)
+        return Contact.objects.get(pk=self.contact.pk)
+
+    def test_a_sale_validates_the_only_number(self):
+        contact = self.sell(self.contact)
+        self.assertEqual(contact.phone_validation_source, PhoneValidationSource.CALL_CENTER)
+        self.assertEqual(contact.history.latest().history_user, self.user)
+
+    def test_a_sale_with_two_numbers_validates_nothing(self):
+        Contact.objects.filter(pk=self.contact.pk).update(mobile="+59899123453")
+        contact = self.sell(self.contact)
+        self.assertIsNone(contact.phone_validated_at)
+        self.assertIsNone(contact.mobile_validated_at)

@@ -4,20 +4,17 @@ from django.conf import settings
 from django.contrib import messages
 from django.utils import timezone
 from django.db.models import Exists, OuterRef
-from django.http import HttpResponseNotFound, HttpResponseRedirect
+from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.models import User
-from django.utils.translation import gettext, gettext_lazy as _
-from django.views.decorators.csrf import csrf_protect
-from django.views.decorators.http import require_POST
+from django.utils.translation import gettext_lazy as _
 from django.utils.html import format_html
 from datetime import date, timedelta, datetime
 
 from support.models import Seller, Issue, SellerConsoleAction, Shift
 from core.models import Address, SubscriptionProduct, Activity, ContactCampaignStatus, Campaign, Subscription, Contact
-from core.templatetags.core_tags import foreign_region
 from core.utils import logistics_is_installed
 from core.choices import (
     ACTIVITY_STATUS,
@@ -609,9 +606,10 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
 
     def validate_the_only_phone(self, contact, seller_console_action, reason, switch_status):
         """
-        A result that means the seller spoke with the contact validates the number, when the contact has only one: with
-        more, the console can't tell which one answered, and the seller marks it with its button. The reasons in
-        SELLER_CONSOLE_PHONE_NOT_VALIDATED_REASONS (a wrong number, a deceased contact) validate nothing.
+        A result that means the seller spoke with the contact (scheduled, declined, ended with contact) validates the
+        number, when the contact has only one: with more, the console can't tell which one answered. The reasons in
+        SELLER_CONSOLE_PHONE_NOT_VALIDATED_REASONS (a wrong number, a deceased contact: who answered was not the person)
+        validate nothing. A sale validates it in SubscriptionMixin.get_redirect_url_and_sales_record.
         """
         contacted = (CAMPAIGN_STATUS.CONTACTED, CAMPAIGN_STATUS.ENDED_WITH_CONTACT)
         if switch_status or seller_console_action.campaign_status not in contacted:
@@ -622,9 +620,7 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
             reason = None
         if reason in getattr(settings, "SELLER_CONSOLE_PHONE_NOT_VALIDATED_REASONS", ()):
             return
-        numbers = [field for field in ("phone", "mobile", "work_phone") if getattr(contact, field)]
-        if numbers in (["phone"], ["mobile"]):
-            contact.mark_phone_validated(numbers[0], PhoneValidationSource.CALL_CENTER, user=self.request.user)
+        contact.validate_the_only_phone(PhoneValidationSource.CALL_CENTER, user=self.request.user)
 
     def get_call_datetime(self, data):
         """Convert date and time strings to datetime object"""
@@ -728,8 +724,6 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
                 'last_action_datetime': last_action_datetime,
                 'open_issues': open_issues,
                 'open_issues_count': open_issues.count(),
-                'phone_row': phone_row(contact, "phone"),
-                'mobile_row': phone_row(contact, "mobile"),
             }
         )
         # During a shift only the move to the other one is shown; outside the shifts, both
@@ -867,50 +861,3 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
         if context.get('redirect'):
             return HttpResponseRedirect(context['redirect'])
         return super().render_to_response(context, **response_kwargs)
-
-
-def phone_row(contact, field, removed=""):
-    """
-    What seller_console_phone_row.html shows for the contact's phone or mobile (field). display is the number (or the
-    removed one) as plain text, national for the local ones, to use where the flag of phone_display can't go.
-    """
-    number = removed or getattr(contact, field)
-    display = ""
-    if number:
-        display = number.as_national if foreign_region(number) is None else number.as_international
-    return {
-        "contact_id": contact.id,
-        "field": field,
-        "display": display,
-        "number": getattr(contact, field),
-        "do_not_call": contact.do_not_call(field) if getattr(contact, field) else False,
-        "validated_at": getattr(contact, f"{field}_validated_at"),
-        "source": getattr(contact, f"get_{field}_validation_source_display")(),
-        "removed": removed,
-    }
-
-
-@staff_member_required
-@csrf_protect
-@require_POST
-def seller_console_phone(request, contact_id, field, action):
-    """
-    The seller console buttons of a phone or mobile number (it/utopia-crm-ladiaria#3): "validate" records that it is
-    the contact's number, "remove" deletes it as wrong. Answers with the number's row. The number the seller saw comes
-    in the request: if it changed meanwhile, nothing is done and the row shows the current one.
-    """
-    if request.headers.get("HX-Request") != "true" or field not in Contact.VALIDATED_PHONE_FIELDS:
-        return HttpResponseNotFound()
-    if action not in ("validate", "remove"):
-        return HttpResponseNotFound()
-    contact = get_object_or_404(Contact, pk=contact_id)
-    number = getattr(contact, field)
-    removed = ""
-    if number and str(number) == request.POST.get("number"):
-        if action == "validate":
-            contact.mark_phone_validated(field, PhoneValidationSource.CALL_CENTER, user=request.user)
-        else:
-            reason = gettext("Wrong number, deleted from the seller console")
-            contact.remove_phone(field, user=request.user, reason=reason)
-            removed = number
-    return render(request, "seller_console_phone_row.html", {"row": phone_row(contact, field, removed)})

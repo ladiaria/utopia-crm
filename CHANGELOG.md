@@ -2,6 +2,14 @@
 
 ## v0.5.1
 
+## 2026-11-17 — gl3-consola-sin-botones La consola de ventas ya no borra ni valida teléfonos a mano
+
+- **Se sacan los botones ✓ y ✗ de cada Teléfono y Celular en la consola.** Desde la consola ya no se borra ningún número. Borrar un número equivocado va a pasar por una regla acordada con supervisión (it/utopia-crm-ladiaria#3)
+- **El número se valida solo cuando el contacto tiene uno solo y se habló con la persona:** al agendar, al rechazar, al cerrar con contacto o al hacer una venta desde la consola. No se valida con los motivos de `SELLER_CONSOLE_PHONE_NOT_VALIDATED_REASONS` (en la diaria, «Número y email incorrectos» y «Falleció»), porque indican que quien atendió no era la persona
+- **Con dos números no se valida ninguno**, porque no hay forma de saber en cuál atendió la persona. El teléfono institucional cuenta como otro número
+- Deployment: no se requieren migraciones
+- **Author:** Tanya Tree + Claude Opus 5.5
+
 ## 2026-11-17 — gl3-validar-whatsapp Un teléfono también se puede validar por WhatsApp
 
 - **«WhatsApp» es un origen nuevo de la validación de Teléfono y Celular**, para cuando la persona nos escribe desde ese número (it/utopia-crm-ladiaria#3)
