@@ -81,11 +81,6 @@ urlpatterns = [
         views.SellerConsoleView.as_view(),
         name="seller_console",
     ),
-    path(
-        "seller_console_phone/<int:contact_id>/<str:field>/<str:action>/",
-        views.seller_console_phone,
-        name="seller_console_phone",
-    ),
     re_path(r"^special_routes/(\d+)/$", seller_console_special_routes, name="seller_console_special_routes"),
     path("never_paid_issues/", seller_console_never_paid_issues, name="seller_console_never_paid_issues"),
     path("scheduled_activities/", scheduled_activities, name="scheduled_activities"),
