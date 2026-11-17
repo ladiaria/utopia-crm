@@ -13145,3 +13145,29 @@ msgstr "Validado el %(date)s (%(source)s)"
 #, python-format
 msgid "Validated on %(date)s"
 msgstr "Validado el %(date)s"
+
+#: support/templates/seller_console_phone_row.html
+msgid "It is the contact's number"
+msgstr "Es el número de la persona"
+
+#: support/templates/seller_console_phone_row.html
+msgid "Wrong number: delete it"
+msgstr "Número equivocado: borrarlo"
+
+#: support/templates/seller_console_phone_row.html
+#, python-format
+msgid "Delete %(number)s from the contact as a wrong number?"
+msgstr "¿Borrar el %(number)s del contacto por número equivocado?"
+
+#: support/templates/seller_console_phone_row.html
+msgid "Deleted as a wrong number"
+msgstr "Borrado por número equivocado"
+
+#: core/models.py
+#, python-format
+msgid "%(field)s validated (%(source)s)"
+msgstr "%(field)s validado (%(source)s)"
+
+#: support/views/seller_console.py
+msgid "Wrong number, deleted from the seller console"
+msgstr "Número equivocado, borrado desde la consola de ventas"
