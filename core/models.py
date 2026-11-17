@@ -60,6 +60,7 @@ from .choices import (
     EMAIL_BOUNCE_ACTIONLOG_CHOICES,
     EMAIL_BOUNCE_ACTION_MAXREACH,
     FreeSubscriptionRequestedBy,
+    PhoneValidationSource,
     get_activity_types,
 )
 from .utils import (
@@ -469,6 +470,24 @@ class Contact(models.Model):
     phone = PhoneNumberField(blank=True, default="", verbose_name=_("Phone"), db_index=True)
     phone_extension = models.CharField(blank=True, default="", max_length=16, verbose_name=_("Phone extension"))
     mobile = PhoneNumberField(blank=True, default="", verbose_name=_("Mobile"), db_index=True)
+    # When and how phone and mobile were confirmed to belong to the contact. Changing a number through save() clears
+    # its validation (see reset_changed_phone_validations); work_phone has none.
+    phone_validated_at = models.DateTimeField(blank=True, null=True, verbose_name=_("Phone validated at"))
+    phone_validation_source = models.CharField(
+        blank=True,
+        default="",
+        max_length=16,
+        choices=PhoneValidationSource.choices,
+        verbose_name=_("Phone validation source"),
+    )
+    mobile_validated_at = models.DateTimeField(blank=True, null=True, verbose_name=_("Mobile validated at"))
+    mobile_validation_source = models.CharField(
+        blank=True,
+        default="",
+        max_length=16,
+        choices=PhoneValidationSource.choices,
+        verbose_name=_("Mobile validation source"),
+    )
     work_phone = models.CharField(blank=True, default="", max_length=50, verbose_name=_("Work phone"), db_index=True)
     work_phone_extension = models.CharField(
         blank=True,
@@ -645,7 +664,48 @@ class Contact(models.Model):
         # contact is created (see queue_takeover_after_create).
         return enqueue_takeover(self, email, preview.get("detail"))
 
+    VALIDATED_PHONE_FIELDS = ("phone", "mobile")
+
+    @classmethod
+    def from_db(cls, db, field_names, values):
+        instance = super().from_db(db, field_names, values)
+        instance._loaded_phones = instance._phones_snapshot(field_names)
+        return instance
+
+    def _phones_snapshot(self, field_names=None):
+        """The phones and their validation dates as they are, so that save() can tell when a number changed."""
+        names = [name for field in self.VALIDATED_PHONE_FIELDS for name in (field, f"{field}_validated_at")]
+        return {name: str(getattr(self, name)) for name in names if field_names is None or name in field_names}
+
+    def reset_changed_phone_validations(self, update_fields=None):
+        """
+        Clears the validation of each phone or mobile number that changed since the contact was loaded, unless its
+        validation changed too (whoever changed the number also validated the new one). A contact that was not loaded
+        from the database keeps what it was given. Returns the names of the fields it cleared.
+
+        bulk_update() and update() skip save(), and therefore this: whoever changes numbers in bulk clears their
+        validation by hand. With update_fields, only the numbers it saves count.
+        """
+        loaded = getattr(self, "_loaded_phones", {})
+        cleared = []
+        for field in self.VALIDATED_PHONE_FIELDS:
+            validated_at = f"{field}_validated_at"
+            if update_fields is not None and field not in update_fields:
+                continue
+            if field not in loaded or str(getattr(self, field)) == loaded[field]:
+                continue
+            if validated_at in loaded and str(getattr(self, validated_at)) != loaded[validated_at]:
+                continue
+            if getattr(self, validated_at) or getattr(self, f"{field}_validation_source"):
+                setattr(self, validated_at, None)
+                setattr(self, f"{field}_validation_source", "")
+                cleared += [validated_at, f"{field}_validation_source"]
+        return cleared
+
     def save(self, *args, **kwargs):
+        cleared = self.reset_changed_phone_validations(kwargs.get("update_fields"))
+        if cleared and kwargs.get("update_fields") is not None:
+            kwargs["update_fields"] = set(kwargs["update_fields"]) | set(cleared)
         skip_clean = getattr(self, "_skip_clean", False)
         if not getattr(self, "updatefromweb", False) and not skip_clean:
             self.clean(debug=settings.DEBUG_CONTACT_CLEAN)
@@ -653,12 +713,14 @@ class Contact(models.Model):
         #       Fix the test and explain why the field is not needed anymore or submit a different solution.
         self.no_email = self.email is None
         try:
-            return super().save(*args, **kwargs)
+            result = super().save(*args, **kwargs)
         except IntegrityError as ie_exc:
             if skip_clean:
                 raise ValidationError(ie_exc)
             else:
                 raise
+        self._loaded_phones = self._phones_snapshot()
+        return result
 
     def is_debtor(self):
         """

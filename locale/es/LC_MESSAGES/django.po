@@ -13111,3 +13111,37 @@ msgstr "No están en estos totales, que son sólo en moneda local:"
 #, python-format
 msgid "%(count)s in %(currency)s"
 msgstr "%(count)s en %(currency)s"
+
+#: core/choices.py
+msgid "Call center"
+msgstr "Call center"
+
+#: core/choices.py
+msgid "Incoming call"
+msgstr "Llamada entrante"
+
+#: core/models.py
+msgid "Phone validated at"
+msgstr "Teléfono validado el"
+
+#: core/models.py
+msgid "Phone validation source"
+msgstr "Origen de la validación del teléfono"
+
+#: core/models.py
+msgid "Mobile validated at"
+msgstr "Celular validado el"
+
+#: core/models.py
+msgid "Mobile validation source"
+msgstr "Origen de la validación del celular"
+
+#: support/templates/includes/_phone_validation.html
+#, python-format
+msgid "Validated on %(date)s (%(source)s)"
+msgstr "Validado el %(date)s (%(source)s)"
+
+#: support/templates/includes/_phone_validation.html
+#, python-format
+msgid "Validated on %(date)s"
+msgstr "Validado el %(date)s"

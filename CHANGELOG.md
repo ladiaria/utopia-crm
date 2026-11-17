@@ -2,6 +2,14 @@
 
 ## v0.5.1
 
+## 2026-11-17 — gl3-telefonos-validados Cada teléfono del contacto guarda si está validado
+
+- **Teléfono y Celular guardan cuándo se validaron y por qué vía** (call center, llamada entrante o web). La ficha del contacto y la consola de ventas muestran una etiqueta «Validado» al lado del número, con la fecha y el origen al pasar el mouse. Un número sin la etiqueta está sin verificar (it/utopia-crm-ladiaria#3)
+- **Cambiar el número le saca la validación**, salvo que el mismo cambio valide el número nuevo. Escribir el mismo número de otra forma (con espacios, sin el +598) no la saca
+- En el admin los campos se ven, pero no se editan: los ponen los procesos que confirman el número, que llegan en otros cambios
+- Deployment: migración `core.0126_contact_phone_validation`
+- **Author:** Tanya Tree + Claude Opus 5.5
+
 ## 2026-11-16 — gl145-direccion-exterior-vista-general La vista general dice de qué ciudad y país es una dirección del exterior
 
 - **En la tarjeta Información de contacto de la vista general, una dirección del exterior muestra calle, ciudad y país** («131 Lake Shore Dr, Newnan, Estados Unidos»). Antes mostraba sólo la calle, y no se sabía dónde quedaba (it/utopia-crm-ladiaria#145)
