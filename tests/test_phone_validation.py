@@ -124,3 +124,47 @@ class PhoneValidationBadgeTests(TestCase):
         content = response.content.decode()
         self.assertNotIn('name="phone_validated_at"', content)
         self.assertIn('<div class="readonly">Call center</div>', content)
+
+
+class ValidatePhoneNumberTests(TestCase):
+    """Contact.validate_phone_number(): the field that is exactly the number a message came from."""
+
+    def setUp(self):
+        contact = create_contact("Validate phone number", "29000160")
+        Contact.objects.filter(pk=contact.pk).update(mobile="+59899123460")
+        self.contact = Contact.objects.get(pk=contact.pk)
+
+    def reloaded(self):
+        return Contact.objects.get(pk=self.contact.pk)
+
+    def test_validates_the_field_with_that_number_in_any_format(self):
+        when = datetime(2026, 11, 16, 18, 0)
+        self.assertEqual(
+            self.contact.validate_phone_number("099 123 460", PhoneValidationSource.WHATSAPP, when=when), "mobile"
+        )
+        contact = self.reloaded()
+        self.assertEqual(contact.mobile_validated_at, when)
+        self.assertEqual(contact.mobile_validation_source, PhoneValidationSource.WHATSAPP)
+        self.assertIsNone(contact.phone_validated_at)
+
+    def test_a_number_the_contact_does_not_have_validates_nothing(self):
+        # a partial match, as the caller lookup by phone allows, is not the same number
+        self.assertIsNone(self.contact.validate_phone_number("99123", PhoneValidationSource.WHATSAPP))
+        self.assertIsNone(self.contact.validate_phone_number("+59899123461", PhoneValidationSource.WHATSAPP))
+        self.assertIsNone(self.contact.validate_phone_number("not a number", PhoneValidationSource.WHATSAPP))
+        self.assertIsNone(self.reloaded().mobile_validated_at)
+
+    def test_a_later_validation_is_kept(self):
+        Contact.objects.filter(pk=self.contact.pk).update(
+            mobile_validated_at=VALIDATED_AT, mobile_validation_source=PhoneValidationSource.CALL_CENTER
+        )
+        contact = self.reloaded()
+        self.assertIsNone(
+            contact.validate_phone_number("+59899123460", PhoneValidationSource.WHATSAPP, when=datetime(2026, 1, 1))
+        )
+        self.assertEqual(self.reloaded().mobile_validation_source, PhoneValidationSource.CALL_CENTER)
+        later = datetime(2026, 11, 18, 9, 0)
+        self.assertEqual(
+            contact.validate_phone_number("+59899123460", PhoneValidationSource.WHATSAPP, when=later), "mobile"
+        )
+        self.assertEqual(self.reloaded().mobile_validated_at, later)
