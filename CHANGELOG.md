@@ -2,6 +2,21 @@
 
 ## v0.5.1
 
+## 2026-11-20 — gl18-gl91-codigo-muerto Se sacan los restos de un proyecto que dejó de usar el CRM
+
+- **Se borran de las suscripciones tres campos que el CRM nunca usó:** la fecha de compra y las dos marcas de sincronización con Zoho. Los cargaba sólo el paquete de una instalación que ya no usa el CRM (it/utopia-crm-ladiaria#91). La fecha de compra aparecía en el admin, pero repetía la fecha de creación. Para saber cuándo se vendió una suscripción se usa la fecha de creación
+- **Se borra la traducción `es_CO`** (español de Colombia), que tampoco se usaba: el CRM ofrece inglés y español. Para actualizar las traducciones, `makemessages -l es` en vez de `-a`
+- Si otra instalación cargaba esos campos o tenía `es-co` en `LANGUAGES`, tiene que dejar de hacerlo antes de actualizar
+- Deployment: migración `core.0128_remove_subscription_cambio_fields`, que borra las tres columnas de las suscripciones y de su historial. **Correrla apenas se mergea:** hasta entonces, guardar una suscripción da error
+- **Author:** Tanya Tree + Claude Opus 5.5
+
+## 2026-11-20 — gl18-gl91-codigo-muerto Se borra la pantalla de factura suelta que quedó a medio hacer
+
+- **Se borra la pantalla para crear a mano una factura sin suscripción**, que nunca se terminó: desde 2024 no tenía dirección y nadie podía llegar a ella (it/utopia-crm-ladiaria#18)
+- No cambia nada para quien usa el CRM: en la diaria, las facturas sueltas se hacen desde las pantallas de compra de única vez del call center
+- Deployment: no se requieren migraciones
+- **Author:** Tanya Tree + Claude Opus 5.5
+
 ## 2026-11-20 — gl162-send-html-email-django Los mails con plantilla HTML pasan por la configuración de mail del CRM
 
 - **Los avisos con formato HTML, como los errores de MercadoPago y las compras de única vez, se mandan igual que el resto de los mails del CRM.** Antes iban directo al servidor de mail y se salteaban la configuración: por ejemplo, no llevaban el «responder a» que tienen los demás avisos (it/utopia-crm-ladiaria#162)
