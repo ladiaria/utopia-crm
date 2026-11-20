@@ -2,6 +2,13 @@
 
 ## v0.5.1
 
+## 2026-11-20 — gl162-send-html-email-django Los mails con plantilla HTML pasan por la configuración de mail del CRM
+
+- **Los avisos con formato HTML, como los errores de MercadoPago y las compras de única vez, se mandan igual que el resto de los mails del CRM.** Antes iban directo al servidor de mail y se salteaban la configuración: por ejemplo, no llevaban el «responder a» que tienen los demás avisos (it/utopia-crm-ladiaria#162)
+- El contenido y los destinatarios de esos avisos no cambian. Ahora llevan además identificador de mensaje, como todos los mails del CRM
+- Deployment: no se requieren migraciones
+- **Author:** Tanya Tree + Claude Opus 5.5
+
 ## 2026-11-17 — gl3-consola-sin-botones La consola de ventas ya no borra ni valida teléfonos a mano
 
 - **Se sacan los botones ✓ y ✗ de cada Teléfono y Celular en la consola.** Desde la consola ya no se borra ningún número. Borrar un número equivocado va a pasar por una regla acordada con supervisión (it/utopia-crm-ladiaria#3)
