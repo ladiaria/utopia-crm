@@ -209,7 +209,7 @@ class SubscriptionAdmin(SimpleHistoryAdmin):
                     ("updated_from", "campaign"),
                     ("free_subscription_requested_by"),
                     ("validated", "validated_by", "validated_date"),
-                    ("renewal_type", "purchase_date"),
+                    ("renewal_type"),
                 )
             },
         ),
