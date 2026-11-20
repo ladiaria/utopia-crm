@@ -1,2 +1,4 @@
-static/admin-lte/* linguist-vendored
-static/js/jquery-3.6.0.min.js linguist-vendored
+static/admin-lte/** linguist-vendored
+static/js/1.12.1/** linguist-vendored
+static/js/*.min.js linguist-vendored
+static/tagify/** linguist-vendored
