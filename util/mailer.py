@@ -1,28 +1,16 @@
 # coding=utf-8
-import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-from email.utils import COMMASPACE
-from email.utils import formatdate
-
-from django.conf import settings
+from django.core.mail import EmailMessage
 from django.template.loader import render_to_string
 
 
-def send_html_email(from_address, to_addresses, subject, template, context={}):
-    msg = MIMEMultipart()
-    msg['From'] = from_address
-    msg['To'] = COMMASPACE.join(to_addresses)
-    msg['Date'] = formatdate(localtime=True)
-    msg['Subject'] = subject
-    html = MIMEText(render_to_string(template, context), 'html', 'utf-8')
-    msg.attach(html)
+def send_html_email(from_address, to_addresses, subject, template, context=None):
+    """
+    Sends an HTML email rendered from a template.
 
-    server = smtplib.SMTP(settings.EMAIL_HOST, settings.EMAIL_PORT)
-    try:
-        server.login(settings.EMAIL_HOST_USER, settings.EMAIL_HOST_PASSWORD)
-    except smtplib.SMTPException:
-        # ignore if server doesn't support authentication
-        pass
-    server.sendmail(from_address, to_addresses, msg.as_string())
-    server.quit()
+    It goes through Django's email backend (EMAIL_BACKEND), like send_mail, so whatever a deployment configures there
+    applies to these emails too (for example a backend that sets a Reply-To), and tests can read it from mail.outbox.
+    Returns the number of messages sent; raises on SMTP errors, as it always did.
+    """
+    message = EmailMessage(subject, render_to_string(template, context or {}), from_address, list(to_addresses))
+    message.content_subtype = "html"
+    return message.send()
