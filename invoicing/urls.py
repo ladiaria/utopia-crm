@@ -13,10 +13,4 @@ urlpatterns = [
     path('invoice_filter/', views.InvoiceFilterView.as_view(), name='invoice_filter'),
     path('invoice_detail/<int:pk>/', views.InvoiceDetailView.as_view(), name='invoice_detail'),
     path('canceled_invoices_report/', views.CanceledInvoicesReportView.as_view(), name='canceled_invoices_report'),
-    # WIP: UI for creating invoices, unfinished. Uncomment when ready.
-    # path(
-    #     'new_non_subscription/<int:contact_id>/',
-    #     views.InvoiceNonSubscriptionCreateView.as_view(),
-    #     name='create_non_subscription_invoice',
-    # ),
 ]
