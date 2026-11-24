@@ -63,6 +63,8 @@ BLOCKING_PREVIEW_REASONS = (
     "is_staff",
     "has_subscription",
     "has_unmovable_data",
+    # Only an older CMS sends it: the current one answers this case with the ``release_social_auth``
+    # mode, a takeover that removes the Google login, so it goes to the queue like any other.
     "social_auth_conflict",
     # el duplicado que tendría que absorberse tiene suscripción activa: hay un contacto vivo
     # detrás de ese contact_id, y con una suscripción de por medio decide una persona.

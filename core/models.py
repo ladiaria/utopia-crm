@@ -3978,8 +3978,16 @@ class EmailTakeoverRequest(models.Model):
           simply linked to it. Nothing is merged and nothing is deleted.
         - ``merge``: the old account's data is moved into the kept one and the old one is deleted.
         - ``fix_email_only``: the email already lives on the contact's own account, only normalized.
+        - ``release_social_auth``: on the web the email is only the Google login of another account,
+          registered under another address. That login is removed from it; no account is deleted.
         """
         return (self.preview_detail or {}).get("mode")
+
+    @property
+    def released_social_auth(self):
+        """The web accounts that lose their Google login when this request is approved: their email,
+        subscriber, contact and whether they hold an active subscription, as the CMS reported them."""
+        return (self.preview_detail or {}).get("released_social_auth") or []
 
     @property
     def deletes_an_account(self):
