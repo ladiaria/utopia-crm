@@ -9565,6 +9565,34 @@ msgstr "Sólo vincula la cuenta"
 msgid "Only normalizes the address"
 msgstr "Sólo normaliza la dirección"
 
+#: support/templates/email_takeovers/queue.html:57
+msgid "Removes a Google login"
+msgstr "Saca un login de Google"
+
+#: support/templates/email_takeovers/queue.html:88
+msgid "Loses its Google login"
+msgstr "Pierde su login de Google"
+
+#: support/templates/email_takeovers/queue.html:99
+msgid "Active subscription"
+msgstr "Suscripción activa"
+
+#: support/templates/email_takeovers/queue.html:105
+msgid ""
+"On the web, the requested address is only the Google login of this account, "
+"which is registered under another address. It is usually the same person: "
+"the account's email changed and the Google login kept the old one. Approving "
+"removes that Google login and frees the address for this contact. No account "
+"is deleted: whoever owns that account keeps it and signs in with their "
+"password."
+msgstr ""
+"En la web, la dirección pedida es sólo el login de Google de esta cuenta, "
+"que está registrada con otra dirección. Casi siempre es la misma persona: el "
+"email de la cuenta cambió y el login de Google se quedó con el viejo. Al "
+"aprobar se le saca ese login de Google y la dirección queda libre para este "
+"contacto. No se borra ninguna cuenta: quien sea su dueño la conserva y entra "
+"con su contraseña."
+
 #: support/templates/email_takeovers/queue.html:61
 msgid "Contact's email today"
 msgstr "Email actual del contacto"
