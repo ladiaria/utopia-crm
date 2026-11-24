@@ -45,6 +45,7 @@ from .choices import (
     ENVELOPE_CHOICES,
     FREQUENCY_CHOICES,
     GENDERS,
+    OPEN_CAMPAIGN_STATUSES,
     PRICERULE_MODE_CHOICES,
     PRICERULE_WILDCARD_MODE_CHOICES,
     PRICERULE_AMOUNT_TO_PICK_CONDITION_CHOICES,
@@ -416,6 +417,10 @@ class IdDocumentType(models.Model):
         verbose_name = _("ID Document Type")
         verbose_name_plural = _("ID Document Types")
         ordering = ["id"]
+
+
+# Tag that Contact.merge_other_contact_into_this leaves on the contact merged away, which is not deleted.
+MERGED_AWAY_CONTACT_TAG = "eliminar"
 
 
 class Contact(models.Model):
@@ -1266,7 +1271,9 @@ class Contact(models.Model):
             if source.notes:
                 self.notes += f"\n\nNotes imported from {source.id} - {source.get_full_name()}\n\n"
                 self.notes += source.notes
-            for tag in source.tags.all():
+            # The mark of a merged-away contact stays with the source: if the source had been merged away before,
+            # copying it would mark this contact, the one that stays, for deletion too.
+            for tag in source.tags.exclude(name=MERGED_AWAY_CONTACT_TAG):
                 self.tags.add(tag.name)
             self.save()
             source.addresses.update(contact=self)
@@ -1277,12 +1284,17 @@ class Contact(models.Model):
             # Then we update the contact of the remaining activities
             source.activity_set.update(contact=self)
             source.issue_set.update(contact=self)
-            # ContactCampaignStatus have a unique constraint on (contact, campaign)
-            # so we need to delete the source's ContactCampaignStatus and keep the ones from the target if they exist.
-            if self.contactcampaignstatus_set.exists():
-                source.contactcampaignstatus_set.all().delete()
+            # The campaigns of the source that were already worked move to this contact, so their history is kept. The
+            # open ones are deleted, like the pending activities above: left on the source, they keep an empty contact
+            # assigned to a seller, and moved here they could reserve this contact for a campaign that hides it from
+            # every other one (see Campaign.get_not_contacted). ContactCampaignStatus is unique on (contact, campaign):
+            # where this contact is already in the campaign, its own status stays.
+            source_statuses = source.contactcampaignstatus_set
+            source_statuses.filter(status__in=OPEN_CAMPAIGN_STATUSES).delete()
+            source_statuses.filter(campaign__in=self.contactcampaignstatus_set.values("campaign")).delete()
+            source_statuses.update(contact=self)
             source.contactproducthistory_set.update(contact=self)
-            source.tags.add("eliminar")
+            source.tags.add(MERGED_AWAY_CONTACT_TAG)
 
         except Exception as e:
             errors.append(e)
