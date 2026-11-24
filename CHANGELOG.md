@@ -2,6 +2,13 @@
 
 ## v0.5.1
 
+## 2026-11-24 — gl177-email-check-una-vez Guardar un contacto le pregunta una sola vez a la web por el email
+
+- **Guardar desde «Editar contacto» tarda unos 2,5 segundos menos.** El guardado le preguntaba dos veces a la web si el email estaba libre: una al validar el formulario y otra al guardar, con los mismos datos. Cada pregunta tarda unos 2,5 s en producción, y guardar un contacto tardaba unos 6 s (it/utopia-crm-ladiaria#177)
+- El aviso «Contacto guardado» sale sólo si el contacto se guardó
+- Deployment: no se requieren migraciones
+- **Author:** Tanya Tree + Claude Opus 5.5
+
 ## 2026-11-24 — gl175-merge-work-phone Al fusionar contactos, el teléfono del trabajo y la ocupación elegidos se guardan bien
 
 - **El teléfono del trabajo que se elige al fusionar queda en la ficha.** Antes se guardaba el teléfono común en su lugar, y si la ficha no tenía teléfono común la fusión fallaba (it/utopia-crm-ladiaria#175)
