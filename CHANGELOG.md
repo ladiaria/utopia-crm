@@ -2,6 +2,14 @@
 
 ## v0.5.1
 
+## 2026-11-24 — gl173-soltar-google-trancado La cola de takeovers resuelve el email que en la web es sólo el login de Google de otra cuenta
+
+- **Un supervisor ya puede resolver desde la cola el email que en la web es sólo el login de Google de otra cuenta**, registrada con otra dirección. Antes el operador veía «avisá a tu supervisor para que lo derive a soporte web» y lo arreglaba informática a mano (it/utopia-crm-ladiaria#173)
+- **Casi siempre es la misma persona:** el email de su cuenta cambió y el login de Google se quedó con el viejo. Al aprobar, la web le saca ese login a esa cuenta y el email queda libre para el contacto. No se borra ninguna cuenta: quien sea su dueño sigue entrando con su contraseña
+- **La cola muestra qué cuenta pierde el login de Google**, con su contacto y si tiene una suscripción activa, para mirarlo antes de aprobar
+- Deployment: no se requieren migraciones. Necesita el cambio del CMS (`utopia_cms_ladiaria`, mismo issue); sin él, el CRM se comporta como antes
+- **Author:** Tanya Tree + Claude Opus 5.5
+
 ## 2026-11-24 — gl169-fusion-etiqueta-y-campanias Al fusionar contactos, la ficha que queda recibe el historial de campañas y no la marca de eliminar
 
 - **La ficha que queda ya no recibe la etiqueta `eliminar`.** La fusión le copia las etiquetas de la ficha descartada, y si esa ficha ya venía de otra fusión, le copiaba también la marca. Así, una ficha con suscripciones activas podía quedar marcada para eliminar (it/utopia-crm-ladiaria#169)
