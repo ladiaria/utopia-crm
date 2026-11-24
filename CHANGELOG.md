@@ -2,6 +2,14 @@
 
 ## v0.5.1
 
+## 2026-11-24 — gl176-etiquetas-contacto Sacar una etiqueta de un contacto funciona con la ✕ de cualquier etiqueta
+
+- **El campo Etiquetas de «Editar contacto» muestra todas las etiquetas**: crece con ellas, en vez de mostrar una sola fila con scroll (it/utopia-crm-ladiaria#176)
+- **La ✕ borra cualquier etiqueta al primer click.** Antes, en una ficha con muchas etiquetas, la ✕ de una etiqueta que no estaba en la última fila bajaba el scroll hasta el final y no borraba nada: había que borrar con el teclado todas las que estaban después
+- El filtro por etiquetas de la lista de contactos se comporta igual
+- Deployment: no se requieren migraciones
+- **Author:** Tanya Tree + Claude Opus 5.5
+
 ## 2026-11-24 — gl173-soltar-google-trancado La cola de takeovers resuelve el email que en la web es sólo el login de Google de otra cuenta
 
 - **Un supervisor ya puede resolver desde la cola el email que en la web es sólo el login de Google de otra cuenta**, registrada con otra dirección. Antes el operador veía «avisá a tu supervisor para que lo derive a soporte web» y lo arreglaba informática a mano (it/utopia-crm-ladiaria#173)
