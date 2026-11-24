@@ -9216,10 +9216,6 @@ msgstr "Tipo de documento"
 msgid "Id document"
 msgstr "Documento de identidad"
 
-#: support/templates/create_contact/tabs/_data.html:117
-msgid "Scroll to view all tags"
-msgstr "Desliza para ver todas las etiquetas"
-
 #: support/templates/create_contact/tabs/_data.html:129
 msgid "Allow polls"
 msgstr "Acepta encuestas"
