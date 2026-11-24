@@ -1262,7 +1262,8 @@ class Contact(models.Model):
             if education:
                 self.education = education.strip()
             if ocupation_id:
-                self.ocupation_id = int(ocupation_id.strip())
+                # Ocupation's primary key is a code like "011": as an int it would lose the leading zero.
+                self.ocupation_id = ocupation_id.strip()
             if birthdate:
                 self.birthdate = birthdate.strip()
             self.notes = (

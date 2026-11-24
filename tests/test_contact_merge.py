@@ -36,6 +36,20 @@ class TestContactMergeOverrides(TestCase):
         target.refresh_from_db()
         self.assertEqual(target.work_phone, "29031234")
 
+    def test_an_ocupation_code_with_a_leading_zero_is_kept(self):
+        from core.models import Ocupation
+
+        # bulk_create skips the save signals: a customization package may forbid changes to this catalogue.
+        Ocupation.objects.bulk_create([Ocupation(code="011", name="Armed forces officers")], ignore_conflicts=True)
+        target = create_contact(name="Stays", phone="099111222")
+        source = create_contact(name="Merged away", phone="099333444")
+
+        errors = target.merge_other_contact_into_this(source, ocupation_id="011")
+
+        self.assertEqual(errors, [])
+        target.refresh_from_db()
+        self.assertEqual(target.ocupation_id, "011")
+
 
 class TestContactMerge(TestCase):
     def setUp(self):
