@@ -481,30 +481,26 @@ class ContactUpdateView(BreadcrumbsMixin, UpdateView):
         return contact
 
     def form_valid(self, form):
+        # The form validation already ran Contact.clean(), and with it the CMS email check. The flag stops save() from
+        # running it again: each check is a request to the CMS that takes seconds. It has to stay up during the real
+        # save, inside super().form_valid(), not just around form.save(False), which saves nothing.
         skip_clean_set = False
         if not getattr(self.object, "_skip_clean", False):
             self.object._skip_clean, skip_clean_set = True, True
-        try:
-            form.save(False)
-        except Exception as e:
-            if skip_clean_set:
-                del self.object._skip_clean
-            messages.error(self.request, "Error: {}".format(e))
-        else:
-            if skip_clean_set:
-                del self.object._skip_clean
-            messages.success(self.request, self.get_success_message())
         # At this point, the CMS api was already called, to avoid call it again we use the 'updatefromweb' flag
         # TODO: Only apply the prev. line indication (commented) if fields marked to be synced are unchanged
         # self.object.updatefromweb = True
         try:
             result = super().form_valid(form)
         except ValidationError as ve:
-            # The conflict is not one a takeover can fix (staff account, active subscription,
-            # unmovable content). Show the CMS's own reason on the form instead of letting the
-            # error escape the view, which is what used to happen.
+            # The save failed after validation (save() turns an IntegrityError into a ValidationError).
+            # Show it on the form instead of letting the error escape the view.
             form.add_error(None, ve)
             return self.form_invalid(form)
+        finally:
+            if skip_clean_set:
+                del self.object._skip_clean
+        messages.success(self.request, self.get_success_message())
         notify_takeover_queued(self.request, self.object)
         self.save_tags()
         # del self.object.updatefromweb
