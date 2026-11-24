@@ -2,6 +2,13 @@
 
 ## v0.5.1
 
+## 2026-11-24 — gl175-merge-work-phone Al fusionar contactos, el teléfono del trabajo y la ocupación elegidos se guardan bien
+
+- **El teléfono del trabajo que se elige al fusionar queda en la ficha.** Antes se guardaba el teléfono común en su lugar, y si la ficha no tenía teléfono común la fusión fallaba (it/utopia-crm-ladiaria#175)
+- **La ocupación elegida se guarda aunque su código empiece con cero** (por ejemplo «011», oficiales de las Fuerzas Armadas). Antes ese código perdía el cero y la fusión apuntaba a una ocupación que no existe
+- Deployment: no se requieren migraciones
+- **Author:** Tanya Tree + Claude Opus 5.5
+
 ## 2026-11-24 — gl176-etiquetas-contacto Sacar una etiqueta de un contacto funciona con la ✕ de cualquier etiqueta
 
 - **El campo Etiquetas de «Editar contacto» muestra todas las etiquetas**: crece con ellas, en vez de mostrar una sola fila con scroll (it/utopia-crm-ladiaria#176)
