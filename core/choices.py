@@ -111,6 +111,15 @@ class CAMPAIGN_STATUS(IntegerChoices):
     SWITCH_TO_AFTERNOON = 7, _("Switch to afternoon/evening")
 
 
+# Statuses of a contact still to be worked in a campaign: to be called, or to be handed to a seller of the other shift.
+OPEN_CAMPAIGN_STATUSES = [
+    CAMPAIGN_STATUS.NOT_YET_CONTACTED,
+    CAMPAIGN_STATUS.CALLED_COULD_NOT_CONTACT,
+    CAMPAIGN_STATUS.SWITCH_TO_MORNING,
+    CAMPAIGN_STATUS.SWITCH_TO_AFTERNOON,
+]
+
+
 def get_contacted_statuses():
     """
     Returns the list of ContactCampaignStatus statuses that count as 'contacted'.

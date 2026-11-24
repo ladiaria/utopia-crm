@@ -2,6 +2,15 @@
 
 ## v0.5.1
 
+## 2026-11-24 — gl169-fusion-etiqueta-y-campanias Al fusionar contactos, la ficha que queda recibe el historial de campañas y no la marca de eliminar
+
+- **La ficha que queda ya no recibe la etiqueta `eliminar`.** La fusión le copia las etiquetas de la ficha descartada, y si esa ficha ya venía de otra fusión, le copiaba también la marca. Así, una ficha con suscripciones activas podía quedar marcada para eliminar (it/utopia-crm-ladiaria#169)
+- **El historial de campañas de la ficha descartada pasa a la que queda**: las campañas donde ya se la contactó o se terminó con ella. Antes, si la ficha que queda estaba en alguna campaña, ese historial se borraba entero. Si estaban las dos en la misma campaña, queda lo de la ficha que queda
+- **Las campañas abiertas de la ficha descartada se borran**: «No se contactó aún», «Llamado, no se pudo contactar» y los cambios de turno, igual que la fusión ya borraba sus actividades pendientes. Antes, si la ficha que queda no estaba en ninguna campaña, la descartada las conservaba con su vendedor: el vendedor la tenía asignada vacía, y la consola podía esconderla
+- Las fusiones ya hechas no cambian
+- Deployment: no se requieren migraciones
+- **Author:** Tanya Tree + Claude Opus 5.5
+
 ## 2026-11-20 — gl18-gl91-codigo-muerto Se sacan los restos de un proyecto que dejó de usar el CRM
 
 - **Se borran de las suscripciones tres campos que el CRM nunca usó:** la fecha de compra y las dos marcas de sincronización con Zoho. Los cargaba sólo el paquete de una instalación que ya no usa el CRM (it/utopia-crm-ladiaria#91). La fecha de compra aparecía en el admin, pero repetía la fecha de creación. Para saber cuándo se vendió una suscripción se usa la fecha de creación
