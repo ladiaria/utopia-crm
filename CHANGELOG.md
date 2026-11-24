@@ -2,6 +2,13 @@
 
 ## v0.5.1
 
+## 2026-11-24 — gl175-merge-work-phone Al fusionar contactos, el teléfono del trabajo y la ocupación elegidos se guardan bien
+
+- **El teléfono del trabajo que se elige al fusionar queda en la ficha.** Antes se guardaba el teléfono común en su lugar, y si la ficha no tenía teléfono común la fusión fallaba (it/utopia-crm-ladiaria#175)
+- **La ocupación elegida se guarda aunque su código empiece con cero** (por ejemplo «011», oficiales de las Fuerzas Armadas). Antes ese código perdía el cero y la fusión apuntaba a una ocupación que no existe
+- Deployment: no se requieren migraciones
+- **Author:** Tanya Tree + Claude Opus 5.5
+
 ## 2026-11-24 — gl173-soltar-google-trancado La cola de takeovers resuelve el email que en la web es sólo el login de Google de otra cuenta
 
 - **Un supervisor ya puede resolver desde la cola el email que en la web es sólo el login de Google de otra cuenta**, registrada con otra dirección. Antes el operador veía «avisá a tu supervisor para que lo derive a soporte web» y lo arreglaba informática a mano (it/utopia-crm-ladiaria#173)
