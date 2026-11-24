@@ -1233,10 +1233,10 @@ class Contact(models.Model):
                 source.save()
             if not email or email == "":
                 self.email = None
-                self.not_email = True
+                self.no_email = True
             else:
                 self.email = email.strip()
-                self.not_email = False
+                self.no_email = False
             self.save()  # check for the try
             if name:
                 self.name = name.strip()
@@ -1252,7 +1252,7 @@ class Contact(models.Model):
             if phone:
                 self.phone = phone.strip()
             if work_phone:
-                self.work_phone = phone.strip()
+                self.work_phone = work_phone.strip()
             if mobile:
                 self.mobile = mobile.strip()
             if gender:

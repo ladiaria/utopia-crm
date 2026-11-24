@@ -15,6 +15,28 @@ from core.models import MERGED_AWAY_CONTACT_TAG, ContactCampaignStatus
 from tests.factory import create_campaign, create_contact
 
 
+class TestContactMergeOverrides(TestCase):
+    def test_the_chosen_work_phone_is_kept(self):
+        target = create_contact(name="Stays", phone="099111222")
+        source = create_contact(name="Merged away", phone="099333444")
+
+        errors = target.merge_other_contact_into_this(source, phone="099111222", work_phone="29031234")
+
+        self.assertEqual(errors, [])
+        target.refresh_from_db()
+        self.assertEqual(target.work_phone, "29031234")
+
+    def test_a_work_phone_without_a_phone_is_kept(self):
+        target = create_contact(name="Stays", phone="099111222")
+        source = create_contact(name="Merged away", phone="099333444")
+
+        errors = target.merge_other_contact_into_this(source, work_phone="29031234")
+
+        self.assertEqual(errors, [])
+        target.refresh_from_db()
+        self.assertEqual(target.work_phone, "29031234")
+
+
 class TestContactMerge(TestCase):
     def setUp(self):
         self.target = create_contact(name="Stays", phone="099111222")
