@@ -130,7 +130,7 @@
           {% include "contact_detail/tabs/includes/_subscription_validation_actions.html" %}
         {% endif %}
       {% elif subscription.type == "F" %}
-        {% if request.user|in_group:"Managers" %}
+        {% if perms.core.can_add_free_subscription %}
           {% if not subscription.is_obsolete %}
             <a href="{% url "update_free_subscription" subscription.id %}"
                class="btn btn-sm btn-primary mr-1 mb-1"

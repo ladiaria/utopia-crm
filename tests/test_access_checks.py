@@ -5,15 +5,33 @@ Access checks that used to say one thing and do another (it/utopia-crm-ladiaria#
 - Exporting the contact list: the button was only shown to Managers, but the view exported for any staff user.
 - Editing a contact's campaign status asked for an "Admin" group that does not exist, so Admins could not do it.
 - The campaign management menu showed Managers links to Admins-only tools.
+
+Class-based views that checked nothing (it/utopia-crm-ladiaria#185):
+
+- The free subscription views defined test_func without UserPassesTestMixin, so nothing called it.
+- The corporate subscription and subscription update views had no check at all.
+- The API log entry endpoint took POSTs without an API key.
 """
-from django.contrib.auth.models import Group, Permission, User
+from django.contrib.auth.models import AnonymousUser, Group, Permission, User
+from django.contrib.messages.storage.fallback import FallbackStorage
+from django.contrib.sessions.backends.db import SessionStore
+from django.core.exceptions import PermissionDenied
+from django.http import HttpResponseForbidden
 from django.template.loader import render_to_string
 from django.test import RequestFactory, TestCase
 from django.urls import reverse
+from rest_framework.test import APIRequestFactory
 
+from core.serializers import ApiLogEntryViewSet
 from support.views.contacts import user_can_edit_campaign_status, user_can_export_contacts
+from support.views.subscriptions import (
+    CorporateSubscriptionCreateView,
+    CreateFreeSubscriptionView,
+    SubscriptionUpdateView,
+    UpdateFreeSubscriptionView,
+)
 
-from tests.factory import create_contact
+from tests.factory import create_contact, create_subscription
 
 
 def staff_user(username, group=None):
@@ -86,3 +104,72 @@ class TestCampaignManagementSidebar(TestCase):
         html = self.render(staff_user("admin", "Admins"))
         self.assertIn(reverse("upload_do_not_call_numbers"), html)
         self.assertIn(reverse("bulk_delete_campaign_status"), html)
+
+
+class TestSubscriptionClassBasedViews(TestCase):
+    """
+    The views are called directly, not through their URL: a deployment can override those URLs with its own views
+    (URLS_CUSTOM_MODULE), and these tests are about the base ones.
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.contact = create_contact(name="Subscriber", phone="099333444")
+        cls.subscription = create_subscription(cls.contact)
+        cls.free_subscription = create_subscription(cls.contact, subscription_type="F")
+
+    def call(self, view, user, **kwargs):
+        request = RequestFactory().get("/")
+        request.user = user
+        request.session = SessionStore()
+        request._messages = FallbackStorage(request)
+        try:
+            return view.as_view()(request, **kwargs)
+        except PermissionDenied:
+            # Django's handler turns it into a 403 when the view runs through a real request.
+            return HttpResponseForbidden()
+
+    def user_with_perm(self, username, codename):
+        user = staff_user(username)
+        user.user_permissions.add(Permission.objects.get(codename=codename))
+        return User.objects.get(pk=user.pk)
+
+    def test_anonymous_users_are_sent_to_login(self):
+        cases = [
+            (CreateFreeSubscriptionView, {"contact_id": self.contact.id}),
+            (UpdateFreeSubscriptionView, {"subscription_id": self.free_subscription.id}),
+            (CorporateSubscriptionCreateView, {"contact_id": self.contact.id}),
+            (SubscriptionUpdateView, {"contact_id": self.contact.id, "subscription_id": self.subscription.id}),
+        ]
+        for view, kwargs in cases:
+            with self.subTest(view=view.__name__):
+                response = self.call(view, AnonymousUser(), **kwargs)
+                self.assertEqual(response.status_code, 302)
+                self.assertIn("login", response.url)
+
+    def test_free_subscriptions_need_the_permission(self):
+        operator = staff_user("operator")
+        kwargs = {"contact_id": self.contact.id}
+        self.assertEqual(self.call(CreateFreeSubscriptionView, operator, **kwargs).status_code, 403)
+        update_kwargs = {"subscription_id": self.free_subscription.id}
+        self.assertEqual(self.call(UpdateFreeSubscriptionView, operator, **update_kwargs).status_code, 403)
+        allowed = self.user_with_perm("free_subs", "can_add_free_subscription")
+        self.assertEqual(self.call(CreateFreeSubscriptionView, allowed, **kwargs).status_code, 200)
+
+    def test_corporate_subscriptions_need_the_permission(self):
+        kwargs = {"contact_id": self.contact.id}
+        self.assertEqual(self.call(CorporateSubscriptionCreateView, staff_user("operator"), **kwargs).status_code, 403)
+        allowed = self.user_with_perm("corporate", "can_add_corporate_subscription")
+        self.assertNotEqual(self.call(CorporateSubscriptionCreateView, allowed, **kwargs).status_code, 403)
+
+    def test_editing_a_subscription_needs_staff(self):
+        not_staff = User.objects.create_user("not_staff", "ns@example.com", "x")
+        kwargs = {"contact_id": self.contact.id, "subscription_id": self.subscription.id}
+        self.assertEqual(self.call(SubscriptionUpdateView, not_staff, **kwargs).status_code, 403)
+
+
+class TestApiLogEntry(TestCase):
+    def test_a_post_without_api_key_is_rejected(self):
+        request = APIRequestFactory().post("/api/api-log-entry/", {}, format="json")
+        response = ApiLogEntryViewSet.as_view({"post": "create"})(request)
+        self.assertIn(response.status_code, (401, 403))

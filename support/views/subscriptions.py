@@ -371,7 +371,10 @@ class SubscriptionCreateView(UserPassesTestMixin, SubscriptionMixin, FormView):
         return context
 
 
-class SubscriptionUpdateView(SubscriptionMixin, FormView):
+class SubscriptionUpdateView(UserPassesTestMixin, SubscriptionMixin, FormView):
+
+    def test_func(self):
+        return self.request.user.is_staff
 
     def dispatch(self, request, *args, **kwargs):
         self.contact = self.get_contact(kwargs['contact_id'])
@@ -1937,11 +1940,14 @@ class SubscriptionEndDateListView(UserPassesTestMixin, FilterView, ListView):
         return response
 
 
-class CorporateSubscriptionCreateView(SubscriptionMixin, FormView):
+class CorporateSubscriptionCreateView(UserPassesTestMixin, SubscriptionMixin, FormView):
     form_class = CorporateSubscriptionForm
 
     # TODO: Add a template for this view that allows to select products and addresses.
     # It should also allow to select the start and end dates and the amount of subscriptions to create.
+
+    def test_func(self):
+        return self.request.user.has_perm("core.can_add_corporate_subscription")
 
     def dispatch(self, request, *args, **kwargs):
         self.contact = self.get_contact(kwargs['contact_id'])
@@ -2032,10 +2038,13 @@ class AffiliateSubscriptionCreateView(LoginRequiredMixin, BreadcrumbsMixin, Crea
         return reverse("add_affiliate_subscription", args=[self.corporate_subscription.id])
 
 
-class FreeSubscriptionMixin:
+class FreeSubscriptionMixin(UserPassesTestMixin):
     """
     Mixin for shared functionality between CreateFreeSubscriptionView and UpdateFreeSubscriptionView.
     Handles common logic for free subscription management.
+
+    It inherits UserPassesTestMixin so that test_func runs: without it, nothing called test_func and anyone could
+    open both views, logged in or not.
     """
 
     def test_func(self):
