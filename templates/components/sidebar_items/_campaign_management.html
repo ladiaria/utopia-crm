@@ -91,7 +91,7 @@
         <p>{% trans "Release seller contacts" %}</p>
       </a>
     </li>
-    {% if request.user|in_group_exclusive:"Admins" %}
+    {% if request.user|in_group_exclusive:"Admins" or perms.core.can_upload_do_not_call_numbers %}
     <li class="nav-item">
       <a href="{{ upload_do_not_call_numbers }}"
          class="nav-link {% if request.path == upload_do_not_call_numbers %}active{% endif %}">
@@ -100,6 +100,7 @@
       </a>
     </li>
     {% endif %}
+    {% if request.user|in_group_exclusive:"Admins" %}
     <li class="nav-item">
       <a href="{{ bulk_delete_campaign_status }}"
          class="nav-link {% if request.path == bulk_delete_campaign_status %}active{% endif %}">
@@ -107,6 +108,7 @@
         <p>{% trans "Bulk Delete Campaign Status" %}</p>
       </a>
     </li>
+    {% endif %}
     <li class="nav-item">
       <a href="{{ seller_attendance }}"
          class="nav-link {% if request.path == seller_attendance %}active{% endif %}">

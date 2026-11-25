@@ -2,6 +2,15 @@
 
 ## v0.5.1
 
+## 2026-11-25 — gl183-permisos-y-chequeos-de-acceso Tres permisos nuevos y chequeos de acceso que no hacían lo que parecía
+
+- **Tres permisos nuevos**, para darle a un grupo que no es Admin lo que hoy es sólo de Admins o de Managers: «Puede exportar contactos», «Puede subir la lista de no llamar» y «Puede activar suscripciones en la web» (it/utopia-crm-ladiaria#184). Ningún grupo los recibe al migrar
+- **Exportar la lista de contactos a CSV es sólo para Managers**, o para quien tiene el permiso nuevo. Antes el botón se escondía, pero cualquier usuario podía exportar con un link (it/utopia-crm-ladiaria#183)
+- **Las facturas y las actividades de la ficha, y agregar una dirección, piden haber entrado al CRM.** Antes se podían pedir sin sesión
+- **Admins puede editar el estado de un contacto en una campaña** y usar la búsqueda manual de direcciones, que se le escondían por error. El borrado masivo de estados de campaña ya no se le muestra a Managers, que no podía usarlo
+- Deployment: se requieren migraciones
+- **Author:** Tanya Tree + Claude Opus 5.5
+
 ## 2026-11-25 — gl181-permiso-fusionar-contactos Permiso para combinar contactos
 
 - **Nuevo permiso «Puede combinar contactos»**, en los contactos, para que un paquete de customización deje combinar fichas duplicadas a un grupo que no es Admin (it/utopia-crm-ladiaria#181). Es el mismo tipo de permiso que ya existía para combinar direcciones

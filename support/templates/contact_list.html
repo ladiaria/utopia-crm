@@ -143,7 +143,7 @@
                   <input type="submit"
                          class="btn bg-gradient-primary btn-block"
                          value="{% trans "Search" %}" />
-                  {% if request.user|in_group:"Managers" %}
+                  {% if request.user|in_group:"Managers" or perms.core.can_export_contacts %}
                     <input type="submit"
                            class="btn bg-gradient-success btn-block mt-2"
                            name="export"
