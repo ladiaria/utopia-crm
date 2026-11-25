@@ -7,6 +7,7 @@ stays also copied that mark when the source had been merged away before, so a co
 end up marked for deletion. The campaigns of the source were all deleted when the contact that stays was in some campaign,
 history included, and otherwise they stayed on the empty source, assigned to a seller (it/utopia-crm-ladiaria#169).
 """
+from django.contrib.auth.models import Permission
 from django.test import TestCase
 
 from core.choices import CAMPAIGN_STATUS
@@ -118,3 +119,11 @@ class TestContactMerge(TestCase):
         self.assertEqual(list(self.target.contactcampaignstatus_set.all()), [kept])
         kept.refresh_from_db()
         self.assertEqual(kept.status, CAMPAIGN_STATUS.NOT_YET_CONTACTED)
+
+
+class TestContactMergePermission(TestCase):
+    def test_the_merge_permission_exists(self):
+        """Customization packages check it to let a group merge contacts (it/utopia-crm-ladiaria#181)."""
+        permission = Permission.objects.get(codename="can_merge_contacts")
+
+        self.assertEqual((permission.content_type.app_label, permission.content_type.model), ("core", "contact"))
