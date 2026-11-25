@@ -2,6 +2,14 @@
 
 ## v0.5.1
 
+## 2026-11-25 — gl167-prioridad-facturacion La prioridad de facturación desempata siempre igual, y dos productos ya no pueden tenerla repetida
+
+- **Cuando dos productos de una suscripción tienen la misma prioridad de facturación, gana siempre el que se creó primero.** Antes la base de datos elegía cualquiera de los dos, y podía cambiar de una noche a la otra. Ese producto es el que le da a la factura la dirección y la ruta (it/utopia-crm-ladiaria#167)
+- **Un producto sin prioridad pierde siempre** contra cualquiera que tenga número, sea cual sea la base de datos
+- **El formulario del producto no deja guardar una prioridad que ya tiene otro producto activo** de tipo Suscripción u Otro, y dice cuál. La prioridad se puede dejar vacía. Los empates que ya existían no traban editar los demás campos de esos productos
+- Deployment: no se requieren migraciones
+- **Author:** Tanya Tree + Claude Opus 5.5
+
 ## 2026-11-24 — gl177-email-check-una-vez Guardar un contacto le pregunta una sola vez a la web por el email
 
 - **Guardar desde «Editar contacto» tarda unos 2,5 segundos menos.** El guardado le preguntaba dos veces a la web si el email estaba libre: una al validar el formulario y otra al guardar, con los mismos datos. Cada pregunta tarda unos 2,5 s en producción, y guardar un contacto tardaba unos 6 s (it/utopia-crm-ladiaria#177)
