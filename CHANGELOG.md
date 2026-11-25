@@ -2,6 +2,13 @@
 
 ## v0.5.1
 
+## 2026-11-25 — gl181-permiso-fusionar-contactos Permiso para combinar contactos
+
+- **Nuevo permiso «Puede combinar contactos»**, en los contactos, para que un paquete de customización deje combinar fichas duplicadas a un grupo que no es Admin (it/utopia-crm-ladiaria#181). Es el mismo tipo de permiso que ya existía para combinar direcciones
+- El permiso no se le da a ningún grupo: se asigna desde el admin
+- Deployment: se requieren migraciones
+- **Author:** Tanya Tree + Claude Opus 5.5
+
 ## 2026-11-25 — gl167-prioridad-facturacion La prioridad de facturación desempata siempre igual, y dos productos ya no pueden tenerla repetida
 
 - **Cuando dos productos de una suscripción tienen la misma prioridad de facturación, gana siempre el que se creó primero.** Antes la base de datos elegía cualquiera de los dos, y podía cambiar de una noche a la otra. Ese producto es el que le da a la factura la dirección y la ruta (it/utopia-crm-ladiaria#167)

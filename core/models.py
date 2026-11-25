@@ -1444,6 +1444,9 @@ class Contact(models.Model):
         verbose_name = _("contact")
         verbose_name_plural = _("contacts")
         ordering = ("-id",)
+        permissions = [
+            ("can_merge_contacts", _("Can merge contacts")),
+        ]
 
 
 class Country(models.Model):

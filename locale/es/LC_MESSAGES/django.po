@@ -2639,6 +2639,10 @@ msgstr "dirección"
 msgid "addresses"
 msgstr "direcciones"
 
+#: core/models.py:1448
+msgid "Can merge contacts"
+msgstr "Puede combinar contactos"
+
 #: core/models.py:1548
 msgid "Can merge addresses"
 msgstr "Puede combinar direcciones"
