@@ -207,7 +207,7 @@ class Product(models.Model):
         ADVANCED_DISCOUNT = "A", _("Advanced discount")
         OTHER = "O", _("Other")
 
-    # The types that billing takes the name, address and route of the invoice from (get_first_product_by_priority)
+    # The types that billing takes the address and route of the invoice from (get_first_product_by_priority)
     BILLING_TYPES = (ProductTypeChoices.SUBSCRIPTION, ProductTypeChoices.OTHER)
 
     class BillingModeChoices(models.TextChoices):
@@ -381,8 +381,8 @@ class Product(models.Model):
 
     def clean_fields(self, exclude=None):
         """
-        Two active billing products cannot share a billing priority: billing would not know which one gives the name,
-        address and route of the invoice. Only checked when the priority, type or active change, so a tie saved before
+        Two active billing products cannot share a billing priority: billing would not know which one gives the address
+        and route of the invoice. Only checked when the priority, type or active change, so a tie saved before
         this rule existed does not block editing the other fields of those products.
         """
         super().clean_fields(exclude=exclude)
