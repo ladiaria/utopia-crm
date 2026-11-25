@@ -2,6 +2,14 @@
 
 ## v0.5.1
 
+## 2026-11-25 — gl185-vistas-de-clase-sin-chequeo Crear y actualizar suscripciones gratuitas pide el permiso, como decía
+
+- **Crear o actualizar una suscripción gratuita pide el permiso «Puede establecer suscripciones gratuitas».** El botón ya lo pedía, pero la pantalla dejaba entrar a cualquiera con el link, incluso sin haber entrado al CRM (it/utopia-crm-ladiaria#185). El botón «Actualizar suscripción gratuita» de la ficha pedía ser de Managers: ahora pide el mismo permiso, así que un Manager sin el permiso deja de verlo
+- **El alta de una suscripción corporativa pide el permiso del botón**, y editar una suscripción pide ser usuario del CRM. Son las pantallas del repo base, que un paquete de customización puede reemplazar por las suyas
+- **El registro de llamadas a APIs por la API pide una API key**, porque escribe en la base de datos
+- Deployment: no se requieren migraciones
+- **Author:** Tanya Tree + Claude Opus 5.5
+
 ## 2026-11-25 — gl183-permisos-y-chequeos-de-acceso Tres permisos nuevos y chequeos de acceso que no hacían lo que parecía
 
 - **Tres permisos nuevos**, para darle a un grupo que no es Admin lo que hoy es sólo de Admins o de Managers: «Puede exportar contactos», «Puede subir la lista de no llamar» y «Puede activar suscripciones en la web» (it/utopia-crm-ladiaria#184). Ningún grupo los recibe al migrar
