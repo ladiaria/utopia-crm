@@ -275,7 +275,7 @@ $(function() {
                                 </div>
                             </div>
                         </div>
-                        {% if request.user|in_group_exclusive:"Admins" %}
+                        {% if request.user|in_group_exclusive:"Admins" or perms.core.can_upload_do_not_call_numbers %}
                         <div class="col-lg-4 col-6 campaign-card-col">
                             <div class="card">
                                 <div class="card-header">
@@ -303,6 +303,7 @@ $(function() {
                                 </div>
                             </div>
                         </div>
+                        {% if request.user|in_group_exclusive:"Admins" %}
                         <div class="col-lg-4 col-6 campaign-card-col">
                             <div class="card">
                                 <div class="card-header">
@@ -316,6 +317,7 @@ $(function() {
                                 </div>
                             </div>
                         </div>
+                        {% endif %}
                         <div class="col-lg-4 col-6 campaign-card-col">
                             <div class="card">
                                 <div class="card-header">

@@ -1446,6 +1446,7 @@ class Contact(models.Model):
         ordering = ("-id",)
         permissions = [
             ("can_merge_contacts", _("Can merge contacts")),
+            ("can_export_contacts", _("Can export contacts")),
         ]
 
 
@@ -2981,6 +2982,7 @@ class Subscription(models.Model):
             ("can_add_free_subscription", _("Can add free subscription")),
             ("can_add_corporate_subscription", _("Can add corporate subscription")),
             ("can_offer_retention", _("Can offer retention")),
+            ("can_activate_in_web", _("Can activate subscriptions in the web")),
         ]
 
 
@@ -3700,6 +3702,9 @@ class DoNotCallNumber(models.Model):
         verbose_name = _("Do Not Call Number")
         verbose_name_plural = _("Do Not Call Numbers")
         ordering = ["number"]
+        permissions = [
+            ("can_upload_do_not_call_numbers", _("Can upload the do not call list")),
+        ]
 
 
 class EmailReplacement(models.Model):

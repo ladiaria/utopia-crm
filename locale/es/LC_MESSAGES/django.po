@@ -2643,6 +2643,18 @@ msgstr "direcciones"
 msgid "Can merge contacts"
 msgstr "Puede combinar contactos"
 
+#: core/models.py:1449
+msgid "Can export contacts"
+msgstr "Puede exportar contactos"
+
+#: core/models.py:2985
+msgid "Can activate subscriptions in the web"
+msgstr "Puede activar suscripciones en la web"
+
+#: core/models.py:3706
+msgid "Can upload the do not call list"
+msgstr "Puede subir la lista de no llamar"
+
 #: core/models.py:1548
 msgid "Can merge addresses"
 msgstr "Puede combinar direcciones"
