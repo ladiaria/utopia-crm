@@ -2210,6 +2210,19 @@ msgstr "Tiene un descuento implícito"
 msgid "Billing priority"
 msgstr "Prioridad de facturación"
 
+#: core/models.py:393
+#, python-format
+msgid ""
+"The billing priority %(priority)s is already used by %(product)s (id "
+"%(id)s). Two active subscription or other products cannot share it, because "
+"billing would not know which one to use. Choose another number or leave it "
+"empty."
+msgstr ""
+"La prioridad de facturación %(priority)s ya la tiene %(product)s (id "
+"%(id)s). Dos productos activos de tipo suscripción u otro no pueden tener la "
+"misma, porque la facturación no sabría cuál usar. Elegí otro número o dejala "
+"vacía."
+
 #: core/models.py:241
 msgid "Edition frequency"
 msgstr "Periodicidad de edición"

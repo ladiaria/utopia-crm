@@ -207,6 +207,9 @@ class Product(models.Model):
         ADVANCED_DISCOUNT = "A", _("Advanced discount")
         OTHER = "O", _("Other")
 
+    # The types that billing takes the name, address and route of the invoice from (get_first_product_by_priority)
+    BILLING_TYPES = (ProductTypeChoices.SUBSCRIPTION, ProductTypeChoices.OTHER)
+
     class BillingModeChoices(models.TextChoices):
         PER_FREQUENCY = "F", _("Per Frequency")
         FIXED = "X", _("Fixed Price")
@@ -345,6 +348,57 @@ class Product(models.Model):
 
     def natural_key(self):
         return (self.slug,)
+
+    @staticmethod
+    def billing_priority_order(prefix=""):
+        """
+        Ordering by billing priority with a fixed tie-break: products without priority go last (also in MySQL and
+        MariaDB, which sort NULL first), and two products with the same priority are sorted by id, so the result does
+        not change from one query to the next. `prefix` is the lookup to the product, e.g. "product__".
+        """
+        return (F(f"{prefix}billing_priority").asc(nulls_last=True), f"{prefix}id")
+
+    def billing_priority_tie(self):
+        """
+        Returns the first other active billing product (see BILLING_TYPES) with this product's billing priority, or
+        None. Only an active billing product with a priority can tie: an empty priority is allowed.
+        """
+        if not self.active or self.type not in self.BILLING_TYPES or self.billing_priority is None:
+            return None
+        return (
+            Product.objects.filter(active=True, type__in=self.BILLING_TYPES, billing_priority=self.billing_priority)
+            .exclude(pk=self.pk)
+            .order_by("id")
+            .first()
+        )
+
+    def billing_priority_changed(self):
+        """True for a new product, or if its billing priority, type or active differ from the saved ones."""
+        if self.pk is None:
+            return True
+        saved = Product.objects.filter(pk=self.pk).values("billing_priority", "type", "active").first()
+        return saved != {"billing_priority": self.billing_priority, "type": self.type, "active": self.active}
+
+    def clean_fields(self, exclude=None):
+        """
+        Two active billing products cannot share a billing priority: billing would not know which one gives the name,
+        address and route of the invoice. Only checked when the priority, type or active change, so a tie saved before
+        this rule existed does not block editing the other fields of those products.
+        """
+        super().clean_fields(exclude=exclude)
+        if not self.billing_priority_changed():
+            return
+        tie = self.billing_priority_tie()
+        if tie:
+            message = _(
+                "The billing priority %(priority)s is already used by %(product)s (id %(id)s). Two active "
+                "subscription or other products cannot share it, because billing would not know which one to use. "
+                "Choose another number or leave it empty."
+            ) % {"priority": self.billing_priority, "product": tie.name, "id": tie.id}
+            # A form without the field (e.g. the admin list) cannot take a field error
+            if exclude and "billing_priority" in exclude:
+                raise ValidationError(message)
+            raise ValidationError({"billing_priority": message})
 
     def get_weekday(self):
         """
@@ -2328,13 +2382,9 @@ class Subscription(models.Model):
         """
         Returns the first product by priority
         """
-        products = self.products.filter(
-            type__in=[Product.ProductTypeChoices.SUBSCRIPTION, Product.ProductTypeChoices.OTHER]
-        ).order_by("billing_priority")
-        if products.exists():
-            return products.first()
-        else:
-            return None
+        return (
+            self.products.filter(type__in=Product.BILLING_TYPES).order_by(*Product.billing_priority_order()).first()
+        )
 
     def get_billing_data_by_priority(self):
         """
@@ -2369,7 +2419,7 @@ class Subscription(models.Model):
         return result
 
     def get_full_address_by_priority(self):
-        for product in Product.objects.filter(type="S").order_by("billing_priority"):
+        for product in Product.objects.filter(type="S").order_by(*Product.billing_priority_order()):
             if self.subscriptionproduct_set.filter(subscription=self, product=product).exists():
                 sp = self.subscriptionproduct_set.filter(subscription=self, product=product).first()
                 if sp.address:
@@ -2377,7 +2427,7 @@ class Subscription(models.Model):
         return None
 
     def get_address_by_priority(self):
-        for product in Product.objects.filter(type="S").order_by("billing_priority"):
+        for product in Product.objects.filter(type="S").order_by(*Product.billing_priority_order()):
             if self.subscriptionproduct_set.filter(subscription=self, product=product).exists():
                 sp = self.subscriptionproduct_set.filter(subscription=self, product=product).first()
                 if sp.address:
@@ -2385,7 +2435,7 @@ class Subscription(models.Model):
         return None
 
     def get_address_2_by_priority(self):
-        for product in Product.objects.filter(type="S").order_by("billing_priority"):
+        for product in Product.objects.filter(type="S").order_by(*Product.billing_priority_order()):
             if self.subscriptionproduct_set.filter(subscription=self, product=product).exists():
                 sp = self.subscriptionproduct_set.filter(subscription=self, product=product).first()
                 if sp.address:
