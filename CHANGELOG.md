@@ -2,6 +2,13 @@
 
 ## v0.5.1
 
+## 2026-11-26 — gl191-ocultar-authorization-en-errores Los mails de error ya no muestran la API key de quien llamó
+
+- **Los mails de error que el CRM manda a informática tapan la API key y el usuario y contraseña de quien llamó a la API.** Hasta ahora salían completos, porque Django sólo tapa lo que se llama «key», «token», «secret» y parecidos, y la key viaja en el encabezado de autorización (it/utopia-crm-ladiaria#191)
+- El resto del mail queda igual, así que sigue sirviendo para diagnosticar el error
+- Deployment: no se requieren migraciones
+- **Author:** Tanya Tree + Claude Opus 5.5
+
 ## 2026-11-25 — gl185-vistas-de-clase-sin-chequeo Crear y actualizar suscripciones gratuitas pide el permiso, como decía
 
 - **Crear o actualizar una suscripción gratuita pide el permiso «Puede establecer suscripciones gratuitas».** El botón ya lo pedía, pero la pantalla dejaba entrar a cualquiera con el link, incluso sin haber entrado al CRM (it/utopia-crm-ladiaria#185). El botón «Actualizar suscripción gratuita» de la ficha pedía ser de Managers: ahora pide el mismo permiso, así que un Manager sin el permiso deja de verlo
