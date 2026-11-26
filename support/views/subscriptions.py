@@ -40,7 +40,7 @@ from core.models import (
     SubscriptionProduct,
 )
 from core.utils import logistics_is_installed
-from core.choices import ACTIVITY_STATUS
+from core.choices import ACTIVITY_STATUS, PhoneValidationSource
 from support.filters import (
     SubscriptionEndDateFilter,
     UnsubscribedSubscriptionsByEndDateFilter,
@@ -278,6 +278,13 @@ class SubscriptionMixin(BreadcrumbsMixin):
             self.user_seller_id = None
 
     def get_redirect_url_and_sales_record(self, form, subscription, contact, user_seller_id):
+        if self.is_new or self.is_activity:
+            # A sale from the seller console: the seller spoke with the person, so their only number is validated (the
+            # same as the other console results, see SellerConsoleView.validate_the_only_phone). From the database,
+            # because the contact may not have saved the numbers typed in the form.
+            Contact.objects.get(pk=contact.pk).validate_the_only_phone(
+                PhoneValidationSource.CALL_CENTER, user=self.request.user
+            )
         if self.is_new:
             # This means this is a direct sale, we also need to register the activity as just started
             self.ccs.handle_direct_sale(form.cleaned_data["register_activity"], subscription=subscription)
@@ -364,7 +371,10 @@ class SubscriptionCreateView(UserPassesTestMixin, SubscriptionMixin, FormView):
         return context
 
 
-class SubscriptionUpdateView(SubscriptionMixin, FormView):
+class SubscriptionUpdateView(UserPassesTestMixin, SubscriptionMixin, FormView):
+
+    def test_func(self):
+        return self.request.user.is_staff
 
     def dispatch(self, request, *args, **kwargs):
         self.contact = self.get_contact(kwargs['contact_id'])
@@ -1930,11 +1940,14 @@ class SubscriptionEndDateListView(UserPassesTestMixin, FilterView, ListView):
         return response
 
 
-class CorporateSubscriptionCreateView(SubscriptionMixin, FormView):
+class CorporateSubscriptionCreateView(UserPassesTestMixin, SubscriptionMixin, FormView):
     form_class = CorporateSubscriptionForm
 
     # TODO: Add a template for this view that allows to select products and addresses.
     # It should also allow to select the start and end dates and the amount of subscriptions to create.
+
+    def test_func(self):
+        return self.request.user.has_perm("core.can_add_corporate_subscription")
 
     def dispatch(self, request, *args, **kwargs):
         self.contact = self.get_contact(kwargs['contact_id'])
@@ -2025,10 +2038,13 @@ class AffiliateSubscriptionCreateView(LoginRequiredMixin, BreadcrumbsMixin, Crea
         return reverse("add_affiliate_subscription", args=[self.corporate_subscription.id])
 
 
-class FreeSubscriptionMixin:
+class FreeSubscriptionMixin(UserPassesTestMixin):
     """
     Mixin for shared functionality between CreateFreeSubscriptionView and UpdateFreeSubscriptionView.
     Handles common logic for free subscription management.
+
+    It inherits UserPassesTestMixin so that test_func runs: without it, nothing called test_func and anyone could
+    open both views, logged in or not.
     """
 
     def test_func(self):

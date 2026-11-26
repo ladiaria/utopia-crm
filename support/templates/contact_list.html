@@ -5,12 +5,15 @@
   <link rel="stylesheet" href="{% static "/admin-lte/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css" %}" />
   <link rel="stylesheet" type="text/css" href="{% static 'tagify/tagify.css' %}">
   <style>
+    /* Tagify copies the input's form-control class, and its fixed height left one row of tags visible behind a
+       scroll. There, clicking a tag's x focused the text input at the end, the box scrolled away from the x and
+       the click was lost. The box grows with its tags instead. */
     .tagify {
-      max-height: 150px;
-      overflow-y: auto;
       border: 1px solid #ced4da;
-      padding-right: 10px;
       background: linear-gradient(to bottom, white 60%, #f8f9fa);
+    }
+    .tagify.form-control {
+      height: auto;
     }
     .table-responsive-custom {
       overflow-x: auto;
@@ -140,7 +143,7 @@
                   <input type="submit"
                          class="btn bg-gradient-primary btn-block"
                          value="{% trans "Search" %}" />
-                  {% if request.user|in_group:"Managers" %}
+                  {% if request.user|in_group:"Managers" or perms.core.can_export_contacts %}
                     <input type="submit"
                            class="btn bg-gradient-success btn-block mt-2"
                            name="export"

@@ -40,6 +40,7 @@ from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
 from django.views.generic import CreateView, RedirectView, UpdateView, TemplateView
 from django_filters.views import FilterView
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -1621,10 +1622,15 @@ class IssueDetailView(BreadcrumbsMixin, UpdateView):
 view_issue = IssueDetailView.as_view()
 
 
+@staff_member_required
+@require_POST
 def api_new_address(request, contact_id):
     # Convertir en api para llamar a todas las direcciones. TODO: is this a "to-do"?
     """
     To be called by ajax methods. Creates a new address and responds with the created address on a JSON.
+
+    Not an external API: no template nor other system calls it today. It asks for staff and only takes a POST,
+    since it creates an address on any contact (it/utopia-crm-ladiaria#183).
     """
     contact = get_object_or_404(Contact, pk=contact_id)
     data = {}
@@ -2673,7 +2679,11 @@ def user_is_admin(user):
     return user.is_superuser or user.groups.filter(name="Admins").exists()
 
 
-@user_passes_test(user_is_admin)
+def user_can_upload_do_not_call_numbers(user):
+    return user_is_admin(user) or user.has_perm("core.can_upload_do_not_call_numbers")
+
+
+@user_passes_test(user_can_upload_do_not_call_numbers)
 def upload_do_not_call_numbers(request):
     """
     Replaces the whole do not call list with the contents of an uploaded CSV.
@@ -2683,7 +2693,8 @@ def upload_do_not_call_numbers(request):
     transaction by DoNotCallNumber.replace_all_numbers, so a failure halfway through leaves the
     previous list in place instead of wiping it.
 
-    Restricted to superusers and members of the ``Admins`` group: it destroys the current list.
+    Restricted to superusers, members of the ``Admins`` group and users with the
+    ``core.can_upload_do_not_call_numbers`` permission: it destroys the current list.
     """
     default_header_rows = 2
     breadcrumbs = [

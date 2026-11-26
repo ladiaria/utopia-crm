@@ -12,7 +12,7 @@ from django.db.models import Q, Sum, Min, Max, Prefetch
 from django.shortcuts import get_object_or_404, render
 from django.http import HttpResponseRedirect, HttpResponse, StreamingHttpResponse
 from django.utils.translation import gettext_lazy as _
-from django.views.generic import CreateView, DetailView, TemplateView
+from django.views.generic import DetailView, TemplateView
 from django.utils.decorators import method_decorator
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 
@@ -23,7 +23,6 @@ from reportlab.pdfgen.canvas import Canvas
 from reportlab.platypus import Table, TableStyle
 
 from .filters import InvoiceFilter
-from .forms import InvoiceForm, InvoiceItemFormSet
 from invoicing.models import Invoice, InvoiceItem, CreditNote
 from core.models import Contact, Product
 from core.mixins import BreadcrumbsMixin
@@ -400,48 +399,6 @@ def force_cancel_invoice(request, invoice_id):
         else:
             messages.error(request, _("Invoice can't be canceled"))
     return HttpResponseRedirect(reverse("admin:invoicing_invoice_change", args=[invoice_id]))
-
-
-@method_decorator(staff_member_required, name='dispatch')
-class InvoiceNonSubscriptionCreateView(CreateView):
-    model = Invoice
-    form_class = InvoiceForm
-    template_name = 'invoice_non_subscription_form.html'
-
-    def dispatch(self, request, *args, **kwargs):
-        self.contact_id = kwargs.get('contact_id')
-        if self.contact_id:
-            self.contact = get_object_or_404(Contact, pk=self.contact_id)
-        return super().dispatch(request, *args, **kwargs)
-
-    def get_context_data(self, **kwargs):
-        data = super().get_context_data(**kwargs)
-        if self.request.POST:
-            data['formset'] = InvoiceItemFormSet(self.request.POST)
-        else:
-            data['formset'] = InvoiceItemFormSet()
-        return data
-
-    def form_valid(self, form):
-        context = self.get_context_data()
-        formset = context['formset']
-        if settings.DEBUG:
-            print(f"DEBUG: InvoiceNonSubscriptionCreateView: formset={formset}")
-        if form.is_valid() and formset.is_valid():
-            products = []
-            for sub_form in formset:
-                product = sub_form.cleaned_data.get('product')
-                if product:
-                    products.append(product)
-            self.object = self.contact.add_single_invoice_with_products(products)
-            return super().form_valid(form)
-        else:
-            if settings.DEBUG:
-                print(f"DEBUG: InvoiceNonSubscriptionCreateView: form.errors={form.errors}")
-            return self.form_invalid(form)
-
-    def get_success_url(self):
-        return reverse('contact_invoices', args=[self.contact_id])
 
 
 class InvoiceDetailView(BreadcrumbsMixin, LoginRequiredMixin, DetailView):

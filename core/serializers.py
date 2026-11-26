@@ -1,5 +1,6 @@
 import json
 from rest_framework import serializers, viewsets, routers, response, status
+from rest_framework_api_key.permissions import HasAPIKey
 
 from django.conf import settings
 
@@ -39,9 +40,10 @@ class IdDocumentTypeViewSet(viewsets.ReadOnlyModelViewSet):
 
 class ApiLogEntryViewSet(viewsets.ViewSet):
     """
-    ViewSet for API log entries - only supports POST operations
+    ViewSet for API log entries - only supports POST operations. Requires an API key: it writes to the database.
     """
     authentication_classes = [] if settings.ENV_HTTP_BASIC_AUTH else viewsets.ModelViewSet.authentication_classes
+    permission_classes = [HasAPIKey]
 
     def create(self, request):
         """

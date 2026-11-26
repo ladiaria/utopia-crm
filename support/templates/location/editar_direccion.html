@@ -201,7 +201,7 @@
                                    name="save_needs_georef"
                                    class="m-2 btn-large btn btn-danger">
                           </p>
-                          {% if not request.user|in_group:"Sellers" %}
+                          {% if not request.user|in_group_exclusive:"Sellers" or request.user|in_group:"Admins" %}
                             <p>
                               <span class="text-info">Podés seleccionar el departamento manualmente (y ciudad si aplica) y buscar en la siguiente opción</span>
                               <input type="submit"

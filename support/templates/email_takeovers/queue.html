@@ -53,6 +53,8 @@
                         <span class="badge badge-info">{% trans "Only links the account" %}</span>
                     {% elif req.takeover_mode == "fix_email_only" %}
                         <span class="badge badge-secondary">{% trans "Only normalizes the address" %}</span>
+                    {% elif req.takeover_mode == "release_social_auth" %}
+                        <span class="badge badge-warning">{% trans "Removes a Google login" %}</span>
                     {% endif %}
                 </div>
             </div>
@@ -79,6 +81,29 @@
                         <dd class="col-sm-9 text-danger">
                             {{ req.preview_detail.drop_email }}
                             <small class="text-muted">(subscriber {{ req.preview_detail.drop_subscriber_id }})</small>
+                        </dd>
+                    {% endif %}
+
+                    {% if req.released_social_auth %}
+                        <dt class="col-sm-3 text-warning">{% trans "Loses its Google login" %}</dt>
+                        <dd class="col-sm-9">
+                            <ul class="list-unstyled mb-0">
+                                {% for account in req.released_social_auth %}
+                                    <li>
+                                        {{ account.user_email }}
+                                        <small class="text-muted">(subscriber {{ account.subscriber_id|default:"—" }})</small>
+                                        {% if account.contact_id %}
+                                            · <a href="{% url 'contact_detail' account.contact_id %}">{% trans "contact" %} {{ account.contact_id }}</a>
+                                        {% endif %}
+                                        {% if account.has_subscription %}
+                                            <span class="badge badge-danger">{% trans "Active subscription" %}</span>
+                                        {% endif %}
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                            <small class="text-muted d-block">
+                                {% blocktrans %}On the web, the requested address is only the Google login of this account, which is registered under another address. It is usually the same person: the account's email changed and the Google login kept the old one. Approving removes that Google login and frees the address for this contact. No account is deleted: whoever owns that account keeps it and signs in with their password.{% endblocktrans %}
+                            </small>
                         </dd>
                     {% endif %}
 

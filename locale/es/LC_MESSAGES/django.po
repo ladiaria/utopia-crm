@@ -2210,6 +2210,19 @@ msgstr "Tiene un descuento implícito"
 msgid "Billing priority"
 msgstr "Prioridad de facturación"
 
+#: core/models.py:393
+#, python-format
+msgid ""
+"The billing priority %(priority)s is already used by %(product)s (id "
+"%(id)s). Two active subscription or other products cannot share it, because "
+"billing would not know which one to use. Choose another number or leave it "
+"empty."
+msgstr ""
+"La prioridad de facturación %(priority)s ya la tiene %(product)s (id "
+"%(id)s). Dos productos activos de tipo suscripción u otro no pueden tener la "
+"misma, porque la facturación no sabría cuál usar. Elegí otro número o dejala "
+"vacía."
+
 #: core/models.py:241
 msgid "Edition frequency"
 msgstr "Periodicidad de edición"
@@ -2625,6 +2638,22 @@ msgstr "dirección"
 #: core/models.py:1546 logistics/templates/mass_georef_address_filter.html:31
 msgid "addresses"
 msgstr "direcciones"
+
+#: core/models.py:1448
+msgid "Can merge contacts"
+msgstr "Puede combinar contactos"
+
+#: core/models.py:1449
+msgid "Can export contacts"
+msgstr "Puede exportar contactos"
+
+#: core/models.py:2985
+msgid "Can activate subscriptions in the web"
+msgstr "Puede activar suscripciones en la web"
+
+#: core/models.py:3706
+msgid "Can upload the do not call list"
+msgstr "Puede subir la lista de no llamar"
 
 #: core/models.py:1548
 msgid "Can merge addresses"
@@ -9216,10 +9245,6 @@ msgstr "Tipo de documento"
 msgid "Id document"
 msgstr "Documento de identidad"
 
-#: support/templates/create_contact/tabs/_data.html:117
-msgid "Scroll to view all tags"
-msgstr "Desliza para ver todas las etiquetas"
-
 #: support/templates/create_contact/tabs/_data.html:129
 msgid "Allow polls"
 msgstr "Acepta encuestas"
@@ -9564,6 +9589,34 @@ msgstr "Sólo vincula la cuenta"
 #: support/templates/email_takeovers/queue.html:55
 msgid "Only normalizes the address"
 msgstr "Sólo normaliza la dirección"
+
+#: support/templates/email_takeovers/queue.html:57
+msgid "Removes a Google login"
+msgstr "Saca un login de Google"
+
+#: support/templates/email_takeovers/queue.html:88
+msgid "Loses its Google login"
+msgstr "Pierde su login de Google"
+
+#: support/templates/email_takeovers/queue.html:99
+msgid "Active subscription"
+msgstr "Suscripción activa"
+
+#: support/templates/email_takeovers/queue.html:105
+msgid ""
+"On the web, the requested address is only the Google login of this account, "
+"which is registered under another address. It is usually the same person: "
+"the account's email changed and the Google login kept the old one. Approving "
+"removes that Google login and frees the address for this contact. No account "
+"is deleted: whoever owns that account keeps it and signs in with their "
+"password."
+msgstr ""
+"En la web, la dirección pedida es sólo el login de Google de esta cuenta, "
+"que está registrada con otra dirección. Casi siempre es la misma persona: el "
+"email de la cuenta cambió y el login de Google se quedó con el viejo. Al "
+"aprobar se le saca ese login de Google y la dirección queda libre para este "
+"contacto. No se borra ninguna cuenta: quien sea su dueño la conserva y entra "
+"con su contraseña."
 
 #: support/templates/email_takeovers/queue.html:61
 msgid "Contact's email today"
@@ -13111,3 +13164,42 @@ msgstr "No están en estos totales, que son sólo en moneda local:"
 #, python-format
 msgid "%(count)s in %(currency)s"
 msgstr "%(count)s en %(currency)s"
+
+#: core/choices.py
+msgid "Call center"
+msgstr "Call center"
+
+#: core/choices.py
+msgid "Incoming call"
+msgstr "Llamada entrante"
+
+#: core/models.py
+msgid "Phone validated at"
+msgstr "Teléfono validado el"
+
+#: core/models.py
+msgid "Phone validation source"
+msgstr "Origen de la validación del teléfono"
+
+#: core/models.py
+msgid "Mobile validated at"
+msgstr "Celular validado el"
+
+#: core/models.py
+msgid "Mobile validation source"
+msgstr "Origen de la validación del celular"
+
+#: support/templates/includes/_phone_validation.html
+#, python-format
+msgid "Validated on %(date)s (%(source)s)"
+msgstr "Validado el %(date)s (%(source)s)"
+
+#: support/templates/includes/_phone_validation.html
+#, python-format
+msgid "Validated on %(date)s"
+msgstr "Validado el %(date)s"
+
+#: core/models.py
+#, python-format
+msgid "%(field)s validated (%(source)s)"
+msgstr "%(field)s validado (%(source)s)"

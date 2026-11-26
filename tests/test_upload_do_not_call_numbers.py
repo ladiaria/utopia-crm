@@ -1,5 +1,5 @@
 # coding=utf-8
-from django.contrib.auth.models import Group, User
+from django.contrib.auth.models import Group, Permission, User
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase
 from django.urls import reverse
@@ -46,6 +46,14 @@ class UploadDoNotCallNumbersTest(TestCase):
         # user_passes_test redirects to the login page instead of running the view.
         self.assertEqual(response.status_code, 302)
         self.assertEqual(DoNotCallNumber.objects.count(), 10)
+
+    def test_staff_with_the_permission_can_upload(self):
+        """A group that is not Admins gets it through core.can_upload_do_not_call_numbers (ladiaria #184)."""
+        self.staff.user_permissions.add(Permission.objects.get(codename="can_upload_do_not_call_numbers"))
+        # Without following: the success redirect goes to Campaign Management, which also asks for Managers.
+        response = self._upload(self._login(self.staff), b"h1\nh2\n099111222,\n", follow=False)
+        self.assertRedirects(response, reverse("campaign_management"), fetch_redirect_response=False)
+        self.assertEqual(list(DoNotCallNumber.objects.values_list("number", flat=True)), ["099111222"])
 
     def test_anonymous_is_rejected(self):
         response = self._upload(Client(), b"h1\nh2\n099111222,\n", follow=False)

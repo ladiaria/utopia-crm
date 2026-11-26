@@ -23,7 +23,10 @@ from django.utils import timezone
 
 from taggit.managers import TaggableManager
 from simple_history.models import HistoricalRecords
+from simple_history.utils import bulk_update_with_history
 from phonenumber_field.modelfields import PhoneNumberField
+from phonenumber_field.phonenumber import PhoneNumber
+from phonenumbers import NumberParseException
 
 from util.currency import get_default_currency, is_default_currency, split_by_currency
 from util.dates import get_default_next_billing, get_default_start_date, diff_month
@@ -42,6 +45,7 @@ from .choices import (
     ENVELOPE_CHOICES,
     FREQUENCY_CHOICES,
     GENDERS,
+    OPEN_CAMPAIGN_STATUSES,
     PRICERULE_MODE_CHOICES,
     PRICERULE_WILDCARD_MODE_CHOICES,
     PRICERULE_AMOUNT_TO_PICK_CONDITION_CHOICES,
@@ -60,6 +64,7 @@ from .choices import (
     EMAIL_BOUNCE_ACTIONLOG_CHOICES,
     EMAIL_BOUNCE_ACTION_MAXREACH,
     FreeSubscriptionRequestedBy,
+    PhoneValidationSource,
     get_activity_types,
 )
 from .utils import (
@@ -202,6 +207,9 @@ class Product(models.Model):
         ADVANCED_DISCOUNT = "A", _("Advanced discount")
         OTHER = "O", _("Other")
 
+    # The types that billing takes the address and route of the invoice from (get_first_product_by_priority)
+    BILLING_TYPES = (ProductTypeChoices.SUBSCRIPTION, ProductTypeChoices.OTHER)
+
     class BillingModeChoices(models.TextChoices):
         PER_FREQUENCY = "F", _("Per Frequency")
         FIXED = "X", _("Fixed Price")
@@ -341,6 +349,57 @@ class Product(models.Model):
     def natural_key(self):
         return (self.slug,)
 
+    @staticmethod
+    def billing_priority_order(prefix=""):
+        """
+        Ordering by billing priority with a fixed tie-break: products without priority go last (also in MySQL and
+        MariaDB, which sort NULL first), and two products with the same priority are sorted by id, so the result does
+        not change from one query to the next. `prefix` is the lookup to the product, e.g. "product__".
+        """
+        return (F(f"{prefix}billing_priority").asc(nulls_last=True), f"{prefix}id")
+
+    def billing_priority_tie(self):
+        """
+        Returns the first other active billing product (see BILLING_TYPES) with this product's billing priority, or
+        None. Only an active billing product with a priority can tie: an empty priority is allowed.
+        """
+        if not self.active or self.type not in self.BILLING_TYPES or self.billing_priority is None:
+            return None
+        return (
+            Product.objects.filter(active=True, type__in=self.BILLING_TYPES, billing_priority=self.billing_priority)
+            .exclude(pk=self.pk)
+            .order_by("id")
+            .first()
+        )
+
+    def billing_priority_changed(self):
+        """True for a new product, or if its billing priority, type or active differ from the saved ones."""
+        if self.pk is None:
+            return True
+        saved = Product.objects.filter(pk=self.pk).values("billing_priority", "type", "active").first()
+        return saved != {"billing_priority": self.billing_priority, "type": self.type, "active": self.active}
+
+    def clean_fields(self, exclude=None):
+        """
+        Two active billing products cannot share a billing priority: billing would not know which one gives the address
+        and route of the invoice. Only checked when the priority, type or active change, so a tie saved before
+        this rule existed does not block editing the other fields of those products.
+        """
+        super().clean_fields(exclude=exclude)
+        if not self.billing_priority_changed():
+            return
+        tie = self.billing_priority_tie()
+        if tie:
+            message = _(
+                "The billing priority %(priority)s is already used by %(product)s (id %(id)s). Two active "
+                "subscription or other products cannot share it, because billing would not know which one to use. "
+                "Choose another number or leave it empty."
+            ) % {"priority": self.billing_priority, "product": tie.name, "id": tie.id}
+            # A form without the field (e.g. the admin list) cannot take a field error
+            if exclude and "billing_priority" in exclude:
+                raise ValidationError(message)
+            raise ValidationError({"billing_priority": message})
+
     def get_weekday(self):
         """
         Returns the weekday of the product. Used only for products that are bound to a specific day.
@@ -414,6 +473,10 @@ class IdDocumentType(models.Model):
         ordering = ["id"]
 
 
+# Tag that Contact.merge_other_contact_into_this leaves on the contact merged away, which is not deleted.
+MERGED_AWAY_CONTACT_TAG = "eliminar"
+
+
 class Contact(models.Model):
     """Holds people personal information"""
 
@@ -469,6 +532,24 @@ class Contact(models.Model):
     phone = PhoneNumberField(blank=True, default="", verbose_name=_("Phone"), db_index=True)
     phone_extension = models.CharField(blank=True, default="", max_length=16, verbose_name=_("Phone extension"))
     mobile = PhoneNumberField(blank=True, default="", verbose_name=_("Mobile"), db_index=True)
+    # When and how phone and mobile were confirmed to belong to the contact. Changing a number through save() clears
+    # its validation (see reset_changed_phone_validations); work_phone has none.
+    phone_validated_at = models.DateTimeField(blank=True, null=True, verbose_name=_("Phone validated at"))
+    phone_validation_source = models.CharField(
+        blank=True,
+        default="",
+        max_length=16,
+        choices=PhoneValidationSource.choices,
+        verbose_name=_("Phone validation source"),
+    )
+    mobile_validated_at = models.DateTimeField(blank=True, null=True, verbose_name=_("Mobile validated at"))
+    mobile_validation_source = models.CharField(
+        blank=True,
+        default="",
+        max_length=16,
+        choices=PhoneValidationSource.choices,
+        verbose_name=_("Mobile validation source"),
+    )
     work_phone = models.CharField(blank=True, default="", max_length=50, verbose_name=_("Work phone"), db_index=True)
     work_phone_extension = models.CharField(
         blank=True,
@@ -645,7 +726,121 @@ class Contact(models.Model):
         # contact is created (see queue_takeover_after_create).
         return enqueue_takeover(self, email, preview.get("detail"))
 
+    VALIDATED_PHONE_FIELDS = ("phone", "mobile")
+
+    @classmethod
+    def from_db(cls, db, field_names, values):
+        instance = super().from_db(db, field_names, values)
+        instance._loaded_phones = instance._phones_snapshot(field_names)
+        return instance
+
+    def _phones_snapshot(self, field_names=None):
+        """The phones and their validation dates as they are, so that save() can tell when a number changed."""
+        names = [name for field in self.VALIDATED_PHONE_FIELDS for name in (field, f"{field}_validated_at")]
+        return {name: str(getattr(self, name)) for name in names if field_names is None or name in field_names}
+
+    def reset_changed_phone_validations(self, update_fields=None):
+        """
+        Clears the validation of each phone or mobile number that changed since the contact was loaded, unless its
+        validation changed too (whoever changed the number also validated the new one). A contact that was not loaded
+        from the database keeps what it was given. Returns the names of the fields it cleared.
+
+        bulk_update() and update() skip save(), and therefore this: whoever changes numbers in bulk clears their
+        validation by hand. With update_fields, only the numbers it saves count.
+        """
+        loaded = getattr(self, "_loaded_phones", {})
+        cleared = []
+        for field in self.VALIDATED_PHONE_FIELDS:
+            validated_at = f"{field}_validated_at"
+            if update_fields is not None and field not in update_fields:
+                continue
+            if field not in loaded or str(getattr(self, field)) == loaded[field]:
+                continue
+            if validated_at in loaded and str(getattr(self, validated_at)) != loaded[validated_at]:
+                continue
+            if getattr(self, validated_at) or getattr(self, f"{field}_validation_source"):
+                setattr(self, validated_at, None)
+                setattr(self, f"{field}_validation_source", "")
+                cleared += [validated_at, f"{field}_validation_source"]
+        return cleared
+
+    def _save_phone_fields(self, fields, user, reason):
+        """
+        Saves only these fields, with a history record, without save(): what changes here is not something the web
+        system needs to hear about contact by contact (the same as the bulk scripts that clean phones).
+        """
+        bulk_update_with_history([self], Contact, fields, default_user=user, default_change_reason=reason)
+        self._loaded_phones = self._phones_snapshot()
+
+    def mark_phone_validated(self, field, source, user=None, when=None):
+        """Records that phone or mobile (field) was confirmed to be the contact's, now unless when is given."""
+        if field not in self.VALIDATED_PHONE_FIELDS or not getattr(self, field):
+            raise ValueError(f"There is no {field} to validate")
+        setattr(self, f"{field}_validated_at", when or datetime.now())
+        setattr(self, f"{field}_validation_source", source)
+        self._save_phone_fields(
+            [f"{field}_validated_at", f"{field}_validation_source"],
+            user,
+            gettext("%(field)s validated (%(source)s)")
+            % {"field": self._meta.get_field(field).verbose_name, "source": PhoneValidationSource(source).label},
+        )
+
+    def validate_phone_number(self, number, source, when=None, user=None):
+        """
+        Validates the phone or mobile that is exactly this number (any format the phone fields take), for example the
+        one a message came from. A number that is validated at a later date keeps that date. Returns the field it
+        validated, or None when no field has the number or there was nothing to change.
+        """
+        try:
+            wanted = PhoneNumber.from_string(str(number), region=settings.PHONENUMBER_DEFAULT_REGION)
+        except NumberParseException:
+            return None
+        if not wanted.is_valid():
+            return None
+        when = when or datetime.now()
+        for field in self.VALIDATED_PHONE_FIELDS:
+            value = getattr(self, field)
+            if not value or str(value) != wanted.as_e164:
+                continue
+            validated_at = getattr(self, f"{field}_validated_at")
+            if validated_at and validated_at >= when:
+                return None
+            self.mark_phone_validated(field, source, user=user, when=when)
+            return field
+        return None
+
+    def validate_the_only_phone(self, source, user=None):
+        """
+        Validates the phone or mobile when it is the contact's only number, for example after the seller spoke with the
+        person: with more numbers (the institutional phone counts) nothing says which one answered. Returns the field it
+        validated, or None.
+        """
+        numbers = [field for field in ("phone", "mobile", "work_phone") if getattr(self, field)]
+        if numbers not in (["phone"], ["mobile"]):
+            return None
+        self.mark_phone_validated(numbers[0], source, user=user)
+        return numbers[0]
+
+    def remove_phone(self, field, user=None, reason=""):
+        """
+        Deletes a wrong phone or mobile number (field), with its validation and, for the phone, its extension. The
+        contact's history keeps the number, with the user and the reason.
+        """
+        if field not in self.VALIDATED_PHONE_FIELDS:
+            raise ValueError(f"{field} is not a phone that can be removed")
+        fields = [field, f"{field}_validated_at", f"{field}_validation_source"]
+        setattr(self, field, "")
+        setattr(self, f"{field}_validated_at", None)
+        setattr(self, f"{field}_validation_source", "")
+        if field == "phone":
+            self.phone_extension = ""
+            fields.append("phone_extension")
+        self._save_phone_fields(fields, user, reason)
+
     def save(self, *args, **kwargs):
+        cleared = self.reset_changed_phone_validations(kwargs.get("update_fields"))
+        if cleared and kwargs.get("update_fields") is not None:
+            kwargs["update_fields"] = set(kwargs["update_fields"]) | set(cleared)
         skip_clean = getattr(self, "_skip_clean", False)
         if not getattr(self, "updatefromweb", False) and not skip_clean:
             self.clean(debug=settings.DEBUG_CONTACT_CLEAN)
@@ -653,12 +848,14 @@ class Contact(models.Model):
         #       Fix the test and explain why the field is not needed anymore or submit a different solution.
         self.no_email = self.email is None
         try:
-            return super().save(*args, **kwargs)
+            result = super().save(*args, **kwargs)
         except IntegrityError as ie_exc:
             if skip_clean:
                 raise ValidationError(ie_exc)
             else:
                 raise
+        self._loaded_phones = self._phones_snapshot()
+        return result
 
     def is_debtor(self):
         """
@@ -1090,10 +1287,10 @@ class Contact(models.Model):
                 source.save()
             if not email or email == "":
                 self.email = None
-                self.not_email = True
+                self.no_email = True
             else:
                 self.email = email.strip()
-                self.not_email = False
+                self.no_email = False
             self.save()  # check for the try
             if name:
                 self.name = name.strip()
@@ -1109,7 +1306,7 @@ class Contact(models.Model):
             if phone:
                 self.phone = phone.strip()
             if work_phone:
-                self.work_phone = phone.strip()
+                self.work_phone = work_phone.strip()
             if mobile:
                 self.mobile = mobile.strip()
             if gender:
@@ -1119,7 +1316,8 @@ class Contact(models.Model):
             if education:
                 self.education = education.strip()
             if ocupation_id:
-                self.ocupation_id = int(ocupation_id.strip())
+                # Ocupation's primary key is a code like "011": as an int it would lose the leading zero.
+                self.ocupation_id = ocupation_id.strip()
             if birthdate:
                 self.birthdate = birthdate.strip()
             self.notes = (
@@ -1128,7 +1326,9 @@ class Contact(models.Model):
             if source.notes:
                 self.notes += f"\n\nNotes imported from {source.id} - {source.get_full_name()}\n\n"
                 self.notes += source.notes
-            for tag in source.tags.all():
+            # The mark of a merged-away contact stays with the source: if the source had been merged away before,
+            # copying it would mark this contact, the one that stays, for deletion too.
+            for tag in source.tags.exclude(name=MERGED_AWAY_CONTACT_TAG):
                 self.tags.add(tag.name)
             self.save()
             source.addresses.update(contact=self)
@@ -1139,12 +1339,17 @@ class Contact(models.Model):
             # Then we update the contact of the remaining activities
             source.activity_set.update(contact=self)
             source.issue_set.update(contact=self)
-            # ContactCampaignStatus have a unique constraint on (contact, campaign)
-            # so we need to delete the source's ContactCampaignStatus and keep the ones from the target if they exist.
-            if self.contactcampaignstatus_set.exists():
-                source.contactcampaignstatus_set.all().delete()
+            # The campaigns of the source that were already worked move to this contact, so their history is kept. The
+            # open ones are deleted, like the pending activities above: left on the source, they keep an empty contact
+            # assigned to a seller, and moved here they could reserve this contact for a campaign that hides it from
+            # every other one (see Campaign.get_not_contacted). ContactCampaignStatus is unique on (contact, campaign):
+            # where this contact is already in the campaign, its own status stays.
+            source_statuses = source.contactcampaignstatus_set
+            source_statuses.filter(status__in=OPEN_CAMPAIGN_STATUSES).delete()
+            source_statuses.filter(campaign__in=self.contactcampaignstatus_set.values("campaign")).delete()
+            source_statuses.update(contact=self)
             source.contactproducthistory_set.update(contact=self)
-            source.tags.add("eliminar")
+            source.tags.add(MERGED_AWAY_CONTACT_TAG)
 
         except Exception as e:
             errors.append(e)
@@ -1239,6 +1444,10 @@ class Contact(models.Model):
         verbose_name = _("contact")
         verbose_name_plural = _("contacts")
         ordering = ("-id",)
+        permissions = [
+            ("can_merge_contacts", _("Can merge contacts")),
+            ("can_export_contacts", _("Can export contacts")),
+        ]
 
 
 class Country(models.Model):
@@ -1955,12 +2164,7 @@ class Subscription(models.Model):
             " 'American Express', 'Visa', 'Mastercard', etc."
         ),
     )
-    purchase_date = models.DateField(default=date.today, verbose_name=_("Purchase date"), null=True, blank=True)
     creation_date = models.DateTimeField(auto_now_add=True, verbose_name=_("Creation date"), null=True, blank=True)
-
-    # Zoho fields
-    zoho_synced = models.BooleanField(default=False, verbose_name="Zoho Synced")
-    zoho_sync_date = models.DateTimeField(blank=True, null=True, verbose_name="Zoho Sync Date")
 
     def __str__(self):
         parts = [gettext("Active") if self.active else gettext("Inactive"), gettext("subscription")]
@@ -2182,13 +2386,9 @@ class Subscription(models.Model):
         """
         Returns the first product by priority
         """
-        products = self.products.filter(
-            type__in=[Product.ProductTypeChoices.SUBSCRIPTION, Product.ProductTypeChoices.OTHER]
-        ).order_by("billing_priority")
-        if products.exists():
-            return products.first()
-        else:
-            return None
+        return (
+            self.products.filter(type__in=Product.BILLING_TYPES).order_by(*Product.billing_priority_order()).first()
+        )
 
     def get_billing_data_by_priority(self):
         """
@@ -2223,7 +2423,7 @@ class Subscription(models.Model):
         return result
 
     def get_full_address_by_priority(self):
-        for product in Product.objects.filter(type="S").order_by("billing_priority"):
+        for product in Product.objects.filter(type="S").order_by(*Product.billing_priority_order()):
             if self.subscriptionproduct_set.filter(subscription=self, product=product).exists():
                 sp = self.subscriptionproduct_set.filter(subscription=self, product=product).first()
                 if sp.address:
@@ -2231,7 +2431,7 @@ class Subscription(models.Model):
         return None
 
     def get_address_by_priority(self):
-        for product in Product.objects.filter(type="S").order_by("billing_priority"):
+        for product in Product.objects.filter(type="S").order_by(*Product.billing_priority_order()):
             if self.subscriptionproduct_set.filter(subscription=self, product=product).exists():
                 sp = self.subscriptionproduct_set.filter(subscription=self, product=product).first()
                 if sp.address:
@@ -2239,7 +2439,7 @@ class Subscription(models.Model):
         return None
 
     def get_address_2_by_priority(self):
-        for product in Product.objects.filter(type="S").order_by("billing_priority"):
+        for product in Product.objects.filter(type="S").order_by(*Product.billing_priority_order()):
             if self.subscriptionproduct_set.filter(subscription=self, product=product).exists():
                 sp = self.subscriptionproduct_set.filter(subscription=self, product=product).first()
                 if sp.address:
@@ -2782,6 +2982,7 @@ class Subscription(models.Model):
             ("can_add_free_subscription", _("Can add free subscription")),
             ("can_add_corporate_subscription", _("Can add corporate subscription")),
             ("can_offer_retention", _("Can offer retention")),
+            ("can_activate_in_web", _("Can activate subscriptions in the web")),
         ]
 
 
@@ -3501,6 +3702,9 @@ class DoNotCallNumber(models.Model):
         verbose_name = _("Do Not Call Number")
         verbose_name_plural = _("Do Not Call Numbers")
         ordering = ["number"]
+        permissions = [
+            ("can_upload_do_not_call_numbers", _("Can upload the do not call list")),
+        ]
 
 
 class EmailReplacement(models.Model):
@@ -3833,8 +4037,16 @@ class EmailTakeoverRequest(models.Model):
           simply linked to it. Nothing is merged and nothing is deleted.
         - ``merge``: the old account's data is moved into the kept one and the old one is deleted.
         - ``fix_email_only``: the email already lives on the contact's own account, only normalized.
+        - ``release_social_auth``: on the web the email is only the Google login of another account,
+          registered under another address. That login is removed from it; no account is deleted.
         """
         return (self.preview_detail or {}).get("mode")
+
+    @property
+    def released_social_auth(self):
+        """The web accounts that lose their Google login when this request is approved: their email,
+        subscriber, contact and whether they hold an active subscription, as the CMS reported them."""
+        return (self.preview_detail or {}).get("released_social_auth") or []
 
     @property
     def deletes_an_account(self):

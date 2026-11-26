@@ -68,6 +68,35 @@ class TestEmailTakeoverViews(TestCase):
         self.assertContains(response, EMAIL)
         self.assertContains(response, OLD_EMAIL)  # la cuenta que se borraria, a la vista
 
+    def test_la_cola_muestra_que_cuenta_pierde_el_login_de_google(self):
+        """El email es sólo el login de Google de otra cuenta: el supervisor tiene que ver de quién es
+        esa cuenta y si suscribe, porque es la que pierde el login al aprobar."""
+        self.request_obj.preview_detail = {
+            "mode": "release_social_auth",
+            "drop_subscriber_id": None,
+            "released_social_auth": [
+                {
+                    "provider": "google-oauth2",
+                    "uid": EMAIL,
+                    "user_id": 7,
+                    "user_email": "otra.direccion@example.com",
+                    "is_staff": False,
+                    "subscriber_id": 8,
+                    "contact_id": self.contact.id,
+                    "has_subscription": True,
+                }
+            ],
+        }
+        self.request_obj.save()
+        self.client.force_login(self.reviewer)
+
+        response = self.client.get(reverse("email_takeover_queue"))
+
+        self.assertContains(response, "otra.direccion@example.com")
+        self.assertContains(response, reverse("contact_detail", args=[self.contact.id]))
+        self.assertContains(response, "badge-warning")
+        self.assertFalse(self.request_obj.deletes_an_account)
+
     @mock.patch("core.models.validateEmailOnWeb")
     @mock.patch("core.email_takeover_queue.emailTakeoverOnWeb")
     def test_aprobar_desde_la_vista(self, mock_cms, mock_validate):

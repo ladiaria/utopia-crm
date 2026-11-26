@@ -2,6 +2,130 @@
 
 ## v0.5.1
 
+## 2026-11-25 — gl185-vistas-de-clase-sin-chequeo Crear y actualizar suscripciones gratuitas pide el permiso, como decía
+
+- **Crear o actualizar una suscripción gratuita pide el permiso «Puede establecer suscripciones gratuitas».** El botón ya lo pedía, pero la pantalla dejaba entrar a cualquiera con el link, incluso sin haber entrado al CRM (it/utopia-crm-ladiaria#185). El botón «Actualizar suscripción gratuita» de la ficha pedía ser de Managers: ahora pide el mismo permiso, así que un Manager sin el permiso deja de verlo
+- **El alta de una suscripción corporativa pide el permiso del botón**, y editar una suscripción pide ser usuario del CRM. Son las pantallas del repo base, que un paquete de customización puede reemplazar por las suyas
+- **El registro de llamadas a APIs por la API pide una API key**, porque escribe en la base de datos
+- Deployment: no se requieren migraciones
+- **Author:** Tanya Tree + Claude Opus 5.5
+
+## 2026-11-25 — gl183-permisos-y-chequeos-de-acceso Tres permisos nuevos y chequeos de acceso que no hacían lo que parecía
+
+- **Tres permisos nuevos**, para darle a un grupo que no es Admin lo que hoy es sólo de Admins o de Managers: «Puede exportar contactos», «Puede subir la lista de no llamar» y «Puede activar suscripciones en la web» (it/utopia-crm-ladiaria#184). Ningún grupo los recibe al migrar
+- **Exportar la lista de contactos a CSV es sólo para Managers**, o para quien tiene el permiso nuevo. Antes el botón se escondía, pero cualquier usuario podía exportar con un link (it/utopia-crm-ladiaria#183)
+- **Las facturas y las actividades de la ficha, y agregar una dirección, piden haber entrado al CRM.** Antes se podían pedir sin sesión
+- **Admins puede editar el estado de un contacto en una campaña** y usar la búsqueda manual de direcciones, que se le escondían por error. El borrado masivo de estados de campaña ya no se le muestra a Managers, que no podía usarlo
+- Deployment: se requieren migraciones
+- **Author:** Tanya Tree + Claude Opus 5.5
+
+## 2026-11-25 — gl181-permiso-fusionar-contactos Permiso para combinar contactos
+
+- **Nuevo permiso «Puede combinar contactos»**, en los contactos, para que un paquete de customización deje combinar fichas duplicadas a un grupo que no es Admin (it/utopia-crm-ladiaria#181). Es el mismo tipo de permiso que ya existía para combinar direcciones
+- El permiso no se le da a ningún grupo: se asigna desde el admin
+- Deployment: se requieren migraciones
+- **Author:** Tanya Tree + Claude Opus 5.5
+
+## 2026-11-25 — gl167-prioridad-facturacion La prioridad de facturación desempata siempre igual, y dos productos ya no pueden tenerla repetida
+
+- **Cuando dos productos de una suscripción tienen la misma prioridad de facturación, gana siempre el que se creó primero.** Antes la base de datos elegía cualquiera de los dos, y podía cambiar de una noche a la otra. Ese producto es el que le da a la factura la dirección y la ruta (it/utopia-crm-ladiaria#167)
+- **Un producto sin prioridad pierde siempre** contra cualquiera que tenga número, sea cual sea la base de datos
+- **El formulario del producto no deja guardar una prioridad que ya tiene otro producto activo** de tipo Suscripción u Otro, y dice cuál. La prioridad se puede dejar vacía. Los empates que ya existían no traban editar los demás campos de esos productos
+- Deployment: no se requieren migraciones
+- **Author:** Tanya Tree + Claude Opus 5.5
+
+## 2026-11-24 — gl177-email-check-una-vez Guardar un contacto le pregunta una sola vez a la web por el email
+
+- **Guardar desde «Editar contacto» tarda unos 2,5 segundos menos.** El guardado le preguntaba dos veces a la web si el email estaba libre: una al validar el formulario y otra al guardar, con los mismos datos. Cada pregunta tarda unos 2,5 s en producción, y guardar un contacto tardaba unos 6 s (it/utopia-crm-ladiaria#177)
+- El aviso «Contacto guardado» sale sólo si el contacto se guardó
+- Deployment: no se requieren migraciones
+- **Author:** Tanya Tree + Claude Opus 5.5
+
+## 2026-11-24 — gl175-merge-work-phone Al fusionar contactos, el teléfono del trabajo y la ocupación elegidos se guardan bien
+
+- **El teléfono del trabajo que se elige al fusionar queda en la ficha.** Antes se guardaba el teléfono común en su lugar, y si la ficha no tenía teléfono común la fusión fallaba (it/utopia-crm-ladiaria#175)
+- **La ocupación elegida se guarda aunque su código empiece con cero** (por ejemplo «011», oficiales de las Fuerzas Armadas). Antes ese código perdía el cero y la fusión apuntaba a una ocupación que no existe
+- Deployment: no se requieren migraciones
+- **Author:** Tanya Tree + Claude Opus 5.5
+
+## 2026-11-24 — gl176-etiquetas-contacto Sacar una etiqueta de un contacto funciona con la ✕ de cualquier etiqueta
+
+- **El campo Etiquetas de «Editar contacto» muestra todas las etiquetas**: crece con ellas, en vez de mostrar una sola fila con scroll (it/utopia-crm-ladiaria#176)
+- **La ✕ borra cualquier etiqueta al primer click.** Antes, en una ficha con muchas etiquetas, la ✕ de una etiqueta que no estaba en la última fila bajaba el scroll hasta el final y no borraba nada: había que borrar con el teclado todas las que estaban después
+- El filtro por etiquetas de la lista de contactos se comporta igual
+- Deployment: no se requieren migraciones
+- **Author:** Tanya Tree + Claude Opus 5.5
+
+## 2026-11-24 — gl173-soltar-google-trancado La cola de takeovers resuelve el email que en la web es sólo el login de Google de otra cuenta
+
+- **Un supervisor ya puede resolver desde la cola el email que en la web es sólo el login de Google de otra cuenta**, registrada con otra dirección. Antes el operador veía «avisá a tu supervisor para que lo derive a soporte web» y lo arreglaba informática a mano (it/utopia-crm-ladiaria#173)
+- **Casi siempre es la misma persona:** el email de su cuenta cambió y el login de Google se quedó con el viejo. Al aprobar, la web le saca ese login a esa cuenta y el email queda libre para el contacto. No se borra ninguna cuenta: quien sea su dueño sigue entrando con su contraseña
+- **La cola muestra qué cuenta pierde el login de Google**, con su contacto y si tiene una suscripción activa, para mirarlo antes de aprobar
+- Deployment: no se requieren migraciones. Necesita el cambio del CMS (`utopia_cms_ladiaria`, mismo issue); sin él, el CRM se comporta como antes
+- **Author:** Tanya Tree + Claude Opus 5.5
+
+## 2026-11-24 — gl169-fusion-etiqueta-y-campanias Al fusionar contactos, la ficha que queda recibe el historial de campañas y no la marca de eliminar
+
+- **La ficha que queda ya no recibe la etiqueta `eliminar`.** La fusión le copia las etiquetas de la ficha descartada, y si esa ficha ya venía de otra fusión, le copiaba también la marca. Así, una ficha con suscripciones activas podía quedar marcada para eliminar (it/utopia-crm-ladiaria#169)
+- **El historial de campañas de la ficha descartada pasa a la que queda**: las campañas donde ya se la contactó o se terminó con ella. Antes, si la ficha que queda estaba en alguna campaña, ese historial se borraba entero. Si estaban las dos en la misma campaña, queda lo de la ficha que queda
+- **Las campañas abiertas de la ficha descartada se borran**: «No se contactó aún», «Llamado, no se pudo contactar» y los cambios de turno, igual que la fusión ya borraba sus actividades pendientes. Antes, si la ficha que queda no estaba en ninguna campaña, la descartada las conservaba con su vendedor: el vendedor la tenía asignada vacía, y la consola podía esconderla
+- Las fusiones ya hechas no cambian
+- Deployment: no se requieren migraciones
+- **Author:** Tanya Tree + Claude Opus 5.5
+
+## 2026-11-20 — gl18-gl91-codigo-muerto Se sacan los restos de un proyecto que dejó de usar el CRM
+
+- **Se borran de las suscripciones tres campos que el CRM nunca usó:** la fecha de compra y las dos marcas de sincronización con Zoho. Los cargaba sólo el paquete de una instalación que ya no usa el CRM (it/utopia-crm-ladiaria#91). La fecha de compra aparecía en el admin, pero repetía la fecha de creación. Para saber cuándo se vendió una suscripción se usa la fecha de creación
+- **Se borra la traducción `es_CO`** (español de Colombia), que tampoco se usaba: el CRM ofrece inglés y español. Para actualizar las traducciones, `makemessages -l es` en vez de `-a`
+- Si otra instalación cargaba esos campos o tenía `es-co` en `LANGUAGES`, tiene que dejar de hacerlo antes de actualizar
+- Deployment: migración `core.0128_remove_subscription_cambio_fields`, que borra las tres columnas de las suscripciones y de su historial. **Correrla apenas se mergea:** hasta entonces, guardar una suscripción da error
+- **Author:** Tanya Tree + Claude Opus 5.5
+
+## 2026-11-20 — gl18-gl91-codigo-muerto Se borra la pantalla de factura suelta que quedó a medio hacer
+
+- **Se borra la pantalla para crear a mano una factura sin suscripción**, que nunca se terminó: desde 2024 no tenía dirección y nadie podía llegar a ella (it/utopia-crm-ladiaria#18)
+- No cambia nada para quien usa el CRM: en la diaria, las facturas sueltas se hacen desde las pantallas de compra de única vez del call center
+- Deployment: no se requieren migraciones
+- **Author:** Tanya Tree + Claude Opus 5.5
+
+## 2026-11-20 — gl162-send-html-email-django Los mails con plantilla HTML pasan por la configuración de mail del CRM
+
+- **Los avisos con formato HTML, como los errores de MercadoPago y las compras de única vez, se mandan igual que el resto de los mails del CRM.** Antes iban directo al servidor de mail y se salteaban la configuración: por ejemplo, no llevaban el «responder a» que tienen los demás avisos (it/utopia-crm-ladiaria#162)
+- El contenido y los destinatarios de esos avisos no cambian. Ahora llevan además identificador de mensaje, como todos los mails del CRM
+- Deployment: no se requieren migraciones
+- **Author:** Tanya Tree + Claude Opus 5.5
+
+## 2026-11-17 — gl3-consola-sin-botones La consola de ventas ya no borra ni valida teléfonos a mano
+
+- **Se sacan los botones ✓ y ✗ de cada Teléfono y Celular en la consola.** Desde la consola ya no se borra ningún número. Borrar un número equivocado va a pasar por una regla acordada con supervisión (it/utopia-crm-ladiaria#3)
+- **El número se valida solo cuando el contacto tiene uno solo y se habló con la persona:** al agendar, al rechazar, al cerrar con contacto o al hacer una venta desde la consola. No se valida con los motivos de `SELLER_CONSOLE_PHONE_NOT_VALIDATED_REASONS` (en la diaria, «Número y email incorrectos» y «Falleció»), porque indican que quien atendió no era la persona
+- **Con dos números no se valida ninguno**, porque no hay forma de saber en cuál atendió la persona. El teléfono institucional cuenta como otro número
+- Deployment: no se requieren migraciones
+- **Author:** Tanya Tree + Claude Opus 5.5
+
+## 2026-11-17 — gl3-validar-whatsapp Un teléfono también se puede validar por WhatsApp
+
+- **«WhatsApp» es un origen nuevo de la validación de Teléfono y Celular**, para cuando la persona nos escribe desde ese número (it/utopia-crm-ladiaria#3)
+- **`Contact.validate_phone_number()`** valida el campo que tiene exactamente ese número, escrito de cualquier forma. Un número que ya estaba validado con una fecha más nueva la conserva. Lo usan los paquetes de customización que reciben mensajes
+- Deployment: migración `core.0127_phone_validation_source_whatsapp` (sólo cambia las opciones del origen)
+- **Author:** Tanya Tree + Claude Opus 5.5
+
+## 2026-11-17 — gl3-consola-telefonos La consola de ventas valida o borra cada teléfono
+
+- **En la consola, cada Teléfono y Celular tiene dos botones:** ✓ «Es el número de la persona», que lo valida, y ✗ «Número equivocado: borrarlo», que lo borra después de preguntar. Actúan en el momento, sin recargar la pantalla ni perder lo escrito en la actividad (it/utopia-crm-ladiaria#3)
+- **Si el contacto tiene un solo número, se valida solo** al cerrar la llamada con un resultado en el que se habló con la persona (los de estado «Contactado» o «Finalizado con contacto»). No se valida con los motivos de `SELLER_CONSOLE_PHONE_NOT_VALIDATED_REASONS` (en la diaria, «Número y email incorrectos» y «Falleció»). Con dos números, lo marca el vendedor
+- **El número borrado queda en el historial del contacto**, con quién lo borró y el motivo. Validar o borrar no dispara la sincronización con la web
+- Deployment: no se requieren migraciones. Setting nuevo opcional: `SELLER_CONSOLE_PHONE_NOT_VALIDATED_REASONS`
+- **Author:** Tanya Tree + Claude Opus 5.5
+
+## 2026-11-17 — gl3-telefonos-validados Cada teléfono del contacto guarda si está validado
+
+- **Teléfono y Celular guardan cuándo se validaron y por qué vía** (call center, llamada entrante o web). La ficha del contacto y la consola de ventas muestran una etiqueta «Validado» al lado del número, con la fecha y el origen al pasar el mouse. Un número sin la etiqueta está sin verificar (it/utopia-crm-ladiaria#3)
+- **Cambiar el número le saca la validación**, salvo que el mismo cambio valide el número nuevo. Escribir el mismo número de otra forma (con espacios, sin el +598) no la saca
+- En el admin los campos se ven, pero no se editan: los ponen los procesos que confirman el número, que llegan en otros cambios
+- Deployment: migración `core.0126_contact_phone_validation`
+- **Author:** Tanya Tree + Claude Opus 5.5
+
 ## 2026-11-16 — gl145-direccion-exterior-vista-general La vista general dice de qué ciudad y país es una dirección del exterior
 
 - **En la tarjeta Información de contacto de la vista general, una dirección del exterior muestra calle, ciudad y país** («131 Lake Shore Dr, Newnan, Estados Unidos»). Antes mostraba sólo la calle, y no se sabía dónde quedaba (it/utopia-crm-ladiaria#145)

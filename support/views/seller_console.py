@@ -16,7 +16,12 @@ from datetime import date, timedelta, datetime
 from support.models import Seller, Issue, SellerConsoleAction, Shift
 from core.models import Address, SubscriptionProduct, Activity, ContactCampaignStatus, Campaign, Subscription, Contact
 from core.utils import logistics_is_installed
-from core.choices import ACTIVITY_STATUS, CAMPAIGN_RESOLUTION_REASONS_CHOICES, CAMPAIGN_STATUS
+from core.choices import (
+    ACTIVITY_STATUS,
+    CAMPAIGN_RESOLUTION_REASONS_CHOICES,
+    CAMPAIGN_STATUS,
+    PhoneValidationSource,
+)
 
 if logistics_is_installed():
     from logistics.models import Route
@@ -550,6 +555,7 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
         if reason:
             ccs.resolution_reason = reason
         ccs.save()
+        self.validate_the_only_phone(contact, seller_console_action, reason, switch_status)
 
         # Build success message with contact ID, name, and action
         contact_name = contact.get_full_name() or _("No name")
@@ -597,6 +603,24 @@ class SellerConsoleView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
             offset = 2  # If offset is None or invalid, start at 2 (next item)
 
         return self.get_redirect_response(category, campaign.id, offset)
+
+    def validate_the_only_phone(self, contact, seller_console_action, reason, switch_status):
+        """
+        A result that means the seller spoke with the contact (scheduled, declined, ended with contact) validates the
+        number, when the contact has only one: with more, the console can't tell which one answered. The reasons in
+        SELLER_CONSOLE_PHONE_NOT_VALIDATED_REASONS (a wrong number, a deceased contact: who answered was not the person)
+        validate nothing. A sale validates it in SubscriptionMixin.get_redirect_url_and_sales_record.
+        """
+        contacted = (CAMPAIGN_STATUS.CONTACTED, CAMPAIGN_STATUS.ENDED_WITH_CONTACT)
+        if switch_status or seller_console_action.campaign_status not in contacted:
+            return
+        try:
+            reason = int(reason)
+        except (TypeError, ValueError):
+            reason = None
+        if reason in getattr(settings, "SELLER_CONSOLE_PHONE_NOT_VALIDATED_REASONS", ()):
+            return
+        contact.validate_the_only_phone(PhoneValidationSource.CALL_CENTER, user=self.request.user)
 
     def get_call_datetime(self, data):
         """Convert date and time strings to datetime object"""

@@ -5,7 +5,7 @@ import pandas as pd
 from datetime import date
 
 from django.conf import settings
-from django.core.exceptions import ValidationError
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
 from django.db.models import Q, F, Prefetch, Case, When, Value, BooleanField, Count, Exists, OuterRef
 from django.db.models.functions import Lower
@@ -45,6 +45,7 @@ from core.choices import ACTIVITY_STATUS
 from core.filters import ContactFilter
 from core.forms import ContactAdminForm, ContactUpdateForm
 from core.mixins import BreadcrumbsMixin
+from core.templatetags.core_tags import in_group
 from core.utils import (
     MIN_PHONE_SEARCH_DIGITS,
     get_mailtrain_lists,
@@ -59,6 +60,11 @@ from support.forms import ContactCampaignStatusEditForm, ImportContactsForm, Che
 
 from invoicing.models import Invoice, CreditNote
 from taggit.models import Tag
+
+
+def user_can_export_contacts(user):
+    """Managers (and, through in_group, Admins and superusers) or users with core.can_export_contacts."""
+    return in_group(user, "Managers") or user.has_perm("core.can_export_contacts")
 
 
 @method_decorator(staff_member_required, name="dispatch")
@@ -78,6 +84,8 @@ class ContactListView(BreadcrumbsMixin, ListView):
 
     def get(self, request, *args, **kwargs):
         if request.GET.get("export"):
+            if not user_can_export_contacts(request.user):
+                raise PermissionDenied
             return self.export_csv()
         return super().get(request, *args, **kwargs)
 
@@ -293,11 +301,8 @@ class ContactDetailView(BreadcrumbsMixin, DetailView):
         context.update(self.get_expensive_calculations())
         context["subscriptions_count"] = self.get_subscriptions().count()
 
-        # Campaign status edit permission: superusers and members of Managers or Admin groups
-        user = self.request.user
-        context["can_edit_campaign_status"] = user.is_superuser or user.groups.filter(
-            name__in=["Managers", "Admin"]
-        ).exists()
+        # Campaign status edit permission: superusers and members of Managers or Admins groups
+        context["can_edit_campaign_status"] = user_can_edit_campaign_status(self.request.user)
 
         # Add last read articles data from CMS API
         if settings.LDSOCIAL_URL and self.object.email:
@@ -481,30 +486,26 @@ class ContactUpdateView(BreadcrumbsMixin, UpdateView):
         return contact
 
     def form_valid(self, form):
+        # The form validation already ran Contact.clean(), and with it the CMS email check. The flag stops save() from
+        # running it again: each check is a request to the CMS that takes seconds. It has to stay up during the real
+        # save, inside super().form_valid(), not just around form.save(False), which saves nothing.
         skip_clean_set = False
         if not getattr(self.object, "_skip_clean", False):
             self.object._skip_clean, skip_clean_set = True, True
-        try:
-            form.save(False)
-        except Exception as e:
-            if skip_clean_set:
-                del self.object._skip_clean
-            messages.error(self.request, "Error: {}".format(e))
-        else:
-            if skip_clean_set:
-                del self.object._skip_clean
-            messages.success(self.request, self.get_success_message())
         # At this point, the CMS api was already called, to avoid call it again we use the 'updatefromweb' flag
         # TODO: Only apply the prev. line indication (commented) if fields marked to be synced are unchanged
         # self.object.updatefromweb = True
         try:
             result = super().form_valid(form)
         except ValidationError as ve:
-            # The conflict is not one a takeover can fix (staff account, active subscription,
-            # unmovable content). Show the CMS's own reason on the form instead of letting the
-            # error escape the view, which is what used to happen.
+            # The save failed after validation (save() turns an IntegrityError into a ValidationError).
+            # Show it on the form instead of letting the error escape the view.
             form.add_error(None, ve)
             return self.form_invalid(form)
+        finally:
+            if skip_clean_set:
+                del self.object._skip_clean
+        messages.success(self.request, self.get_success_message())
         notify_takeover_queued(self.request, self.object)
         self.save_tags()
         # del self.object.updatefromweb
@@ -883,8 +884,15 @@ class ImportContactsView(BreadcrumbsMixin, FormView):
             messages.error(self.request, error)
 
 
+@staff_member_required
 @csrf_protect
 def contact_invoices_htmx(request, contact_id):
+    """
+    The invoices of the contact detail's Invoices tab, loaded by HTMX from the CRM page with the user's session.
+
+    It asks for staff: the HX-Request header alone can be sent by anyone, and the response has the contact's
+    invoices (it/utopia-crm-ladiaria#183).
+    """
     # Make sure the request comes from my HTMX library
     if request.headers.get("HX-Request") != "true":
         return HttpResponseNotFound()
@@ -904,11 +912,15 @@ def contact_invoices_htmx(request, contact_id):
 CONTACT_ACTIVITIES_PAGE_SIZE = 25
 
 
+@staff_member_required
 @csrf_protect
 def contact_activities_htmx(request, contact_id):
     """
     A page of the contact's activities timeline, filtered by the search box of the Activities tab. The first page
     renders the timeline; the next ones only its items, appended in place of the "Load more" button.
+
+    Loaded by HTMX from the CRM page with the user's session. It asks for staff: the HX-Request header alone can be
+    sent by anyone (it/utopia-crm-ladiaria#183).
     """
     if request.headers.get("HX-Request") != "true":
         return HttpResponseNotFound()
@@ -1227,7 +1239,7 @@ class TagAnalysisView(BreadcrumbsMixin, ListView):
 
 def user_can_edit_campaign_status(user):
     return user.is_active and (
-        user.is_superuser or user.groups.filter(name__in=["Managers", "Admin"]).exists()
+        user.is_superuser or user.groups.filter(name__in=["Managers", "Admins"]).exists()
     )
 
 

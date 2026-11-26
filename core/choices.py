@@ -111,6 +111,15 @@ class CAMPAIGN_STATUS(IntegerChoices):
     SWITCH_TO_AFTERNOON = 7, _("Switch to afternoon/evening")
 
 
+# Statuses of a contact still to be worked in a campaign: to be called, or to be handed to a seller of the other shift.
+OPEN_CAMPAIGN_STATUSES = [
+    CAMPAIGN_STATUS.NOT_YET_CONTACTED,
+    CAMPAIGN_STATUS.CALLED_COULD_NOT_CONTACT,
+    CAMPAIGN_STATUS.SWITCH_TO_MORNING,
+    CAMPAIGN_STATUS.SWITCH_TO_AFTERNOON,
+]
+
+
 def get_contacted_statuses():
     """
     Returns the list of ContactCampaignStatus statuses that count as 'contacted'.
@@ -289,3 +298,12 @@ class FreeSubscriptionRequestedBy(TextChoices):
     MANAGEMENT = "MA", _("Management")
     NEWSROOM = "JD", _("Newsroom")
     PROMOTION = "PR", _("Promotion")
+
+
+class PhoneValidationSource(TextChoices):
+    """Where a contact's phone number was confirmed to be theirs."""
+
+    CALL_CENTER = "call_center", _("Call center")
+    INCOMING_CALL = "incoming_call", _("Incoming call")
+    WEB = "web", _("Web")
+    WHATSAPP = "whatsapp", _("WhatsApp")

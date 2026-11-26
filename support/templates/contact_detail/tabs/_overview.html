@@ -45,6 +45,7 @@
             {% else %}
               <a href="tel:{{ contact.phone }}">{{ contact.phone|phone_display }}</a>
             {% endif %}
+            {% include "includes/_phone_validation.html" with validated_at=contact.phone_validated_at source=contact.get_phone_validation_source_display %}
           {% else %}
             -
           {% endif %}
@@ -61,6 +62,7 @@
             {% else %}
               <a href="tel:{{ contact.mobile }}">{{ contact.mobile|phone_display }}</a>
             {% endif %}
+            {% include "includes/_phone_validation.html" with validated_at=contact.mobile_validated_at source=contact.get_mobile_validation_source_display %}
           </div>
         {% endif %}
         {% if contact.work_phone %}
