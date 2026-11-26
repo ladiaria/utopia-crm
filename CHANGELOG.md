@@ -2,6 +2,13 @@
 
 ## v0.5.1
 
+## 2026-11-26 — gl192-incidencias-sin-cascada Borrar una suscripción ya no borra sus incidencias
+
+- **Cuando se borra una suscripción, sus incidencias y las actividades de esas incidencias quedan en la ficha del contacto**, sin suscripción asociada. Antes se borraban con ella, y para borrar una suscripción desde el admin hacía falta también el permiso de borrar incidencias y actividades (it/utopia-crm-ladiaria#192)
+- Las tareas programadas y el registro de la venta de esa suscripción se siguen borrando con ella: sin la suscripción no tienen sentido
+- Deployment: se requieren migraciones (no cambian las tablas)
+- **Author:** Tanya Tree + Claude Opus 5.5
+
 ## 2026-11-26 — gl191-ocultar-authorization-en-errores Los mails de error ya no muestran la API key de quien llamó
 
 - **Los mails de error que el CRM manda a informática tapan la API key y el usuario y contraseña de quien llamó a la API.** Hasta ahora salían completos, porque Django sólo tapa lo que se llama «key», «token», «secret» y parecidos, y la key viaja en el encabezado de autorización (it/utopia-crm-ladiaria#191)
