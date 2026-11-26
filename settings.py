@@ -285,6 +285,8 @@ GEOREF_MAX_FALLOS_CONSECUTIVOS = 3
 # behaviour via the mail_admins logging handler). Populate these in local_settings.py.
 ADMINS = []
 MANAGERS = ADMINS
+# Also hides the Authorization header (API keys, basic auth) in those emails
+DEFAULT_EXCEPTION_REPORTER_FILTER = "util.error_reporting.SafeExceptionReporterFilter"
 
 # Logging: keep Django's default behaviour (mail uncaught exceptions to ADMINS when not in
 # DEBUG) and additionally send everything to stderr/console so uWSGI captures it in its log.
