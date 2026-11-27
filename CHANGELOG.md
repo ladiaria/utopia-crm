@@ -2,6 +2,13 @@
 
 ## v0.5.1
 
+## 2026-11-27 — gl205-permiso-ver-metricas Nuevo permiso «Puede ver métricas»
+
+- **Nuevo permiso «Puede ver métricas»**, para dar acceso a las métricas a quien no tiene que estar en Finanzas ni en Admins (it/utopia-crm-ladiaria#205)
+- El repo base sólo lo declara: lo usa el paquete de customización para su menú de Métricas. Se asigna en el admin, a un grupo o a una persona
+- Deployment: se requieren migraciones (no cambian las tablas)
+- **Author:** Tanya Tree + Claude Opus 5.5
+
 ## 2026-11-26 — gl192-incidencias-sin-cascada Borrar una suscripción ya no borra sus incidencias
 
 - **Cuando se borra una suscripción, sus incidencias y las actividades de esas incidencias quedan en la ficha del contacto**, sin suscripción asociada. Antes se borraban con ella, y para borrar una suscripción desde el admin hacía falta también el permiso de borrar incidencias y actividades (it/utopia-crm-ladiaria#192)
