@@ -2,6 +2,14 @@
 
 ## v0.5.1
 
+## 2026-11-27 — gl197-papel-sin-direccion La retención pide la dirección de los productos en papel que se agregan
+
+- **Al agregar un producto en papel desde la retención, se elige su dirección en el mismo formulario**, como en Agregar producto y Cambio de productos. Antes se creaba sin dirección y había que cargarla en la edición de la suscripción: si nadie lo hacía, el producto no entraba en ningún recorrido (it/utopia-crm-ladiaria#197)
+- El selector sugiere la dirección a la que ya va un producto en papel de la suscripción, y si no la dirección por defecto del contacto. Sin dirección, o con la de otro contacto, el formulario vuelve con el error y no se guarda nada. Los productos digitales no la piden
+- Cuando el formulario vuelve por una fecha de inicio inválida, sigue mostrando los productos para agregar
+- Deployment: no se requieren migraciones
+- **Author:** Tanya Tree + Claude Opus 5.5
+
 ## 2026-11-26 — gl192-incidencias-sin-cascada Borrar una suscripción ya no borra sus incidencias
 
 - **Cuando se borra una suscripción, sus incidencias y las actividades de esas incidencias quedan en la ficha del contacto**, sin suscripción asociada. Antes se borraban con ella, y para borrar una suscripción desde el admin hacía falta también el permiso de borrar incidencias y actividades (it/utopia-crm-ladiaria#192)
