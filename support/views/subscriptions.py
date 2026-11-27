@@ -1273,6 +1273,21 @@ def add_retention_discount(request, subscription_id):
         {"label": _("Add retention discount"), "url": ""},
     ]
 
+    def render_form(form):
+        return render(
+            request,
+            "add_retention_discount.html",
+            {
+                "retention_products": retention_products,
+                "offerable_products": offerable_products,
+                "subscription": old_subscription,
+                "form": form,
+                "breadcrumbs": breadcrumbs,
+                "contact_addresses": Address.objects.filter(contact=old_subscription.contact),
+                "suggested_address": suggested_address_for_new_products(old_subscription),
+            },
+        )
+
     if request.POST:
         form = RetentionDiscountForm(request.POST, instance=old_subscription)
         if form.is_valid():
@@ -1285,16 +1300,7 @@ def add_retention_discount(request, subscription_id):
                     request,
                     _("Start date must be at least tomorrow (%s)") % tomorrow.strftime('%d/%m/%Y'),
                 )
-                return render(
-                    request,
-                    "add_retention_discount.html",
-                    {
-                        "retention_products": retention_products,
-                        "subscription": old_subscription,
-                        "form": form,
-                        "breadcrumbs": breadcrumbs,
-                    },
-                )
+                return render_form(form)
 
             # Get products to remove (marked for unsubscription)
             products_to_remove = []
@@ -1311,31 +1317,20 @@ def add_retention_discount(request, subscription_id):
                     product_id = key.split("-")[1]
                     selected_discount_ids.append(product_id)
 
-            # Get new products to add
-            new_products_ids_list = []
-            for key in request.POST.keys():
-                if key.startswith("activateproduct-"):
-                    product_id = key.split("-")[1]
-                    new_products_ids_list.append(product_id)
+            # Get new products to add, each with the address chosen for it in the form. A paper product with no
+            # address returns the form with an error before anything gets saved.
+            new_products = new_products_from_post(request, form, old_subscription.contact)
+            if new_products is None:
+                return render_form(form)
 
             # Validate that at least one action is being taken
-            if not selected_discount_ids and not products_to_remove and not new_products_ids_list:
+            if not selected_discount_ids and not products_to_remove and not new_products:
                 messages.error(
                     request,
                     _("Please select at least one retention discount, add new products, "
                       "or mark products to remove")
                 )
-                return render(
-                    request,
-                    "add_retention_discount.html",
-                    {
-                        "retention_products": retention_products,
-                        "offerable_products": offerable_products,
-                        "subscription": old_subscription,
-                        "form": form,
-                        "breadcrumbs": breadcrumbs,
-                    },
-                )
+                return render_form(form)
 
             # Validate that at least one subscription product remains
             # Count only subscription products (type "S"), not discounts
@@ -1346,23 +1341,13 @@ def add_retention_discount(request, subscription_id):
             subscription_products_to_remove = [p for p in products_to_remove if p.type == "S"]
 
             # Check if we're removing all subscription products without adding new ones
-            if len(subscription_products_to_remove) >= len(subscription_products) and not new_products_ids_list:
+            if len(subscription_products_to_remove) >= len(subscription_products) and not new_products:
                 messages.error(
                     request,
                     _("You cannot remove all subscription products without adding new ones. "
                       "At least one subscription product must remain (discounts alone are not enough)."),
                 )
-                return render(
-                    request,
-                    "add_retention_discount.html",
-                    {
-                        "retention_products": retention_products,
-                        "offerable_products": offerable_products,
-                        "subscription": old_subscription,
-                        "form": form,
-                        "breadcrumbs": breadcrumbs,
-                    },
-                )
+                return render_form(form)
 
             # Set end date on old subscription
             old_subscription.end_date = form.cleaned_data["start_date"]
@@ -1427,13 +1412,12 @@ def add_retention_discount(request, subscription_id):
 
             # Add new subscription products
             new_products_list = []
-            for product_id in new_products_ids_list:
-                product = Product.objects.get(pk=product_id)
+            for product, address in new_products:
                 if product not in new_subscription.products.all():
                     new_subscription.add_product(
                         product=product,
                         seller_id=seller_id,
-                        address=None,
+                        address=address,
                     )
                     if product.type == "S":
                         new_products_list.append(product)
@@ -1461,7 +1445,7 @@ def add_retention_discount(request, subscription_id):
             )
             messages.success(request, success_text)
 
-            # Redirect to edit subscription page to allow address changes for new products
+            # Redirect to edit subscription page, to review the new subscription
             url = reverse("edit_subscription", args=[new_subscription.contact.id, new_subscription.id])
             url_params = ""
             if request.GET.get("url", None):
@@ -1487,17 +1471,7 @@ def add_retention_discount(request, subscription_id):
         else:
             form.initial["start_date"] = old_subscription.start_date + timedelta(days=1)
 
-    return render(
-        request,
-        "add_retention_discount.html",
-        {
-            "retention_products": retention_products,
-            "offerable_products": offerable_products,
-            "subscription": old_subscription,
-            "form": form,
-            "breadcrumbs": breadcrumbs,
-        },
-    )
+    return render_form(form)
 
 
 class SendPromoView(BreadcrumbsMixin, UserPassesTestMixin, FormView):
