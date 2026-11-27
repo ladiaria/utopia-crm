@@ -2983,6 +2983,7 @@ class Subscription(models.Model):
             ("can_add_corporate_subscription", _("Can add corporate subscription")),
             ("can_offer_retention", _("Can offer retention")),
             ("can_activate_in_web", _("Can activate subscriptions in the web")),
+            ("can_view_metrics", _("Can view metrics")),
         ]
 
 
