@@ -216,7 +216,7 @@ class Issue(models.Model):
         on_delete=models.SET_NULL,
     )
     subscription = models.ForeignKey(
-        "core.Subscription", verbose_name=_("Subscription"), on_delete=models.CASCADE, null=True, blank=True
+        "core.Subscription", verbose_name=_("Subscription"), on_delete=models.SET_NULL, null=True, blank=True
     )
     product = models.ForeignKey(
         "core.Product", verbose_name=_("Product"), on_delete=models.CASCADE, null=True, blank=True
